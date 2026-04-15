@@ -522,7 +522,36 @@ function GroupSeasonsPage() {
                         {n}
                       </button>
                     ))}
-                  </div>
+                </div>
+                <div>
+                  <button
+                    onClick={() => setIsRetroactive(!isRetroactive)}
+                    className={`flex w-full items-center gap-3 rounded-2xl border p-3 text-left transition-colors ${
+                      isRetroactive ? "border-primary bg-primary/10" : "border-border bg-background"
+                    }`}
+                  >
+                    <History className={`h-5 w-5 ${isRetroactive ? "text-primary" : "text-muted-foreground"}`} />
+                    <div>
+                      <p className={`text-sm font-semibold ${isRetroactive ? "text-primary" : "text-foreground"}`}>
+                        Temporada já em andamento
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Cadastrar rodadas com datas passadas
+                      </p>
+                    </div>
+                  </button>
+                  {isRetroactive && (
+                    <div className="mt-2">
+                      <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Data de início</label>
+                      <input
+                        type="date"
+                        value={startDate}
+                        onChange={(e) => setStartDate(e.target.value)}
+                        className="w-full rounded-2xl border border-border bg-background px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                      />
+                    </div>
+                  )}
+                </div>
                 </div>
                 <div className="flex gap-3">
                   <button
