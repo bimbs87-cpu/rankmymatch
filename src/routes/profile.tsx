@@ -3,6 +3,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { BottomNav } from "@/components/BottomNav";
 import { supabase } from "@/integrations/supabase/client";
 import { EloChart } from "@/components/EloChart";
+import { AvatarPickerDialog } from "@/components/AvatarPickerDialog";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import {
