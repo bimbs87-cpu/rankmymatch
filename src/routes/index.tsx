@@ -8,6 +8,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useMyGroups } from "@/hooks/use-groups";
 import { useNotifications } from "@/hooks/use-notifications";
 import { BottomNav } from "@/components/BottomNav";
+import { InstallBanner } from "@/components/InstallBanner";
 import { supabase } from "@/integrations/supabase/client";
 import { useState, useEffect, useCallback, useRef } from "react";
 import {
@@ -378,6 +379,9 @@ function DashboardPage() {
           </div>
         </div>
       </header>
+
+      {/* PWA Install Banner */}
+      <InstallBanner />
 
       <div className="space-y-5 px-5 pt-5">
         {/* Ranking card + Quick action */}
