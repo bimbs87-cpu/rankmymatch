@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { EloChart } from "@/components/EloChart";
 import { AvatarPickerDialog } from "@/components/AvatarPickerDialog";
 import { useEffect, useState } from "react";
+import { usePwaInstall } from "@/hooks/use-pwa-install";
 import { toast } from "sonner";
 import {
   LogOut,
@@ -21,6 +22,8 @@ import {
   Sun,
   Moon,
   Monitor,
+  Download,
+  Share,
 } from "lucide-react";
 import { useTheme } from "@/lib/theme";
 
