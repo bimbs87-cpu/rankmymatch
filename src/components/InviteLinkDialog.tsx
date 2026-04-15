@@ -153,7 +153,7 @@ export function InviteLinkDialog({ open, onOpenChange, groupId, isAdmin }: Invit
                   </p>
                   <p className="text-[10px] text-muted-foreground">
                     {link.use_count} uso{link.use_count !== 1 ? "s" : ""}
-                    {link.max_uses > 0 ? ` / ${link.max_uses} máx` : ""}
+                    {link.max_uses && link.max_uses > 0 ? ` / ${link.max_uses} máx` : ""}
                   </p>
                 </div>
                 <button
