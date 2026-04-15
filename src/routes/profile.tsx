@@ -454,6 +454,13 @@ function ProfilePage() {
         </button>
       </div>
 
+      <AvatarPickerDialog
+        open={avatarPickerOpen}
+        onOpenChange={setAvatarPickerOpen}
+        currentAvatarUrl={profile?.avatar_url || null}
+        onSelect={handleAvatarSelect}
+        saving={savingAvatar}
+      />
       <BottomNav />
     </div>
   );
