@@ -23,6 +23,8 @@ import {
   X,
   Settings,
   Share2,
+  Trophy,
+  ChevronRight,
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
