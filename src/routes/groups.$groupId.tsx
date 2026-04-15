@@ -1,7 +1,9 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { BottomNav } from "@/components/BottomNav";
+import { GroupImageUpload } from "@/components/GroupImageUpload";
 import { InviteLinkDialog } from "@/components/InviteLinkDialog";
 import { useAuth } from "@/hooks/use-auth";
+import { supabase } from "@/integrations/supabase/client";
 import {
   useGroupDetail,
   joinGroup,
