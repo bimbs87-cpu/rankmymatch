@@ -35,6 +35,7 @@ function RoundDetailPage() {
   const { round, presences, matches, myPresence, confirmedCount, isLoading, refresh } =
     useRoundDetail(roundId);
   const [scoringMatch, setScoringMatch] = useState<any>(null);
+  const [showManualMatch, setShowManualMatch] = useState(false);
 
   if (isLoading) {
     return (
