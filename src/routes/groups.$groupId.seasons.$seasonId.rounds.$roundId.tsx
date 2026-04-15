@@ -3,6 +3,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useGroupDetail } from "@/hooks/use-groups";
 import { useRoundDetail, confirmPresence, cancelPresence, drawTeams } from "@/hooks/use-seasons";
 import { ScoreEntryDialog } from "@/components/ScoreEntryDialog";
+import { ManualMatchDialog } from "@/components/ManualMatchDialog";
 import {
   ArrowLeft,
   Check,
@@ -16,6 +17,7 @@ import {
   UserCheck,
   UserX,
   Edit3,
+  PlusCircle,
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
