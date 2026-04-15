@@ -73,7 +73,7 @@ export function GroupImageUpload({ groupId, currentUrl, onUploaded, onRemoved }:
           type="button"
           onClick={() => inputRef.current?.click()}
           disabled={uploading}
-          className="flex h-28 w-full flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-border bg-background text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary disabled:opacity-50"
+          className="flex h-24 w-full flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-border bg-background text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary disabled:opacity-50"
         >
           {uploading ? (
             <Loader2 className="h-6 w-6 animate-spin" />
