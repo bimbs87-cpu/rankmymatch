@@ -281,7 +281,7 @@ function GroupSeasonsPage() {
 
             {/* Step 2: Config */}
             {step === "config" && (
-              <div className="space-y-4">
+              <div key="step-config" className={`space-y-4 ${stepDir === "forward" ? "animate-step-forward" : "animate-step-back"}`}>
                 <div>
                   <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Nome *</label>
                   <input
@@ -337,7 +337,7 @@ function GroupSeasonsPage() {
                 </div>
                 <div className="flex gap-3">
                   <button
-                    onClick={() => setStep("type")}
+                    onClick={() => goStep("type", "back")}
                     className="flex-1 rounded-2xl border border-border py-3 text-sm font-semibold text-foreground"
                   >
                     Voltar
@@ -354,7 +354,7 @@ function GroupSeasonsPage() {
 
             {/* Step 3: Dates preview */}
             {step === "dates" && (
-              <div className="space-y-4">
+              <div key="step-dates" className={`space-y-4 ${stepDir === "forward" ? "animate-step-forward" : "animate-step-back"}`}>
                 {submitError && (
                   <div className="rounded-2xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
                     {submitError}
@@ -397,7 +397,7 @@ function GroupSeasonsPage() {
                 </div>
                 <div className="flex gap-3">
                   <button
-                    onClick={() => setStep("config")}
+                    onClick={() => goStep("config", "back")}
                     className="flex-1 rounded-2xl border border-border py-3 text-sm font-semibold text-foreground"
                   >
                     Voltar
