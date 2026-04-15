@@ -49,6 +49,9 @@ function GroupDetailPage() {
   const navigate = useNavigate();
   const [tab, setTab] = useState<"members" | "requests" | "settings">("members");
   const [inviteOpen, setInviteOpen] = useState(false);
+  const [leaveDialogOpen, setLeaveDialogOpen] = useState(false);
+  const [hasResults, setHasResults] = useState(false);
+  const [leavingLoading, setLeavingLoading] = useState(false);
 
   if (isLoading) {
     return (
