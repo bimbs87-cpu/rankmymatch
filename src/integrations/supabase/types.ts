@@ -14,6 +14,150 @@ export type Database = {
   }
   public: {
     Tables: {
+      audit_logs: {
+        Row: {
+          action: string
+          created_at: string
+          entity_id: string | null
+          entity_type: string
+          group_id: string | null
+          id: string
+          new_data: Json | null
+          old_data: Json | null
+          reason: string | null
+          user_id: string
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          entity_id?: string | null
+          entity_type: string
+          group_id?: string | null
+          id?: string
+          new_data?: Json | null
+          old_data?: Json | null
+          reason?: string | null
+          user_id: string
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string
+          group_id?: string | null
+          id?: string
+          new_data?: Json | null
+          old_data?: Json | null
+          reason?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_logs_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      comment_reactions: {
+        Row: {
+          comment_id: string
+          created_at: string
+          emoji: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          comment_id: string
+          created_at?: string
+          emoji?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          comment_id?: string
+          created_at?: string
+          emoji?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comment_reactions_comment_id_fkey"
+            columns: ["comment_id"]
+            isOneToOne: false
+            referencedRelation: "comments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      comments: {
+        Row: {
+          content: string
+          created_at: string
+          group_id: string
+          id: string
+          match_id: string | null
+          parent_id: string | null
+          round_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          group_id: string
+          id?: string
+          match_id?: string | null
+          parent_id?: string | null
+          round_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          group_id?: string
+          id?: string
+          match_id?: string | null
+          parent_id?: string | null
+          round_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comments_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comments_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "matches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comments_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comments_round_id_fkey"
+            columns: ["round_id"]
+            isOneToOne: false
+            referencedRelation: "rounds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       courts: {
         Row: {
           court_number: number
@@ -42,6 +186,41 @@ export type Database = {
             columns: ["round_id"]
             isOneToOne: false
             referencedRelation: "rounds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      exports: {
+        Row: {
+          created_at: string
+          file_url: string | null
+          group_id: string
+          id: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          file_url?: string | null
+          group_id: string
+          id?: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          file_url?: string | null
+          group_id?: string
+          id?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exports_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
             referencedColumns: ["id"]
           },
         ]
@@ -375,6 +554,112 @@ export type Database = {
             columns: ["round_id"]
             isOneToOne: false
             referencedRelation: "rounds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notifications: {
+        Row: {
+          body: string | null
+          created_at: string
+          data: Json | null
+          group_id: string | null
+          id: string
+          read: boolean
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          body?: string | null
+          created_at?: string
+          data?: Json | null
+          group_id?: string | null
+          id?: string
+          read?: boolean
+          title: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          body?: string | null
+          created_at?: string
+          data?: Json | null
+          group_id?: string | null
+          id?: string
+          read?: boolean
+          title?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      player_stats_by_season: {
+        Row: {
+          games_lost: number | null
+          games_won: number | null
+          id: string
+          matches_played: number | null
+          matches_won: number | null
+          reliability_score: number | null
+          rounds_absent: number | null
+          rounds_present: number | null
+          season_id: string
+          sets_lost: number | null
+          sets_won: number | null
+          updated_at: string
+          user_id: string
+          win_streak_current: number | null
+          win_streak_max: number | null
+        }
+        Insert: {
+          games_lost?: number | null
+          games_won?: number | null
+          id?: string
+          matches_played?: number | null
+          matches_won?: number | null
+          reliability_score?: number | null
+          rounds_absent?: number | null
+          rounds_present?: number | null
+          season_id: string
+          sets_lost?: number | null
+          sets_won?: number | null
+          updated_at?: string
+          user_id: string
+          win_streak_current?: number | null
+          win_streak_max?: number | null
+        }
+        Update: {
+          games_lost?: number | null
+          games_won?: number | null
+          id?: string
+          matches_played?: number | null
+          matches_won?: number | null
+          reliability_score?: number | null
+          rounds_absent?: number | null
+          rounds_present?: number | null
+          season_id?: string
+          sets_lost?: number | null
+          sets_won?: number | null
+          updated_at?: string
+          user_id?: string
+          win_streak_current?: number | null
+          win_streak_max?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "player_stats_by_season_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "seasons"
             referencedColumns: ["id"]
           },
         ]
