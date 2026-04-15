@@ -345,8 +345,23 @@ function DashboardPage() {
 
       <div className="space-y-5 px-5 pt-5">
         {/* Ranking card + Quick action */}
-        <section className="grid grid-cols-2 gap-3">
-          {myRanking ? (
+        <section className="grid grid-cols-2 gap-3 animate-fade-in">
+          {dataLoading ? (
+            <>
+              <div className="flex flex-col rounded-3xl border border-border bg-card p-4 animate-pulse">
+                <div className="h-2.5 w-16 rounded bg-muted" />
+                <div className="mt-3 h-8 w-12 rounded bg-muted" />
+                <div className="mt-2 h-3 w-20 rounded bg-muted" />
+                <div className="mt-2 h-2 w-24 rounded bg-muted" />
+                <div className="mt-auto pt-3 h-2 w-16 rounded bg-muted" />
+              </div>
+              <div className="flex flex-col items-center justify-center gap-1.5 rounded-3xl bg-primary p-5 text-primary-foreground">
+                <Plus className="h-7 w-7" strokeWidth={2.5} />
+                <span className="text-sm font-semibold">Criar / Entrar</span>
+                <span className="text-[10px] opacity-70">em um grupo</span>
+              </div>
+            </>
+          ) : myRanking ? (
             <Link to="/ranking" className="flex flex-col rounded-3xl border border-primary/20 bg-primary/5 p-4">
               <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Seu Ranking</p>
               <div className="mt-1 flex items-baseline gap-1.5">
@@ -393,8 +408,20 @@ function DashboardPage() {
           </div>
 
           {dataLoading ? (
-            <div className="flex justify-center py-6">
-              <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+            <div className="space-y-2">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="flex items-center gap-3 rounded-2xl border border-border bg-card p-3.5 animate-pulse">
+                  <div className="h-10 w-10 shrink-0 rounded-xl bg-muted" />
+                  <div className="flex-1 space-y-2">
+                    <div className="h-3.5 w-28 rounded bg-muted" />
+                    <div className="h-2.5 w-40 rounded bg-muted" />
+                  </div>
+                  <div className="space-y-1.5 text-right">
+                    <div className="ml-auto h-3 w-8 rounded bg-muted" />
+                    <div className="ml-auto h-2 w-14 rounded bg-muted" />
+                  </div>
+                </div>
+              ))}
             </div>
           ) : upcomingRounds.length === 0 ? (
             <div className="rounded-3xl border border-border bg-card p-5">
@@ -481,8 +508,17 @@ function DashboardPage() {
           </div>
 
           {dataLoading ? (
-            <div className="flex justify-center py-6">
-              <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+            <div className="space-y-2">
+              {[1, 2].map((i) => (
+                <div key={i} className="flex items-center gap-3 rounded-2xl border border-border bg-card p-3 animate-pulse">
+                  <div className="h-9 w-9 shrink-0 rounded-xl bg-muted" />
+                  <div className="flex-1 space-y-2">
+                    <div className="h-3 w-32 rounded bg-muted" />
+                    <div className="h-2.5 w-24 rounded bg-muted" />
+                  </div>
+                  <div className="h-3 w-6 rounded bg-muted" />
+                </div>
+              ))}
             </div>
           ) : recentMatches.length === 0 ? (
             <div className="rounded-3xl border border-border bg-card p-5">
