@@ -40,7 +40,7 @@ export const Route = createFileRoute("/groups/$groupId/")({
 function GroupDetailPage() {
   const { groupId } = Route.useParams();
   const { user, isAuthenticated } = useAuth();
-  const { group, members, myRole, isAdmin, isCreator, pendingRequests, isLoading, refresh } =
+  const { group, memberCount, members, myRole, isAdmin, isCreator, pendingRequests, isLoading, refresh } =
     useGroupDetail(groupId);
   const navigate = useNavigate();
   const [tab, setTab] = useState<"members" | "requests" | "settings">("members");
@@ -139,7 +139,7 @@ function GroupDetailPage() {
                 <Lock className="h-3.5 w-3.5 text-muted-foreground" />
               )}
             </div>
-            <p className="text-xs text-muted-foreground">{members.length} membros ativos</p>
+            <p className="text-xs text-muted-foreground">{memberCount} membros ativos</p>
           </div>
           {isMember && (
             <button
