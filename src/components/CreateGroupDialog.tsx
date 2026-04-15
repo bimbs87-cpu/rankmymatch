@@ -38,7 +38,7 @@ export function CreateGroupDialog({ open, onClose }: Props) {
       });
 
       // Update image_url if uploaded
-      if (imageUrl) {
+      if (imageUrl && group) {
         await supabase
           .from("groups")
           .update({ image_url: imageUrl })
@@ -46,11 +46,18 @@ export function CreateGroupDialog({ open, onClose }: Props) {
       }
 
       toast.success("Grupo criado com sucesso!");
+      setSubmitting(false);
       onClose();
+      // Reset form
+      setName("");
+      setDescription("");
+      setIsPublic(true);
+      setMaxPlayers(20);
+      setImageUrl(null);
       navigate({ to: "/groups/$groupId", params: { groupId: group.id } });
     } catch (e: any) {
-      toast.error(e.message || "Erro ao criar grupo");
-    } finally {
+      console.error("Erro ao criar grupo:", e);
+      toast.error(e?.message || "Erro ao criar grupo. Tente novamente.");
       setSubmitting(false);
     }
   };
