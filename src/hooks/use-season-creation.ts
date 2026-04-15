@@ -10,7 +10,6 @@ export async function createSeasonWithRounds(data: {
   roundDates: string[];
   scheduledTime?: string;
   matchFormat?: string;
-  simultaneousCourts?: number;
 }) {
   if (!data.roundDates.length) {
     throw new Error("Defina pelo menos uma data para criar a temporada.");
@@ -49,7 +48,7 @@ export async function createSeasonWithRounds(data: {
       round_number: idx + 1,
       scheduled_date: date,
       scheduled_time: data.scheduledTime || null,
-      max_players: (data.simultaneousCourts || 1) * 4,
+      max_players: 8,
       status: "scheduled" as const,
     }));
 
