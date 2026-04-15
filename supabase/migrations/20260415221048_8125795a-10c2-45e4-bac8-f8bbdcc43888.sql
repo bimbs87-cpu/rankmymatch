@@ -1,0 +1,2 @@
+ALTER TABLE public.seasons DROP CONSTRAINT seasons_duration_type_check;
+ALTER TABLE public.seasons ADD CONSTRAINT seasons_duration_type_check CHECK (duration_type = ANY (ARRAY['1_month', '2_months', '3_months', '6_months', '1_year', 'custom', 'weekly', 'monthly']::text[]));
