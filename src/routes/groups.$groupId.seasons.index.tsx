@@ -236,13 +236,41 @@ function GroupSeasonsPage() {
         <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
           <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowCreate(false)} />
           <div className="relative w-full max-w-lg rounded-t-3xl sm:rounded-3xl border border-border bg-card p-6 pb-10 sm:pb-6 animate-in slide-in-from-bottom duration-300 max-h-[85vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center justify-between mb-4">
               <h2 className="font-display text-lg font-bold text-foreground">
                 {step === "type" ? "Tipo de Temporada" : step === "config" ? "Configurar Temporada" : "Datas das Rodadas"}
               </h2>
               <button onClick={() => setShowCreate(false)} className="rounded-full bg-muted p-2">
                 <X className="h-4 w-4 text-muted-foreground" />
               </button>
+            </div>
+
+            {/* Stepper */}
+            <div className="mb-6 flex items-center justify-center gap-2">
+              {(["type", "config", "dates"] as const).map((s, i) => {
+                const stepIndex = { type: 0, config: 1, dates: 2 };
+                const current = stepIndex[step];
+                const isActive = i === current;
+                const isDone = i < current;
+                return (
+                  <div key={s} className="flex items-center gap-2">
+                    {i > 0 && (
+                      <div className={`h-0.5 w-6 rounded-full transition-colors duration-300 ${isDone ? "bg-primary" : "bg-border"}`} />
+                    )}
+                    <div
+                      className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold transition-all duration-300 ${
+                        isActive
+                          ? "bg-primary text-primary-foreground scale-110"
+                          : isDone
+                            ? "bg-primary/20 text-primary"
+                            : "bg-muted text-muted-foreground"
+                      }`}
+                    >
+                      {isDone ? "✓" : i + 1}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
 
             {/* Step 1: Choose type */}
