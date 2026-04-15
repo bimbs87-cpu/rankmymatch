@@ -127,17 +127,48 @@ function DashboardPage() {
               Explorar <ChevronRight className="h-3.5 w-3.5" />
             </Link>
           </div>
-          <div className="rounded-3xl border border-border bg-card p-5">
-            <div className="flex flex-col items-center gap-2 text-center">
-              <Users className="h-7 w-7 text-muted-foreground/40" />
-              <p className="text-sm text-muted-foreground">Nenhum grupo ainda</p>
-              <Link to="/groups">
-                <button className="mt-2 rounded-full border border-border bg-card px-4 py-2 text-xs font-medium text-foreground transition-colors hover:bg-accent">
-                  Buscar grupos
-                </button>
-              </Link>
+          {myGroups.length > 0 ? (
+            <div className="space-y-2">
+              {myGroups.slice(0, 3).map((g) => (
+                <Link
+                  key={g.id}
+                  to="/groups/$groupId"
+                  params={{ groupId: g.id }}
+                  className="flex items-center justify-between rounded-2xl border border-border bg-card p-4 transition-colors active:bg-accent/30"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-muted">
+                      <Users className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-sm font-semibold text-foreground">{g.name}</span>
+                        {g.is_public ? (
+                          <Globe className="h-3 w-3 text-muted-foreground" />
+                        ) : (
+                          <Lock className="h-3 w-3 text-muted-foreground" />
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground">{g.member_count} membros</p>
+                    </div>
+                  </div>
+                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                </Link>
+              ))}
             </div>
-          </div>
+          ) : (
+            <div className="rounded-3xl border border-border bg-card p-5">
+              <div className="flex flex-col items-center gap-2 text-center">
+                <Users className="h-7 w-7 text-muted-foreground/40" />
+                <p className="text-sm text-muted-foreground">Nenhum grupo ainda</p>
+                <Link to="/groups">
+                  <button className="mt-2 rounded-full border border-border bg-card px-4 py-2 text-xs font-medium text-foreground transition-colors hover:bg-accent">
+                    Buscar grupos
+                  </button>
+                </Link>
+              </div>
+            </div>
+          )}
         </section>
 
         {/* Ranking */}
