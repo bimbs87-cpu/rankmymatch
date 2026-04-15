@@ -268,7 +268,7 @@ function DashboardPage() {
 
     return (
       <div className="flex min-h-screen flex-col items-center justify-center bg-background px-6">
-        <img src={horizontalLogo} alt="RankMyMatch" className="mb-6 h-14 w-auto" />
+        <img src={horizontalLogo} alt="RankMyMatch" className="mb-6 h-24 w-auto" />
         <p className="mt-1 mb-8 text-center text-sm text-muted-foreground">
           O app definitivo para feirinos com rankings,
           temporadas de padel entre amigos e clubes.
