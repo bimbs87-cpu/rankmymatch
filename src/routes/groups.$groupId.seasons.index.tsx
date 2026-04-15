@@ -3,9 +3,10 @@ import { useAuth } from "@/hooks/use-auth";
 import { useGroupDetail } from "@/hooks/use-groups";
 import { useGroupSeasons } from "@/hooks/use-seasons";
 import { createSeasonWithRounds } from "@/hooks/use-season-creation";
-import { ArrowLeft, Plus, Trophy, X, Calendar, Pencil } from "lucide-react";
+import { ArrowLeft, Plus, Trophy, X, Calendar, Pencil, MoreVertical, Trash2, EyeOff, Eye, CheckCircle, LayoutGrid } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/groups/$groupId/seasons/")({
   component: GroupSeasonsPage,
@@ -66,6 +67,11 @@ function GroupSeasonsPage() {
   const [time, setTime] = useState("19:00");
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [courts, setCourts] = useState(1);
+  const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
+  const [actionConfirm, setActionConfirm] = useState<{ id: string; action: "delete" | "deactivate" | "finish" | "activate" } | null>(null);
+  const [actionLoading, setActionLoading] = useState(false);
+  const [showInactive, setShowInactive] = useState(false);
 
   const resetForm = () => {
     setStep("type");
@@ -77,6 +83,7 @@ function GroupSeasonsPage() {
     setEditingIdx(null);
     setTime("19:00");
     setSubmitError(null);
+    setCourts(1);
   };
 
   const handleSelectType = (type: "weekly" | "monthly") => {
@@ -122,6 +129,7 @@ function GroupSeasonsPage() {
         totalRounds,
         roundDates,
         scheduledTime: time,
+        simultaneousCourts: courts,
       });
       toast.success("Temporada criada com rodadas!");
       setShowCreate(false);
@@ -145,6 +153,42 @@ function GroupSeasonsPage() {
       month: "short",
     });
   };
+
+  const handleSeasonAction = async () => {
+    if (!actionConfirm) return;
+    setActionLoading(true);
+    try {
+      if (actionConfirm.action === "delete") {
+        // Delete rounds first, then season
+        await supabase.from("rounds").delete().eq("season_id", actionConfirm.id);
+        const { error } = await supabase.from("seasons").delete().eq("id", actionConfirm.id);
+        if (error) throw error;
+        toast.success("Temporada excluída");
+      } else if (actionConfirm.action === "deactivate") {
+        const { error } = await supabase.from("seasons").update({ status: "inactive" }).eq("id", actionConfirm.id);
+        if (error) throw error;
+        toast.success("Temporada desativada");
+      } else if (actionConfirm.action === "activate") {
+        const { error } = await supabase.from("seasons").update({ status: "active" }).eq("id", actionConfirm.id);
+        if (error) throw error;
+        toast.success("Temporada reativada");
+      } else if (actionConfirm.action === "finish") {
+        const { error } = await supabase.from("seasons").update({ status: "finished" }).eq("id", actionConfirm.id);
+        if (error) throw error;
+        toast.success("Temporada concluída");
+      }
+      setActionConfirm(null);
+      setMenuOpenId(null);
+      refresh();
+    } catch (e: any) {
+      toast.error(e?.message || "Erro ao processar ação");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const visibleSeasons = showInactive ? seasons : seasons.filter((s) => s.status !== "inactive");
+  const hasInactive = seasons.some((s) => s.status === "inactive");
 
   if (isLoading) {
     return (
@@ -182,7 +226,16 @@ function GroupSeasonsPage() {
       </header>
 
       <div className="space-y-3 px-5">
-        {seasons.length === 0 ? (
+        {hasInactive && (
+          <button
+            onClick={() => setShowInactive(!showInactive)}
+            className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground"
+          >
+            {showInactive ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+            {showInactive ? "Ocultar desativadas" : "Mostrar desativadas"}
+          </button>
+        )}
+        {visibleSeasons.length === 0 ? (
           <div className="rounded-3xl border border-dashed border-border bg-card/50 p-8">
             <div className="flex flex-col items-center gap-3 text-center">
               <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10">
@@ -197,33 +250,152 @@ function GroupSeasonsPage() {
             </div>
           </div>
         ) : (
-          seasons.map((s) => (
-            <Link
+          visibleSeasons.map((s) => (
+            <div
               key={s.id}
-              to="/groups/$groupId/seasons/$seasonId"
-              params={{ groupId, seasonId: s.id }}
-              className="flex items-center justify-between rounded-2xl border border-border bg-card/50 p-4 transition-colors active:bg-accent/30"
+              className={`relative rounded-2xl border border-border bg-card/50 transition-colors ${s.status === "inactive" ? "opacity-60" : ""}`}
             >
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
-                  <Trophy className="h-5 w-5 text-primary" />
-                </div>
-                <div>
-                  <span className="text-sm font-semibold text-foreground">{s.name}</span>
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <span className={`inline-block h-1.5 w-1.5 rounded-full ${s.status === "active" ? "bg-success" : "bg-muted-foreground"}`} />
-                    <span className="capitalize">{s.status === "active" ? "Ativa" : s.status === "finished" ? "Encerrada" : s.status}</span>
-                    {s.total_rounds && <span>• {s.total_rounds} rodadas</span>}
-                    {s.duration_type && (
-                      <span>• {s.duration_type === "weekly" ? "Semanal" : "Mensal"}</span>
-                    )}
+              <Link
+                to="/groups/$groupId/seasons/$seasonId"
+                params={{ groupId, seasonId: s.id }}
+                className="flex items-center justify-between p-4 active:bg-accent/30"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
+                    <Trophy className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <span className="text-sm font-semibold text-foreground">{s.name}</span>
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <span className={`inline-block h-1.5 w-1.5 rounded-full ${s.status === "active" ? "bg-success" : s.status === "inactive" ? "bg-warning" : "bg-muted-foreground"}`} />
+                      <span className="capitalize">{s.status === "active" ? "Ativa" : s.status === "finished" ? "Encerrada" : s.status === "inactive" ? "Desativada" : s.status}</span>
+                      {s.total_rounds && <span>• {s.total_rounds} rodadas</span>}
+                    </div>
                   </div>
                 </div>
-              </div>
-            </Link>
+              </Link>
+              {isAdmin && (
+                <div className="absolute right-2 top-2">
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setMenuOpenId(menuOpenId === s.id ? null : s.id); }}
+                    className="rounded-lg p-1.5 text-muted-foreground hover:bg-accent/30"
+                  >
+                    <MoreVertical className="h-4 w-4" />
+                  </button>
+                  {menuOpenId === s.id && (
+                    <div className="absolute right-0 top-8 z-10 w-44 rounded-xl border border-border bg-card shadow-lg py-1">
+                      {s.status === "active" && (
+                        <>
+                          <button
+                            onClick={() => { setActionConfirm({ id: s.id, action: "finish" }); setMenuOpenId(null); }}
+                            className="flex w-full items-center gap-2 px-3 py-2 text-xs text-foreground hover:bg-accent/30"
+                          >
+                            <CheckCircle className="h-3.5 w-3.5 text-success" />
+                            Concluir temporada
+                          </button>
+                          <button
+                            onClick={() => { setActionConfirm({ id: s.id, action: "deactivate" }); setMenuOpenId(null); }}
+                            className="flex w-full items-center gap-2 px-3 py-2 text-xs text-foreground hover:bg-accent/30"
+                          >
+                            <EyeOff className="h-3.5 w-3.5 text-warning" />
+                            Desativar (ocultar)
+                          </button>
+                        </>
+                      )}
+                      {s.status === "inactive" && (
+                        <button
+                          onClick={() => { setActionConfirm({ id: s.id, action: "activate" }); setMenuOpenId(null); }}
+                          className="flex w-full items-center gap-2 px-3 py-2 text-xs text-foreground hover:bg-accent/30"
+                        >
+                          <Eye className="h-3.5 w-3.5 text-success" />
+                          Reativar temporada
+                        </button>
+                      )}
+                      <button
+                        onClick={() => { setActionConfirm({ id: s.id, action: "delete" }); setMenuOpenId(null); }}
+                        className="flex w-full items-center gap-2 px-3 py-2 text-xs text-destructive hover:bg-destructive/10"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                        Excluir temporada
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           ))
         )}
       </div>
+
+      {/* Action confirmation dialog */}
+      {actionConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setActionConfirm(null)} />
+          <div className="relative w-[90%] max-w-sm rounded-3xl border border-border bg-card p-6 animate-in zoom-in-95 duration-200">
+            <div className="flex flex-col items-center gap-4 text-center">
+              {actionConfirm.action === "delete" ? (
+                <>
+                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-destructive/10">
+                    <Trash2 className="h-7 w-7 text-destructive" />
+                  </div>
+                  <h3 className="font-display text-base font-bold text-foreground">Excluir temporada?</h3>
+                  <p className="text-sm text-muted-foreground">
+                    A temporada e todas as suas rodadas serão <strong className="text-foreground">permanentemente excluídas</strong>. 
+                    Considere <strong className="text-foreground">desativar</strong> para apenas ocultar.
+                  </p>
+                </>
+              ) : actionConfirm.action === "deactivate" ? (
+                <>
+                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-warning/10">
+                    <EyeOff className="h-7 w-7 text-warning" />
+                  </div>
+                  <h3 className="font-display text-base font-bold text-foreground">Desativar temporada?</h3>
+                  <p className="text-sm text-muted-foreground">
+                    A temporada ficará oculta para os membros. Você poderá reativá-la a qualquer momento.
+                  </p>
+                </>
+              ) : actionConfirm.action === "activate" ? (
+                <>
+                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-success/10">
+                    <Eye className="h-7 w-7 text-success" />
+                  </div>
+                  <h3 className="font-display text-base font-bold text-foreground">Reativar temporada?</h3>
+                  <p className="text-sm text-muted-foreground">
+                    A temporada voltará a ser visível para todos os membros do grupo.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-success/10">
+                    <CheckCircle className="h-7 w-7 text-success" />
+                  </div>
+                  <h3 className="font-display text-base font-bold text-foreground">Concluir temporada?</h3>
+                  <p className="text-sm text-muted-foreground">
+                    A temporada será marcada como encerrada. Os resultados serão mantidos.
+                  </p>
+                </>
+              )}
+              <div className="flex w-full gap-3">
+                <button
+                  onClick={() => setActionConfirm(null)}
+                  className="flex-1 rounded-2xl border border-border py-3 text-sm font-semibold text-foreground"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleSeasonAction}
+                  disabled={actionLoading}
+                  className={`flex-1 rounded-2xl py-3 text-sm font-bold text-primary-foreground disabled:opacity-50 ${
+                    actionConfirm.action === "delete" ? "bg-destructive" : actionConfirm.action === "deactivate" ? "bg-warning" : "bg-primary"
+                  }`}
+                >
+                  {actionLoading ? "Processando..." : "Confirmar"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showCreate && (
         <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
@@ -327,6 +499,27 @@ function GroupSeasonsPage() {
                     onChange={(e) => setTime(e.target.value)}
                     className="w-full rounded-2xl border border-border bg-background px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
                   />
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
+                    <LayoutGrid className="mr-1 inline h-3.5 w-3.5" />
+                    Quadras simultâneas
+                  </label>
+                  <div className="grid grid-cols-4 gap-2">
+                    {[1, 2, 3, 4].map((n) => (
+                      <button
+                        key={n}
+                        onClick={() => setCourts(n)}
+                        className={`rounded-xl py-2.5 text-xs font-semibold transition-colors ${
+                          courts === n
+                            ? "bg-primary text-primary-foreground"
+                            : "border border-border bg-background text-foreground"
+                        }`}
+                      >
+                        {n}
+                      </button>
+                    ))}
+                  </div>
                 </div>
                 <div className="flex gap-3">
                   <button
