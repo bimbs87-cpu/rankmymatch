@@ -65,6 +65,7 @@ function GroupSeasonsPage() {
   const [editingIdx, setEditingIdx] = useState<number | null>(null);
   const [time, setTime] = useState("19:00");
   const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const resetForm = () => {
     setStep("type");
@@ -75,6 +76,7 @@ function GroupSeasonsPage() {
     setRoundDates([]);
     setEditingIdx(null);
     setTime("19:00");
+    setSubmitError(null);
   };
 
   const handleSelectType = (type: "weekly" | "monthly") => {
@@ -106,8 +108,11 @@ function GroupSeasonsPage() {
   };
 
   const handleCreate = async () => {
-    if (!name.trim() || !user) return;
+    if (!name.trim() || !user || !roundDates.length || submitting) return;
+
+    setSubmitError(null);
     setSubmitting(true);
+
     try {
       await createSeasonWithRounds({
         groupId,
@@ -123,7 +128,10 @@ function GroupSeasonsPage() {
       resetForm();
       refresh();
     } catch (e: any) {
-      toast.error(e.message || "Erro ao criar temporada");
+      const message = e?.message || "Erro ao criar temporada";
+      console.error("[GroupSeasonsPage] Erro ao criar temporada:", e);
+      setSubmitError(message);
+      toast.error(message);
     } finally {
       setSubmitting(false);
     }
@@ -340,6 +348,11 @@ function GroupSeasonsPage() {
             {/* Step 3: Dates preview */}
             {step === "dates" && (
               <div className="space-y-4">
+                {submitError && (
+                  <div className="rounded-2xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+                    {submitError}
+                  </div>
+                )}
                 <p className="text-xs text-muted-foreground">
                   {durationType === "weekly" ? "Rodadas semanais programadas" : "Rodadas mensais programadas"}.
                   Toque no lápis para alterar a data.
@@ -384,7 +397,7 @@ function GroupSeasonsPage() {
                   </button>
                   <button
                     onClick={handleCreate}
-                    disabled={!name.trim() || submitting}
+                    disabled={!name.trim() || !roundDates.length || submitting}
                     className="flex-1 rounded-2xl bg-primary py-3.5 text-sm font-bold text-primary-foreground disabled:opacity-50"
                   >
                     {submitting ? "Criando..." : "Criar Temporada"}
