@@ -111,6 +111,7 @@ export function usePublicGroups(search: string) {
 export function useGroupDetail(groupId: string) {
   const { user } = useAuth();
   const [group, setGroup] = useState<Group | null>(null);
+  const [memberCount, setMemberCount] = useState(0);
   const [members, setMembers] = useState<(GroupMember & { profile?: Tables<"user_profiles"> })[]>([]);
   const [myRole, setMyRole] = useState<string | null>(null);
   const [pendingRequests, setPendingRequests] = useState<Tables<"group_join_requests">[]>([]);
@@ -131,11 +132,18 @@ export function useGroupDetail(groupId: string) {
       setGroup(currentGroup);
 
       if (!currentGroup) {
+        setMemberCount(0);
         setMembers([]);
         setMyRole(null);
         setPendingRequests([]);
         return;
       }
+
+      const { data: count } = await supabase.rpc("get_group_member_count", {
+        _group_id: groupId,
+      });
+
+      setMemberCount(count || 0);
 
       const { data: mems, error: membersError } = await supabase
         .from("group_members")
@@ -180,6 +188,7 @@ export function useGroupDetail(groupId: string) {
     } catch (error) {
       console.error("Erro ao carregar detalhes do grupo:", error);
       setGroup(null);
+      setMemberCount(0);
       setMembers([]);
       setMyRole(null);
       setPendingRequests([]);
@@ -193,7 +202,7 @@ export function useGroupDetail(groupId: string) {
   const isAdmin = myRole === "admin" || myRole === "creator";
   const isCreator = myRole === "creator";
 
-  return { group, members, myRole, isAdmin, isCreator, pendingRequests, isLoading, refresh };
+  return { group, memberCount, members, myRole, isAdmin, isCreator, pendingRequests, isLoading, refresh };
 }
 
 export async function createGroup(data: {
