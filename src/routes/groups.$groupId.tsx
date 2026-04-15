@@ -373,6 +373,20 @@ function GroupDetailPage() {
         {/* Settings Tab */}
         {tab === "settings" && isAdmin && (
           <div className="space-y-4">
+            <GroupImageUpload
+              groupId={groupId}
+              currentUrl={group.image_url}
+              onUploaded={async (url) => {
+                await supabase.from("groups").update({ image_url: url }).eq("id", groupId);
+                toast.success("Imagem atualizada!");
+                refresh();
+              }}
+              onRemoved={async () => {
+                await supabase.from("groups").update({ image_url: null }).eq("id", groupId);
+                toast.success("Imagem removida");
+                refresh();
+              }}
+            />
             <div className="rounded-2xl border border-border bg-card/50 p-4">
               <h3 className="mb-2 text-sm font-semibold text-foreground">Informações</h3>
               <div className="space-y-2 text-xs text-muted-foreground">
