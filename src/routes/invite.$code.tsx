@@ -258,18 +258,7 @@ function InvitePage() {
         {/* Actions */}
         <div className="mt-6 space-y-3">
           {!isAuthenticated ? (
-            <>
-              <p className="text-center text-sm text-muted-foreground">
-                Faça login para entrar no grupo
-              </p>
-              <Link
-                to="/login"
-                className="flex w-full items-center justify-center gap-2 rounded-full bg-primary py-3.5 text-sm font-semibold text-primary-foreground"
-              >
-                <LogIn className="h-4 w-4" />
-                Entrar com Google
-              </Link>
-            </>
+            <InviteAuthButtons inviteUrl={window.location.href} />
           ) : alreadyMember ? (
             <>
               <p className="text-center text-sm text-muted-foreground">
