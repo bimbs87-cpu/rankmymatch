@@ -220,6 +220,290 @@ export type Database = {
         }
         Relationships: []
       }
+      match_confirmations: {
+        Row: {
+          confirmed: boolean
+          confirmed_at: string | null
+          created_at: string
+          id: string
+          match_id: string
+          user_id: string
+        }
+        Insert: {
+          confirmed?: boolean
+          confirmed_at?: string | null
+          created_at?: string
+          id?: string
+          match_id: string
+          user_id: string
+        }
+        Update: {
+          confirmed?: boolean
+          confirmed_at?: string | null
+          created_at?: string
+          id?: string
+          match_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "match_confirmations_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "matches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      match_players: {
+        Row: {
+          created_at: string
+          id: string
+          match_id: string
+          team: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          match_id: string
+          team: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          match_id?: string
+          team?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "match_players_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "matches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      match_sets: {
+        Row: {
+          created_at: string
+          id: string
+          is_tiebreak: boolean
+          match_id: string
+          score_team_a: number
+          score_team_b: number
+          set_number: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_tiebreak?: boolean
+          match_id: string
+          score_team_a?: number
+          score_team_b?: number
+          set_number: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_tiebreak?: boolean
+          match_id?: string
+          score_team_a?: number
+          score_team_b?: number
+          set_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "match_sets_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "matches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      matches: {
+        Row: {
+          court_id: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          match_number: number | null
+          result_type: string | null
+          round_id: string
+          status: string
+          updated_at: string
+          winner_team: string | null
+        }
+        Insert: {
+          court_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          match_number?: number | null
+          result_type?: string | null
+          round_id: string
+          status?: string
+          updated_at?: string
+          winner_team?: string | null
+        }
+        Update: {
+          court_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          match_number?: number | null
+          result_type?: string | null
+          round_id?: string
+          status?: string
+          updated_at?: string
+          winner_team?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "matches_court_id_fkey"
+            columns: ["court_id"]
+            isOneToOne: false
+            referencedRelation: "courts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "matches_round_id_fkey"
+            columns: ["round_id"]
+            isOneToOne: false
+            referencedRelation: "rounds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ranking_snapshots: {
+        Row: {
+          created_at: string
+          games_lost: number
+          games_won: number
+          id: string
+          is_eligible: boolean
+          last_5_results: string[] | null
+          matches_played: number
+          matches_won: number
+          position: number | null
+          rating: number
+          season_id: string
+          sets_lost: number
+          sets_won: number
+          snapshot_date: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          games_lost?: number
+          games_won?: number
+          id?: string
+          is_eligible?: boolean
+          last_5_results?: string[] | null
+          matches_played?: number
+          matches_won?: number
+          position?: number | null
+          rating?: number
+          season_id: string
+          sets_lost?: number
+          sets_won?: number
+          snapshot_date?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          games_lost?: number
+          games_won?: number
+          id?: string
+          is_eligible?: boolean
+          last_5_results?: string[] | null
+          matches_played?: number
+          matches_won?: number
+          position?: number | null
+          rating?: number
+          season_id?: string
+          sets_lost?: number
+          sets_won?: number
+          snapshot_date?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ranking_snapshots_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "seasons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rating_events: {
+        Row: {
+          actual_score: number | null
+          created_at: string
+          expected_score: number | null
+          id: string
+          k_factor: number
+          margin_multiplier: number | null
+          match_id: string
+          rating_after: number
+          rating_before: number
+          rating_change: number
+          season_id: string | null
+          user_id: string
+        }
+        Insert: {
+          actual_score?: number | null
+          created_at?: string
+          expected_score?: number | null
+          id?: string
+          k_factor?: number
+          margin_multiplier?: number | null
+          match_id: string
+          rating_after: number
+          rating_before: number
+          rating_change: number
+          season_id?: string | null
+          user_id: string
+        }
+        Update: {
+          actual_score?: number | null
+          created_at?: string
+          expected_score?: number | null
+          id?: string
+          k_factor?: number
+          margin_multiplier?: number | null
+          match_id?: string
+          rating_after?: number
+          rating_before?: number
+          rating_change?: number
+          season_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rating_events_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "matches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rating_events_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "seasons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       round_presence: {
         Row: {
           confirmed_at: string | null
