@@ -217,23 +217,40 @@ function InvitePage() {
     <div className="flex min-h-screen flex-col items-center justify-center bg-background px-6">
       <div className="w-full max-w-sm">
         {/* Group card */}
-        <div className="rounded-3xl border border-border bg-card p-6 text-center">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10">
-            <Users className="h-8 w-8 text-primary" />
-          </div>
-          <p className="text-[10px] uppercase tracking-widest text-muted-foreground">
-            Você foi convidado para
-          </p>
-          <h1 className="mt-1 font-display text-xl font-bold text-foreground">
-            {invite?.group?.name}
-          </h1>
-          {invite?.group?.description && (
-            <p className="mt-2 text-sm text-muted-foreground">{invite.group.description}</p>
+        <div className="overflow-hidden rounded-3xl border border-border bg-card text-center">
+          {invite?.group?.image_url ? (
+            <div className="relative h-32 w-full">
+              <img
+                src={invite.group.image_url}
+                alt={invite.group.name}
+                className="h-full w-full object-cover"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-card via-card/40 to-transparent" />
+            </div>
+          ) : (
+            <div className="flex h-28 items-center justify-center bg-primary/5">
+              <Users className="h-10 w-10 text-primary/30" />
+            </div>
           )}
-          <div className="mt-3 flex items-center justify-center gap-3 text-xs text-muted-foreground">
-            <span className="capitalize">{invite?.group?.sport}</span>
-            <span>•</span>
-            <span>{invite?.group?.member_count} membros</span>
+          <div className="px-6 pb-6 pt-3">
+            <p className="text-[10px] uppercase tracking-widest text-muted-foreground">
+              Você foi convidado para
+            </p>
+            <h1 className="mt-1 font-display text-xl font-bold text-foreground">
+              {invite?.group?.name}
+            </h1>
+            {invite?.group?.description && (
+              <p className="mt-2 text-sm text-muted-foreground">{invite.group.description}</p>
+            )}
+            <div className="mt-3 flex items-center justify-center gap-2">
+              <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-[11px] font-semibold capitalize text-primary">
+                🏸 {invite?.group?.sport}
+              </span>
+              <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
+                <Users className="h-3 w-3" />
+                {invite?.group?.member_count} membros
+              </span>
+            </div>
           </div>
         </div>
 
