@@ -123,7 +123,7 @@ function ProfilePage() {
           )}
           {profile?.instagram_handle && (
             <p className="mt-1 flex items-center gap-1 text-xs text-white/60">
-              <Instagram className="h-3 w-3" />
+              <AtSign className="h-3 w-3" />
               {profile.instagram_handle}
             </p>
           )}
