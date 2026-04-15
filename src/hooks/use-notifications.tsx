@@ -12,7 +12,13 @@ export function useNotifications() {
   const [isLoading, setIsLoading] = useState(true);
 
   const refresh = useCallback(async () => {
-    if (!user) return;
+    if (!user) {
+      setNotifications([]);
+      setUnreadCount(0);
+      setIsLoading(false);
+      return;
+    }
+
     setIsLoading(true);
     const { data } = await supabase
       .from("notifications")
@@ -20,6 +26,7 @@ export function useNotifications() {
       .eq("user_id", user.id)
       .order("created_at", { ascending: false })
       .limit(50);
+
     const items = data || [];
     setNotifications(items);
     setUnreadCount(items.filter((n) => !n.read).length);
@@ -27,18 +34,20 @@ export function useNotifications() {
   }, [user]);
 
   useEffect(() => {
-    refresh();
+    void refresh();
   }, [refresh]);
 
-  // Keep a stable ref to refresh so the realtime effect doesn't re-run
   const refreshRef = useRef(refresh);
-  useEffect(() => { refreshRef.current = refresh; }, [refresh]);
 
-  // Realtime
+  useEffect(() => {
+    refreshRef.current = refresh;
+  }, [refresh]);
+
   useEffect(() => {
     if (!user) return;
+
     const channel = supabase
-      .channel(`notif-${user.id}`)
+      .channel(`notif-${user.id}-${Math.random().toString(36).slice(2)}`)
       .on(
         "postgres_changes",
         {
@@ -47,28 +56,33 @@ export function useNotifications() {
           table: "notifications",
           filter: `user_id=eq.${user.id}`,
         },
-        () => refreshRef.current()
+        () => {
+          void refreshRef.current();
+        }
       )
       .subscribe();
+
     return () => {
-      supabase.removeChannel(channel);
+      void supabase.removeChannel(channel);
     };
-  }, [user]);
+  }, [user?.id]);
 
   const markAllRead = useCallback(async () => {
     if (!user) return;
+
     await supabase
       .from("notifications")
       .update({ read: true })
       .eq("user_id", user.id)
       .eq("read", false);
-    refresh();
+
+    await refresh();
   }, [user, refresh]);
 
   const markRead = useCallback(
     async (id: string) => {
       await supabase.from("notifications").update({ read: true }).eq("id", id);
-      refresh();
+      await refresh();
     },
     [refresh]
   );
@@ -87,7 +101,6 @@ export async function notifyGroupMembers(params: {
   body: string;
   data?: Record<string, string | number | boolean | null>;
 }) {
-  // Get all active members except the actor
   const { data: members } = await supabase
     .from("group_members")
     .select("user_id")
