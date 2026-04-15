@@ -4,7 +4,7 @@ import { useMyGroups } from "@/hooks/use-groups";
 import { useNotifications } from "@/hooks/use-notifications";
 import { BottomNav } from "@/components/BottomNav";
 import { supabase } from "@/integrations/supabase/client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   Trophy,
   Users,
