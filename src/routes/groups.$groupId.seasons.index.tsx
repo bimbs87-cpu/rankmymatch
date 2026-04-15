@@ -21,6 +21,7 @@ const WEEKDAYS = [
   { value: 5, label: "Sexta" },
   { value: 6, label: "Sábado" },
   { value: 0, label: "Domingo" },
+  { value: -1, label: "Dias alternados" },
 ];
 
 const COURT_OPTIONS = [1, 2, 3, 4];
