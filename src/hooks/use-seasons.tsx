@@ -285,3 +285,13 @@ export async function deleteMatch(matchId: string) {
   const { error } = await supabase.from("matches").delete().eq("id", matchId);
   if (error) throw new Error(error.message);
 }
+
+export async function deleteRound(roundId: string) {
+  // Delete all matches of this round first (cascade will handle match_players, match_sets, etc.)
+  await supabase.from("matches").delete().eq("round_id", roundId);
+  // Delete presences
+  await supabase.from("round_presence").delete().eq("round_id", roundId);
+  // Delete the round
+  const { error } = await supabase.from("rounds").delete().eq("id", roundId);
+  if (error) throw new Error(error.message);
+}
