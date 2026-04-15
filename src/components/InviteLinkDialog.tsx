@@ -7,7 +7,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Copy, Link2, Share2, Trash2, Loader2, Plus } from "lucide-react";
+import { Copy, Link2, Share2, Trash2, Loader2, Plus, Clock, Users, ChevronDown, ChevronUp } from "lucide-react";
 import { toast } from "sonner";
 
 interface InviteLinkDialogProps {
@@ -36,11 +36,31 @@ function generateCode(): string {
   return code;
 }
 
+const EXPIRATION_OPTIONS = [
+  { label: "Sem expiração", value: null },
+  { label: "1 hora", value: 1 },
+  { label: "24 horas", value: 24 },
+  { label: "7 dias", value: 168 },
+  { label: "30 dias", value: 720 },
+] as const;
+
+const MAX_USES_OPTIONS = [
+  { label: "Ilimitado", value: 0 },
+  { label: "1 uso", value: 1 },
+  { label: "5 usos", value: 5 },
+  { label: "10 usos", value: 10 },
+  { label: "25 usos", value: 25 },
+  { label: "50 usos", value: 50 },
+] as const;
+
 export function InviteLinkDialog({ open, onOpenChange, groupId, isAdmin }: InviteLinkDialogProps) {
   const { user } = useAuth();
   const [links, setLinks] = useState<InviteLink[]>([]);
   const [loading, setLoading] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [showOptions, setShowOptions] = useState(false);
+  const [expirationHours, setExpirationHours] = useState<number | null>(null);
+  const [maxUses, setMaxUses] = useState(0);
 
   useEffect(() => {
     if (open) loadLinks();
@@ -63,16 +83,31 @@ export function InviteLinkDialog({ open, onOpenChange, groupId, isAdmin }: Invit
     setCreating(true);
     const code = generateCode();
 
-    const { error } = await supabase.from("invite_links").insert({
+    const insertData: Record<string, unknown> = {
       group_id: groupId,
       code,
       created_by: user.id,
-    });
+    };
+
+    if (expirationHours !== null) {
+      const expiresAt = new Date();
+      expiresAt.setHours(expiresAt.getHours() + expirationHours);
+      insertData.expires_at = expiresAt.toISOString();
+    }
+
+    if (maxUses > 0) {
+      insertData.max_uses = maxUses;
+    }
+
+    const { error } = await supabase.from("invite_links").insert(insertData);
 
     if (error) {
       toast.error("Erro ao criar link");
     } else {
       toast.success("Link criado!");
+      setShowOptions(false);
+      setExpirationHours(null);
+      setMaxUses(0);
       loadLinks();
     }
     setCreating(false);
@@ -107,6 +142,17 @@ export function InviteLinkDialog({ open, onOpenChange, groupId, isAdmin }: Invit
     }
   };
 
+  const formatExpiry = (expiresAt: string | null) => {
+    if (!expiresAt) return null;
+    const exp = new Date(expiresAt);
+    if (exp < new Date()) return "Expirado";
+    const diff = exp.getTime() - Date.now();
+    const hours = Math.floor(diff / 3600000);
+    if (hours < 1) return `${Math.floor(diff / 60000)}min restantes`;
+    if (hours < 24) return `${hours}h restantes`;
+    return `${Math.floor(hours / 24)}d restantes`;
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-sm rounded-3xl border-border bg-card">
@@ -117,19 +163,78 @@ export function InviteLinkDialog({ open, onOpenChange, groupId, isAdmin }: Invit
         </DialogHeader>
 
         <div className="space-y-3">
-          {/* Create button */}
-          <button
-            onClick={createLink}
-            disabled={creating}
-            className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-3 text-sm font-semibold text-primary-foreground disabled:opacity-50"
-          >
-            {creating ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Plus className="h-4 w-4" />
+          {/* Create section */}
+          <div className="space-y-2">
+            <button
+              onClick={() => setShowOptions(!showOptions)}
+              className="flex w-full items-center justify-between rounded-2xl bg-primary/10 px-4 py-3 text-sm font-semibold text-primary"
+            >
+              <span className="flex items-center gap-2">
+                <Plus className="h-4 w-4" />
+                Criar novo link
+              </span>
+              {showOptions ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            </button>
+
+            {showOptions && (
+              <div className="space-y-3 rounded-2xl border border-border bg-background p-4">
+                {/* Expiration */}
+                <div>
+                  <label className="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                    <Clock className="h-3.5 w-3.5" />
+                    Expiração
+                  </label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {EXPIRATION_OPTIONS.map((opt) => (
+                      <button
+                        key={opt.label}
+                        onClick={() => setExpirationHours(opt.value)}
+                        className={`rounded-full px-3 py-1.5 text-[11px] font-medium transition-colors ${
+                          expirationHours === opt.value
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-muted text-muted-foreground hover:bg-accent"
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Max uses */}
+                <div>
+                  <label className="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                    <Users className="h-3.5 w-3.5" />
+                    Limite de usos
+                  </label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {MAX_USES_OPTIONS.map((opt) => (
+                      <button
+                        key={opt.label}
+                        onClick={() => setMaxUses(opt.value)}
+                        className={`rounded-full px-3 py-1.5 text-[11px] font-medium transition-colors ${
+                          maxUses === opt.value
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-muted text-muted-foreground hover:bg-accent"
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <button
+                  onClick={createLink}
+                  disabled={creating}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-50"
+                >
+                  {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                  Gerar link
+                </button>
+              </div>
             )}
-            Criar novo link
-          </button>
+          </div>
 
           {/* Links list */}
           {loading ? (
@@ -142,42 +247,52 @@ export function InviteLinkDialog({ open, onOpenChange, groupId, isAdmin }: Invit
               <p className="mt-2 text-sm text-muted-foreground">Nenhum link ativo</p>
             </div>
           ) : (
-            links.map((link) => (
-              <div
-                key={link.id}
-                className="flex items-center gap-2 rounded-2xl border border-border bg-background p-3"
-              >
-                <div className="min-w-0 flex-1">
-                  <p className="truncate font-mono text-xs text-foreground">
-                    /invite/{link.code}
-                  </p>
-                  <p className="text-[10px] text-muted-foreground">
-                    {link.use_count} uso{link.use_count !== 1 ? "s" : ""}
-                    {link.max_uses && link.max_uses > 0 ? ` / ${link.max_uses} máx` : ""}
-                  </p>
-                </div>
-                <button
-                  onClick={() => shareLink(link.code)}
-                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"
+            links.map((link) => {
+              const expiry = formatExpiry(link.expires_at);
+              return (
+                <div
+                  key={link.id}
+                  className="flex items-center gap-2 rounded-2xl border border-border bg-background p-3"
                 >
-                  <Share2 className="h-3.5 w-3.5" />
-                </button>
-                <button
-                  onClick={() => copyLink(link.code)}
-                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-muted text-muted-foreground"
-                >
-                  <Copy className="h-3.5 w-3.5" />
-                </button>
-                {isAdmin && (
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-mono text-xs text-foreground">
+                      /invite/{link.code}
+                    </p>
+                    <div className="flex flex-wrap gap-x-2 text-[10px] text-muted-foreground">
+                      <span>
+                        {link.use_count} uso{link.use_count !== 1 ? "s" : ""}
+                        {link.max_uses && link.max_uses > 0 ? ` / ${link.max_uses} máx` : ""}
+                      </span>
+                      {expiry && (
+                        <span className={expiry === "Expirado" ? "text-destructive" : "text-warning"}>
+                          {expiry}
+                        </span>
+                      )}
+                    </div>
+                  </div>
                   <button
-                    onClick={() => deleteLink(link.id)}
-                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-destructive/10 text-destructive"
+                    onClick={() => shareLink(link.code)}
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"
                   >
-                    <Trash2 className="h-3.5 w-3.5" />
+                    <Share2 className="h-3.5 w-3.5" />
                   </button>
-                )}
-              </div>
-            ))
+                  <button
+                    onClick={() => copyLink(link.code)}
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-muted text-muted-foreground"
+                  >
+                    <Copy className="h-3.5 w-3.5" />
+                  </button>
+                  {isAdmin && (
+                    <button
+                      onClick={() => deleteLink(link.id)}
+                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-destructive/10 text-destructive"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </div>
+              );
+            })
           )}
         </div>
       </DialogContent>
