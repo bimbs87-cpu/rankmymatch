@@ -669,25 +669,52 @@ export type Database = {
       }
       user_profiles: {
         Row: {
+          avatar_type: string | null
+          avatar_url: string | null
+          birth_date: string | null
           created_at: string
+          dominant_hand: string | null
           id: string
+          instagram_handle: string | null
+          killer_shot: string | null
           name: string
           nickname: string | null
+          preferred_position: string | null
+          updated_at: string | null
           user_id: string
+          worst_shot: string | null
         }
         Insert: {
+          avatar_type?: string | null
+          avatar_url?: string | null
+          birth_date?: string | null
           created_at?: string
+          dominant_hand?: string | null
           id?: string
+          instagram_handle?: string | null
+          killer_shot?: string | null
           name?: string
           nickname?: string | null
+          preferred_position?: string | null
+          updated_at?: string | null
           user_id: string
+          worst_shot?: string | null
         }
         Update: {
+          avatar_type?: string | null
+          avatar_url?: string | null
+          birth_date?: string | null
           created_at?: string
+          dominant_hand?: string | null
           id?: string
+          instagram_handle?: string | null
+          killer_shot?: string | null
           name?: string
           nickname?: string | null
+          preferred_position?: string | null
+          updated_at?: string | null
           user_id?: string
+          worst_shot?: string | null
         }
         Relationships: []
       }
