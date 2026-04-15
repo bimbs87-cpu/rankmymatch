@@ -19,6 +19,7 @@ export function CreateGroupDialog({ open, onClose }: Props) {
   const [description, setDescription] = useState("");
   const [isPublic, setIsPublic] = useState(true);
   const [maxPlayers, setMaxPlayers] = useState(20);
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   if (!open) return null;
@@ -35,6 +36,15 @@ export function CreateGroupDialog({ open, onClose }: Props) {
         sport: "padel",
         userId: user.id,
       });
+
+      // Update image_url if uploaded
+      if (imageUrl) {
+        await supabase
+          .from("groups")
+          .update({ image_url: imageUrl })
+          .eq("id", group.id);
+      }
+
       toast.success("Grupo criado com sucesso!");
       onClose();
       navigate({ to: "/groups/$groupId", params: { groupId: group.id } });
