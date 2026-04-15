@@ -25,6 +25,7 @@ interface InviteData {
     is_public: boolean;
     image_url: string | null;
     member_count: number;
+    max_players: number;
   } | null;
 }
 
@@ -80,6 +81,7 @@ function InvitePage() {
   const [error, setError] = useState<string | null>(null);
   const [alreadyMember, setAlreadyMember] = useState(false);
   const [joined, setJoined] = useState(false);
+  const [waitlisted, setWaitlisted] = useState(false);
 
   useEffect(() => {
     const loadInvite = async () => {
@@ -114,15 +116,14 @@ function InvitePage() {
       // Load group info
       const { data: groupData } = await supabase
         .from("groups")
-        .select("name, description, sport, is_public, image_url")
+        .select("name, description, sport, is_public, image_url, max_players")
         .eq("id", inviteData.group_id)
         .single();
 
-      const { count } = await supabase
-        .from("group_members")
-        .select("id", { count: "exact", head: true })
-        .eq("group_id", inviteData.group_id)
-        .eq("status", "active");
+      const { data: countData } = await supabase.rpc("get_group_member_count", {
+        _group_id: inviteData.group_id,
+      });
+      const count = countData ?? 0;
 
       // Check if already member
       if (user) {
@@ -139,7 +140,7 @@ function InvitePage() {
 
       setInvite({
         ...inviteData,
-        group: groupData ? { ...groupData, member_count: count || 0 } : null,
+        group: groupData ? { ...groupData, member_count: count } : null,
       });
       setLoading(false);
     };
@@ -151,8 +152,63 @@ function InvitePage() {
     if (!user || !invite) return;
     setJoining(true);
 
+    const userName = user.user_metadata?.full_name || user.user_metadata?.name || "Um jogador";
+    const maxPlayers = invite.group?.max_players ?? 999;
+    const currentCount = invite.group?.member_count ?? 0;
+    const isFull = currentCount >= maxPlayers;
+
     try {
-      // Insert member
+      if (isFull) {
+        // Group is full — create a join request instead
+        const { error: reqErr } = await supabase.from("group_join_requests").insert({
+          group_id: invite.group_id,
+          user_id: user.id,
+          status: "pending",
+          message: `Tentou entrar via convite, mas o grupo estava cheio (${currentCount}/${maxPlayers}).`,
+        });
+
+        if (reqErr) {
+          if (reqErr.message?.includes("duplicate")) {
+            toast.info("Você já tem uma solicitação pendente para este grupo.");
+          } else {
+            throw reqErr;
+          }
+          setJoining(false);
+          return;
+        }
+
+        // Notify admins about waitlist entry
+        const { data: admins } = await supabase
+          .from("group_members")
+          .select("user_id")
+          .eq("group_id", invite.group_id)
+          .in("role", ["creator", "admin"])
+          .eq("status", "active");
+
+        if (admins?.length) {
+          const notifications = admins
+            .filter((a) => a.user_id !== user.id)
+            .map((a) => ({
+              user_id: a.user_id,
+              group_id: invite.group_id,
+              type: "join_request",
+              title: "Solicitação de entrada (grupo cheio)",
+              body: `${userName} tentou entrar via convite, mas o grupo está cheio. Aprove ou decline.`,
+              data: { invite_code: invite.code },
+            }));
+
+          if (notifications.length) {
+            await supabase.from("notifications").insert(notifications);
+          }
+        }
+
+        setWaitlisted(true);
+        toast.info("Solicitação enviada! O admin será notificado.");
+        setJoining(false);
+        return;
+      }
+
+      // Normal join — group has space
       const { error: joinErr } = await supabase.from("group_members").insert({
         group_id: invite.group_id,
         user_id: user.id,
@@ -184,8 +240,6 @@ function InvitePage() {
         .eq("group_id", invite.group_id)
         .in("role", ["creator", "admin"])
         .eq("status", "active");
-
-      const userName = user.user_metadata?.full_name || user.user_metadata?.name || "Um jogador";
 
       if (admins?.length) {
         const notifications = admins
