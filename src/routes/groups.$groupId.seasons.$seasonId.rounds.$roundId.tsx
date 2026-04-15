@@ -163,6 +163,16 @@ function RoundDetailPage() {
                 : round.status === "scheduled" ? "Agendada" : round.status === "in_progress" ? "Em jogo" : "Encerrada"}
             </span>
           </div>
+          {isAdmin && (
+            <button
+              onClick={handleDeleteRound}
+              disabled={deletingRound}
+              className="flex h-9 w-9 items-center justify-center rounded-full border border-destructive/30 bg-destructive/10 text-destructive hover:bg-destructive/20 disabled:opacity-50"
+              title="Apagar rodada"
+            >
+              <Trash2 className="h-4 w-4" />
+            </button>
+          )}
         </div>
       </header>
 
