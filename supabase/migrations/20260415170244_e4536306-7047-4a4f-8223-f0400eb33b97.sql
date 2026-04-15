@@ -1,0 +1,1 @@
+ALTER TABLE public.round_presence ADD CONSTRAINT round_presence_round_user_unique UNIQUE (round_id, user_id);
