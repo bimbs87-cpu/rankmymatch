@@ -93,18 +93,19 @@ function ProfilePage() {
       setLoadingProfile(false);
       return;
     }
-    supabase
-      .from("user_profiles")
-      .select("name, nickname, avatar_url, dominant_hand, preferred_position, killer_shot, worst_shot, instagram_handle")
-      .eq("user_id", user.id)
-      .single()
-      .then(({ data }) => {
+    const load = async () => {
+      try {
+        const { data } = await supabase
+          .from("user_profiles")
+          .select("name, nickname, avatar_url, dominant_hand, preferred_position, killer_shot, worst_shot, instagram_handle")
+          .eq("user_id", user.id)
+          .single();
         if (data) setProfile(data as Profile);
+      } finally {
         setLoadingProfile(false);
-      })
-      .catch(() => {
-        setLoadingProfile(false);
-      });
+      }
+    };
+    load();
   }, [user]);
 
   const openEdit = () => {
