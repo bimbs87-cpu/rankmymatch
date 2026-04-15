@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
+import { notifyGroupMembers } from "@/hooks/use-notifications";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Season = Tables<"seasons">;
@@ -159,6 +160,7 @@ export async function createRound(data: {
   scheduledTime?: string;
   location?: string;
   maxPlayers?: number;
+  userId: string;
 }) {
   const { data: round, error } = await supabase
     .from("rounds")
@@ -175,6 +177,17 @@ export async function createRound(data: {
     .select()
     .single();
   if (error) throw error;
+
+  // Notify group members
+  notifyGroupMembers({
+    groupId: data.groupId,
+    actorId: data.userId,
+    type: "round_created",
+    title: "Nova rodada agendada!",
+    body: `Rodada ${data.roundNumber}${data.scheduledDate ? ` em ${new Date(data.scheduledDate + "T00:00:00").toLocaleDateString("pt-BR")}` : ""} foi criada. Confirme sua presença!`,
+    data: { roundId: round.id, seasonId: data.seasonId },
+  });
+
   return round;
 }
 
@@ -209,9 +222,16 @@ export async function cancelPresence(roundId: string, userId: string) {
 }
 
 // Shuffle and draw teams for 2v2 padel matches
-export async function drawTeams(roundId: string, confirmedPlayerIds: string[]) {
+export async function drawTeams(roundId: string, confirmedPlayerIds: string[], actorId?: string) {
   // Shuffle players
   const shuffled = [...confirmedPlayerIds].sort(() => Math.random() - 0.5);
+
+  // Get round info for notification
+  const { data: roundData } = await supabase
+    .from("rounds")
+    .select("round_number, group_id")
+    .eq("id", roundId)
+    .single();
 
   // Create matches of 4 players each (2v2)
   const matchCount = Math.floor(shuffled.length / 4);
@@ -245,6 +265,18 @@ export async function drawTeams(roundId: string, confirmedPlayerIds: string[]) {
 
   // Update round status
   await supabase.from("rounds").update({ status: "in_progress" }).eq("id", roundId);
+
+  // Notify group members about the draw
+  if (roundData && actorId) {
+    notifyGroupMembers({
+      groupId: roundData.group_id,
+      actorId,
+      type: "draw_completed",
+      title: "Times sorteados! 🎲",
+      body: `Os times da Rodada ${roundData.round_number} foram sorteados. ${matchCount} partida${matchCount !== 1 ? "s" : ""} criada${matchCount !== 1 ? "s" : ""}!`,
+      data: { roundId },
+    });
+  }
 
   return createdMatches;
 }
