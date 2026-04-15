@@ -3,6 +3,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useGroupDetail } from "@/hooks/use-groups";
 import { useRoundDetail, confirmPresence, cancelPresence, drawTeams } from "@/hooks/use-seasons";
 import { ScoreEntryDialog } from "@/components/ScoreEntryDialog";
+import { ManualMatchDialog } from "@/components/ManualMatchDialog";
 import {
   ArrowLeft,
   Check,
@@ -16,6 +17,7 @@ import {
   UserCheck,
   UserX,
   Edit3,
+  PlusCircle,
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -33,6 +35,7 @@ function RoundDetailPage() {
   const { round, presences, matches, myPresence, confirmedCount, isLoading, refresh } =
     useRoundDetail(roundId);
   const [scoringMatch, setScoringMatch] = useState<any>(null);
+  const [showManualMatch, setShowManualMatch] = useState(false);
 
   if (isLoading) {
     return (
@@ -187,6 +190,19 @@ function RoundDetailPage() {
           >
             <Shuffle className="h-4 w-4" />
             Sortear Times ({confirmedPlayers.length} jogadores → {Math.floor(confirmedPlayers.length / 4)} partida{Math.floor(confirmedPlayers.length / 4) !== 1 ? "s" : ""})
+          </button>
+        </div>
+      )}
+
+      {/* Manual match creation for admins when no matches exist */}
+      {isAdmin && matches.length === 0 && (
+        <div className="mx-5 mb-5">
+          <button
+            onClick={() => setShowManualMatch(true)}
+            className="flex w-full items-center justify-center gap-2 rounded-2xl border border-border bg-card py-3 text-sm font-medium text-foreground"
+          >
+            <PlusCircle className="h-4 w-4 text-primary" />
+            Criar Partidas Manualmente
           </button>
         </div>
       )}
@@ -364,6 +380,15 @@ function RoundDetailPage() {
             scoreB: s.score_team_b,
           }))}
           onClose={() => setScoringMatch(null)}
+          onSaved={refresh}
+        />
+      )}
+
+      {showManualMatch && (
+        <ManualMatchDialog
+          roundId={roundId}
+          groupId={groupId}
+          onClose={() => setShowManualMatch(false)}
           onSaved={refresh}
         />
       )}
