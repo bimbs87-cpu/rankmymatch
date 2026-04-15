@@ -279,17 +279,28 @@ function RoundDetailPage() {
                           Partida {match.match_number}
                         </span>
                       </div>
-                      <span
-                        className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
-                          match.status === "scheduled"
-                            ? "bg-info/10 text-info"
-                            : match.status === "in_progress"
-                            ? "bg-warning/10 text-warning"
-                            : "bg-success/10 text-success"
-                        }`}
-                      >
-                        {match.status === "scheduled" ? "Aguardando" : match.status === "in_progress" ? "Em jogo" : "Finalizada"}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                            match.status === "scheduled"
+                              ? "bg-info/10 text-info"
+                              : match.status === "in_progress"
+                              ? "bg-warning/10 text-warning"
+                              : "bg-success/10 text-success"
+                          }`}
+                        >
+                          {match.status === "scheduled" ? "Aguardando" : match.status === "in_progress" ? "Em jogo" : "Finalizada"}
+                        </span>
+                        {isAdmin && (
+                          <button
+                            onClick={() => handleDeleteMatch(match.id)}
+                            disabled={deletingMatchId === match.id}
+                            className="flex h-6 w-6 items-center justify-center rounded-full bg-destructive/10 text-destructive hover:bg-destructive/20 disabled:opacity-50"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </button>
+                        )}
+                      </div>
                     </div>
 
                     <div className="flex items-center gap-3">
