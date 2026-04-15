@@ -117,14 +117,18 @@ function RoundDetailPage() {
             </h1>
             <span
               className={`inline-block rounded-full px-2.5 py-0.5 text-[10px] font-semibold ${
-                round.status === "scheduled"
+                round.status === "scheduled" && round.scheduled_date && round.scheduled_date <= new Date().toISOString().split("T")[0]
+                  ? "bg-warning/10 text-warning"
+                  : round.status === "scheduled"
                   ? "bg-info/10 text-info"
                   : round.status === "in_progress"
                   ? "bg-warning/10 text-warning"
                   : "bg-success/10 text-success"
               }`}
             >
-              {round.status === "scheduled" ? "Agendada" : round.status === "in_progress" ? "Em jogo" : "Encerrada"}
+              {round.status === "scheduled" && round.scheduled_date && round.scheduled_date <= new Date().toISOString().split("T")[0]
+                ? "Lançar resultado"
+                : round.status === "scheduled" ? "Agendada" : round.status === "in_progress" ? "Em jogo" : "Encerrada"}
             </span>
           </div>
         </div>
