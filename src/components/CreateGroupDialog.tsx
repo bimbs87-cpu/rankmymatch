@@ -66,7 +66,13 @@ export function CreateGroupDialog({ open, onClose }: Props) {
           </button>
         </div>
 
-        <div className="space-y-5">
+        <div className="max-h-[65vh] space-y-5 overflow-y-auto pr-1">
+          {/* Imagem */}
+          <GroupImageUpload
+            onUploaded={(url) => setImageUrl(url)}
+            onRemoved={() => setImageUrl(null)}
+          />
+
           {/* Nome */}
           <div>
             <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Nome do grupo *</label>
