@@ -21,12 +21,15 @@ interface Props {
 
 export function GroupSettingsForm({
   groupId, name: initName, description: initDesc, isPublic: initPublic,
-  maxPlayers, sport, simultaneousCourts, imageUrl, onSaved,
+  maxPlayers, sport, simultaneousCourts, imageUrl, groupStatus = "active", isCreator = false, onSaved,
 }: Props) {
+  const navigate = useNavigate();
   const [name, setName] = useState(initName);
   const [description, setDescription] = useState(initDesc || "");
   const [isPublic, setIsPublic] = useState(initPublic);
   const [saving, setSaving] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const hasChanges = name !== initName || description !== (initDesc || "") || isPublic !== initPublic;
 
