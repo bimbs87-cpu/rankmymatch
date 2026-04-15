@@ -314,6 +314,24 @@ function RoundDetailPage() {
                         ))}
                       </div>
                     </div>
+
+                    {/* Score entry button */}
+                    {isAdmin && match.status !== "completed" && (
+                      <button
+                        onClick={() => setScoringMatch(match)}
+                        className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-primary/10 py-2 text-xs font-semibold text-primary"
+                      >
+                        <Edit3 className="h-3.5 w-3.5" />
+                        Registrar Placar
+                      </button>
+                    )}
+
+                    {/* Winner badge */}
+                    {match.status === "completed" && match.winner_team && (
+                      <div className="mt-3 flex items-center justify-center gap-1.5 rounded-xl bg-success/10 py-1.5 text-xs font-semibold text-success">
+                        🏆 Time {match.winner_team} venceu
+                      </div>
+                    )}
                   </div>
                 );
               })}
@@ -321,6 +339,34 @@ function RoundDetailPage() {
           </section>
         )}
       </div>
+
+      {/* Score Entry Dialog */}
+      {scoringMatch && (
+        <ScoreEntryDialog
+          matchId={scoringMatch.id}
+          seasonId={seasonId}
+          matchNumber={scoringMatch.match_number}
+          teamA={(scoringMatch.match_players || [])
+            .filter((mp: any) => mp.team === "A")
+            .map((mp: any) => ({
+              name: mp.profile?.nickname || mp.profile?.name || "Jogador",
+              avatarUrl: mp.profile?.avatar_url,
+            }))}
+          teamB={(scoringMatch.match_players || [])
+            .filter((mp: any) => mp.team === "B")
+            .map((mp: any) => ({
+              name: mp.profile?.nickname || mp.profile?.name || "Jogador",
+              avatarUrl: mp.profile?.avatar_url,
+            }))}
+          existingSets={(scoringMatch.match_sets || []).map((s: any) => ({
+            setNumber: s.set_number,
+            scoreA: s.score_team_a,
+            scoreB: s.score_team_b,
+          }))}
+          onClose={() => setScoringMatch(null)}
+          onSaved={refresh}
+        />
+      )}
     </div>
   );
 }
