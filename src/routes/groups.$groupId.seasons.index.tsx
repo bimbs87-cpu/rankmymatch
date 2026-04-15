@@ -129,6 +129,7 @@ function GroupSeasonsPage() {
         totalRounds,
         roundDates,
         scheduledTime: time,
+        simultaneousCourts: courts,
       });
       toast.success("Temporada criada com rodadas!");
       setShowCreate(false);
