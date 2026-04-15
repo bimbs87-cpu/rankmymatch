@@ -1,5 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { BottomNav } from "@/components/BottomNav";
+import { InviteLinkDialog } from "@/components/InviteLinkDialog";
 import { useAuth } from "@/hooks/use-auth";
 import {
   useGroupDetail,
@@ -41,6 +42,7 @@ function GroupDetailPage() {
     useGroupDetail(groupId);
   const navigate = useNavigate();
   const [tab, setTab] = useState<"members" | "requests" | "settings">("members");
+  const [inviteOpen, setInviteOpen] = useState(false);
 
   if (isLoading) {
     return (
@@ -62,9 +64,6 @@ function GroupDetailPage() {
   }
 
   const isMember = !!myRole;
-  const inviteLink = typeof window !== "undefined"
-    ? `${window.location.origin}/groups/${groupId}`
-    : "";
 
   const handleJoin = async () => {
     if (!user) return;
@@ -77,9 +76,8 @@ function GroupDetailPage() {
     }
   };
 
-  const handleCopyLink = () => {
-    navigator.clipboard.writeText(inviteLink);
-    toast.success("Link copiado!");
+  const handleShareInvite = () => {
+    setInviteOpen(true);
   };
 
   const handleApprove = async (req: any) => {
@@ -138,7 +136,7 @@ function GroupDetailPage() {
           </div>
           {isMember && (
             <button
-              onClick={handleCopyLink}
+              onClick={handleShareInvite}
               className="flex h-9 w-9 items-center justify-center rounded-full border border-border bg-card"
             >
               <Share2 className="h-4 w-4 text-muted-foreground" />
