@@ -69,10 +69,41 @@ interface MyRanking {
 }
 
 function DashboardPage() {
-  const { user, isAuthenticated, isLoading } = useAuth();
-  const { groups: myGroups, isLoading: groupsLoading } = useMyGroups();
-  const { unreadCount } = useNotifications();
-  const { resolved: resolvedTheme } = useTheme();
+  let authData: ReturnType<typeof useAuth>;
+  try {
+    authData = useAuth();
+  } catch (e) {
+    console.error("[DashboardPage] useAuth error:", e);
+    throw e;
+  }
+  const { user, isAuthenticated, isLoading } = authData;
+
+  let groupsData: ReturnType<typeof useMyGroups>;
+  try {
+    groupsData = useMyGroups();
+  } catch (e) {
+    console.error("[DashboardPage] useMyGroups error:", e);
+    throw e;
+  }
+  const { groups: myGroups, isLoading: groupsLoading } = groupsData;
+
+  let notifData: ReturnType<typeof useNotifications>;
+  try {
+    notifData = useNotifications();
+  } catch (e) {
+    console.error("[DashboardPage] useNotifications error:", e);
+    throw e;
+  }
+  const { unreadCount } = notifData;
+
+  let themeData: ReturnType<typeof useTheme>;
+  try {
+    themeData = useTheme();
+  } catch (e) {
+    console.error("[DashboardPage] useTheme error:", e);
+    throw e;
+  }
+  const { resolved: resolvedTheme } = themeData;
   const [upcomingRounds, setUpcomingRounds] = useState<UpcomingRound[]>([]);
   const [recentMatches, setRecentMatches] = useState<RecentMatch[]>([]);
   const [myRanking, setMyRanking] = useState<MyRanking | null>(null);
