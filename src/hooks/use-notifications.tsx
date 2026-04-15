@@ -30,6 +30,10 @@ export function useNotifications() {
     refresh();
   }, [refresh]);
 
+  // Keep a stable ref to refresh so the realtime effect doesn't re-run
+  const refreshRef = useRef(refresh);
+  useEffect(() => { refreshRef.current = refresh; }, [refresh]);
+
   // Realtime
   useEffect(() => {
     if (!user) return;
@@ -43,13 +47,13 @@ export function useNotifications() {
           table: "notifications",
           filter: `user_id=eq.${user.id}`,
         },
-        () => refresh()
+        () => refreshRef.current()
       )
       .subscribe();
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user, refresh]);
+  }, [user]);
 
   const markAllRead = useCallback(async () => {
     if (!user) return;
