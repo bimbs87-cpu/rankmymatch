@@ -12,6 +12,7 @@ export async function createSeasonWithRounds(data: {
   matchFormat?: string;
 }) {
   // Create season
+  console.log("[createSeasonWithRounds] Starting with data:", JSON.stringify(data));
   const { data: season, error } = await supabase
     .from("seasons")
     .insert({
@@ -25,7 +26,9 @@ export async function createSeasonWithRounds(data: {
     })
     .select()
     .single();
-  if (error) throw error;
+  console.log("[createSeasonWithRounds] Season result:", { season, error });
+  if (error) throw new Error(`Erro ao criar temporada: ${error.message}`);
+  if (!season) throw new Error("Temporada não retornada após insert");
 
   // Create all rounds at once
   const roundInserts = data.roundDates.map((date, idx) => ({
@@ -39,10 +42,12 @@ export async function createSeasonWithRounds(data: {
   }));
 
   if (roundInserts.length > 0) {
+    console.log("[createSeasonWithRounds] Inserting rounds:", roundInserts);
     const { error: roundError } = await supabase
       .from("rounds")
       .insert(roundInserts);
-    if (roundError) throw roundError;
+    console.log("[createSeasonWithRounds] Rounds result:", { roundError });
+    if (roundError) throw new Error(`Erro ao criar rodadas: ${roundError.message}`);
   }
 
   // Notify group
