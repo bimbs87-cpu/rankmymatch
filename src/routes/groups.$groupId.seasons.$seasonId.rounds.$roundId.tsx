@@ -19,6 +19,7 @@ import {
   Edit3,
   PlusCircle,
   Trash2,
+  Ban,
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
