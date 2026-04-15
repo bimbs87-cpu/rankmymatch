@@ -3,6 +3,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { BottomNav } from "@/components/BottomNav";
 import { supabase } from "@/integrations/supabase/client";
 import { EloChart } from "@/components/EloChart";
+import { AvatarPickerDialog } from "@/components/AvatarPickerDialog";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import {
@@ -64,6 +65,8 @@ function ProfilePage() {
   const [loadingProfile, setLoadingProfile] = useState(true);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [avatarPickerOpen, setAvatarPickerOpen] = useState(false);
+  const [savingAvatar, setSavingAvatar] = useState(false);
 
   // Edit form state
   const [editName, setEditName] = useState("");
@@ -151,6 +154,23 @@ function ProfilePage() {
   }
 
   const avatarUrl = profile?.avatar_url || user?.user_metadata?.avatar_url || user?.user_metadata?.picture;
+
+  const handleAvatarSelect = async (url: string) => {
+    if (!user) return;
+    setSavingAvatar(true);
+    const { error } = await supabase
+      .from("user_profiles")
+      .update({ avatar_url: url, avatar_type: "premium" })
+      .eq("user_id", user.id);
+    if (error) {
+      toast.error("Erro ao salvar avatar");
+    } else {
+      setProfile((prev) => prev ? { ...prev, avatar_url: url } : prev);
+      toast.success("Avatar atualizado!");
+      setAvatarPickerOpen(false);
+    }
+    setSavingAvatar(false);
+  };
   const displayName = profile?.name || user?.user_metadata?.full_name || "Jogador";
 
   const handleLogout = async () => {
@@ -351,7 +371,10 @@ function ProfilePage() {
                 {displayName.charAt(0)}
               </div>
             )}
-            <button className="absolute bottom-0 right-0 flex h-8 w-8 items-center justify-center rounded-full border border-border bg-card text-foreground">
+            <button
+              onClick={() => setAvatarPickerOpen(true)}
+              className="absolute bottom-0 right-0 flex h-8 w-8 items-center justify-center rounded-full border border-border bg-card text-foreground"
+            >
               <Camera className="h-4 w-4" />
             </button>
           </div>
@@ -431,6 +454,13 @@ function ProfilePage() {
         </button>
       </div>
 
+      <AvatarPickerDialog
+        open={avatarPickerOpen}
+        onOpenChange={setAvatarPickerOpen}
+        currentAvatarUrl={profile?.avatar_url || null}
+        onSelect={handleAvatarSelect}
+        saving={savingAvatar}
+      />
       <BottomNav />
     </div>
   );
