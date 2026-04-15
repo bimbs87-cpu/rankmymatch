@@ -163,7 +163,9 @@ function RoundDetailPage() {
             </h1>
             <span
               className={`inline-block rounded-full px-2.5 py-0.5 text-[10px] font-semibold ${
-                round.status === "scheduled" && round.scheduled_date && round.scheduled_date <= new Date().toISOString().split("T")[0]
+                round.status === "cancelled"
+                  ? "bg-destructive/10 text-destructive"
+                  : round.status === "scheduled" && round.scheduled_date && round.scheduled_date <= new Date().toISOString().split("T")[0]
                   ? "bg-warning/10 text-warning"
                   : round.status === "scheduled"
                   ? "bg-info/10 text-info"
@@ -172,20 +174,33 @@ function RoundDetailPage() {
                   : "bg-success/10 text-success"
               }`}
             >
-              {round.status === "scheduled" && round.scheduled_date && round.scheduled_date <= new Date().toISOString().split("T")[0]
+              {round.status === "cancelled"
+                ? "Cancelada"
+                : round.status === "scheduled" && round.scheduled_date && round.scheduled_date <= new Date().toISOString().split("T")[0]
                 ? "Lançar resultado"
                 : round.status === "scheduled" ? "Agendada" : round.status === "in_progress" ? "Em jogo" : "Encerrada"}
             </span>
           </div>
           {isAdmin && (
-            <button
-              onClick={handleDeleteRound}
-              disabled={deletingRound}
-              className="flex h-9 w-9 items-center justify-center rounded-full border border-destructive/30 bg-destructive/10 text-destructive hover:bg-destructive/20 disabled:opacity-50"
-              title="Apagar rodada"
-            >
-              <Trash2 className="h-4 w-4" />
-            </button>
+            <div className="flex items-center gap-1.5">
+              {round.status !== "cancelled" && (
+                <button
+                  onClick={handleCancelRound}
+                  className="flex h-9 w-9 items-center justify-center rounded-full border border-warning/30 bg-warning/10 text-warning hover:bg-warning/20"
+                  title="Cancelar rodada"
+                >
+                  <Ban className="h-4 w-4" />
+                </button>
+              )}
+              <button
+                onClick={handleDeleteRound}
+                disabled={deletingRound}
+                className="flex h-9 w-9 items-center justify-center rounded-full border border-destructive/30 bg-destructive/10 text-destructive hover:bg-destructive/20 disabled:opacity-50"
+                title="Excluir rodada"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
+            </div>
           )}
         </div>
       </header>
