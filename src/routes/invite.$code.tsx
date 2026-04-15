@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
+import { lovable } from "@/integrations/lovable/index";
 import { useState, useEffect } from "react";
 import { Users, CheckCircle, XCircle, Loader2, LogIn } from "lucide-react";
 import { toast } from "sonner";
