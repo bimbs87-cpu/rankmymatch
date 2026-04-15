@@ -14,6 +14,8 @@ interface Props {
   sport: string;
   simultaneousCourts: number;
   imageUrl: string | null;
+  groupStatus?: string;
+  isCreator?: boolean;
   onSaved: () => void;
 }
 
