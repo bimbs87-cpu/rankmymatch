@@ -48,10 +48,7 @@ function LoginPage() {
         {/* Logo */}
         <div className="mb-10 flex flex-col items-center">
           <img
-            src={(() => {
-              const stored = (typeof window !== "undefined" ? localStorage.getItem("rmm-theme") : "dark") as Theme || "dark";
-              return getResolvedTheme(stored) === "light" ? logoHorizontalLight : logoHorizontalDark;
-            })()}
+            src={resolvedTheme === "light" ? logoHorizontalLight : logoHorizontalDark}
             alt="RankMyMatch"
             className="mb-5 h-14 w-auto"
           />
