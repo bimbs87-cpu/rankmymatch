@@ -183,43 +183,6 @@ function GroupDetailPage() {
         </div>
       </header>
 
-      {isMember && (
-        <div className="mx-5 mb-4 space-y-2">
-          <Link
-            to="/groups/$groupId/seasons"
-            params={{ groupId }}
-            className="flex items-center justify-between rounded-2xl border border-border bg-card/50 p-4 transition-colors active:bg-accent/30"
-          >
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
-                <Trophy className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <span className="text-sm font-semibold text-foreground">Temporadas</span>
-                <p className="text-xs text-muted-foreground">Rankings, rodadas e partidas</p>
-              </div>
-            </div>
-            <ChevronRight className="h-4 w-4 text-muted-foreground" />
-          </Link>
-          <Link
-            to="/groups/$groupId/feed"
-            params={{ groupId }}
-            className="flex items-center justify-between rounded-2xl border border-border bg-card/50 p-4 transition-colors active:bg-accent/30"
-          >
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-info/10">
-                <MessageSquare className="h-5 w-5 text-info" />
-              </div>
-              <div>
-                <span className="text-sm font-semibold text-foreground">Feed</span>
-                <p className="text-xs text-muted-foreground">Comentários e reações do grupo</p>
-              </div>
-            </div>
-            <ChevronRight className="h-4 w-4 text-muted-foreground" />
-          </Link>
-        </div>
-      )}
-
       {group.description && (
         <div className="px-5 pb-4">
           <p className="text-sm text-muted-foreground">{group.description}</p>
@@ -234,18 +197,6 @@ function GroupDetailPage() {
           >
             <UserPlus className="h-4 w-4" />
             {group.is_public ? "Entrar no grupo" : "Solicitar entrada"}
-          </button>
-        </div>
-      )}
-
-      {isMember && (
-        <div className="mx-5 mb-4">
-          <button
-            onClick={handleShareInvite}
-            className="flex w-full items-center justify-center gap-2 rounded-2xl border border-border bg-card/50 p-4 text-sm font-medium text-foreground transition-colors active:bg-accent/30"
-          >
-            <Share2 className="h-4 w-4 text-primary" />
-            Convidar jogadores
           </button>
         </div>
       )}
@@ -397,10 +348,52 @@ function GroupDetailPage() {
                 </div>
               ))}
             </div>
-            {!isCreator && (
+
+            {/* Temporadas link - discreto */}
+            {isMember && (
+              <Link
+                to="/groups/$groupId/seasons"
+                params={{ groupId }}
+                className="flex items-center justify-between rounded-xl border border-border/50 bg-card/30 px-3 py-2.5 transition-colors active:bg-accent/30"
+              >
+                <div className="flex items-center gap-2">
+                  <Trophy className="h-4 w-4 text-primary/70" />
+                  <span className="text-xs font-medium text-muted-foreground">Temporadas</span>
+                </div>
+                <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/50" />
+              </Link>
+            )}
+
+            {/* Convidar jogadores */}
+            {isMember && (
+              <button
+                onClick={handleShareInvite}
+                className="flex w-full items-center justify-center gap-2 rounded-xl border border-border/50 bg-card/30 px-3 py-2.5 text-xs font-medium text-muted-foreground transition-colors active:bg-accent/30"
+              >
+                <Share2 className="h-3.5 w-3.5 text-primary/70" />
+                Convidar jogadores
+              </button>
+            )}
+
+            {/* Feed link */}
+            {isMember && (
+              <Link
+                to="/groups/$groupId/feed"
+                params={{ groupId }}
+                className="flex items-center justify-between rounded-xl border border-border/50 bg-card/30 px-3 py-2.5 transition-colors active:bg-accent/30"
+              >
+                <div className="flex items-center gap-2">
+                  <MessageSquare className="h-4 w-4 text-info/70" />
+                  <span className="text-xs font-medium text-muted-foreground">Feed do grupo</span>
+                </div>
+                <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/50" />
+              </Link>
+            )}
+
+            {!isCreator && isMember && (
               <button
                 onClick={handleLeaveClick}
-                className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl border border-destructive/30 py-3 text-sm font-medium text-destructive transition-colors active:bg-destructive/10"
+                className="flex w-full items-center justify-center gap-2 rounded-xl border border-destructive/20 py-2.5 text-xs font-medium text-destructive/70 transition-colors active:bg-destructive/10"
               >
                 <LogOut className="h-4 w-4" />
                 Sair do grupo
