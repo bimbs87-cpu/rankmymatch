@@ -21,7 +21,7 @@ interface InviteLink {
   id: string;
   code: string;
   use_count: number;
-  max_uses: number;
+  max_uses: number | null;
   expires_at: string | null;
   is_active: boolean;
   created_at: string;

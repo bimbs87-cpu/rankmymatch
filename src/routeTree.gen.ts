@@ -18,6 +18,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as HistoryRouteImport } from './routes/history'
 import { Route as GroupsRouteImport } from './routes/groups'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as InviteCodeRouteImport } from './routes/invite.$code'
 import { Route as GroupsGroupIdRouteImport } from './routes/groups.$groupId'
 import { Route as GroupsGroupIdSeasonsRouteImport } from './routes/groups.$groupId.seasons'
 import { Route as GroupsGroupIdFeedRouteImport } from './routes/groups.$groupId.feed'
@@ -69,6 +70,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const InviteCodeRoute = InviteCodeRouteImport.update({
+  id: '/invite/$code',
+  path: '/invite/$code',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const GroupsGroupIdRoute = GroupsGroupIdRouteImport.update({
   id: '/$groupId',
   path: '/$groupId',
@@ -108,6 +114,7 @@ export interface FileRoutesByFullPath {
   '/ranking-info': typeof RankingInfoRoute
   '/seasons': typeof SeasonsRoute
   '/groups/$groupId': typeof GroupsGroupIdRouteWithChildren
+  '/invite/$code': typeof InviteCodeRoute
   '/groups/$groupId/feed': typeof GroupsGroupIdFeedRoute
   '/groups/$groupId/seasons': typeof GroupsGroupIdSeasonsRouteWithChildren
   '/groups/$groupId/seasons/$seasonId': typeof GroupsGroupIdSeasonsSeasonIdRouteWithChildren
@@ -124,6 +131,7 @@ export interface FileRoutesByTo {
   '/ranking-info': typeof RankingInfoRoute
   '/seasons': typeof SeasonsRoute
   '/groups/$groupId': typeof GroupsGroupIdRouteWithChildren
+  '/invite/$code': typeof InviteCodeRoute
   '/groups/$groupId/feed': typeof GroupsGroupIdFeedRoute
   '/groups/$groupId/seasons': typeof GroupsGroupIdSeasonsRouteWithChildren
   '/groups/$groupId/seasons/$seasonId': typeof GroupsGroupIdSeasonsSeasonIdRouteWithChildren
@@ -141,6 +149,7 @@ export interface FileRoutesById {
   '/ranking-info': typeof RankingInfoRoute
   '/seasons': typeof SeasonsRoute
   '/groups/$groupId': typeof GroupsGroupIdRouteWithChildren
+  '/invite/$code': typeof InviteCodeRoute
   '/groups/$groupId/feed': typeof GroupsGroupIdFeedRoute
   '/groups/$groupId/seasons': typeof GroupsGroupIdSeasonsRouteWithChildren
   '/groups/$groupId/seasons/$seasonId': typeof GroupsGroupIdSeasonsSeasonIdRouteWithChildren
@@ -159,6 +168,7 @@ export interface FileRouteTypes {
     | '/ranking-info'
     | '/seasons'
     | '/groups/$groupId'
+    | '/invite/$code'
     | '/groups/$groupId/feed'
     | '/groups/$groupId/seasons'
     | '/groups/$groupId/seasons/$seasonId'
@@ -175,6 +185,7 @@ export interface FileRouteTypes {
     | '/ranking-info'
     | '/seasons'
     | '/groups/$groupId'
+    | '/invite/$code'
     | '/groups/$groupId/feed'
     | '/groups/$groupId/seasons'
     | '/groups/$groupId/seasons/$seasonId'
@@ -191,6 +202,7 @@ export interface FileRouteTypes {
     | '/ranking-info'
     | '/seasons'
     | '/groups/$groupId'
+    | '/invite/$code'
     | '/groups/$groupId/feed'
     | '/groups/$groupId/seasons'
     | '/groups/$groupId/seasons/$seasonId'
@@ -207,6 +219,7 @@ export interface RootRouteChildren {
   RankingRoute: typeof RankingRoute
   RankingInfoRoute: typeof RankingInfoRoute
   SeasonsRoute: typeof SeasonsRoute
+  InviteCodeRoute: typeof InviteCodeRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -272,6 +285,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/invite/$code': {
+      id: '/invite/$code'
+      path: '/invite/$code'
+      fullPath: '/invite/$code'
+      preLoaderRoute: typeof InviteCodeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/groups/$groupId': {
@@ -374,6 +394,7 @@ const rootRouteChildren: RootRouteChildren = {
   RankingRoute: RankingRoute,
   RankingInfoRoute: RankingInfoRoute,
   SeasonsRoute: SeasonsRoute,
+  InviteCodeRoute: InviteCodeRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -14,7 +14,7 @@ interface InviteData {
   group_id: string;
   code: string;
   is_active: boolean;
-  max_uses: number;
+  max_uses: number | null;
   use_count: number;
   expires_at: string | null;
   group: {
@@ -62,7 +62,7 @@ function InvitePage() {
       }
 
       // Check max uses
-      if (inviteData.max_uses > 0 && inviteData.use_count >= inviteData.max_uses) {
+      if (inviteData.max_uses && inviteData.max_uses > 0 && inviteData.use_count >= inviteData.max_uses) {
         setError("Este convite atingiu o limite de usos.");
         setLoading(false);
         return;
