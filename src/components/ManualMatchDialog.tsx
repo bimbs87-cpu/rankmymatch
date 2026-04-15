@@ -156,11 +156,25 @@ export function ManualMatchDialog({ roundId, groupId, onClose, onSaved }: Props)
         });
       }
 
+      const { data: roundData } = await supabase
+        .from("rounds")
+        .select("season_id, round_number, group_id")
+        .eq("id", roundId)
+        .single();
+
+      const seasonId = roundData?.season_id || "";
+
       for (let i = 0; i < matchups.length; i++) {
         const mu = matchups[i];
+        const winnerTeam = mu.scoreA > mu.scoreB ? "A" : "B";
         const { data: match, error } = await supabase
           .from("matches")
-          .insert({ round_id: roundId, match_number: i + 1, status: "scheduled" })
+          .insert({
+            round_id: roundId,
+            match_number: i + 1,
+            status: "completed",
+            winner_team: winnerTeam,
+          })
           .select()
           .single();
         if (error) throw error;
@@ -171,20 +185,35 @@ export function ManualMatchDialog({ roundId, groupId, onClose, onSaved }: Props)
         ];
         await supabase.from("match_players").insert(players);
 
-        const { data: roundData } = await supabase
-          .from("rounds")
-          .select("season_id")
-          .eq("id", roundId)
-          .single();
-
-        const seasonId = roundData?.season_id || "";
-
         await submitMatchScore(match.id, seasonId, [
           { setNumber: 1, scoreA: mu.scoreA, scoreB: mu.scoreB },
         ]);
       }
 
       await supabase.from("rounds").update({ status: "completed" }).eq("id", roundId);
+
+      // Notify all involved players
+      if (roundData?.group_id) {
+        const { data: currentUser } = await supabase.auth.getUser();
+        const actorId = currentUser?.user?.id || "";
+        const playerNames = selectedPlayers.map((uid) => getDisplayName(uid)).join(", ");
+        
+        // Notify each player individually
+        const notifRows = selectedPlayers
+          .filter((uid) => uid !== actorId)
+          .map((uid) => ({
+            user_id: uid,
+            group_id: roundData.group_id,
+            type: "match_result",
+            title: "Resultado registrado! 🏆",
+            body: `Rodada ${roundData.round_number} — Rei da Quadra com ${playerNames}. Confira o resultado!`,
+            data: { roundId, seasonId },
+          }));
+        
+        if (notifRows.length > 0) {
+          await supabase.from("notifications").insert(notifRows);
+        }
+      }
 
       toast.success("Rei da Quadra registrado com sucesso!");
       onSaved();

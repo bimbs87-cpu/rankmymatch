@@ -1,7 +1,7 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useAuth } from "@/hooks/use-auth";
 import { useGroupDetail } from "@/hooks/use-groups";
-import { useRoundDetail, confirmPresence, cancelPresence, drawTeams, deleteMatch } from "@/hooks/use-seasons";
+import { useRoundDetail, confirmPresence, cancelPresence, drawTeams, deleteMatch, deleteRound } from "@/hooks/use-seasons";
 import { ScoreEntryDialog } from "@/components/ScoreEntryDialog";
 import { ManualMatchDialog } from "@/components/ManualMatchDialog";
 import {
@@ -31,6 +31,7 @@ export const Route = createFileRoute(
 
 function RoundDetailPage() {
   const { groupId, seasonId, roundId } = Route.useParams();
+  const navigate = useNavigate();
   const { user } = useAuth();
   const { isAdmin } = useGroupDetail(groupId);
   const { round, presences, matches, myPresence, confirmedCount, isLoading, refresh } =
@@ -38,6 +39,7 @@ function RoundDetailPage() {
   const [scoringMatch, setScoringMatch] = useState<any>(null);
   const [showManualMatch, setShowManualMatch] = useState(false);
   const [deletingMatchId, setDeletingMatchId] = useState<string | null>(null);
+  const [deletingRound, setDeletingRound] = useState(false);
 
   const handleDeleteMatch = async (matchId: string) => {
     if (!confirm("Tem certeza que deseja apagar esta partida? Os dados de placar serão perdidos.")) return;
@@ -50,6 +52,20 @@ function RoundDetailPage() {
       toast.error(e.message || "Erro ao apagar partida");
     } finally {
       setDeletingMatchId(null);
+    }
+  };
+
+  const handleDeleteRound = async () => {
+    if (!confirm("Tem certeza que deseja apagar esta rodada? Todas as partidas e dados serão perdidos.")) return;
+    setDeletingRound(true);
+    try {
+      await deleteRound(roundId);
+      toast.success("Rodada apagada!");
+      navigate({ to: "/groups/$groupId/seasons/$seasonId", params: { groupId, seasonId } });
+    } catch (e: any) {
+      toast.error(e.message || "Erro ao apagar rodada");
+    } finally {
+      setDeletingRound(false);
     }
   };
 
@@ -147,6 +163,16 @@ function RoundDetailPage() {
                 : round.status === "scheduled" ? "Agendada" : round.status === "in_progress" ? "Em jogo" : "Encerrada"}
             </span>
           </div>
+          {isAdmin && (
+            <button
+              onClick={handleDeleteRound}
+              disabled={deletingRound}
+              className="flex h-9 w-9 items-center justify-center rounded-full border border-destructive/30 bg-destructive/10 text-destructive hover:bg-destructive/20 disabled:opacity-50"
+              title="Apagar rodada"
+            >
+              <Trash2 className="h-4 w-4" />
+            </button>
+          )}
         </div>
       </header>
 
