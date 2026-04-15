@@ -487,11 +487,15 @@ function DashboardPage() {
                       <p className="text-sm font-semibold text-foreground">
                         Rodada {r.round_number}
                       </p>
-                      <span className={`rounded-full px-1.5 py-0.5 text-[9px] font-semibold ${
-                        r.status === "in_progress" ? "bg-warning/10 text-warning" : "bg-info/10 text-info"
-                      }`}>
-                        {r.status === "in_progress" ? "Em jogo" : "Agendada"}
-                      </span>
+                      {(() => {
+                        const today = new Date().toISOString().split("T")[0];
+                        const smartStatus = r.status === "scheduled" && r.scheduled_date && r.scheduled_date <= today
+                          ? "pending_result"
+                          : r.status;
+                        const label = smartStatus === "in_progress" ? "Em jogo" : smartStatus === "pending_result" ? "Lançar resultado" : "Agendada";
+                        const cls = smartStatus === "in_progress" ? "bg-warning/10 text-warning" : smartStatus === "pending_result" ? "bg-warning/10 text-warning" : "bg-info/10 text-info";
+                        return <span className={`rounded-full px-1.5 py-0.5 text-[9px] font-semibold ${cls}`}>{label}</span>;
+                      })()}
                     </div>
                     <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px] text-muted-foreground">
                       <span className="font-medium">{r.group_name}</span>
