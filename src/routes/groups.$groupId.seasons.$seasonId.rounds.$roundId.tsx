@@ -194,6 +194,19 @@ function RoundDetailPage() {
         </div>
       )}
 
+      {/* Manual match creation for admins when no matches exist */}
+      {isAdmin && matches.length === 0 && (
+        <div className="mx-5 mb-5">
+          <button
+            onClick={() => setShowManualMatch(true)}
+            className="flex w-full items-center justify-center gap-2 rounded-2xl border border-border bg-card py-3 text-sm font-medium text-foreground"
+          >
+            <PlusCircle className="h-4 w-4 text-primary" />
+            Criar Partidas Manualmente
+          </button>
+        </div>
+      )}
+
       <div className="space-y-5 px-5">
         {/* Confirmed players */}
         <section>
