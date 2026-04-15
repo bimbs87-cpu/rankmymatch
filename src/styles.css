@@ -175,6 +175,21 @@
     padding-left: env(safe-area-inset-left);
     padding-right: env(safe-area-inset-right);
   }
+
+  /* Custom branded cursor for interactive elements */
+  a,
+  button,
+  [role="button"],
+  [type="button"],
+  [type="submit"],
+  [type="reset"],
+  label[for],
+  select,
+  summary,
+  [tabindex]:not([tabindex="-1"]),
+  .cursor-pointer {
+    cursor: url("/src/assets/cursor-pointer.svg") 5 2, pointer;
+  }
 }
 
 @layer utilities {
