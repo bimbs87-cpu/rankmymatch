@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useAuth } from "@/hooks/use-auth";
+import { useMyGroups } from "@/hooks/use-groups";
 import { BottomNav } from "@/components/BottomNav";
 import {
   Trophy,
@@ -10,6 +11,8 @@ import {
   BarChart3,
   Plus,
   Zap,
+  Globe,
+  Lock,
 } from "lucide-react";
 
 export const Route = createFileRoute("/")({
