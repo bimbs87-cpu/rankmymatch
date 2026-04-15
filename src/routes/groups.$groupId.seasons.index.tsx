@@ -22,13 +22,16 @@ const WEEKDAYS = [
   { value: 0, label: "Domingo" },
 ];
 
-function getUpcomingDates(dayOfWeek: number, count: number): string[] {
+function getWeeklyDates(dayOfWeek: number, count: number, startFrom?: string): string[] {
   const dates: string[] = [];
-  const today = new Date();
-  const current = new Date(today);
-  // Move to the next occurrence of the chosen day
+  const start = startFrom ? new Date(startFrom + "T00:00:00") : new Date();
+  const current = new Date(start);
   const diff = (dayOfWeek - current.getDay() + 7) % 7;
-  current.setDate(current.getDate() + (diff === 0 && current.getHours() >= 12 ? 7 : diff));
+  if (diff !== 0) {
+    current.setDate(current.getDate() + diff);
+  } else if (!startFrom && current.getHours() >= 12) {
+    current.setDate(current.getDate() + 7);
+  }
   for (let i = 0; i < count; i++) {
     dates.push(current.toISOString().split("T")[0]);
     current.setDate(current.getDate() + 7);
@@ -36,16 +39,11 @@ function getUpcomingDates(dayOfWeek: number, count: number): string[] {
   return dates;
 }
 
-function getUpcomingMonthlyDates(count: number): string[] {
+function getMonthlyDates(count: number, startFrom?: string): string[] {
   const dates: string[] = [];
-  const today = new Date();
+  const start = startFrom ? new Date(startFrom + "T00:00:00") : new Date();
   for (let i = 0; i < count; i++) {
-    const d = new Date(today.getFullYear(), today.getMonth() + i + 1, 0);
-    // Last saturday of the month as default, or just mid-month
-    const mid = new Date(today.getFullYear(), today.getMonth() + i, 15);
-    if (mid <= today) {
-      mid.setMonth(mid.getMonth() + 1);
-    }
+    const mid = new Date(start.getFullYear(), start.getMonth() + i, 15);
     dates.push(mid.toISOString().split("T")[0]);
   }
   return dates;
