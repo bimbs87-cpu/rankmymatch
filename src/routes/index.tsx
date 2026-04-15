@@ -347,20 +347,13 @@ function DashboardPage() {
         {/* Ranking card + Quick action */}
         <section className="grid grid-cols-2 gap-3 animate-fade-in">
           {dataLoading ? (
-            <>
-              <div className="flex flex-col rounded-3xl border border-border bg-card p-4 animate-pulse">
-                <div className="h-2.5 w-16 rounded bg-muted" />
-                <div className="mt-3 h-8 w-12 rounded bg-muted" />
-                <div className="mt-2 h-3 w-20 rounded bg-muted" />
-                <div className="mt-2 h-2 w-24 rounded bg-muted" />
-                <div className="mt-auto pt-3 h-2 w-16 rounded bg-muted" />
-              </div>
-              <div className="flex flex-col items-center justify-center gap-1.5 rounded-3xl bg-primary p-5 text-primary-foreground">
-                <Plus className="h-7 w-7" strokeWidth={2.5} />
-                <span className="text-sm font-semibold">Criar / Entrar</span>
-                <span className="text-[10px] opacity-70">em um grupo</span>
-              </div>
-            </>
+            <div className="flex flex-col rounded-3xl border border-border bg-card p-4 animate-pulse">
+              <div className="h-2.5 w-16 rounded bg-muted" />
+              <div className="mt-3 h-8 w-12 rounded bg-muted" />
+              <div className="mt-2 h-3 w-20 rounded bg-muted" />
+              <div className="mt-2 h-2 w-24 rounded bg-muted" />
+              <div className="mt-auto pt-3 h-2 w-16 rounded bg-muted" />
+            </div>
           ) : myRanking ? (
             <Link to="/ranking" className="flex flex-col rounded-3xl border border-primary/20 bg-primary/5 p-4">
               <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Seu Ranking</p>
