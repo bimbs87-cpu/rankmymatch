@@ -261,9 +261,7 @@ function DashboardPage() {
   if (!isAuthenticated) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center bg-background px-6">
-        <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-2xl bg-primary">
-          <Trophy className="h-10 w-10 text-primary-foreground" />
-        </div>
+        <img src={logoSymbolNeon} alt="RankMyMatch" className="mb-4 h-20 w-20" />
         <h1 className="font-display text-3xl font-bold tracking-tight text-foreground">
           RankMyMatch
         </h1>
