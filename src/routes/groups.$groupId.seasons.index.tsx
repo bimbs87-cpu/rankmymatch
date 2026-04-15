@@ -25,12 +25,17 @@ const WEEKDAYS = [
 
 const COURT_OPTIONS = [1, 2, 3, 4];
 
-function getUpcomingDates(dayOfWeek: number, count: number): string[] {
+function getUpcomingDates(dayOfWeek: number, count: number, roundsPlayed = 0): string[] {
   const dates: string[] = [];
   const today = new Date();
   const current = new Date(today);
+  // Find the next occurrence of the chosen day
   const diff = (dayOfWeek - current.getDay() + 7) % 7;
-  current.setDate(current.getDate() + (diff === 0 && current.getHours() >= 12 ? 7 : diff));
+  current.setDate(current.getDate() + (diff === 0 && current.getHours() >= 12 ? 7 : diff === 0 ? 0 : diff));
+  // Go back for rounds already played
+  if (roundsPlayed > 0) {
+    current.setDate(current.getDate() - (roundsPlayed * 7));
+  }
   for (let i = 0; i < count; i++) {
     dates.push(current.toISOString().split("T")[0]);
     current.setDate(current.getDate() + 7);
@@ -38,14 +43,13 @@ function getUpcomingDates(dayOfWeek: number, count: number): string[] {
   return dates;
 }
 
-function getUpcomingMonthlyDates(count: number): string[] {
+function getUpcomingMonthlyDates(count: number, roundsPlayed = 0): string[] {
   const dates: string[] = [];
   const today = new Date();
+  const startOffset = roundsPlayed > 0 ? -roundsPlayed : 0;
   for (let i = 0; i < count; i++) {
-    const mid = new Date(today.getFullYear(), today.getMonth() + i, 15);
-    if (mid <= today) {
-      mid.setMonth(mid.getMonth() + 1);
-    }
+    const month = today.getMonth() + startOffset + i;
+    const mid = new Date(today.getFullYear(), month, 15);
     dates.push(mid.toISOString().split("T")[0]);
   }
   return dates;
@@ -67,6 +71,8 @@ function GroupSeasonsPage() {
   const [editingIdx, setEditingIdx] = useState<number | null>(null);
   const [time, setTime] = useState("19:00");
   const [courts, setCourts] = useState(1);
+  const [isRetroactive, setIsRetroactive] = useState(false);
+  const [roundsPlayed, setRoundsPlayed] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
@@ -88,6 +94,8 @@ function GroupSeasonsPage() {
     setEditingIdx(null);
     setTime("19:00");
     setCourts(1);
+    setIsRetroactive(false);
+    setRoundsPlayed(0);
     setSubmitError(null);
   };
 
@@ -105,10 +113,11 @@ function GroupSeasonsPage() {
       toast.error("Selecione o dia da semana");
       return;
     }
+    const pastRounds = isRetroactive ? roundsPlayed : 0;
     if (durationType === "weekly" && selectedDay !== null) {
-      setRoundDates(getUpcomingDates(selectedDay, totalRounds));
+      setRoundDates(getUpcomingDates(selectedDay, totalRounds, pastRounds));
     } else {
-      setRoundDates(getUpcomingMonthlyDates(totalRounds));
+      setRoundDates(getUpcomingMonthlyDates(totalRounds, pastRounds));
     }
     goStep("dates", "forward");
   };
@@ -486,6 +495,42 @@ function GroupSeasonsPage() {
                   </div>
                   <p className="mt-1 text-[10px] text-muted-foreground">Quantas quadras serão usadas ao mesmo tempo nas rodadas</p>
                 </div>
+                <div>
+                  <button
+                    type="button"
+                    onClick={() => { setIsRetroactive(!isRetroactive); if (isRetroactive) setRoundsPlayed(0); }}
+                    className={`flex w-full items-center justify-between rounded-2xl border p-3 transition-colors ${
+                      isRetroactive ? "border-primary bg-primary/5" : "border-border bg-background"
+                    }`}
+                  >
+                    <div className="text-left">
+                      <p className="text-sm font-medium text-foreground">Temporada em andamento</p>
+                      <p className="text-[10px] text-muted-foreground">Já jogaram rodadas antes? Inclua datas passadas</p>
+                    </div>
+                    <div className={`flex h-5 w-9 items-center rounded-full transition-colors ${isRetroactive ? "bg-primary" : "bg-muted"}`}>
+                      <div className={`h-4 w-4 rounded-full bg-white shadow transition-transform ${isRetroactive ? "translate-x-4" : "translate-x-0.5"}`} />
+                    </div>
+                  </button>
+                  {isRetroactive && (
+                    <div className="mt-2">
+                      <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Rodadas já realizadas</label>
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="range"
+                          min={1}
+                          max={Math.max(1, totalRounds - 1)}
+                          value={roundsPlayed}
+                          onChange={(e) => setRoundsPlayed(Number(e.target.value))}
+                          className="flex-1 accent-primary"
+                        />
+                        <span className="w-10 text-center font-display text-lg font-bold text-foreground">{roundsPlayed}</span>
+                      </div>
+                      <p className="mt-1 text-[10px] text-muted-foreground">
+                        {roundsPlayed} rodada(s) no passado + {totalRounds - roundsPlayed} futuras
+                      </p>
+                    </div>
+                  )}
+                </div>
                 <div className="flex gap-3">
                   <button
                     onClick={() => goStep("type", "back")}
@@ -516,10 +561,13 @@ function GroupSeasonsPage() {
                   Toque no lápis para alterar a data.
                 </p>
                 <div className="max-h-64 overflow-y-auto space-y-1.5 rounded-2xl border border-border bg-background p-2">
-                  {roundDates.map((d, idx) => (
-                    <div key={idx} className="flex items-center justify-between px-3 py-2 rounded-xl hover:bg-accent/20">
+                  {roundDates.map((d, idx) => {
+                    const today = new Date().toISOString().split("T")[0];
+                    const isPast = d < today;
+                    return (
+                    <div key={idx} className={`flex items-center justify-between px-3 py-2 rounded-xl hover:bg-accent/20 ${isPast ? "opacity-70" : ""}`}>
                       <div className="flex items-center gap-2">
-                        <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-xs font-bold text-primary">
+                        <span className={`flex h-7 w-7 items-center justify-center rounded-lg text-xs font-bold ${isPast ? "bg-warning/10 text-warning" : "bg-primary/10 text-primary"}`}>
                           {idx + 1}
                         </span>
                         {editingIdx === idx ? (
@@ -532,7 +580,10 @@ function GroupSeasonsPage() {
                             className="rounded-lg border border-primary bg-background px-2 py-1 text-sm text-foreground focus:outline-none"
                           />
                         ) : (
-                          <span className="text-sm text-foreground">{formatDateBR(d)}</span>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-sm text-foreground">{formatDateBR(d)}</span>
+                            {isPast && <span className="rounded bg-warning/10 px-1.5 py-0.5 text-[9px] font-medium text-warning">passada</span>}
+                          </div>
                         )}
                       </div>
                       {editingIdx !== idx && (
@@ -544,7 +595,8 @@ function GroupSeasonsPage() {
                         </button>
                       )}
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
                 <div className="flex gap-3">
                   <button
