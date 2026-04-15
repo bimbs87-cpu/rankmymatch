@@ -561,10 +561,13 @@ function GroupSeasonsPage() {
                   Toque no lápis para alterar a data.
                 </p>
                 <div className="max-h-64 overflow-y-auto space-y-1.5 rounded-2xl border border-border bg-background p-2">
-                  {roundDates.map((d, idx) => (
-                    <div key={idx} className="flex items-center justify-between px-3 py-2 rounded-xl hover:bg-accent/20">
+                  {roundDates.map((d, idx) => {
+                    const today = new Date().toISOString().split("T")[0];
+                    const isPast = d < today;
+                    return (
+                    <div key={idx} className={`flex items-center justify-between px-3 py-2 rounded-xl hover:bg-accent/20 ${isPast ? "opacity-70" : ""}`}>
                       <div className="flex items-center gap-2">
-                        <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-xs font-bold text-primary">
+                        <span className={`flex h-7 w-7 items-center justify-center rounded-lg text-xs font-bold ${isPast ? "bg-warning/10 text-warning" : "bg-primary/10 text-primary"}`}>
                           {idx + 1}
                         </span>
                         {editingIdx === idx ? (
@@ -577,7 +580,10 @@ function GroupSeasonsPage() {
                             className="rounded-lg border border-primary bg-background px-2 py-1 text-sm text-foreground focus:outline-none"
                           />
                         ) : (
-                          <span className="text-sm text-foreground">{formatDateBR(d)}</span>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-sm text-foreground">{formatDateBR(d)}</span>
+                            {isPast && <span className="rounded bg-warning/10 px-1.5 py-0.5 text-[9px] font-medium text-warning">passada</span>}
+                          </div>
                         )}
                       </div>
                       {editingIdx !== idx && (
