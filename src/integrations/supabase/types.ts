@@ -449,6 +449,7 @@ export type Database = {
           simultaneous_courts: number
           slots_per_round: number
           sport: string
+          status: string
           updated_at: string
         }
         Insert: {
@@ -465,6 +466,7 @@ export type Database = {
           simultaneous_courts?: number
           slots_per_round?: number
           sport?: string
+          status?: string
           updated_at?: string
         }
         Update: {
@@ -481,6 +483,7 @@ export type Database = {
           simultaneous_courts?: number
           slots_per_round?: number
           sport?: string
+          status?: string
           updated_at?: string
         }
         Relationships: []

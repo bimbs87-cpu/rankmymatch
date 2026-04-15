@@ -81,6 +81,7 @@ export function usePublicGroups(search: string) {
           .from("groups")
           .select("*")
           .eq("is_public", true)
+          .eq("status", "active")
           .order("created_at", { ascending: false })
           .limit(20);
 
