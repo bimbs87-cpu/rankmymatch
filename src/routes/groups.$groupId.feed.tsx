@@ -27,6 +27,7 @@ function GroupFeedPage() {
         groupId,
         userId: user.id,
         content: newComment.trim(),
+        userName: user.user_metadata?.full_name || user.email || undefined,
       });
       setNewComment("");
     } catch {
