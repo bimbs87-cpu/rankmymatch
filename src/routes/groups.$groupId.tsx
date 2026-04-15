@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { BottomNav } from "@/components/BottomNav";
-import { GroupImageUpload } from "@/components/GroupImageUpload";
+import { GroupSettingsForm } from "@/components/GroupSettingsForm";
 import { InviteLinkDialog } from "@/components/InviteLinkDialog";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
@@ -372,31 +372,17 @@ function GroupDetailPage() {
 
         {/* Settings Tab */}
         {tab === "settings" && isAdmin && (
-          <div className="space-y-4">
-            <GroupImageUpload
-              groupId={groupId}
-              currentUrl={group.image_url}
-              onUploaded={async (url) => {
-                await supabase.from("groups").update({ image_url: url }).eq("id", groupId);
-                toast.success("Imagem atualizada!");
-                refresh();
-              }}
-              onRemoved={async () => {
-                await supabase.from("groups").update({ image_url: null }).eq("id", groupId);
-                toast.success("Imagem removida");
-                refresh();
-              }}
-            />
-            <div className="rounded-2xl border border-border bg-card/50 p-4">
-              <h3 className="mb-2 text-sm font-semibold text-foreground">Informações</h3>
-              <div className="space-y-2 text-xs text-muted-foreground">
-                <p>Esporte: {group.sport}</p>
-                <p>Máx. jogadores: {group.max_players}</p>
-                <p>Quadras simultâneas: {group.simultaneous_courts}</p>
-                <p>Visibilidade: {group.is_public ? "Público" : "Privado"}</p>
-              </div>
-            </div>
-          </div>
+          <GroupSettingsForm
+            groupId={groupId}
+            name={group.name}
+            description={group.description}
+            isPublic={group.is_public}
+            maxPlayers={group.max_players}
+            sport={group.sport}
+            simultaneousCourts={group.simultaneous_courts}
+            imageUrl={group.image_url}
+            onSaved={refresh}
+          />
         )}
       </div>
 
