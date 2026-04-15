@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Zap, Users, BarChart3, Trophy } from "lucide-react";
 import logoHorizontalDark from "@/assets/logo-horizontal-dark.png";
 import logoHorizontalLight from "@/assets/logo-horizontal-light.png";
-import { getResolvedTheme, type Theme } from "@/lib/theme";
+import { useTheme } from "@/lib/theme";
 
 export const Route = createFileRoute("/login")({
   component: LoginPage,

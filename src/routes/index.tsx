@@ -336,8 +336,7 @@ function DashboardPage() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <img src={logoSymbolNeon} alt="RankMyMatch" className="h-7 w-7 dark:block hidden" />
-            <img src={(() => { try { return require("@/assets/logo-symbol-black.png"); } catch { return logoSymbolNeon; } })()} alt="RankMyMatch" className="h-7 w-7 dark:hidden block" />
+            <img src={resolvedTheme === "light" ? logoSymbolBlack : logoSymbolNeon} alt="RankMyMatch" className="h-7 w-7" />
             <Link to="/notifications" className="relative rounded-full border border-border bg-card p-2.5 transition-colors hover:bg-accent">
               <Bell className="h-4 w-4 text-muted-foreground" />
               {unreadCount > 0 && (
