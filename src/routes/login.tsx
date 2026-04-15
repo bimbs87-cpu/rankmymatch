@@ -15,6 +15,7 @@ export const Route = createFileRoute("/login")({
 function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const { resolved: resolvedTheme } = useTheme();
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
 
