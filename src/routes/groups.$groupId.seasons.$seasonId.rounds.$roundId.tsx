@@ -56,15 +56,27 @@ function RoundDetailPage() {
     }
   };
 
+  const handleCancelRound = async () => {
+    if (!confirm("Cancelar esta rodada? Ela ficará marcada como não realizada.")) return;
+    try {
+      const { error } = await supabase.from("rounds").update({ status: "cancelled" }).eq("id", roundId);
+      if (error) throw error;
+      toast.success("Rodada cancelada");
+      refresh();
+    } catch (e: any) {
+      toast.error(e.message || "Erro ao cancelar rodada");
+    }
+  };
+
   const handleDeleteRound = async () => {
-    if (!confirm("Tem certeza que deseja apagar esta rodada? Todas as partidas e dados serão perdidos.")) return;
+    if (!confirm("Tem certeza que deseja EXCLUIR esta rodada? Todas as partidas e dados serão perdidos permanentemente.")) return;
     setDeletingRound(true);
     try {
       await deleteRound(roundId);
-      toast.success("Rodada apagada!");
+      toast.success("Rodada excluída!");
       navigate({ to: "/groups/$groupId/seasons/$seasonId", params: { groupId, seasonId } });
     } catch (e: any) {
-      toast.error(e.message || "Erro ao apagar rodada");
+      toast.error(e.message || "Erro ao excluir rodada");
     } finally {
       setDeletingRound(false);
     }
