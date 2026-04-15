@@ -205,8 +205,8 @@ function SeasonDetailPage() {
                       )}
                     </div>
                   </div>
-                  <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-semibold ${statusClass(r.status)}`}>
-                    {statusLabel(r.status)}
+                  <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-semibold ${statusClass(getSmartStatus(r))}`}>
+                    {statusLabel(getSmartStatus(r))}
                   </span>
                 </Link>
               ) : (
