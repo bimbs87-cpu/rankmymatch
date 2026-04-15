@@ -17,6 +17,7 @@ import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as GroupsRouteImport } from './routes/groups'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as GroupsGroupIdRouteImport } from './routes/groups.$groupId'
 
 const SeasonsRoute = SeasonsRouteImport.update({
   id: '/seasons',
@@ -58,37 +59,45 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const GroupsGroupIdRoute = GroupsGroupIdRouteImport.update({
+  id: '/$groupId',
+  path: '/$groupId',
+  getParentRoute: () => GroupsRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/groups': typeof GroupsRoute
+  '/groups': typeof GroupsRouteWithChildren
   '/login': typeof LoginRoute
   '/notifications': typeof NotificationsRoute
   '/profile': typeof ProfileRoute
   '/ranking': typeof RankingRoute
   '/ranking-info': typeof RankingInfoRoute
   '/seasons': typeof SeasonsRoute
+  '/groups/$groupId': typeof GroupsGroupIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/groups': typeof GroupsRoute
+  '/groups': typeof GroupsRouteWithChildren
   '/login': typeof LoginRoute
   '/notifications': typeof NotificationsRoute
   '/profile': typeof ProfileRoute
   '/ranking': typeof RankingRoute
   '/ranking-info': typeof RankingInfoRoute
   '/seasons': typeof SeasonsRoute
+  '/groups/$groupId': typeof GroupsGroupIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/groups': typeof GroupsRoute
+  '/groups': typeof GroupsRouteWithChildren
   '/login': typeof LoginRoute
   '/notifications': typeof NotificationsRoute
   '/profile': typeof ProfileRoute
   '/ranking': typeof RankingRoute
   '/ranking-info': typeof RankingInfoRoute
   '/seasons': typeof SeasonsRoute
+  '/groups/$groupId': typeof GroupsGroupIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -101,6 +110,7 @@ export interface FileRouteTypes {
     | '/ranking'
     | '/ranking-info'
     | '/seasons'
+    | '/groups/$groupId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -111,6 +121,7 @@ export interface FileRouteTypes {
     | '/ranking'
     | '/ranking-info'
     | '/seasons'
+    | '/groups/$groupId'
   id:
     | '__root__'
     | '/'
@@ -121,11 +132,12 @@ export interface FileRouteTypes {
     | '/ranking'
     | '/ranking-info'
     | '/seasons'
+    | '/groups/$groupId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  GroupsRoute: typeof GroupsRoute
+  GroupsRoute: typeof GroupsRouteWithChildren
   LoginRoute: typeof LoginRoute
   NotificationsRoute: typeof NotificationsRoute
   ProfileRoute: typeof ProfileRoute
@@ -192,12 +204,30 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/groups/$groupId': {
+      id: '/groups/$groupId'
+      path: '/$groupId'
+      fullPath: '/groups/$groupId'
+      preLoaderRoute: typeof GroupsGroupIdRouteImport
+      parentRoute: typeof GroupsRoute
+    }
   }
 }
 
+interface GroupsRouteChildren {
+  GroupsGroupIdRoute: typeof GroupsGroupIdRoute
+}
+
+const GroupsRouteChildren: GroupsRouteChildren = {
+  GroupsGroupIdRoute: GroupsGroupIdRoute,
+}
+
+const GroupsRouteWithChildren =
+  GroupsRoute._addFileChildren(GroupsRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  GroupsRoute: GroupsRoute,
+  GroupsRoute: GroupsRouteWithChildren,
   LoginRoute: LoginRoute,
   NotificationsRoute: NotificationsRoute,
   ProfileRoute: ProfileRoute,
