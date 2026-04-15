@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { submitMatchScore } from "@/lib/elo-engine";
-import { X, Check, ChevronRight, Save, Swords, Users, Trophy } from "lucide-react";
+import { X, Check, ChevronRight, Save, Swords, Users, Trophy, Crown } from "lucide-react";
 import { toast } from "sonner";
 
 interface GroupMember {
@@ -25,8 +25,6 @@ interface Props {
   onSaved: () => void;
 }
 
-// Generate all "Rei da Quadra" matchups for 4 players
-// A/B vs C/D, A/C vs B/D, A/D vs B/C
 function generateMatchups(players: string[]): Matchup[] {
   if (players.length !== 4) return [];
   const [a, b, c, d] = players;
@@ -87,39 +85,36 @@ export function ManualMatchDialog({ roundId, groupId, onClose, onSaved }: Props)
     setStep("scores");
   };
 
-  const updateScore = (matchIdx: number, team: "A" | "B", delta: number) => {
-    setMatchups((prev) =>
-      prev.map((m, i) => {
-        if (i !== matchIdx) return m;
-        const key = team === "A" ? "scoreA" : "scoreB";
-        return { ...m, [key]: Math.max(0, Math.min(13, m[key] + delta)) };
-      })
-    );
-  };
-
   const setScore = (matchIdx: number, team: "A" | "B", value: number) => {
     setMatchups((prev) =>
       prev.map((m, i) => {
         if (i !== matchIdx) return m;
         const key = team === "A" ? "scoreA" : "scoreB";
-        return { ...m, [key]: Math.max(0, Math.min(13, value)) };
+        return { ...m, [key]: Math.max(0, Math.min(99, value)) };
       })
     );
   };
 
-  const getName = (uid: string) => {
+  const updateScore = (matchIdx: number, team: "A" | "B", delta: number) => {
+    setMatchups((prev) =>
+      prev.map((m, i) => {
+        if (i !== matchIdx) return m;
+        const key = team === "A" ? "scoreA" : "scoreB";
+        return { ...m, [key]: Math.max(0, Math.min(99, m[key] + delta)) };
+      })
+    );
+  };
+
+  const getDisplayName = (uid: string) => {
     const m = members.find((x) => x.user_id === uid);
-    return m?.nickname || m?.name || "?";
+    return m?.nickname || m?.name?.split(" ")[0] || "?";
   };
 
   const getAvatar = (uid: string) => members.find((x) => x.user_id === uid)?.avatar_url;
+  const getInitial = (uid: string) => getDisplayName(uid).charAt(0).toUpperCase();
 
-  const getInitial = (uid: string) => getName(uid).charAt(0).toUpperCase();
-
-  // Check all matches have a clear winner (not tied)
   const allValid = matchups.every((m) => m.scoreA !== m.scoreB);
 
-  // Player points summary
   const playerPoints = useMemo(() => {
     const pts: Record<string, { wins: number; gamesWon: number; gamesLost: number }> = {};
     for (const uid of selectedPlayers) {
@@ -148,7 +143,6 @@ export function ManualMatchDialog({ roundId, groupId, onClose, onSaved }: Props)
     }
     setSubmitting(true);
     try {
-      // 1. Upsert presence
       for (const uid of selectedPlayers) {
         await supabase.from("round_presence").upsert(
           { round_id: roundId, user_id: uid, status: "confirmed", confirmed_at: new Date().toISOString() },
@@ -162,7 +156,6 @@ export function ManualMatchDialog({ roundId, groupId, onClose, onSaved }: Props)
         });
       }
 
-      // 2. Create matches, players, sets, and process scores
       for (let i = 0; i < matchups.length; i++) {
         const mu = matchups[i];
         const { data: match, error } = await supabase
@@ -178,7 +171,6 @@ export function ManualMatchDialog({ roundId, groupId, onClose, onSaved }: Props)
         ];
         await supabase.from("match_players").insert(players);
 
-        // Get season_id from round
         const { data: roundData } = await supabase
           .from("rounds")
           .select("season_id")
@@ -187,13 +179,11 @@ export function ManualMatchDialog({ roundId, groupId, onClose, onSaved }: Props)
 
         const seasonId = roundData?.season_id || "";
 
-        // Submit score (creates sets, updates match, processes Elo)
         await submitMatchScore(match.id, seasonId, [
           { setNumber: 1, scoreA: mu.scoreA, scoreB: mu.scoreB },
         ]);
       }
 
-      // 3. Update round status
       await supabase.from("rounds").update({ status: "completed" }).eq("id", roundId);
 
       toast.success("Rei da Quadra registrado com sucesso!");
@@ -206,52 +196,69 @@ export function ManualMatchDialog({ roundId, groupId, onClose, onSaved }: Props)
     }
   };
 
-  const PlayerAvatar = ({ uid, size = "sm" }: { uid: string; size?: "sm" | "md" }) => {
-    const s = size === "sm" ? "h-6 w-6" : "h-8 w-8";
-    const textSize = size === "sm" ? "text-[9px]" : "text-xs";
+  const PlayerAvatar = ({ uid, size = "sm" }: { uid: string; size?: "sm" | "md" | "lg" }) => {
+    const sizes = { sm: "h-7 w-7", md: "h-9 w-9", lg: "h-10 w-10" };
+    const textSizes = { sm: "text-[10px]", md: "text-xs", lg: "text-sm" };
     const av = getAvatar(uid);
-    if (av) return <img src={av} alt="" className={`${s} rounded-full object-cover`} />;
+    if (av) return <img src={av} alt="" className={`${sizes[size]} rounded-full object-cover ring-2 ring-border`} />;
     return (
-      <div className={`flex ${s} items-center justify-center rounded-full bg-muted ${textSize} font-bold text-foreground`}>
+      <div className={`flex ${sizes[size]} items-center justify-center rounded-full bg-muted ring-2 ring-border ${textSizes[size]} font-bold text-foreground`}>
         {getInitial(uid)}
       </div>
     );
   };
+
+  const TeamLabel = ({ players, side }: { players: [string, string]; side: "left" | "right" }) => (
+    <div className={`flex flex-col gap-1 ${side === "right" ? "items-end" : "items-start"}`}>
+      {players.map((uid) => (
+        <div key={uid} className={`flex items-center gap-2 ${side === "right" ? "flex-row-reverse" : ""}`}>
+          <PlayerAvatar uid={uid} />
+          <span className="text-sm font-medium text-foreground">{getDisplayName(uid)}</span>
+        </div>
+      ))}
+    </div>
+  );
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
       <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
       <div className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-t-3xl sm:rounded-3xl border border-border bg-card p-5 pb-10 sm:pb-6 animate-in slide-in-from-bottom duration-300">
         {/* Header */}
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <Swords className="h-5 w-5 text-primary" />
-            <h2 className="font-display text-lg font-bold text-foreground">
-              {step === "select" ? "Quem jogou?" : "Preencher Resultados"}
-            </h2>
+        <div className="flex items-center justify-between mb-5">
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10">
+              <Swords className="h-4.5 w-4.5 text-primary" />
+            </div>
+            <div>
+              <h2 className="font-display text-lg font-bold text-foreground">
+                {step === "select" ? "Quem jogou?" : "Preencher Resultados"}
+              </h2>
+              <p className="text-[11px] text-muted-foreground">
+                {step === "select" ? "Selecione 4 jogadores" : "3 jogos · 1 set cada"}
+              </p>
+            </div>
           </div>
-          <button onClick={onClose} className="rounded-full bg-muted p-2">
+          <button onClick={onClose} className="rounded-full bg-muted/50 p-2 hover:bg-muted transition-colors">
             <X className="h-4 w-4 text-muted-foreground" />
           </button>
         </div>
 
         {loading ? (
-          <div className="flex justify-center py-8">
-            <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+          <div className="flex justify-center py-12">
+            <div className="h-7 w-7 animate-spin rounded-full border-2 border-primary border-t-transparent" />
           </div>
         ) : step === "select" ? (
-          /* STEP 1: Select 4 players */
           <div>
-            <p className="mb-3 text-xs text-muted-foreground">
-              Selecione os <strong>4 jogadores</strong> que participaram do Rei da Quadra.
-            </p>
-            <div className="mb-4 flex items-center gap-2">
+            <div className="mb-4 flex items-center gap-2 rounded-xl bg-primary/5 border border-primary/10 px-3 py-2">
               <Users className="h-4 w-4 text-primary" />
               <span className="text-sm font-semibold text-foreground">
                 {selectedPlayers.length}/4 selecionados
               </span>
+              {selectedPlayers.length === 4 && (
+                <Check className="h-4 w-4 text-success ml-auto" />
+              )}
             </div>
-            <div className="space-y-1.5 max-h-60 overflow-y-auto">
+            <div className="space-y-1.5 max-h-64 overflow-y-auto pr-1">
               {members.map((m) => {
                 const isSelected = selectedPlayers.includes(m.user_id);
                 const isDisabled = !isSelected && selectedPlayers.length >= 4;
@@ -260,11 +267,11 @@ export function ManualMatchDialog({ roundId, groupId, onClose, onSaved }: Props)
                     key={m.user_id}
                     onClick={() => togglePlayer(m.user_id)}
                     disabled={isDisabled}
-                    className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors ${
+                    className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-all ${
                       isSelected
                         ? "border border-primary/30 bg-primary/10"
                         : isDisabled
-                        ? "opacity-40 cursor-not-allowed"
+                        ? "opacity-30 cursor-not-allowed border border-transparent"
                         : "border border-transparent hover:bg-muted/50"
                     }`}
                   >
@@ -284,139 +291,145 @@ export function ManualMatchDialog({ roundId, groupId, onClose, onSaved }: Props)
             <button
               onClick={goToScores}
               disabled={selectedPlayers.length !== 4}
-              className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-3.5 text-sm font-bold text-primary-foreground disabled:opacity-50"
+              className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-3.5 text-sm font-bold text-primary-foreground disabled:opacity-40 transition-opacity"
             >
               Montar Jogos
               <ChevronRight className="h-4 w-4" />
             </button>
           </div>
         ) : (
-          /* STEP 2: Fill scores for all 3 matchups */
           <div>
             <button
               onClick={() => setStep("select")}
-              className="mb-3 text-xs text-primary font-medium"
+              className="mb-4 text-xs text-primary font-semibold hover:underline"
             >
               ← Alterar jogadores
             </button>
 
-            <p className="mb-4 text-xs text-muted-foreground">
-              Cada jogo é <strong>1 set</strong>. Preencha o placar de cada confronto.
-            </p>
-
-            <div className="space-y-3">
+            <div className="space-y-4">
               {matchups.map((mu, idx) => {
                 const winner = mu.scoreA > mu.scoreB ? "A" : mu.scoreB > mu.scoreA ? "B" : null;
                 return (
                   <div
                     key={idx}
-                    className={`rounded-2xl border p-4 transition-colors ${
-                      winner ? "border-border bg-card/50" : "border-warning/30 bg-warning/5"
+                    className={`rounded-2xl border p-4 transition-all ${
+                      winner ? "border-border bg-card" : "border-warning/20 bg-warning/5"
                     }`}
                   >
+                    {/* Match header */}
                     <div className="mb-3 flex items-center justify-between">
-                      <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
                         Jogo {idx + 1}
                       </span>
                       {winner && (
-                        <span className="flex items-center gap-1 rounded-full bg-success/10 px-2 py-0.5 text-[9px] font-semibold text-success">
+                        <span className="flex items-center gap-1 rounded-full bg-success/10 px-2.5 py-0.5 text-[10px] font-semibold text-success">
                           <Trophy className="h-3 w-3" />
-                          {winner === "A" ? `${getName(mu.teamA[0])} & ${getName(mu.teamA[1])}` : `${getName(mu.teamB[0])} & ${getName(mu.teamB[1])}`}
+                          Vitória
                         </span>
                       )}
                     </div>
 
-                    <div className="flex items-center gap-2">
+                    {/* Teams + Score */}
+                    <div className="flex items-center gap-3">
                       {/* Team A */}
-                      <div className="flex-1">
-                        <div className="mb-2 flex items-center gap-1">
-                          <PlayerAvatar uid={mu.teamA[0]} />
-                          <PlayerAvatar uid={mu.teamA[1]} />
-                          <span className="ml-1 text-[10px] text-muted-foreground truncate">
-                            {getName(mu.teamA[0]).split(" ")[0]} & {getName(mu.teamA[1]).split(" ")[0]}
-                          </span>
+                      <TeamLabel players={mu.teamA} side="left" />
+
+                      {/* Score controls */}
+                      <div className="flex items-center gap-2 mx-auto">
+                        <div className="flex flex-col items-center gap-1">
+                          <button
+                            onClick={() => updateScore(idx, "A", 1)}
+                            className="flex h-6 w-6 items-center justify-center rounded-md bg-muted/80 text-xs font-bold text-foreground active:scale-90 transition-transform"
+                          >
+                            +
+                          </button>
+                          <input
+                            type="number"
+                            value={mu.scoreA}
+                            onChange={(e) => setScore(idx, "A", parseInt(e.target.value) || 0)}
+                            className={`w-11 h-11 rounded-xl text-center font-display text-xl font-bold outline-none transition-colors ${
+                              winner === "A" ? "bg-primary/20 text-primary" : "bg-muted/50 text-foreground"
+                            }`}
+                          />
+                          <button
+                            onClick={() => updateScore(idx, "A", -1)}
+                            className="flex h-6 w-6 items-center justify-center rounded-md bg-muted/80 text-xs font-bold text-foreground active:scale-90 transition-transform"
+                          >
+                            −
+                          </button>
                         </div>
-                      </div>
 
-                      {/* Score */}
-                      <div className="flex items-center gap-1">
-                        <button
-                          onClick={() => updateScore(idx, "A", -1)}
-                          className="flex h-8 w-8 items-center justify-center rounded-lg bg-muted text-sm font-bold text-foreground active:scale-95"
-                        >
-                          −
-                        </button>
-                        <input
-                          type="number"
-                          value={mu.scoreA}
-                          onChange={(e) => setScore(idx, "A", parseInt(e.target.value) || 0)}
-                          className="w-10 rounded-lg bg-background text-center font-display text-lg font-bold text-primary outline-none"
-                        />
-                        <button
-                          onClick={() => updateScore(idx, "A", 1)}
-                          className="flex h-8 w-8 items-center justify-center rounded-lg bg-muted text-sm font-bold text-foreground active:scale-95"
-                        >
-                          +
-                        </button>
-                      </div>
+                        <span className="text-sm font-bold text-muted-foreground">×</span>
 
-                      <span className="text-xs text-muted-foreground font-bold">×</span>
-
-                      <div className="flex items-center gap-1">
-                        <button
-                          onClick={() => updateScore(idx, "B", -1)}
-                          className="flex h-8 w-8 items-center justify-center rounded-lg bg-muted text-sm font-bold text-foreground active:scale-95"
-                        >
-                          −
-                        </button>
-                        <input
-                          type="number"
-                          value={mu.scoreB}
-                          onChange={(e) => setScore(idx, "B", parseInt(e.target.value) || 0)}
-                          className="w-10 rounded-lg bg-background text-center font-display text-lg font-bold text-info outline-none"
-                        />
-                        <button
-                          onClick={() => updateScore(idx, "B", 1)}
-                          className="flex h-8 w-8 items-center justify-center rounded-lg bg-muted text-sm font-bold text-foreground active:scale-95"
-                        >
-                          +
-                        </button>
+                        <div className="flex flex-col items-center gap-1">
+                          <button
+                            onClick={() => updateScore(idx, "B", 1)}
+                            className="flex h-6 w-6 items-center justify-center rounded-md bg-muted/80 text-xs font-bold text-foreground active:scale-90 transition-transform"
+                          >
+                            +
+                          </button>
+                          <input
+                            type="number"
+                            value={mu.scoreB}
+                            onChange={(e) => setScore(idx, "B", parseInt(e.target.value) || 0)}
+                            className={`w-11 h-11 rounded-xl text-center font-display text-xl font-bold outline-none transition-colors ${
+                              winner === "B" ? "bg-info/20 text-info" : "bg-muted/50 text-foreground"
+                            }`}
+                          />
+                          <button
+                            onClick={() => updateScore(idx, "B", -1)}
+                            className="flex h-6 w-6 items-center justify-center rounded-md bg-muted/80 text-xs font-bold text-foreground active:scale-90 transition-transform"
+                          >
+                            −
+                          </button>
+                        </div>
                       </div>
 
                       {/* Team B */}
-                      <div className="flex-1">
-                        <div className="mb-2 flex items-center justify-end gap-1">
-                          <span className="mr-1 text-[10px] text-muted-foreground truncate">
-                            {getName(mu.teamB[0]).split(" ")[0]} & {getName(mu.teamB[1]).split(" ")[0]}
-                          </span>
-                          <PlayerAvatar uid={mu.teamB[0]} />
-                          <PlayerAvatar uid={mu.teamB[1]} />
-                        </div>
-                      </div>
+                      <TeamLabel players={mu.teamB} side="right" />
                     </div>
                   </div>
                 );
               })}
             </div>
 
-            {/* Summary table */}
+            {/* Summary */}
             {allValid && (
-              <div className="mt-4 rounded-2xl border border-border bg-background p-3">
-                <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                  Resumo
-                </p>
-                <div className="space-y-1.5">
+              <div className="mt-5 rounded-2xl border border-border bg-background/50 p-4">
+                <div className="mb-3 flex items-center gap-2">
+                  <Crown className="h-4 w-4 text-primary" />
+                  <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                    Resumo do Rei da Quadra
+                  </span>
+                </div>
+                <div className="space-y-2">
                   {selectedPlayers
-                    .sort((a, b) => (playerPoints[b]?.wins || 0) - (playerPoints[a]?.wins || 0))
+                    .sort((a, b) => {
+                      const diff = (playerPoints[b]?.wins || 0) - (playerPoints[a]?.wins || 0);
+                      if (diff !== 0) return diff;
+                      return ((playerPoints[b]?.gamesWon || 0) - (playerPoints[b]?.gamesLost || 0)) -
+                             ((playerPoints[a]?.gamesWon || 0) - (playerPoints[a]?.gamesLost || 0));
+                    })
                     .map((uid, i) => {
                       const pp = playerPoints[uid];
+                      const isKing = i === 0;
                       return (
-                        <div key={uid} className="flex items-center gap-2">
-                          <span className="w-4 text-[10px] font-bold text-muted-foreground">{i + 1}.</span>
+                        <div
+                          key={uid}
+                          className={`flex items-center gap-3 rounded-xl px-3 py-2 ${
+                            isKing ? "bg-primary/10 border border-primary/20" : ""
+                          }`}
+                        >
+                          <span className={`w-5 text-sm font-bold ${isKing ? "text-primary" : "text-muted-foreground"}`}>
+                            {i + 1}º
+                          </span>
                           <PlayerAvatar uid={uid} />
-                          <span className="flex-1 text-xs font-medium text-foreground truncate">{getName(uid)}</span>
-                          <span className="text-[10px] font-semibold text-success">{pp.wins}V</span>
-                          <span className="text-[10px] text-muted-foreground">{pp.gamesWon}-{pp.gamesLost}</span>
+                          <span className={`flex-1 text-sm font-medium ${isKing ? "text-primary" : "text-foreground"}`}>
+                            {getDisplayName(uid)}
+                            {isKing && " 👑"}
+                          </span>
+                          <span className="text-xs font-bold text-success">{pp.wins}V</span>
+                          <span className="text-[11px] text-muted-foreground">{pp.gamesWon}–{pp.gamesLost}</span>
                         </div>
                       );
                     })}
@@ -427,7 +440,7 @@ export function ManualMatchDialog({ roundId, groupId, onClose, onSaved }: Props)
             <button
               onClick={handleSubmit}
               disabled={!allValid || submitting}
-              className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-3.5 text-sm font-bold text-primary-foreground disabled:opacity-50"
+              className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-3.5 text-sm font-bold text-primary-foreground disabled:opacity-40 transition-opacity"
             >
               <Save className="h-4 w-4" />
               {submitting ? "Salvando..." : "Salvar Resultados e Calcular Elo"}
