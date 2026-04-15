@@ -1,5 +1,6 @@
 import { Outlet, Link, createRootRoute, HeadContent, Scripts } from "@tanstack/react-router";
 import { AuthProvider } from "@/hooks/use-auth";
+import { Toaster } from "@/components/ui/sonner";
 import appCss from "../styles.css?url";
 import { useEffect } from "react";
 
@@ -92,6 +93,7 @@ function RootComponent() {
       <div className="mx-auto max-w-lg min-h-screen">
         <Outlet />
       </div>
+      <Toaster richColors position="top-center" />
     </AuthProvider>
   );
 }
