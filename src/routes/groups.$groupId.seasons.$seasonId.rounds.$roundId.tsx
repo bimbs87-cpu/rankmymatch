@@ -362,7 +362,7 @@ function RoundDetailPage() {
                       </div>
                     </div>
 
-                    {/* Score entry button */}
+                    {/* Score entry / edit button */}
                     {isAdmin && match.status !== "completed" && (
                       <button
                         onClick={() => setScoringMatch(match)}
@@ -373,10 +373,22 @@ function RoundDetailPage() {
                       </button>
                     )}
 
-                    {/* Winner badge */}
-                    {match.status === "completed" && match.winner_team && (
-                      <div className="mt-3 flex items-center justify-center gap-1.5 rounded-xl bg-success/10 py-1.5 text-xs font-semibold text-success">
-                        🏆 Time {match.winner_team} venceu
+                    {match.status === "completed" && (
+                      <div className="mt-3 flex items-center gap-2">
+                        {match.winner_team && (
+                          <div className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-success/10 py-1.5 text-xs font-semibold text-success">
+                            🏆 Time {match.winner_team} venceu
+                          </div>
+                        )}
+                        {isAdmin && (
+                          <button
+                            onClick={() => setScoringMatch(match)}
+                            className="flex items-center gap-1.5 rounded-xl bg-muted/50 px-3 py-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                          >
+                            <Edit3 className="h-3 w-3" />
+                            Editar
+                          </button>
+                        )}
                       </div>
                     )}
                   </div>
