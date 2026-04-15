@@ -3,7 +3,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useGroupDetail } from "@/hooks/use-groups";
 import { useSeasonRounds } from "@/hooks/use-seasons";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, Calendar, MapPin, Clock, X, Pencil, Ban, Settings } from "lucide-react";
+import { ArrowLeft, Calendar, MapPin, Clock, X, Pencil, Ban, Settings, ChevronRight } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 
