@@ -1,0 +1,342 @@
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { BottomNav } from "@/components/BottomNav";
+import { useAuth } from "@/hooks/use-auth";
+import {
+  useGroupDetail,
+  joinGroup,
+  approveJoinRequest,
+  rejectJoinRequest,
+  removeMember,
+  updateMemberRole,
+} from "@/hooks/use-groups";
+import {
+  ArrowLeft,
+  Users,
+  Globe,
+  Lock,
+  Crown,
+  Shield,
+  Copy,
+  UserPlus,
+  UserMinus,
+  Check,
+  X,
+  Settings,
+  Share2,
+} from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
+
+export const Route = createFileRoute("/groups/$groupId")({
+  component: GroupDetailPage,
+});
+
+function GroupDetailPage() {
+  const { groupId } = Route.useParams();
+  const { user, isAuthenticated } = useAuth();
+  const { group, members, myRole, isAdmin, isCreator, pendingRequests, isLoading, refresh } =
+    useGroupDetail(groupId);
+  const navigate = useNavigate();
+  const [tab, setTab] = useState<"members" | "requests" | "settings">("members");
+
+  if (isLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+      </div>
+    );
+  }
+
+  if (!group) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center bg-background px-6">
+        <h2 className="font-display text-lg font-bold text-foreground">Grupo não encontrado</h2>
+        <Link to="/groups" className="mt-4 text-sm text-primary">
+          Voltar
+        </Link>
+      </div>
+    );
+  }
+
+  const isMember = !!myRole;
+  const inviteLink = typeof window !== "undefined"
+    ? `${window.location.origin}/groups/${groupId}`
+    : "";
+
+  const handleJoin = async () => {
+    if (!user) return;
+    try {
+      await joinGroup(groupId, user.id, group.is_public);
+      toast.success(group.is_public ? "Você entrou no grupo!" : "Solicitação enviada!");
+      refresh();
+    } catch (e: any) {
+      toast.error(e.message?.includes("duplicate") ? "Você já é membro ou já solicitou." : "Erro ao entrar");
+    }
+  };
+
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(inviteLink);
+    toast.success("Link copiado!");
+  };
+
+  const handleApprove = async (req: any) => {
+    if (!user) return;
+    await approveJoinRequest(req.id, groupId, req.user_id, user.id);
+    toast.success("Membro aprovado!");
+    refresh();
+  };
+
+  const handleReject = async (req: any) => {
+    if (!user) return;
+    await rejectJoinRequest(req.id, user.id);
+    toast.success("Solicitação rejeitada");
+    refresh();
+  };
+
+  const handleRemove = async (memberId: string) => {
+    await removeMember(memberId);
+    toast.success("Membro removido");
+    refresh();
+  };
+
+  const handlePromote = async (memberId: string) => {
+    await updateMemberRole(memberId, "admin");
+    toast.success("Promovido a admin");
+    refresh();
+  };
+
+  const handleDemote = async (memberId: string) => {
+    await updateMemberRole(memberId, "member");
+    toast.success("Rebaixado a membro");
+    refresh();
+  };
+
+  return (
+    <div className="min-h-screen bg-background pb-28">
+      {/* Header */}
+      <header className="px-5 pb-4 pt-6">
+        <div className="flex items-center gap-3">
+          <Link
+            to="/groups"
+            className="flex h-9 w-9 items-center justify-center rounded-full border border-border bg-card"
+          >
+            <ArrowLeft className="h-4 w-4 text-foreground" />
+          </Link>
+          <div className="flex-1">
+            <div className="flex items-center gap-2">
+              <h1 className="font-display text-lg font-bold text-foreground">{group.name}</h1>
+              {group.is_public ? (
+                <Globe className="h-3.5 w-3.5 text-muted-foreground" />
+              ) : (
+                <Lock className="h-3.5 w-3.5 text-muted-foreground" />
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground">{members.length} membros ativos</p>
+          </div>
+          {isMember && (
+            <button
+              onClick={handleCopyLink}
+              className="flex h-9 w-9 items-center justify-center rounded-full border border-border bg-card"
+            >
+              <Share2 className="h-4 w-4 text-muted-foreground" />
+            </button>
+          )}
+        </div>
+      </header>
+
+      {/* Description */}
+      {group.description && (
+        <div className="px-5 pb-4">
+          <p className="text-sm text-muted-foreground">{group.description}</p>
+        </div>
+      )}
+
+      {/* Join button */}
+      {isAuthenticated && !isMember && (
+        <div className="px-5 pb-4">
+          <button
+            onClick={handleJoin}
+            className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-3 text-sm font-bold text-primary-foreground"
+          >
+            <UserPlus className="h-4 w-4" />
+            {group.is_public ? "Entrar no grupo" : "Solicitar entrada"}
+          </button>
+        </div>
+      )}
+
+      {/* Invite link card */}
+      {isMember && (
+        <div className="mx-5 mb-4 rounded-2xl border border-border bg-card/50 p-4">
+          <p className="mb-2 text-xs font-medium text-muted-foreground">Link de convite</p>
+          <div className="flex items-center gap-2">
+            <div className="flex-1 truncate rounded-xl bg-background px-3 py-2 text-xs text-foreground">
+              {inviteLink}
+            </div>
+            <button
+              onClick={handleCopyLink}
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground"
+            >
+              <Copy className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Tabs */}
+      {isMember && (
+        <div className="mx-5 mb-4 flex gap-1 rounded-full border border-border bg-card p-1">
+          <button
+            onClick={() => setTab("members")}
+            className={`flex-1 rounded-full py-2 text-xs font-semibold transition-colors ${
+              tab === "members" ? "bg-primary text-primary-foreground" : "text-muted-foreground"
+            }`}
+          >
+            Membros
+          </button>
+          {isAdmin && (
+            <button
+              onClick={() => setTab("requests")}
+              className={`relative flex-1 rounded-full py-2 text-xs font-semibold transition-colors ${
+                tab === "requests" ? "bg-primary text-primary-foreground" : "text-muted-foreground"
+              }`}
+            >
+              Solicitações
+              {pendingRequests.length > 0 && (
+                <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground">
+                  {pendingRequests.length}
+                </span>
+              )}
+            </button>
+          )}
+          {isAdmin && (
+            <button
+              onClick={() => setTab("settings")}
+              className={`flex-1 rounded-full py-2 text-xs font-semibold transition-colors ${
+                tab === "settings" ? "bg-primary text-primary-foreground" : "text-muted-foreground"
+              }`}
+            >
+              Config
+            </button>
+          )}
+        </div>
+      )}
+
+      <div className="space-y-3 px-5">
+        {/* Members Tab */}
+        {tab === "members" &&
+          members.map((m) => (
+            <div
+              key={m.id}
+              className="flex items-center justify-between rounded-2xl border border-border bg-card/50 p-4"
+            >
+              <div className="flex items-center gap-3">
+                {m.profile?.avatar_url ? (
+                  <img
+                    src={m.profile.avatar_url}
+                    alt=""
+                    className="h-10 w-10 rounded-full border border-border object-cover"
+                  />
+                ) : (
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted text-sm font-bold text-foreground">
+                    {(m.profile?.name || "?").charAt(0)}
+                  </div>
+                )}
+                <div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-sm font-semibold text-foreground">
+                      {m.profile?.nickname || m.profile?.name || "Jogador"}
+                    </span>
+                    {m.role === "creator" && <Crown className="h-3.5 w-3.5 text-rank-gold" />}
+                    {m.role === "admin" && <Shield className="h-3.5 w-3.5 text-info" />}
+                  </div>
+                  <p className="text-xs capitalize text-muted-foreground">{m.role}</p>
+                </div>
+              </div>
+
+              {isAdmin && m.user_id !== user?.id && m.role !== "creator" && (
+                <div className="flex gap-1.5">
+                  {m.role === "member" ? (
+                    <button
+                      onClick={() => handlePromote(m.id)}
+                      className="rounded-lg bg-info/10 p-2 text-info"
+                      title="Promover"
+                    >
+                      <Shield className="h-3.5 w-3.5" />
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => handleDemote(m.id)}
+                      className="rounded-lg bg-warning/10 p-2 text-warning"
+                      title="Rebaixar"
+                    >
+                      <Shield className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                  <button
+                    onClick={() => handleRemove(m.id)}
+                    className="rounded-lg bg-destructive/10 p-2 text-destructive"
+                    title="Remover"
+                  >
+                    <UserMinus className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              )}
+            </div>
+          ))}
+
+        {/* Requests Tab */}
+        {tab === "requests" && isAdmin && (
+          <>
+            {pendingRequests.length === 0 && (
+              <div className="rounded-3xl border border-dashed border-border bg-card/50 p-8 text-center">
+                <p className="text-sm text-muted-foreground">Nenhuma solicitação pendente</p>
+              </div>
+            )}
+            {pendingRequests.map((req) => (
+              <div
+                key={req.id}
+                className="flex items-center justify-between rounded-2xl border border-border bg-card/50 p-4"
+              >
+                <div>
+                  <p className="text-sm font-semibold text-foreground">Solicitação</p>
+                  <p className="text-xs text-muted-foreground">{req.message || "Sem mensagem"}</p>
+                </div>
+                <div className="flex gap-1.5">
+                  <button
+                    onClick={() => handleApprove(req)}
+                    className="rounded-lg bg-success/10 p-2 text-success"
+                  >
+                    <Check className="h-4 w-4" />
+                  </button>
+                  <button
+                    onClick={() => handleReject(req)}
+                    className="rounded-lg bg-destructive/10 p-2 text-destructive"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </>
+        )}
+
+        {/* Settings Tab */}
+        {tab === "settings" && isAdmin && (
+          <div className="space-y-4">
+            <div className="rounded-2xl border border-border bg-card/50 p-4">
+              <h3 className="mb-2 text-sm font-semibold text-foreground">Informações</h3>
+              <div className="space-y-2 text-xs text-muted-foreground">
+                <p>Esporte: {group.sport}</p>
+                <p>Máx. jogadores: {group.max_players}</p>
+                <p>Quadras simultâneas: {group.simultaneous_courts}</p>
+                <p>Visibilidade: {group.is_public ? "Público" : "Privado"}</p>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <BottomNav />
+    </div>
+  );
+}
