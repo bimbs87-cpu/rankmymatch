@@ -3,7 +3,8 @@ import { useState } from "react";
 import { lovable } from "@/integrations/lovable/index";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
-import { Trophy, Zap, Users, BarChart3 } from "lucide-react";
+import { Zap, Users, BarChart3, Trophy } from "lucide-react";
+import logoHorizontalDark from "@/assets/logo-horizontal-dark.png";
 
 export const Route = createFileRoute("/login")({
   component: LoginPage,
