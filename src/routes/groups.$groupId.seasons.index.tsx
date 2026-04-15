@@ -495,6 +495,42 @@ function GroupSeasonsPage() {
                   </div>
                   <p className="mt-1 text-[10px] text-muted-foreground">Quantas quadras serão usadas ao mesmo tempo nas rodadas</p>
                 </div>
+                <div>
+                  <button
+                    type="button"
+                    onClick={() => { setIsRetroactive(!isRetroactive); if (isRetroactive) setRoundsPlayed(0); }}
+                    className={`flex w-full items-center justify-between rounded-2xl border p-3 transition-colors ${
+                      isRetroactive ? "border-primary bg-primary/5" : "border-border bg-background"
+                    }`}
+                  >
+                    <div className="text-left">
+                      <p className="text-sm font-medium text-foreground">Temporada em andamento</p>
+                      <p className="text-[10px] text-muted-foreground">Já jogaram rodadas antes? Inclua datas passadas</p>
+                    </div>
+                    <div className={`flex h-5 w-9 items-center rounded-full transition-colors ${isRetroactive ? "bg-primary" : "bg-muted"}`}>
+                      <div className={`h-4 w-4 rounded-full bg-white shadow transition-transform ${isRetroactive ? "translate-x-4" : "translate-x-0.5"}`} />
+                    </div>
+                  </button>
+                  {isRetroactive && (
+                    <div className="mt-2">
+                      <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Rodadas já realizadas</label>
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="range"
+                          min={1}
+                          max={Math.max(1, totalRounds - 1)}
+                          value={roundsPlayed}
+                          onChange={(e) => setRoundsPlayed(Number(e.target.value))}
+                          className="flex-1 accent-primary"
+                        />
+                        <span className="w-10 text-center font-display text-lg font-bold text-foreground">{roundsPlayed}</span>
+                      </div>
+                      <p className="mt-1 text-[10px] text-muted-foreground">
+                        {roundsPlayed} rodada(s) no passado + {totalRounds - roundsPlayed} futuras
+                      </p>
+                    </div>
+                  )}
+                </div>
                 <div className="flex gap-3">
                   <button
                     onClick={() => goStep("type", "back")}
