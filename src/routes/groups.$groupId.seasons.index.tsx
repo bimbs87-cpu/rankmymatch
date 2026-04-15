@@ -88,7 +88,7 @@ function GroupSeasonsPage() {
 
   const handleSelectType = (type: "weekly" | "monthly") => {
     setDurationType(type);
-    setStep("config");
+    goStep("config", "forward");
   };
 
   const handleConfigNext = () => {
