@@ -280,3 +280,8 @@ export async function drawTeams(roundId: string, confirmedPlayerIds: string[], a
 
   return createdMatches;
 }
+
+export async function deleteMatch(matchId: string) {
+  const { error } = await supabase.from("matches").delete().eq("id", matchId);
+  if (error) throw new Error(error.message);
+}

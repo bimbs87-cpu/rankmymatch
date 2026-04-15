@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useAuth } from "@/hooks/use-auth";
 import { useGroupDetail } from "@/hooks/use-groups";
-import { useRoundDetail, confirmPresence, cancelPresence, drawTeams } from "@/hooks/use-seasons";
+import { useRoundDetail, confirmPresence, cancelPresence, drawTeams, deleteMatch } from "@/hooks/use-seasons";
 import { ScoreEntryDialog } from "@/components/ScoreEntryDialog";
 import { ManualMatchDialog } from "@/components/ManualMatchDialog";
 import {
@@ -18,6 +18,7 @@ import {
   UserX,
   Edit3,
   PlusCircle,
+  Trash2,
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -36,6 +37,21 @@ function RoundDetailPage() {
     useRoundDetail(roundId);
   const [scoringMatch, setScoringMatch] = useState<any>(null);
   const [showManualMatch, setShowManualMatch] = useState(false);
+  const [deletingMatchId, setDeletingMatchId] = useState<string | null>(null);
+
+  const handleDeleteMatch = async (matchId: string) => {
+    if (!confirm("Tem certeza que deseja apagar esta partida? Os dados de placar serão perdidos.")) return;
+    setDeletingMatchId(matchId);
+    try {
+      await deleteMatch(matchId);
+      toast.success("Partida apagada!");
+      refresh();
+    } catch (e: any) {
+      toast.error(e.message || "Erro ao apagar partida");
+    } finally {
+      setDeletingMatchId(null);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -263,17 +279,28 @@ function RoundDetailPage() {
                           Partida {match.match_number}
                         </span>
                       </div>
-                      <span
-                        className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
-                          match.status === "scheduled"
-                            ? "bg-info/10 text-info"
-                            : match.status === "in_progress"
-                            ? "bg-warning/10 text-warning"
-                            : "bg-success/10 text-success"
-                        }`}
-                      >
-                        {match.status === "scheduled" ? "Aguardando" : match.status === "in_progress" ? "Em jogo" : "Finalizada"}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                            match.status === "scheduled"
+                              ? "bg-info/10 text-info"
+                              : match.status === "in_progress"
+                              ? "bg-warning/10 text-warning"
+                              : "bg-success/10 text-success"
+                          }`}
+                        >
+                          {match.status === "scheduled" ? "Aguardando" : match.status === "in_progress" ? "Em jogo" : "Finalizada"}
+                        </span>
+                        {isAdmin && (
+                          <button
+                            onClick={() => handleDeleteMatch(match.id)}
+                            disabled={deletingMatchId === match.id}
+                            className="flex h-6 w-6 items-center justify-center rounded-full bg-destructive/10 text-destructive hover:bg-destructive/20 disabled:opacity-50"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </button>
+                        )}
+                      </div>
                     </div>
 
                     <div className="flex items-center gap-3">
