@@ -84,6 +84,8 @@ function GroupSeasonsPage() {
     setTime("19:00");
     setSubmitError(null);
     setCourts(1);
+    setIsRetroactive(false);
+    setStartDate("");
   };
 
   const handleSelectType = (type: "weekly" | "monthly") => {
