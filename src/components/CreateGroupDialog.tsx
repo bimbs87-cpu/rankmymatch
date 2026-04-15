@@ -4,6 +4,8 @@ import { createGroup } from "@/hooks/use-groups";
 import { useNavigate } from "@tanstack/react-router";
 import { X, Globe, Lock, Users } from "lucide-react";
 import { toast } from "sonner";
+import { GroupImageUpload } from "@/components/GroupImageUpload";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Props {
   open: boolean;
