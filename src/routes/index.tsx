@@ -21,6 +21,7 @@ export const Route = createFileRoute("/")({
 
 function DashboardPage() {
   const { user, isAuthenticated, isLoading } = useAuth();
+  const { groups: myGroups, isLoading: groupsLoading } = useMyGroups();
 
   if (isLoading) {
     return (
