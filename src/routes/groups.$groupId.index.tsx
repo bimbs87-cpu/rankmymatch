@@ -31,6 +31,8 @@ import {
   Trophy,
   ChevronRight,
   MessageSquare,
+  LogOut,
+  AlertTriangle,
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
