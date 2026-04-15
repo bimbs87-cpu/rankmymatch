@@ -53,8 +53,7 @@ function LoginPage() {
             className="mb-5 h-14 w-auto"
           />
           <p className="mt-3 text-center text-sm leading-relaxed text-muted-foreground">
-            O app definitivo para feirinos com rankings,{"\n"}
-            temporadas de padel entre amigos e clubes.
+            Feirinos com rankings, temporadas de padel entre amigos e clubes.
           </p>
         </div>
 
