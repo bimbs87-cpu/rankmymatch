@@ -58,6 +58,8 @@ function GroupSeasonsPage() {
   const [step, setStep] = useState<"type" | "config" | "dates">("type");
   const [name, setName] = useState("");
   const [durationType, setDurationType] = useState<"weekly" | "monthly" | "">("");
+  const [isRetroactive, setIsRetroactive] = useState(false);
+  const [startDate, setStartDate] = useState("");
   const [totalRounds, setTotalRounds] = useState(10);
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
   const [roundDates, setRoundDates] = useState<string[]>([]);
