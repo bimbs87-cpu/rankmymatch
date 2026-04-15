@@ -338,74 +338,75 @@ function GroupDetailPage() {
 
       <div className="space-y-3 px-5">
         {tab === "members" && (
-          <div className="rounded-2xl border border-border bg-card/50 divide-y divide-border overflow-hidden">
-            {members.map((m) => (
-              <div
-                key={m.id}
-                className="flex items-center justify-between px-3 py-2.5"
-              >
-                <div className="flex items-center gap-2.5 min-w-0">
-                  {m.profile?.avatar_url ? (
-                    <img
-                      src={m.profile.avatar_url}
-                      alt=""
-                      className="h-8 w-8 rounded-full border border-border object-cover flex-shrink-0"
-                    />
-                  ) : (
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-xs font-bold text-foreground flex-shrink-0">
-                      {(m.profile?.name || "?").charAt(0)}
+          <>
+            <div className="rounded-2xl border border-border bg-card/50 divide-y divide-border overflow-hidden">
+              {members.map((m) => (
+                <div
+                  key={m.id}
+                  className="flex items-center justify-between px-3 py-2.5"
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    {m.profile?.avatar_url ? (
+                      <img
+                        src={m.profile.avatar_url}
+                        alt=""
+                        className="h-8 w-8 rounded-full border border-border object-cover flex-shrink-0"
+                      />
+                    ) : (
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-xs font-bold text-foreground flex-shrink-0">
+                        {(m.profile?.name || "?").charAt(0)}
+                      </div>
+                    )}
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <span className="text-sm font-medium text-foreground truncate">
+                        {m.profile?.nickname || m.profile?.name || "Jogador"}
+                      </span>
+                      {m.role === "creator" && <Crown className="h-3 w-3 text-rank-gold flex-shrink-0" />}
+                      {m.role === "admin" && <Shield className="h-3 w-3 text-info flex-shrink-0" />}
+                    </div>
+                  </div>
+
+                  {isAdmin && m.user_id !== user?.id && m.role !== "creator" && (
+                    <div className="flex gap-1 flex-shrink-0">
+                      {m.role === "member" ? (
+                        <button
+                          onClick={() => handlePromote(m.id)}
+                          className="rounded-lg bg-info/10 p-1.5 text-info"
+                          title="Promover"
+                        >
+                          <Shield className="h-3 w-3" />
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => handleDemote(m.id)}
+                          className="rounded-lg bg-warning/10 p-1.5 text-warning"
+                          title="Rebaixar"
+                        >
+                          <Shield className="h-3 w-3" />
+                        </button>
+                      )}
+                      <button
+                        onClick={() => handleRemove(m.id)}
+                        className="rounded-lg bg-destructive/10 p-1.5 text-destructive"
+                        title="Remover"
+                      >
+                        <UserMinus className="h-3 w-3" />
+                      </button>
                     </div>
                   )}
-                  <div className="flex items-center gap-1.5 min-w-0">
-                    <span className="text-sm font-medium text-foreground truncate">
-                      {m.profile?.nickname || m.profile?.name || "Jogador"}
-                    </span>
-                    {m.role === "creator" && <Crown className="h-3 w-3 text-rank-gold flex-shrink-0" />}
-                    {m.role === "admin" && <Shield className="h-3 w-3 text-info flex-shrink-0" />}
-                  </div>
                 </div>
-
-                {isAdmin && m.user_id !== user?.id && m.role !== "creator" && (
-                  <div className="flex gap-1 flex-shrink-0">
-                    {m.role === "member" ? (
-                      <button
-                        onClick={() => handlePromote(m.id)}
-                        className="rounded-lg bg-info/10 p-1.5 text-info"
-                        title="Promover"
-                      >
-                        <Shield className="h-3 w-3" />
-                      </button>
-                    ) : (
-                      <button
-                        onClick={() => handleDemote(m.id)}
-                        className="rounded-lg bg-warning/10 p-1.5 text-warning"
-                        title="Rebaixar"
-                      >
-                        <Shield className="h-3 w-3" />
-                      </button>
-                    )}
-                    <button
-                      onClick={() => handleRemove(m.id)}
-                      className="rounded-lg bg-destructive/10 p-1.5 text-destructive"
-                      title="Remover"
-                    >
-                      <UserMinus className="h-3 w-3" />
-                    </button>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-          {/* Leave group button - only for non-creators */}
-          {!isCreator && (
-            <button
-              onClick={handleLeaveClick}
-              className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl border border-destructive/30 py-3 text-sm font-medium text-destructive transition-colors active:bg-destructive/10"
-            >
-              <LogOut className="h-4 w-4" />
-              Sair do grupo
-            </button>
-          )}
+              ))}
+            </div>
+            {!isCreator && (
+              <button
+                onClick={handleLeaveClick}
+                className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl border border-destructive/30 py-3 text-sm font-medium text-destructive transition-colors active:bg-destructive/10"
+              >
+                <LogOut className="h-4 w-4" />
+                Sair do grupo
+              </button>
+            )}
+          </>
         )}
 
         {tab === "requests" && isAdmin && (
