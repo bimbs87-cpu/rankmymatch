@@ -21,6 +21,7 @@ const WEEKDAYS = [
   { value: 5, label: "Sexta" },
   { value: 6, label: "Sábado" },
   { value: 0, label: "Domingo" },
+  { value: -1, label: "Dias alternados" },
 ];
 
 const COURT_OPTIONS = [1, 2, 3, 4];
@@ -115,7 +116,22 @@ function GroupSeasonsPage() {
     }
     const pastRounds = isRetroactive ? roundsPlayed : 0;
     if (durationType === "weekly" && selectedDay !== null) {
-      setRoundDates(getUpcomingDates(selectedDay, totalRounds, pastRounds));
+      if (selectedDay === -1) {
+        // Dias alternados: generate weekly dates starting from today (editable)
+        const dates: string[] = [];
+        const today = new Date();
+        if (pastRounds > 0) {
+          today.setDate(today.getDate() - pastRounds * 7);
+        }
+        for (let i = 0; i < totalRounds; i++) {
+          const d = new Date(today);
+          d.setDate(d.getDate() + i * 7);
+          dates.push(d.toISOString().split("T")[0]);
+        }
+        setRoundDates(dates);
+      } else {
+        setRoundDates(getUpcomingDates(selectedDay, totalRounds, pastRounds));
+      }
     } else {
       setRoundDates(getUpcomingMonthlyDates(totalRounds, pastRounds));
     }
