@@ -113,10 +113,11 @@ function GroupSeasonsPage() {
       toast.error("Selecione o dia da semana");
       return;
     }
+    const pastRounds = isRetroactive ? roundsPlayed : 0;
     if (durationType === "weekly" && selectedDay !== null) {
-      setRoundDates(getUpcomingDates(selectedDay, totalRounds));
+      setRoundDates(getUpcomingDates(selectedDay, totalRounds, pastRounds));
     } else {
-      setRoundDates(getUpcomingMonthlyDates(totalRounds));
+      setRoundDates(getUpcomingMonthlyDates(totalRounds, pastRounds));
     }
     goStep("dates", "forward");
   };
