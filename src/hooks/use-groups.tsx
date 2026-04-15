@@ -6,42 +6,63 @@ import type { Tables } from "@/integrations/supabase/types";
 type Group = Tables<"groups">;
 type GroupMember = Tables<"group_members">;
 
+async function attachMemberCounts(groups: Group[]) {
+  return Promise.all(
+    groups.map(async (group) => {
+      const { count } = await supabase
+        .from("group_members")
+        .select("*", { count: "exact", head: true })
+        .eq("group_id", group.id)
+        .eq("status", "active");
+
+      return { ...group, member_count: count || 0 };
+    })
+  );
+}
+
 export function useMyGroups() {
   const { user } = useAuth();
   const [groups, setGroups] = useState<(Group & { member_count: number })[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const refresh = useCallback(async () => {
-    if (!user) { setGroups([]); setIsLoading(false); return; }
+    if (!user) {
+      setGroups([]);
+      setIsLoading(false);
+      return;
+    }
+
     setIsLoading(true);
-    const { data: memberships } = await supabase
-      .from("group_members")
-      .select("group_id")
-      .eq("user_id", user.id)
-      .eq("status", "active");
 
-    if (!memberships?.length) { setGroups([]); setIsLoading(false); return; }
+    try {
+      const { data: memberships, error: membershipsError } = await supabase
+        .from("group_members")
+        .select("group_id")
+        .eq("user_id", user.id)
+        .eq("status", "active");
 
-    const ids = memberships.map((m) => m.group_id);
-    const { data: groupsData } = await supabase
-      .from("groups")
-      .select("*")
-      .in("id", ids);
+      if (membershipsError) throw membershipsError;
 
-    // get member counts
-    const withCounts = await Promise.all(
-      (groupsData || []).map(async (g) => {
-        const { count } = await supabase
-          .from("group_members")
-          .select("*", { count: "exact", head: true })
-          .eq("group_id", g.id)
-          .eq("status", "active");
-        return { ...g, member_count: count || 0 };
-      })
-    );
+      if (!memberships?.length) {
+        setGroups([]);
+        return;
+      }
 
-    setGroups(withCounts);
-    setIsLoading(false);
+      const ids = memberships.map((membership) => membership.group_id);
+      const { data: groupsData, error: groupsError } = await supabase
+        .from("groups")
+        .select("*")
+        .in("id", ids);
+
+      if (groupsError) throw groupsError;
+
+      setGroups(await attachMemberCounts(groupsData || []));
+    } catch (error) {
+      console.error("Erro ao carregar meus grupos:", error);
+      setGroups([]);
+    } finally {
+      setIsLoading(false);
+    }
   }, [user]);
 
   useEffect(() => { refresh(); }, [refresh]);
@@ -56,32 +77,30 @@ export function usePublicGroups(search: string) {
   useEffect(() => {
     const load = async () => {
       setIsLoading(true);
-      let query = supabase
-        .from("groups")
-        .select("*")
-        .eq("is_public", true)
-        .order("created_at", { ascending: false })
-        .limit(20);
 
-      if (search.trim()) {
-        query = query.ilike("name", `%${search.trim()}%`);
+      try {
+        let query = supabase
+          .from("groups")
+          .select("*")
+          .eq("is_public", true)
+          .order("created_at", { ascending: false })
+          .limit(20);
+
+        if (search.trim()) {
+          query = query.ilike("name", `%${search.trim()}%`);
+        }
+
+        const { data, error } = await query;
+
+        if (error) throw error;
+
+        setGroups(await attachMemberCounts(data || []));
+      } catch (error) {
+        console.error("Erro ao carregar grupos públicos:", error);
+        setGroups([]);
+      } finally {
+        setIsLoading(false);
       }
-
-      const { data } = await query;
-
-      const withCounts = await Promise.all(
-        (data || []).map(async (g) => {
-          const { count } = await supabase
-            .from("group_members")
-            .select("*", { count: "exact", head: true })
-            .eq("group_id", g.id)
-            .eq("status", "active");
-          return { ...g, member_count: count || 0 };
-        })
-      );
-
-      setGroups(withCounts);
-      setIsLoading(false);
     };
 
     const timeout = setTimeout(load, 300);
@@ -102,52 +121,73 @@ export function useGroupDetail(groupId: string) {
   const refresh = useCallback(async () => {
     setIsLoading(true);
 
-    const { data: g } = await supabase
-      .from("groups")
-      .select("*")
-      .eq("id", groupId)
-      .single();
-    setGroup(g);
-
-    if (!g) { setIsLoading(false); return; }
-
-    // Members with profiles
-    const { data: mems } = await supabase
-      .from("group_members")
-      .select("*")
-      .eq("group_id", groupId)
-      .eq("status", "active");
-
-    if (mems?.length) {
-      const userIds = mems.map((m) => m.user_id);
-      const { data: profiles } = await supabase
-        .from("user_profiles")
+    try {
+      const { data: currentGroup, error: groupError } = await supabase
+        .from("groups")
         .select("*")
-        .in("user_id", userIds);
+        .eq("id", groupId)
+        .single();
 
-      const profileMap = new Map((profiles || []).map((p) => [p.user_id, p]));
-      setMembers(mems.map((m) => ({ ...m, profile: profileMap.get(m.user_id) })));
-    } else {
-      setMembers([]);
-    }
+      if (groupError) throw groupError;
 
-    // My role
-    if (user) {
-      const me = mems?.find((m) => m.user_id === user.id);
-      setMyRole(me?.role || null);
-    }
+      setGroup(currentGroup);
 
-    // Pending requests (if admin)
-    if (user) {
-      const { data: reqs } = await supabase
-        .from("group_join_requests")
+      if (!currentGroup) {
+        setMembers([]);
+        setMyRole(null);
+        setPendingRequests([]);
+        return;
+      }
+
+      const { data: mems, error: membersError } = await supabase
+        .from("group_members")
         .select("*")
         .eq("group_id", groupId)
-        .eq("status", "pending");
-      setPendingRequests(reqs || []);
-    }
+        .eq("status", "active");
 
-    setIsLoading(false);
+      if (membersError) throw membersError;
+
+      if (mems?.length) {
+        const userIds = mems.map((member) => member.user_id);
+        const { data: profiles, error: profilesError } = await supabase
+          .from("user_profiles")
+          .select("*")
+          .in("user_id", userIds);
+
+        if (profilesError) throw profilesError;
+
+        const profileMap = new Map((profiles || []).map((profile) => [profile.user_id, profile]));
+        setMembers(mems.map((member) => ({ ...member, profile: profileMap.get(member.user_id) })));
+      } else {
+        setMembers([]);
+      }
+
+      if (user) {
+        const me = mems?.find((member) => member.user_id === user.id);
+        setMyRole(me?.role || null);
+
+        const { data: reqs, error: requestsError } = await supabase
+          .from("group_join_requests")
+          .select("*")
+          .eq("group_id", groupId)
+          .eq("status", "pending");
+
+        if (requestsError) throw requestsError;
+
+        setPendingRequests(reqs || []);
+      } else {
+        setMyRole(null);
+        setPendingRequests([]);
+      }
+    } catch (error) {
+      console.error("Erro ao carregar detalhes do grupo:", error);
+      setGroup(null);
+      setMembers([]);
+      setMyRole(null);
+      setPendingRequests([]);
+    } finally {
+      setIsLoading(false);
+    }
   }, [groupId, user]);
 
   useEffect(() => { refresh(); }, [refresh]);
@@ -182,12 +222,17 @@ export async function createGroup(data: {
   if (error) throw error;
 
   // Add creator as member
-  await supabase.from("group_members").insert({
+  const { error: memberError } = await supabase.from("group_members").insert({
     group_id: group.id,
     user_id: data.userId,
     role: "creator",
     status: "active",
   });
+
+  if (memberError) {
+    await supabase.from("groups").delete().eq("id", group.id);
+    throw memberError;
+  }
 
   return group;
 }

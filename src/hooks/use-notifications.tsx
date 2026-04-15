@@ -20,17 +20,27 @@ export function useNotifications() {
     }
 
     setIsLoading(true);
-    const { data } = await supabase
-      .from("notifications")
-      .select("*")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false })
-      .limit(50);
 
-    const items = data || [];
-    setNotifications(items);
-    setUnreadCount(items.filter((n) => !n.read).length);
-    setIsLoading(false);
+    try {
+      const { data, error } = await supabase
+        .from("notifications")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(50);
+
+      if (error) throw error;
+
+      const items = data || [];
+      setNotifications(items);
+      setUnreadCount(items.filter((n) => !n.read).length);
+    } catch (error) {
+      console.error("Erro ao carregar notificações:", error);
+      setNotifications([]);
+      setUnreadCount(0);
+    } finally {
+      setIsLoading(false);
+    }
   }, [user]);
 
   useEffect(() => {

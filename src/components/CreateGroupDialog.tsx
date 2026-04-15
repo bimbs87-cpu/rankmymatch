@@ -24,9 +24,19 @@ export function CreateGroupDialog({ open, onClose }: Props) {
 
   if (!open) return null;
 
+  const resetForm = () => {
+    setName("");
+    setDescription("");
+    setIsPublic(true);
+    setMaxPlayers(20);
+    setImageUrl(null);
+  };
+
   const handleSubmit = async () => {
-    if (!name.trim() || !user) return;
+    if (!name.trim() || !user || submitting) return;
+
     setSubmitting(true);
+
     try {
       const group = await createGroup({
         name: name.trim(),
@@ -39,25 +49,22 @@ export function CreateGroupDialog({ open, onClose }: Props) {
 
       // Update image_url if uploaded
       if (imageUrl && group) {
-        await supabase
+        const { error: updateImageError } = await supabase
           .from("groups")
           .update({ image_url: imageUrl })
           .eq("id", group.id);
+
+        if (updateImageError) throw updateImageError;
       }
 
-      toast.success("Grupo criado com sucesso!");
-      setSubmitting(false);
+      resetForm();
       onClose();
-      // Reset form
-      setName("");
-      setDescription("");
-      setIsPublic(true);
-      setMaxPlayers(20);
-      setImageUrl(null);
+      toast.success("Grupo criado com sucesso!");
       navigate({ to: "/groups/$groupId", params: { groupId: group.id } });
     } catch (e: any) {
       console.error("Erro ao criar grupo:", e);
       toast.error(e?.message || "Erro ao criar grupo. Tente novamente.");
+    } finally {
       setSubmitting(false);
     }
   };
@@ -65,15 +72,15 @@ export function CreateGroupDialog({ open, onClose }: Props) {
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
       <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-full max-w-lg rounded-t-3xl sm:rounded-3xl border border-border bg-card p-6 pb-10 sm:pb-6 animate-in slide-in-from-bottom duration-300">
-        <div className="flex items-center justify-between mb-6">
+      <div className="relative flex w-full max-w-lg flex-col overflow-hidden rounded-t-3xl border border-border bg-card p-5 animate-in slide-in-from-bottom duration-300 sm:rounded-3xl sm:p-6">
+        <div className="mb-5 flex items-center justify-between">
           <h2 className="font-display text-lg font-bold text-foreground">Criar Grupo</h2>
-          <button onClick={onClose} className="rounded-full bg-muted p-2">
+          <button onClick={onClose} disabled={submitting} className="rounded-full bg-muted p-2 disabled:opacity-50">
             <X className="h-4 w-4 text-muted-foreground" />
           </button>
         </div>
 
-        <div className="max-h-[65vh] space-y-5 overflow-y-auto pr-1">
+        <div className="space-y-4">
           {/* Imagem */}
           <GroupImageUpload
             onUploaded={(url) => setImageUrl(url)}
@@ -100,7 +107,7 @@ export function CreateGroupDialog({ open, onClose }: Props) {
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Conte um pouco sobre o grupo..."
               maxLength={300}
-              rows={3}
+              rows={2}
               className="w-full rounded-2xl border border-border bg-background px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary resize-none"
             />
           </div>
@@ -160,7 +167,7 @@ export function CreateGroupDialog({ open, onClose }: Props) {
           <button
             onClick={handleSubmit}
             disabled={!name.trim() || submitting}
-            className="w-full rounded-2xl bg-primary py-3.5 text-sm font-bold text-primary-foreground transition-all hover:bg-primary/90 active:scale-[0.98] disabled:opacity-50"
+            className="w-full rounded-2xl bg-primary py-3 text-sm font-bold text-primary-foreground transition-all hover:bg-primary/90 active:scale-[0.98] disabled:opacity-50"
           >
             {submitting ? "Criando..." : "Criar Grupo"}
           </button>
