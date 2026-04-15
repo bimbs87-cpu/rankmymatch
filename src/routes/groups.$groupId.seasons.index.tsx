@@ -94,6 +94,8 @@ function GroupSeasonsPage() {
     setEditingIdx(null);
     setTime("19:00");
     setCourts(1);
+    setIsRetroactive(false);
+    setRoundsPlayed(0);
     setSubmitError(null);
   };
 
