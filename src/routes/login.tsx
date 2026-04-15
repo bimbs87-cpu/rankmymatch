@@ -3,7 +3,8 @@ import { useState } from "react";
 import { lovable } from "@/integrations/lovable/index";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
-import { Trophy, Zap, Users, BarChart3 } from "lucide-react";
+import { Zap, Users, BarChart3, Trophy } from "lucide-react";
+import logoHorizontalDark from "@/assets/logo-horizontal-dark.png";
 
 export const Route = createFileRoute("/login")({
   component: LoginPage,
@@ -43,12 +44,7 @@ function LoginPage() {
       <div className="flex flex-1 flex-col items-center justify-center px-6 pb-16">
         {/* Logo */}
         <div className="mb-10 flex flex-col items-center">
-          <div className="mb-5 flex h-20 w-20 items-center justify-center rounded-2xl bg-primary">
-            <Trophy className="h-10 w-10 text-primary-foreground" />
-          </div>
-          <h1 className="font-display text-3xl font-bold tracking-tight text-foreground">
-            RankMyMatch
-          </h1>
+          <img src={logoHorizontalDark} alt="RankMyMatch" className="mb-5 h-16 w-auto" />
           <p className="mt-3 text-center text-sm leading-relaxed text-muted-foreground">
             O app definitivo para feirinos com rankings,{"\n"}
             temporadas de padel entre amigos e clubes.
