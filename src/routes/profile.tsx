@@ -1,7 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useAuth } from "@/hooks/use-auth";
 import { BottomNav } from "@/components/BottomNav";
-import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useState } from "react";
 import {
@@ -18,11 +17,6 @@ import {
 export const Route = createFileRoute("/profile")({
   component: ProfilePage,
 });
-
-const SHOTS = [
-  "none", "smash", "voleio drive", "voleio revés", "fundo drive",
-  "fundo revés", "parede", "víbora", "bandeja", "curtinha", "saque", "lob",
-];
 
 interface Profile {
   name: string;
@@ -81,11 +75,7 @@ function ProfilePage() {
     return shot.charAt(0).toUpperCase() + shot.slice(1);
   };
 
-  const handLabel = (hand: string | null) => {
-    if (hand === "left") return "Canhoto";
-    return "Destro";
-  };
-
+  const handLabel = (hand: string | null) => hand === "left" ? "Canhoto" : "Destro";
   const posLabel = (pos: string | null) => {
     if (pos === "left") return "Esquerda";
     if (pos === "right") return "Direita";
@@ -93,36 +83,33 @@ function ProfilePage() {
   };
 
   return (
-    <div className="min-h-screen bg-background pb-24">
-      {/* Header */}
-      <header className="relative overflow-hidden bg-gradient-to-br from-primary to-primary/80 px-4 pb-8 pt-12">
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white" />
-          <div className="absolute -left-5 bottom-0 h-24 w-24 rounded-full bg-white" />
-        </div>
+    <div className="min-h-screen bg-background pb-28">
+      {/* Header with gradient */}
+      <header className="relative overflow-hidden bg-card px-5 pb-8 pt-10">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-transparent" />
         <div className="relative flex flex-col items-center">
           <div className="relative mb-3">
             {avatarUrl ? (
               <img
                 src={avatarUrl}
                 alt=""
-                className="h-24 w-24 rounded-full border-4 border-white/20 object-cover shadow-xl"
+                className="h-24 w-24 rounded-full border-2 border-border object-cover"
               />
             ) : (
-              <div className="flex h-24 w-24 items-center justify-center rounded-full border-4 border-white/20 bg-white/20 text-3xl font-bold text-white shadow-xl">
+              <div className="flex h-24 w-24 items-center justify-center rounded-full border-2 border-border bg-muted font-display text-3xl font-bold text-foreground">
                 {displayName.charAt(0)}
               </div>
             )}
-            <button className="absolute bottom-0 right-0 flex h-8 w-8 items-center justify-center rounded-full bg-card text-foreground shadow-md">
+            <button className="absolute bottom-0 right-0 flex h-8 w-8 items-center justify-center rounded-full border border-border bg-card text-foreground">
               <Camera className="h-4 w-4" />
             </button>
           </div>
-          <h1 className="text-xl font-bold text-white">{displayName}</h1>
+          <h1 className="font-display text-xl font-bold text-foreground">{displayName}</h1>
           {profile?.nickname && (
-            <p className="text-sm text-white/70">@{profile.nickname}</p>
+            <p className="text-sm text-muted-foreground">@{profile.nickname}</p>
           )}
           {profile?.instagram_handle && (
-            <p className="mt-1 flex items-center gap-1 text-xs text-white/60">
+            <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
               <AtSign className="h-3 w-3" />
               {profile.instagram_handle}
             </p>
@@ -130,8 +117,8 @@ function ProfilePage() {
         </div>
       </header>
 
-      <div className="space-y-4 px-4 pt-5">
-        {/* Stats cards */}
+      <div className="space-y-4 px-5 pt-5">
+        {/* Stats */}
         <div className="grid grid-cols-3 gap-2">
           {[
             { label: "Mão", value: handLabel(profile?.dominant_hand ?? null) },
@@ -142,46 +129,41 @@ function ProfilePage() {
               key={stat.label}
               className="flex flex-col items-center rounded-2xl border border-border bg-card p-3"
             >
-              <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
                 {stat.label}
               </span>
-              <span className="mt-1 text-xs font-semibold text-foreground">
-                {stat.value}
-              </span>
+              <span className="mt-1 text-xs font-bold text-foreground">{stat.value}</span>
             </div>
           ))}
         </div>
 
-        {/* Menu items */}
-        <div className="space-y-1 rounded-2xl border border-border bg-card p-1">
+        {/* Menu */}
+        <div className="space-y-0.5 rounded-3xl border border-border bg-card p-1.5">
           {[
-            { icon: Settings, label: "Editar Perfil", to: "/profile" },
-            { icon: Award, label: "Conquistas", to: "/profile" },
-            { icon: History, label: "Histórico", to: "/profile" },
-            { icon: Shield, label: "Privacidade", to: "/profile" },
+            { icon: Settings, label: "Editar Perfil" },
+            { icon: Award, label: "Conquistas" },
+            { icon: History, label: "Histórico" },
+            { icon: Shield, label: "Privacidade" },
           ].map((item) => (
             <button
               key={item.label}
-              className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left transition-colors hover:bg-accent"
+              className="flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left transition-colors hover:bg-accent"
             >
-              <item.icon className="h-5 w-5 text-muted-foreground" />
-              <span className="flex-1 text-sm font-medium text-foreground">
-                {item.label}
-              </span>
-              <ChevronRight className="h-4 w-4 text-muted-foreground" />
+              <item.icon className="h-4 w-4 text-muted-foreground" />
+              <span className="flex-1 text-sm font-medium text-foreground">{item.label}</span>
+              <ChevronRight className="h-4 w-4 text-muted-foreground/50" />
             </button>
           ))}
         </div>
 
         {/* Logout */}
-        <Button
-          variant="outline"
+        <button
           onClick={handleLogout}
-          className="w-full gap-2 rounded-2xl border-destructive/30 text-destructive hover:bg-destructive/5"
+          className="flex w-full items-center justify-center gap-2 rounded-full border border-destructive/20 py-3 text-sm font-medium text-destructive transition-colors hover:bg-destructive/5"
         >
           <LogOut className="h-4 w-4" />
           Sair da conta
-        </Button>
+        </button>
       </div>
 
       <BottomNav />
