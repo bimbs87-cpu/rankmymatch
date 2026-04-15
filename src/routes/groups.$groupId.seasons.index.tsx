@@ -247,7 +247,7 @@ function GroupSeasonsPage() {
 
             {/* Step 1: Choose type */}
             {step === "type" && (
-              <div className="space-y-3">
+              <div key="step-type" className={`space-y-3 ${stepDir === "forward" ? "animate-step-forward" : "animate-step-back"}`}>
                 <button
                   onClick={() => handleSelectType("weekly")}
                   className="w-full rounded-2xl border border-border bg-background p-4 text-left transition-colors active:bg-accent/30"
