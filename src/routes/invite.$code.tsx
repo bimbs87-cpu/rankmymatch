@@ -289,6 +289,27 @@ function InvitePage() {
     );
   }
 
+  if (waitlisted) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center bg-background px-6">
+        <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-amber-500/10">
+          <Users className="h-8 w-8 text-amber-500" />
+        </div>
+        <h1 className="font-display text-lg font-bold text-foreground">Grupo cheio</h1>
+        <p className="mt-2 text-center text-sm text-muted-foreground">
+          O grupo <strong>{invite?.group?.name}</strong> está com todas as vagas preenchidas.
+          Sua solicitação foi enviada e o admin será notificado.
+        </p>
+        <Link
+          to="/groups"
+          className="mt-6 rounded-full bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground"
+        >
+          Explorar grupos
+        </Link>
+      </div>
+    );
+  }
+
   if (joined) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center bg-background px-6">

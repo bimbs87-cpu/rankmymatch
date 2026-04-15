@@ -9,11 +9,9 @@ type GroupMember = Tables<"group_members">;
 async function attachMemberCounts(groups: Group[]) {
   return Promise.all(
     groups.map(async (group) => {
-      const { count } = await supabase
-        .from("group_members")
-        .select("*", { count: "exact", head: true })
-        .eq("group_id", group.id)
-        .eq("status", "active");
+      const { data: count } = await supabase.rpc("get_group_member_count", {
+        _group_id: group.id,
+      });
 
       return { ...group, member_count: count || 0 };
     })
