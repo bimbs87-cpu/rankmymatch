@@ -383,6 +383,15 @@ function RoundDetailPage() {
           onSaved={refresh}
         />
       )}
+
+      {showManualMatch && (
+        <ManualMatchDialog
+          roundId={roundId}
+          groupId={groupId}
+          onClose={() => setShowManualMatch(false)}
+          onSaved={refresh}
+        />
+      )}
     </div>
   );
 }
