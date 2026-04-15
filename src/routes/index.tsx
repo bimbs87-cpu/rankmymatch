@@ -4,7 +4,7 @@ import { useMyGroups } from "@/hooks/use-groups";
 import { useNotifications } from "@/hooks/use-notifications";
 import { BottomNav } from "@/components/BottomNav";
 import { supabase } from "@/integrations/supabase/client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   Trophy,
   Users,
@@ -71,148 +71,183 @@ function DashboardPage() {
   const [recentMatches, setRecentMatches] = useState<RecentMatch[]>([]);
   const [myRanking, setMyRanking] = useState<MyRanking | null>(null);
   const [dataLoading, setDataLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [pullDistance, setPullDistance] = useState(0);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const touchStartY = useRef(0);
+  const isPulling = useRef(false);
 
-  useEffect(() => {
+  const loadDashboard = useCallback(async () => {
     if (!user || !myGroups.length) {
       setDataLoading(false);
       return;
     }
 
-    const loadDashboard = async () => {
-      setDataLoading(true);
-      const groupIds = myGroups.map((g) => g.id);
+    const groupIds = myGroups.map((g) => g.id);
 
-      // 1. Upcoming rounds
-      const { data: rounds } = await supabase
-        .from("rounds")
-        .select("*, groups(name)")
-        .in("group_id", groupIds)
-        .in("status", ["scheduled", "in_progress"])
-        .order("scheduled_date", { ascending: true })
-        .limit(5);
+    // 1. Upcoming rounds
+    const { data: rounds } = await supabase
+      .from("rounds")
+      .select("*, groups(name)")
+      .in("group_id", groupIds)
+      .in("status", ["scheduled", "in_progress"])
+      .order("scheduled_date", { ascending: true })
+      .limit(5);
 
-      if (rounds?.length) {
-        const roundIds = rounds.map((r) => r.id);
-        const { data: presences } = await supabase
-          .from("round_presence")
-          .select("round_id, status, user_id")
-          .in("round_id", roundIds);
+    if (rounds?.length) {
+      const roundIds = rounds.map((r) => r.id);
+      const { data: presences } = await supabase
+        .from("round_presence")
+        .select("round_id, status, user_id")
+        .in("round_id", roundIds);
 
-        setUpcomingRounds(
-          rounds.map((r: any) => {
-            const roundPresences = (presences || []).filter((p) => p.round_id === r.id);
-            return {
-              id: r.id,
-              round_number: r.round_number,
-              scheduled_date: r.scheduled_date,
-              scheduled_time: r.scheduled_time,
-              location: r.location,
-              status: r.status,
-              season_id: r.season_id,
-              group_id: r.group_id,
-              group_name: r.groups?.name || "Grupo",
-              confirmed_count: roundPresences.filter((p) => p.status === "confirmed").length,
-              max_players: r.max_players,
-              my_status: roundPresences.find((p) => p.user_id === user.id)?.status || null,
-            };
-          })
-        );
-      } else {
-        setUpcomingRounds([]);
-      }
+      setUpcomingRounds(
+        rounds.map((r: any) => {
+          const roundPresences = (presences || []).filter((p) => p.round_id === r.id);
+          return {
+            id: r.id,
+            round_number: r.round_number,
+            scheduled_date: r.scheduled_date,
+            scheduled_time: r.scheduled_time,
+            location: r.location,
+            status: r.status,
+            season_id: r.season_id,
+            group_id: r.group_id,
+            group_name: r.groups?.name || "Grupo",
+            confirmed_count: roundPresences.filter((p) => p.status === "confirmed").length,
+            max_players: r.max_players,
+            my_status: roundPresences.find((p) => p.user_id === user.id)?.status || null,
+          };
+        })
+      );
+    } else {
+      setUpcomingRounds([]);
+    }
 
-      // 2. Recent matches (via rating_events)
-      const { data: events } = await supabase
-        .from("rating_events")
-        .select("*, matches(match_number, winner_team, round_id, status)")
+    // 2. Recent matches (via rating_events)
+    const { data: events } = await supabase
+      .from("rating_events")
+      .select("*, matches(match_number, winner_team, round_id, status)")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(5);
+
+    if (events?.length) {
+      const matchIds = events.map((e: any) => e.match_id);
+      const roundIds = events.map((e: any) => (e.matches as any)?.round_id).filter(Boolean);
+
+      const [playersRes, roundsRes] = await Promise.all([
+        supabase.from("match_players").select("match_id, team, user_id").in("match_id", matchIds),
+        roundIds.length
+          ? supabase.from("rounds").select("id, round_number, group_id, groups(name)").in("id", [...new Set(roundIds)])
+          : Promise.resolve({ data: [] }),
+      ]);
+
+      const setsRes = await supabase.from("match_sets").select("match_id, score_team_a, score_team_b, set_number").in("match_id", matchIds).order("set_number");
+
+      const roundMap = new Map((roundsRes.data || []).map((r: any) => [r.id, r]));
+
+      setRecentMatches(
+        events.map((e: any) => {
+          const match = e.matches as any;
+          const myPlayer = (playersRes.data || []).find((p) => p.match_id === e.match_id && p.user_id === user.id);
+          const round = roundMap.get(match?.round_id);
+          const sets = (setsRes.data || []).filter((s) => s.match_id === e.match_id);
+          const scoreDisplay = sets.length
+            ? sets.map((s) => `${s.score_team_a}-${s.score_team_b}`).join(" / ")
+            : "—";
+          return {
+            id: e.match_id,
+            match_number: match?.match_number,
+            winner_team: match?.winner_team,
+            my_team: myPlayer?.team || "?",
+            round_number: round?.round_number,
+            group_name: (round?.groups as any)?.name || "",
+            score_display: scoreDisplay,
+            rating_change: Number(e.rating_change),
+            created_at: e.created_at,
+          };
+        })
+      );
+    } else {
+      setRecentMatches([]);
+    }
+
+    // 3. My ranking (best active season)
+    const { data: seasonsList } = await supabase
+      .from("seasons")
+      .select("id, name")
+      .in("group_id", groupIds)
+      .eq("status", "active")
+      .limit(1);
+
+    if (seasonsList?.length) {
+      const season = seasonsList[0];
+      const { data: snap } = await supabase
+        .from("ranking_snapshots")
+        .select("*")
+        .eq("season_id", season.id)
         .eq("user_id", user.id)
-        .order("created_at", { ascending: false })
-        .limit(5);
+        .single();
 
-      if (events?.length) {
-        const matchIds = events.map((e: any) => e.match_id);
-        const roundIds = events.map((e: any) => (e.matches as any)?.round_id).filter(Boolean);
-
-        const [playersRes, roundsRes] = await Promise.all([
-          supabase.from("match_players").select("match_id, team, user_id").in("match_id", matchIds),
-          roundIds.length
-            ? supabase.from("rounds").select("id, round_number, group_id, groups(name)").in("id", [...new Set(roundIds)])
-            : Promise.resolve({ data: [] }),
-        ]);
-
-        const setsRes = await supabase.from("match_sets").select("match_id, score_team_a, score_team_b, set_number").in("match_id", matchIds).order("set_number");
-
-        const roundMap = new Map((roundsRes.data || []).map((r: any) => [r.id, r]));
-
-        setRecentMatches(
-          events.map((e: any) => {
-            const match = e.matches as any;
-            const myPlayer = (playersRes.data || []).find((p) => p.match_id === e.match_id && p.user_id === user.id);
-            const round = roundMap.get(match?.round_id);
-            const sets = (setsRes.data || []).filter((s) => s.match_id === e.match_id);
-            const scoreDisplay = sets.length
-              ? sets.map((s) => `${s.score_team_a}-${s.score_team_b}`).join(" / ")
-              : "—";
-            return {
-              id: e.match_id,
-              match_number: match?.match_number,
-              winner_team: match?.winner_team,
-              my_team: myPlayer?.team || "?",
-              round_number: round?.round_number,
-              group_name: (round?.groups as any)?.name || "",
-              score_display: scoreDisplay,
-              rating_change: Number(e.rating_change),
-              created_at: e.created_at,
-            };
-          })
-        );
-      } else {
-        setRecentMatches([]);
-      }
-
-      // 3. My ranking (best active season)
-      const { data: seasonsList } = await supabase
-        .from("seasons")
-        .select("id, name")
-        .in("group_id", groupIds)
-        .eq("status", "active")
-        .limit(1);
-
-      if (seasonsList?.length) {
-        const season = seasonsList[0];
-        const { data: snap } = await supabase
-          .from("ranking_snapshots")
-          .select("*")
-          .eq("season_id", season.id)
+      if (snap) {
+        const { data: lastEvent } = await supabase
+          .from("rating_events")
+          .select("rating_change")
           .eq("user_id", user.id)
-          .single();
+          .eq("season_id", season.id)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
 
-        if (snap) {
-          const { data: lastEvent } = await supabase
-            .from("rating_events")
-            .select("rating_change")
-            .eq("user_id", user.id)
-            .eq("season_id", season.id)
-            .order("created_at", { ascending: false })
-            .limit(1)
-            .maybeSingle();
-
-          setMyRanking({
-            rating: Number(snap.rating),
-            position: snap.position,
-            matches_played: snap.matches_played,
-            matches_won: snap.matches_won,
-            season_name: season.name,
-            last_change: lastEvent ? Number(lastEvent.rating_change) : null,
-          });
-        }
+        setMyRanking({
+          rating: Number(snap.rating),
+          position: snap.position,
+          matches_played: snap.matches_played,
+          matches_won: snap.matches_won,
+          season_name: season.name,
+          last_change: lastEvent ? Number(lastEvent.rating_change) : null,
+        });
       }
+    }
 
-      setDataLoading(false);
-    };
-
-    loadDashboard();
+    setDataLoading(false);
   }, [user, myGroups]);
+
+  useEffect(() => {
+    loadDashboard();
+  }, [loadDashboard]);
+
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await loadDashboard();
+    setRefreshing(false);
+  }, [loadDashboard]);
+
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    const el = scrollRef.current;
+    if (el && el.scrollTop <= 0) {
+      touchStartY.current = e.touches[0].clientY;
+      isPulling.current = true;
+    }
+  }, []);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (!isPulling.current || refreshing) return;
+    const delta = e.touches[0].clientY - touchStartY.current;
+    if (delta > 0) {
+      setPullDistance(Math.min(delta * 0.4, 80));
+    }
+  }, [refreshing]);
+
+  const handleTouchEnd = useCallback(() => {
+    if (!isPulling.current) return;
+    isPulling.current = false;
+    if (pullDistance >= 60) {
+      handleRefresh();
+    }
+    setPullDistance(0);
+  }, [pullDistance, handleRefresh]);
 
   if (isLoading) {
     return (
@@ -261,7 +296,26 @@ function DashboardPage() {
     : 0;
 
   return (
-    <div className="min-h-screen bg-background pb-28">
+    <div
+      ref={scrollRef}
+      className="min-h-screen bg-background pb-28 overflow-y-auto"
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+    >
+      {/* Pull-to-refresh indicator */}
+      <div
+        className="flex items-center justify-center overflow-hidden transition-all duration-200"
+        style={{ height: refreshing ? 48 : pullDistance > 0 ? pullDistance : 0 }}
+      >
+        <div
+          className={`h-5 w-5 rounded-full border-2 border-primary border-t-transparent ${refreshing ? "animate-spin" : ""}`}
+          style={{
+            opacity: refreshing ? 1 : Math.min(pullDistance / 60, 1),
+            transform: refreshing ? undefined : `rotate(${pullDistance * 4}deg)`,
+          }}
+        />
+      </div>
       {/* Header */}
       <header className="px-5 pb-2 pt-6">
         <div className="flex items-center justify-between">
