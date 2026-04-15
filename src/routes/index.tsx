@@ -1,8 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import logoSymbolNeon from "@/assets/logo-symbol-neon.png";
+import logoSymbolBlack from "@/assets/logo-symbol-black.png";
 import logoHorizontalDark from "@/assets/logo-horizontal-dark.png";
 import logoHorizontalLight from "@/assets/logo-horizontal-light.png";
-import { getResolvedTheme, type Theme } from "@/lib/theme";
+import { useTheme } from "@/lib/theme";
 import { useAuth } from "@/hooks/use-auth";
 import { useMyGroups } from "@/hooks/use-groups";
 import { useNotifications } from "@/hooks/use-notifications";
