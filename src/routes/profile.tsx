@@ -371,7 +371,10 @@ function ProfilePage() {
                 {displayName.charAt(0)}
               </div>
             )}
-            <button className="absolute bottom-0 right-0 flex h-8 w-8 items-center justify-center rounded-full border border-border bg-card text-foreground">
+            <button
+              onClick={() => setAvatarPickerOpen(true)}
+              className="absolute bottom-0 right-0 flex h-8 w-8 items-center justify-center rounded-full border border-border bg-card text-foreground"
+            >
               <Camera className="h-4 w-4" />
             </button>
           </div>
