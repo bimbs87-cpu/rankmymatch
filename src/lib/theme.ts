@@ -1,23 +1,30 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 
-type Theme = "light" | "dark" | "system";
+export type Theme = "light" | "dark" | "system";
 
 function getSystemTheme(): "light" | "dark" {
-  if (typeof window === "undefined") return "light";
+  if (typeof window === "undefined") return "dark";
   return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+}
+
+export function getResolvedTheme(theme: Theme): "light" | "dark" {
+  return theme === "system" ? getSystemTheme() : theme;
 }
 
 function applyTheme(theme: Theme) {
   if (typeof document === "undefined") return;
-  const resolved = theme === "system" ? getSystemTheme() : theme;
+  const resolved = getResolvedTheme(theme);
+  document.documentElement.classList.toggle("light", resolved === "light");
   document.documentElement.classList.toggle("dark", resolved === "dark");
 }
 
 export function useTheme() {
   const [theme, setThemeState] = useState<Theme>(() => {
-    if (typeof window === "undefined") return "system";
-    return (localStorage.getItem("rmm-theme") as Theme) || "system";
+    if (typeof window === "undefined") return "dark";
+    return (localStorage.getItem("rmm-theme") as Theme) || "dark";
   });
+
+  const resolved = typeof window === "undefined" ? "dark" : getResolvedTheme(theme);
 
   useEffect(() => {
     applyTheme(theme);
@@ -32,5 +39,13 @@ export function useTheme() {
     return () => mq.removeEventListener("change", handler);
   }, [theme]);
 
-  return { theme, setTheme: setThemeState };
+  const cycleTheme = useCallback(() => {
+    setThemeState((prev) => {
+      if (prev === "dark") return "light";
+      if (prev === "light") return "system";
+      return "dark";
+    });
+  }, []);
+
+  return { theme, resolved, setTheme: setThemeState, cycleTheme };
 }
