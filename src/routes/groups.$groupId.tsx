@@ -1,7 +1,9 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { BottomNav } from "@/components/BottomNav";
+import { GroupImageUpload } from "@/components/GroupImageUpload";
 import { InviteLinkDialog } from "@/components/InviteLinkDialog";
 import { useAuth } from "@/hooks/use-auth";
+import { supabase } from "@/integrations/supabase/client";
 import {
   useGroupDetail,
   joinGroup,
@@ -114,6 +116,13 @@ function GroupDetailPage() {
 
   return (
     <div className="min-h-screen bg-background pb-28">
+      {/* Group cover image */}
+      {group.image_url && (
+        <div className="relative h-36 w-full">
+          <img src={group.image_url} alt={group.name} className="h-full w-full object-cover" />
+          <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent" />
+        </div>
+      )}
       {/* Header */}
       <header className="px-5 pb-4 pt-6">
         <div className="flex items-center gap-3">
@@ -364,6 +373,20 @@ function GroupDetailPage() {
         {/* Settings Tab */}
         {tab === "settings" && isAdmin && (
           <div className="space-y-4">
+            <GroupImageUpload
+              groupId={groupId}
+              currentUrl={group.image_url}
+              onUploaded={async (url) => {
+                await supabase.from("groups").update({ image_url: url }).eq("id", groupId);
+                toast.success("Imagem atualizada!");
+                refresh();
+              }}
+              onRemoved={async () => {
+                await supabase.from("groups").update({ image_url: null }).eq("id", groupId);
+                toast.success("Imagem removida");
+                refresh();
+              }}
+            />
             <div className="rounded-2xl border border-border bg-card/50 p-4">
               <h3 className="mb-2 text-sm font-semibold text-foreground">Informações</h3>
               <div className="space-y-2 text-xs text-muted-foreground">

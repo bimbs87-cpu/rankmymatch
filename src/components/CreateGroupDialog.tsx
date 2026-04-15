@@ -4,6 +4,8 @@ import { createGroup } from "@/hooks/use-groups";
 import { useNavigate } from "@tanstack/react-router";
 import { X, Globe, Lock, Users } from "lucide-react";
 import { toast } from "sonner";
+import { GroupImageUpload } from "@/components/GroupImageUpload";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Props {
   open: boolean;
@@ -17,6 +19,7 @@ export function CreateGroupDialog({ open, onClose }: Props) {
   const [description, setDescription] = useState("");
   const [isPublic, setIsPublic] = useState(true);
   const [maxPlayers, setMaxPlayers] = useState(20);
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   if (!open) return null;
@@ -33,6 +36,15 @@ export function CreateGroupDialog({ open, onClose }: Props) {
         sport: "padel",
         userId: user.id,
       });
+
+      // Update image_url if uploaded
+      if (imageUrl) {
+        await supabase
+          .from("groups")
+          .update({ image_url: imageUrl })
+          .eq("id", group.id);
+      }
+
       toast.success("Grupo criado com sucesso!");
       onClose();
       navigate({ to: "/groups/$groupId", params: { groupId: group.id } });
@@ -54,7 +66,13 @@ export function CreateGroupDialog({ open, onClose }: Props) {
           </button>
         </div>
 
-        <div className="space-y-5">
+        <div className="max-h-[65vh] space-y-5 overflow-y-auto pr-1">
+          {/* Imagem */}
+          <GroupImageUpload
+            onUploaded={(url) => setImageUrl(url)}
+            onRemoved={() => setImageUrl(null)}
+          />
+
           {/* Nome */}
           <div>
             <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Nome do grupo *</label>
