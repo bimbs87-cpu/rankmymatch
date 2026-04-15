@@ -296,7 +296,26 @@ function DashboardPage() {
     : 0;
 
   return (
-    <div className="min-h-screen bg-background pb-28">
+    <div
+      ref={scrollRef}
+      className="min-h-screen bg-background pb-28 overflow-y-auto"
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+    >
+      {/* Pull-to-refresh indicator */}
+      <div
+        className="flex items-center justify-center overflow-hidden transition-all duration-200"
+        style={{ height: refreshing ? 48 : pullDistance > 0 ? pullDistance : 0 }}
+      >
+        <div
+          className={`h-5 w-5 rounded-full border-2 border-primary border-t-transparent ${refreshing ? "animate-spin" : ""}`}
+          style={{
+            opacity: refreshing ? 1 : Math.min(pullDistance / 60, 1),
+            transform: refreshing ? undefined : `rotate(${pullDistance * 4}deg)`,
+          }}
+        />
+      </div>
       {/* Header */}
       <header className="px-5 pb-2 pt-6">
         <div className="flex items-center justify-between">
