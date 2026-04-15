@@ -18,7 +18,11 @@ import {
   ArrowLeft,
   Save,
   X,
+  Sun,
+  Moon,
+  Monitor,
 } from "lucide-react";
+import { useTheme } from "@/lib/theme";
 
 export const Route = createFileRoute("/profile")({
   component: ProfilePage,
@@ -67,6 +71,7 @@ function ProfilePage() {
   const [saving, setSaving] = useState(false);
   const [avatarPickerOpen, setAvatarPickerOpen] = useState(false);
   const [savingAvatar, setSavingAvatar] = useState(false);
+  const { theme, cycleTheme, resolved } = useTheme();
 
   // Edit form state
   const [editName, setEditName] = useState("");
@@ -437,6 +442,17 @@ function ProfilePage() {
             <span className="flex-1 text-sm font-medium text-foreground">Histórico</span>
             <ChevronRight className="h-4 w-4 text-muted-foreground/50" />
           </Link>
+          <button
+            onClick={cycleTheme}
+            className="flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left transition-colors hover:bg-accent"
+          >
+            {resolved === "dark" ? <Moon className="h-4 w-4 text-muted-foreground" /> : <Sun className="h-4 w-4 text-muted-foreground" />}
+            <span className="flex-1 text-sm font-medium text-foreground">Tema</span>
+            <span className="text-xs text-muted-foreground mr-1">
+              {theme === "dark" ? "Escuro" : theme === "light" ? "Claro" : "Sistema"}
+            </span>
+            <ChevronRight className="h-4 w-4 text-muted-foreground/50" />
+          </button>
           <button className="flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left transition-colors hover:bg-accent">
             <Shield className="h-4 w-4 text-muted-foreground" />
             <span className="flex-1 text-sm font-medium text-foreground">Privacidade</span>

@@ -1,5 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import logoSymbolNeon from "@/assets/logo-symbol-neon.png";
+import logoSymbolBlack from "@/assets/logo-symbol-black.png";
+import logoHorizontalDark from "@/assets/logo-horizontal-dark.png";
+import logoHorizontalLight from "@/assets/logo-horizontal-light.png";
+import { useTheme } from "@/lib/theme";
 import { useAuth } from "@/hooks/use-auth";
 import { useMyGroups } from "@/hooks/use-groups";
 import { useNotifications } from "@/hooks/use-notifications";
@@ -68,6 +72,7 @@ function DashboardPage() {
   const { user, isAuthenticated, isLoading } = useAuth();
   const { groups: myGroups, isLoading: groupsLoading } = useMyGroups();
   const { unreadCount } = useNotifications();
+  const { resolved: resolvedTheme } = useTheme();
   const [upcomingRounds, setUpcomingRounds] = useState<UpcomingRound[]>([]);
   const [recentMatches, setRecentMatches] = useState<RecentMatch[]>([]);
   const [myRanking, setMyRanking] = useState<MyRanking | null>(null);
@@ -259,13 +264,12 @@ function DashboardPage() {
   }
 
   if (!isAuthenticated) {
+    const horizontalLogo = resolvedTheme === "light" ? logoHorizontalLight : logoHorizontalDark;
+
     return (
       <div className="flex min-h-screen flex-col items-center justify-center bg-background px-6">
-        <img src={logoSymbolNeon} alt="RankMyMatch" className="mb-4 h-20 w-20" />
-        <h1 className="font-display text-3xl font-bold tracking-tight text-foreground">
-          RankMyMatch
-        </h1>
-        <p className="mt-3 mb-8 text-center text-sm text-muted-foreground">
+        <img src={horizontalLogo} alt="RankMyMatch" className="mb-6 h-14 w-auto" />
+        <p className="mt-1 mb-8 text-center text-sm text-muted-foreground">
           O app definitivo para feirinos com rankings,
           temporadas de padel entre amigos e clubes.
         </p>
@@ -332,7 +336,7 @@ function DashboardPage() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <img src={logoSymbolNeon} alt="RankMyMatch" className="h-7 w-7" />
+            <img src={resolvedTheme === "light" ? logoSymbolBlack : logoSymbolNeon} alt="RankMyMatch" className="h-7 w-7" />
             <Link to="/notifications" className="relative rounded-full border border-border bg-card p-2.5 transition-colors hover:bg-accent">
               <Bell className="h-4 w-4 text-muted-foreground" />
               {unreadCount > 0 && (

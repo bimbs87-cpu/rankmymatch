@@ -5,6 +5,8 @@ import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Zap, Users, BarChart3, Trophy } from "lucide-react";
 import logoHorizontalDark from "@/assets/logo-horizontal-dark.png";
+import logoHorizontalLight from "@/assets/logo-horizontal-light.png";
+import { useTheme } from "@/lib/theme";
 
 export const Route = createFileRoute("/login")({
   component: LoginPage,
@@ -13,6 +15,7 @@ export const Route = createFileRoute("/login")({
 function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const { resolved: resolvedTheme } = useTheme();
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
 
@@ -44,7 +47,11 @@ function LoginPage() {
       <div className="flex flex-1 flex-col items-center justify-center px-6 pb-16">
         {/* Logo */}
         <div className="mb-10 flex flex-col items-center">
-          <img src={logoHorizontalDark} alt="RankMyMatch" className="mb-5 h-16 w-auto" />
+          <img
+            src={resolvedTheme === "light" ? logoHorizontalLight : logoHorizontalDark}
+            alt="RankMyMatch"
+            className="mb-5 h-14 w-auto"
+          />
           <p className="mt-3 text-center text-sm leading-relaxed text-muted-foreground">
             O app definitivo para feirinos com rankings,{"\n"}
             temporadas de padel entre amigos e clubes.
