@@ -106,7 +106,7 @@ function GroupSeasonsPage() {
     } else {
       setRoundDates(getUpcomingMonthlyDates(totalRounds));
     }
-    setStep("dates");
+    goStep("dates", "forward");
   };
 
   const handleDateChange = (idx: number, newDate: string) => {
