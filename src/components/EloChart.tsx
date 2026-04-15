@@ -184,12 +184,12 @@ export function EloChart({ userId }: { userId: string }) {
                   fontSize: "12px",
                   color: "hsl(var(--foreground))",
                 }}
-                formatter={(value: number, _name: string, props: any) => {
+                formatter={(value: any, _name: any, props: any) => {
                   const change = props.payload.change;
                   const changeStr = change > 0 ? `+${change}` : `${change}`;
-                  return [`${Math.round(value)} (${changeStr})`, "Rating"];
+                  return [`${Math.round(Number(value))} (${changeStr})`, "Rating"];
                 }}
-                labelFormatter={(label: string) => label}
+                labelFormatter={(label: any) => String(label)}
               />
               <Line
                 type="monotone"
