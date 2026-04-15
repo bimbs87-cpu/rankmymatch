@@ -119,6 +119,9 @@ function ProfilePage() {
       </header>
 
       <div className="space-y-4 px-5 pt-5">
+        {/* Elo Evolution Chart */}
+        {user && <EloChart userId={user.id} />}
+
         {/* Stats */}
         <div className="grid grid-cols-3 gap-2">
           {[
