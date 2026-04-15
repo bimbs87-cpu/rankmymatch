@@ -454,6 +454,8 @@ function GroupDetailPage() {
             sport={group.sport}
             simultaneousCourts={group.simultaneous_courts}
             imageUrl={group.image_url}
+            groupStatus={(group as any).status || "active"}
+            isCreator={isCreator}
             onSaved={refresh}
           />
         )}
