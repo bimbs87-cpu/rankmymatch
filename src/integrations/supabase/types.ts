@@ -61,6 +61,47 @@ export type Database = {
           },
         ]
       }
+      branding_settings: {
+        Row: {
+          created_at: string
+          custom_name: string | null
+          group_id: string
+          id: string
+          logo_url: string | null
+          primary_color: string | null
+          secondary_color: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          custom_name?: string | null
+          group_id: string
+          id?: string
+          logo_url?: string | null
+          primary_color?: string | null
+          secondary_color?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          custom_name?: string | null
+          group_id?: string
+          id?: string
+          logo_url?: string | null
+          primary_color?: string | null
+          secondary_color?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "branding_settings_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: true
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       comment_reactions: {
         Row: {
           comment_id: string
@@ -344,6 +385,51 @@ export type Database = {
             columns: ["group_id"]
             isOneToOne: false
             referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      group_subscriptions: {
+        Row: {
+          created_at: string
+          expires_at: string | null
+          group_id: string
+          id: string
+          plan_id: string | null
+          started_at: string | null
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string | null
+          group_id: string
+          id?: string
+          plan_id?: string | null
+          started_at?: string | null
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string | null
+          group_id?: string
+          id?: string
+          plan_id?: string | null
+          started_at?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_subscriptions_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "group_subscriptions_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "premium_plans"
             referencedColumns: ["id"]
           },
         ]
@@ -663,6 +749,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      premium_plans: {
+        Row: {
+          created_at: string
+          features: Json | null
+          id: string
+          is_active: boolean
+          name: string
+          price_brl: number
+        }
+        Insert: {
+          created_at?: string
+          features?: Json | null
+          id?: string
+          is_active?: boolean
+          name: string
+          price_brl?: number
+        }
+        Update: {
+          created_at?: string
+          features?: Json | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          price_brl?: number
+        }
+        Relationships: []
       }
       ranking_snapshots: {
         Row: {
@@ -1031,6 +1144,103 @@ export type Database = {
             columns: ["round_id"]
             isOneToOne: false
             referencedRelation: "rounds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_commands: {
+        Row: {
+          command: string
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+        }
+        Insert: {
+          command: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+        }
+        Update: {
+          command?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+        }
+        Relationships: []
+      }
+      whatsapp_groups: {
+        Row: {
+          created_at: string
+          group_id: string
+          id: string
+          is_active: boolean
+          phone_number: string | null
+          whatsapp_group_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          group_id: string
+          id?: string
+          is_active?: boolean
+          phone_number?: string | null
+          whatsapp_group_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          group_id?: string
+          id?: string
+          is_active?: boolean
+          phone_number?: string | null
+          whatsapp_group_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_groups_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_logs: {
+        Row: {
+          command: string | null
+          created_at: string
+          id: string
+          request_data: Json | null
+          response_data: Json | null
+          user_phone: string | null
+          wa_group_id: string | null
+        }
+        Insert: {
+          command?: string | null
+          created_at?: string
+          id?: string
+          request_data?: Json | null
+          response_data?: Json | null
+          user_phone?: string | null
+          wa_group_id?: string | null
+        }
+        Update: {
+          command?: string | null
+          created_at?: string
+          id?: string
+          request_data?: Json | null
+          response_data?: Json | null
+          user_phone?: string | null
+          wa_group_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_logs_wa_group_id_fkey"
+            columns: ["wa_group_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_groups"
             referencedColumns: ["id"]
           },
         ]
