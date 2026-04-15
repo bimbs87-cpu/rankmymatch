@@ -338,11 +338,12 @@ export function ManualMatchDialog({ roundId, groupId, onClose, onSaved }: Props)
             <div className="space-y-4">
               {matchups.map((mu, idx) => {
                 const winner = mu.scoreA > mu.scoreB ? "A" : mu.scoreB > mu.scoreA ? "B" : null;
+                const isTied = mu.scoreA === mu.scoreB && mu.scoreA > 0;
                 return (
                   <div
                     key={idx}
-                    className={`rounded-2xl border p-4 transition-all ${
-                      winner ? "border-border bg-card" : "border-warning/20 bg-warning/5"
+                    className={`rounded-2xl border p-4 ${
+                      isTied ? "border-warning/20 bg-warning/5" : winner ? "border-border bg-card" : "border-border bg-card"
                     }`}
                   >
                     {/* Match header */}
@@ -350,12 +351,16 @@ export function ManualMatchDialog({ roundId, groupId, onClose, onSaved }: Props)
                       <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
                         Jogo {idx + 1}
                       </span>
-                      {winner && (
+                      {winner ? (
                         <span className="flex items-center gap-1 rounded-full bg-success/10 px-2.5 py-0.5 text-[10px] font-semibold text-success">
                           <Trophy className="h-3 w-3" />
                           Vitória
                         </span>
-                      )}
+                      ) : isTied ? (
+                        <span className="rounded-full bg-warning/10 px-2.5 py-0.5 text-[10px] font-semibold text-warning">
+                          Empate
+                        </span>
+                      ) : null}
                     </div>
 
                     {/* Teams + Score */}
@@ -365,49 +370,47 @@ export function ManualMatchDialog({ roundId, groupId, onClose, onSaved }: Props)
 
                       {/* Score controls */}
                       <div className="flex items-center gap-2 mx-auto">
-                        <div className="flex flex-col items-center gap-1">
+                        <div className="flex flex-col items-center gap-1.5">
                           <button
                             onClick={() => updateScore(idx, "A", 1)}
-                            className="flex h-6 w-6 items-center justify-center rounded-md bg-muted/80 text-xs font-bold text-foreground active:scale-90 transition-transform"
+                            className="flex h-8 w-8 items-center justify-center rounded-lg bg-muted text-sm font-bold text-foreground active:scale-90 active:bg-primary/20 transition-all select-none"
                           >
                             +
                           </button>
-                          <input
-                            type="number"
-                            value={mu.scoreA}
-                            onChange={(e) => setScore(idx, "A", parseInt(e.target.value) || 0)}
-                            className={`w-11 h-11 rounded-xl text-center font-display text-xl font-bold outline-none transition-colors ${
-                              winner === "A" ? "bg-primary/20 text-primary" : "bg-muted/50 text-foreground"
+                          <div
+                            className={`flex h-12 w-12 items-center justify-center rounded-xl text-center font-display text-2xl font-bold select-none ${
+                              winner === "A" ? "bg-primary/20 text-primary ring-2 ring-primary/30" : "bg-muted/50 text-foreground"
                             }`}
-                          />
+                          >
+                            {mu.scoreA}
+                          </div>
                           <button
                             onClick={() => updateScore(idx, "A", -1)}
-                            className="flex h-6 w-6 items-center justify-center rounded-md bg-muted/80 text-xs font-bold text-foreground active:scale-90 transition-transform"
+                            className="flex h-8 w-8 items-center justify-center rounded-lg bg-muted text-sm font-bold text-foreground active:scale-90 active:bg-primary/20 transition-all select-none"
                           >
                             −
                           </button>
                         </div>
 
-                        <span className="text-sm font-bold text-muted-foreground">×</span>
+                        <span className="text-sm font-bold text-muted-foreground select-none">×</span>
 
-                        <div className="flex flex-col items-center gap-1">
+                        <div className="flex flex-col items-center gap-1.5">
                           <button
                             onClick={() => updateScore(idx, "B", 1)}
-                            className="flex h-6 w-6 items-center justify-center rounded-md bg-muted/80 text-xs font-bold text-foreground active:scale-90 transition-transform"
+                            className="flex h-8 w-8 items-center justify-center rounded-lg bg-muted text-sm font-bold text-foreground active:scale-90 active:bg-primary/20 transition-all select-none"
                           >
                             +
                           </button>
-                          <input
-                            type="number"
-                            value={mu.scoreB}
-                            onChange={(e) => setScore(idx, "B", parseInt(e.target.value) || 0)}
-                            className={`w-11 h-11 rounded-xl text-center font-display text-xl font-bold outline-none transition-colors ${
-                              winner === "B" ? "bg-info/20 text-info" : "bg-muted/50 text-foreground"
+                          <div
+                            className={`flex h-12 w-12 items-center justify-center rounded-xl text-center font-display text-2xl font-bold select-none ${
+                              winner === "B" ? "bg-info/20 text-info ring-2 ring-info/30" : "bg-muted/50 text-foreground"
                             }`}
-                          />
+                          >
+                            {mu.scoreB}
+                          </div>
                           <button
                             onClick={() => updateScore(idx, "B", -1)}
-                            className="flex h-6 w-6 items-center justify-center rounded-md bg-muted/80 text-xs font-bold text-foreground active:scale-90 transition-transform"
+                            className="flex h-8 w-8 items-center justify-center rounded-lg bg-muted text-sm font-bold text-foreground active:scale-90 active:bg-primary/20 transition-all select-none"
                           >
                             −
                           </button>
