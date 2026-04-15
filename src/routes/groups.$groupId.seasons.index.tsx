@@ -4,6 +4,7 @@ import { useGroupDetail } from "@/hooks/use-groups";
 import { useGroupSeasons } from "@/hooks/use-seasons";
 import { createSeasonWithRounds } from "@/hooks/use-season-creation";
 import { ArrowLeft, Plus, Trophy, X, Calendar, Pencil } from "lucide-react";
+import { WizardStepper } from "@/components/ui/wizard-stepper";
 import { useState } from "react";
 import { toast } from "sonner";
 
