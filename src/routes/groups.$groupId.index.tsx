@@ -265,66 +265,66 @@ function GroupDetailPage() {
       )}
 
       <div className="space-y-3 px-5">
-        {tab === "members" &&
-          members.map((m) => (
-            <div
-              key={m.id}
-              className="flex items-center justify-between rounded-2xl border border-border bg-card/50 p-4"
-            >
-              <div className="flex items-center gap-3">
-                {m.profile?.avatar_url ? (
-                  <img
-                    src={m.profile.avatar_url}
-                    alt=""
-                    className="h-10 w-10 rounded-full border border-border object-cover"
-                  />
-                ) : (
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted text-sm font-bold text-foreground">
-                    {(m.profile?.name || "?").charAt(0)}
-                  </div>
-                )}
-                <div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-sm font-semibold text-foreground">
+        {tab === "members" && (
+          <div className="rounded-2xl border border-border bg-card/50 divide-y divide-border overflow-hidden">
+            {members.map((m) => (
+              <div
+                key={m.id}
+                className="flex items-center justify-between px-3 py-2.5"
+              >
+                <div className="flex items-center gap-2.5 min-w-0">
+                  {m.profile?.avatar_url ? (
+                    <img
+                      src={m.profile.avatar_url}
+                      alt=""
+                      className="h-8 w-8 rounded-full border border-border object-cover flex-shrink-0"
+                    />
+                  ) : (
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-xs font-bold text-foreground flex-shrink-0">
+                      {(m.profile?.name || "?").charAt(0)}
+                    </div>
+                  )}
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <span className="text-sm font-medium text-foreground truncate">
                       {m.profile?.nickname || m.profile?.name || "Jogador"}
                     </span>
-                    {m.role === "creator" && <Crown className="h-3.5 w-3.5 text-rank-gold" />}
-                    {m.role === "admin" && <Shield className="h-3.5 w-3.5 text-info" />}
+                    {m.role === "creator" && <Crown className="h-3 w-3 text-rank-gold flex-shrink-0" />}
+                    {m.role === "admin" && <Shield className="h-3 w-3 text-info flex-shrink-0" />}
                   </div>
-                  <p className="text-xs capitalize text-muted-foreground">{m.role}</p>
                 </div>
-              </div>
 
-              {isAdmin && m.user_id !== user?.id && m.role !== "creator" && (
-                <div className="flex gap-1.5">
-                  {m.role === "member" ? (
+                {isAdmin && m.user_id !== user?.id && m.role !== "creator" && (
+                  <div className="flex gap-1 flex-shrink-0">
+                    {m.role === "member" ? (
+                      <button
+                        onClick={() => handlePromote(m.id)}
+                        className="rounded-lg bg-info/10 p-1.5 text-info"
+                        title="Promover"
+                      >
+                        <Shield className="h-3 w-3" />
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => handleDemote(m.id)}
+                        className="rounded-lg bg-warning/10 p-1.5 text-warning"
+                        title="Rebaixar"
+                      >
+                        <Shield className="h-3 w-3" />
+                      </button>
+                    )}
                     <button
-                      onClick={() => handlePromote(m.id)}
-                      className="rounded-lg bg-info/10 p-2 text-info"
-                      title="Promover"
+                      onClick={() => handleRemove(m.id)}
+                      className="rounded-lg bg-destructive/10 p-1.5 text-destructive"
+                      title="Remover"
                     >
-                      <Shield className="h-3.5 w-3.5" />
+                      <UserMinus className="h-3 w-3" />
                     </button>
-                  ) : (
-                    <button
-                      onClick={() => handleDemote(m.id)}
-                      className="rounded-lg bg-warning/10 p-2 text-warning"
-                      title="Rebaixar"
-                    >
-                      <Shield className="h-3.5 w-3.5" />
-                    </button>
-                  )}
-                  <button
-                    onClick={() => handleRemove(m.id)}
-                    className="rounded-lg bg-destructive/10 p-2 text-destructive"
-                    title="Remover"
-                  >
-                    <UserMinus className="h-3.5 w-3.5" />
-                  </button>
-                </div>
-              )}
-            </div>
-          ))}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
 
         {tab === "requests" && isAdmin && (
           <>
