@@ -103,10 +103,11 @@ function GroupSeasonsPage() {
       return;
     }
     // Generate dates
+    const fromDate = isRetroactive && startDate ? startDate : undefined;
     if (durationType === "weekly" && selectedDay !== null) {
-      setRoundDates(getUpcomingDates(selectedDay, totalRounds));
+      setRoundDates(getWeeklyDates(selectedDay, totalRounds, fromDate));
     } else {
-      setRoundDates(getUpcomingMonthlyDates(totalRounds));
+      setRoundDates(getMonthlyDates(totalRounds, fromDate));
     }
     setStep("dates");
   };
