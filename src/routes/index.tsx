@@ -72,6 +72,7 @@ function DashboardPage() {
   const { user, isAuthenticated, isLoading } = useAuth();
   const { groups: myGroups, isLoading: groupsLoading } = useMyGroups();
   const { unreadCount } = useNotifications();
+  const { resolved: resolvedTheme } = useTheme();
   const [upcomingRounds, setUpcomingRounds] = useState<UpcomingRound[]>([]);
   const [recentMatches, setRecentMatches] = useState<RecentMatch[]>([]);
   const [myRanking, setMyRanking] = useState<MyRanking | null>(null);
