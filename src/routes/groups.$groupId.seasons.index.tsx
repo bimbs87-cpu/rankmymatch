@@ -102,6 +102,10 @@ function GroupSeasonsPage() {
       toast.error("Selecione o dia da semana");
       return;
     }
+    if (isRetroactive && !startDate) {
+      toast.error("Informe a data de início");
+      return;
+    }
     // Generate dates
     const fromDate = isRetroactive && startDate ? startDate : undefined;
     if (durationType === "weekly" && selectedDay !== null) {
