@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useAuth } from "@/hooks/use-auth";
 import { useGroupDetail } from "@/hooks/use-groups";
 import { useRoundDetail, confirmPresence, cancelPresence, drawTeams, deleteMatch, deleteRound } from "@/hooks/use-seasons";
@@ -31,6 +31,7 @@ export const Route = createFileRoute(
 
 function RoundDetailPage() {
   const { groupId, seasonId, roundId } = Route.useParams();
+  const navigate = useNavigate();
   const { user } = useAuth();
   const { isAdmin } = useGroupDetail(groupId);
   const { round, presences, matches, myPresence, confirmedCount, isLoading, refresh } =
@@ -38,6 +39,7 @@ function RoundDetailPage() {
   const [scoringMatch, setScoringMatch] = useState<any>(null);
   const [showManualMatch, setShowManualMatch] = useState(false);
   const [deletingMatchId, setDeletingMatchId] = useState<string | null>(null);
+  const [deletingRound, setDeletingRound] = useState(false);
 
   const handleDeleteMatch = async (matchId: string) => {
     if (!confirm("Tem certeza que deseja apagar esta partida? Os dados de placar serão perdidos.")) return;
