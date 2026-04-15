@@ -83,7 +83,13 @@ export function InviteLinkDialog({ open, onOpenChange, groupId, isAdmin }: Invit
     setCreating(true);
     const code = generateCode();
 
-    const insertData: Record<string, unknown> = {
+    const insertData: {
+      group_id: string;
+      code: string;
+      created_by: string;
+      expires_at?: string;
+      max_uses?: number;
+    } = {
       group_id: groupId,
       code,
       created_by: user.id,
