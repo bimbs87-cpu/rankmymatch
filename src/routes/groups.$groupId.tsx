@@ -205,21 +205,23 @@ function GroupDetailPage() {
 
       {/* Invite link card */}
       {isMember && (
-        <div className="mx-5 mb-4 rounded-2xl border border-border bg-card/50 p-4">
-          <p className="mb-2 text-xs font-medium text-muted-foreground">Link de convite</p>
-          <div className="flex items-center gap-2">
-            <div className="flex-1 truncate rounded-xl bg-background px-3 py-2 text-xs text-foreground">
-              {inviteLink}
-            </div>
-            <button
-              onClick={handleCopyLink}
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground"
-            >
-              <Copy className="h-4 w-4" />
-            </button>
-          </div>
+        <div className="mx-5 mb-4">
+          <button
+            onClick={handleShareInvite}
+            className="flex w-full items-center justify-center gap-2 rounded-2xl border border-border bg-card/50 p-4 text-sm font-medium text-foreground transition-colors active:bg-accent/30"
+          >
+            <Share2 className="h-4 w-4 text-primary" />
+            Convidar jogadores
+          </button>
         </div>
       )}
+
+      <InviteLinkDialog
+        open={inviteOpen}
+        onOpenChange={setInviteOpen}
+        groupId={groupId}
+        isAdmin={isAdmin}
+      />
 
       {/* Tabs */}
       {isMember && (
