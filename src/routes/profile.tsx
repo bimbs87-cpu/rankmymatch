@@ -65,6 +65,8 @@ function ProfilePage() {
   const [loadingProfile, setLoadingProfile] = useState(true);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [avatarPickerOpen, setAvatarPickerOpen] = useState(false);
+  const [savingAvatar, setSavingAvatar] = useState(false);
 
   // Edit form state
   const [editName, setEditName] = useState("");
