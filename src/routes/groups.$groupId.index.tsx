@@ -396,6 +396,16 @@ function GroupDetailPage() {
               </div>
             ))}
           </div>
+          {/* Leave group button - only for non-creators */}
+          {!isCreator && (
+            <button
+              onClick={handleLeaveClick}
+              className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl border border-destructive/30 py-3 text-sm font-medium text-destructive transition-colors active:bg-destructive/10"
+            >
+              <LogOut className="h-4 w-4" />
+              Sair do grupo
+            </button>
+          )}
         )}
 
         {tab === "requests" && isAdmin && (
