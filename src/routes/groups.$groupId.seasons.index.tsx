@@ -3,7 +3,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useGroupDetail } from "@/hooks/use-groups";
 import { useGroupSeasons } from "@/hooks/use-seasons";
 import { createSeasonWithRounds } from "@/hooks/use-season-creation";
-import { ArrowLeft, Plus, Trophy, X, Calendar, Pencil, MoreVertical, Trash2, EyeOff, Eye, CheckCircle, LayoutGrid } from "lucide-react";
+import { ArrowLeft, Plus, Trophy, X, Calendar, Pencil, MoreVertical, Trash2, EyeOff, Eye, CheckCircle, LayoutGrid, History } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
