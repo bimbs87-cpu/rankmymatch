@@ -11,6 +11,8 @@ import {
   rejectJoinRequest,
   removeMember,
   updateMemberRole,
+  leaveGroup,
+  checkUserHasResults,
 } from "@/hooks/use-groups";
 import {
   ArrowLeft,
@@ -29,6 +31,8 @@ import {
   Trophy,
   ChevronRight,
   MessageSquare,
+  LogOut,
+  AlertTriangle,
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -45,6 +49,9 @@ function GroupDetailPage() {
   const navigate = useNavigate();
   const [tab, setTab] = useState<"members" | "requests" | "settings">("members");
   const [inviteOpen, setInviteOpen] = useState(false);
+  const [leaveDialogOpen, setLeaveDialogOpen] = useState(false);
+  const [hasResults, setHasResults] = useState(false);
+  const [leavingLoading, setLeavingLoading] = useState(false);
 
   if (isLoading) {
     return (
@@ -112,6 +119,30 @@ function GroupDetailPage() {
     await updateMemberRole(memberId, "member");
     toast.success("Rebaixado a membro");
     refresh();
+  };
+
+  const handleLeaveClick = async () => {
+    if (!user) return;
+    const results = await checkUserHasResults(groupId, user.id);
+    setHasResults(results);
+    setLeaveDialogOpen(true);
+  };
+
+  const handleLeaveConfirm = async () => {
+    if (!user) return;
+    const myMembership = members.find((m) => m.user_id === user.id);
+    if (!myMembership) return;
+    setLeavingLoading(true);
+    try {
+      await leaveGroup(myMembership.id);
+      toast.success("Você saiu do grupo");
+      navigate({ to: "/groups" });
+    } catch (e: any) {
+      toast.error("Erro ao sair do grupo");
+    } finally {
+      setLeavingLoading(false);
+      setLeaveDialogOpen(false);
+    }
   };
 
   return (
@@ -226,6 +257,47 @@ function GroupDetailPage() {
         isAdmin={isAdmin}
       />
 
+      {/* Leave Group Dialog */}
+      {leaveDialogOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setLeaveDialogOpen(false)} />
+          <div className="relative w-[90%] max-w-sm rounded-3xl border border-border bg-card p-6 animate-in zoom-in-95 duration-200">
+            <div className="flex flex-col items-center gap-4 text-center">
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-destructive/10">
+                <AlertTriangle className="h-7 w-7 text-destructive" />
+              </div>
+              <h3 className="font-display text-base font-bold text-foreground">Sair do grupo?</h3>
+              {hasResults ? (
+                <p className="text-sm text-muted-foreground">
+                  Seus jogos cadastrados continuarão no ranking como <strong className="text-foreground">anônimo</strong>. 
+                  Você <strong className="text-foreground">não poderá voltar</strong> a este grupo, 
+                  a não ser que receba um convite direto do admin.
+                </p>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  Tem certeza que deseja sair deste grupo?
+                </p>
+              )}
+              <div className="flex w-full gap-3">
+                <button
+                  onClick={() => setLeaveDialogOpen(false)}
+                  className="flex-1 rounded-2xl border border-border py-3 text-sm font-semibold text-foreground"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleLeaveConfirm}
+                  disabled={leavingLoading}
+                  className="flex-1 rounded-2xl bg-destructive py-3 text-sm font-bold text-destructive-foreground disabled:opacity-50"
+                >
+                  {leavingLoading ? "Saindo..." : "Sair"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {isMember && (
         <div className="mx-5 mb-4 flex gap-1 rounded-full border border-border bg-card p-1">
           <button
@@ -266,64 +338,75 @@ function GroupDetailPage() {
 
       <div className="space-y-3 px-5">
         {tab === "members" && (
-          <div className="rounded-2xl border border-border bg-card/50 divide-y divide-border overflow-hidden">
-            {members.map((m) => (
-              <div
-                key={m.id}
-                className="flex items-center justify-between px-3 py-2.5"
-              >
-                <div className="flex items-center gap-2.5 min-w-0">
-                  {m.profile?.avatar_url ? (
-                    <img
-                      src={m.profile.avatar_url}
-                      alt=""
-                      className="h-8 w-8 rounded-full border border-border object-cover flex-shrink-0"
-                    />
-                  ) : (
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-xs font-bold text-foreground flex-shrink-0">
-                      {(m.profile?.name || "?").charAt(0)}
+          <>
+            <div className="rounded-2xl border border-border bg-card/50 divide-y divide-border overflow-hidden">
+              {members.map((m) => (
+                <div
+                  key={m.id}
+                  className="flex items-center justify-between px-3 py-2.5"
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    {m.profile?.avatar_url ? (
+                      <img
+                        src={m.profile.avatar_url}
+                        alt=""
+                        className="h-8 w-8 rounded-full border border-border object-cover flex-shrink-0"
+                      />
+                    ) : (
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-xs font-bold text-foreground flex-shrink-0">
+                        {(m.profile?.name || "?").charAt(0)}
+                      </div>
+                    )}
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <span className="text-sm font-medium text-foreground truncate">
+                        {m.profile?.nickname || m.profile?.name || "Jogador"}
+                      </span>
+                      {m.role === "creator" && <Crown className="h-3 w-3 text-rank-gold flex-shrink-0" />}
+                      {m.role === "admin" && <Shield className="h-3 w-3 text-info flex-shrink-0" />}
+                    </div>
+                  </div>
+
+                  {isAdmin && m.user_id !== user?.id && m.role !== "creator" && (
+                    <div className="flex gap-1 flex-shrink-0">
+                      {m.role === "member" ? (
+                        <button
+                          onClick={() => handlePromote(m.id)}
+                          className="rounded-lg bg-info/10 p-1.5 text-info"
+                          title="Promover"
+                        >
+                          <Shield className="h-3 w-3" />
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => handleDemote(m.id)}
+                          className="rounded-lg bg-warning/10 p-1.5 text-warning"
+                          title="Rebaixar"
+                        >
+                          <Shield className="h-3 w-3" />
+                        </button>
+                      )}
+                      <button
+                        onClick={() => handleRemove(m.id)}
+                        className="rounded-lg bg-destructive/10 p-1.5 text-destructive"
+                        title="Remover"
+                      >
+                        <UserMinus className="h-3 w-3" />
+                      </button>
                     </div>
                   )}
-                  <div className="flex items-center gap-1.5 min-w-0">
-                    <span className="text-sm font-medium text-foreground truncate">
-                      {m.profile?.nickname || m.profile?.name || "Jogador"}
-                    </span>
-                    {m.role === "creator" && <Crown className="h-3 w-3 text-rank-gold flex-shrink-0" />}
-                    {m.role === "admin" && <Shield className="h-3 w-3 text-info flex-shrink-0" />}
-                  </div>
                 </div>
-
-                {isAdmin && m.user_id !== user?.id && m.role !== "creator" && (
-                  <div className="flex gap-1 flex-shrink-0">
-                    {m.role === "member" ? (
-                      <button
-                        onClick={() => handlePromote(m.id)}
-                        className="rounded-lg bg-info/10 p-1.5 text-info"
-                        title="Promover"
-                      >
-                        <Shield className="h-3 w-3" />
-                      </button>
-                    ) : (
-                      <button
-                        onClick={() => handleDemote(m.id)}
-                        className="rounded-lg bg-warning/10 p-1.5 text-warning"
-                        title="Rebaixar"
-                      >
-                        <Shield className="h-3 w-3" />
-                      </button>
-                    )}
-                    <button
-                      onClick={() => handleRemove(m.id)}
-                      className="rounded-lg bg-destructive/10 p-1.5 text-destructive"
-                      title="Remover"
-                    >
-                      <UserMinus className="h-3 w-3" />
-                    </button>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+            {!isCreator && (
+              <button
+                onClick={handleLeaveClick}
+                className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl border border-destructive/30 py-3 text-sm font-medium text-destructive transition-colors active:bg-destructive/10"
+              >
+                <LogOut className="h-4 w-4" />
+                Sair do grupo
+              </button>
+            )}
+          </>
         )}
 
         {tab === "requests" && isAdmin && (

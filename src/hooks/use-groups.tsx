@@ -293,3 +293,23 @@ export async function removeMember(memberId: string) {
 export async function updateMemberRole(memberId: string, role: string) {
   await supabase.from("group_members").update({ role }).eq("id", memberId);
 }
+
+export async function checkUserHasResults(groupId: string, userId: string): Promise<boolean> {
+  // Check if user has played any matches in this group
+  const { data } = await supabase
+    .from("match_players")
+    .select("id, match_id, matches!inner(round_id, rounds!inner(group_id))")
+    .eq("user_id", userId)
+    .eq("matches.rounds.group_id", groupId)
+    .limit(1);
+  return (data?.length || 0) > 0;
+}
+
+export async function leaveGroup(memberId: string) {
+  // Set status to 'left' instead of deleting to preserve history
+  const { error } = await supabase
+    .from("group_members")
+    .update({ status: "left", updated_at: new Date().toISOString() })
+    .eq("id", memberId);
+  if (error) throw error;
+}
