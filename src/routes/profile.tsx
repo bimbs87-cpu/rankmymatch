@@ -154,6 +154,23 @@ function ProfilePage() {
   }
 
   const avatarUrl = profile?.avatar_url || user?.user_metadata?.avatar_url || user?.user_metadata?.picture;
+
+  const handleAvatarSelect = async (url: string) => {
+    if (!user) return;
+    setSavingAvatar(true);
+    const { error } = await supabase
+      .from("user_profiles")
+      .update({ avatar_url: url, avatar_type: "premium" })
+      .eq("user_id", user.id);
+    if (error) {
+      toast.error("Erro ao salvar avatar");
+    } else {
+      setProfile((prev) => prev ? { ...prev, avatar_url: url } : prev);
+      toast.success("Avatar atualizado!");
+      setAvatarPickerOpen(false);
+    }
+    setSavingAvatar(false);
+  };
   const displayName = profile?.name || user?.user_metadata?.full_name || "Jogador";
 
   const handleLogout = async () => {
