@@ -14,6 +14,38 @@ export type Database = {
   }
   public: {
     Tables: {
+      courts: {
+        Row: {
+          court_number: number
+          created_at: string
+          id: string
+          name: string | null
+          round_id: string
+        }
+        Insert: {
+          court_number?: number
+          created_at?: string
+          id?: string
+          name?: string | null
+          round_id: string
+        }
+        Update: {
+          court_number?: number
+          created_at?: string
+          id?: string
+          name?: string | null
+          round_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "courts_round_id_fkey"
+            columns: ["round_id"]
+            isOneToOne: false
+            referencedRelation: "rounds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       group_admin_permissions: {
         Row: {
           can_edit_scores: boolean
@@ -188,6 +220,169 @@ export type Database = {
         }
         Relationships: []
       }
+      round_presence: {
+        Row: {
+          confirmed_at: string | null
+          created_at: string
+          id: string
+          position_in_queue: number | null
+          round_id: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          confirmed_at?: string | null
+          created_at?: string
+          id?: string
+          position_in_queue?: number | null
+          round_id: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          confirmed_at?: string | null
+          created_at?: string
+          id?: string
+          position_in_queue?: number | null
+          round_id?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "round_presence_round_id_fkey"
+            columns: ["round_id"]
+            isOneToOne: false
+            referencedRelation: "rounds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rounds: {
+        Row: {
+          created_at: string
+          group_id: string
+          id: string
+          location: string | null
+          max_players: number
+          notes: string | null
+          round_number: number | null
+          scheduled_date: string | null
+          scheduled_time: string | null
+          season_id: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          group_id: string
+          id?: string
+          location?: string | null
+          max_players?: number
+          notes?: string | null
+          round_number?: number | null
+          scheduled_date?: string | null
+          scheduled_time?: string | null
+          season_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          group_id?: string
+          id?: string
+          location?: string | null
+          max_players?: number
+          notes?: string | null
+          round_number?: number | null
+          scheduled_date?: string | null
+          scheduled_time?: string | null
+          season_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rounds_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rounds_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "seasons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      seasons: {
+        Row: {
+          created_at: string
+          created_by: string
+          duration_type: string | null
+          end_date: string | null
+          group_id: string
+          id: string
+          match_format: string
+          min_eligibility_pct: number
+          name: string
+          rounds_per_week: number | null
+          scoring_format: Json | null
+          start_date: string | null
+          status: string
+          total_rounds: number | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          duration_type?: string | null
+          end_date?: string | null
+          group_id: string
+          id?: string
+          match_format?: string
+          min_eligibility_pct?: number
+          name: string
+          rounds_per_week?: number | null
+          scoring_format?: Json | null
+          start_date?: string | null
+          status?: string
+          total_rounds?: number | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          duration_type?: string | null
+          end_date?: string | null
+          group_id?: string
+          id?: string
+          match_format?: string
+          min_eligibility_pct?: number
+          name?: string
+          rounds_per_week?: number | null
+          scoring_format?: Json | null
+          start_date?: string | null
+          status?: string
+          total_rounds?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "seasons_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_profiles: {
         Row: {
           created_at: string
@@ -211,6 +406,38 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      waiting_list: {
+        Row: {
+          added_at: string
+          id: string
+          position: number
+          round_id: string
+          user_id: string
+        }
+        Insert: {
+          added_at?: string
+          id?: string
+          position: number
+          round_id: string
+          user_id: string
+        }
+        Update: {
+          added_at?: string
+          id?: string
+          position?: number
+          round_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "waiting_list_round_id_fkey"
+            columns: ["round_id"]
+            isOneToOne: false
+            referencedRelation: "rounds"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
