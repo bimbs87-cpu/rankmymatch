@@ -134,6 +134,33 @@ function InvitePage() {
         .update({ use_count: invite.use_count + 1 })
         .eq("id", invite.id);
 
+      // Notify group admins
+      const { data: admins } = await supabase
+        .from("group_members")
+        .select("user_id")
+        .eq("group_id", invite.group_id)
+        .in("role", ["creator", "admin"])
+        .eq("status", "active");
+
+      const userName = user.user_metadata?.full_name || user.user_metadata?.name || "Um jogador";
+
+      if (admins?.length) {
+        const notifications = admins
+          .filter((a) => a.user_id !== user.id)
+          .map((a) => ({
+            user_id: a.user_id,
+            group_id: invite.group_id,
+            type: "member_joined",
+            title: "Novo membro via convite",
+            body: `${userName} entrou no grupo pelo link de convite.`,
+            data: { invite_code: invite.code },
+          }));
+
+        if (notifications.length) {
+          await supabase.from("notifications").insert(notifications);
+        }
+      }
+
       setJoined(true);
       toast.success("Você entrou no grupo!");
     } catch (e: any) {
