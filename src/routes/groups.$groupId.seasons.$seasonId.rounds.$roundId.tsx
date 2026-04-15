@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useAuth } from "@/hooks/use-auth";
 import { useGroupDetail } from "@/hooks/use-groups";
 import { useRoundDetail, confirmPresence, cancelPresence, drawTeams } from "@/hooks/use-seasons";
+import { ScoreEntryDialog } from "@/components/ScoreEntryDialog";
 import {
   ArrowLeft,
   Check,
@@ -14,7 +15,9 @@ import {
   Swords,
   UserCheck,
   UserX,
+  Edit3,
 } from "lucide-react";
+import { useState } from "react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute(
