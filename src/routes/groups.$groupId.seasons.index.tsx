@@ -3,10 +3,11 @@ import { useAuth } from "@/hooks/use-auth";
 import { useGroupDetail } from "@/hooks/use-groups";
 import { useGroupSeasons } from "@/hooks/use-seasons";
 import { createSeasonWithRounds } from "@/hooks/use-season-creation";
-import { ArrowLeft, Plus, Trophy, X, Calendar, Pencil } from "lucide-react";
+import { ArrowLeft, Plus, Trophy, X, Calendar, Pencil, MoreVertical, EyeOff, CheckCircle2, Trash2 } from "lucide-react";
 import { WizardStepper } from "@/components/ui/wizard-stepper";
 import { useState } from "react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/groups/$groupId/seasons/")({
   component: GroupSeasonsPage,
@@ -22,11 +23,12 @@ const WEEKDAYS = [
   { value: 0, label: "Domingo" },
 ];
 
+const COURT_OPTIONS = [1, 2, 3, 4];
+
 function getUpcomingDates(dayOfWeek: number, count: number): string[] {
   const dates: string[] = [];
   const today = new Date();
   const current = new Date(today);
-  // Move to the next occurrence of the chosen day
   const diff = (dayOfWeek - current.getDay() + 7) % 7;
   current.setDate(current.getDate() + (diff === 0 && current.getHours() >= 12 ? 7 : diff));
   for (let i = 0; i < count; i++) {
@@ -40,8 +42,6 @@ function getUpcomingMonthlyDates(count: number): string[] {
   const dates: string[] = [];
   const today = new Date();
   for (let i = 0; i < count; i++) {
-    const d = new Date(today.getFullYear(), today.getMonth() + i + 1, 0);
-    // Last saturday of the month as default, or just mid-month
     const mid = new Date(today.getFullYear(), today.getMonth() + i, 15);
     if (mid <= today) {
       mid.setMonth(mid.getMonth() + 1);
@@ -66,8 +66,11 @@ function GroupSeasonsPage() {
   const [roundDates, setRoundDates] = useState<string[]>([]);
   const [editingIdx, setEditingIdx] = useState<number | null>(null);
   const [time, setTime] = useState("19:00");
+  const [courts, setCourts] = useState(1);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
+  const [showHidden, setShowHidden] = useState(false);
 
   const goStep = (next: "type" | "config" | "dates", dir: "forward" | "back") => {
     setStepDir(dir);
@@ -84,6 +87,7 @@ function GroupSeasonsPage() {
     setRoundDates([]);
     setEditingIdx(null);
     setTime("19:00");
+    setCourts(1);
     setSubmitError(null);
   };
 
@@ -101,7 +105,6 @@ function GroupSeasonsPage() {
       toast.error("Selecione o dia da semana");
       return;
     }
-    // Generate dates
     if (durationType === "weekly" && selectedDay !== null) {
       setRoundDates(getUpcomingDates(selectedDay, totalRounds));
     } else {
@@ -131,6 +134,15 @@ function GroupSeasonsPage() {
         roundDates,
         scheduledTime: time,
       });
+
+      // Update group's simultaneous_courts if different
+      if (courts !== (group?.simultaneous_courts ?? 1)) {
+        await supabase
+          .from("groups")
+          .update({ simultaneous_courts: courts })
+          .eq("id", groupId);
+      }
+
       toast.success("Temporada criada com rodadas!");
       setShowCreate(false);
       resetForm();
@@ -145,6 +157,30 @@ function GroupSeasonsPage() {
     }
   };
 
+  const handleSeasonAction = async (seasonId: string, action: "deactivate" | "activate" | "finish" | "delete") => {
+    setMenuOpenId(null);
+    try {
+      if (action === "delete") {
+        // Delete rounds first, then season
+        await supabase.from("rounds").delete().eq("season_id", seasonId);
+        await supabase.from("seasons").delete().eq("id", seasonId);
+        toast.success("Temporada excluída");
+      } else if (action === "deactivate") {
+        await supabase.from("seasons").update({ status: "hidden" }).eq("id", seasonId);
+        toast.success("Temporada ocultada");
+      } else if (action === "activate") {
+        await supabase.from("seasons").update({ status: "active" }).eq("id", seasonId);
+        toast.success("Temporada reativada");
+      } else if (action === "finish") {
+        await supabase.from("seasons").update({ status: "finished" }).eq("id", seasonId);
+        toast.success("Temporada concluída");
+      }
+      refresh();
+    } catch (e) {
+      toast.error("Erro ao atualizar temporada");
+    }
+  };
+
   const formatDateBR = (d: string) => {
     const date = new Date(d + "T00:00:00");
     return date.toLocaleDateString("pt-BR", {
@@ -153,6 +189,9 @@ function GroupSeasonsPage() {
       month: "short",
     });
   };
+
+  const visibleSeasons = seasons.filter((s) => s.status !== "hidden");
+  const hiddenSeasons = seasons.filter((s) => s.status === "hidden");
 
   if (isLoading) {
     return (
@@ -190,7 +229,7 @@ function GroupSeasonsPage() {
       </header>
 
       <div className="space-y-3 px-5">
-        {seasons.length === 0 ? (
+        {visibleSeasons.length === 0 && hiddenSeasons.length === 0 ? (
           <div className="rounded-3xl border border-dashed border-border bg-card/50 p-8">
             <div className="flex flex-col items-center gap-3 text-center">
               <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10">
@@ -205,31 +244,113 @@ function GroupSeasonsPage() {
             </div>
           </div>
         ) : (
-          seasons.map((s) => (
-            <Link
-              key={s.id}
-              to="/groups/$groupId/seasons/$seasonId"
-              params={{ groupId, seasonId: s.id }}
-              className="flex items-center justify-between rounded-2xl border border-border bg-card/50 p-4 transition-colors active:bg-accent/30"
-            >
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
-                  <Trophy className="h-5 w-5 text-primary" />
-                </div>
-                <div>
-                  <span className="text-sm font-semibold text-foreground">{s.name}</span>
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <span className={`inline-block h-1.5 w-1.5 rounded-full ${s.status === "active" ? "bg-success" : "bg-muted-foreground"}`} />
-                    <span className="capitalize">{s.status === "active" ? "Ativa" : s.status === "finished" ? "Encerrada" : s.status}</span>
-                    {s.total_rounds && <span>• {s.total_rounds} rodadas</span>}
-                    {s.duration_type && (
-                      <span>• {s.duration_type === "weekly" ? "Semanal" : "Mensal"}</span>
+          <>
+            {visibleSeasons.map((s) => (
+              <div key={s.id} className="relative">
+                <Link
+                  to="/groups/$groupId/seasons/$seasonId"
+                  params={{ groupId, seasonId: s.id }}
+                  className="flex items-center justify-between rounded-2xl border border-border bg-card/50 p-4 transition-colors active:bg-accent/30"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
+                      <Trophy className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                      <span className="text-sm font-semibold text-foreground">{s.name}</span>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <span className={`inline-block h-1.5 w-1.5 rounded-full ${s.status === "active" ? "bg-success" : "bg-muted-foreground"}`} />
+                        <span className="capitalize">{s.status === "active" ? "Ativa" : s.status === "finished" ? "Encerrada" : s.status}</span>
+                        {s.total_rounds && <span>• {s.total_rounds} rodadas</span>}
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+                {isAdmin && (
+                  <div className="absolute right-2 top-2">
+                    <button
+                      onClick={(e) => { e.preventDefault(); setMenuOpenId(menuOpenId === s.id ? null : s.id); }}
+                      className="rounded-lg p-1.5 text-muted-foreground hover:bg-accent/30"
+                    >
+                      <MoreVertical className="h-4 w-4" />
+                    </button>
+                    {menuOpenId === s.id && (
+                      <div className="absolute right-0 top-8 z-20 w-44 rounded-xl border border-border bg-card shadow-lg overflow-hidden">
+                        {s.status === "active" && (
+                          <button
+                            onClick={() => handleSeasonAction(s.id, "finish")}
+                            className="flex w-full items-center gap-2 px-3 py-2.5 text-xs text-foreground hover:bg-accent/30"
+                          >
+                            <CheckCircle2 className="h-3.5 w-3.5 text-success" />
+                            Concluir
+                          </button>
+                        )}
+                        <button
+                          onClick={() => handleSeasonAction(s.id, "deactivate")}
+                          className="flex w-full items-center gap-2 px-3 py-2.5 text-xs text-foreground hover:bg-accent/30"
+                        >
+                          <EyeOff className="h-3.5 w-3.5 text-warning" />
+                          Ocultar
+                        </button>
+                        <button
+                          onClick={() => handleSeasonAction(s.id, "delete")}
+                          className="flex w-full items-center gap-2 px-3 py-2.5 text-xs text-destructive hover:bg-accent/30"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                          Excluir
+                        </button>
+                      </div>
                     )}
                   </div>
-                </div>
+                )}
               </div>
-            </Link>
-          ))
+            ))}
+
+            {/* Hidden seasons toggle */}
+            {isAdmin && hiddenSeasons.length > 0 && (
+              <>
+                <button
+                  onClick={() => setShowHidden(!showHidden)}
+                  className="flex w-full items-center justify-center gap-2 py-2 text-xs text-muted-foreground"
+                >
+                  <EyeOff className="h-3.5 w-3.5" />
+                  {showHidden ? "Ocultar" : `Mostrar ${hiddenSeasons.length} temporada(s) oculta(s)`}
+                </button>
+                {showHidden && hiddenSeasons.map((s) => (
+                  <div key={s.id} className="relative opacity-60">
+                    <div className="flex items-center justify-between rounded-2xl border border-dashed border-border bg-card/30 p-4">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-muted/30">
+                          <Trophy className="h-5 w-5 text-muted-foreground" />
+                        </div>
+                        <div>
+                          <span className="text-sm font-semibold text-muted-foreground">{s.name}</span>
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                            <EyeOff className="h-3 w-3" />
+                            <span>Oculta</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex gap-1">
+                        <button
+                          onClick={() => handleSeasonAction(s.id, "activate")}
+                          className="rounded-lg bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary"
+                        >
+                          Reativar
+                        </button>
+                        <button
+                          onClick={() => handleSeasonAction(s.id, "delete")}
+                          className="rounded-lg bg-destructive/10 p-1.5 text-destructive"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </>
+            )}
+          </>
         )}
       </div>
 
@@ -345,6 +466,25 @@ function GroupSeasonsPage() {
                     onChange={(e) => setTime(e.target.value)}
                     className="w-full rounded-2xl border border-border bg-background px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
                   />
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Quadras simultâneas</label>
+                  <div className="flex gap-2">
+                    {COURT_OPTIONS.map((n) => (
+                      <button
+                        key={n}
+                        onClick={() => setCourts(n)}
+                        className={`flex-1 rounded-xl py-2.5 text-sm font-semibold transition-colors ${
+                          courts === n
+                            ? "bg-primary text-primary-foreground"
+                            : "border border-border bg-background text-foreground"
+                        }`}
+                      >
+                        {n}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="mt-1 text-[10px] text-muted-foreground">Quantas quadras serão usadas ao mesmo tempo nas rodadas</p>
                 </div>
                 <div className="flex gap-3">
                   <button
