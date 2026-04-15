@@ -205,9 +205,12 @@ function SeasonDetailPage() {
                       )}
                     </div>
                   </div>
-                  <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-semibold ${statusClass(getSmartStatus(r))}`}>
-                    {statusLabel(getSmartStatus(r))}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-semibold ${statusClass(getSmartStatus(r))}`}>
+                      {statusLabel(getSmartStatus(r))}
+                    </span>
+                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                  </div>
                 </Link>
               ) : (
                 <div className="flex items-center justify-between p-4">
