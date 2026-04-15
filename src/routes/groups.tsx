@@ -1,4 +1,15 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { Outlet } from "@tanstack/react-router";
+
+export const Route = createFileRoute("/groups")({
+  component: GroupsLayout,
+});
+
+function GroupsLayout() {
+  return <Outlet />;
+}
+*** Add File: src/routes/groups.index.tsx
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { BottomNav } from "@/components/BottomNav";
 import { useAuth } from "@/hooks/use-auth";
 import { useMyGroups, usePublicGroups } from "@/hooks/use-groups";
@@ -6,11 +17,11 @@ import { CreateGroupDialog } from "@/components/CreateGroupDialog";
 import { Plus, Search, Users, Lock, Globe } from "lucide-react";
 import { useState } from "react";
 
-export const Route = createFileRoute("/groups")({
-  component: GroupsPage,
+export const Route = createFileRoute("/groups/")({
+  component: GroupsIndexPage,
 });
 
-function GroupsPage() {
+function GroupsIndexPage() {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const [tab, setTab] = useState<"my" | "explore">("my");
   const [search, setSearch] = useState("");
