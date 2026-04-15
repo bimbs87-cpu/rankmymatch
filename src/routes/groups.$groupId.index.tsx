@@ -257,6 +257,47 @@ function GroupDetailPage() {
         isAdmin={isAdmin}
       />
 
+      {/* Leave Group Dialog */}
+      {leaveDialogOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setLeaveDialogOpen(false)} />
+          <div className="relative w-[90%] max-w-sm rounded-3xl border border-border bg-card p-6 animate-in zoom-in-95 duration-200">
+            <div className="flex flex-col items-center gap-4 text-center">
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-destructive/10">
+                <AlertTriangle className="h-7 w-7 text-destructive" />
+              </div>
+              <h3 className="font-display text-base font-bold text-foreground">Sair do grupo?</h3>
+              {hasResults ? (
+                <p className="text-sm text-muted-foreground">
+                  Seus jogos cadastrados continuarão no ranking como <strong className="text-foreground">anônimo</strong>. 
+                  Você <strong className="text-foreground">não poderá voltar</strong> a este grupo, 
+                  a não ser que receba um convite direto do admin.
+                </p>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  Tem certeza que deseja sair deste grupo?
+                </p>
+              )}
+              <div className="flex w-full gap-3">
+                <button
+                  onClick={() => setLeaveDialogOpen(false)}
+                  className="flex-1 rounded-2xl border border-border py-3 text-sm font-semibold text-foreground"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleLeaveConfirm}
+                  disabled={leavingLoading}
+                  className="flex-1 rounded-2xl bg-destructive py-3 text-sm font-bold text-destructive-foreground disabled:opacity-50"
+                >
+                  {leavingLoading ? "Saindo..." : "Sair"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {isMember && (
         <div className="mx-5 mb-4 flex gap-1 rounded-full border border-border bg-card p-1">
           <button
