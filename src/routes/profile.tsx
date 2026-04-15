@@ -12,7 +12,7 @@ import {
   History,
   Shield,
   Camera,
-  Instagram,
+  AtSign,
 } from "lucide-react";
 
 export const Route = createFileRoute("/profile")({
