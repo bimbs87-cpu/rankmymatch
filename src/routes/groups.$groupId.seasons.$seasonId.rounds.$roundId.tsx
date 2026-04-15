@@ -203,10 +203,10 @@ function RoundDetailPage() {
         <div className="mx-5 mb-5">
           <button
             onClick={() => setShowManualMatch(true)}
-            className="flex w-full items-center justify-center gap-2 rounded-2xl border border-border bg-card py-3 text-sm font-medium text-foreground"
+            className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-primary bg-primary/5 py-3.5 text-sm font-bold text-primary"
           >
-            <PlusCircle className="h-4 w-4 text-primary" />
-            Criar Partidas Manualmente
+            <Swords className="h-4 w-4" />
+            Lançar Rei da Quadra
           </button>
         </div>
       )}
