@@ -121,6 +121,30 @@ function GroupDetailPage() {
     refresh();
   };
 
+  const handleLeaveClick = async () => {
+    if (!user) return;
+    const results = await checkUserHasResults(groupId, user.id);
+    setHasResults(results);
+    setLeaveDialogOpen(true);
+  };
+
+  const handleLeaveConfirm = async () => {
+    if (!user) return;
+    const myMembership = members.find((m) => m.user_id === user.id);
+    if (!myMembership) return;
+    setLeavingLoading(true);
+    try {
+      await leaveGroup(myMembership.id);
+      toast.success("Você saiu do grupo");
+      navigate({ to: "/groups" });
+    } catch (e: any) {
+      toast.error("Erro ao sair do grupo");
+    } finally {
+      setLeavingLoading(false);
+      setLeaveDialogOpen(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background pb-28">
       {group.image_url && (
