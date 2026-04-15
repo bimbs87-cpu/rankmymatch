@@ -2,6 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useAuth } from "@/hooks/use-auth";
 import { useGroupDetail } from "@/hooks/use-groups";
 import { useRoundDetail, confirmPresence, cancelPresence, drawTeams, deleteMatch, deleteRound } from "@/hooks/use-seasons";
+import { supabase } from "@/integrations/supabase/client";
 import { ScoreEntryDialog } from "@/components/ScoreEntryDialog";
 import { ManualMatchDialog } from "@/components/ManualMatchDialog";
 import {
@@ -19,6 +20,7 @@ import {
   Edit3,
   PlusCircle,
   Trash2,
+  Ban,
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -55,15 +57,27 @@ function RoundDetailPage() {
     }
   };
 
+  const handleCancelRound = async () => {
+    if (!confirm("Cancelar esta rodada? Ela ficará marcada como não realizada.")) return;
+    try {
+      const { error } = await supabase.from("rounds").update({ status: "cancelled" }).eq("id", roundId);
+      if (error) throw error;
+      toast.success("Rodada cancelada");
+      refresh();
+    } catch (e: any) {
+      toast.error(e.message || "Erro ao cancelar rodada");
+    }
+  };
+
   const handleDeleteRound = async () => {
-    if (!confirm("Tem certeza que deseja apagar esta rodada? Todas as partidas e dados serão perdidos.")) return;
+    if (!confirm("Tem certeza que deseja EXCLUIR esta rodada? Todas as partidas e dados serão perdidos permanentemente.")) return;
     setDeletingRound(true);
     try {
       await deleteRound(roundId);
-      toast.success("Rodada apagada!");
+      toast.success("Rodada excluída!");
       navigate({ to: "/groups/$groupId/seasons/$seasonId", params: { groupId, seasonId } });
     } catch (e: any) {
-      toast.error(e.message || "Erro ao apagar rodada");
+      toast.error(e.message || "Erro ao excluir rodada");
     } finally {
       setDeletingRound(false);
     }
@@ -149,7 +163,9 @@ function RoundDetailPage() {
             </h1>
             <span
               className={`inline-block rounded-full px-2.5 py-0.5 text-[10px] font-semibold ${
-                round.status === "scheduled" && round.scheduled_date && round.scheduled_date <= new Date().toISOString().split("T")[0]
+                round.status === "cancelled"
+                  ? "bg-destructive/10 text-destructive"
+                  : round.status === "scheduled" && round.scheduled_date && round.scheduled_date <= new Date().toISOString().split("T")[0]
                   ? "bg-warning/10 text-warning"
                   : round.status === "scheduled"
                   ? "bg-info/10 text-info"
@@ -158,20 +174,33 @@ function RoundDetailPage() {
                   : "bg-success/10 text-success"
               }`}
             >
-              {round.status === "scheduled" && round.scheduled_date && round.scheduled_date <= new Date().toISOString().split("T")[0]
+              {round.status === "cancelled"
+                ? "Cancelada"
+                : round.status === "scheduled" && round.scheduled_date && round.scheduled_date <= new Date().toISOString().split("T")[0]
                 ? "Lançar resultado"
                 : round.status === "scheduled" ? "Agendada" : round.status === "in_progress" ? "Em jogo" : "Encerrada"}
             </span>
           </div>
           {isAdmin && (
-            <button
-              onClick={handleDeleteRound}
-              disabled={deletingRound}
-              className="flex h-9 w-9 items-center justify-center rounded-full border border-destructive/30 bg-destructive/10 text-destructive hover:bg-destructive/20 disabled:opacity-50"
-              title="Apagar rodada"
-            >
-              <Trash2 className="h-4 w-4" />
-            </button>
+            <div className="flex items-center gap-1.5">
+              {round.status !== "cancelled" && (
+                <button
+                  onClick={handleCancelRound}
+                  className="flex h-9 w-9 items-center justify-center rounded-full border border-warning/30 bg-warning/10 text-warning hover:bg-warning/20"
+                  title="Cancelar rodada"
+                >
+                  <Ban className="h-4 w-4" />
+                </button>
+              )}
+              <button
+                onClick={handleDeleteRound}
+                disabled={deletingRound}
+                className="flex h-9 w-9 items-center justify-center rounded-full border border-destructive/30 bg-destructive/10 text-destructive hover:bg-destructive/20 disabled:opacity-50"
+                title="Excluir rodada"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
+            </div>
           )}
         </div>
       </header>
