@@ -81,7 +81,7 @@ export async function notifyGroupMembers(params: {
   type: string;
   title: string;
   body: string;
-  data?: Record<string, unknown>;
+  data?: Record<string, string | number | boolean | null>;
 }) {
   // Get all active members except the actor
   const { data: members } = await supabase
