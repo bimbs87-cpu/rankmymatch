@@ -57,6 +57,7 @@ function GroupSeasonsPage() {
   const { seasons, isLoading, refresh } = useGroupSeasons(groupId);
   const [showCreate, setShowCreate] = useState(false);
   const [step, setStep] = useState<"type" | "config" | "dates">("type");
+  const [stepDir, setStepDir] = useState<"forward" | "back">("forward");
   const [name, setName] = useState("");
   const [durationType, setDurationType] = useState<"weekly" | "monthly" | "">("");
   const [totalRounds, setTotalRounds] = useState(10);
@@ -67,8 +68,14 @@ function GroupSeasonsPage() {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
+  const goStep = (next: "type" | "config" | "dates", dir: "forward" | "back") => {
+    setStepDir(dir);
+    setStep(next);
+  };
+
   const resetForm = () => {
     setStep("type");
+    setStepDir("forward");
     setName("");
     setDurationType("");
     setTotalRounds(10);
