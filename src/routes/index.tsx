@@ -264,9 +264,7 @@ function DashboardPage() {
   }
 
   if (!isAuthenticated) {
-    const storedTheme = (typeof window !== "undefined" ? localStorage.getItem("rmm-theme") : "dark") as Theme || "dark";
-    const resolved = getResolvedTheme(storedTheme);
-    const horizontalLogo = resolved === "light" ? logoHorizontalLight : logoHorizontalDark;
+    const horizontalLogo = resolvedTheme === "light" ? logoHorizontalLight : logoHorizontalDark;
 
     return (
       <div className="flex min-h-screen flex-col items-center justify-center bg-background px-6">
