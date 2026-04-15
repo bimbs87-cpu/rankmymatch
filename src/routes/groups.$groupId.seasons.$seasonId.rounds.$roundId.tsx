@@ -79,7 +79,7 @@ function RoundDetailPage() {
   const handleDraw = async () => {
     try {
       const ids = confirmedPlayers.map((p) => p.user_id);
-      await drawTeams(roundId, ids);
+      await drawTeams(roundId, ids, user?.id);
       toast.success("Times sorteados!");
       refresh();
     } catch (e: any) {
