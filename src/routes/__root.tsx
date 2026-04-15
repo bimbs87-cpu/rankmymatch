@@ -1,6 +1,7 @@
 import { Outlet, Link, createRootRoute, HeadContent, Scripts } from "@tanstack/react-router";
 import { AuthProvider } from "@/hooks/use-auth";
 import appCss from "../styles.css?url";
+import { useEffect } from "react";
 
 function NotFoundComponent() {
   return (
@@ -70,6 +71,22 @@ function RootShell({ children }: { children: React.ReactNode }) {
 }
 
 function RootComponent() {
+  useEffect(() => {
+    // Register service worker for PWA install support (production only)
+    const isInIframe = (() => {
+      try { return window.self !== window.top; } catch { return true; }
+    })();
+    const isPreview = window.location.hostname.includes("id-preview--");
+
+    if (!isInIframe && !isPreview && "serviceWorker" in navigator) {
+      navigator.serviceWorker.register("/sw.js").catch(() => {});
+    } else if (isInIframe || isPreview) {
+      navigator.serviceWorker?.getRegistrations().then((regs) =>
+        regs.forEach((r) => r.unregister())
+      );
+    }
+  }, []);
+
   return (
     <AuthProvider>
       <div className="mx-auto max-w-lg min-h-screen">
