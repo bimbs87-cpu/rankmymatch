@@ -18,6 +18,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as HistoryRouteImport } from './routes/history'
 import { Route as GroupsRouteImport } from './routes/groups'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as GroupsIndexRouteImport } from './routes/groups.index'
 import { Route as InviteCodeRouteImport } from './routes/invite.$code'
 import { Route as GroupsGroupIdRouteImport } from './routes/groups.$groupId'
 import { Route as GroupsGroupIdSeasonsRouteImport } from './routes/groups.$groupId.seasons'
@@ -70,6 +71,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const GroupsIndexRoute = GroupsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => GroupsRoute,
+} as any)
 const InviteCodeRoute = InviteCodeRouteImport.update({
   id: '/invite/$code',
   path: '/invite/$code',
@@ -115,6 +121,7 @@ export interface FileRoutesByFullPath {
   '/seasons': typeof SeasonsRoute
   '/groups/$groupId': typeof GroupsGroupIdRouteWithChildren
   '/invite/$code': typeof InviteCodeRoute
+  '/groups/': typeof GroupsIndexRoute
   '/groups/$groupId/feed': typeof GroupsGroupIdFeedRoute
   '/groups/$groupId/seasons': typeof GroupsGroupIdSeasonsRouteWithChildren
   '/groups/$groupId/seasons/$seasonId': typeof GroupsGroupIdSeasonsSeasonIdRouteWithChildren
@@ -122,7 +129,6 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/groups': typeof GroupsRouteWithChildren
   '/history': typeof HistoryRoute
   '/login': typeof LoginRoute
   '/notifications': typeof NotificationsRoute
@@ -132,6 +138,7 @@ export interface FileRoutesByTo {
   '/seasons': typeof SeasonsRoute
   '/groups/$groupId': typeof GroupsGroupIdRouteWithChildren
   '/invite/$code': typeof InviteCodeRoute
+  '/groups': typeof GroupsIndexRoute
   '/groups/$groupId/feed': typeof GroupsGroupIdFeedRoute
   '/groups/$groupId/seasons': typeof GroupsGroupIdSeasonsRouteWithChildren
   '/groups/$groupId/seasons/$seasonId': typeof GroupsGroupIdSeasonsSeasonIdRouteWithChildren
@@ -150,6 +157,7 @@ export interface FileRoutesById {
   '/seasons': typeof SeasonsRoute
   '/groups/$groupId': typeof GroupsGroupIdRouteWithChildren
   '/invite/$code': typeof InviteCodeRoute
+  '/groups/': typeof GroupsIndexRoute
   '/groups/$groupId/feed': typeof GroupsGroupIdFeedRoute
   '/groups/$groupId/seasons': typeof GroupsGroupIdSeasonsRouteWithChildren
   '/groups/$groupId/seasons/$seasonId': typeof GroupsGroupIdSeasonsSeasonIdRouteWithChildren
@@ -169,6 +177,7 @@ export interface FileRouteTypes {
     | '/seasons'
     | '/groups/$groupId'
     | '/invite/$code'
+    | '/groups/'
     | '/groups/$groupId/feed'
     | '/groups/$groupId/seasons'
     | '/groups/$groupId/seasons/$seasonId'
@@ -176,7 +185,6 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/groups'
     | '/history'
     | '/login'
     | '/notifications'
@@ -186,6 +194,7 @@ export interface FileRouteTypes {
     | '/seasons'
     | '/groups/$groupId'
     | '/invite/$code'
+    | '/groups'
     | '/groups/$groupId/feed'
     | '/groups/$groupId/seasons'
     | '/groups/$groupId/seasons/$seasonId'
@@ -203,6 +212,7 @@ export interface FileRouteTypes {
     | '/seasons'
     | '/groups/$groupId'
     | '/invite/$code'
+    | '/groups/'
     | '/groups/$groupId/feed'
     | '/groups/$groupId/seasons'
     | '/groups/$groupId/seasons/$seasonId'
@@ -286,6 +296,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/groups/': {
+      id: '/groups/'
+      path: '/'
+      fullPath: '/groups/'
+      preLoaderRoute: typeof GroupsIndexRouteImport
+      parentRoute: typeof GroupsRoute
     }
     '/invite/$code': {
       id: '/invite/$code'
@@ -375,10 +392,12 @@ const GroupsGroupIdRouteWithChildren = GroupsGroupIdRoute._addFileChildren(
 
 interface GroupsRouteChildren {
   GroupsGroupIdRoute: typeof GroupsGroupIdRouteWithChildren
+  GroupsIndexRoute: typeof GroupsIndexRoute
 }
 
 const GroupsRouteChildren: GroupsRouteChildren = {
   GroupsGroupIdRoute: GroupsGroupIdRouteWithChildren,
+  GroupsIndexRoute: GroupsIndexRoute,
 }
 
 const GroupsRouteWithChildren =
