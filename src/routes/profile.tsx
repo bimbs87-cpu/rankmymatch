@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useAuth } from "@/hooks/use-auth";
 import { BottomNav } from "@/components/BottomNav";
 import { supabase } from "@/integrations/supabase/client";
+import { EloChart } from "@/components/EloChart";
 import { useEffect, useState } from "react";
 import {
   LogOut,
@@ -118,6 +119,9 @@ function ProfilePage() {
       </header>
 
       <div className="space-y-4 px-5 pt-5">
+        {/* Elo Evolution Chart */}
+        {user && <EloChart userId={user.id} />}
+
         {/* Stats */}
         <div className="grid grid-cols-3 gap-2">
           {[

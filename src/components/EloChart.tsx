@@ -1,0 +1,208 @@
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import {
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip,
+  CartesianGrid,
+  ReferenceLine,
+} from "recharts";
+import { TrendingUp, TrendingDown, Minus } from "lucide-react";
+
+interface RatingPoint {
+  date: string;
+  rating: number;
+  change: number;
+  label: string;
+}
+
+export function EloChart({ userId }: { userId: string }) {
+  const [data, setData] = useState<RatingPoint[]>([]);
+  const [seasons, setSeasons] = useState<{ id: string; name: string }[]>([]);
+  const [selectedSeason, setSelectedSeason] = useState<string>("all");
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    async function load() {
+      // Get seasons the user participated in
+      const { data: events } = await supabase
+        .from("rating_events")
+        .select("season_id")
+        .eq("user_id", userId);
+
+      const seasonIds = [...new Set((events || []).map((e) => e.season_id).filter(Boolean))] as string[];
+
+      if (seasonIds.length) {
+        const { data: s } = await supabase
+          .from("seasons")
+          .select("id, name")
+          .in("id", seasonIds);
+        setSeasons(s || []);
+      }
+    }
+    load();
+  }, [userId]);
+
+  useEffect(() => {
+    async function loadRatings() {
+      setIsLoading(true);
+      let query = supabase
+        .from("rating_events")
+        .select("rating_after, rating_change, created_at, season_id")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: true });
+
+      if (selectedSeason !== "all") {
+        query = query.eq("season_id", selectedSeason);
+      }
+
+      const { data: events } = await query;
+
+      if (events?.length) {
+        const points: RatingPoint[] = [
+          {
+            date: "",
+            rating: events[0].rating_after - events[0].rating_change,
+            change: 0,
+            label: "Início",
+          },
+          ...events.map((e, i) => ({
+            date: new Date(e.created_at).toLocaleDateString("pt-BR", {
+              day: "2-digit",
+              month: "2-digit",
+            }),
+            rating: Number(e.rating_after),
+            change: Number(e.rating_change),
+            label: `Partida ${i + 1}`,
+          })),
+        ];
+        setData(points);
+      } else {
+        setData([]);
+      }
+      setIsLoading(false);
+    }
+    loadRatings();
+  }, [userId, selectedSeason]);
+
+  const currentRating = data.length > 0 ? data[data.length - 1].rating : 1000;
+  const totalChange = data.length > 1 ? currentRating - data[0].rating : 0;
+  const minRating = data.length > 0 ? Math.min(...data.map((d) => d.rating)) - 20 : 980;
+  const maxRating = data.length > 0 ? Math.max(...data.map((d) => d.rating)) + 20 : 1020;
+
+  return (
+    <div className="rounded-3xl border border-border bg-card p-4">
+      <div className="mb-3 flex items-center justify-between">
+        <div>
+          <h3 className="text-sm font-semibold text-foreground">Evolução Elo</h3>
+          <div className="mt-0.5 flex items-center gap-2">
+            <span className="font-display text-2xl font-bold text-foreground">
+              {Math.round(currentRating)}
+            </span>
+            {totalChange !== 0 && (
+              <span
+                className={`flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[11px] font-semibold ${
+                  totalChange > 0
+                    ? "bg-success/10 text-success"
+                    : "bg-destructive/10 text-destructive"
+                }`}
+              >
+                {totalChange > 0 ? (
+                  <TrendingUp className="h-3 w-3" />
+                ) : (
+                  <TrendingDown className="h-3 w-3" />
+                )}
+                {totalChange > 0 ? "+" : ""}
+                {Math.round(totalChange)}
+              </span>
+            )}
+            {totalChange === 0 && data.length > 0 && (
+              <span className="flex items-center gap-0.5 rounded-full bg-muted px-1.5 py-0.5 text-[11px] font-semibold text-muted-foreground">
+                <Minus className="h-3 w-3" />0
+              </span>
+            )}
+          </div>
+        </div>
+
+        {seasons.length > 0 && (
+          <select
+            value={selectedSeason}
+            onChange={(e) => setSelectedSeason(e.target.value)}
+            className="rounded-xl border border-border bg-background px-2.5 py-1.5 text-xs text-foreground"
+          >
+            <option value="all">Todas</option>
+            {seasons.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.name}
+              </option>
+            ))}
+          </select>
+        )}
+      </div>
+
+      {isLoading ? (
+        <div className="flex h-48 items-center justify-center">
+          <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+        </div>
+      ) : data.length < 2 ? (
+        <div className="flex h-48 flex-col items-center justify-center text-center">
+          <p className="text-sm text-muted-foreground">
+            Jogue pelo menos uma partida para ver seu gráfico
+          </p>
+        </div>
+      ) : (
+        <div className="h-48">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={data} margin={{ top: 5, right: 5, bottom: 5, left: -20 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.4} />
+              <XAxis
+                dataKey="label"
+                tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
+                tickLine={false}
+                axisLine={false}
+              />
+              <YAxis
+                domain={[minRating, maxRating]}
+                tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
+                tickLine={false}
+                axisLine={false}
+              />
+              <ReferenceLine
+                y={1000}
+                stroke="hsl(var(--muted-foreground))"
+                strokeDasharray="4 4"
+                opacity={0.3}
+              />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: "hsl(var(--card))",
+                  border: "1px solid hsl(var(--border))",
+                  borderRadius: "12px",
+                  fontSize: "12px",
+                  color: "hsl(var(--foreground))",
+                }}
+                formatter={(value: any, _name: any, props: any) => {
+                  const change = props.payload.change;
+                  const changeStr = change > 0 ? `+${change}` : `${change}`;
+                  return [`${Math.round(Number(value))} (${changeStr})`, "Rating"];
+                }}
+                labelFormatter={(label: any) => String(label)}
+              />
+              <Line
+                type="monotone"
+                dataKey="rating"
+                stroke="hsl(var(--primary))"
+                strokeWidth={2.5}
+                dot={{ r: 3, fill: "hsl(var(--primary))", strokeWidth: 0 }}
+                activeDot={{ r: 5, fill: "hsl(var(--primary))", strokeWidth: 2, stroke: "hsl(var(--card))" }}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+    </div>
+  );
+}
