@@ -79,9 +79,18 @@ function SeasonDetailPage() {
     setSaving(false);
   };
 
+  const today = new Date().toISOString().split("T")[0];
+
+  const getSmartStatus = (round: typeof rounds[0]) => {
+    if (round.status !== "scheduled") return round.status;
+    if (round.scheduled_date && round.scheduled_date <= today) return "pending_result";
+    return "scheduled";
+  };
+
   const statusLabel = (status: string) => {
     switch (status) {
       case "scheduled": return "Agendada";
+      case "pending_result": return "Lançar resultado";
       case "in_progress": return "Em jogo";
       case "completed": return "Encerrada";
       case "cancelled": return "Cancelada";
@@ -92,6 +101,7 @@ function SeasonDetailPage() {
   const statusClass = (status: string) => {
     switch (status) {
       case "scheduled": return "bg-info/10 text-info";
+      case "pending_result": return "bg-warning/10 text-warning";
       case "in_progress": return "bg-warning/10 text-warning";
       case "completed": return "bg-success/10 text-success";
       case "cancelled": return "bg-destructive/10 text-destructive";
