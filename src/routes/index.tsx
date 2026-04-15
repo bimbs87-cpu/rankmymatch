@@ -1,5 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import logoSymbolNeon from "@/assets/logo-symbol-neon.png";
+import logoHorizontalDark from "@/assets/logo-horizontal-dark.png";
+import logoHorizontalLight from "@/assets/logo-horizontal-light.png";
+import { getResolvedTheme, type Theme } from "@/lib/theme";
 import { useAuth } from "@/hooks/use-auth";
 import { useMyGroups } from "@/hooks/use-groups";
 import { useNotifications } from "@/hooks/use-notifications";
@@ -259,13 +262,14 @@ function DashboardPage() {
   }
 
   if (!isAuthenticated) {
+    const storedTheme = (typeof window !== "undefined" ? localStorage.getItem("rmm-theme") : "dark") as Theme || "dark";
+    const resolved = getResolvedTheme(storedTheme);
+    const horizontalLogo = resolved === "light" ? logoHorizontalLight : logoHorizontalDark;
+
     return (
       <div className="flex min-h-screen flex-col items-center justify-center bg-background px-6">
-        <img src={logoSymbolNeon} alt="RankMyMatch" className="mb-4 h-20 w-20" />
-        <h1 className="font-display text-3xl font-bold tracking-tight text-foreground">
-          RankMyMatch
-        </h1>
-        <p className="mt-3 mb-8 text-center text-sm text-muted-foreground">
+        <img src={horizontalLogo} alt="RankMyMatch" className="mb-6 h-14 w-auto" />
+        <p className="mt-1 mb-8 text-center text-sm text-muted-foreground">
           O app definitivo para feirinos com rankings,
           temporadas de padel entre amigos e clubes.
         </p>

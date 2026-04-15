@@ -18,7 +18,11 @@ import {
   ArrowLeft,
   Save,
   X,
+  Sun,
+  Moon,
+  Monitor,
 } from "lucide-react";
+import { useTheme } from "@/lib/theme";
 
 export const Route = createFileRoute("/profile")({
   component: ProfilePage,
