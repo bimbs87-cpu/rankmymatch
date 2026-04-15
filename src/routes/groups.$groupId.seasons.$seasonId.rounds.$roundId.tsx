@@ -55,6 +55,20 @@ function RoundDetailPage() {
     }
   };
 
+  const handleDeleteRound = async () => {
+    if (!confirm("Tem certeza que deseja apagar esta rodada? Todas as partidas e dados serão perdidos.")) return;
+    setDeletingRound(true);
+    try {
+      await deleteRound(roundId);
+      toast.success("Rodada apagada!");
+      navigate({ to: "/groups/$groupId/seasons/$seasonId", params: { groupId, seasonId } });
+    } catch (e: any) {
+      toast.error(e.message || "Erro ao apagar rodada");
+    } finally {
+      setDeletingRound(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
