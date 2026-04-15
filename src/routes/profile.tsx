@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { EloChart } from "@/components/EloChart";
 import { AvatarPickerDialog } from "@/components/AvatarPickerDialog";
 import { useEffect, useState } from "react";
+import { usePwaInstall } from "@/hooks/use-pwa-install";
 import { toast } from "sonner";
 import {
   LogOut,
@@ -21,6 +22,8 @@ import {
   Sun,
   Moon,
   Monitor,
+  Download,
+  Share,
 } from "lucide-react";
 import { useTheme } from "@/lib/theme";
 
@@ -72,6 +75,7 @@ function ProfilePage() {
   const [avatarPickerOpen, setAvatarPickerOpen] = useState(false);
   const [savingAvatar, setSavingAvatar] = useState(false);
   const { theme, cycleTheme, resolved } = useTheme();
+  const { canInstall, isInstalled, isIos, install } = usePwaInstall();
 
   // Edit form state
   const [editName, setEditName] = useState("");
@@ -465,6 +469,24 @@ function ProfilePage() {
             <span className="flex-1 text-sm font-medium text-foreground">Privacidade</span>
             <ChevronRight className="h-4 w-4 text-muted-foreground/50" />
           </button>
+          {!isInstalled && (canInstall || isIos) && (
+            <button
+              onClick={canInstall ? install : undefined}
+              className="flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left transition-colors hover:bg-accent"
+            >
+              <Download className="h-4 w-4 text-primary" />
+              <span className="flex-1 text-sm font-medium text-foreground">
+                {isIos ? "Instalar App" : "Instalar App"}
+              </span>
+              {isIos ? (
+                <span className="text-[10px] text-muted-foreground mr-1">
+                  Use <Share className="inline h-3 w-3" /> Compartilhar
+                </span>
+              ) : (
+                <ChevronRight className="h-4 w-4 text-muted-foreground/50" />
+              )}
+            </button>
+          )}
         </div>
 
         {/* Logout */}
