@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useAuth } from "@/hooks/use-auth";
 import { BottomNav } from "@/components/BottomNav";
 import { supabase } from "@/integrations/supabase/client";
@@ -143,21 +143,29 @@ function ProfilePage() {
 
         {/* Menu */}
         <div className="space-y-0.5 rounded-3xl border border-border bg-card p-1.5">
-          {[
-            { icon: Settings, label: "Editar Perfil" },
-            { icon: Award, label: "Conquistas" },
-            { icon: History, label: "Histórico" },
-            { icon: Shield, label: "Privacidade" },
-          ].map((item) => (
-            <button
-              key={item.label}
-              className="flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left transition-colors hover:bg-accent"
-            >
-              <item.icon className="h-4 w-4 text-muted-foreground" />
-              <span className="flex-1 text-sm font-medium text-foreground">{item.label}</span>
-              <ChevronRight className="h-4 w-4 text-muted-foreground/50" />
-            </button>
-          ))}
+          <button className="flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left transition-colors hover:bg-accent">
+            <Settings className="h-4 w-4 text-muted-foreground" />
+            <span className="flex-1 text-sm font-medium text-foreground">Editar Perfil</span>
+            <ChevronRight className="h-4 w-4 text-muted-foreground/50" />
+          </button>
+          <button className="flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left transition-colors hover:bg-accent">
+            <Award className="h-4 w-4 text-muted-foreground" />
+            <span className="flex-1 text-sm font-medium text-foreground">Conquistas</span>
+            <ChevronRight className="h-4 w-4 text-muted-foreground/50" />
+          </button>
+          <Link
+            to="/history"
+            className="flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left transition-colors hover:bg-accent"
+          >
+            <History className="h-4 w-4 text-muted-foreground" />
+            <span className="flex-1 text-sm font-medium text-foreground">Histórico</span>
+            <ChevronRight className="h-4 w-4 text-muted-foreground/50" />
+          </Link>
+          <button className="flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left transition-colors hover:bg-accent">
+            <Shield className="h-4 w-4 text-muted-foreground" />
+            <span className="flex-1 text-sm font-medium text-foreground">Privacidade</span>
+            <ChevronRight className="h-4 w-4 text-muted-foreground/50" />
+          </button>
         </div>
 
         {/* Logout */}
