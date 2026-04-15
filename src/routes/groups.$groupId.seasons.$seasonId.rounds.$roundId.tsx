@@ -37,6 +37,21 @@ function RoundDetailPage() {
     useRoundDetail(roundId);
   const [scoringMatch, setScoringMatch] = useState<any>(null);
   const [showManualMatch, setShowManualMatch] = useState(false);
+  const [deletingMatchId, setDeletingMatchId] = useState<string | null>(null);
+
+  const handleDeleteMatch = async (matchId: string) => {
+    if (!confirm("Tem certeza que deseja apagar esta partida? Os dados de placar serão perdidos.")) return;
+    setDeletingMatchId(matchId);
+    try {
+      await deleteMatch(matchId);
+      toast.success("Partida apagada!");
+      refresh();
+    } catch (e: any) {
+      toast.error(e.message || "Erro ao apagar partida");
+    } finally {
+      setDeletingMatchId(null);
+    }
+  };
 
   if (isLoading) {
     return (
