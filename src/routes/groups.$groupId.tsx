@@ -25,6 +25,7 @@ import {
   Share2,
   Trophy,
   ChevronRight,
+  MessageSquare,
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -148,7 +149,7 @@ function GroupDetailPage() {
 
       {/* Quick actions */}
       {isMember && (
-        <div className="mx-5 mb-4">
+        <div className="mx-5 mb-4 space-y-2">
           <Link
             to="/groups/$groupId/seasons"
             params={{ groupId }}
@@ -161,6 +162,22 @@ function GroupDetailPage() {
               <div>
                 <span className="text-sm font-semibold text-foreground">Temporadas</span>
                 <p className="text-xs text-muted-foreground">Rankings, rodadas e partidas</p>
+              </div>
+            </div>
+            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+          </Link>
+          <Link
+            to="/groups/$groupId/feed"
+            params={{ groupId }}
+            className="flex items-center justify-between rounded-2xl border border-border bg-card/50 p-4 transition-colors active:bg-accent/30"
+          >
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-info/10">
+                <MessageSquare className="h-5 w-5 text-info" />
+              </div>
+              <div>
+                <span className="text-sm font-semibold text-foreground">Feed</span>
+                <p className="text-xs text-muted-foreground">Comentários e reações do grupo</p>
               </div>
             </div>
             <ChevronRight className="h-4 w-4 text-muted-foreground" />
