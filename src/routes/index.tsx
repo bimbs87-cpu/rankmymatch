@@ -1,7 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useAuth } from "@/hooks/use-auth";
 import { useMyGroups } from "@/hooks/use-groups";
+import { useNotifications } from "@/hooks/use-notifications";
 import { BottomNav } from "@/components/BottomNav";
+import { supabase } from "@/integrations/supabase/client";
+import { useState, useEffect } from "react";
 import {
   Trophy,
   Users,
@@ -10,18 +13,206 @@ import {
   Bell,
   BarChart3,
   Plus,
-  Zap,
   Globe,
   Lock,
+  Clock,
+  MapPin,
+  Swords,
+  TrendingUp,
+  TrendingDown,
+  Minus,
 } from "lucide-react";
 
 export const Route = createFileRoute("/")({
   component: DashboardPage,
 });
 
+interface UpcomingRound {
+  id: string;
+  round_number: number | null;
+  scheduled_date: string | null;
+  scheduled_time: string | null;
+  location: string | null;
+  status: string;
+  season_id: string | null;
+  group_id: string;
+  group_name: string;
+  confirmed_count: number;
+  max_players: number;
+  my_status: string | null;
+}
+
+interface RecentMatch {
+  id: string;
+  match_number: number | null;
+  winner_team: string | null;
+  my_team: string;
+  round_number: number | null;
+  group_name: string;
+  score_display: string;
+  rating_change: number | null;
+  created_at: string;
+}
+
+interface MyRanking {
+  rating: number;
+  position: number | null;
+  matches_played: number;
+  matches_won: number;
+  season_name: string;
+  last_change: number | null;
+}
+
 function DashboardPage() {
   const { user, isAuthenticated, isLoading } = useAuth();
   const { groups: myGroups, isLoading: groupsLoading } = useMyGroups();
+  const { unreadCount } = useNotifications();
+  const [upcomingRounds, setUpcomingRounds] = useState<UpcomingRound[]>([]);
+  const [recentMatches, setRecentMatches] = useState<RecentMatch[]>([]);
+  const [myRanking, setMyRanking] = useState<MyRanking | null>(null);
+  const [dataLoading, setDataLoading] = useState(true);
+
+  useEffect(() => {
+    if (!user || !myGroups.length) {
+      setDataLoading(false);
+      return;
+    }
+
+    const loadDashboard = async () => {
+      setDataLoading(true);
+      const groupIds = myGroups.map((g) => g.id);
+
+      // 1. Upcoming rounds
+      const { data: rounds } = await supabase
+        .from("rounds")
+        .select("*, groups(name)")
+        .in("group_id", groupIds)
+        .in("status", ["scheduled", "in_progress"])
+        .order("scheduled_date", { ascending: true })
+        .limit(5);
+
+      if (rounds?.length) {
+        const roundIds = rounds.map((r) => r.id);
+        const { data: presences } = await supabase
+          .from("round_presence")
+          .select("round_id, status, user_id")
+          .in("round_id", roundIds);
+
+        setUpcomingRounds(
+          rounds.map((r: any) => {
+            const roundPresences = (presences || []).filter((p) => p.round_id === r.id);
+            return {
+              id: r.id,
+              round_number: r.round_number,
+              scheduled_date: r.scheduled_date,
+              scheduled_time: r.scheduled_time,
+              location: r.location,
+              status: r.status,
+              season_id: r.season_id,
+              group_id: r.group_id,
+              group_name: r.groups?.name || "Grupo",
+              confirmed_count: roundPresences.filter((p) => p.status === "confirmed").length,
+              max_players: r.max_players,
+              my_status: roundPresences.find((p) => p.user_id === user.id)?.status || null,
+            };
+          })
+        );
+      } else {
+        setUpcomingRounds([]);
+      }
+
+      // 2. Recent matches (via rating_events)
+      const { data: events } = await supabase
+        .from("rating_events")
+        .select("*, matches(match_number, winner_team, round_id, status)")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(5);
+
+      if (events?.length) {
+        const matchIds = events.map((e: any) => e.match_id);
+        const roundIds = events.map((e: any) => (e.matches as any)?.round_id).filter(Boolean);
+
+        const [playersRes, roundsRes] = await Promise.all([
+          supabase.from("match_players").select("match_id, team, user_id").in("match_id", matchIds),
+          roundIds.length
+            ? supabase.from("rounds").select("id, round_number, group_id, groups(name)").in("id", [...new Set(roundIds)])
+            : Promise.resolve({ data: [] }),
+        ]);
+
+        const setsRes = await supabase.from("match_sets").select("match_id, score_team_a, score_team_b, set_number").in("match_id", matchIds).order("set_number");
+
+        const roundMap = new Map((roundsRes.data || []).map((r: any) => [r.id, r]));
+
+        setRecentMatches(
+          events.map((e: any) => {
+            const match = e.matches as any;
+            const myPlayer = (playersRes.data || []).find((p) => p.match_id === e.match_id && p.user_id === user.id);
+            const round = roundMap.get(match?.round_id);
+            const sets = (setsRes.data || []).filter((s) => s.match_id === e.match_id);
+            const scoreDisplay = sets.length
+              ? sets.map((s) => `${s.score_team_a}-${s.score_team_b}`).join(" / ")
+              : "—";
+            return {
+              id: e.match_id,
+              match_number: match?.match_number,
+              winner_team: match?.winner_team,
+              my_team: myPlayer?.team || "?",
+              round_number: round?.round_number,
+              group_name: (round?.groups as any)?.name || "",
+              score_display: scoreDisplay,
+              rating_change: Number(e.rating_change),
+              created_at: e.created_at,
+            };
+          })
+        );
+      } else {
+        setRecentMatches([]);
+      }
+
+      // 3. My ranking (best active season)
+      const { data: seasonsList } = await supabase
+        .from("seasons")
+        .select("id, name")
+        .in("group_id", groupIds)
+        .eq("status", "active")
+        .limit(1);
+
+      if (seasonsList?.length) {
+        const season = seasonsList[0];
+        const { data: snap } = await supabase
+          .from("ranking_snapshots")
+          .select("*")
+          .eq("season_id", season.id)
+          .eq("user_id", user.id)
+          .single();
+
+        if (snap) {
+          const { data: lastEvent } = await supabase
+            .from("rating_events")
+            .select("rating_change")
+            .eq("user_id", user.id)
+            .eq("season_id", season.id)
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+          setMyRanking({
+            rating: Number(snap.rating),
+            position: snap.position,
+            matches_played: snap.matches_played,
+            matches_won: snap.matches_won,
+            season_name: season.name,
+            last_change: lastEvent ? Number(lastEvent.rating_change) : null,
+          });
+        }
+      }
+
+      setDataLoading(false);
+    };
+
+    loadDashboard();
+  }, [user, myGroups]);
 
   if (isLoading) {
     return (
@@ -56,6 +247,19 @@ function DashboardPage() {
   const displayName = user?.user_metadata?.full_name || user?.user_metadata?.name || "Jogador";
   const avatarUrl = user?.user_metadata?.avatar_url || user?.user_metadata?.picture;
 
+  const formatDate = (d: string | null) => {
+    if (!d) return "";
+    return new Date(d + "T00:00:00").toLocaleDateString("pt-BR", {
+      weekday: "short",
+      day: "2-digit",
+      month: "short",
+    });
+  };
+
+  const winRate = myRanking && myRanking.matches_played > 0
+    ? Math.round((myRanking.matches_won / myRanking.matches_played) * 100)
+    : 0;
+
   return (
     <div className="min-h-screen bg-background pb-28">
       {/* Header */}
@@ -63,58 +267,210 @@ function DashboardPage() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             {avatarUrl ? (
-              <img
-                src={avatarUrl}
-                alt=""
-                className="h-11 w-11 rounded-full border border-border object-cover"
-              />
+              <img src={avatarUrl} alt="" className="h-11 w-11 rounded-full border border-border object-cover" />
             ) : (
               <div className="flex h-11 w-11 items-center justify-center rounded-full bg-card text-foreground font-display font-bold">
                 {displayName.charAt(0)}
               </div>
             )}
             <div>
-              <p className="text-xs uppercase tracking-widest text-muted-foreground">Ranking Pro</p>
+              <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Olá,</p>
               <p className="font-display text-base font-bold text-foreground">{displayName}</p>
             </div>
           </div>
           <Link to="/notifications" className="relative rounded-full border border-border bg-card p-2.5 transition-colors hover:bg-accent">
             <Bell className="h-4 w-4 text-muted-foreground" />
-            <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-primary" />
+            {unreadCount > 0 && (
+              <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[9px] font-bold text-destructive-foreground">
+                {unreadCount > 9 ? "9+" : unreadCount}
+              </span>
+            )}
           </Link>
         </div>
       </header>
 
-      <div className="space-y-6 px-5 pt-6">
-        {/* Quick Actions */}
+      <div className="space-y-5 px-5 pt-5">
+        {/* Ranking card + Quick action */}
         <section className="grid grid-cols-2 gap-3">
-          <button className="flex flex-col items-center justify-center gap-1.5 rounded-3xl bg-primary p-5 text-primary-foreground transition-transform active:scale-[0.97]">
+          {myRanking ? (
+            <Link to="/ranking" className="flex flex-col rounded-3xl border border-primary/20 bg-primary/5 p-4">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Seu Ranking</p>
+              <div className="mt-1 flex items-baseline gap-1.5">
+                <span className="font-display text-3xl font-bold text-primary">
+                  {myRanking.position ? `#${myRanking.position}` : "—"}
+                </span>
+              </div>
+              <p className="font-display text-sm font-bold text-foreground">{Math.round(myRanking.rating)} Elo</p>
+              <div className="mt-1 flex items-center gap-2 text-[10px] text-muted-foreground">
+                <span>{myRanking.matches_won}V {myRanking.matches_played - myRanking.matches_won}D</span>
+                <span className="font-semibold">{winRate}%</span>
+                {myRanking.last_change !== null && (
+                  <span className={`flex items-center gap-0.5 font-semibold ${myRanking.last_change > 0 ? "text-success" : myRanking.last_change < 0 ? "text-destructive" : ""}`}>
+                    {myRanking.last_change > 0 ? <TrendingUp className="h-3 w-3" /> : myRanking.last_change < 0 ? <TrendingDown className="h-3 w-3" /> : <Minus className="h-3 w-3" />}
+                    {myRanking.last_change > 0 ? "+" : ""}{Math.round(myRanking.last_change)}
+                  </span>
+                )}
+              </div>
+              <p className="mt-auto pt-2 text-[9px] text-muted-foreground/60">{myRanking.season_name}</p>
+            </Link>
+          ) : (
+            <Link to="/ranking" className="flex flex-col items-center justify-center gap-1.5 rounded-3xl border border-border bg-card p-5 text-foreground">
+              <BarChart3 className="h-7 w-7 text-muted-foreground/40" />
+              <span className="text-sm font-semibold text-muted-foreground">Seu Ranking</span>
+              <span className="text-[10px] text-muted-foreground/60">Jogue para aparecer</span>
+            </Link>
+          )}
+          <Link to="/groups" className="flex flex-col items-center justify-center gap-1.5 rounded-3xl bg-primary p-5 text-primary-foreground transition-transform active:scale-[0.97]">
             <Plus className="h-7 w-7" strokeWidth={2.5} />
-            <span className="text-sm font-semibold">Nova Partida</span>
-          </button>
-          <Link to="/ranking" className="flex flex-col items-center justify-center gap-1.5 rounded-3xl border border-border bg-card p-5 text-foreground transition-transform active:scale-[0.97]">
-            <span className="font-display text-3xl font-bold text-primary">—</span>
-            <span className="text-sm font-semibold text-muted-foreground">Seu Ranking</span>
+            <span className="text-sm font-semibold">Criar / Entrar</span>
+            <span className="text-[10px] opacity-70">em um grupo</span>
           </Link>
         </section>
 
-        {/* Próxima Partida */}
+        {/* Próximas Rodadas */}
         <section>
           <div className="mb-3 flex items-center justify-between">
             <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Próxima Partida
+              Próximas Rodadas
             </h2>
             <Link to="/seasons" className="flex items-center gap-0.5 text-xs font-medium text-primary">
-              Ver todos <ChevronRight className="h-3.5 w-3.5" />
+              Ver todas <ChevronRight className="h-3.5 w-3.5" />
             </Link>
           </div>
-          <div className="rounded-3xl border border-border bg-card p-5">
-            <div className="flex flex-col items-center gap-2 text-center">
-              <Calendar className="h-7 w-7 text-muted-foreground/40" />
-              <p className="text-sm text-muted-foreground">Nenhuma rodada agendada</p>
-              <p className="text-xs text-muted-foreground/60">Crie ou entre em um grupo para começar</p>
+
+          {dataLoading ? (
+            <div className="flex justify-center py-6">
+              <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
             </div>
+          ) : upcomingRounds.length === 0 ? (
+            <div className="rounded-3xl border border-border bg-card p-5">
+              <div className="flex flex-col items-center gap-2 text-center">
+                <Calendar className="h-7 w-7 text-muted-foreground/40" />
+                <p className="text-sm text-muted-foreground">Nenhuma rodada agendada</p>
+                <p className="text-xs text-muted-foreground/60">Crie ou entre em um grupo para começar</p>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {upcomingRounds.map((r) => (
+                <Link
+                  key={r.id}
+                  to="/groups/$groupId/seasons/$seasonId/rounds/$roundId"
+                  params={{ groupId: r.group_id, seasonId: r.season_id || "", roundId: r.id }}
+                  className="flex items-center gap-3 rounded-2xl border border-border bg-card p-3.5 transition-colors active:bg-accent/30"
+                >
+                  <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
+                    r.status === "in_progress" ? "bg-warning/10" : "bg-primary/10"
+                  }`}>
+                    {r.status === "in_progress" ? (
+                      <Swords className="h-5 w-5 text-warning" />
+                    ) : (
+                      <Calendar className="h-5 w-5 text-primary" />
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-semibold text-foreground">
+                        Rodada {r.round_number}
+                      </p>
+                      <span className={`rounded-full px-1.5 py-0.5 text-[9px] font-semibold ${
+                        r.status === "in_progress" ? "bg-warning/10 text-warning" : "bg-info/10 text-info"
+                      }`}>
+                        {r.status === "in_progress" ? "Em jogo" : "Agendada"}
+                      </span>
+                    </div>
+                    <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px] text-muted-foreground">
+                      <span className="font-medium">{r.group_name}</span>
+                      {r.scheduled_date && (
+                        <span className="flex items-center gap-1">
+                          <Calendar className="h-3 w-3" />
+                          {formatDate(r.scheduled_date)}
+                        </span>
+                      )}
+                      {r.scheduled_time && (
+                        <span className="flex items-center gap-1">
+                          <Clock className="h-3 w-3" />
+                          {r.scheduled_time.slice(0, 5)}
+                        </span>
+                      )}
+                      {r.location && (
+                        <span className="flex items-center gap-1">
+                          <MapPin className="h-3 w-3" />
+                          {r.location}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="shrink-0 text-right">
+                    <p className="text-xs font-semibold text-foreground">{r.confirmed_count}/{r.max_players}</p>
+                    {r.my_status === "confirmed" ? (
+                      <p className="text-[9px] font-semibold text-success">Confirmado</p>
+                    ) : (
+                      <p className="text-[9px] text-muted-foreground">Pendente</p>
+                    )}
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
+        </section>
+
+        {/* Últimos Resultados */}
+        <section>
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Últimos Resultados
+            </h2>
+            <Link to="/history" className="flex items-center gap-0.5 text-xs font-medium text-primary">
+              Histórico <ChevronRight className="h-3.5 w-3.5" />
+            </Link>
           </div>
+
+          {dataLoading ? (
+            <div className="flex justify-center py-6">
+              <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+            </div>
+          ) : recentMatches.length === 0 ? (
+            <div className="rounded-3xl border border-border bg-card p-5">
+              <div className="flex flex-col items-center gap-2 text-center">
+                <Swords className="h-7 w-7 text-muted-foreground/40" />
+                <p className="text-sm text-muted-foreground">Nenhuma partida ainda</p>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {recentMatches.map((m) => {
+                const won = m.winner_team === m.my_team;
+                return (
+                  <div
+                    key={m.id}
+                    className="flex items-center gap-3 rounded-2xl border border-border bg-card p-3"
+                  >
+                    <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-xs font-bold ${
+                      won ? "bg-success/10 text-success" : "bg-destructive/10 text-destructive"
+                    }`}>
+                      {won ? "V" : "D"}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-semibold text-foreground">
+                        {m.group_name && `${m.group_name} • `}Partida {m.match_number}
+                      </p>
+                      <p className="text-[11px] text-muted-foreground">
+                        {m.score_display} • Time {m.my_team}
+                      </p>
+                    </div>
+                    {m.rating_change !== null && (
+                      <div className={`text-right text-xs font-bold ${
+                        m.rating_change > 0 ? "text-success" : m.rating_change < 0 ? "text-destructive" : "text-muted-foreground"
+                      }`}>
+                        {m.rating_change > 0 ? "+" : ""}{Math.round(m.rating_change)}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </section>
 
         {/* Meus Grupos */}
@@ -134,7 +490,7 @@ function DashboardPage() {
                   key={g.id}
                   to="/groups/$groupId"
                   params={{ groupId: g.id }}
-                  className="flex items-center justify-between rounded-2xl border border-border bg-card p-4 transition-colors active:bg-accent/30"
+                  className="flex items-center justify-between rounded-2xl border border-border bg-card p-3.5 transition-colors active:bg-accent/30"
                 >
                   <div className="flex items-center gap-3">
                     <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-muted">
@@ -143,13 +499,9 @@ function DashboardPage() {
                     <div>
                       <div className="flex items-center gap-1.5">
                         <span className="text-sm font-semibold text-foreground">{g.name}</span>
-                        {g.is_public ? (
-                          <Globe className="h-3 w-3 text-muted-foreground" />
-                        ) : (
-                          <Lock className="h-3 w-3 text-muted-foreground" />
-                        )}
+                        {g.is_public ? <Globe className="h-3 w-3 text-muted-foreground" /> : <Lock className="h-3 w-3 text-muted-foreground" />}
                       </div>
-                      <p className="text-xs text-muted-foreground">{g.member_count} membros</p>
+                      <p className="text-[11px] text-muted-foreground">{g.member_count} membros</p>
                     </div>
                   </div>
                   <ChevronRight className="h-4 w-4 text-muted-foreground" />
@@ -169,24 +521,6 @@ function DashboardPage() {
               </div>
             </div>
           )}
-        </section>
-
-        {/* Ranking */}
-        <section>
-          <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Ranking
-            </h2>
-            <Link to="/ranking" className="flex items-center gap-0.5 text-xs font-medium text-primary">
-              Completo <ChevronRight className="h-3.5 w-3.5" />
-            </Link>
-          </div>
-          <div className="rounded-3xl border border-border bg-card p-5">
-            <div className="flex flex-col items-center gap-2 text-center">
-              <BarChart3 className="h-7 w-7 text-muted-foreground/40" />
-              <p className="text-sm text-muted-foreground">Entre em uma temporada para ver o ranking</p>
-            </div>
-          </div>
         </section>
       </div>
 
