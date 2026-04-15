@@ -47,6 +47,7 @@ function SeasonDetailPage() {
         scheduledTime: time || undefined,
         location: location.trim() || undefined,
         maxPlayers,
+        userId: user.id,
       });
       toast.success("Rodada criada!");
       setShowCreate(false);

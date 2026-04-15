@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
+import { notifyGroupMembers } from "@/hooks/use-notifications";
 
 export interface FeedComment {
   id: string;
@@ -143,6 +144,7 @@ export async function postComment(data: {
   groupId: string;
   userId: string;
   content: string;
+  userName?: string;
   roundId?: string;
   matchId?: string;
   parentId?: string;
@@ -156,6 +158,18 @@ export async function postComment(data: {
     parent_id: data.parentId || null,
   });
   if (error) throw error;
+
+  // Only notify on top-level comments (not replies)
+  if (!data.parentId) {
+    const preview = data.content.length > 60 ? data.content.slice(0, 57) + "..." : data.content;
+    notifyGroupMembers({
+      groupId: data.groupId,
+      actorId: data.userId,
+      type: "new_comment",
+      title: "Novo comentário no feed 💬",
+      body: `${data.userName || "Alguém"}: ${preview}`,
+    });
+  }
 }
 
 export async function toggleReaction(commentId: string, userId: string, emoji: string) {
