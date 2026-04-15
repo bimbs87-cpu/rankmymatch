@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { BottomNav } from "@/components/BottomNav";
 import { useAuth } from "@/hooks/use-auth";
 import { useMyGroups } from "@/hooks/use-groups";
-import { BarChart3, Info, Trophy, ChevronRight, TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { BarChart3, Info, TrendingUp, TrendingDown, Minus, Medal, Target, Percent } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -18,13 +18,21 @@ interface RankingEntry {
   matches_won: number;
   sets_won: number;
   sets_lost: number;
+  games_won: number;
+  games_lost: number;
   is_eligible: boolean;
+  last_5_results: string[];
   profile?: {
     name: string;
     nickname: string | null;
     avatar_url: string | null;
   };
   lastChange?: number;
+}
+
+function winRate(won: number, played: number) {
+  if (played === 0) return 0;
+  return Math.round((won / played) * 100);
 }
 
 function RankingPage() {
@@ -77,7 +85,7 @@ function RankingPage() {
         .select("user_id, name, nickname, avatar_url")
         .in("user_id", userIds);
 
-      // Get last rating change
+      // Get last rating change per user
       const { data: events } = await supabase
         .from("rating_events")
         .select("user_id, rating_change")
@@ -102,7 +110,10 @@ function RankingPage() {
           matches_won: s.matches_won,
           sets_won: s.sets_won,
           sets_lost: s.sets_lost,
+          games_won: s.games_won,
+          games_lost: s.games_lost,
           is_eligible: s.is_eligible,
+          last_5_results: (s.last_5_results as string[]) || [],
           profile: profileMap.get(s.user_id) || undefined,
           lastChange: lastChangeMap.get(s.user_id),
         }))
@@ -121,11 +132,19 @@ function RankingPage() {
   }
 
   const myRanking = rankings.find((r) => r.user_id === user?.id);
+  const selectedSeason = seasons.find((s: any) => s.id === selectedSeasonId);
 
   return (
     <div className="min-h-screen bg-background pb-28">
       <header className="flex items-center justify-between px-5 pt-6 pb-2">
-        <h1 className="font-display text-xl font-bold text-foreground">Ranking</h1>
+        <div>
+          <h1 className="font-display text-xl font-bold text-foreground">Ranking</h1>
+          {selectedSeason && (
+            <p className="text-xs text-muted-foreground">
+              {(selectedSeason as any).groups?.name} • {selectedSeason.name}
+            </p>
+          )}
+        </div>
         <Link to="/ranking-info" className="rounded-full border border-border bg-card p-2 transition-colors hover:bg-accent">
           <Info className="h-4 w-4 text-muted-foreground" />
         </Link>
@@ -175,6 +194,7 @@ function RankingPage() {
                     <div className="flex items-center gap-3 text-xs text-muted-foreground">
                       <span className="font-display font-bold text-primary">{Math.round(myRanking.rating)} Elo</span>
                       <span>{myRanking.matches_won}V {myRanking.matches_played - myRanking.matches_won}D</span>
+                      <span>{winRate(myRanking.matches_won, myRanking.matches_played)}%</span>
                       {myRanking.lastChange !== undefined && (
                         <span className={`flex items-center gap-0.5 font-semibold ${myRanking.lastChange > 0 ? "text-success" : myRanking.lastChange < 0 ? "text-destructive" : "text-muted-foreground"}`}>
                           {myRanking.lastChange > 0 ? <TrendingUp className="h-3 w-3" /> : myRanking.lastChange < 0 ? <TrendingDown className="h-3 w-3" /> : <Minus className="h-3 w-3" />}
@@ -183,6 +203,31 @@ function RankingPage() {
                       )}
                     </div>
                   </div>
+                </div>
+              </div>
+            )}
+
+            {/* Stats summary */}
+            {rankings.length > 0 && (
+              <div className="grid grid-cols-3 gap-2">
+                <div className="rounded-2xl border border-border bg-card/50 p-3 text-center">
+                  <Medal className="mx-auto mb-1 h-4 w-4 text-primary" />
+                  <p className="font-display text-lg font-bold text-foreground">{rankings.length}</p>
+                  <p className="text-[10px] text-muted-foreground">Jogadores</p>
+                </div>
+                <div className="rounded-2xl border border-border bg-card/50 p-3 text-center">
+                  <Target className="mx-auto mb-1 h-4 w-4 text-primary" />
+                  <p className="font-display text-lg font-bold text-foreground">
+                    {rankings.reduce((sum, r) => sum + r.matches_played, 0)}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground">Partidas</p>
+                </div>
+                <div className="rounded-2xl border border-border bg-card/50 p-3 text-center">
+                  <Percent className="mx-auto mb-1 h-4 w-4 text-primary" />
+                  <p className="font-display text-lg font-bold text-foreground">
+                    {rankings.length > 0 ? Math.round(rankings[0].rating) : 0}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground">Top Elo</p>
                 </div>
               </div>
             )}
@@ -206,59 +251,153 @@ function RankingPage() {
               </div>
             ) : (
               <div className="space-y-2">
-                {rankings.map((entry, idx) => {
-                  const isMe = entry.user_id === user?.id;
-                  const pos = entry.position || idx + 1;
-                  return (
-                    <div
-                      key={entry.user_id}
-                      className={`flex items-center gap-3 rounded-2xl border p-3 transition-colors ${
-                        isMe
-                          ? "border-primary/30 bg-primary/5"
-                          : "border-border bg-card/50"
-                      }`}
-                    >
-                      {/* Position */}
-                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl font-display text-sm font-bold"
-                        style={{
-                          backgroundColor: pos === 1 ? "var(--rank-gold)" : pos === 2 ? "var(--rank-silver)" : pos === 3 ? "var(--rank-bronze)" : "var(--muted)",
-                          color: pos <= 3 ? "var(--background)" : "var(--foreground)",
-                        }}
-                      >
-                        {pos}
-                      </div>
-
-                      {/* Avatar */}
-                      {entry.profile?.avatar_url ? (
-                        <img src={entry.profile.avatar_url} alt="" className="h-9 w-9 rounded-full border border-border object-cover" />
-                      ) : (
-                        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-muted text-xs font-bold text-foreground">
-                          {(entry.profile?.name || "?").charAt(0)}
-                        </div>
-                      )}
-
-                      {/* Name & stats */}
-                      <div className="flex-1 min-w-0">
-                        <p className="truncate text-sm font-semibold text-foreground">
-                          {entry.profile?.nickname || entry.profile?.name || "Jogador"}
-                        </p>
-                        <p className="text-[10px] text-muted-foreground">
-                          {entry.matches_won}V {entry.matches_played - entry.matches_won}D • S {entry.sets_won}-{entry.sets_lost}
-                        </p>
-                      </div>
-
-                      {/* Rating */}
-                      <div className="text-right">
-                        <p className="font-display text-sm font-bold text-foreground">{Math.round(entry.rating)}</p>
-                        {entry.lastChange !== undefined && (
-                          <p className={`text-[10px] font-semibold ${entry.lastChange > 0 ? "text-success" : entry.lastChange < 0 ? "text-destructive" : "text-muted-foreground"}`}>
-                            {entry.lastChange > 0 ? "+" : ""}{Math.round(entry.lastChange)}
+                {/* Podium (top 3) */}
+                {rankings.length >= 3 && (
+                  <div className="mb-4 flex items-end justify-center gap-3 pt-4">
+                    {[1, 0, 2].map((idx) => {
+                      const entry = rankings[idx];
+                      if (!entry) return null;
+                      const pos = idx + 1;
+                      const isCenter = idx === 0;
+                      return (
+                        <div key={entry.user_id} className="flex flex-col items-center">
+                          <div className="relative">
+                            {entry.profile?.avatar_url ? (
+                              <img
+                                src={entry.profile.avatar_url}
+                                alt=""
+                                className={`rounded-full border-2 object-cover ${
+                                  isCenter ? "h-16 w-16 border-primary" : "h-12 w-12 border-border"
+                                }`}
+                              />
+                            ) : (
+                              <div
+                                className={`flex items-center justify-center rounded-full bg-muted font-bold text-foreground ${
+                                  isCenter ? "h-16 w-16 text-xl" : "h-12 w-12 text-sm"
+                                }`}
+                              >
+                                {(entry.profile?.name || "?").charAt(0)}
+                              </div>
+                            )}
+                            <div
+                              className="absolute -bottom-1.5 left-1/2 flex h-6 w-6 -translate-x-1/2 items-center justify-center rounded-full text-[10px] font-bold"
+                              style={{
+                                backgroundColor: pos === 1 ? "var(--rank-gold)" : pos === 2 ? "var(--rank-silver)" : "var(--rank-bronze)",
+                                color: "var(--background)",
+                              }}
+                            >
+                              {pos}
+                            </div>
+                          </div>
+                          <p className="mt-3 max-w-[80px] truncate text-center text-xs font-semibold text-foreground">
+                            {entry.profile?.nickname || entry.profile?.name || "Jogador"}
                           </p>
-                        )}
+                          <p className="font-display text-sm font-bold text-primary">{Math.round(entry.rating)}</p>
+                          <p className="text-[10px] text-muted-foreground">{winRate(entry.matches_won, entry.matches_played)}% WR</p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* Full list */}
+                <div className="rounded-2xl border border-border overflow-hidden">
+                  {/* Header */}
+                  <div className="flex items-center gap-2 border-b border-border bg-muted/30 px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    <span className="w-8 text-center">#</span>
+                    <span className="flex-1">Jogador</span>
+                    <span className="w-12 text-center">Elo</span>
+                    <span className="w-10 text-center">V/D</span>
+                    <span className="w-10 text-center">WR%</span>
+                    <span className="w-16 text-center">Últimas</span>
+                  </div>
+
+                  {rankings.map((entry, idx) => {
+                    const isMe = entry.user_id === user?.id;
+                    const pos = entry.position || idx + 1;
+                    const wr = winRate(entry.matches_won, entry.matches_played);
+
+                    return (
+                      <div
+                        key={entry.user_id}
+                        className={`flex items-center gap-2 border-b border-border/50 px-3 py-2.5 last:border-b-0 ${
+                          isMe ? "bg-primary/5" : ""
+                        }`}
+                      >
+                        {/* Position */}
+                        <div
+                          className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg text-[11px] font-bold"
+                          style={{
+                            backgroundColor: pos === 1 ? "var(--rank-gold)" : pos === 2 ? "var(--rank-silver)" : pos === 3 ? "var(--rank-bronze)" : "transparent",
+                            color: pos <= 3 ? "var(--background)" : "var(--muted-foreground)",
+                          }}
+                        >
+                          {pos}
+                        </div>
+
+                        {/* Avatar + Name */}
+                        <div className="flex flex-1 items-center gap-2 min-w-0">
+                          {entry.profile?.avatar_url ? (
+                            <img src={entry.profile.avatar_url} alt="" className="h-7 w-7 shrink-0 rounded-full border border-border object-cover" />
+                          ) : (
+                            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-muted text-[10px] font-bold text-foreground">
+                              {(entry.profile?.name || "?").charAt(0)}
+                            </div>
+                          )}
+                          <div className="min-w-0">
+                            <p className="truncate text-xs font-semibold text-foreground">
+                              {entry.profile?.nickname || entry.profile?.name || "Jogador"}
+                              {isMe && <span className="ml-1 text-primary">(você)</span>}
+                            </p>
+                            {!entry.is_eligible && (
+                              <p className="text-[9px] text-muted-foreground">Mín. não atingido</p>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Elo */}
+                        <div className="w-12 text-center">
+                          <p className="font-display text-xs font-bold text-foreground">{Math.round(entry.rating)}</p>
+                          {entry.lastChange !== undefined && (
+                            <p className={`text-[9px] font-semibold ${entry.lastChange > 0 ? "text-success" : entry.lastChange < 0 ? "text-destructive" : "text-muted-foreground"}`}>
+                              {entry.lastChange > 0 ? "+" : ""}{Math.round(entry.lastChange)}
+                            </p>
+                          )}
+                        </div>
+
+                        {/* W/L */}
+                        <div className="w-10 text-center text-[11px] text-muted-foreground">
+                          <span className="text-success">{entry.matches_won}</span>
+                          /
+                          <span className="text-destructive">{entry.matches_played - entry.matches_won}</span>
+                        </div>
+
+                        {/* Win Rate */}
+                        <div className="w-10 text-center">
+                          <span className={`text-[11px] font-semibold ${wr >= 60 ? "text-success" : wr >= 40 ? "text-foreground" : "text-destructive"}`}>
+                            {wr}%
+                          </span>
+                        </div>
+
+                        {/* Last 5 results */}
+                        <div className="flex w-16 justify-center gap-0.5">
+                          {entry.last_5_results.length > 0 ? (
+                            entry.last_5_results.slice(0, 5).map((r, i) => (
+                              <div
+                                key={i}
+                                className={`h-3 w-3 rounded-full ${
+                                  r === "W" ? "bg-success" : r === "L" ? "bg-destructive" : "bg-muted"
+                                }`}
+                              />
+                            ))
+                          ) : (
+                            <span className="text-[9px] text-muted-foreground">—</span>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
               </div>
             )}
           </>
