@@ -130,6 +130,112 @@ export function GroupSettingsForm({
           {saving ? "Salvando..." : "Salvar alterações"}
         </button>
       )}
+
+      {/* Group status management - only for creator */}
+      {isCreator && (
+        <div className="space-y-3 pt-4 border-t border-border">
+          <h3 className="text-sm font-semibold text-foreground">Gerenciar grupo</h3>
+
+          {groupStatus === "active" && (
+            <>
+              <button
+                onClick={async () => {
+                  await supabase.from("groups").update({ status: "finished" }).eq("id", groupId);
+                  toast.success("Grupo marcado como concluído");
+                  onSaved();
+                }}
+                className="flex w-full items-center justify-center gap-2 rounded-2xl border border-border py-3 text-sm font-medium text-foreground transition-colors active:bg-accent/30"
+              >
+                <CheckCircle2 className="h-4 w-4 text-success" />
+                Marcar como concluído
+              </button>
+              <button
+                onClick={async () => {
+                  await supabase.from("groups").update({ status: "inactive" }).eq("id", groupId);
+                  toast.success("Grupo desativado e oculto");
+                  onSaved();
+                }}
+                className="flex w-full items-center justify-center gap-2 rounded-2xl border border-border py-3 text-sm font-medium text-muted-foreground transition-colors active:bg-accent/30"
+              >
+                <EyeOff className="h-4 w-4" />
+                Desativar grupo
+              </button>
+            </>
+          )}
+
+          {(groupStatus === "inactive" || groupStatus === "finished") && (
+            <button
+              onClick={async () => {
+                await supabase.from("groups").update({ status: "active" }).eq("id", groupId);
+                toast.success("Grupo reativado!");
+                onSaved();
+              }}
+              className="flex w-full items-center justify-center gap-2 rounded-2xl border border-primary/30 py-3 text-sm font-medium text-primary transition-colors active:bg-primary/10"
+            >
+              <CheckCircle2 className="h-4 w-4" />
+              Reativar grupo
+            </button>
+          )}
+
+          <button
+            onClick={() => setShowDeleteDialog(true)}
+            className="flex w-full items-center justify-center gap-2 rounded-2xl border border-destructive/30 py-3 text-sm font-medium text-destructive transition-colors active:bg-destructive/10"
+          >
+            <Trash2 className="h-4 w-4" />
+            Eliminar grupo permanentemente
+          </button>
+        </div>
+      )}
+
+      {/* Delete confirmation dialog */}
+      {showDeleteDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowDeleteDialog(false)} />
+          <div className="relative w-[90%] max-w-sm rounded-3xl border border-border bg-card p-6 animate-in zoom-in-95 duration-200">
+            <div className="flex flex-col items-center gap-4 text-center">
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-destructive/10">
+                <AlertTriangle className="h-7 w-7 text-destructive" />
+              </div>
+              <h3 className="font-display text-base font-bold text-foreground">Eliminar grupo?</h3>
+              <p className="text-sm text-muted-foreground">
+                Esta ação é <strong className="text-foreground">irreversível</strong>. Todos os dados do grupo 
+                (temporadas, rodadas, partidas, ranking) serão perdidos permanentemente.
+              </p>
+              <p className="text-sm text-muted-foreground">
+                💡 <strong className="text-foreground">Recomendação:</strong> desative o grupo em vez de eliminar. 
+                Ele ficará oculto mas preservará todo o histórico.
+              </p>
+              <div className="flex w-full gap-3">
+                <button
+                  onClick={() => setShowDeleteDialog(false)}
+                  className="flex-1 rounded-2xl border border-border py-3 text-sm font-semibold text-foreground"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={async () => {
+                    setDeleting(true);
+                    try {
+                      await supabase.from("groups").delete().eq("id", groupId);
+                      toast.success("Grupo eliminado");
+                      navigate({ to: "/groups" });
+                    } catch {
+                      toast.error("Erro ao eliminar grupo");
+                    } finally {
+                      setDeleting(false);
+                      setShowDeleteDialog(false);
+                    }
+                  }}
+                  disabled={deleting}
+                  className="flex-1 rounded-2xl bg-destructive py-3 text-sm font-bold text-destructive-foreground disabled:opacity-50"
+                >
+                  {deleting ? "Eliminando..." : "Eliminar"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
