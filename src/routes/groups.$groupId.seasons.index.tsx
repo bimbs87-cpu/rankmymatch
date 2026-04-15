@@ -3,7 +3,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useGroupDetail } from "@/hooks/use-groups";
 import { useGroupSeasons } from "@/hooks/use-seasons";
 import { createSeasonWithRounds } from "@/hooks/use-season-creation";
-import { ArrowLeft, Plus, Trophy, X, Calendar, Pencil, MoreVertical, Trash2, EyeOff, Eye, CheckCircle, LayoutGrid } from "lucide-react";
+import { ArrowLeft, Plus, Trophy, X, Calendar, Pencil, MoreVertical, Trash2, EyeOff, Eye, CheckCircle, LayoutGrid, History } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -22,13 +22,16 @@ const WEEKDAYS = [
   { value: 0, label: "Domingo" },
 ];
 
-function getUpcomingDates(dayOfWeek: number, count: number): string[] {
+function getWeeklyDates(dayOfWeek: number, count: number, startFrom?: string): string[] {
   const dates: string[] = [];
-  const today = new Date();
-  const current = new Date(today);
-  // Move to the next occurrence of the chosen day
+  const start = startFrom ? new Date(startFrom + "T00:00:00") : new Date();
+  const current = new Date(start);
   const diff = (dayOfWeek - current.getDay() + 7) % 7;
-  current.setDate(current.getDate() + (diff === 0 && current.getHours() >= 12 ? 7 : diff));
+  if (diff !== 0) {
+    current.setDate(current.getDate() + diff);
+  } else if (!startFrom && current.getHours() >= 12) {
+    current.setDate(current.getDate() + 7);
+  }
   for (let i = 0; i < count; i++) {
     dates.push(current.toISOString().split("T")[0]);
     current.setDate(current.getDate() + 7);
@@ -36,16 +39,11 @@ function getUpcomingDates(dayOfWeek: number, count: number): string[] {
   return dates;
 }
 
-function getUpcomingMonthlyDates(count: number): string[] {
+function getMonthlyDates(count: number, startFrom?: string): string[] {
   const dates: string[] = [];
-  const today = new Date();
+  const start = startFrom ? new Date(startFrom + "T00:00:00") : new Date();
   for (let i = 0; i < count; i++) {
-    const d = new Date(today.getFullYear(), today.getMonth() + i + 1, 0);
-    // Last saturday of the month as default, or just mid-month
-    const mid = new Date(today.getFullYear(), today.getMonth() + i, 15);
-    if (mid <= today) {
-      mid.setMonth(mid.getMonth() + 1);
-    }
+    const mid = new Date(start.getFullYear(), start.getMonth() + i, 15);
     dates.push(mid.toISOString().split("T")[0]);
   }
   return dates;
@@ -60,6 +58,8 @@ function GroupSeasonsPage() {
   const [step, setStep] = useState<"type" | "config" | "dates">("type");
   const [name, setName] = useState("");
   const [durationType, setDurationType] = useState<"weekly" | "monthly" | "">("");
+  const [isRetroactive, setIsRetroactive] = useState(false);
+  const [startDate, setStartDate] = useState("");
   const [totalRounds, setTotalRounds] = useState(10);
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
   const [roundDates, setRoundDates] = useState<string[]>([]);
@@ -84,6 +84,8 @@ function GroupSeasonsPage() {
     setTime("19:00");
     setSubmitError(null);
     setCourts(1);
+    setIsRetroactive(false);
+    setStartDate("");
   };
 
   const handleSelectType = (type: "weekly" | "monthly") => {
@@ -100,11 +102,16 @@ function GroupSeasonsPage() {
       toast.error("Selecione o dia da semana");
       return;
     }
+    if (isRetroactive && !startDate) {
+      toast.error("Informe a data de início");
+      return;
+    }
     // Generate dates
+    const fromDate = isRetroactive && startDate ? startDate : undefined;
     if (durationType === "weekly" && selectedDay !== null) {
-      setRoundDates(getUpcomingDates(selectedDay, totalRounds));
+      setRoundDates(getWeeklyDates(selectedDay, totalRounds, fromDate));
     } else {
-      setRoundDates(getUpcomingMonthlyDates(totalRounds));
+      setRoundDates(getMonthlyDates(totalRounds, fromDate));
     }
     setStep("dates");
   };
@@ -519,7 +526,36 @@ function GroupSeasonsPage() {
                         {n}
                       </button>
                     ))}
-                  </div>
+                </div>
+                <div>
+                  <button
+                    onClick={() => setIsRetroactive(!isRetroactive)}
+                    className={`flex w-full items-center gap-3 rounded-2xl border p-3 text-left transition-colors ${
+                      isRetroactive ? "border-primary bg-primary/10" : "border-border bg-background"
+                    }`}
+                  >
+                    <History className={`h-5 w-5 ${isRetroactive ? "text-primary" : "text-muted-foreground"}`} />
+                    <div>
+                      <p className={`text-sm font-semibold ${isRetroactive ? "text-primary" : "text-foreground"}`}>
+                        Temporada já em andamento
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Cadastrar rodadas com datas passadas
+                      </p>
+                    </div>
+                  </button>
+                  {isRetroactive && (
+                    <div className="mt-2">
+                      <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Data de início</label>
+                      <input
+                        type="date"
+                        value={startDate}
+                        onChange={(e) => setStartDate(e.target.value)}
+                        className="w-full rounded-2xl border border-border bg-background px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                      />
+                    </div>
+                  )}
+                </div>
                 </div>
                 <div className="flex gap-3">
                   <button
