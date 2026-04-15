@@ -71,6 +71,8 @@ function GroupSeasonsPage() {
   const [editingIdx, setEditingIdx] = useState<number | null>(null);
   const [time, setTime] = useState("19:00");
   const [courts, setCourts] = useState(1);
+  const [isRetroactive, setIsRetroactive] = useState(false);
+  const [roundsPlayed, setRoundsPlayed] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
