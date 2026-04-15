@@ -42,10 +42,12 @@ export async function createSeasonWithRounds(data: {
   }));
 
   if (roundInserts.length > 0) {
+    console.log("[createSeasonWithRounds] Inserting rounds:", roundInserts);
     const { error: roundError } = await supabase
       .from("rounds")
       .insert(roundInserts);
-    if (roundError) throw roundError;
+    console.log("[createSeasonWithRounds] Rounds result:", { roundError });
+    if (roundError) throw new Error(`Erro ao criar rodadas: ${roundError.message}`);
   }
 
   // Notify group
