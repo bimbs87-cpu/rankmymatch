@@ -153,6 +153,7 @@ function RankingPage() {
       if (!allUserIds.length) {
         setRankings([]);
         setLoading(false);
+        setInitialReady(true);
         return;
       }
 
