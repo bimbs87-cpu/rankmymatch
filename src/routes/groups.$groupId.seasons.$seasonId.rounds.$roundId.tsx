@@ -23,6 +23,7 @@ import {
   Trash2,
   Ban,
   ChevronDown,
+  Trophy,
 } from "lucide-react";
 import { useState, useMemo, useEffect } from "react";
 import { toast } from "sonner";
