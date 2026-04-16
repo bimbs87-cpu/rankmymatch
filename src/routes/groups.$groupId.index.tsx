@@ -8,6 +8,7 @@ import { ClaimPlayerDialog } from "@/components/ClaimPlayerDialog";
 import { PlayerClaimsManager } from "@/components/PlayerClaimsManager";
 import { SearchUserDialog } from "@/components/SearchUserDialog";
 import { useAuth } from "@/hooks/use-auth";
+import { TrophyLoadingBar } from "@/components/TrophyLoadingBar";
 import { usePendingMatch } from "@/hooks/use-pending-matches";
 import { useGroupSeasons } from "@/hooks/use-seasons";
 import { supabase } from "@/integrations/supabase/client";
@@ -130,11 +131,7 @@ function GroupDetailPage() {
   const hasPlaceholders = placeholderUserIds.size > 0;
 
   if (isLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-      </div>
-    );
+    return <TrophyLoadingBar />;
   }
 
   if (!group) {
@@ -687,9 +684,7 @@ function GroupDetailPage() {
               )}
             </div>
             {seasonsLoading ? (
-              <div className="flex justify-center py-8">
-                <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-              </div>
+              <TrophyLoadingBar fullScreen={false} compact />
             ) : seasons.filter((s) => s.status !== "hidden").length === 0 ? (
               <div className="rounded-3xl border border-dashed border-border bg-card/50 p-8">
                 <div className="flex flex-col items-center gap-3 text-center">

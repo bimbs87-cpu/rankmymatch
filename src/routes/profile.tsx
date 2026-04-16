@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { abbreviateName } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
+import { TrophyLoadingBar } from "@/components/TrophyLoadingBar";
 import { supabase } from "@/integrations/supabase/client";
 import { EloChart } from "@/components/EloChart";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
@@ -163,11 +164,7 @@ function ProfilePage() {
   };
 
   if (isLoading || loadingProfile) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-      </div>
-    );
+    return <TrophyLoadingBar />;
   }
 
   const googlePhotoUrl = user?.user_metadata?.avatar_url || user?.user_metadata?.picture || null;

@@ -6,6 +6,7 @@ import logoHorizontalDark from "@/assets/logo-horizontal-dark.png";
 import logoHorizontalLight from "@/assets/logo-horizontal-light.png";
 import { useTheme } from "@/lib/theme";
 import { useAuth } from "@/hooks/use-auth";
+import { TrophyLoadingBar } from "@/components/TrophyLoadingBar";
 import { useUserProfile } from "@/hooks/use-user-profile";
 import { useMyGroups } from "@/hooks/use-groups";
 import { useNotifications } from "@/hooks/use-notifications";
@@ -327,11 +328,7 @@ function DashboardPage() {
   }, [pullDistance, handleRefresh]);
 
   if (isLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-      </div>
-    );
+    return <TrophyLoadingBar />;
   }
 
   if (!isAuthenticated) {

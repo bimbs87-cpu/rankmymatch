@@ -4,6 +4,7 @@ import { useUserProfile } from "@/hooks/use-user-profile";
 import { useGroupFeed, postComment } from "@/hooks/use-feed";
 import { useGroupDetail } from "@/hooks/use-groups";
 import { FeedCommentCard } from "@/components/FeedCommentCard";
+import { TrophyLoadingBar } from "@/components/TrophyLoadingBar";
 import { ArrowLeft, Send, MessageSquare } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -81,9 +82,7 @@ function GroupFeedPage() {
       {/* Feed */}
       <div className="px-5 pt-4">
         {isLoading ? (
-          <div className="flex justify-center py-12">
-            <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-          </div>
+          <TrophyLoadingBar fullScreen={false} compact />
         ) : comments.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-3xl bg-primary/10">

@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useAuth } from "@/hooks/use-auth";
+import { TrophyLoadingBar } from "@/components/TrophyLoadingBar";
 import { useGroupDetail } from "@/hooks/use-groups";
 import { useSeasonRounds } from "@/hooks/use-seasons";
 import { supabase } from "@/integrations/supabase/client";
@@ -110,11 +111,7 @@ function SeasonDetailPage() {
   };
 
   if (isLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-      </div>
-    );
+    return <TrophyLoadingBar />;
   }
 
   return (

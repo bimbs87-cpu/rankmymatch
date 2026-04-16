@@ -1,5 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useAuth } from "@/hooks/use-auth";
+import { TrophyLoadingBar } from "@/components/TrophyLoadingBar";
 import { useUserProfile } from "@/hooks/use-user-profile";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
@@ -269,11 +270,7 @@ function InvitePage() {
   };
 
   if (loading || authLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-      </div>
-    );
+    return <TrophyLoadingBar />;
   }
 
   if (error) {

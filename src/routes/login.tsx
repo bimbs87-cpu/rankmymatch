@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import { lovable } from "@/integrations/lovable/index";
 import { useAuth } from "@/hooks/use-auth";
+import { TrophyLoadingBar } from "@/components/TrophyLoadingBar";
 import { Button } from "@/components/ui/button";
 import { Zap, Users, BarChart3, Trophy } from "lucide-react";
 import logoHorizontalDark from "@/assets/logo-horizontal-dark.png";
@@ -26,11 +27,7 @@ function LoginPage() {
   }, [isAuthenticated, authLoading, navigate]);
 
   if (authLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-      </div>
-    );
+    return <TrophyLoadingBar />;
   }
 
   if (isAuthenticated) {
