@@ -51,7 +51,8 @@ function RankingPage() {
   const [selectedSeasonId, setSelectedSeasonId] = useState<string | null>(null);
   const [seasons, setSeasons] = useState<any[]>([]);
   const [rankings, setRankings] = useState<RankingEntry[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [initialReady, setInitialReady] = useState(false);
   const [showSwitcher, setShowSwitcher] = useState(false);
   const [totalRounds, setTotalRounds] = useState(0);
   const [completedRounds, setCompletedRounds] = useState(0);
