@@ -19,12 +19,16 @@ function applyTheme(theme: Theme) {
 }
 
 export function useTheme() {
-  const [theme, setThemeState] = useState<Theme>(() => {
-    if (typeof window === "undefined") return "dark";
-    return (localStorage.getItem("rmm-theme") as Theme) || "dark";
-  });
+  const [theme, setThemeState] = useState<Theme>("dark");
+  const [mounted, setMounted] = useState(false);
 
-  const resolved = typeof window === "undefined" ? "dark" : getResolvedTheme(theme);
+  useEffect(() => {
+    const stored = (localStorage.getItem("rmm-theme") as Theme) || "dark";
+    setThemeState(stored);
+    setMounted(true);
+  }, []);
+
+  const resolved = mounted ? getResolvedTheme(theme) : "dark";
 
   useEffect(() => {
     applyTheme(theme);
