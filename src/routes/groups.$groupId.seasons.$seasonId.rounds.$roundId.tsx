@@ -47,6 +47,12 @@ function RoundDetailPage() {
   const [expandedMatch, setExpandedMatch] = useState<string | null>(null);
   const [matchRatings, setMatchRatings] = useState<Record<string, any[]>>({});
 
+  // Presence schedule config (must be before early returns)
+  const presenceConfig = useMemo(() => ({
+    presence_open_mode: (group as any)?.presence_open_mode || "always",
+    presence_open_time: (group as any)?.presence_open_time || "10:00:00",
+  }), [group]);
+
   const loadMatchRatings = async (matchId: string) => {
     if (matchRatings[matchId]) {
       setExpandedMatch(expandedMatch === matchId ? null : matchId);
