@@ -570,11 +570,15 @@ export function ManualMatchDialog({ roundId, groupId, matchFormat = "doubles", o
                     })
                     .map((uid, i) => {
                       const pp = playerPoints[uid];
+                      const ranking = playerRankings[uid];
                       const isWinner = i === 0;
+                      const posChange = ranking?.prevPosition && ranking?.position
+                        ? ranking.prevPosition - ranking.position
+                        : null;
                       return (
                         <div
                           key={uid}
-                          className={`flex items-center gap-3 rounded-xl px-3 py-2 ${
+                          className={`flex items-center gap-2.5 rounded-xl px-3 py-2.5 ${
                             isWinner ? "bg-primary/10 border border-primary/20" : ""
                           }`}
                         >
@@ -582,12 +586,27 @@ export function ManualMatchDialog({ roundId, groupId, matchFormat = "doubles", o
                             {i + 1}º
                           </span>
                           <PlayerAvatar uid={uid} />
-                          <span className={`flex-1 text-sm font-medium ${isWinner ? "text-primary" : "text-foreground"}`}>
-                            {getDisplayName(uid)}
-                            {isWinner && " 🏆"}
-                          </span>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-1.5">
+                              <span className={`text-sm font-medium truncate ${isWinner ? "text-primary" : "text-foreground"}`}>
+                                {getDisplayName(uid)}
+                                {isWinner && " 🏆"}
+                              </span>
+                              {posChange !== null && posChange !== 0 && (
+                                <span className={`flex items-center text-[10px] font-bold ${posChange > 0 ? "text-success" : "text-destructive"}`}>
+                                  {posChange > 0 ? <ArrowUp className="h-2.5 w-2.5" /> : <ArrowDown className="h-2.5 w-2.5" />}
+                                  {Math.abs(posChange)}
+                                </span>
+                              )}
+                            </div>
+                            {ranking && (
+                              <span className="text-[10px] text-muted-foreground">
+                                {Math.round(ranking.rating)} Elo
+                              </span>
+                            )}
+                          </div>
                           <span className="text-xs font-bold text-success">{pp.wins}V</span>
-                          <span className="text-[11px] text-muted-foreground">{pp.gamesWon}–{pp.gamesLost}</span>
+                          <span className="text-[11px] text-muted-foreground whitespace-nowrap">{pp.gamesWon}–{pp.gamesLost}</span>
                         </div>
                       );
                     })}
