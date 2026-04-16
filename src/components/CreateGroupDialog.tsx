@@ -79,7 +79,7 @@ export function CreateGroupDialog({ open, onClose }: Props) {
             <X className="h-4 w-4 text-muted-foreground" />
           </button>
         </div>
-        <div className="flex-1 overflow-y-auto px-5 pb-5 sm:px-6 sm:pb-6">
+        <div className="flex-1 overflow-y-auto overscroll-contain px-5 pb-5 sm:px-6 sm:pb-6" style={{ WebkitOverflowScrolling: "touch" }}>
 
         <div className="space-y-4">
           {/* Imagem */}
