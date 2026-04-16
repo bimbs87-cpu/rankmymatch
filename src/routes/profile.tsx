@@ -377,17 +377,7 @@ function ProfilePage() {
         <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-transparent" />
         <div className="relative flex flex-col items-center">
           <div className="relative mb-3">
-            {avatarUrl ? (
-              <img
-                src={avatarUrl}
-                alt=""
-                className="h-24 w-24 rounded-full border-2 border-border object-cover"
-              />
-            ) : (
-              <div className="flex h-24 w-24 items-center justify-center rounded-full border-2 border-border bg-muted font-display text-3xl font-bold text-foreground">
-                {displayName.charAt(0)}
-              </div>
-            )}
+            <PlayerAvatar avatarUrl={avatarUrl} name={displayName} size="xl" className="border-2 border-border" />
             <button
               onClick={() => setAvatarPickerOpen(true)}
               className="absolute bottom-0 right-0 flex h-8 w-8 items-center justify-center rounded-full border border-border bg-card text-foreground"
