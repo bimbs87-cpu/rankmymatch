@@ -44,22 +44,7 @@ function abbreviateName(name: string): string {
   return `${parts[0]} ${parts[1][0]}.`;
 }
 
-function LoadingBar({ progress, label }: { progress: number; label: string }) {
-  return (
-    <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-background px-8">
-      <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-      <div className="w-full max-w-xs">
-        <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
-          <div
-            className="h-full rounded-full bg-primary transition-all duration-500 ease-out"
-            style={{ width: `${progress}%` }}
-          />
-        </div>
-        <p className="mt-2 text-center text-[11px] text-muted-foreground">{label}</p>
-      </div>
-    </div>
-  );
-}
+// LoadingBar moved to src/components/LoadingBar.tsx
 
 function RankingPage() {
   const { user, isAuthenticated, isLoading: authLoading } = useAuth();
