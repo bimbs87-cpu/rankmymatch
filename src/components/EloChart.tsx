@@ -17,6 +17,7 @@ interface RatingPoint {
   rating: number;
   change: number;
   label: string;
+  position?: number | null;
 }
 
 export function EloChart({ userId }: { userId: string }) {
@@ -27,7 +28,6 @@ export function EloChart({ userId }: { userId: string }) {
 
   useEffect(() => {
     async function load() {
-      // Get seasons the user participated in
       const { data: events } = await supabase
         .from("rating_events")
         .select("season_id")
@@ -51,7 +51,7 @@ export function EloChart({ userId }: { userId: string }) {
       setIsLoading(true);
       let query = supabase
         .from("rating_events")
-        .select("rating_after, rating_change, created_at, season_id")
+        .select("rating_after, rating_change, created_at, season_id, match_id, user_id")
         .eq("user_id", userId)
         .order("created_at", { ascending: true });
 
@@ -62,12 +62,47 @@ export function EloChart({ userId }: { userId: string }) {
       const { data: events } = await query;
 
       if (events?.length) {
+        // Fetch all rating_events for relevant seasons to compute positions
+        const relevantSeasonIds = [...new Set(events.map((e) => e.season_id).filter(Boolean))] as string[];
+        let allEventsForSeasons: any[] = [];
+
+        if (relevantSeasonIds.length > 0) {
+          const { data: allEvents } = await supabase
+            .from("rating_events")
+            .select("user_id, rating_after, match_id, created_at, season_id")
+            .in("season_id", relevantSeasonIds)
+            .order("created_at", { ascending: true });
+          allEventsForSeasons = allEvents || [];
+        }
+
+        // Track each user's latest rating to compute positions at each match
+        const userLatestRating = new Map<string, number>();
+        const matchOrder = events.map((e) => e.match_id);
+
+        const allSorted = [...allEventsForSeasons].sort(
+          (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+        );
+
+        const positionAtMatch = new Map<string, number>();
+
+        for (const ev of allSorted) {
+          userLatestRating.set(ev.user_id, Number(ev.rating_after));
+
+          if (ev.user_id === userId && matchOrder.includes(ev.match_id)) {
+            const ratings = [...userLatestRating.values()].sort((a, b) => b - a);
+            const myRating = Number(ev.rating_after);
+            const pos = ratings.indexOf(myRating) + 1;
+            positionAtMatch.set(ev.match_id, pos);
+          }
+        }
+
         const points: RatingPoint[] = [
           {
             date: "",
             rating: events[0].rating_after - events[0].rating_change,
             change: 0,
             label: "Início",
+            position: null,
           },
           ...events.map((e, i) => ({
             date: new Date(e.created_at).toLocaleDateString("pt-BR", {
@@ -76,7 +111,8 @@ export function EloChart({ userId }: { userId: string }) {
             }),
             rating: Number(e.rating_after),
             change: Number(e.rating_change),
-            label: `Partida ${i + 1}`,
+            label: `Set ${i + 1}`,
+            position: positionAtMatch.get(e.match_id) || null,
           })),
         ];
         setData(points);
@@ -92,6 +128,28 @@ export function EloChart({ userId }: { userId: string }) {
   const totalChange = data.length > 1 ? currentRating - data[0].rating : 0;
   const minRating = data.length > 0 ? Math.min(...data.map((d) => d.rating)) - 20 : 980;
   const maxRating = data.length > 0 ? Math.max(...data.map((d) => d.rating)) + 20 : 1020;
+
+  const CustomDot = (props: any) => {
+    const { cx, cy, payload } = props;
+    if (!cx || !cy) return null;
+    return (
+      <g>
+        <circle cx={cx} cy={cy} r={3} fill="#c8ff00" strokeWidth={0} />
+        {payload.position && (
+          <text
+            x={cx}
+            y={cy - 10}
+            textAnchor="middle"
+            fill="rgba(255,255,255,0.7)"
+            fontSize={9}
+            fontWeight={600}
+          >
+            #{payload.position}
+          </text>
+        )}
+      </g>
+    );
+  };
 
   return (
     <div className="rounded-3xl border border-border bg-card p-4">
@@ -156,7 +214,7 @@ export function EloChart({ userId }: { userId: string }) {
       ) : (
         <div className="h-48">
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={data} margin={{ top: 5, right: 5, bottom: 5, left: -20 }}>
+            <LineChart data={data} margin={{ top: 18, right: 5, bottom: 5, left: -20 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" opacity={0.4} />
               <XAxis
                 dataKey="label"
@@ -186,8 +244,10 @@ export function EloChart({ userId }: { userId: string }) {
                 }}
                 formatter={(value: any, _name: any, props: any) => {
                   const change = props.payload.change;
+                  const pos = props.payload.position;
                   const changeStr = change > 0 ? `+${change}` : `${change}`;
-                  return [`${Math.round(Number(value))} (${changeStr})`, "Rating"];
+                  const posStr = pos ? ` · #${pos}` : "";
+                  return [`${Math.round(Number(value))} (${changeStr}${posStr})`, "Rating"];
                 }}
                 labelFormatter={(label: any) => String(label)}
               />
@@ -196,7 +256,7 @@ export function EloChart({ userId }: { userId: string }) {
                 dataKey="rating"
                 stroke="#c8ff00"
                 strokeWidth={2.5}
-                dot={{ r: 3, fill: "#c8ff00", strokeWidth: 0 }}
+                dot={<CustomDot />}
                 activeDot={{ r: 5, fill: "#c8ff00", strokeWidth: 2, stroke: "rgba(30,30,40,1)" }}
               />
             </LineChart>
