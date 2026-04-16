@@ -35,7 +35,7 @@ export function AddPlaceholderPlayerDialog({ open, onOpenChange, groupId, adminU
         name: trimmed,
         nickname: "",
         avatar_url: null,
-        avatar_type: "initials",
+        avatar_type: "preset",
         is_placeholder: true,
         created_by_admin: adminUserId,
       });
