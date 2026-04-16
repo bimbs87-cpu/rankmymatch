@@ -117,6 +117,22 @@ function DashboardPage() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const touchStartY = useRef(0);
   const isPulling = useRef(false);
+  const { pendingMatch, refresh: refreshPending } = usePendingMatch();
+  const [adminGroupIds, setAdminGroupIds] = useState<Set<string>>(new Set());
+
+  // Check which groups user is admin of
+  useEffect(() => {
+    if (!user || !myGroups.length) return;
+    supabase
+      .from("group_members")
+      .select("group_id, role")
+      .eq("user_id", user.id)
+      .in("role", ["creator", "admin"])
+      .eq("status", "active")
+      .then(({ data }) => {
+        setAdminGroupIds(new Set((data || []).map((d) => d.group_id)));
+      });
+  }, [user, myGroups]);
 
   const loadDashboard = useCallback(async () => {
     if (!user || !myGroups.length) {
