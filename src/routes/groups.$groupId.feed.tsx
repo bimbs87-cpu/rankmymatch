@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { LoadingBar } from "@/components/LoadingBar";
 import { useAuth } from "@/hooks/use-auth";
 import { useGroupFeed, postComment } from "@/hooks/use-feed";
 import { useGroupDetail } from "@/hooks/use-groups";
@@ -79,9 +80,7 @@ function GroupFeedPage() {
       {/* Feed */}
       <div className="px-5 pt-4">
         {isLoading ? (
-          <div className="flex justify-center py-12">
-            <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-          </div>
+          <LoadingBar fullScreen={false} label="Carregando feed..." />
         ) : comments.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-3xl bg-primary/10">
