@@ -1,5 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useAuth } from "@/hooks/use-auth";
+import { useEffect } from "react";
 import { useGroupDetail } from "@/hooks/use-groups";
 import { useRoundDetail, confirmPresence, cancelPresence, drawTeams, deleteMatch, deleteRound } from "@/hooks/use-seasons";
 import { supabase } from "@/integrations/supabase/client";
@@ -45,14 +46,14 @@ function RoundDetailPage() {
   const [seasonData, setSeasonData] = useState<any>(null);
 
   // Load season config for sets_per_match
-  useState(() => {
+  useEffect(() => {
     supabase
       .from("seasons")
       .select("sets_per_match, match_format, singles_pairing_mode")
       .eq("id", seasonId)
       .single()
       .then(({ data }) => { if (data) setSeasonData(data); });
-  });
+  }, [seasonId]);
   const [deletingMatchId, setDeletingMatchId] = useState<string | null>(null);
   const [deletingRound, setDeletingRound] = useState(false);
   const [expandedMatch, setExpandedMatch] = useState<string | null>(null);
