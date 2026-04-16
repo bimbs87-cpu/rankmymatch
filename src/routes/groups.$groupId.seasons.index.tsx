@@ -104,6 +104,9 @@ function GroupSeasonsPage() {
     setIsRetroactive(false);
     setRoundsPlayed(0);
     setSubmitError(null);
+    setSetsPerMatch(3);
+    setSinglesPairingMode("manual");
+    setOddPlayerRule("admin_decides");
   };
 
   const handleSelectType = (type: "weekly" | "monthly") => {
