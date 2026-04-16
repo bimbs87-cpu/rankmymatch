@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useAuth } from "@/hooks/use-auth";
 import { useMyGroups, usePublicGroups } from "@/hooks/use-groups";
 import { CreateGroupDialog } from "@/components/CreateGroupDialog";
+import { TrophyLoadingBar } from "@/components/TrophyLoadingBar";
 import { Plus, Search, Users, Lock, Globe } from "lucide-react";
 import { useState } from "react";
 
@@ -19,11 +20,7 @@ function GroupsIndexPage() {
   const { groups: publicGroups, isLoading: pubLoading } = usePublicGroups(tab === "explore" ? search : "");
 
   if (authLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-      </div>
-    );
+    return <TrophyLoadingBar />;
   }
 
   if (!isAuthenticated) {
