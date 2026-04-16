@@ -283,6 +283,7 @@ function RankingPage() {
 
       setRankings(entries);
       setLoading(false);
+      setInitialReady(true);
     };
     loadRankings();
   }, [selectedSeasonId, seasons]);
