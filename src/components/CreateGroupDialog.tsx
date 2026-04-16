@@ -173,6 +173,7 @@ export function CreateGroupDialog({ open, onClose }: Props) {
             {submitting ? "Criando..." : "Criar Grupo"}
           </button>
         </div>
+        </div>
       </div>
     </div>
   );
