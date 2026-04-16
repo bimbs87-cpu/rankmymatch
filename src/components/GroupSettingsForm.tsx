@@ -16,22 +16,29 @@ interface Props {
   imageUrl: string | null;
   groupStatus?: string;
   isCreator?: boolean;
+  presenceOpenMode?: string;
+  presenceOpenTime?: string;
   onSaved: () => void;
 }
 
 export function GroupSettingsForm({
   groupId, name: initName, description: initDesc, isPublic: initPublic,
-  maxPlayers, sport, simultaneousCourts, imageUrl, groupStatus = "active", isCreator = false, onSaved,
+  maxPlayers, sport, simultaneousCourts, imageUrl, groupStatus = "active", isCreator = false,
+  presenceOpenMode: initPresenceMode = "1_day_before", presenceOpenTime: initPresenceTime = "10:00:00",
+  onSaved,
 }: Props) {
   const navigate = useNavigate();
   const [name, setName] = useState(initName);
   const [description, setDescription] = useState(initDesc || "");
   const [isPublic, setIsPublic] = useState(initPublic);
+  const [presenceMode, setPresenceMode] = useState(initPresenceMode);
+  const [presenceTime, setPresenceTime] = useState(initPresenceTime.slice(0, 5));
   const [saving, setSaving] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
-  const hasChanges = name !== initName || description !== (initDesc || "") || isPublic !== initPublic;
+  const hasChanges = name !== initName || description !== (initDesc || "") || isPublic !== initPublic
+    || presenceMode !== initPresenceMode || presenceTime !== initPresenceTime.slice(0, 5);
 
   const handleSave = async () => {
     if (!name.trim()) { toast.error("Nome é obrigatório"); return; }
