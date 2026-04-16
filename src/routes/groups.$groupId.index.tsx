@@ -10,7 +10,7 @@ import { SearchUserDialog } from "@/components/SearchUserDialog";
 import { useAuth } from "@/hooks/use-auth";
 import { TrophyLoadingBar } from "@/components/TrophyLoadingBar";
 import { usePendingMatch } from "@/hooks/use-pending-matches";
-import { useGroupSeasons } from "@/hooks/use-seasons";
+import { useGroupSeasons, useSeasonRounds } from "@/hooks/use-seasons";
 import { supabase } from "@/integrations/supabase/client";
 import { isRivalryGroup } from "@/lib/rivalry";
 import {
@@ -47,6 +47,9 @@ import {
   Link2,
   Ghost,
   Search,
+  Calendar,
+  Clock,
+  MapPin,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
@@ -62,7 +65,7 @@ function GroupDetailPage() {
     useGroupDetail(groupId);
   const { pendingMatch, refresh: refreshPending } = usePendingMatch(groupId);
   const navigate = useNavigate();
-  const [tab, setTab] = useState<"members" | "temporadas" | "requests" | "settings">("members");
+  const [tab, setTab] = useState<"members" | "resultados" | "temporadas" | "requests" | "settings">("members");
   const [inviteOpen, setInviteOpen] = useState(false);
   const [addPlaceholderOpen, setAddPlaceholderOpen] = useState(false);
   const [claimOpen, setClaimOpen] = useState(false);
@@ -356,6 +359,14 @@ function GroupDetailPage() {
             }`}
           >
             {rivalry ? "Duelo" : "Ranking"}
+          </button>
+          <button
+            onClick={() => setTab("resultados")}
+            className={`flex-1 rounded-full py-2 text-xs font-semibold transition-colors ${
+              tab === "resultados" ? "bg-primary text-primary-foreground" : "text-muted-foreground"
+            }`}
+          >
+            Resultados
           </button>
           <button
             onClick={() => setTab("temporadas")}
@@ -668,6 +679,16 @@ function GroupDetailPage() {
           </>
         )}
 
+        {/* Resultados tab — rodadas da temporada ativa */}
+        {tab === "resultados" && (
+          <ActiveSeasonRounds
+            groupId={groupId}
+            seasons={seasons}
+            seasonsLoading={seasonsLoading}
+            isAdmin={isAdmin}
+          />
+        )}
+
         {/* Temporadas tab */}
         {tab === "temporadas" && (
           <>
@@ -821,5 +842,182 @@ function GroupDetailPage() {
         />
       )}
     </div>
+  );
+}
+
+function ActiveSeasonRounds({
+  groupId,
+  seasons,
+  seasonsLoading,
+  isAdmin,
+}: {
+  groupId: string;
+  seasons: { id: string; status: string; name: string }[];
+  seasonsLoading: boolean;
+  isAdmin: boolean;
+}) {
+  const activeSeason = seasons.find((s) => s.status === "active") || null;
+  const { rounds, isLoading } = useSeasonRounds(activeSeason?.id || "");
+
+  if (seasonsLoading) {
+    return <TrophyLoadingBar fullScreen={false} compact />;
+  }
+
+  if (!activeSeason) {
+    return (
+      <div className="rounded-3xl border border-dashed border-border bg-card/50 p-8">
+        <div className="flex flex-col items-center gap-3 text-center">
+          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10">
+            <Trophy className="h-7 w-7 text-primary" />
+          </div>
+          <h3 className="font-display text-base font-bold text-foreground">Sem temporada ativa</h3>
+          <p className="text-sm text-muted-foreground">
+            {isAdmin
+              ? "Crie ou ative uma temporada para ver as rodadas aqui."
+              : "Aguarde o admin iniciar uma temporada para ver as rodadas."}
+          </p>
+          {isAdmin && (
+            <Link
+              to="/groups/$groupId/seasons"
+              params={{ groupId }}
+              className="mt-2 flex items-center gap-1.5 rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground"
+            >
+              Gerenciar temporadas
+            </Link>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  if (isLoading) {
+    return <TrophyLoadingBar fullScreen={false} compact />;
+  }
+
+  const today = new Date().toISOString().split("T")[0];
+  const formatDate = (d: string | null) => {
+    if (!d) return "Sem data";
+    return new Date(d + "T00:00:00").toLocaleDateString("pt-BR", {
+      weekday: "short",
+      day: "2-digit",
+      month: "short",
+    });
+  };
+  const getSmartStatus = (r: typeof rounds[0]) => {
+    if (r.status !== "scheduled") return r.status;
+    if (r.scheduled_date && r.scheduled_date <= today) return "pending_result";
+    return "scheduled";
+  };
+  const statusLabel = (s: string) =>
+    s === "scheduled" ? "Agendada"
+    : s === "pending_result" ? "Lançar resultado"
+    : s === "in_progress" ? "Em jogo"
+    : s === "completed" ? "Encerrada"
+    : s === "cancelled" ? "Cancelada"
+    : s;
+  const statusClass = (s: string) =>
+    s === "scheduled" ? "bg-info/10 text-info"
+    : s === "pending_result" ? "bg-warning/10 text-warning"
+    : s === "in_progress" ? "bg-warning/10 text-warning"
+    : s === "completed" ? "bg-success/10 text-success"
+    : s === "cancelled" ? "bg-destructive/10 text-destructive"
+    : "bg-muted text-muted-foreground";
+
+  return (
+    <>
+      <div className="flex items-center justify-between mb-1">
+        <div className="min-w-0">
+          <h2 className="text-sm font-semibold text-foreground truncate">{activeSeason.name}</h2>
+          <p className="text-[10px] text-muted-foreground">Temporada ativa · {rounds.length} rodada{rounds.length !== 1 ? "s" : ""}</p>
+        </div>
+        <Link
+          to="/groups/$groupId/seasons/$seasonId"
+          params={{ groupId, seasonId: activeSeason.id }}
+          className="flex items-center gap-1 rounded-full border border-border bg-card px-3 py-1.5 text-[11px] font-semibold text-foreground"
+        >
+          Ver temporada
+          <ChevronRight className="h-3 w-3" />
+        </Link>
+      </div>
+
+      {rounds.length === 0 ? (
+        <div className="rounded-3xl border border-dashed border-border bg-card/50 p-8">
+          <div className="flex flex-col items-center gap-3 text-center">
+            <Calendar className="h-10 w-10 text-muted-foreground/40" />
+            <h3 className="font-display text-base font-bold text-foreground">Nenhuma rodada</h3>
+            <p className="text-sm text-muted-foreground">
+              As rodadas aparecerão aqui assim que forem criadas.
+            </p>
+          </div>
+        </div>
+      ) : (
+        rounds.map((r) => (
+          <div key={r.id} className={`rounded-2xl border border-border bg-card/50 ${r.status === "cancelled" ? "opacity-50" : ""}`}>
+            {r.status !== "cancelled" ? (
+              <Link
+                to="/groups/$groupId/seasons/$seasonId/rounds/$roundId"
+                params={{ groupId, seasonId: activeSeason.id, roundId: r.id }}
+                className="flex items-center justify-between p-4 active:bg-accent/30"
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 flex-shrink-0">
+                    <span className="font-display text-sm font-bold text-primary">
+                      R{r.round_number || "?"}
+                    </span>
+                  </div>
+                  <div className="min-w-0">
+                    <span className="text-sm font-semibold text-foreground">Rodada {r.round_number}</span>
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <Calendar className="h-3 w-3" />
+                      <span>{formatDate(r.scheduled_date)}</span>
+                      {r.scheduled_time && (
+                        <>
+                          <Clock className="h-3 w-3" />
+                          <span>{r.scheduled_time?.slice(0, 5)}</span>
+                        </>
+                      )}
+                    </div>
+                    {r.location && (
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <MapPin className="h-3 w-3" />
+                        <span className="truncate">{r.location}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-semibold ${statusClass(getSmartStatus(r))}`}>
+                    {statusLabel(getSmartStatus(r))}
+                  </span>
+                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                </div>
+              </Link>
+            ) : (
+              <div className="flex items-center justify-between p-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-muted">
+                    <span className="font-display text-sm font-bold text-muted-foreground">
+                      R{r.round_number || "?"}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-sm font-semibold text-muted-foreground line-through">
+                      Rodada {r.round_number}
+                    </span>
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <Calendar className="h-3 w-3" />
+                      <span>{formatDate(r.scheduled_date)}</span>
+                    </div>
+                  </div>
+                </div>
+                <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-semibold ${statusClass(r.status)}`}>
+                  {statusLabel(r.status)}
+                </span>
+              </div>
+            )}
+          </div>
+        ))
+      )}
+    </>
   );
 }
