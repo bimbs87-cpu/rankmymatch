@@ -8,28 +8,42 @@ interface PlayerAvatarProps {
 }
 
 const SIZES = {
-  xs: { container: "h-5 w-5", text: "text-[9px]", emoji: "text-sm" },
-  sm: { container: "h-6 w-6", text: "text-[10px]", emoji: "text-base" },
-  md: { container: "h-7 w-7", text: "text-[10px]", emoji: "text-lg" },
-  lg: { container: "h-10 w-10", text: "text-sm", emoji: "text-xl" },
-  xl: { container: "h-20 w-20", text: "text-xl", emoji: "text-4xl" },
+  xs: { container: "h-5 w-5", text: "text-[9px]" },
+  sm: { container: "h-6 w-6", text: "text-[10px]" },
+  md: { container: "h-7 w-7", text: "text-[10px]" },
+  lg: { container: "h-10 w-10", text: "text-sm" },
+  xl: { container: "h-20 w-20", text: "text-xl" },
 };
 
 export function PlayerAvatar({ avatarUrl, name = "", size = "sm", className = "" }: PlayerAvatarProps) {
   const s = SIZES[size];
 
-  // Emoji avatar (emoji:padel-01)
+  // Premium avatar (avatar:padel-01)
+  if (avatarUrl?.startsWith("avatar:")) {
+    const id = avatarUrl.replace("avatar:", "");
+    const avatar = PREMIUM_AVATARS.find((a) => a.id === id);
+    if (avatar) {
+      return (
+        <img
+          src={avatar.src}
+          alt=""
+          className={`shrink-0 rounded-full object-cover ${s.container} ${className}`}
+        />
+      );
+    }
+  }
+
+  // Legacy emoji avatar support
   if (avatarUrl?.startsWith("emoji:")) {
     const id = avatarUrl.replace("emoji:", "");
     const avatar = PREMIUM_AVATARS.find((a) => a.id === id);
     if (avatar) {
       return (
-        <div
-          className={`flex shrink-0 items-center justify-center rounded-full ${s.container} ${className}`}
-          style={{ backgroundColor: avatar.bgColor }}
-        >
-          <span className={s.emoji}>{avatar.emoji}</span>
-        </div>
+        <img
+          src={avatar.src}
+          alt=""
+          className={`shrink-0 rounded-full object-cover ${s.container} ${className}`}
+        />
       );
     }
   }

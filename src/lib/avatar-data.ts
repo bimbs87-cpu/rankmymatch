@@ -2,8 +2,7 @@ export interface PremiumAvatar {
   id: string;
   sport: string;
   sportLabel: string;
-  emoji: string;
-  bgColor: string;
+  src: string;
 }
 
 const SPORTS = [
@@ -11,31 +10,39 @@ const SPORTS = [
   { key: "tennis", label: "Tênis" },
   { key: "beach", label: "Beach Tennis" },
   { key: "squash", label: "Squash" },
-  { key: "pickleball", label: "Pickleball" },
+  { key: "pickle", label: "Pickleball" },
 ] as const;
 
-export const SPORT_TABS = SPORTS.map((s) => ({ key: s.key, label: s.label }));
-
-const SPORT_EMOJIS: Record<string, string[]> = {
-  padel: ["🏸", "🎾", "🏆", "⚡", "🔥", "💪", "🎯", "🥇", "🌟", "🏅", "👑", "💥"],
-  tennis: ["🎾", "🏆", "🥎", "⚡", "🔥", "💪", "🎯", "🥇", "🌟", "🏅", "👑", "💥"],
-  beach: ["🏖️", "🌊", "☀️", "🏄", "🎾", "🏆", "⚡", "🔥", "🌴", "🥇", "🌟", "💪"],
-  squash: ["🏸", "🏆", "⚡", "🔥", "💪", "🎯", "🥇", "🌟", "🏅", "👑", "💥", "🎖️"],
-  pickleball: ["🥒", "🏓", "🏆", "⚡", "🔥", "💪", "🎯", "🥇", "🌟", "🏅", "👑", "💥"],
-};
-
-const BG_COLORS = [
-  "#1a472a", "#2d3436", "#6c3483", "#1b4f72", "#7b241c",
-  "#1e3a2f", "#34495e", "#4a235a", "#154360", "#641e16",
-  "#0e6251", "#283747",
+export const SPORT_TABS = [
+  ...SPORTS.map((s) => ({ key: s.key, label: s.label })),
+  { key: "rackets", label: "Raquetes" },
 ];
 
-export const PREMIUM_AVATARS: PremiumAvatar[] = SPORTS.flatMap((sport) =>
-  Array.from({ length: 12 }, (_, i) => ({
-    id: `${sport.key}-${String(i + 1).padStart(2, "0")}`,
-    sport: sport.key,
-    sportLabel: sport.label,
-    emoji: SPORT_EMOJIS[sport.key][i],
-    bgColor: BG_COLORS[i],
-  })),
+const CHARACTER_AVATARS: PremiumAvatar[] = SPORTS.flatMap((sport) =>
+  Array.from({ length: 16 }, (_, i) => {
+    const num = String(i + 1).padStart(2, "0");
+    return {
+      id: `${sport.key}-${num}`,
+      sport: sport.key,
+      sportLabel: sport.label,
+      src: `/avatars/${sport.key}-${num}.png`,
+    };
+  }),
 );
+
+const RACKET_AVATARS: PremiumAvatar[] = SPORTS.flatMap((sport) =>
+  Array.from({ length: 4 }, (_, i) => {
+    const num = String(i + 1).padStart(2, "0");
+    return {
+      id: `racket-${sport.key}-${num}`,
+      sport: "rackets",
+      sportLabel: "Raquetes",
+      src: `/avatars/racket-${sport.key}-${num}.png`,
+    };
+  }),
+);
+
+export const PREMIUM_AVATARS: PremiumAvatar[] = [
+  ...CHARACTER_AVATARS,
+  ...RACKET_AVATARS,
+];
