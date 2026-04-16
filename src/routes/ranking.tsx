@@ -212,13 +212,13 @@ function RankingPage() {
         }
 
         if (matchIds.length > 0) {
-          const { count: setCount, error: setsError } = await supabase
+          const { data: setsData, error: setsError } = await supabase
             .from("match_sets")
-            .select("id", { count: "exact", head: true })
+            .select("id")
             .in("match_id", matchIds);
 
           if (setsError) throw setsError;
-          setTotalSets(setCount || 0);
+          setTotalSets(setsData?.length || 0);
         } else {
           setTotalSets(0);
         }
