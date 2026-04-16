@@ -6,7 +6,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { PREMIUM_AVATARS, SPORT_TABS } from "@/lib/avatar-data";
-import { Check, User } from "lucide-react";
+import { Check } from "lucide-react";
 
 interface AvatarPickerDialogProps {
   open: boolean;
