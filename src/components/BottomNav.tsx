@@ -20,6 +20,7 @@ export function BottomNav() {
             location.pathname === item.to ||
             (item.to !== "/" && location.pathname.startsWith(item.to));
           const Icon = item.icon;
+          const isRanking = item.to === "/ranking";
           return (
             <Link
               key={item.to}
@@ -27,18 +28,20 @@ export function BottomNav() {
               className={`relative flex flex-col items-center gap-0.5 rounded-full px-3 py-1.5 text-[10px] font-medium transition-all duration-200 ${
                 isActive
                   ? "text-primary"
-                  : "text-muted-foreground hover:text-foreground"
+                  : isRanking
+                    ? "text-primary/60 hover:text-primary"
+                    : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              <div className="relative">
+              <div className={`relative ${isRanking && !isActive ? "rounded-full bg-primary/10 p-1" : ""}`}>
                 <Icon
-                  className={`h-5 w-5 transition-all duration-200 ${
-                    isActive ? "scale-110" : ""
-                  }`}
-                  strokeWidth={isActive ? 2.5 : 1.5}
+                  className={`transition-all duration-200 ${
+                    isRanking ? "h-[22px] w-[22px]" : "h-5 w-5"
+                  } ${isActive ? "scale-110" : ""}`}
+                  strokeWidth={isActive ? 2.5 : isRanking ? 2 : 1.5}
                 />
               </div>
-              <span>{item.label}</span>
+              <span className={isRanking ? "font-semibold" : ""}>{item.label}</span>
             </Link>
           );
         })}
