@@ -1,4 +1,4 @@
-import { PREMIUM_AVATARS } from "@/lib/avatar-data";
+import { PREMIUM_AVATARS, getAvatarUrl } from "@/lib/avatar-data";
 
 interface PlayerAvatarProps {
   avatarUrl: string | null | undefined;
@@ -18,29 +18,15 @@ const SIZES = {
 export function PlayerAvatar({ avatarUrl, name = "", size = "sm", className = "" }: PlayerAvatarProps) {
   const s = SIZES[size];
 
-  // Premium avatar (avatar:padel-01)
-  if (avatarUrl?.startsWith("avatar:")) {
-    const id = avatarUrl.replace("avatar:", "");
-    const avatar = PREMIUM_AVATARS.find((a) => a.id === id);
-    if (avatar) {
+  // Premium avatar (avatar:padel-01 or legacy emoji:padel-01)
+  const prefix = avatarUrl?.startsWith("avatar:") ? "avatar:" : avatarUrl?.startsWith("emoji:") ? "emoji:" : null;
+  if (prefix) {
+    const id = avatarUrl!.replace(prefix, "");
+    const src = getAvatarUrl(id);
+    if (src) {
       return (
         <img
-          src={avatar.src}
-          alt=""
-          className={`shrink-0 rounded-full object-cover ${s.container} ${className}`}
-        />
-      );
-    }
-  }
-
-  // Legacy emoji avatar support
-  if (avatarUrl?.startsWith("emoji:")) {
-    const id = avatarUrl.replace("emoji:", "");
-    const avatar = PREMIUM_AVATARS.find((a) => a.id === id);
-    if (avatar) {
-      return (
-        <img
-          src={avatar.src}
+          src={src}
           alt=""
           className={`shrink-0 rounded-full object-cover ${s.container} ${className}`}
         />

@@ -2,7 +2,7 @@ export interface PremiumAvatar {
   id: string;
   sport: string;
   sportLabel: string;
-  src: string;
+  file: string; // filename like "padel-01.png"
 }
 
 const SPORTS = [
@@ -18,6 +18,24 @@ export const SPORT_TABS = [
   { key: "rackets", label: "Raquetes" },
 ];
 
+// Vite glob import — resolves all PNGs at build time
+const avatarModules = import.meta.glob<{ default: string }>(
+  "/src/assets/avatars/*.png",
+  { eager: true },
+);
+
+// Build a map: filename → resolved URL
+const avatarUrlMap: Record<string, string> = {};
+for (const [path, mod] of Object.entries(avatarModules)) {
+  const filename = path.split("/").pop()!;
+  avatarUrlMap[filename] = mod.default;
+}
+
+export function getAvatarUrl(id: string): string | undefined {
+  // Try direct match first (e.g. "padel-01" → "padel-01.png")
+  return avatarUrlMap[`${id}.png`];
+}
+
 const CHARACTER_AVATARS: PremiumAvatar[] = SPORTS.flatMap((sport) =>
   Array.from({ length: 16 }, (_, i) => {
     const num = String(i + 1).padStart(2, "0");
@@ -25,7 +43,7 @@ const CHARACTER_AVATARS: PremiumAvatar[] = SPORTS.flatMap((sport) =>
       id: `${sport.key}-${num}`,
       sport: sport.key,
       sportLabel: sport.label,
-      src: `/avatars/${sport.key}-${num}.png`,
+      file: `${sport.key}-${num}.png`,
     };
   }),
 );
@@ -37,7 +55,7 @@ const RACKET_AVATARS: PremiumAvatar[] = SPORTS.flatMap((sport) =>
       id: `racket-${sport.key}-${num}`,
       sport: "rackets",
       sportLabel: "Raquetes",
-      src: `/avatars/racket-${sport.key}-${num}.png`,
+      file: `racket-${sport.key}-${num}.png`,
     };
   }),
 );

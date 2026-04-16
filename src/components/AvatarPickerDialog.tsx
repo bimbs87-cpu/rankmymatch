@@ -5,7 +5,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { PREMIUM_AVATARS, SPORT_TABS } from "@/lib/avatar-data";
+import { PREMIUM_AVATARS, SPORT_TABS, getAvatarUrl } from "@/lib/avatar-data";
 import { Check } from "lucide-react";
 
 interface AvatarPickerDialogProps {
@@ -68,7 +68,7 @@ export function AvatarPickerDialog({
         )}
 
         {/* Sport tabs */}
-        <div className="flex gap-1.5 overflow-x-auto px-5 pb-2 scrollbar-none">
+        <div className="flex gap-1.5 overflow-x-auto px-5 pb-2 scrollbar-none [&::-webkit-scrollbar]:hidden">
           {SPORT_TABS.map((s) => (
             <button
               key={s.key}
@@ -89,6 +89,8 @@ export function AvatarPickerDialog({
           {filtered.map((avatar) => {
             const avatarKey = `avatar:${avatar.id}`;
             const isSelected = currentAvatarUrl === avatarKey || currentAvatarUrl === `emoji:${avatar.id}`;
+            const src = getAvatarUrl(avatar.id);
+            if (!src) return null;
             return (
               <button
                 key={avatar.id}
@@ -101,7 +103,7 @@ export function AvatarPickerDialog({
                 }`}
               >
                 <img
-                  src={avatar.src}
+                  src={src}
                   alt={avatar.id}
                   className="h-full w-full object-cover"
                   loading="lazy"
