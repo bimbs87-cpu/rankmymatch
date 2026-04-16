@@ -58,6 +58,7 @@ interface RecentMatch {
   score_display: string;
   rating_change: number | null;
   created_at: string;
+  partner_name: string | null;
 }
 
 interface MyRanking {
@@ -174,25 +175,40 @@ function DashboardPage() {
       const matchIds = events.map((e: any) => e.match_id);
       const roundIds = events.map((e: any) => (e.matches as any)?.round_id).filter(Boolean);
 
-      const [playersRes, roundsRes] = await Promise.all([
+      const [playersRes, roundsRes, setsRes] = await Promise.all([
         supabase.from("match_players").select("match_id, team, user_id").in("match_id", matchIds),
         roundIds.length
           ? supabase.from("rounds").select("id, round_number, group_id, groups(name)").in("id", [...new Set(roundIds)])
           : Promise.resolve({ data: [] }),
+        supabase.from("match_sets").select("match_id, score_team_a, score_team_b, set_number").in("match_id", matchIds).order("set_number"),
       ]);
 
-      const setsRes = await supabase.from("match_sets").select("match_id, score_team_a, score_team_b, set_number").in("match_id", matchIds).order("set_number");
+      // Load partner profiles
+      const partnerIds = new Set<string>();
+      for (const e of events) {
+        const myPlayer = (playersRes.data || []).find((p: any) => p.match_id === e.match_id && p.user_id === user.id);
+        if (myPlayer) {
+          const partner = (playersRes.data || []).find((p: any) => p.match_id === e.match_id && p.team === myPlayer.team && p.user_id !== user.id);
+          if (partner) partnerIds.add(partner.user_id);
+        }
+      }
+      const { data: partnerProfiles } = partnerIds.size > 0
+        ? await supabase.from("user_profiles").select("user_id, name, nickname").in("user_id", [...partnerIds])
+        : { data: [] as any[] };
+      const partnerMap = new Map((partnerProfiles || []).map((p: any) => [p.user_id, p]));
 
       const roundMap = new Map((roundsRes.data || []).map((r: any) => [r.id, r]));
 
       setRecentMatches(
         events.map((e: any) => {
           const match = e.matches as any;
-          const myPlayer = (playersRes.data || []).find((p) => p.match_id === e.match_id && p.user_id === user.id);
+          const myPlayer = (playersRes.data || []).find((p: any) => p.match_id === e.match_id && p.user_id === user.id);
+          const partner = (playersRes.data || []).find((p: any) => p.match_id === e.match_id && p.team === myPlayer?.team && p.user_id !== user.id);
+          const partnerProfile = partner ? partnerMap.get(partner.user_id) : null;
           const round = roundMap.get(match?.round_id);
-          const sets = (setsRes.data || []).filter((s) => s.match_id === e.match_id);
+          const sets = (setsRes.data || []).filter((s: any) => s.match_id === e.match_id);
           const scoreDisplay = sets.length
-            ? sets.map((s) => `${s.score_team_a}-${s.score_team_b}`).join(" / ")
+            ? sets.map((s: any) => `${s.score_team_a}-${s.score_team_b}`).join(" / ")
             : "—";
           return {
             id: e.match_id,
@@ -204,6 +220,7 @@ function DashboardPage() {
             score_display: scoreDisplay,
             rating_change: Number(e.rating_change),
             created_at: e.created_at,
+            partner_name: partnerProfile?.nickname || partnerProfile?.name?.split(" ")[0] || null,
           };
         })
       );
@@ -465,21 +482,21 @@ function DashboardPage() {
               </div>
             </div>
           ) : (
-            <div className="space-y-2">
-              {upcomingRounds.map((r) => (
+            <div className="space-y-1.5">
+              {upcomingRounds.slice(0, 3).map((r) => (
                 <Link
                   key={r.id}
                   to="/groups/$groupId/seasons/$seasonId/rounds/$roundId"
                   params={{ groupId: r.group_id, seasonId: r.season_id || "", roundId: r.id }}
-                  className="flex items-center gap-3 rounded-2xl border border-border bg-card p-3.5 transition-colors active:bg-accent/30"
+                  className="flex items-center gap-2.5 rounded-xl border border-border bg-card px-3 py-2 transition-colors active:bg-accent/30"
                 >
-                  <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
+                  <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${
                     r.status === "in_progress" ? "bg-warning/10" : "bg-primary/10"
                   }`}>
                     {r.status === "in_progress" ? (
-                      <Swords className="h-5 w-5 text-warning" />
+                      <Swords className="h-4 w-4 text-warning" />
                     ) : (
-                      <Calendar className="h-5 w-5 text-primary" />
+                      <Calendar className="h-4 w-4 text-primary" />
                     )}
                   </div>
                   <div className="min-w-0 flex-1">
@@ -497,24 +514,18 @@ function DashboardPage() {
                         return <span className={`rounded-full px-1.5 py-0.5 text-[9px] font-semibold ${cls}`}>{label}</span>;
                       })()}
                     </div>
-                    <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px] text-muted-foreground">
+                    <div className="flex flex-wrap items-center gap-x-2.5 text-[10px] text-muted-foreground">
                       <span className="font-medium">{r.group_name}</span>
                       {r.scheduled_date && (
-                        <span className="flex items-center gap-1">
-                          <Calendar className="h-3 w-3" />
+                        <span className="flex items-center gap-0.5">
+                          <Calendar className="h-2.5 w-2.5" />
                           {formatDate(r.scheduled_date)}
                         </span>
                       )}
                       {r.scheduled_time && (
-                        <span className="flex items-center gap-1">
-                          <Clock className="h-3 w-3" />
+                        <span className="flex items-center gap-0.5">
+                          <Clock className="h-2.5 w-2.5" />
                           {r.scheduled_time.slice(0, 5)}
-                        </span>
-                      )}
-                      {r.location && (
-                        <span className="flex items-center gap-1">
-                          <MapPin className="h-3 w-3" />
-                          {r.location}
                         </span>
                       )}
                     </div>
@@ -565,25 +576,25 @@ function DashboardPage() {
               </div>
             </div>
           ) : (
-            <div className="space-y-2">
-              {recentMatches.map((m) => {
+            <div className="space-y-1.5">
+              {recentMatches.slice(0, 3).map((m) => {
                 const won = m.winner_team === m.my_team;
                 return (
                   <div
                     key={m.id}
-                    className="flex items-center gap-3 rounded-2xl border border-border bg-card p-3"
+                    className="flex items-center gap-2.5 rounded-xl border border-border bg-card px-3 py-2"
                   >
-                    <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-xs font-bold ${
+                    <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[10px] font-bold ${
                       won ? "bg-success/10 text-success" : "bg-destructive/10 text-destructive"
                     }`}>
                       {won ? "V" : "D"}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="text-xs font-semibold text-foreground">
-                        {m.group_name && `${m.group_name} • `}Partida {m.match_number}
+                      <p className="text-xs font-semibold text-foreground truncate">
+                        {m.group_name && `${m.group_name} • `}Set {m.match_number}
                       </p>
-                      <p className="text-[11px] text-muted-foreground">
-                        {m.score_display} • Time {m.my_team}
+                      <p className="text-[10px] text-muted-foreground truncate">
+                        {m.score_display}{m.partner_name ? ` · c/ ${m.partner_name}` : ""}
                       </p>
                     </div>
                     {m.rating_change !== null && (

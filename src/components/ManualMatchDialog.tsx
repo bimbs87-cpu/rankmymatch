@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { submitMatchScore } from "@/lib/elo-engine";
-import { X, Check, ChevronRight, Save, Swords, Users, Trophy, Crown } from "lucide-react";
+import { X, Check, ChevronRight, Save, Swords, Users, Crown, ArrowUp, ArrowDown } from "lucide-react";
 import { toast } from "sonner";
 
 interface GroupMember {
@@ -348,15 +348,28 @@ export function ManualMatchDialog({ roundId, groupId, onClose, onSaved }: Props)
                   >
                     {/* Match header */}
                     <div className="mb-3 flex items-center justify-between">
-                      <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                        Jogo {idx + 1}
-                      </span>
-                      {winner ? (
-                        <span className="flex items-center gap-1 rounded-full bg-success/10 px-2.5 py-0.5 text-[10px] font-semibold text-success">
-                          <Trophy className="h-3 w-3" />
-                          Vitória
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                          {idx + 1}º Jogo
                         </span>
-                      ) : isTied ? (
+                        <div className="flex items-center gap-0.5">
+                          <button
+                            onClick={() => moveMatchup(idx, "up")}
+                            disabled={idx === 0}
+                            className="flex h-5 w-5 items-center justify-center rounded bg-muted text-muted-foreground disabled:opacity-20 active:scale-90 transition-all"
+                          >
+                            <ArrowUp className="h-3 w-3" />
+                          </button>
+                          <button
+                            onClick={() => moveMatchup(idx, "down")}
+                            disabled={idx === matchups.length - 1}
+                            className="flex h-5 w-5 items-center justify-center rounded bg-muted text-muted-foreground disabled:opacity-20 active:scale-90 transition-all"
+                          >
+                            <ArrowDown className="h-3 w-3" />
+                          </button>
+                        </div>
+                      </div>
+                      {isTied ? (
                         <span className="rounded-full bg-warning/10 px-2.5 py-0.5 text-[10px] font-semibold text-warning">
                           Empate
                         </span>
