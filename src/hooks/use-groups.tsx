@@ -216,7 +216,7 @@ export async function createGroup(data: {
   match_format?: string;
   singles_group_type?: string;
 }) {
-  const insertData: Record<string, any> = {
+  const insertData: any = {
     name: data.name,
     description: data.description || "",
     is_public: data.is_public,
@@ -227,12 +227,11 @@ export async function createGroup(data: {
   };
   if (data.match_format === "singles" && data.singles_group_type) {
     insertData.singles_group_type = data.singles_group_type;
-    // Adjust slots_per_round for singles
     insertData.slots_per_round = 2;
   }
   const { data: group, error } = await supabase
     .from("groups")
-    .insert(insertData)
+    .insert(insertData as any)
     .select()
     .single();
 
