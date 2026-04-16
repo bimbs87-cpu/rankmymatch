@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { abbreviateName } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
+import { TrophyLoadingBar } from "@/components/TrophyLoadingBar";
 import { supabase } from "@/integrations/supabase/client";
 import { EloChart } from "@/components/EloChart";
 import { PlayerAvatar } from "@/components/PlayerAvatar";

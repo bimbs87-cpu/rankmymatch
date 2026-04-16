@@ -8,6 +8,7 @@ import { ClaimPlayerDialog } from "@/components/ClaimPlayerDialog";
 import { PlayerClaimsManager } from "@/components/PlayerClaimsManager";
 import { SearchUserDialog } from "@/components/SearchUserDialog";
 import { useAuth } from "@/hooks/use-auth";
+import { TrophyLoadingBar } from "@/components/TrophyLoadingBar";
 import { usePendingMatch } from "@/hooks/use-pending-matches";
 import { useGroupSeasons } from "@/hooks/use-seasons";
 import { supabase } from "@/integrations/supabase/client";
