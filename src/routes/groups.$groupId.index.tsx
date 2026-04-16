@@ -1,5 +1,4 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { BottomNav } from "@/components/BottomNav";
 import { GroupSettingsForm } from "@/components/GroupSettingsForm";
 import { InviteLinkDialog } from "@/components/InviteLinkDialog";
 import { useAuth } from "@/hooks/use-auth";
@@ -505,7 +504,6 @@ function GroupDetailPage() {
         )}
       </div>
 
-      <BottomNav />
     </div>
   );
 }

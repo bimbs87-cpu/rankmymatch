@@ -1,6 +1,5 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useAuth } from "@/hooks/use-auth";
-import { BottomNav } from "@/components/BottomNav";
 import { supabase } from "@/integrations/supabase/client";
 import { EloChart } from "@/components/EloChart";
 import { AvatarPickerDialog } from "@/components/AvatarPickerDialog";
@@ -506,7 +505,6 @@ function ProfilePage() {
         onSelect={handleAvatarSelect}
         saving={savingAvatar}
       />
-      <BottomNav />
     </div>
   );
 }

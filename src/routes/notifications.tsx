@@ -1,6 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowLeft, Bell, CheckCheck, Calendar, Shuffle, MessageSquare } from "lucide-react";
-import { BottomNav } from "@/components/BottomNav";
 import { useNotifications } from "@/hooks/use-notifications";
 
 export const Route = createFileRoute("/notifications")({
@@ -104,7 +103,6 @@ function NotificationsPage() {
         )}
       </div>
 
-      <BottomNav />
     </div>
   );
 }

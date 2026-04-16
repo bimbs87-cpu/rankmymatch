@@ -1,6 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useAuth } from "@/hooks/use-auth";
-import { BottomNav } from "@/components/BottomNav";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useState } from "react";
 import { ArrowLeft, TrendingUp, TrendingDown, Minus, Swords } from "lucide-react";
@@ -315,7 +314,6 @@ function HistoryPage() {
         )}
       </div>
 
-      <BottomNav />
     </div>
   );
 }
