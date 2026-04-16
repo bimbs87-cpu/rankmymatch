@@ -124,6 +124,51 @@ export function GroupSettingsForm({
         </p>
       </div>
 
+      {/* Presence opening config */}
+      <div>
+        <label className="mb-2 block text-xs font-medium text-muted-foreground">Abertura da lista de presença</label>
+        <div className="grid grid-cols-2 gap-2">
+          {[
+            { value: "always", label: "Sempre aberta" },
+            { value: "same_day", label: "No mesmo dia" },
+            { value: "1_day_before", label: "1 dia antes" },
+            { value: "2_days_before", label: "2 dias antes" },
+            { value: "random", label: "Aleatório" },
+          ].map((opt) => (
+            <button
+              key={opt.value}
+              onClick={() => setPresenceMode(opt.value)}
+              className={`rounded-2xl border p-2.5 text-xs font-medium transition-colors ${
+                presenceMode === opt.value
+                  ? "border-primary bg-primary/10 text-primary"
+                  : "border-border bg-background text-muted-foreground"
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+        <p className="mt-1.5 text-xs text-muted-foreground">
+          {presenceMode === "always" && "A lista fica aberta assim que a rodada é criada."}
+          {presenceMode === "same_day" && "A lista abre no dia do jogo no horário definido abaixo."}
+          {presenceMode === "1_day_before" && "A lista abre 1 dia antes do jogo no horário definido abaixo."}
+          {presenceMode === "2_days_before" && "A lista abre 2 dias antes do jogo no horário definido abaixo."}
+          {presenceMode === "random" && "A lista abre em um horário aleatório entre 36h e 24h antes do jogo."}
+        </p>
+
+        {presenceMode !== "always" && presenceMode !== "random" && (
+          <div className="mt-3">
+            <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Horário de abertura</label>
+            <input
+              type="time"
+              value={presenceTime}
+              onChange={(e) => setPresenceTime(e.target.value)}
+              className="w-full rounded-2xl border border-border bg-background px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+            />
+          </div>
+        )}
+      </div>
+
       <div className="rounded-2xl border border-border bg-card/50 p-4">
         <h3 className="mb-2 text-sm font-semibold text-foreground">Outras informações</h3>
         <div className="space-y-2 text-xs text-muted-foreground">
