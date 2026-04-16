@@ -120,7 +120,7 @@ export function CreateGroupDialog({ open, onClose }: Props) {
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto overscroll-contain px-5 pb-5 sm:px-6 sm:pb-6" style={{ WebkitOverflowScrolling: "touch" }}>
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-5 pb-5 sm:px-6 sm:pb-6" style={{ WebkitOverflowScrolling: "touch", touchAction: "pan-y" }}>
           {step === "format" ? (
             <FormatSelection onSelect={handleSelectFormat} />
           ) : (
