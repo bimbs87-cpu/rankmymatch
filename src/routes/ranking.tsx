@@ -407,9 +407,7 @@ function RankingPage() {
     };
   }, [authLoading, groupsLoading, isAuthenticated, user?.id, groups, selectedSeasonId]);
 
-  if (authLoading || groupsLoading || (loading && isAuthenticated)) {
-    return <LoadingBar progress={loadProgress} label={loadLabel} />;
-  }
+  const isPageLoading = authLoading || groupsLoading || (loading && isAuthenticated);
 
   const myRanking = rankings.find((r) => r.user_id === user?.id);
   const selectedSeason = seasons.find((s: any) => s.id === selectedSeasonId);
@@ -468,6 +466,10 @@ function RankingPage() {
             <Link to="/login" className="mt-3 inline-block">
               <button className="rounded-full bg-primary px-5 py-2 text-xs font-semibold text-primary-foreground">Entrar</button>
             </Link>
+          </div>
+        ) : isPageLoading ? (
+          <div className="rounded-3xl border border-border bg-card/60 p-8">
+            <LoadingBar progress={loadProgress} label={loadLabel} />
           </div>
         ) : rankings.length === 0 ? (
           <div className="rounded-3xl border border-dashed border-border bg-card/50 p-8">
