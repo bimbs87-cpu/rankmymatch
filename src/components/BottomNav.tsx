@@ -11,7 +11,6 @@ const NAV_ITEMS = [
 
 export function BottomNav() {
   const location = useLocation();
-  const { unreadCount } = useNotifications();
 
   return (
     <nav className="fixed bottom-5 left-4 right-4 z-50 mx-auto max-w-lg">
@@ -21,7 +20,6 @@ export function BottomNav() {
             location.pathname === item.to ||
             (item.to !== "/" && location.pathname.startsWith(item.to));
           const Icon = item.icon;
-          const showBadge = item.to === "/notifications" && unreadCount > 0;
           return (
             <Link
               key={item.to}
