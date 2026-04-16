@@ -1,5 +1,4 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { BottomNav } from "@/components/BottomNav";
 import { useAuth } from "@/hooks/use-auth";
 import { useMyGroups } from "@/hooks/use-groups";
 import { BarChart3, Info, TrendingUp, TrendingDown, Minus, Medal, Target, Percent, ChevronDown } from "lucide-react";
@@ -430,7 +429,6 @@ function RankingPage() {
         )}
       </div>
 
-      <BottomNav />
     </div>
   );
 }

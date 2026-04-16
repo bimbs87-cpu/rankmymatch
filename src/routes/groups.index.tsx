@@ -1,5 +1,4 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { BottomNav } from "@/components/BottomNav";
 import { useAuth } from "@/hooks/use-auth";
 import { useMyGroups, usePublicGroups } from "@/hooks/use-groups";
 import { CreateGroupDialog } from "@/components/CreateGroupDialog";
@@ -158,7 +157,6 @@ function GroupsIndexPage() {
           refresh();
         }}
       />
-      <BottomNav />
     </div>
   );
 }
