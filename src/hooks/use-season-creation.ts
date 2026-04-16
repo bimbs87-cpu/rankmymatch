@@ -50,13 +50,15 @@ export async function createSeasonWithRounds(data: {
 
     createdSeasonId = season.id;
 
+    const isSingles = data.matchFormat === "singles";
     const roundInserts = data.roundDates.map((date, idx) => ({
       group_id: data.groupId,
       season_id: season.id,
       round_number: idx + 1,
       scheduled_date: date,
       scheduled_time: data.scheduledTime || null,
-      max_players: 8,
+      max_players: isSingles ? 2 : 8,
+      match_format: isSingles ? "singles" : "doubles",
       status: "scheduled" as const,
     }));
 

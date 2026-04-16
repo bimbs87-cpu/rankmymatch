@@ -267,7 +267,7 @@ function RoundDetailPage() {
           )}
           <div className="flex items-center gap-1.5">
             <Users className="h-3.5 w-3.5" />
-            <span>{confirmedCount}/{isSingles ? (group?.slots_per_round || 2) : (group?.slots_per_round || round.max_players)} confirmados</span>
+            <span>{confirmedCount}/{round.max_players} confirmados</span>
           </div>
         </div>
       </div>
