@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import { EloChart } from "@/components/EloChart";
+import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { AvatarPickerDialog } from "@/components/AvatarPickerDialog";
 import { useEffect, useState } from "react";
 import { usePwaInstall } from "@/hooks/use-pwa-install";
