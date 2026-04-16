@@ -1,8 +1,8 @@
-import { Outlet, Link, createRootRoute, HeadContent, Scripts, useLocation } from "@tanstack/react-router";
+import { Outlet, Link, createRootRoute, HeadContent, Scripts } from "@tanstack/react-router";
 import { AuthProvider, useAuth } from "@/hooks/use-auth";
 import { BottomNav } from "@/components/BottomNav";
 import { Toaster } from "@/components/ui/sonner";
-import appCss from "../styles.css?url";
+import "../styles.css";
 import { useEffect } from "react";
 
 function NotFoundComponent() {
@@ -47,7 +47,6 @@ export const Route = createRootRoute({
       { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/b4210149-0ef2-4a4d-b3ca-f80098abdcf5" },
     ],
     links: [
-      { rel: "stylesheet", href: appCss },
       { rel: "manifest", href: "/manifest.json" },
       { rel: "apple-touch-icon", href: "/icon-192.png" },
       { rel: "icon", type: "image/png", sizes: "192x192", href: "/icon-192.png" },
