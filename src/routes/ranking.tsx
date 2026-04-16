@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useAuth } from "@/hooks/use-auth";
 import { useMyGroups } from "@/hooks/use-groups";
-import { BarChart3, Info, ChevronDown, ArrowUp, ArrowDown, Calendar, Layers, Timer } from "lucide-react";
+import { BarChart3, Info, ChevronDown, ArrowUp, ArrowDown, Calendar, Layers, Timer, Crown } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
@@ -543,41 +543,51 @@ function RankingPage() {
             )}
 
             {/* Podium */}
-            {eligibleRankings.length >= 3 && (
-              <div className="mb-1 flex items-end justify-center gap-3 pt-2">
-                {[1, 0, 2].map((idx) => {
-                  const entry = eligibleRankings[idx];
-                  if (!entry) return null;
-                  const podiumPos = idx + 1;
-                  const isCenter = idx === 0;
-                  const displayName = entry.profile?.nickname || abbreviateName(entry.profile?.name || "Jogador");
-                  return (
-                    <div key={entry.user_id} className="flex flex-col items-center">
-                      <div className="relative">
-                        <PlayerAvatar
-                          avatarUrl={entry.profile?.avatar_url}
-                          name={entry.profile?.name || "?"}
-                          size={isCenter ? "lg" : "md"}
-                          className={`border-2 ${isCenter ? "border-primary !h-14 !w-14" : "border-border !h-11 !w-11"}`}
-                        />
+            {eligibleRankings.length >= 3 && (() => {
+              const podiumOrder = [
+                { entry: eligibleRankings[1], pos: 2, height: "h-16", color: "var(--rank-silver)" },
+                { entry: eligibleRankings[0], pos: 1, height: "h-24", color: "var(--rank-gold)" },
+                { entry: eligibleRankings[2], pos: 3, height: "h-12", color: "var(--rank-bronze)" },
+              ];
+              return (
+                <div className="mb-1 flex items-end justify-center gap-2 pt-4 pb-1">
+                  {podiumOrder.map(({ entry, pos, height, color }) => {
+                    if (!entry) return null;
+                    const displayName = entry.profile?.nickname || abbreviateName(entry.profile?.name || "Jogador");
+                    const wr = winRate(entry.matches_won, entry.matches_played);
+                    const isCenter = pos === 1;
+                    return (
+                      <div key={entry.user_id} className="flex flex-col items-center" style={{ width: isCenter ? 110 : 95 }}>
+                        {/* Crown for 1st */}
+                        {pos === 1 && (
+                          <Crown className="mb-1 h-5 w-5" style={{ color: "var(--rank-gold)" }} fill="var(--rank-gold)" />
+                        )}
+                        {/* Avatar */}
+                        <div className="rounded-full p-[2px]" style={{ backgroundColor: color }}>
+                          <PlayerAvatar
+                            avatarUrl={entry.profile?.avatar_url}
+                            name={entry.profile?.name || "?"}
+                            size={isCenter ? "lg" : "md"}
+                            className={`${isCenter ? "!h-14 !w-14" : "!h-11 !w-11"} border-2 border-background`}
+                          />
+                        </div>
+                        {/* Name + Stats */}
+                        <p className="mt-1.5 text-center text-[11px] font-semibold text-foreground leading-tight truncate w-full">{displayName}</p>
+                        <p className="font-display text-sm font-bold text-primary">{Math.round(entry.rating).toLocaleString("pt-BR")}</p>
+                        <p className="text-[9px] text-muted-foreground">{wr}% WR</p>
+                        {/* Pedestal block */}
                         <div
-                          className="absolute -bottom-1.5 left-1/2 flex h-5 w-5 -translate-x-1/2 items-center justify-center rounded-full text-[9px] font-bold"
-                          style={{
-                            backgroundColor: podiumPos === 1 ? "var(--rank-gold)" : podiumPos === 2 ? "var(--rank-silver)" : "var(--rank-bronze)",
-                            color: "var(--background)",
-                          }}
+                          className={`mt-1.5 w-full rounded-t-lg ${height} flex items-center justify-center`}
+                          style={{ backgroundColor: `color-mix(in oklab, ${color} 25%, transparent)`, borderTop: `2px solid ${color}` }}
                         >
-                          {podiumPos}
+                          <span className="font-display text-lg font-bold" style={{ color }}>{pos}º</span>
                         </div>
                       </div>
-                      <p className="mt-2.5 text-center text-[11px] font-semibold text-foreground leading-tight">{displayName}</p>
-                      <p className="font-display text-xs font-bold text-primary">{Math.round(entry.rating)}</p>
-                      <p className="text-[9px] text-muted-foreground">{winRate(entry.matches_won, entry.matches_played)}% WR</p>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+                    );
+                  })}
+                </div>
+              );
+            })()}
 
             {/* Ranking table */}
             <div className="rounded-2xl border border-border overflow-hidden">
