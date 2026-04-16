@@ -113,6 +113,18 @@ function GroupDetailPage() {
       });
   }, [members]);
 
+  // Load feed comment count
+  useEffect(() => {
+    supabase
+      .from("comments")
+      .select("id", { count: "exact", head: true })
+      .eq("group_id", groupId)
+      .is("parent_id", null)
+      .then(({ count }) => {
+        setCommentCount(count ?? 0);
+      });
+  }, [groupId]);
+
   // Check if current user is already a member (to hide claim button)
   const isMemberAlready = members.some((m) => m.user_id === user?.id);
   const hasPlaceholders = placeholderUserIds.size > 0;
