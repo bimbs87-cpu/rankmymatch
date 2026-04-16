@@ -679,6 +679,16 @@ function GroupDetailPage() {
           </>
         )}
 
+        {/* Resultados tab — rodadas da temporada ativa */}
+        {tab === "resultados" && (
+          <ActiveSeasonRounds
+            groupId={groupId}
+            seasons={seasons}
+            seasonsLoading={seasonsLoading}
+            isAdmin={isAdmin}
+          />
+        )}
+
         {/* Temporadas tab */}
         {tab === "temporadas" && (
           <>
