@@ -36,7 +36,7 @@ export function BottomNav() {
               <div
                 className={`flex items-center justify-center transition-all duration-200 ${
                   isRanking
-                    ? "h-14 w-14 -mt-6 rounded-full bg-card/95 shadow-lg border border-border/40"
+                    ? "h-14 w-14 -mt-6 rounded-full bg-primary/15 shadow-lg border border-border"
                     : ""
                 }`}
               >
