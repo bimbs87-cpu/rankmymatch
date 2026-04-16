@@ -36,7 +36,7 @@ function RoundDetailPage() {
   const { groupId, seasonId, roundId } = Route.useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { isAdmin } = useGroupDetail(groupId);
+  const { group, isAdmin } = useGroupDetail(groupId);
   const { round, presences, matches, myPresence, confirmedCount, isLoading, refresh } =
     useRoundDetail(roundId);
   const [scoringMatch, setScoringMatch] = useState<any>(null);
@@ -255,7 +255,7 @@ function RoundDetailPage() {
           )}
           <div className="flex items-center gap-1.5">
             <Users className="h-3.5 w-3.5" />
-            <span>{confirmedCount}/{round.max_players} confirmados</span>
+            <span>{confirmedCount}/{group?.slots_per_round || round.max_players} confirmados</span>
           </div>
         </div>
       </div>

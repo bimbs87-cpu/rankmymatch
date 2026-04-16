@@ -157,32 +157,32 @@ export function EloChart({ userId }: { userId: string }) {
         <div className="h-48">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={data} margin={{ top: 5, right: 5, bottom: 5, left: -20 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.4} />
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" opacity={0.4} />
               <XAxis
                 dataKey="label"
-                tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
+                tick={{ fontSize: 10, fill: "rgba(255,255,255,0.5)" }}
                 tickLine={false}
                 axisLine={false}
               />
               <YAxis
                 domain={[minRating, maxRating]}
-                tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
+                tick={{ fontSize: 10, fill: "rgba(255,255,255,0.5)" }}
                 tickLine={false}
                 axisLine={false}
               />
               <ReferenceLine
                 y={1000}
-                stroke="hsl(var(--muted-foreground))"
+                stroke="rgba(255,255,255,0.3)"
                 strokeDasharray="4 4"
                 opacity={0.3}
               />
               <Tooltip
                 contentStyle={{
-                  backgroundColor: "hsl(var(--card))",
-                  border: "1px solid hsl(var(--border))",
+                  backgroundColor: "rgba(30,30,40,0.95)",
+                  border: "1px solid rgba(255,255,255,0.1)",
                   borderRadius: "12px",
                   fontSize: "12px",
-                  color: "hsl(var(--foreground))",
+                  color: "rgba(255,255,255,0.9)",
                 }}
                 formatter={(value: any, _name: any, props: any) => {
                   const change = props.payload.change;
@@ -194,10 +194,10 @@ export function EloChart({ userId }: { userId: string }) {
               <Line
                 type="monotone"
                 dataKey="rating"
-                stroke="hsl(var(--primary))"
+                stroke="#c8ff00"
                 strokeWidth={2.5}
-                dot={{ r: 3, fill: "hsl(var(--primary))", strokeWidth: 0 }}
-                activeDot={{ r: 5, fill: "hsl(var(--primary))", strokeWidth: 2, stroke: "hsl(var(--card))" }}
+                dot={{ r: 3, fill: "#c8ff00", strokeWidth: 0 }}
+                activeDot={{ r: 5, fill: "#c8ff00", strokeWidth: 2, stroke: "rgba(30,30,40,1)" }}
               />
             </LineChart>
           </ResponsiveContainer>
