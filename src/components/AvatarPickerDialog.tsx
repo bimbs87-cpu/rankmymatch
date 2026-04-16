@@ -6,14 +6,15 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { PREMIUM_AVATARS, SPORT_TABS } from "@/lib/avatar-data";
-import { Check } from "lucide-react";
+import { Check, User } from "lucide-react";
 
 interface AvatarPickerDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   currentAvatarUrl: string | null;
-  onSelect: (avatarUrl: string) => void;
+  onSelect: (avatarUrl: string, type: "google" | "emoji") => void;
   saving?: boolean;
+  googlePhotoUrl?: string | null;
 }
 
 export function AvatarPickerDialog({
@@ -22,6 +23,7 @@ export function AvatarPickerDialog({
   currentAvatarUrl,
   onSelect,
   saving,
+  googlePhotoUrl,
 }: AvatarPickerDialogProps) {
   const [tab, setTab] = useState(SPORT_TABS[0].key);
 
@@ -35,6 +37,35 @@ export function AvatarPickerDialog({
             Escolher Avatar
           </DialogTitle>
         </DialogHeader>
+
+        {/* Google photo option */}
+        {googlePhotoUrl && (
+          <div className="px-5 pb-1">
+            <button
+              disabled={saving}
+              onClick={() => onSelect(googlePhotoUrl, "google")}
+              className={`flex w-full items-center gap-3 rounded-2xl border-2 p-3 transition-all ${
+                currentAvatarUrl === googlePhotoUrl
+                  ? "border-primary bg-primary/10"
+                  : "border-border hover:border-primary/50"
+              }`}
+            >
+              <img
+                src={googlePhotoUrl}
+                alt="Google"
+                className="h-10 w-10 rounded-full object-cover"
+                referrerPolicy="no-referrer"
+              />
+              <div className="flex-1 text-left">
+                <p className="text-sm font-semibold text-foreground">Foto do Google</p>
+                <p className="text-xs text-muted-foreground">Usar sua foto de perfil</p>
+              </div>
+              {currentAvatarUrl === googlePhotoUrl && (
+                <Check className="h-5 w-5 text-primary" />
+              )}
+            </button>
+          </div>
+        )}
 
         {/* Sport tabs */}
         <div className="flex gap-1.5 overflow-x-auto px-5 pb-2 scrollbar-none">
@@ -56,24 +87,21 @@ export function AvatarPickerDialog({
         {/* Avatar grid */}
         <div className="grid max-h-[50vh] grid-cols-4 gap-3 overflow-y-auto px-5 pb-5">
           {filtered.map((avatar) => {
-            const isSelected = currentAvatarUrl === avatar.url;
+            const emojiUrl = `emoji:${avatar.id}`;
+            const isSelected = currentAvatarUrl === emojiUrl;
             return (
               <button
                 key={avatar.id}
                 disabled={saving}
-                onClick={() => onSelect(avatar.url)}
-                className={`relative aspect-square overflow-hidden rounded-2xl border-2 transition-all ${
+                onClick={() => onSelect(emojiUrl, "emoji")}
+                className={`relative flex aspect-square items-center justify-center overflow-hidden rounded-2xl border-2 transition-all ${
                   isSelected
                     ? "border-primary ring-2 ring-primary/30"
                     : "border-transparent hover:border-border"
                 }`}
+                style={{ backgroundColor: avatar.bgColor }}
               >
-                <img
-                  src={avatar.url}
-                  alt={avatar.id}
-                  loading="lazy"
-                  className="h-full w-full object-cover"
-                />
+                <span className="text-3xl">{avatar.emoji}</span>
                 {isSelected && (
                   <div className="absolute inset-0 flex items-center justify-center bg-primary/30">
                     <Check className="h-6 w-6 text-primary-foreground drop-shadow-md" />
