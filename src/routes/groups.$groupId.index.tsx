@@ -499,6 +499,8 @@ function GroupDetailPage() {
             imageUrl={group.image_url}
             groupStatus={(group as any).status || "active"}
             isCreator={isCreator}
+            presenceOpenMode={(group as any).presence_open_mode || "1_day_before"}
+            presenceOpenTime={(group as any).presence_open_time || "10:00:00"}
             onSaved={refresh}
           />
         )}
