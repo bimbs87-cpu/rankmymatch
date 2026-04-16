@@ -199,15 +199,38 @@ export async function submitMatchScore(
 
   if (!winnerTeam) throw new Error("Empate em sets — adicione o tiebreak");
 
+  // Get round info for auto-confirming presence
+  const { data: matchData } = await supabase
+    .from("matches")
+    .select("round_id")
+    .eq("id", matchId)
+    .single();
+
   // Update match
   await supabase
     .from("matches")
     .update({
       status: "completed",
       winner_team: winnerTeam,
-      result_type: sets.length === 2 ? "straight" : "tiebreak",
+      result_type: sets.length === 1 ? "single_set" : sets.length === 2 ? "straight" : "tiebreak",
     })
     .eq("id", matchId);
+
+  // Auto-confirm presence for match players
+  if (matchData?.round_id) {
+    const allPlayerIds = [...teamA, ...teamB];
+    for (const uid of allPlayerIds) {
+      await supabase.from("round_presence").upsert(
+        {
+          round_id: matchData.round_id,
+          user_id: uid,
+          status: "confirmed",
+          confirmed_at: new Date().toISOString(),
+        },
+        { onConflict: "round_id,user_id" }
+      );
+    }
+  }
 
   // Process Elo
   await processMatchElo({

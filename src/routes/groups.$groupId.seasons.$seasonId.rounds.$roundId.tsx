@@ -42,6 +42,17 @@ function RoundDetailPage() {
     useRoundDetail(roundId);
   const [scoringMatch, setScoringMatch] = useState<any>(null);
   const [showManualMatch, setShowManualMatch] = useState(false);
+  const [seasonData, setSeasonData] = useState<any>(null);
+
+  // Load season config for sets_per_match
+  useState(() => {
+    supabase
+      .from("seasons")
+      .select("sets_per_match, match_format, singles_pairing_mode")
+      .eq("id", seasonId)
+      .single()
+      .then(({ data }) => { if (data) setSeasonData(data); });
+  });
   const [deletingMatchId, setDeletingMatchId] = useState<string | null>(null);
   const [deletingRound, setDeletingRound] = useState(false);
   const [expandedMatch, setExpandedMatch] = useState<string | null>(null);
