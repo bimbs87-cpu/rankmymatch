@@ -507,6 +507,8 @@ function GroupSeasonsPage() {
                     className="w-full rounded-2xl border border-border bg-background px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
                   />
                 </div>
+                {/* Courts - hide for rivalry */}
+                {!rivalry && (
                 <div>
                   <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Quadras simultâneas</label>
                   <div className="flex gap-2">
@@ -526,6 +528,7 @@ function GroupSeasonsPage() {
                   </div>
                   <p className="mt-1 text-[10px] text-muted-foreground">Quantas quadras serão usadas ao mesmo tempo nas rodadas</p>
                 </div>
+                )}
                 {/* Singles-specific config */}
                 {isSingles && (
                   <>
