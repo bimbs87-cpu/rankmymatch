@@ -1,5 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useAuth } from "@/hooks/use-auth";
+import { PlayerAvatar } from "@/components/PlayerAvatar";
 
 import { useGroupDetail } from "@/hooks/use-groups";
 import { useRoundDetail, confirmPresence, cancelPresence, drawTeams, deleteMatch, deleteRound } from "@/hooks/use-seasons";
@@ -372,13 +373,7 @@ function RoundDetailPage() {
                   key={p.id}
                   className="flex items-center gap-2 rounded-full border border-border bg-card/50 px-3 py-1.5"
                 >
-                  {p.profile?.avatar_url ? (
-                    <img src={p.profile.avatar_url} alt="" className="h-6 w-6 rounded-full object-cover" />
-                  ) : (
-                    <div className="flex h-6 w-6 items-center justify-center rounded-full bg-muted text-[10px] font-bold text-foreground">
-                      {(p.profile?.name || "?").charAt(0)}
-                    </div>
-                  )}
+                  <PlayerAvatar avatarUrl={p.profile?.avatar_url || null} name={p.profile?.name || "?"} size="xs" />
                   <span className="text-xs font-medium text-foreground">
                     {p.profile?.nickname || p.profile?.name || "Jogador"}
                   </span>
@@ -438,13 +433,7 @@ function RoundDetailPage() {
                       <div className="flex-1">
                         {teamA.map((mp: any) => (
                           <div key={mp.id} className="flex items-center gap-1.5 py-0.5">
-                            {mp.profile?.avatar_url ? (
-                              <img src={mp.profile.avatar_url} alt="" className="h-5 w-5 rounded-full object-cover" />
-                            ) : (
-                              <div className="flex h-5 w-5 items-center justify-center rounded-full bg-muted text-[9px] font-bold">
-                                {(mp.profile?.name || "?").charAt(0)}
-                              </div>
-                            )}
+                            <PlayerAvatar avatarUrl={mp.profile?.avatar_url || null} name={mp.profile?.name || "?"} size="xs" />
                             <span className={`text-xs ${match.status === "completed" && match.winner_team === "A" ? "font-bold text-primary" : "text-foreground"}`}>
                               {mp.profile?.nickname || mp.profile?.name || "Jogador"}
                               {match.status === "completed" && match.winner_team === "A" && " 🏆"}
@@ -476,13 +465,7 @@ function RoundDetailPage() {
                               {mp.profile?.nickname || mp.profile?.name || "Jogador"}
                               {match.status === "completed" && match.winner_team === "B" && " 🏆"}
                             </span>
-                            {mp.profile?.avatar_url ? (
-                              <img src={mp.profile.avatar_url} alt="" className="h-5 w-5 rounded-full object-cover" />
-                            ) : (
-                              <div className="flex h-5 w-5 items-center justify-center rounded-full bg-muted text-[9px] font-bold">
-                                {(mp.profile?.name || "?").charAt(0)}
-                              </div>
-                            )}
+                            <PlayerAvatar avatarUrl={mp.profile?.avatar_url || null} name={mp.profile?.name || "?"} size="xs" />
                           </div>
                         ))}
                       </div>
