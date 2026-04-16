@@ -756,6 +756,39 @@ export type Database = {
           },
         ]
       }
+      player_claims: {
+        Row: {
+          claimer_user_id: string
+          created_at: string
+          group_id: string
+          id: string
+          placeholder_user_id: string
+          resolved_at: string | null
+          resolved_by: string | null
+          status: string
+        }
+        Insert: {
+          claimer_user_id: string
+          created_at?: string
+          group_id: string
+          id?: string
+          placeholder_user_id: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+        }
+        Update: {
+          claimer_user_id?: string
+          created_at?: string
+          group_id?: string
+          id?: string
+          placeholder_user_id?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+        }
+        Relationships: []
+      }
       player_stats_by_season: {
         Row: {
           games_lost: number | null
@@ -1157,9 +1190,11 @@ export type Database = {
           avatar_url: string | null
           birth_date: string | null
           created_at: string
+          created_by_admin: string | null
           dominant_hand: string | null
           id: string
           instagram_handle: string | null
+          is_placeholder: boolean
           killer_shot: string | null
           name: string
           nickname: string | null
@@ -1173,9 +1208,11 @@ export type Database = {
           avatar_url?: string | null
           birth_date?: string | null
           created_at?: string
+          created_by_admin?: string | null
           dominant_hand?: string | null
           id?: string
           instagram_handle?: string | null
+          is_placeholder?: boolean
           killer_shot?: string | null
           name?: string
           nickname?: string | null
@@ -1189,9 +1226,11 @@ export type Database = {
           avatar_url?: string | null
           birth_date?: string | null
           created_at?: string
+          created_by_admin?: string | null
           dominant_hand?: string | null
           id?: string
           instagram_handle?: string | null
+          is_placeholder?: boolean
           killer_shot?: string | null
           name?: string
           nickname?: string | null
@@ -1348,6 +1387,14 @@ export type Database = {
       is_group_member: {
         Args: { _group_id: string; _user_id: string }
         Returns: boolean
+      }
+      merge_placeholder_player: {
+        Args: {
+          _group_id: string
+          _placeholder_user_id: string
+          _real_user_id: string
+        }
+        Returns: undefined
       }
     }
     Enums: {
