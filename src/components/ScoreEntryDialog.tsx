@@ -225,8 +225,8 @@ export function ScoreEntryDialog({
         <div className="space-y-3">
           {sets.map((set, idx) => {
             const result = matchState.setResults[idx];
-            const isLastAndRemovable = idx === sets.length - 1 && sets.length > (maxSets === 1 ? 1 : 2);
-            const setLabel = maxSets === 1 ? "Set" : idx < 2 ? `Set ${idx + 1}` : `Set ${idx + 1}`;
+            const isLastAndRemovable = idx === sets.length - 1 && sets.length > 1;
+            const setLabel = `Set ${idx + 1}`;
 
             return (
               <div key={idx} className={`rounded-2xl border p-3 ${
