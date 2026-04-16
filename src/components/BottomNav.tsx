@@ -1,10 +1,10 @@
 import { Link, useLocation } from "@tanstack/react-router";
-import { Home, Users, BarChart3, User, Bell } from "lucide-react";
+import { Home, Users, User, Bell, Crown } from "lucide-react";
 
 const NAV_ITEMS = [
   { to: "/", icon: Home, label: "Início" },
   { to: "/profile", icon: User, label: "Perfil" },
-  { to: "/ranking", icon: BarChart3, label: "Ranking" },
+  { to: "/ranking", icon: Crown, label: "Ranking" },
   { to: "/groups", icon: Users, label: "Grupos" },
   { to: "/notifications", icon: Bell, label: "Alertas" },
 ] as const;
@@ -36,9 +36,9 @@ export function BottomNav() {
               <div
                 className={`flex items-center justify-center transition-all duration-200 ${
                   isRanking
-                    ? "h-12 w-12 rounded-full border-2 border-primary/30 bg-card shadow-lg shadow-primary/10"
+                    ? "h-11 w-11 -mt-1 rounded-full bg-card"
                     : ""
-                } ${isRanking && isActive ? "border-primary bg-primary/15" : ""}`}
+                }`}
               >
                 <Icon
                   className={`transition-all duration-200 ${
