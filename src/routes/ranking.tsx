@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { BottomNav } from "@/components/BottomNav";
 import { useAuth } from "@/hooks/use-auth";
 import { useMyGroups } from "@/hooks/use-groups";
-import { BarChart3, Info, TrendingUp, TrendingDown, Minus, Medal, Target, Percent } from "lucide-react";
+import { BarChart3, Info, TrendingUp, TrendingDown, Minus, Medal, Target, Percent, ChevronDown } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -42,25 +42,38 @@ function RankingPage() {
   const [seasons, setSeasons] = useState<any[]>([]);
   const [rankings, setRankings] = useState<RankingEntry[]>([]);
   const [loading, setLoading] = useState(false);
+  const [showSwitcher, setShowSwitcher] = useState(false);
 
-  // Load seasons from user's groups
+  // Load seasons from user's groups, auto-select based on last match
   useEffect(() => {
-    if (!groups.length) return;
+    if (!groups.length || !user?.id) return;
     const loadSeasons = async () => {
       const groupIds = groups.map((g) => g.id);
       const { data } = await supabase
         .from("seasons")
         .select("*, groups(name)")
         .in("group_id", groupIds)
+        .in("status", ["active", "finished"])
         .order("created_at", { ascending: false });
       setSeasons(data || []);
+
       if (data?.length && !selectedSeasonId) {
-        const active = data.find((s: any) => s.status === "active");
-        setSelectedSeasonId(active?.id || data[0].id);
+        // Find the season of the user's most recent match
+        const { data: lastEvent } = await supabase
+          .from("rating_events")
+          .select("season_id")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: false })
+          .limit(1);
+
+        const lastSeasonId = lastEvent?.[0]?.season_id;
+        const matchedSeason = lastSeasonId ? data.find((s: any) => s.id === lastSeasonId) : null;
+        const activeSeason = data.find((s: any) => s.status === "active");
+        setSelectedSeasonId(matchedSeason?.id || activeSeason?.id || data[0].id);
       }
     };
     loadSeasons();
-  }, [groups]);
+  }, [groups, user?.id]);
 
   // Load rankings for selected season
   useEffect(() => {
