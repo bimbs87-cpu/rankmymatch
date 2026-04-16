@@ -12,8 +12,8 @@ interface GroupMember {
 }
 
 interface Matchup {
-  teamA: [string, string];
-  teamB: [string, string];
+  teamA: string[];
+  teamB: string[];
   scoreA: number;
   scoreB: number;
 }
@@ -21,11 +21,12 @@ interface Matchup {
 interface Props {
   roundId: string;
   groupId: string;
+  matchFormat?: string;
   onClose: () => void;
   onSaved: () => void;
 }
 
-function generateMatchups(players: string[]): Matchup[] {
+function generateDoublesMatchups(players: string[]): Matchup[] {
   if (players.length !== 4) return [];
   const [a, b, c, d] = players;
   return [
@@ -35,7 +36,15 @@ function generateMatchups(players: string[]): Matchup[] {
   ];
 }
 
-export function ManualMatchDialog({ roundId, groupId, onClose, onSaved }: Props) {
+function generateSinglesMatchup(players: string[]): Matchup[] {
+  if (players.length !== 2) return [];
+  return [{ teamA: [players[0]], teamB: [players[1]], scoreA: 0, scoreB: 0 }];
+}
+
+export function ManualMatchDialog({ roundId, groupId, matchFormat = "doubles", onClose, onSaved }: Props) {
+  const isSingles = matchFormat === "singles";
+  const requiredPlayers = isSingles ? 2 : 4;
+
   const [members, setMembers] = useState<GroupMember[]>([]);
   const [selectedPlayers, setSelectedPlayers] = useState<string[]>([]);
   const [matchups, setMatchups] = useState<Matchup[]>([]);
@@ -74,14 +83,18 @@ export function ManualMatchDialog({ roundId, groupId, onClose, onSaved }: Props)
   const togglePlayer = (uid: string) => {
     setSelectedPlayers((prev) => {
       if (prev.includes(uid)) return prev.filter((id) => id !== uid);
-      if (prev.length >= 4) return prev;
+      if (prev.length >= requiredPlayers) return prev;
       return [...prev, uid];
     });
   };
 
   const goToScores = () => {
-    if (selectedPlayers.length !== 4) return;
-    setMatchups(generateMatchups(selectedPlayers));
+    if (selectedPlayers.length !== requiredPlayers) return;
+    if (isSingles) {
+      setMatchups(generateSinglesMatchup(selectedPlayers));
+    } else {
+      setMatchups(generateDoublesMatchups(selectedPlayers));
+    }
     setStep("scores");
   };
 
@@ -148,7 +161,7 @@ export function ManualMatchDialog({ roundId, groupId, onClose, onSaved }: Props)
 
   const handleSubmit = async () => {
     if (!allValid) {
-      toast.error("Todos os jogos precisam ter um vencedor (sem empates)");
+      toast.error("Todos os confrontos precisam ter um vencedor (sem empates)");
       return;
     }
     setSubmitting(true);
@@ -184,6 +197,7 @@ export function ManualMatchDialog({ roundId, groupId, onClose, onSaved }: Props)
             match_number: i + 1,
             status: "completed",
             winner_team: winnerTeam,
+            match_format: isSingles ? "singles" : "doubles",
           })
           .select()
           .single();
@@ -202,13 +216,11 @@ export function ManualMatchDialog({ roundId, groupId, onClose, onSaved }: Props)
 
       await supabase.from("rounds").update({ status: "completed" }).eq("id", roundId);
 
-      // Notify all involved players
       if (roundData?.group_id) {
         const { data: currentUser } = await supabase.auth.getUser();
         const actorId = currentUser?.user?.id || "";
         const playerNames = selectedPlayers.map((uid) => getDisplayName(uid)).join(", ");
         
-        // Notify each player individually
         const notifRows = selectedPlayers
           .filter((uid) => uid !== actorId)
           .map((uid) => ({
@@ -216,7 +228,9 @@ export function ManualMatchDialog({ roundId, groupId, onClose, onSaved }: Props)
             group_id: roundData.group_id,
             type: "match_result",
             title: "Resultado registrado! 🏆",
-            body: `Rodada ${roundData.round_number} — Rei da Quadra com ${playerNames}. Confira o resultado!`,
+            body: isSingles
+              ? `Rodada ${roundData.round_number} — Confronto entre ${playerNames}. Confira o resultado!`
+              : `Rodada ${roundData.round_number} — Rei da Quadra com ${playerNames}. Confira o resultado!`,
             data: { roundId, seasonId },
           }));
         
@@ -225,7 +239,7 @@ export function ManualMatchDialog({ roundId, groupId, onClose, onSaved }: Props)
         }
       }
 
-      toast.success("Rei da Quadra registrado com sucesso!");
+      toast.success(isSingles ? "Confronto registrado com sucesso!" : "Rei da Quadra registrado com sucesso!");
       onSaved();
       onClose();
     } catch (e: any) {
@@ -247,7 +261,7 @@ export function ManualMatchDialog({ roundId, groupId, onClose, onSaved }: Props)
     );
   };
 
-  const TeamLabel = ({ players, side }: { players: [string, string]; side: "left" | "right" }) => (
+  const TeamLabel = ({ players, side }: { players: string[]; side: "left" | "right" }) => (
     <div className={`flex flex-col gap-1 ${side === "right" ? "items-end" : "items-start"}`}>
       {players.map((uid) => (
         <div key={uid} className={`flex items-center gap-2 ${side === "right" ? "flex-row-reverse" : ""}`}>
@@ -259,9 +273,9 @@ export function ManualMatchDialog({ roundId, groupId, onClose, onSaved }: Props)
   );
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-t-3xl sm:rounded-3xl border border-border bg-card p-5 pb-10 sm:pb-6 animate-in slide-in-from-bottom duration-300">
+      <div className="relative w-full max-w-lg max-h-[85vh] overflow-y-auto rounded-3xl border border-border bg-card p-5 pb-6 animate-in zoom-in-95 duration-300">
         {/* Header */}
         <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-2.5">
@@ -270,10 +284,14 @@ export function ManualMatchDialog({ roundId, groupId, onClose, onSaved }: Props)
             </div>
             <div>
               <h2 className="font-display text-lg font-bold text-foreground">
-                {step === "select" ? "Quem jogou?" : "Preencher Resultados"}
+                {step === "select" ? "Quem jogou?" : isSingles ? "Resultado do Confronto" : "Preencher Resultados"}
               </h2>
               <p className="text-[11px] text-muted-foreground">
-                {step === "select" ? "Selecione 4 jogadores" : "3 jogos · 1 set cada"}
+                {step === "select"
+                  ? `Selecione ${requiredPlayers} jogadores`
+                  : isSingles
+                  ? "1 confronto · resultado direto"
+                  : "3 jogos · 1 set cada"}
               </p>
             </div>
           </div>
@@ -291,16 +309,16 @@ export function ManualMatchDialog({ roundId, groupId, onClose, onSaved }: Props)
             <div className="mb-4 flex items-center gap-2 rounded-xl bg-primary/5 border border-primary/10 px-3 py-2">
               <Users className="h-4 w-4 text-primary" />
               <span className="text-sm font-semibold text-foreground">
-                {selectedPlayers.length}/4 selecionados
+                {selectedPlayers.length}/{requiredPlayers} selecionados
               </span>
-              {selectedPlayers.length === 4 && (
+              {selectedPlayers.length === requiredPlayers && (
                 <Check className="h-4 w-4 text-success ml-auto" />
               )}
             </div>
             <div className="space-y-1.5 max-h-64 overflow-y-auto pr-1">
               {members.map((m) => {
                 const isSelected = selectedPlayers.includes(m.user_id);
-                const isDisabled = !isSelected && selectedPlayers.length >= 4;
+                const isDisabled = !isSelected && selectedPlayers.length >= requiredPlayers;
                 return (
                   <button
                     key={m.user_id}
@@ -329,10 +347,10 @@ export function ManualMatchDialog({ roundId, groupId, onClose, onSaved }: Props)
             </div>
             <button
               onClick={goToScores}
-              disabled={selectedPlayers.length !== 4}
+              disabled={selectedPlayers.length !== requiredPlayers}
               className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-3.5 text-sm font-bold text-primary-foreground disabled:opacity-40 transition-opacity"
             >
-              Montar Jogos
+              {isSingles ? "Definir Resultado" : "Montar Jogos"}
               <ChevronRight className="h-4 w-4" />
             </button>
           </div>
@@ -360,24 +378,26 @@ export function ManualMatchDialog({ roundId, groupId, onClose, onSaved }: Props)
                     <div className="mb-3 flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                          {idx + 1}º Jogo
+                          {isSingles ? "Confronto" : `${idx + 1}º Jogo`}
                         </span>
-                        <div className="flex items-center gap-0.5">
-                          <button
-                            onClick={() => moveMatchup(idx, "up")}
-                            disabled={idx === 0}
-                            className="flex h-5 w-5 items-center justify-center rounded bg-muted text-muted-foreground disabled:opacity-20 active:scale-90 transition-all"
-                          >
-                            <ArrowUp className="h-3 w-3" />
-                          </button>
-                          <button
-                            onClick={() => moveMatchup(idx, "down")}
-                            disabled={idx === matchups.length - 1}
-                            className="flex h-5 w-5 items-center justify-center rounded bg-muted text-muted-foreground disabled:opacity-20 active:scale-90 transition-all"
-                          >
-                            <ArrowDown className="h-3 w-3" />
-                          </button>
-                        </div>
+                        {!isSingles && (
+                          <div className="flex items-center gap-0.5">
+                            <button
+                              onClick={() => moveMatchup(idx, "up")}
+                              disabled={idx === 0}
+                              className="flex h-5 w-5 items-center justify-center rounded bg-muted text-muted-foreground disabled:opacity-20 active:scale-90 transition-all"
+                            >
+                              <ArrowUp className="h-3 w-3" />
+                            </button>
+                            <button
+                              onClick={() => moveMatchup(idx, "down")}
+                              disabled={idx === matchups.length - 1}
+                              className="flex h-5 w-5 items-center justify-center rounded bg-muted text-muted-foreground disabled:opacity-20 active:scale-90 transition-all"
+                            >
+                              <ArrowDown className="h-3 w-3" />
+                            </button>
+                          </div>
+                        )}
                       </div>
                       {isTied ? (
                         <span className="rounded-full bg-warning/10 px-2.5 py-0.5 text-[10px] font-semibold text-warning">
@@ -388,10 +408,8 @@ export function ManualMatchDialog({ roundId, groupId, onClose, onSaved }: Props)
 
                     {/* Teams + Score */}
                     <div className="flex items-center gap-3">
-                      {/* Team A */}
                       <TeamLabel players={mu.teamA} side="left" />
 
-                      {/* Score controls */}
                       <div className="flex items-center gap-2 mx-auto">
                         <div className="flex flex-col items-center gap-1.5">
                           <button
@@ -440,7 +458,6 @@ export function ManualMatchDialog({ roundId, groupId, onClose, onSaved }: Props)
                         </div>
                       </div>
 
-                      {/* Team B */}
                       <TeamLabel players={mu.teamB} side="right" />
                     </div>
                   </div>
@@ -454,7 +471,7 @@ export function ManualMatchDialog({ roundId, groupId, onClose, onSaved }: Props)
                 <div className="mb-3 flex items-center gap-2">
                   <Crown className="h-4 w-4 text-primary" />
                   <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                    Resumo do Rei da Quadra
+                    {isSingles ? "Resultado do Confronto" : "Resumo do Rei da Quadra"}
                   </span>
                 </div>
                 <div className="space-y-2">
@@ -467,21 +484,21 @@ export function ManualMatchDialog({ roundId, groupId, onClose, onSaved }: Props)
                     })
                     .map((uid, i) => {
                       const pp = playerPoints[uid];
-                      const isKing = i === 0;
+                      const isWinner = i === 0;
                       return (
                         <div
                           key={uid}
                           className={`flex items-center gap-3 rounded-xl px-3 py-2 ${
-                            isKing ? "bg-primary/10 border border-primary/20" : ""
+                            isWinner ? "bg-primary/10 border border-primary/20" : ""
                           }`}
                         >
-                          <span className={`w-5 text-sm font-bold ${isKing ? "text-primary" : "text-muted-foreground"}`}>
+                          <span className={`w-5 text-sm font-bold ${isWinner ? "text-primary" : "text-muted-foreground"}`}>
                             {i + 1}º
                           </span>
                           <PlayerAvatar uid={uid} />
-                          <span className={`flex-1 text-sm font-medium ${isKing ? "text-primary" : "text-foreground"}`}>
+                          <span className={`flex-1 text-sm font-medium ${isWinner ? "text-primary" : "text-foreground"}`}>
                             {getDisplayName(uid)}
-                            {isKing && " 👑"}
+                            {isWinner && " 🏆"}
                           </span>
                           <span className="text-xs font-bold text-success">{pp.wins}V</span>
                           <span className="text-[11px] text-muted-foreground">{pp.gamesWon}–{pp.gamesLost}</span>
