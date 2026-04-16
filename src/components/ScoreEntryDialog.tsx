@@ -209,7 +209,7 @@ export function ScoreEntryDialog({
         )}
 
         {/* Live score summary for multi-set */}
-        {maxSets > 1 && (
+        {(isUnlimitedSets ? sets.length > 1 : maxSets > 1) && (
           <div className="mb-3 flex items-center justify-center gap-3 rounded-2xl bg-muted/30 py-2">
             <span className={`font-display text-2xl font-bold ${matchState.setsA > matchState.setsB ? "text-primary" : "text-muted-foreground"}`}>
               {matchState.setsA}
