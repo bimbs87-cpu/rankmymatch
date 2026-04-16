@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useAuth } from "@/hooks/use-auth";
+import { TrophyLoadingBar } from "@/components/TrophyLoadingBar";
 import { useGroupDetail } from "@/hooks/use-groups";
 import { useSeasonRounds } from "@/hooks/use-seasons";
 import { supabase } from "@/integrations/supabase/client";
