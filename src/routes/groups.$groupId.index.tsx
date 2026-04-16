@@ -71,6 +71,8 @@ function GroupDetailPage() {
   const [leavingLoading, setLeavingLoading] = useState(false);
   const [placeholderUserIds, setPlaceholderUserIds] = useState<Set<string>>(new Set());
   const [rankingData, setRankingData] = useState<Record<string, { rating: number; position: number | null; matches_played: number; matches_won: number }>>({});
+  const [commentCount, setCommentCount] = useState(0);
+  const { seasons, isLoading: seasonsLoading } = useGroupSeasons(groupId);
 
   const rivalry = isRivalryGroup(group, memberCount);
 
