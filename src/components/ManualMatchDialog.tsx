@@ -52,6 +52,7 @@ export function ManualMatchDialog({ roundId, groupId, matchFormat = "doubles", o
   const [step, setStep] = useState<"select" | "scores">("select");
   const [submitting, setSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [playerRankings, setPlayerRankings] = useState<Record<string, { rating: number; position: number | null; prevPosition: number | null }>>({});
 
   useEffect(() => {
     const load = async () => {
