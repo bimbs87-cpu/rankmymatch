@@ -469,6 +469,18 @@ function DashboardPage() {
           </Link>
         </section>
 
+        {/* Próximo confronto pendente */}
+        {pendingMatch && (
+          <section className="animate-fade-in">
+            <PendingMatchCard
+              match={pendingMatch}
+              onScoreSaved={() => { refreshPending(); loadDashboard(); }}
+              showGroupName={true}
+              isAdmin={adminGroupIds.has(pendingMatch.group_id)}
+            />
+          </section>
+        )}
+
         {/* Próximas Rodadas */}
         <section>
           <div className="mb-3 flex items-center justify-between">
