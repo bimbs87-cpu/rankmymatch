@@ -51,18 +51,6 @@ function GroupsIndexPage() {
             Criar
           </button>
         </div>
-        {tab === "explore" && (
-          <div className="mt-4 flex items-center gap-2.5 rounded-2xl border border-border bg-card px-4 py-3">
-            <Search className="h-4 w-4 text-muted-foreground" />
-            <input
-              type="text"
-              placeholder="Buscar grupos públicos..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
-            />
-          </div>
-        )}
       </header>
 
       <div className="space-y-5 px-5">
@@ -84,6 +72,19 @@ function GroupsIndexPage() {
             Explorar
           </button>
         </div>
+
+        {tab === "explore" && (
+          <div className="flex items-center gap-2.5 rounded-2xl border border-border bg-card px-4 py-3">
+            <Search className="h-4 w-4 text-muted-foreground" />
+            <input
+              type="text"
+              placeholder="Buscar grupos públicos..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
+            />
+          </div>
+        )}
 
         {loading ? (
           <TrophyLoadingBar fullScreen={false} compact />
