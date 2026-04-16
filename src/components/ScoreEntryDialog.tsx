@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { submitMatchScore } from "@/lib/elo-engine";
+import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { X, Save, Trophy, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 
@@ -159,25 +160,13 @@ export function ScoreEntryDialog({
         {isSingles ? (
           <div className="mb-4 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              {teamA[0]?.avatarUrl ? (
-                <img src={teamA[0].avatarUrl} alt="" className="h-8 w-8 rounded-full object-cover ring-2 ring-primary/30" />
-              ) : (
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary ring-2 ring-primary/30">
-                  {playerAName.charAt(0)}
-                </div>
-              )}
+              <PlayerAvatar avatarUrl={teamA[0]?.avatarUrl || null} name={playerAName} size="md" className="ring-2 ring-primary/30" />
               <span className="text-sm font-semibold text-primary">{playerAName}</span>
             </div>
             <span className="text-xs font-bold text-muted-foreground">VS</span>
             <div className="flex items-center gap-2">
               <span className="text-sm font-semibold text-info">{playerBName}</span>
-              {teamB[0]?.avatarUrl ? (
-                <img src={teamB[0].avatarUrl} alt="" className="h-8 w-8 rounded-full object-cover ring-2 ring-info/30" />
-              ) : (
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-info/10 text-xs font-bold text-info ring-2 ring-info/30">
-                  {playerBName.charAt(0)}
-                </div>
-              )}
+              <PlayerAvatar avatarUrl={teamB[0]?.avatarUrl || null} name={playerBName} size="md" className="ring-2 ring-info/30" />
             </div>
           </div>
         ) : (
