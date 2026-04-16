@@ -1,5 +1,4 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { LoadingBar } from "@/components/LoadingBar";
 import { useAuth } from "@/hooks/use-auth";
 import { useGroupDetail } from "@/hooks/use-groups";
 import { useGroupSeasons } from "@/hooks/use-seasons";
@@ -79,6 +78,12 @@ function GroupSeasonsPage() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
   const [showHidden, setShowHidden] = useState(false);
+  // Singles-specific
+  const [setsPerMatch, setSetsPerMatch] = useState(3);
+  const [singlesPairingMode, setSinglesPairingMode] = useState("manual");
+  const [oddPlayerRule, setOddPlayerRule] = useState("admin_decides");
+
+  const isSingles = group?.match_format === "singles";
 
   const goStep = (next: "type" | "config" | "dates", dir: "forward" | "back") => {
     setStepDir(dir);
@@ -99,6 +104,9 @@ function GroupSeasonsPage() {
     setIsRetroactive(false);
     setRoundsPlayed(0);
     setSubmitError(null);
+    setSetsPerMatch(3);
+    setSinglesPairingMode("manual");
+    setOddPlayerRule("admin_decides");
   };
 
   const handleSelectType = (type: "weekly" | "monthly") => {
@@ -159,6 +167,10 @@ function GroupSeasonsPage() {
         totalRounds,
         roundDates,
         scheduledTime: time,
+        matchFormat: group?.match_format || "doubles",
+        setsPerMatch: isSingles ? setsPerMatch : undefined,
+        singlesPairingMode: isSingles ? singlesPairingMode : undefined,
+        oddPlayerRule: isSingles ? oddPlayerRule : undefined,
       });
 
       // Update group's simultaneous_courts if different
@@ -220,7 +232,11 @@ function GroupSeasonsPage() {
   const hiddenSeasons = seasons.filter((s) => s.status === "hidden");
 
   if (isLoading) {
-    return <LoadingBar label="Carregando temporadas..." />;
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+      </div>
+    );
   }
 
   return (
@@ -508,6 +524,92 @@ function GroupSeasonsPage() {
                   </div>
                   <p className="mt-1 text-[10px] text-muted-foreground">Quantas quadras serão usadas ao mesmo tempo nas rodadas</p>
                 </div>
+                {/* Singles-specific config */}
+                {isSingles && (
+                  <>
+                    <div>
+                      <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Sets por confronto</label>
+                      <div className="flex gap-2">
+                        {[1, 3].map((n) => (
+                          <button
+                            key={n}
+                            onClick={() => setSetsPerMatch(n)}
+                            className={`flex-1 rounded-xl py-2.5 text-sm font-semibold transition-colors ${
+                              setsPerMatch === n
+                                ? "bg-primary text-primary-foreground"
+                                : "border border-border bg-background text-foreground"
+                            }`}
+                          >
+                            {n} set{n !== 1 ? "s" : ""}
+                          </button>
+                        ))}
+                      </div>
+                      <p className="mt-1 text-[10px] text-muted-foreground">
+                        {setsPerMatch === 3 ? "Melhor de 3 sets por confronto" : "1 set por confronto"}
+                      </p>
+                    </div>
+                    <div>
+                      <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Formação dos confrontos</label>
+                      <div className="space-y-1.5">
+                        {[
+                          { value: "manual", label: "Manual pelo admin", desc: "Admin define quem joga contra quem" },
+                          { value: "random", label: "Sorteio automático", desc: "Confrontos sorteados aleatoriamente" },
+                          { value: "round_robin", label: "Rodízio (todos contra todos)", desc: "Cada jogador enfrenta todos os outros" },
+                        ].map((opt) => (
+                          <button
+                            key={opt.value}
+                            onClick={() => setSinglesPairingMode(opt.value)}
+                            className={`flex w-full items-start gap-3 rounded-xl border p-3 text-left transition-colors ${
+                              singlesPairingMode === opt.value
+                                ? "border-primary bg-primary/5"
+                                : "border-border bg-background"
+                            }`}
+                          >
+                            <div className={`mt-0.5 h-4 w-4 rounded-full border-2 flex items-center justify-center ${
+                              singlesPairingMode === opt.value ? "border-primary" : "border-muted-foreground"
+                            }`}>
+                              {singlesPairingMode === opt.value && <div className="h-2 w-2 rounded-full bg-primary" />}
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-foreground">{opt.label}</p>
+                              <p className="text-[10px] text-muted-foreground">{opt.desc}</p>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Se sobrar jogador na rodada</label>
+                      <div className="space-y-1.5">
+                        {[
+                          { value: "bye", label: "Bye sem pontuação", desc: "Jogador descansa sem ganhar pontos" },
+                          { value: "queue_point", label: "Fila com +1 ponto simbólico", desc: "Jogador ganha 1 ponto por estar presente" },
+                          { value: "admin_decides", label: "Admin decide manualmente", desc: "Decisão caso a caso" },
+                        ].map((opt) => (
+                          <button
+                            key={opt.value}
+                            onClick={() => setOddPlayerRule(opt.value)}
+                            className={`flex w-full items-start gap-3 rounded-xl border p-3 text-left transition-colors ${
+                              oddPlayerRule === opt.value
+                                ? "border-primary bg-primary/5"
+                                : "border-border bg-background"
+                            }`}
+                          >
+                            <div className={`mt-0.5 h-4 w-4 rounded-full border-2 flex items-center justify-center ${
+                              oddPlayerRule === opt.value ? "border-primary" : "border-muted-foreground"
+                            }`}>
+                              {oddPlayerRule === opt.value && <div className="h-2 w-2 rounded-full bg-primary" />}
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-foreground">{opt.label}</p>
+                              <p className="text-[10px] text-muted-foreground">{opt.desc}</p>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </>
+                )}
                 <div>
                   <button
                     type="button"

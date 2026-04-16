@@ -1,5 +1,4 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { LoadingBar } from "@/components/LoadingBar";
 import { useAuth } from "@/hooks/use-auth";
 import { useGroupDetail } from "@/hooks/use-groups";
 import { useRoundDetail, confirmPresence, cancelPresence, drawTeams, deleteMatch, deleteRound } from "@/hooks/use-seasons";
@@ -119,7 +118,11 @@ function RoundDetailPage() {
   };
 
   if (isLoading) {
-    return <LoadingBar label="Carregando rodada..." />;
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+      </div>
+    );
   }
 
   if (!round) {
@@ -132,7 +135,9 @@ function RoundDetailPage() {
 
   const isConfirmed = myPresence?.status === "confirmed";
   const confirmedPlayers = presences.filter((p) => p.status === "confirmed");
-  const canDraw = isAdmin && confirmedPlayers.length >= 4 && matches.length === 0;
+  const isSingles = group?.match_format === "singles";
+  const minPlayersForDraw = isSingles ? 2 : 4;
+  const canDraw = isAdmin && confirmedPlayers.length >= minPlayersForDraw && matches.length === 0;
 
   const presenceListOpen = isPresenceOpen(presenceConfig, round.scheduled_date, round.scheduled_time, roundId);
   const presenceOpenDate = getPresenceOpenDate(presenceConfig, round.scheduled_date, round.scheduled_time, roundId);
@@ -262,7 +267,7 @@ function RoundDetailPage() {
           )}
           <div className="flex items-center gap-1.5">
             <Users className="h-3.5 w-3.5" />
-            <span>{confirmedCount}/{group?.slots_per_round || round.max_players} confirmados</span>
+            <span>{confirmedCount}/{isSingles ? (group?.slots_per_round || 2) : (group?.slots_per_round || round.max_players)} confirmados</span>
           </div>
         </div>
       </div>
@@ -312,7 +317,9 @@ function RoundDetailPage() {
             className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-primary bg-primary/5 py-3.5 text-sm font-bold text-primary"
           >
             <Shuffle className="h-4 w-4" />
-            Sortear Times ({confirmedPlayers.length} jogadores → {Math.floor(confirmedPlayers.length / 4)} partida{Math.floor(confirmedPlayers.length / 4) !== 1 ? "s" : ""})
+            {isSingles
+              ? `Sortear Confrontos (${confirmedPlayers.length} jogadores → ${Math.floor(confirmedPlayers.length / 2)} confronto${Math.floor(confirmedPlayers.length / 2) !== 1 ? "s" : ""})`
+              : `Sortear Times (${confirmedPlayers.length} jogadores → ${Math.floor(confirmedPlayers.length / 4)} partida${Math.floor(confirmedPlayers.length / 4) !== 1 ? "s" : ""})`}
           </button>
         </div>
       )}
@@ -325,7 +332,7 @@ function RoundDetailPage() {
             className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-primary bg-primary/5 py-3.5 text-sm font-bold text-primary"
           >
             <Swords className="h-4 w-4" />
-            Lançar Rei da Quadra
+            {isSingles ? "Montar Confrontos" : "Lançar Rei da Quadra"}
           </button>
         </div>
       )}
@@ -379,7 +386,7 @@ function RoundDetailPage() {
                       <div className="flex items-center gap-1.5">
                         <Swords className="h-3.5 w-3.5 text-primary" />
                         <span className="text-xs font-semibold text-foreground">
-                          {match.match_number}º Set
+                          {isSingles ? `Confronto ${match.match_number}` : `${match.match_number}º Set`}
                         </span>
                       </div>
                       <div className="flex items-center gap-2">
@@ -550,6 +557,7 @@ function RoundDetailPage() {
         <ManualMatchDialog
           roundId={roundId}
           groupId={groupId}
+          matchFormat={group?.match_format || "doubles"}
           onClose={() => setShowManualMatch(false)}
           onSaved={refresh}
         />

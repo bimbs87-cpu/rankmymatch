@@ -226,20 +226,28 @@ export async function drawTeams(roundId: string, confirmedPlayerIds: string[], a
   // Shuffle players
   const shuffled = [...confirmedPlayerIds].sort(() => Math.random() - 0.5);
 
-  // Get round info for notification
+  // Get round info for notification and format
   const { data: roundData } = await supabase
     .from("rounds")
-    .select("round_number, group_id")
+    .select("round_number, group_id, match_format")
     .eq("id", roundId)
     .single();
 
-  // Create matches of 4 players each (2v2)
-  const matchCount = Math.floor(shuffled.length / 4);
+  const isSingles = roundData?.match_format === "singles";
+  const playersPerMatch = isSingles ? 2 : 4;
+
+  // Create matches
+  const matchCount = Math.floor(shuffled.length / playersPerMatch);
   const createdMatches = [];
 
   for (let i = 0; i < matchCount; i++) {
-    const teamA = shuffled.slice(i * 4, i * 4 + 2);
-    const teamB = shuffled.slice(i * 4 + 2, i * 4 + 4);
+    const start = i * playersPerMatch;
+    const teamA = isSingles
+      ? [shuffled[start]]
+      : shuffled.slice(start, start + 2);
+    const teamB = isSingles
+      ? [shuffled[start + 1]]
+      : shuffled.slice(start + 2, start + 4);
 
     const { data: match, error } = await supabase
       .from("matches")
@@ -247,13 +255,13 @@ export async function drawTeams(roundId: string, confirmedPlayerIds: string[], a
         round_id: roundId,
         match_number: i + 1,
         status: "scheduled",
+        match_format: isSingles ? "singles" : "doubles",
       })
       .select()
       .single();
 
     if (error) throw error;
 
-    // Add players
     const players = [
       ...teamA.map((uid) => ({ match_id: match.id, user_id: uid, team: "A" })),
       ...teamB.map((uid) => ({ match_id: match.id, user_id: uid, team: "B" })),
@@ -272,8 +280,10 @@ export async function drawTeams(roundId: string, confirmedPlayerIds: string[], a
       groupId: roundData.group_id,
       actorId,
       type: "draw_completed",
-      title: "Times sorteados! 🎲",
-      body: `Os times da Rodada ${roundData.round_number} foram sorteados. ${matchCount} partida${matchCount !== 1 ? "s" : ""} criada${matchCount !== 1 ? "s" : ""}!`,
+      title: isSingles ? "Confrontos definidos! 🎲" : "Times sorteados! 🎲",
+      body: isSingles
+        ? `Os confrontos da Rodada ${roundData.round_number} foram definidos. ${matchCount} confronto${matchCount !== 1 ? "s" : ""} criado${matchCount !== 1 ? "s" : ""}!`
+        : `Os times da Rodada ${roundData.round_number} foram sorteados. ${matchCount} partida${matchCount !== 1 ? "s" : ""} criada${matchCount !== 1 ? "s" : ""}!`,
       data: { roundId },
     });
   }

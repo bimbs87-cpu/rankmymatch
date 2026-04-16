@@ -1,5 +1,4 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { LoadingBar } from "@/components/LoadingBar";
 import { ArrowLeft, Bell, CheckCheck, Calendar, Shuffle, MessageSquare } from "lucide-react";
 import { useNotifications } from "@/hooks/use-notifications";
 
@@ -53,7 +52,9 @@ function NotificationsPage() {
 
       <div className="px-5 pt-4">
         {isLoading ? (
-          <LoadingBar fullScreen={false} label="Carregando notificações..." />
+          <div className="flex justify-center py-12">
+            <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+          </div>
         ) : notifications.length === 0 ? (
           <div className="flex flex-col items-center gap-3 pt-8 text-center">
             <Bell className="h-10 w-10 text-muted-foreground/20" />

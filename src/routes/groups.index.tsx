@@ -1,5 +1,4 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { LoadingBar } from "@/components/LoadingBar";
 import { useAuth } from "@/hooks/use-auth";
 import { useMyGroups, usePublicGroups } from "@/hooks/use-groups";
 import { CreateGroupDialog } from "@/components/CreateGroupDialog";
@@ -20,7 +19,11 @@ function GroupsIndexPage() {
   const { groups: publicGroups, isLoading: pubLoading } = usePublicGroups(tab === "explore" ? search : "");
 
   if (authLoading) {
-    return <LoadingBar label="Carregando grupos..." />;
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+      </div>
+    );
   }
 
   if (!isAuthenticated) {
@@ -86,7 +89,9 @@ function GroupsIndexPage() {
         </div>
 
         {loading ? (
-          <LoadingBar fullScreen={false} label="Buscando grupos..." />
+          <div className="flex justify-center py-12">
+            <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+          </div>
         ) : groups.length === 0 ? (
           <div className="rounded-3xl border border-dashed border-border bg-card/50 p-8">
             <div className="flex flex-col items-center gap-3 text-center">

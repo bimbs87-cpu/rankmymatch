@@ -1,5 +1,4 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { LoadingBar } from "@/components/LoadingBar";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useState } from "react";
@@ -131,7 +130,11 @@ function HistoryPage() {
   }, [user]);
 
   if (authLoading || isLoading) {
-    return <LoadingBar label="Carregando histórico..." />;
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+      </div>
+    );
   }
 
   const wins = matches.filter((m) => m.winnerTeam === m.myTeam).length;

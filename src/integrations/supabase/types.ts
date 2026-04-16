@@ -450,6 +450,7 @@ export type Database = {
           presence_open_mode: string
           presence_open_time: string
           simultaneous_courts: number
+          singles_group_type: string | null
           slots_per_round: number
           sport: string
           status: string
@@ -470,6 +471,7 @@ export type Database = {
           presence_open_mode?: string
           presence_open_time?: string
           simultaneous_courts?: number
+          singles_group_type?: string | null
           slots_per_round?: number
           sport?: string
           status?: string
@@ -490,6 +492,7 @@ export type Database = {
           presence_open_mode?: string
           presence_open_time?: string
           simultaneous_courts?: number
+          singles_group_type?: string | null
           slots_per_round?: number
           sport?: string
           status?: string
@@ -648,10 +651,12 @@ export type Database = {
       }
       matches: {
         Row: {
+          counts_for_ranking: boolean | null
           court_id: string | null
           created_at: string
           created_by: string | null
           id: string
+          is_exhibition: boolean | null
           match_format: string
           match_number: number | null
           result_type: string | null
@@ -661,10 +666,12 @@ export type Database = {
           winner_team: string | null
         }
         Insert: {
+          counts_for_ranking?: boolean | null
           court_id?: string | null
           created_at?: string
           created_by?: string | null
           id?: string
+          is_exhibition?: boolean | null
           match_format?: string
           match_number?: number | null
           result_type?: string | null
@@ -674,10 +681,12 @@ export type Database = {
           winner_team?: string | null
         }
         Update: {
+          counts_for_ranking?: boolean | null
           court_id?: string | null
           created_at?: string
           created_by?: string | null
           id?: string
+          is_exhibition?: boolean | null
           match_format?: string
           match_number?: number | null
           result_type?: string | null
@@ -1082,8 +1091,11 @@ export type Database = {
           match_format: string
           min_eligibility_pct: number
           name: string
+          odd_player_rule: string | null
           rounds_per_week: number | null
           scoring_format: Json | null
+          sets_per_match: number | null
+          singles_pairing_mode: string | null
           start_date: string | null
           status: string
           total_rounds: number | null
@@ -1099,8 +1111,11 @@ export type Database = {
           match_format?: string
           min_eligibility_pct?: number
           name: string
+          odd_player_rule?: string | null
           rounds_per_week?: number | null
           scoring_format?: Json | null
+          sets_per_match?: number | null
+          singles_pairing_mode?: string | null
           start_date?: string | null
           status?: string
           total_rounds?: number | null
@@ -1116,8 +1131,11 @@ export type Database = {
           match_format?: string
           min_eligibility_pct?: number
           name?: string
+          odd_player_rule?: string | null
           rounds_per_week?: number | null
           scoring_format?: Json | null
+          sets_per_match?: number | null
+          singles_pairing_mode?: string | null
           start_date?: string | null
           status?: string
           total_rounds?: number | null

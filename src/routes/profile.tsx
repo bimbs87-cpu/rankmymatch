@@ -1,5 +1,4 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
-import { LoadingBar } from "@/components/LoadingBar";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import { EloChart } from "@/components/EloChart";
@@ -163,7 +162,11 @@ function ProfilePage() {
   };
 
   if (isLoading || loadingProfile) {
-    return <LoadingBar label="Carregando perfil..." />;
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+      </div>
+    );
   }
 
   const googlePhotoUrl = user?.user_metadata?.avatar_url || user?.user_metadata?.picture || null;
