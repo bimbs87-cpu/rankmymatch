@@ -52,6 +52,7 @@ export function ManualMatchDialog({ roundId, groupId, matchFormat = "doubles", o
   const [step, setStep] = useState<"select" | "scores">("select");
   const [submitting, setSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [playerRankings, setPlayerRankings] = useState<Record<string, { rating: number; position: number | null; prevPosition: number | null }>>({});
 
   useEffect(() => {
     const load = async () => {
@@ -89,7 +90,7 @@ export function ManualMatchDialog({ roundId, groupId, matchFormat = "doubles", o
     });
   };
 
-  const goToScores = () => {
+  const goToScores = async () => {
     if (selectedPlayers.length !== requiredPlayers) return;
     if (isSingles) {
       setMatchups(generateSinglesMatchup(selectedPlayers));
@@ -97,6 +98,89 @@ export function ManualMatchDialog({ roundId, groupId, matchFormat = "doubles", o
       setMatchups(generateDoublesMatchups(selectedPlayers));
     }
     setStep("scores");
+
+    // Fetch current ranking data for selected players
+    const { data: roundData } = await supabase
+      .from("rounds")
+      .select("season_id")
+      .eq("id", roundId)
+      .single();
+
+    if (roundData?.season_id) {
+      const { data: snapshots } = await supabase
+        .from("ranking_snapshots")
+        .select("user_id, rating, position")
+        .eq("season_id", roundData.season_id)
+        .in("user_id", selectedPlayers);
+
+      // Get previous round's positions by looking at rating_events
+      const { data: prevRounds } = await supabase
+        .from("rounds")
+        .select("id")
+        .eq("group_id", groupId)
+        .eq("season_id", roundData.season_id)
+        .neq("id", roundId)
+        .order("round_number", { ascending: false })
+        .limit(1);
+
+      const rankings: Record<string, { rating: number; position: number | null; prevPosition: number | null }> = {};
+      for (const uid of selectedPlayers) {
+        const snap = snapshots?.find((s) => s.user_id === uid);
+        rankings[uid] = {
+          rating: snap ? Number(snap.rating) : 1000,
+          position: snap?.position ?? null,
+          prevPosition: null,
+        };
+      }
+
+      // If there was a previous round, estimate previous positions from current data
+      if (prevRounds?.[0]) {
+        const prevRoundId = prevRounds[0].id;
+        const { data: prevMatches } = await supabase
+          .from("matches")
+          .select("id")
+          .eq("round_id", prevRoundId);
+
+        if (prevMatches?.length) {
+          const matchIds = prevMatches.map((m) => m.id);
+          const { data: prevEvents } = await supabase
+            .from("rating_events")
+            .select("user_id, rating_before")
+            .in("match_id", matchIds)
+            .in("user_id", selectedPlayers);
+
+          if (prevEvents?.length) {
+            // Get all snapshots to compute previous positions
+            const { data: allSnaps } = await supabase
+              .from("ranking_snapshots")
+              .select("user_id, rating, position")
+              .eq("season_id", roundData.season_id)
+              .eq("is_eligible", true)
+              .order("rating", { ascending: false });
+
+            if (allSnaps) {
+              // Previous rating = current rating - last change
+              const prevRatings: { uid: string; prevRating: number }[] = [];
+              for (const snap of allSnaps) {
+                const evt = prevEvents.find((e) => e.user_id === snap.user_id);
+                prevRatings.push({
+                  uid: snap.user_id,
+                  prevRating: evt ? Number(evt.rating_before) : Number(snap.rating),
+                });
+              }
+              prevRatings.sort((a, b) => b.prevRating - a.prevRating);
+              for (let i = 0; i < prevRatings.length; i++) {
+                if (rankings[prevRatings[i].uid]) {
+                  rankings[prevRatings[i].uid].prevPosition = i + 1;
+                }
+              }
+            }
+          }
+        }
+      }
+
+      setPlayerRankings(rankings);
+    }
   };
 
   const setScore = (matchIdx: number, team: "A" | "B", value: number) => {
@@ -486,11 +570,15 @@ export function ManualMatchDialog({ roundId, groupId, matchFormat = "doubles", o
                     })
                     .map((uid, i) => {
                       const pp = playerPoints[uid];
+                      const ranking = playerRankings[uid];
                       const isWinner = i === 0;
+                      const posChange = ranking?.prevPosition && ranking?.position
+                        ? ranking.prevPosition - ranking.position
+                        : null;
                       return (
                         <div
                           key={uid}
-                          className={`flex items-center gap-3 rounded-xl px-3 py-2 ${
+                          className={`flex items-center gap-2.5 rounded-xl px-3 py-2.5 ${
                             isWinner ? "bg-primary/10 border border-primary/20" : ""
                           }`}
                         >
@@ -498,12 +586,27 @@ export function ManualMatchDialog({ roundId, groupId, matchFormat = "doubles", o
                             {i + 1}º
                           </span>
                           <PlayerAvatar uid={uid} />
-                          <span className={`flex-1 text-sm font-medium ${isWinner ? "text-primary" : "text-foreground"}`}>
-                            {getDisplayName(uid)}
-                            {isWinner && " 🏆"}
-                          </span>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-1.5">
+                              <span className={`text-sm font-medium truncate ${isWinner ? "text-primary" : "text-foreground"}`}>
+                                {getDisplayName(uid)}
+                                {isWinner && " 🏆"}
+                              </span>
+                              {posChange !== null && posChange !== 0 && (
+                                <span className={`flex items-center text-[10px] font-bold ${posChange > 0 ? "text-success" : "text-destructive"}`}>
+                                  {posChange > 0 ? <ArrowUp className="h-2.5 w-2.5" /> : <ArrowDown className="h-2.5 w-2.5" />}
+                                  {Math.abs(posChange)}
+                                </span>
+                              )}
+                            </div>
+                            {ranking && (
+                              <span className="text-[10px] text-muted-foreground">
+                                {Math.round(ranking.rating)} Elo
+                              </span>
+                            )}
+                          </div>
                           <span className="text-xs font-bold text-success">{pp.wins}V</span>
-                          <span className="text-[11px] text-muted-foreground">{pp.gamesWon}–{pp.gamesLost}</span>
+                          <span className="text-[11px] text-muted-foreground whitespace-nowrap">{pp.gamesWon}–{pp.gamesLost}</span>
                         </div>
                       );
                     })}
