@@ -160,8 +160,10 @@ export async function createRound(data: {
   scheduledTime?: string;
   location?: string;
   maxPlayers?: number;
+  matchFormat?: string;
   userId: string;
 }) {
+  const isSingles = data.matchFormat === "singles";
   const { data: round, error } = await supabase
     .from("rounds")
     .insert({
@@ -171,7 +173,8 @@ export async function createRound(data: {
       scheduled_date: data.scheduledDate || null,
       scheduled_time: data.scheduledTime || null,
       location: data.location || null,
-      max_players: data.maxPlayers || 8,
+      max_players: data.maxPlayers || (isSingles ? 2 : 8),
+      match_format: isSingles ? "singles" : "doubles",
       status: "scheduled",
     })
     .select()
