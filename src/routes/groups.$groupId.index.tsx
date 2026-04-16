@@ -488,6 +488,12 @@ function GroupDetailPage() {
                             </span>
                             {m.role === "creator" && <Crown className="h-3 w-3 text-rank-gold flex-shrink-0" />}
                             {m.role === "admin" && <Shield className="h-3 w-3 text-info flex-shrink-0" />}
+                            {placeholderUserIds.has(m.user_id) && (
+                              <span className="flex items-center gap-0.5 rounded-full bg-muted px-1.5 py-0.5 text-[9px] font-medium text-muted-foreground flex-shrink-0">
+                                <Ghost className="h-2.5 w-2.5" />
+                                Sem conta
+                              </span>
+                            )}
                           </div>
                           {rank ? (
                             <p className="text-[10px] text-muted-foreground">
