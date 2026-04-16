@@ -7,6 +7,8 @@ import { useTheme } from "@/lib/theme";
 import { useAuth } from "@/hooks/use-auth";
 import { useMyGroups } from "@/hooks/use-groups";
 import { useNotifications } from "@/hooks/use-notifications";
+import { usePendingMatch } from "@/hooks/use-pending-matches";
+import { PendingMatchCard } from "@/components/PendingMatchCard";
 import { InstallBanner } from "@/components/InstallBanner";
 import { supabase } from "@/integrations/supabase/client";
 import { useState, useEffect, useCallback, useRef } from "react";
