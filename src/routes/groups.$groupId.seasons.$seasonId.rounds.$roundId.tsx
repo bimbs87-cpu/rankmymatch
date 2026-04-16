@@ -318,9 +318,17 @@ function RoundDetailPage() {
             >
               {round.status === "cancelled"
                 ? "Cancelada"
-                : round.status === "scheduled" && round.scheduled_date && round.scheduled_date <= new Date().toISOString().split("T")[0]
-                ? (rivalry ? "Lançar resultado" : "Lançar resultado")
-                : round.status === "scheduled" ? "Agendada" : round.status === "in_progress" ? "Em jogo" : "Encerrada"}
+                : round.status === "completed"
+                ? "Encerrada"
+                : round.status === "in_progress"
+                ? (() => {
+                    // Check if all matches are completed — if so, round should show as encerrada
+                    const allCompleted = matches.length > 0 && matches.every((m: any) => m.status === "completed");
+                    return allCompleted ? "Encerrada" : "Em andamento";
+                  })()
+                : round.scheduled_date && round.scheduled_date <= new Date().toISOString().split("T")[0]
+                ? "Aguardando resultado"
+                : "Agendada"}
             </span>
           </div>
           {isAdmin && (
@@ -506,14 +514,14 @@ function RoundDetailPage() {
                       <div className="flex items-center gap-2">
                         <span
                           className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
-                            match.status === "scheduled"
-                              ? "bg-info/10 text-info"
+                            match.status === "completed"
+                              ? "bg-success/10 text-success"
                               : match.status === "in_progress"
                               ? "bg-warning/10 text-warning"
-                              : "bg-success/10 text-success"
+                              : "bg-info/10 text-info"
                           }`}
                         >
-                          {match.status === "scheduled" ? "Aguardando" : match.status === "in_progress" ? "Em jogo" : "Finalizada"}
+                          {match.status === "completed" ? "Finalizado" : match.status === "in_progress" ? "Em andamento" : "Aguardando resultado"}
                         </span>
                         {isAdmin && (
                           <button

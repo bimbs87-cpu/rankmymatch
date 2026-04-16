@@ -309,15 +309,24 @@ export async function deleteMatch(matchId: string) {
   const { error } = await supabase.from("matches").delete().eq("id", matchId);
   if (error) throw new Error(error.message);
 
-  // Check if round has any remaining matches; if not, reset to scheduled
+  // Recalculate round status based on remaining matches
   if (matchData?.round_id) {
     const { data: remaining } = await supabase
       .from("matches")
-      .select("id")
-      .eq("round_id", matchData.round_id)
-      .limit(1);
+      .select("id, status")
+      .eq("round_id", matchData.round_id);
+
     if (!remaining?.length) {
+      // No matches left → reset to scheduled
       await supabase.from("rounds").update({ status: "scheduled" }).eq("id", matchData.round_id);
+    } else {
+      const allCompleted = remaining.every((m) => m.status === "completed");
+      const anyInProgress = remaining.some((m) => m.status === "in_progress" || m.status === "scheduled");
+      if (allCompleted) {
+        await supabase.from("rounds").update({ status: "completed" }).eq("id", matchData.round_id);
+      } else if (anyInProgress) {
+        await supabase.from("rounds").update({ status: "in_progress" }).eq("id", matchData.round_id);
+      }
     }
   }
 }

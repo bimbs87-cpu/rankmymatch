@@ -542,11 +542,15 @@ function DashboardPage() {
                       </p>
                       {(() => {
                         const today = new Date().toISOString().split("T")[0];
-                        const smartStatus = r.status === "scheduled" && r.scheduled_date && r.scheduled_date <= today
+                        const smartStatus = r.status === "in_progress"
+                          ? "in_progress"
+                          : r.status === "completed"
+                          ? "completed"
+                          : r.status === "scheduled" && r.scheduled_date && r.scheduled_date <= today
                           ? "pending_result"
-                          : r.status;
-                        const label = smartStatus === "in_progress" ? "Em jogo" : smartStatus === "pending_result" ? "Lançar resultado" : "Agendada";
-                        const cls = smartStatus === "in_progress" ? "bg-warning/10 text-warning" : smartStatus === "pending_result" ? "bg-warning/10 text-warning" : "bg-info/10 text-info";
+                          : "scheduled";
+                        const label = smartStatus === "completed" ? "Encerrada" : smartStatus === "in_progress" ? "Em andamento" : smartStatus === "pending_result" ? "Aguardando resultado" : "Agendada";
+                        const cls = smartStatus === "completed" ? "bg-success/10 text-success" : smartStatus === "in_progress" ? "bg-warning/10 text-warning" : smartStatus === "pending_result" ? "bg-warning/10 text-warning" : "bg-info/10 text-info";
                         return <span className={`rounded-full px-1.5 py-0.5 text-[9px] font-semibold ${cls}`}>{label}</span>;
                       })()}
                     </div>

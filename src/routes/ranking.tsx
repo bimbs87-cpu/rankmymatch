@@ -5,6 +5,8 @@ import { BarChart3, Info, ChevronDown, ArrowUp, ArrowDown, Calendar, Layers, Tim
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
+import { isRivalryGroup } from "@/lib/rivalry";
+import { RivalryDuelPage } from "@/components/RivalryDuelPage";
 
 export const Route = createFileRoute("/ranking")({
   component: RankingPage,
@@ -413,6 +415,91 @@ function RankingPage() {
   const selectedSeason = seasons.find((s: any) => s.id === selectedSeasonId);
   const remainingRounds = Math.max(0, (selectedSeason?.total_rounds || totalRounds) - completedRounds);
   const eligibleRankings = rankings.filter((r) => r.is_eligible);
+
+  // Check if user has a rivalry group and show duel page instead
+  const rivalryGroup = groups.find((g: any) => isRivalryGroup(g, g.member_count));
+  const [rivalrySeasonInfo, setRivalrySeasonInfo] = useState<{ id: string; name: string } | null>(null);
+
+  useEffect(() => {
+    if (!rivalryGroup) { setRivalrySeasonInfo(null); return; }
+    supabase
+      .from("seasons")
+      .select("id, name")
+      .eq("group_id", rivalryGroup.id)
+      .eq("status", "active")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle()
+      .then(({ data }) => { setRivalrySeasonInfo(data || null); });
+  }, [rivalryGroup?.id]);
+
+  // If rivalry group exists AND it's the selected season's group (or user only has rivalry groups), show duel page
+  const showRivalryDuel = rivalryGroup && (
+    !selectedSeasonId ||
+    seasons.find((s: any) => s.id === selectedSeasonId)?.group_id === rivalryGroup.id ||
+    groups.every((g: any) => isRivalryGroup(g, g.member_count))
+  );
+
+  if (showRivalryDuel && rivalryGroup && !isPageLoading) {
+    const rivalrySeason = seasons.find((s: any) => s.group_id === rivalryGroup.id);
+    return (
+      <div className="min-h-screen bg-background pb-28">
+        <header className="flex items-center justify-between px-5 pt-6 pb-2">
+          <div>
+            <h1 className="font-display text-xl font-bold text-foreground">Duelo</h1>
+          </div>
+          <Link to="/ranking-info" className="rounded-full border border-border bg-card p-2 transition-colors hover:bg-accent">
+            <Info className="h-4 w-4 text-muted-foreground" />
+          </Link>
+        </header>
+
+        {/* Season switcher — show if user also has non-rivalry groups */}
+        {seasons.length > 1 && (
+          <div className="px-5 mt-1 mb-3">
+            <button
+              onClick={() => setShowSwitcher(!showSwitcher)}
+              className="flex w-full items-center justify-center gap-2 rounded-2xl border border-border bg-card/80 backdrop-blur-sm px-4 py-2.5 transition-colors hover:bg-accent"
+            >
+              <Layers className="h-3.5 w-3.5 text-primary" />
+              <span className="text-sm font-semibold text-foreground">{rivalryGroup.name} • Rivalidade</span>
+              <ChevronDown className={`h-3.5 w-3.5 text-muted-foreground transition-transform ${showSwitcher ? "rotate-180" : ""}`} />
+            </button>
+          </div>
+        )}
+
+        {showSwitcher && seasons.length > 1 && (
+          <div className="mx-5 mt-2 mb-3 rounded-2xl border border-border bg-card/95 backdrop-blur-xl overflow-hidden shadow-lg">
+            {seasons.map((s: any) => {
+              const isRivalrySeason = groups.find((g: any) => g.id === s.group_id && isRivalryGroup(g, g.member_count));
+              return (
+                <button
+                  key={s.id}
+                  onClick={() => { setSelectedSeasonId(s.id); setShowSwitcher(false); }}
+                  className={`flex w-full items-center justify-between px-4 py-3 text-left text-sm transition-colors border-b border-border/50 last:border-b-0 ${
+                    (rivalrySeason ? s.group_id === rivalryGroup.id : selectedSeasonId === s.id) ? "bg-primary/10 text-primary font-semibold" : "text-foreground hover:bg-accent/50"
+                  }`}
+                >
+                  <div>
+                    <p className="font-medium">{s.groups?.name}</p>
+                    <p className="text-[11px] text-muted-foreground">
+                      {s.name} {isRivalrySeason ? "• Rivalidade" : ""}
+                    </p>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        <RivalryDuelPage
+          groupId={rivalryGroup.id}
+          groupName={rivalryGroup.name}
+          seasonId={rivalrySeason?.id || rivalrySeasonInfo?.id || null}
+          seasonName={rivalrySeason?.name || rivalrySeasonInfo?.name || null}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background pb-28">
