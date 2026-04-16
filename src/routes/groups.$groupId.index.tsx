@@ -41,6 +41,8 @@ import {
   AlertTriangle,
   Swords,
   TrendingUp,
+  Link2,
+  Ghost,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
