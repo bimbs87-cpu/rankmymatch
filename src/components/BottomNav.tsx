@@ -1,18 +1,16 @@
 import { Link, useLocation } from "@tanstack/react-router";
-import { Home, Users, Trophy, Bell, User } from "lucide-react";
-import { useNotifications } from "@/hooks/use-notifications";
+import { Home, Users, Trophy, BarChart3, User } from "lucide-react";
 
 const NAV_ITEMS = [
   { to: "/", icon: Home, label: "Início" },
   { to: "/groups", icon: Users, label: "Grupos" },
   { to: "/seasons", icon: Trophy, label: "Temporadas" },
-  { to: "/notifications", icon: Bell, label: "Alertas" },
+  { to: "/ranking", icon: BarChart3, label: "Ranking" },
   { to: "/profile", icon: User, label: "Perfil" },
 ] as const;
 
 export function BottomNav() {
   const location = useLocation();
-  const { unreadCount } = useNotifications();
 
   return (
     <nav className="fixed bottom-5 left-4 right-4 z-50 mx-auto max-w-lg">
@@ -22,7 +20,6 @@ export function BottomNav() {
             location.pathname === item.to ||
             (item.to !== "/" && location.pathname.startsWith(item.to));
           const Icon = item.icon;
-          const showBadge = item.to === "/notifications" && unreadCount > 0;
           return (
             <Link
               key={item.to}
@@ -40,11 +37,6 @@ export function BottomNav() {
                   }`}
                   strokeWidth={isActive ? 2.5 : 1.5}
                 />
-                {showBadge && (
-                  <span className="absolute -right-1.5 -top-1 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-destructive px-0.5 text-[8px] font-bold text-destructive-foreground">
-                    {unreadCount > 9 ? "9+" : unreadCount}
-                  </span>
-                )}
               </div>
               <span>{item.label}</span>
             </Link>

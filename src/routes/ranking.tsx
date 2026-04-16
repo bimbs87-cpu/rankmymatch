@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { BottomNav } from "@/components/BottomNav";
 import { useAuth } from "@/hooks/use-auth";
 import { useMyGroups } from "@/hooks/use-groups";
-import { BarChart3, Info, TrendingUp, TrendingDown, Minus, Medal, Target, Percent } from "lucide-react";
+import { BarChart3, Info, TrendingUp, TrendingDown, Minus, Medal, Target, Percent, ChevronDown } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -42,25 +42,38 @@ function RankingPage() {
   const [seasons, setSeasons] = useState<any[]>([]);
   const [rankings, setRankings] = useState<RankingEntry[]>([]);
   const [loading, setLoading] = useState(false);
+  const [showSwitcher, setShowSwitcher] = useState(false);
 
-  // Load seasons from user's groups
+  // Load seasons from user's groups, auto-select based on last match
   useEffect(() => {
-    if (!groups.length) return;
+    if (!groups.length || !user?.id) return;
     const loadSeasons = async () => {
       const groupIds = groups.map((g) => g.id);
       const { data } = await supabase
         .from("seasons")
         .select("*, groups(name)")
         .in("group_id", groupIds)
+        .in("status", ["active", "finished"])
         .order("created_at", { ascending: false });
       setSeasons(data || []);
+
       if (data?.length && !selectedSeasonId) {
-        const active = data.find((s: any) => s.status === "active");
-        setSelectedSeasonId(active?.id || data[0].id);
+        // Find the season of the user's most recent match
+        const { data: lastEvent } = await supabase
+          .from("rating_events")
+          .select("season_id")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: false })
+          .limit(1);
+
+        const lastSeasonId = lastEvent?.[0]?.season_id;
+        const matchedSeason = lastSeasonId ? data.find((s: any) => s.id === lastSeasonId) : null;
+        const activeSeason = data.find((s: any) => s.status === "active");
+        setSelectedSeasonId(matchedSeason?.id || activeSeason?.id || data[0].id);
       }
     };
     loadSeasons();
-  }, [groups]);
+  }, [groups, user?.id]);
 
   // Load rankings for selected season
   useEffect(() => {
@@ -139,16 +152,47 @@ function RankingPage() {
       <header className="flex items-center justify-between px-5 pt-6 pb-2">
         <div>
           <h1 className="font-display text-xl font-bold text-foreground">Ranking</h1>
-          {selectedSeason && (
+          {selectedSeason && seasons.length > 1 ? (
+            <button
+              onClick={() => setShowSwitcher(!showSwitcher)}
+              className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <span>{(selectedSeason as any).groups?.name} • {selectedSeason.name}</span>
+              <ChevronDown className={`h-3 w-3 transition-transform ${showSwitcher ? "rotate-180" : ""}`} />
+            </button>
+          ) : selectedSeason ? (
             <p className="text-xs text-muted-foreground">
               {(selectedSeason as any).groups?.name} • {selectedSeason.name}
             </p>
-          )}
+          ) : null}
         </div>
         <Link to="/ranking-info" className="rounded-full border border-border bg-card p-2 transition-colors hover:bg-accent">
           <Info className="h-4 w-4 text-muted-foreground" />
         </Link>
       </header>
+
+      {/* Ranking switcher dropdown */}
+      {showSwitcher && seasons.length > 1 && (
+        <div className="mx-5 mt-1 rounded-2xl border border-border bg-card/95 backdrop-blur-xl overflow-hidden shadow-lg">
+          {seasons.map((s: any) => (
+            <button
+              key={s.id}
+              onClick={() => { setSelectedSeasonId(s.id); setShowSwitcher(false); }}
+              className={`flex w-full items-center justify-between px-4 py-3 text-left text-sm transition-colors border-b border-border/50 last:border-b-0 ${
+                selectedSeasonId === s.id ? "bg-primary/10 text-primary font-semibold" : "text-foreground hover:bg-accent/50"
+              }`}
+            >
+              <div>
+                <p className="font-medium">{s.groups?.name}</p>
+                <p className="text-[11px] text-muted-foreground">{s.name}</p>
+              </div>
+              {selectedSeasonId === s.id && (
+                <div className="h-2 w-2 rounded-full bg-primary" />
+              )}
+            </button>
+          ))}
+        </div>
+      )}
 
       <div className="space-y-4 px-5 pt-4">
         {!isAuthenticated ? (
@@ -161,24 +205,6 @@ function RankingPage() {
           </div>
         ) : (
           <>
-            {/* Season selector */}
-            {seasons.length > 0 && (
-              <div className="scrollbar-none flex gap-2 overflow-x-auto">
-                {seasons.map((s: any) => (
-                  <button
-                    key={s.id}
-                    onClick={() => setSelectedSeasonId(s.id)}
-                    className={`shrink-0 rounded-full px-4 py-2 text-xs font-semibold transition-colors ${
-                      selectedSeasonId === s.id
-                        ? "bg-primary text-primary-foreground"
-                        : "border border-border bg-card text-muted-foreground"
-                    }`}
-                  >
-                    {s.name}
-                  </button>
-                ))}
-              </div>
-            )}
 
             {/* My position card */}
             {myRanking && (
