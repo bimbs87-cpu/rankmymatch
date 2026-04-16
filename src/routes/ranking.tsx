@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useAuth } from "@/hooks/use-auth";
 import { useMyGroups } from "@/hooks/use-groups";
 import { BarChart3, Info, ChevronDown, ArrowUp, ArrowDown, Calendar, Layers, Timer } from "lucide-react";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 
@@ -44,13 +44,12 @@ function abbreviateName(name: string): string {
   return `${parts[0]} ${parts[1][0]}.`;
 }
 
-/** Interactive loading bar */
 function LoadingBar({ progress, label }: { progress: number; label: string }) {
   return (
-    <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-4 px-8">
+    <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-background px-8">
       <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
       <div className="w-full max-w-xs">
-        <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+        <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
           <div
             className="h-full rounded-full bg-primary transition-all duration-500 ease-out"
             style={{ width: `${progress}%` }}
@@ -64,280 +63,351 @@ function LoadingBar({ progress, label }: { progress: number; label: string }) {
 
 function RankingPage() {
   const { user, isAuthenticated, isLoading: authLoading } = useAuth();
-  const { groups } = useMyGroups();
+  const { groups, isLoading: groupsLoading } = useMyGroups();
   const [selectedSeasonId, setSelectedSeasonId] = useState<string | null>(null);
   const [seasons, setSeasons] = useState<any[]>([]);
   const [rankings, setRankings] = useState<RankingEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadProgress, setLoadProgress] = useState(0);
-  const [loadLabel, setLoadLabel] = useState("Carregando...");
+  const [loadLabel, setLoadLabel] = useState("Carregando ranking...");
   const [showSwitcher, setShowSwitcher] = useState(false);
   const [totalRounds, setTotalRounds] = useState(0);
   const [completedRounds, setCompletedRounds] = useState(0);
   const [totalSets, setTotalSets] = useState(0);
-  const seasonsLoaded = useRef(false);
 
-  // Load seasons
   useEffect(() => {
-    if (authLoading) return;
-    if (!groups.length || !user?.id) {
-      setLoading(false);
-      return;
-    }
-    const loadSeasons = async () => {
-      setLoadProgress(10);
-      setLoadLabel("Buscando temporadas...");
-      const groupIds = groups.map((g) => g.id);
-      const { data } = await supabase
-        .from("seasons")
-        .select("*, groups(name)")
-        .in("group_id", groupIds)
-        .in("status", ["active", "finished"])
-        .order("created_at", { ascending: false });
-      setSeasons(data || []);
-      seasonsLoaded.current = true;
+    let cancelled = false;
 
-      if (!data?.length) {
-        setLoading(false);
+    const loadRankingData = async () => {
+      if (authLoading || groupsLoading) return;
+
+      if (!isAuthenticated || !user?.id) {
+        if (!cancelled) {
+          setSeasons([]);
+          setRankings([]);
+          setSelectedSeasonId(null);
+          setLoading(false);
+        }
         return;
       }
 
-      if (!selectedSeasonId) {
-        setLoadProgress(20);
-        setLoadLabel("Identificando temporada...");
-        const { data: lastEvent } = await supabase
-          .from("rating_events")
-          .select("season_id")
-          .eq("user_id", user.id)
-          .order("created_at", { ascending: false })
-          .limit(1);
-
-        const lastSeasonId = lastEvent?.[0]?.season_id;
-        const matchedSeason = lastSeasonId ? data.find((s: any) => s.id === lastSeasonId) : null;
-        const activeSeason = data.find((s: any) => s.status === "active");
-        setSelectedSeasonId(matchedSeason?.id || activeSeason?.id || data[0].id);
-      }
-    };
-    loadSeasons();
-  }, [groups, user?.id, authLoading]);
-
-  // Load rankings for selected season
-  useEffect(() => {
-    if (!selectedSeasonId) return;
-    const loadRankings = async () => {
-      setLoading(true);
-      setLoadProgress(30);
-      setLoadLabel("Carregando ranking...");
-
-      const selectedSeason = seasons.find((s: any) => s.id === selectedSeasonId);
-      const groupId = selectedSeason?.group_id;
-
-      // Fetch snapshots, group members, rounds in parallel
-      setLoadProgress(40);
-      setLoadLabel("Buscando dados...");
-      const [snapshotsRes, membersRes, roundsRes, setsRes] = await Promise.all([
-        supabase
-          .from("ranking_snapshots")
-          .select("*")
-          .eq("season_id", selectedSeasonId)
-          .order("rating", { ascending: false }),
-        groupId
-          ? supabase.from("group_members").select("user_id").eq("group_id", groupId).eq("status", "active")
-          : Promise.resolve({ data: [] }),
-        supabase.from("rounds").select("id, status").eq("season_id", selectedSeasonId),
-        supabase
-          .from("match_sets")
-          .select("id, match_id, matches!inner(round_id, rounds!inner(season_id))")
-          .eq("matches.rounds.season_id", selectedSeasonId),
-      ]);
-
-      const snapshots = snapshotsRes.data || [];
-      const members = (membersRes.data || []) as { user_id: string }[];
-      const rounds = roundsRes.data || [];
-
-      const totalR = rounds.length;
-      const completedR = rounds.filter((r: any) => r.status === "completed").length;
-      setTotalRounds(selectedSeason?.total_rounds || totalR);
-      setCompletedRounds(completedR);
-      setTotalSets(setsRes.data?.length || 0);
-
-      const snapshotUserIds = new Set(snapshots.map((s) => s.user_id));
-      const allUserIds = [...new Set([...members.map((m) => m.user_id), ...snapshotUserIds])];
-
-      if (!allUserIds.length) {
-        setRankings([]);
-        setLoading(false);
+      if (!groups.length) {
+        if (!cancelled) {
+          setSeasons([]);
+          setRankings([]);
+          setSelectedSeasonId(null);
+          setTotalRounds(0);
+          setCompletedRounds(0);
+          setTotalSets(0);
+          setLoading(false);
+        }
         return;
       }
 
-      setLoadProgress(60);
-      setLoadLabel("Carregando perfis...");
-
-      // Fetch profiles and rating events
-      const [profilesRes, eventsRes] = await Promise.all([
-        supabase.from("user_profiles").select("user_id, name, nickname, avatar_url").in("user_id", allUserIds),
-        supabase
-          .from("rating_events")
-          .select("user_id, rating_change, match_id, created_at")
-          .eq("season_id", selectedSeasonId)
-          .in("user_id", allUserIds)
-          .order("created_at", { ascending: false }),
-      ]);
-
-      const profileMap = new Map((profilesRes.data || []).map((p) => [p.user_id, p]));
-      const events = eventsRes.data || [];
-
-      setLoadProgress(75);
-      setLoadLabel("Calculando posições...");
-
-      // Compute last_5_results from rating_events per user
-      const userResultsMap = new Map<string, string[]>();
-      for (const e of events) {
-        const results = userResultsMap.get(e.user_id) || [];
-        if (results.length < 5) {
-          results.push(Number(e.rating_change) >= 0 ? "W" : "L");
-          userResultsMap.set(e.user_id, results);
-        }
+      if (!cancelled) {
+        setLoading(true);
+        setLoadProgress(8);
+        setLoadLabel("Buscando temporadas...");
       }
 
-      // Determine last round and previous round for position changes
-      const lastChangeMap = new Map<string, number>();
-      const positionChangeMap = new Map<string, number>();
+      try {
+        const groupIds = groups.map((group) => group.id);
+        const { data: seasonsData, error: seasonsError } = await supabase
+          .from("seasons")
+          .select("*, groups(name)")
+          .in("group_id", groupIds)
+          .in("status", ["active", "finished"])
+          .order("created_at", { ascending: false });
 
-      if (events.length > 0) {
-        const matchIds = [...new Set(events.map((e) => e.match_id))];
-        const { data: matchRounds } = await supabase.from("matches").select("id, round_id").in("id", matchIds);
-        const matchToRound = new Map((matchRounds || []).map((m) => [m.id, m.round_id]));
+        if (seasonsError) throw seasonsError;
+        if (cancelled) return;
 
-        const { data: roundDates } = await supabase
-          .from("rounds")
-          .select("id, scheduled_date, created_at")
-          .eq("season_id", selectedSeasonId)
-          .eq("status", "completed")
-          .order("scheduled_date", { ascending: false });
+        const availableSeasons = seasonsData || [];
+        setSeasons(availableSeasons);
 
-        const roundOrder = (roundDates || []).map((r) => r.id);
-        const lastRoundId = roundOrder[0];
+        if (!availableSeasons.length) {
+          setSelectedSeasonId(null);
+          setRankings([]);
+          setTotalRounds(0);
+          setCompletedRounds(0);
+          setTotalSets(0);
+          return;
+        }
 
-        // Sum rating changes from last round
-        for (const e of events) {
-          const roundId = matchToRound.get(e.match_id);
-          if (roundId === lastRoundId) {
-            lastChangeMap.set(e.user_id, (lastChangeMap.get(e.user_id) || 0) + Number(e.rating_change));
+        setLoadProgress(22);
+        setLoadLabel("Selecionando temporada...");
+
+        let nextSeasonId = selectedSeasonId;
+        if (!nextSeasonId || !availableSeasons.some((season: any) => season.id === nextSeasonId)) {
+          const { data: lastEvent, error: lastEventError } = await supabase
+            .from("rating_events")
+            .select("season_id")
+            .eq("user_id", user.id)
+            .order("created_at", { ascending: false })
+            .limit(1);
+
+          if (lastEventError) throw lastEventError;
+          if (cancelled) return;
+
+          const lastSeasonId = lastEvent?.[0]?.season_id;
+          const matchedSeason = lastSeasonId ? availableSeasons.find((season: any) => season.id === lastSeasonId) : null;
+          const activeSeason = availableSeasons.find((season: any) => season.status === "active");
+          nextSeasonId = matchedSeason?.id || activeSeason?.id || availableSeasons[0].id;
+          setSelectedSeasonId(nextSeasonId);
+        }
+
+        const selectedSeason = availableSeasons.find((season: any) => season.id === nextSeasonId) || availableSeasons[0];
+        if (!selectedSeason) {
+          setRankings([]);
+          return;
+        }
+
+        const effectiveSeasonId = selectedSeason.id;
+        const effectiveGroupId = selectedSeason.group_id;
+
+        setLoadProgress(38);
+        setLoadLabel("Buscando dados do ranking...");
+
+        const [snapshotsRes, membersRes, roundsRes] = await Promise.all([
+          supabase
+            .from("ranking_snapshots")
+            .select("*")
+            .eq("season_id", effectiveSeasonId)
+            .order("rating", { ascending: false }),
+          supabase
+            .from("group_members")
+            .select("user_id")
+            .eq("group_id", effectiveGroupId)
+            .eq("status", "active"),
+          supabase
+            .from("rounds")
+            .select("id, status, scheduled_date, created_at")
+            .eq("season_id", effectiveSeasonId),
+        ]);
+
+        if (snapshotsRes.error) throw snapshotsRes.error;
+        if (membersRes.error) throw membersRes.error;
+        if (roundsRes.error) throw roundsRes.error;
+        if (cancelled) return;
+
+        const snapshots = snapshotsRes.data || [];
+        const members = (membersRes.data || []) as { user_id: string }[];
+        const rounds = roundsRes.data || [];
+        const roundIds = rounds.map((round) => round.id);
+
+        const totalR = rounds.length;
+        const completedR = rounds.filter((round: any) => round.status === "completed").length;
+        setTotalRounds(selectedSeason.total_rounds || totalR);
+        setCompletedRounds(completedR);
+
+        let matchIds: string[] = [];
+        if (roundIds.length > 0) {
+          const { data: matchesData, error: matchesError } = await supabase
+            .from("matches")
+            .select("id, round_id")
+            .in("round_id", roundIds);
+
+          if (matchesError) throw matchesError;
+          matchIds = (matchesData || []).map((match) => match.id);
+        }
+
+        if (matchIds.length > 0) {
+          const { data: setsData, error: setsError } = await supabase
+            .from("match_sets")
+            .select("id")
+            .in("match_id", matchIds);
+
+          if (setsError) throw setsError;
+          setTotalSets(setsData?.length || 0);
+        } else {
+          setTotalSets(0);
+        }
+
+        const snapshotUserIds = new Set(snapshots.map((snapshot) => snapshot.user_id));
+        const allUserIds = [...new Set([...members.map((member) => member.user_id), ...snapshotUserIds])];
+
+        if (!allUserIds.length) {
+          setRankings([]);
+          return;
+        }
+
+        setLoadProgress(58);
+        setLoadLabel("Carregando perfis...");
+
+        const [profilesRes, eventsRes] = await Promise.all([
+          supabase
+            .from("user_profiles")
+            .select("user_id, name, nickname, avatar_url")
+            .in("user_id", allUserIds),
+          supabase
+            .from("rating_events")
+            .select("user_id, rating_change, match_id, created_at")
+            .eq("season_id", effectiveSeasonId)
+            .in("user_id", allUserIds)
+            .order("created_at", { ascending: false }),
+        ]);
+
+        if (profilesRes.error) throw profilesRes.error;
+        if (eventsRes.error) throw eventsRes.error;
+        if (cancelled) return;
+
+        const profileMap = new Map((profilesRes.data || []).map((profile) => [profile.user_id, profile]));
+        const events = eventsRes.data || [];
+
+        setLoadProgress(76);
+        setLoadLabel("Calculando ranking...");
+
+        const userResultsMap = new Map<string, string[]>();
+        for (const event of events) {
+          const results = userResultsMap.get(event.user_id) || [];
+          if (results.length < 5) {
+            results.push(Number(event.rating_change) >= 0 ? "W" : "L");
+            userResultsMap.set(event.user_id, results);
           }
         }
 
-        // Compute position change by comparing current vs previous round rating order
-        // Reconstruct previous ratings = current rating - lastRoundChange
-        if (lastRoundId && roundOrder.length >= 1) {
-          // Build previous rating map
-          const prevRatings = new Map<string, number>();
-          for (const snap of snapshots) {
-            const change = lastChangeMap.get(snap.user_id) || 0;
-            prevRatings.set(snap.user_id, Number(snap.rating) - change);
-          }
+        const lastChangeMap = new Map<string, number>();
+        let previousPositionMap = new Map<string, number>();
 
-          // Sort previous by rating desc to get previous positions
-          const prevSorted = [...prevRatings.entries()].sort((a, b) => b[1] - a[1]);
-          const prevPosMap = new Map<string, number>();
-          let prevPos = 1;
-          for (const [uid] of prevSorted) {
-            prevPosMap.set(uid, prevPos++);
-          }
+        if (events.length > 0 && matchIds.length > 0) {
+          const { data: matchRounds, error: matchRoundsError } = await supabase
+            .from("matches")
+            .select("id, round_id")
+            .in("id", matchIds);
 
-          // After we assign current positions below, compute the delta
-          // Store prevPosMap for later use
-          (window as any).__prevPosMap = prevPosMap;
-        }
-      }
+          if (matchRoundsError) throw matchRoundsError;
 
-      setLoadProgress(90);
-      setLoadLabel("Montando ranking...");
+          const matchToRound = new Map((matchRounds || []).map((match) => [match.id, match.round_id]));
+          const completedRoundOrder = [...rounds]
+            .filter((round: any) => round.status === "completed")
+            .sort((a: any, b: any) => {
+              const aDate = `${a.scheduled_date || ""}${a.created_at || ""}`;
+              const bDate = `${b.scheduled_date || ""}${b.created_at || ""}`;
+              return bDate.localeCompare(aDate);
+            })
+            .map((round: any) => round.id);
 
-      const eligibilityThreshold = Math.ceil(completedR * 0.3);
-      const snapshotMap = new Map(snapshots.map((s) => [s.user_id, s]));
+          const lastRoundId = completedRoundOrder[0];
 
-      const entries: RankingEntry[] = allUserIds.map((uid) => {
-        const snap = snapshotMap.get(uid);
-        const profile = profileMap.get(uid);
-        const computedResults = userResultsMap.get(uid) || [];
-
-        if (snap) {
-          const isEligible = snap.matches_played >= eligibilityThreshold && eligibilityThreshold > 0;
-          const snapshotResults = (snap.last_5_results as string[]) || [];
-          return {
-            user_id: uid,
-            rating: Number(snap.rating),
-            position: snap.position,
-            matches_played: snap.matches_played,
-            matches_won: snap.matches_won,
-            sets_won: snap.sets_won,
-            sets_lost: snap.sets_lost,
-            games_won: snap.games_won,
-            games_lost: snap.games_lost,
-            is_eligible: isEligible,
-            last_5_results: snapshotResults.length > 0 ? snapshotResults : computedResults,
-            profile: profile || undefined,
-            lastChange: lastChangeMap.get(uid),
-            hasSnapshot: true,
-          };
-        }
-
-        return {
-          user_id: uid,
-          rating: 1000,
-          position: null,
-          matches_played: 0,
-          matches_won: 0,
-          sets_won: 0,
-          sets_lost: 0,
-          games_won: 0,
-          games_lost: 0,
-          is_eligible: false,
-          last_5_results: [],
-          profile: profile || undefined,
-          lastChange: undefined,
-          hasSnapshot: false,
-        };
-      });
-
-      // Sort
-      entries.sort((a, b) => {
-        if (a.is_eligible && !b.is_eligible) return -1;
-        if (!a.is_eligible && b.is_eligible) return 1;
-        if (a.hasSnapshot && !b.hasSnapshot) return -1;
-        if (!a.hasSnapshot && b.hasSnapshot) return 1;
-        return b.rating - a.rating;
-      });
-
-      // Assign positions + compute position change
-      const prevPosMap: Map<string, number> | undefined = (window as any).__prevPosMap;
-      let pos = 1;
-      for (const e of entries) {
-        if (e.is_eligible) {
-          e.position = pos;
-          if (prevPosMap) {
-            const prevPos = prevPosMap.get(e.user_id);
-            if (prevPos !== undefined) {
-              e.positionChange = prevPos - pos; // positive = subiu
+          for (const event of events) {
+            const roundId = matchToRound.get(event.match_id);
+            if (roundId === lastRoundId) {
+              lastChangeMap.set(event.user_id, (lastChangeMap.get(event.user_id) || 0) + Number(event.rating_change));
             }
           }
-          pos++;
+
+          if (lastRoundId) {
+            const previousRatings = snapshots.map((snapshot) => ({
+              user_id: snapshot.user_id,
+              rating: Number(snapshot.rating) - (lastChangeMap.get(snapshot.user_id) || 0),
+            }));
+
+            const previousEligible = previousRatings
+              .filter((entry) => {
+                const snapshot = snapshots.find((item) => item.user_id === entry.user_id);
+                return snapshot ? snapshot.matches_played >= Math.ceil(completedR * 0.3) && Math.ceil(completedR * 0.3) > 0 : false;
+              })
+              .sort((a, b) => b.rating - a.rating);
+
+            previousPositionMap = new Map(previousEligible.map((entry, index) => [entry.user_id, index + 1]));
+          }
+        }
+
+        const eligibilityThreshold = Math.ceil(completedR * 0.3);
+        const snapshotMap = new Map(snapshots.map((snapshot) => [snapshot.user_id, snapshot]));
+
+        const entries: RankingEntry[] = allUserIds.map((userId) => {
+          const snapshot = snapshotMap.get(userId);
+          const profile = profileMap.get(userId);
+          const computedResults = userResultsMap.get(userId) || [];
+
+          if (snapshot) {
+            const isEligible = snapshot.matches_played >= eligibilityThreshold && eligibilityThreshold > 0;
+            const snapshotResults = (snapshot.last_5_results as string[]) || [];
+            return {
+              user_id: userId,
+              rating: Number(snapshot.rating),
+              position: snapshot.position,
+              matches_played: snapshot.matches_played,
+              matches_won: snapshot.matches_won,
+              sets_won: snapshot.sets_won,
+              sets_lost: snapshot.sets_lost,
+              games_won: snapshot.games_won,
+              games_lost: snapshot.games_lost,
+              is_eligible: isEligible,
+              last_5_results: snapshotResults.length > 0 ? snapshotResults : computedResults,
+              profile: profile || undefined,
+              lastChange: lastChangeMap.get(userId),
+              hasSnapshot: true,
+            };
+          }
+
+          return {
+            user_id: userId,
+            rating: 1000,
+            position: null,
+            matches_played: 0,
+            matches_won: 0,
+            sets_won: 0,
+            sets_lost: 0,
+            games_won: 0,
+            games_lost: 0,
+            is_eligible: false,
+            last_5_results: [],
+            profile: profile || undefined,
+            lastChange: undefined,
+            hasSnapshot: false,
+          };
+        });
+
+        entries.sort((a, b) => {
+          if (a.is_eligible && !b.is_eligible) return -1;
+          if (!a.is_eligible && b.is_eligible) return 1;
+          if (a.hasSnapshot && !b.hasSnapshot) return -1;
+          if (!a.hasSnapshot && b.hasSnapshot) return 1;
+          return b.rating - a.rating;
+        });
+
+        let position = 1;
+        for (const entry of entries) {
+          if (entry.is_eligible) {
+            entry.position = position;
+            const previousPosition = previousPositionMap.get(entry.user_id);
+            if (previousPosition !== undefined) {
+              entry.positionChange = previousPosition - position;
+            }
+            position += 1;
+          }
+        }
+
+        if (!cancelled) {
+          setLoadProgress(100);
+          setLoadLabel("Finalizando...");
+          setRankings(entries);
+        }
+      } catch (error) {
+        console.error("Erro ao carregar ranking:", error);
+        if (!cancelled) {
+          setRankings([]);
+          setTotalRounds(0);
+          setCompletedRounds(0);
+          setTotalSets(0);
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
         }
       }
-      delete (window as any).__prevPosMap;
-
-      setRankings(entries);
-      setLoadProgress(100);
-      setLoading(false);
     };
-    loadRankings();
-  }, [selectedSeasonId, seasons]);
 
-  // Show loading bar while loading
-  if (authLoading || (loading && isAuthenticated)) {
-    return <LoadingBar progress={loadProgress} label={loadLabel} />;
-  }
+    void loadRankingData();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [authLoading, groupsLoading, isAuthenticated, user?.id, groups, selectedSeasonId]);
+
+  const isPageLoading = authLoading || groupsLoading || (loading && isAuthenticated);
 
   const myRanking = rankings.find((r) => r.user_id === user?.id);
   const selectedSeason = seasons.find((s: any) => s.id === selectedSeasonId);
@@ -396,6 +466,10 @@ function RankingPage() {
             <Link to="/login" className="mt-3 inline-block">
               <button className="rounded-full bg-primary px-5 py-2 text-xs font-semibold text-primary-foreground">Entrar</button>
             </Link>
+          </div>
+        ) : isPageLoading ? (
+          <div className="rounded-3xl border border-border bg-card/60 p-8">
+            <LoadingBar progress={loadProgress} label={loadLabel} />
           </div>
         ) : rankings.length === 0 ? (
           <div className="rounded-3xl border border-dashed border-border bg-card/50 p-8">
