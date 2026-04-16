@@ -600,15 +600,23 @@ function RoundDetailPage() {
 
                       {/* Team B */}
                       <div className="flex-1 text-right">
-                        {teamB.map((mp: any) => (
-                          <div key={mp.id} className="flex items-center justify-end gap-1.5 py-0.5">
-                            <span className={`text-xs ${match.status === "completed" && match.winner_team === "B" ? "font-bold text-primary" : "text-foreground"}`}>
-                              {mp.profile?.nickname || mp.profile?.name || "Jogador"}
-                              {match.status === "completed" && match.winner_team === "B" && " 🏆"}
-                            </span>
-                            <PlayerAvatar avatarUrl={mp.profile?.avatar_url || null} name={mp.profile?.name || "?"} size="xs" />
-                          </div>
-                        ))}
+                        {teamB.map((mp: any) => {
+                          const eloChange = match.status === "completed" ? getPlayerEloChange(match.id, mp.user_id) : null;
+                          const isWinner = match.status === "completed" && match.winner_team === "B";
+                          return (
+                            <div key={mp.id} className="flex items-center justify-end gap-1.5 py-0.5">
+                              {eloChange !== null && (
+                                <span className={`text-[10px] font-bold ${eloChange > 0 ? "text-success" : "text-destructive"}`}>
+                                  {eloChange > 0 ? "+" : ""}{eloChange}
+                                </span>
+                              )}
+                              <span className={`text-xs ${isWinner ? "font-bold text-primary" : "text-foreground"}`}>
+                                {mp.profile?.nickname || mp.profile?.name || "Jogador"}
+                              </span>
+                              <PlayerAvatar avatarUrl={mp.profile?.avatar_url || null} name={mp.profile?.name || "?"} size="xs" />
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
 
