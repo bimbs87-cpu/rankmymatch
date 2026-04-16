@@ -334,17 +334,12 @@ function GroupDetailPage() {
                       ) : (
                         <span className="w-5 text-center text-[10px] text-muted-foreground/40">—</span>
                       )}
-                      {m.profile?.avatar_url ? (
-                        <img
-                          src={m.profile.avatar_url}
-                          alt=""
-                          className="h-8 w-8 rounded-full border border-border object-cover flex-shrink-0"
-                        />
-                      ) : (
-                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-xs font-bold text-foreground flex-shrink-0">
-                          {(m.profile?.name || "?").charAt(0)}
-                        </div>
-                      )}
+                      <PlayerAvatar
+                        avatarUrl={m.profile?.avatar_url}
+                        name={m.profile?.name || "?"}
+                        size="lg"
+                        className="border border-border"
+                      />
                       <div className="min-w-0">
                         <div className="flex items-center gap-1.5">
                           <span className="text-sm font-medium text-foreground truncate">
