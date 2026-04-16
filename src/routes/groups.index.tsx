@@ -42,7 +42,7 @@ function GroupsIndexPage() {
   const loading = tab === "my" ? myLoading : pubLoading;
 
   return (
-    <div className="min-h-screen bg-background pb-28">
+    <div className="min-h-screen bg-background pb-32">
       <header className="px-5 pb-4 pt-6">
         <div className="flex items-center justify-between">
           <h1 className="font-display text-xl font-bold text-foreground">Grupos</h1>
