@@ -566,6 +566,8 @@ function RoundDetailPage() {
             scoreA: s.score_team_a,
             scoreB: s.score_team_b,
           }))}
+          setsPerMatch={isSingles ? (seasonData?.sets_per_match || 3) : 3}
+          isSingles={isSingles}
           onClose={() => setScoringMatch(null)}
           onSaved={refresh}
         />
