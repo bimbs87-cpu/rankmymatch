@@ -69,7 +69,7 @@ export function ScoreEntryDialog({
   };
 
   const removeLastSet = () => {
-    if (sets.length > (maxSets === 1 ? 1 : 2)) {
+    if (sets.length > 1) {
       setSets(sets.slice(0, -1));
     }
   };
