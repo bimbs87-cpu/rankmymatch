@@ -365,14 +365,34 @@ export function ScoreEntryDialog({
           </p>
         )}
 
-        <button
-          onClick={handleSubmit}
-          disabled={!matchState.canSubmit || submitting}
-          className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-3.5 text-sm font-bold text-primary-foreground disabled:opacity-50"
-        >
-          <Save className="h-4 w-4" />
-          {submitting ? "Salvando..." : "Salvar Placar e Calcular Elo"}
-        </button>
+        {submitting ? (
+          <div className="mt-4 space-y-3">
+            <div className="flex items-center justify-center gap-3 rounded-2xl bg-primary/10 border border-primary/20 py-4 px-4">
+              <Loader2 className="h-5 w-5 animate-spin text-primary" />
+              <div className="flex-1">
+                <p className="text-sm font-bold text-primary">{saveStepLabel}</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">
+                  Não feche esta janela • Etapa {Math.min(saveStep, saveSteps.current.length)}/{saveSteps.current.length}
+                </p>
+              </div>
+            </div>
+            <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+              <div
+                className="h-full rounded-full bg-primary transition-all duration-700 ease-out"
+                style={{ width: `${Math.min((saveStep / saveSteps.current.length) * 100, 95)}%` }}
+              />
+            </div>
+          </div>
+        ) : (
+          <button
+            onClick={handleSubmit}
+            disabled={!matchState.canSubmit}
+            className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-3.5 text-sm font-bold text-primary-foreground disabled:opacity-50"
+          >
+            <Save className="h-4 w-4" />
+            Salvar Placar e Calcular Elo
+          </button>
+        )}
       </div>
     </div>
   );
