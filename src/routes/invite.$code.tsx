@@ -75,6 +75,7 @@ function InviteAuthButtons({ inviteUrl }: { inviteUrl: string }) {
 function InvitePage() {
   const { code } = Route.useParams();
   const { user, isAuthenticated, isLoading: authLoading } = useAuth();
+  const { displayName: profileDisplayName } = useUserProfile();
   const navigate = useNavigate();
   const [invite, setInvite] = useState<InviteData | null>(null);
   const [loading, setLoading] = useState(true);
