@@ -60,7 +60,12 @@ function RankingPage() {
 
   // Load seasons from user's groups, auto-select based on last match
   useEffect(() => {
-    if (!groups.length || !user?.id) return;
+    if (authLoading) return;
+    if (!groups.length || !user?.id) {
+      setLoading(false);
+      setInitialReady(true);
+      return;
+    }
     const loadSeasons = async () => {
       const groupIds = groups.map((g) => g.id);
       const { data } = await supabase
@@ -71,7 +76,13 @@ function RankingPage() {
         .order("created_at", { ascending: false });
       setSeasons(data || []);
 
-      if (data?.length && !selectedSeasonId) {
+      if (!data?.length) {
+        setLoading(false);
+        setInitialReady(true);
+        return;
+      }
+
+      if (!selectedSeasonId) {
         const { data: lastEvent } = await supabase
           .from("rating_events")
           .select("season_id")
@@ -86,7 +97,7 @@ function RankingPage() {
       }
     };
     loadSeasons();
-  }, [groups, user?.id]);
+  }, [groups, user?.id, authLoading]);
 
   // Load rankings for selected season
   useEffect(() => {
