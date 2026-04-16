@@ -216,7 +216,7 @@ export async function submitMatchScore(
     })
     .eq("id", matchId);
 
-  // Auto-confirm presence for match players
+  // Auto-confirm presence for match players and update round status
   if (matchData?.round_id) {
     const allPlayerIds = [...teamA, ...teamB];
     for (const uid of allPlayerIds) {
@@ -229,6 +229,19 @@ export async function submitMatchScore(
         },
         { onConflict: "round_id,user_id" }
       );
+    }
+
+    // Check if all matches in the round are completed — if so, mark round as completed
+    const { data: roundMatches } = await supabase
+      .from("matches")
+      .select("id, status")
+      .eq("round_id", matchData.round_id);
+
+    const allCompleted = roundMatches && roundMatches.length > 0 &&
+      roundMatches.every((m) => m.id === matchId ? true : m.status === "completed");
+
+    if (allCompleted) {
+      await supabase.from("rounds").update({ status: "completed" }).eq("id", matchData.round_id);
     }
   }
 
