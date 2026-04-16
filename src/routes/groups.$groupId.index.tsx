@@ -276,6 +276,18 @@ function GroupDetailPage() {
         </div>
       )}
 
+      {/* Próximo confronto pendente */}
+      {isMember && pendingMatch && (
+        <div className="mx-5 mb-4">
+          <PendingMatchCard
+            match={pendingMatch}
+            onScoreSaved={() => { refreshPending(); refresh(); }}
+            showGroupName={false}
+            isAdmin={isAdmin}
+          />
+        </div>
+      )}
+
       {/* Tabs: Membros / Solicitações / Config */}
       {isMember && (
         <div className="mx-5 mb-4 flex gap-1 rounded-full border border-border bg-card p-1">
