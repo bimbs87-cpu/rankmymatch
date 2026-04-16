@@ -6,6 +6,7 @@ import { PendingMatchCard } from "@/components/PendingMatchCard";
 import { AddPlaceholderPlayerDialog } from "@/components/AddPlaceholderPlayerDialog";
 import { ClaimPlayerDialog } from "@/components/ClaimPlayerDialog";
 import { PlayerClaimsManager } from "@/components/PlayerClaimsManager";
+import { SearchUserDialog } from "@/components/SearchUserDialog";
 import { useAuth } from "@/hooks/use-auth";
 import { usePendingMatch } from "@/hooks/use-pending-matches";
 import { supabase } from "@/integrations/supabase/client";
@@ -43,6 +44,7 @@ import {
   TrendingUp,
   Link2,
   Ghost,
+  Search,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
@@ -62,6 +64,7 @@ function GroupDetailPage() {
   const [inviteOpen, setInviteOpen] = useState(false);
   const [addPlaceholderOpen, setAddPlaceholderOpen] = useState(false);
   const [claimOpen, setClaimOpen] = useState(false);
+  const [searchUserOpen, setSearchUserOpen] = useState(false);
   const [leaveDialogOpen, setLeaveDialogOpen] = useState(false);
   const [hasResults, setHasResults] = useState(false);
   const [leavingLoading, setLeavingLoading] = useState(false);
@@ -549,13 +552,44 @@ function GroupDetailPage() {
 
             {/* Admin: Adicionar jogador sem conta */}
             {isAdmin && (
-              <button
-                onClick={() => setAddPlaceholderOpen(true)}
-                className="flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-primary/30 bg-primary/5 p-3 text-sm font-medium text-primary transition-colors active:bg-primary/10"
-              >
-                <UserPlus className="h-4 w-4" />
-                Adicionar jogador (sem conta)
-              </button>
+              <div className="rounded-2xl border border-border bg-card/50 overflow-hidden divide-y divide-border">
+                <button
+                  onClick={() => setSearchUserOpen(true)}
+                  className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors active:bg-accent/30"
+                >
+                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10">
+                    <Search className="h-4 w-4 text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-foreground">Buscar jogador</p>
+                    <p className="text-[10px] text-muted-foreground">Adicionar usuário já cadastrado</p>
+                  </div>
+                </button>
+                <button
+                  onClick={() => setAddPlaceholderOpen(true)}
+                  className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors active:bg-accent/30"
+                >
+                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-muted">
+                    <Ghost className="h-4 w-4 text-muted-foreground" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-foreground">Adicionar sem conta</p>
+                    <p className="text-[10px] text-muted-foreground">Somente com nome, vincula depois</p>
+                  </div>
+                </button>
+                <button
+                  onClick={handleShareInvite}
+                  className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors active:bg-accent/30"
+                >
+                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-muted">
+                    <Share2 className="h-4 w-4 text-muted-foreground" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-foreground">Convidar por link</p>
+                    <p className="text-[10px] text-muted-foreground">Enviar link de convite</p>
+                  </div>
+                </button>
+              </div>
             )}
 
             {/* User: Vincular conta */}
@@ -570,7 +604,7 @@ function GroupDetailPage() {
             )}
 
             {/* Convidar jogadores */}
-            {isMember && !rivalry && (
+            {isMember && !isAdmin && !rivalry && (
               <button
                 onClick={handleShareInvite}
                 className="flex w-full items-center justify-center gap-2 rounded-2xl border border-border bg-card/50 p-3 text-sm font-medium text-foreground transition-colors active:bg-accent/30"
@@ -694,6 +728,16 @@ function GroupDetailPage() {
           groupId={groupId}
           claimerUserId={user.id}
           onClaimed={refresh}
+        />
+      )}
+
+      {isAdmin && (
+        <SearchUserDialog
+          open={searchUserOpen}
+          onOpenChange={setSearchUserOpen}
+          groupId={groupId}
+          existingMemberIds={members.map((m) => m.user_id)}
+          onAdded={refresh}
         />
       )}
     </div>
