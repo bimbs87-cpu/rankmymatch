@@ -443,6 +443,7 @@ export type Database = {
           id: string
           image_url: string | null
           is_public: boolean
+          match_format: string
           max_players: number
           mode: string
           name: string
@@ -462,6 +463,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           is_public?: boolean
+          match_format?: string
           max_players?: number
           mode?: string
           name: string
@@ -481,6 +483,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           is_public?: boolean
+          match_format?: string
           max_players?: number
           mode?: string
           name?: string
@@ -649,6 +652,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           id: string
+          match_format: string
           match_number: number | null
           result_type: string | null
           round_id: string
@@ -661,6 +665,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           id?: string
+          match_format?: string
           match_number?: number | null
           result_type?: string | null
           round_id: string
@@ -673,6 +678,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           id?: string
+          match_format?: string
           match_number?: number | null
           result_type?: string | null
           round_id?: string
@@ -838,6 +844,7 @@ export type Database = {
           id: string
           is_eligible: boolean
           last_5_results: string[] | null
+          match_format: string
           matches_played: number
           matches_won: number
           position: number | null
@@ -856,6 +863,7 @@ export type Database = {
           id?: string
           is_eligible?: boolean
           last_5_results?: string[] | null
+          match_format?: string
           matches_played?: number
           matches_won?: number
           position?: number | null
@@ -874,6 +882,7 @@ export type Database = {
           id?: string
           is_eligible?: boolean
           last_5_results?: string[] | null
+          match_format?: string
           matches_played?: number
           matches_won?: number
           position?: number | null
@@ -903,6 +912,7 @@ export type Database = {
           id: string
           k_factor: number
           margin_multiplier: number | null
+          match_format: string
           match_id: string
           rating_after: number
           rating_before: number
@@ -917,6 +927,7 @@ export type Database = {
           id?: string
           k_factor?: number
           margin_multiplier?: number | null
+          match_format?: string
           match_id: string
           rating_after: number
           rating_before: number
@@ -931,6 +942,7 @@ export type Database = {
           id?: string
           k_factor?: number
           margin_multiplier?: number | null
+          match_format?: string
           match_id?: string
           rating_after?: number
           rating_before?: number
@@ -1002,6 +1014,7 @@ export type Database = {
           group_id: string
           id: string
           location: string | null
+          match_format: string
           max_players: number
           notes: string | null
           round_number: number | null
@@ -1016,6 +1029,7 @@ export type Database = {
           group_id: string
           id?: string
           location?: string | null
+          match_format?: string
           max_players?: number
           notes?: string | null
           round_number?: number | null
@@ -1030,6 +1044,7 @@ export type Database = {
           group_id?: string
           id?: string
           location?: string | null
+          match_format?: string
           max_players?: number
           notes?: string | null
           round_number?: number | null
