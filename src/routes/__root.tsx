@@ -1,5 +1,6 @@
 import { Outlet, Link, createRootRoute, HeadContent, Scripts } from "@tanstack/react-router";
 import { AuthProvider, useAuth } from "@/hooks/use-auth";
+import { UserProfileProvider } from "@/hooks/use-user-profile";
 import { BottomNav } from "@/components/BottomNav";
 import { Toaster } from "@/components/ui/sonner";
 import "../styles.css";
