@@ -27,6 +27,7 @@ import {
   Ban,
   ChevronDown,
   Trophy,
+  Crown,
 } from "lucide-react";
 import { useState, useMemo, useEffect } from "react";
 import { toast } from "sonner";
