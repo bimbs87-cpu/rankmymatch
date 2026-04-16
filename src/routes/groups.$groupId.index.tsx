@@ -61,7 +61,7 @@ function GroupDetailPage() {
     useGroupDetail(groupId);
   const { pendingMatch, refresh: refreshPending } = usePendingMatch(groupId);
   const navigate = useNavigate();
-  const [tab, setTab] = useState<"members" | "requests" | "settings">("members");
+  const [tab, setTab] = useState<"members" | "temporadas" | "requests" | "settings">("members");
   const [inviteOpen, setInviteOpen] = useState(false);
   const [addPlaceholderOpen, setAddPlaceholderOpen] = useState(false);
   const [claimOpen, setClaimOpen] = useState(false);
