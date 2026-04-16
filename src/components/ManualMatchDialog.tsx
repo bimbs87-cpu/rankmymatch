@@ -588,9 +588,8 @@ export function ManualMatchDialog({ roundId, groupId, matchFormat = "doubles", o
                           <PlayerAvatar uid={uid} />
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-1.5">
-                              <span className={`text-sm font-medium truncate ${isWinner ? "text-primary" : "text-foreground"}`}>
+                              <span className={`text-sm font-medium truncate ${isWinner ? "text-primary font-bold" : "text-foreground"}`}>
                                 {getDisplayName(uid)}
-                                {isWinner && " 🏆"}
                               </span>
                               {posChange !== null && posChange !== 0 && (
                                 <span className={`flex items-center text-[10px] font-bold ${posChange > 0 ? "text-success" : "text-destructive"}`}>
