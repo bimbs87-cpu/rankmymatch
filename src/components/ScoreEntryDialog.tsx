@@ -51,6 +51,37 @@ export function ScoreEntryDialog({
 
   const [sets, setSets] = useState<{ scoreA: number; scoreB: number }[]>(initialSets);
   const [submitting, setSubmitting] = useState(false);
+  const [saveStep, setSaveStep] = useState(0);
+  const [saveStepLabel, setSaveStepLabel] = useState("");
+
+  // Animate through save steps to give visual feedback
+  const saveSteps = useRef([
+    "Salvando sets...",
+    "Calculando vencedor...",
+    "Atualizando presença...",
+    "Calculando Elo...",
+    "Atualizando ranking...",
+    "Finalizando...",
+  ]);
+
+  useEffect(() => {
+    if (!submitting) {
+      setSaveStep(0);
+      setSaveStepLabel("");
+      return;
+    }
+    setSaveStep(1);
+    setSaveStepLabel(saveSteps.current[0]);
+    let step = 1;
+    const interval = setInterval(() => {
+      step++;
+      if (step <= saveSteps.current.length) {
+        setSaveStep(step);
+        setSaveStepLabel(saveSteps.current[step - 1]);
+      }
+    }, 1500);
+    return () => clearInterval(interval);
+  }, [submitting]);
 
   const updateScore = (setIndex: number, team: "A" | "B", value: number) => {
     setSets((prev) =>
