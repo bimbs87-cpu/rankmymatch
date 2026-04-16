@@ -2,7 +2,9 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { GroupSettingsForm } from "@/components/GroupSettingsForm";
 import { InviteLinkDialog } from "@/components/InviteLinkDialog";
+import { PendingMatchCard } from "@/components/PendingMatchCard";
 import { useAuth } from "@/hooks/use-auth";
+import { usePendingMatch } from "@/hooks/use-pending-matches";
 import { supabase } from "@/integrations/supabase/client";
 import {
   useGroupDetail,
@@ -46,6 +48,7 @@ function GroupDetailPage() {
   const { user, isAuthenticated } = useAuth();
   const { group, memberCount, members, myRole, isAdmin, isCreator, pendingRequests, isLoading, refresh } =
     useGroupDetail(groupId);
+  const { pendingMatch, refresh: refreshPending } = usePendingMatch(groupId);
   const navigate = useNavigate();
   const [tab, setTab] = useState<"members" | "requests" | "settings">("members");
   const [inviteOpen, setInviteOpen] = useState(false);
@@ -270,6 +273,18 @@ function GroupDetailPage() {
               </div>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Próximo confronto pendente */}
+      {isMember && pendingMatch && (
+        <div className="mx-5 mb-4">
+          <PendingMatchCard
+            match={pendingMatch}
+            onScoreSaved={() => { refreshPending(); refresh(); }}
+            showGroupName={false}
+            isAdmin={isAdmin}
+          />
         </div>
       )}
 
