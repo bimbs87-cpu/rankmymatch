@@ -505,6 +505,7 @@ function ProfilePage() {
         currentAvatarUrl={profile?.avatar_url || null}
         onSelect={handleAvatarSelect}
         saving={savingAvatar}
+        googlePhotoUrl={googlePhotoUrl}
       />
     </div>
   );
