@@ -7,9 +7,11 @@ Lovable Cloud (Supabase) for backend. Google OAuth only.
 27+ tables with RLS. Elo rating system adapted for padel.
 Bottom nav: floating rounded pill with 5 tabs.
 Cards: rounded-3xl, border border-border, bg-card.
-User-created logos — never regenerate. See mem://design/logos.
+All pages must have pb-32 to avoid content hidden by bottom nav.
+All loading states must use LoadingBar component — never raw spinners.
 
 ## Memories
 - [Color tokens](mem://design/carbon-fiber) — Full Carbon Fiber Precision palette and typography
-- [Logo assets](mem://design/logos) — User-provided logo files and usage guidelines
 - [DB schema overview](mem://features/db-schema) — All 27+ tables and their relationships
+- [Logos](mem://design/logos) — Logo asset files and usage
+- [Loading bar](mem://preferences/loading-bar) — Standard LoadingBar component for all loading states
