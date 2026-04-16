@@ -1,7 +1,7 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { submitMatchScore } from "@/lib/elo-engine";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
-import { X, Save, Trophy, AlertCircle } from "lucide-react";
+import { X, Save, Trophy, AlertCircle, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 interface Props {
