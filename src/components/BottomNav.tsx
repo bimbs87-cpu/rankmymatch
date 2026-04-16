@@ -36,13 +36,13 @@ export function BottomNav() {
               <div
                 className={`flex items-center justify-center transition-all duration-200 ${
                   isRanking
-                    ? "h-11 w-11 -mt-1 rounded-full bg-card"
+                    ? "h-14 w-14 -mt-6 rounded-full bg-card shadow-lg"
                     : ""
                 }`}
               >
                 <Icon
                   className={`transition-all duration-200 ${
-                    isRanking ? "h-6 w-6" : "h-5 w-5"
+                    isRanking ? "h-7 w-7" : "h-5 w-5"
                   } ${isActive ? "scale-110" : ""}`}
                   strokeWidth={isActive ? 2.5 : 1.5}
                 />
