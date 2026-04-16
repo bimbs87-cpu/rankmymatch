@@ -567,8 +567,7 @@ function RankingPage() {
                           avatarUrl={entry.profile?.avatar_url}
                           name={entry.profile?.name || "?"}
                           size={isCenter ? "lg" : "md"}
-                          className={`border-2 ${isCenter ? "!h-14 !w-14" : "!h-11 !w-11"}`}
-                          style={{ borderColor: color }}
+                          className={`${isCenter ? "!h-14 !w-14" : "!h-11 !w-11"}`}
                         />
                         {/* Name + Stats */}
                         <p className="mt-1.5 text-center text-[11px] font-semibold text-foreground leading-tight truncate w-full">{displayName}</p>
