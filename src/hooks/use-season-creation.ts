@@ -1,6 +1,10 @@
 import { supabase } from "@/integrations/supabase/client";
 import { notifyGroupMembers } from "@/hooks/use-notifications";
 
+function normalizeSeasonMatchFormat(format?: string) {
+  return format === "singles" || format === "1v1" ? "1v1" : "2v2";
+}
+
 export async function createSeasonWithRounds(data: {
   groupId: string;
   name: string;
@@ -21,11 +25,14 @@ export async function createSeasonWithRounds(data: {
   let createdSeasonId: string | null = null;
 
   try {
+    const normalizedSeasonMatchFormat = normalizeSeasonMatchFormat(data.matchFormat);
+    const isSingles = normalizedSeasonMatchFormat === "1v1";
+
     const insertData: any = {
       group_id: data.groupId,
       name: data.name,
       created_by: data.userId,
-      match_format: data.matchFormat || "2v2",
+      match_format: normalizedSeasonMatchFormat,
       total_rounds: data.totalRounds,
       duration_type: data.durationType,
       status: "active",
@@ -50,7 +57,6 @@ export async function createSeasonWithRounds(data: {
 
     createdSeasonId = season.id;
 
-    const isSingles = data.matchFormat === "singles";
     const roundInserts = data.roundDates.map((date, idx) => ({
       group_id: data.groupId,
       season_id: season.id,
