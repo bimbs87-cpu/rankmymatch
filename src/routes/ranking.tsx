@@ -419,27 +419,35 @@ function RankingPage() {
       <header className="flex items-center justify-between px-5 pt-6 pb-2">
         <div>
           <h1 className="font-display text-xl font-bold text-foreground">Ranking</h1>
-          {selectedSeason && seasons.length > 1 ? (
-            <button
-              onClick={() => setShowSwitcher(!showSwitcher)}
-              className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <span>{(selectedSeason as any).groups?.name} • {selectedSeason.name}</span>
-              <ChevronDown className={`h-3 w-3 transition-transform ${showSwitcher ? "rotate-180" : ""}`} />
-            </button>
-          ) : selectedSeason ? (
-            <p className="text-xs text-muted-foreground">
-              {(selectedSeason as any).groups?.name} • {selectedSeason.name}
-            </p>
-          ) : null}
         </div>
         <Link to="/ranking-info" className="rounded-full border border-border bg-card p-2 transition-colors hover:bg-accent">
           <Info className="h-4 w-4 text-muted-foreground" />
         </Link>
       </header>
 
+      {/* Season switcher — centered with prominence */}
+      {selectedSeason && seasons.length > 1 ? (
+        <div className="px-5 mt-1">
+          <button
+            onClick={() => setShowSwitcher(!showSwitcher)}
+            className="flex w-full items-center justify-center gap-2 rounded-2xl border border-border bg-card/80 backdrop-blur-sm px-4 py-2.5 transition-colors hover:bg-accent"
+          >
+            <Layers className="h-3.5 w-3.5 text-primary" />
+            <span className="text-sm font-semibold text-foreground">{(selectedSeason as any).groups?.name} • {selectedSeason.name}</span>
+            <ChevronDown className={`h-3.5 w-3.5 text-muted-foreground transition-transform ${showSwitcher ? "rotate-180" : ""}`} />
+          </button>
+        </div>
+      ) : selectedSeason ? (
+        <div className="px-5 mt-1">
+          <div className="flex w-full items-center justify-center gap-2 rounded-2xl border border-border bg-card/80 px-4 py-2.5">
+            <Layers className="h-3.5 w-3.5 text-primary" />
+            <span className="text-sm font-semibold text-foreground">{(selectedSeason as any).groups?.name} • {selectedSeason.name}</span>
+          </div>
+        </div>
+      ) : null}
+
       {showSwitcher && seasons.length > 1 && (
-        <div className="mx-5 mt-1 rounded-2xl border border-border bg-card/95 backdrop-blur-xl overflow-hidden shadow-lg">
+        <div className="mx-5 mt-2 rounded-2xl border border-border bg-card/95 backdrop-blur-xl overflow-hidden shadow-lg">
           {seasons.map((s: any) => (
             <button
               key={s.id}
