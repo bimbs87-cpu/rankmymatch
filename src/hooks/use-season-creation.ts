@@ -21,17 +21,22 @@ export async function createSeasonWithRounds(data: {
   let createdSeasonId: string | null = null;
 
   try {
+    const insertData: any = {
+      group_id: data.groupId,
+      name: data.name,
+      created_by: data.userId,
+      match_format: data.matchFormat || "2v2",
+      total_rounds: data.totalRounds,
+      duration_type: data.durationType,
+      status: "active",
+    };
+    if (data.setsPerMatch != null) insertData.sets_per_match = data.setsPerMatch;
+    if (data.singlesPairingMode) insertData.singles_pairing_mode = data.singlesPairingMode;
+    if (data.oddPlayerRule) insertData.odd_player_rule = data.oddPlayerRule;
+
     const { data: season, error } = await supabase
       .from("seasons")
-      .insert({
-        group_id: data.groupId,
-        name: data.name,
-        created_by: data.userId,
-        match_format: data.matchFormat || "2v2",
-        total_rounds: data.totalRounds,
-        duration_type: data.durationType,
-        status: "active",
-      })
+      .insert(insertData as any)
       .select()
       .single();
 
