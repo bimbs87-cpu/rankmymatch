@@ -1,5 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useAuth } from "@/hooks/use-auth";
+
 import { useGroupDetail } from "@/hooks/use-groups";
 import { useRoundDetail, confirmPresence, cancelPresence, drawTeams, deleteMatch, deleteRound } from "@/hooks/use-seasons";
 import { supabase } from "@/integrations/supabase/client";
@@ -22,8 +23,9 @@ import {
   Trash2,
   Ban,
   ChevronDown,
+  Trophy,
 } from "lucide-react";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { toast } from "sonner";
 import { isPresenceOpen, getPresenceOpenDate, formatPresenceOpenDate } from "@/lib/presence-schedule";
 
@@ -42,6 +44,17 @@ function RoundDetailPage() {
     useRoundDetail(roundId);
   const [scoringMatch, setScoringMatch] = useState<any>(null);
   const [showManualMatch, setShowManualMatch] = useState(false);
+  const [seasonData, setSeasonData] = useState<any>(null);
+
+  // Load season config for sets_per_match
+  useEffect(() => {
+    supabase
+      .from("seasons")
+      .select("sets_per_match, match_format, singles_pairing_mode")
+      .eq("id", seasonId)
+      .single()
+      .then(({ data }) => { if (data) setSeasonData(data); });
+  }, [seasonId]);
   const [deletingMatchId, setDeletingMatchId] = useState<string | null>(null);
   const [deletingRound, setDeletingRound] = useState(false);
   const [expandedMatch, setExpandedMatch] = useState<string | null>(null);
@@ -475,7 +488,24 @@ function RoundDetailPage() {
                       </div>
                     </div>
 
-                    {/* Score entry button */}
+                    {/* Singles winner summary */}
+                    {isSingles && match.status === "completed" && match.winner_team && sets.length > 0 && (() => {
+                      const winnerPlayers = match.winner_team === "A" ? teamA : teamB;
+                      const winnerName = winnerPlayers[0]?.profile?.nickname || winnerPlayers[0]?.profile?.name || "Jogador";
+                      const setsWonA = sets.filter((s: any) => s.score_team_a > s.score_team_b).length;
+                      const setsWonB = sets.filter((s: any) => s.score_team_b > s.score_team_a).length;
+                      const setScores = [...sets].sort((a: any, b: any) => a.set_number - b.set_number).map((s: any) => `${s.score_team_a}-${s.score_team_b}`).join(" • ");
+                      return (
+                        <div className="mt-2 rounded-xl bg-success/5 border border-success/20 px-3 py-2">
+                          <p className="text-xs font-semibold text-success flex items-center gap-1.5">
+                            <Trophy className="h-3.5 w-3.5" />
+                            {winnerName} venceu por {match.winner_team === "A" ? setsWonA : setsWonB} set{(match.winner_team === "A" ? setsWonA : setsWonB) > 1 ? "s" : ""} a {match.winner_team === "A" ? setsWonB : setsWonA}
+                          </p>
+                          <p className="mt-0.5 text-[10px] text-muted-foreground">Sets: {setScores}</p>
+                        </div>
+                      );
+                    })()}
+
                     {isAdmin && match.status !== "completed" && (
                       <button
                         onClick={() => setScoringMatch(match)}
@@ -555,6 +585,8 @@ function RoundDetailPage() {
             scoreA: s.score_team_a,
             scoreB: s.score_team_b,
           }))}
+          setsPerMatch={isSingles ? (seasonData?.sets_per_match || 3) : 3}
+          isSingles={isSingles}
           onClose={() => setScoringMatch(null)}
           onSaved={refresh}
         />
