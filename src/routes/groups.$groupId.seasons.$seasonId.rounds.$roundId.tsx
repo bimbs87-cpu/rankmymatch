@@ -386,7 +386,7 @@ function RoundDetailPage() {
                       <div className="flex items-center gap-1.5">
                         <Swords className="h-3.5 w-3.5 text-primary" />
                         <span className="text-xs font-semibold text-foreground">
-                          {match.match_number}º Set
+                          {isSingles ? `Confronto ${match.match_number}` : `${match.match_number}º Set`}
                         </span>
                       </div>
                       <div className="flex items-center gap-2">
@@ -557,6 +557,7 @@ function RoundDetailPage() {
         <ManualMatchDialog
           roundId={roundId}
           groupId={groupId}
+          matchFormat={group?.match_format || "doubles"}
           onClose={() => setShowManualMatch(false)}
           onSaved={refresh}
         />
