@@ -167,6 +167,10 @@ function GroupSeasonsPage() {
         totalRounds,
         roundDates,
         scheduledTime: time,
+        matchFormat: group?.match_format || "doubles",
+        setsPerMatch: isSingles ? setsPerMatch : undefined,
+        singlesPairingMode: isSingles ? singlesPairingMode : undefined,
+        oddPlayerRule: isSingles ? oddPlayerRule : undefined,
       });
 
       // Update group's simultaneous_courts if different

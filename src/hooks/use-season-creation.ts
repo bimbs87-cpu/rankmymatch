@@ -10,6 +10,9 @@ export async function createSeasonWithRounds(data: {
   roundDates: string[];
   scheduledTime?: string;
   matchFormat?: string;
+  setsPerMatch?: number;
+  singlesPairingMode?: string;
+  oddPlayerRule?: string;
 }) {
   if (!data.roundDates.length) {
     throw new Error("Defina pelo menos uma data para criar a temporada.");
