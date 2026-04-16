@@ -7,7 +7,7 @@ export const Route = createFileRoute("/ranking-info")({
 
 function RankingInfoPage() {
   return (
-    <div className="min-h-screen bg-background pb-12">
+    <div className="min-h-screen bg-background pb-28">
       <header className="flex items-center gap-3 px-5 pt-6 pb-2">
         <Link to="/ranking" className="rounded-full border border-border bg-card p-2 transition-colors hover:bg-accent">
           <ArrowLeft className="h-4 w-4 text-foreground" />
