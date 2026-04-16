@@ -361,6 +361,14 @@ function GroupDetailPage() {
             {rivalry ? "Duelo" : "Ranking"}
           </button>
           <button
+            onClick={() => setTab("resultados")}
+            className={`flex-1 rounded-full py-2 text-xs font-semibold transition-colors ${
+              tab === "resultados" ? "bg-primary text-primary-foreground" : "text-muted-foreground"
+            }`}
+          >
+            Resultados
+          </button>
+          <button
             onClick={() => setTab("temporadas")}
             className={`flex-1 rounded-full py-2 text-xs font-semibold transition-colors ${
               tab === "temporadas" ? "bg-primary text-primary-foreground" : "text-muted-foreground"
