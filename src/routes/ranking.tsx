@@ -4,6 +4,7 @@ import { useMyGroups } from "@/hooks/use-groups";
 import { BarChart3, Info, TrendingUp, TrendingDown, Minus, Medal, Target, Percent, ChevronDown } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { PlayerAvatar } from "@/components/PlayerAvatar";
 
 export const Route = createFileRoute("/ranking")({
   component: RankingPage,
@@ -287,23 +288,12 @@ function RankingPage() {
                       return (
                         <div key={entry.user_id} className="flex flex-col items-center">
                           <div className="relative">
-                            {entry.profile?.avatar_url ? (
-                              <img
-                                src={entry.profile.avatar_url}
-                                alt=""
-                                className={`rounded-full border-2 object-cover ${
-                                  isCenter ? "h-16 w-16 border-primary" : "h-12 w-12 border-border"
-                                }`}
-                              />
-                            ) : (
-                              <div
-                                className={`flex items-center justify-center rounded-full bg-muted font-bold text-foreground ${
-                                  isCenter ? "h-16 w-16 text-xl" : "h-12 w-12 text-sm"
-                                }`}
-                              >
-                                {(entry.profile?.name || "?").charAt(0)}
-                              </div>
-                            )}
+                            <PlayerAvatar
+                              avatarUrl={entry.profile?.avatar_url}
+                              name={entry.profile?.name || "?"}
+                              size={isCenter ? "lg" : "md"}
+                              className={`border-2 ${isCenter ? "border-primary !h-16 !w-16" : "border-border !h-12 !w-12"}`}
+                            />
                             <div
                               className="absolute -bottom-1.5 left-1/2 flex h-6 w-6 -translate-x-1/2 items-center justify-center rounded-full text-[10px] font-bold"
                               style={{
@@ -362,13 +352,7 @@ function RankingPage() {
 
                         {/* Avatar + Name */}
                         <div className="flex flex-1 items-center gap-2 min-w-0">
-                          {entry.profile?.avatar_url ? (
-                            <img src={entry.profile.avatar_url} alt="" className="h-7 w-7 shrink-0 rounded-full border border-border object-cover" />
-                          ) : (
-                            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-muted text-[10px] font-bold text-foreground">
-                              {(entry.profile?.name || "?").charAt(0)}
-                            </div>
-                          )}
+                          <PlayerAvatar avatarUrl={entry.profile?.avatar_url} name={entry.profile?.name || "?"} size="md" className="border border-border" />
                           <div className="min-w-0">
                             <p className="truncate text-xs font-semibold text-foreground">
                               {entry.profile?.nickname || entry.profile?.name || "Jogador"}
