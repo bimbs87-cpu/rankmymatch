@@ -336,7 +336,7 @@ function RankingPage() {
         </div>
       )}
 
-      <div className="space-y-4 px-5 pt-4">
+      <div className="space-y-3 px-5 pt-3">
         {!isAuthenticated ? (
           <div className="rounded-3xl border border-border bg-card p-8 text-center">
             <BarChart3 className="mx-auto mb-3 h-8 w-8 text-muted-foreground/40" />
@@ -347,19 +347,18 @@ function RankingPage() {
           </div>
         ) : (
           <>
-            {/* My position card */}
+            {/* My position + stats combined card */}
             {myRanking && (
-              <div className="rounded-3xl border border-primary/20 bg-primary/5 p-4">
-                <div className="flex items-center gap-4">
-                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10">
-                    <span className="font-display text-2xl font-bold text-primary">
+              <div className="rounded-2xl border border-primary/20 bg-primary/5 overflow-hidden">
+                <div className="flex items-center gap-3 px-4 py-3">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10">
+                    <span className="font-display text-xl font-bold text-primary">
                       {myRanking.position ? `#${myRanking.position}` : "—"}
                     </span>
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <p className="text-sm font-semibold text-foreground">Sua posição</p>
-                      {/* Position change indicator */}
                       {myRanking.positionChange !== undefined && myRanking.positionChange !== 0 && (
                         <span className={`flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-bold ${
                           myRanking.positionChange > 0
@@ -367,50 +366,43 @@ function RankingPage() {
                             : "bg-destructive/15 text-destructive"
                         }`}>
                           {myRanking.positionChange > 0 ? <ArrowUp className="h-2.5 w-2.5" /> : <ArrowDown className="h-2.5 w-2.5" />}
-                          {Math.abs(myRanking.positionChange)} pos
+                          {Math.abs(myRanking.positionChange)}
                         </span>
                       )}
                     </div>
-                    <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                    <div className="mt-0.5 flex flex-wrap items-center gap-x-2.5 text-[11px] text-muted-foreground">
                       <span className="font-display font-bold text-primary">{Math.round(myRanking.rating)} Elo</span>
                       <span>{myRanking.matches_won}V {myRanking.matches_played - myRanking.matches_won}D</span>
-                      <span title="Taxa de vitórias">
-                        🏆 {winRate(myRanking.matches_won, myRanking.matches_played)}% vitórias
-                      </span>
-                    </div>
-                    {myRanking.lastChange !== undefined && (
-                      <div className="mt-1 flex items-center gap-1">
-                        <span className="text-[10px] text-muted-foreground">Última rodada:</span>
-                        <span className={`flex items-center gap-0.5 text-xs font-bold ${
+                      <span>🏆 {winRate(myRanking.matches_won, myRanking.matches_played)}%</span>
+                      {myRanking.lastChange !== undefined && (
+                        <span className={`flex items-center gap-0.5 font-bold ${
                           myRanking.lastChange > 0 ? "text-success" : myRanking.lastChange < 0 ? "text-destructive" : "text-muted-foreground"
                         }`}>
-                          {myRanking.lastChange > 0 ? <TrendingUp className="h-3 w-3" /> : myRanking.lastChange < 0 ? <TrendingDown className="h-3 w-3" /> : <Minus className="h-3 w-3" />}
                           {myRanking.lastChange > 0 ? "+" : ""}{Math.round(myRanking.lastChange)} pts
                         </span>
-                      </div>
-                    )}
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            )}
-
-            {/* Stats summary - smaller cards */}
-            {rankings.length > 0 && (
-              <div className="grid grid-cols-3 gap-2">
-                <div className="rounded-xl border border-border bg-card/50 px-2 py-2 text-center">
-                  <Layers className="mx-auto mb-0.5 h-3.5 w-3.5 text-primary" />
-                  <p className="font-display text-base font-bold text-foreground">{totalSets}</p>
-                  <p className="text-[9px] text-muted-foreground">Sets</p>
-                </div>
-                <div className="rounded-xl border border-border bg-card/50 px-2 py-2 text-center">
-                  <Calendar className="mx-auto mb-0.5 h-3.5 w-3.5 text-primary" />
-                  <p className="font-display text-base font-bold text-foreground">{completedRounds}</p>
-                  <p className="text-[9px] text-muted-foreground">Rodadas</p>
-                </div>
-                <div className="rounded-xl border border-border bg-card/50 px-2 py-2 text-center">
-                  <Timer className="mx-auto mb-0.5 h-3.5 w-3.5 text-primary" />
-                  <p className="font-display text-base font-bold text-foreground">{remainingRounds}</p>
-                  <p className="text-[9px] text-muted-foreground">Restantes</p>
+                {/* Inline stats bar */}
+                <div className="flex border-t border-primary/10">
+                  <div className="flex flex-1 items-center justify-center gap-1.5 py-1.5 text-center">
+                    <Layers className="h-3 w-3 text-primary/70" />
+                    <span className="font-display text-sm font-bold text-foreground">{totalSets}</span>
+                    <span className="text-[9px] text-muted-foreground">sets</span>
+                  </div>
+                  <div className="w-px bg-primary/10" />
+                  <div className="flex flex-1 items-center justify-center gap-1.5 py-1.5 text-center">
+                    <Calendar className="h-3 w-3 text-primary/70" />
+                    <span className="font-display text-sm font-bold text-foreground">{completedRounds}</span>
+                    <span className="text-[9px] text-muted-foreground">rodadas</span>
+                  </div>
+                  <div className="w-px bg-primary/10" />
+                  <div className="flex flex-1 items-center justify-center gap-1.5 py-1.5 text-center">
+                    <Timer className="h-3 w-3 text-primary/70" />
+                    <span className="font-display text-sm font-bold text-foreground">{remainingRounds}</span>
+                    <span className="text-[9px] text-muted-foreground">restantes</span>
+                  </div>
                 </div>
               </div>
             )}
@@ -436,7 +428,7 @@ function RankingPage() {
               <div className="space-y-2">
                 {/* Podium (top 3 eligible) */}
                 {eligibleRankings.length >= 3 && (
-                  <div className="mb-4 flex items-end justify-center gap-3 pt-4">
+                  <div className="mb-3 flex items-end justify-center gap-3 pt-2">
                     {[1, 0, 2].map((idx) => {
                       const entry = eligibleRankings[idx];
                       if (!entry) return null;
@@ -450,10 +442,10 @@ function RankingPage() {
                               avatarUrl={entry.profile?.avatar_url}
                               name={entry.profile?.name || "?"}
                               size={isCenter ? "lg" : "md"}
-                              className={`border-2 ${isCenter ? "border-primary !h-16 !w-16" : "border-border !h-12 !w-12"}`}
+                              className={`border-2 ${isCenter ? "border-primary !h-14 !w-14" : "border-border !h-11 !w-11"}`}
                             />
                             <div
-                              className="absolute -bottom-1.5 left-1/2 flex h-6 w-6 -translate-x-1/2 items-center justify-center rounded-full text-[10px] font-bold"
+                              className="absolute -bottom-1.5 left-1/2 flex h-5 w-5 -translate-x-1/2 items-center justify-center rounded-full text-[9px] font-bold"
                               style={{
                                 backgroundColor: pos === 1 ? "var(--rank-gold)" : pos === 2 ? "var(--rank-silver)" : "var(--rank-bronze)",
                                 color: "var(--background)",
@@ -462,11 +454,11 @@ function RankingPage() {
                               {pos}
                             </div>
                           </div>
-                          <p className="mt-3 max-w-[80px] truncate text-center text-xs font-semibold text-foreground">
+                          <p className="mt-2.5 text-center text-[11px] font-semibold text-foreground leading-tight">
                             {displayName}
                           </p>
-                          <p className="font-display text-sm font-bold text-primary">{Math.round(entry.rating)}</p>
-                          <p className="text-[10px] text-muted-foreground">{winRate(entry.matches_won, entry.matches_played)}% WR</p>
+                          <p className="font-display text-xs font-bold text-primary">{Math.round(entry.rating)}</p>
+                          <p className="text-[9px] text-muted-foreground">{winRate(entry.matches_won, entry.matches_played)}% WR</p>
                         </div>
                       );
                     })}
@@ -476,16 +468,15 @@ function RankingPage() {
                 {/* Full list */}
                 <div className="rounded-2xl border border-border overflow-hidden">
                   {/* Header */}
-                  <div className="flex items-center gap-2 border-b border-border bg-muted/30 px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                    <span className="w-8 text-center">#</span>
-                    <span className="flex-1">Jogador</span>
-                    <span className="w-12 text-center">Elo</span>
-                    <span className="w-10 text-center">V/D</span>
-                    <span className="w-10 text-center">WR%</span>
-                    <span className="w-16 text-center">Últimas</span>
+                  <div className="flex items-center border-b border-border bg-muted/30 px-2 py-1.5 text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    <span className="w-7 text-center">#</span>
+                    <span className="flex-1 pl-1">Jogador</span>
+                    <span className="w-11 text-center">Elo</span>
+                    <span className="w-20 text-center">V/D · WR%</span>
+                    <span className="w-14 text-center">Últimas</span>
                   </div>
 
-                  {rankings.map((entry, idx) => {
+                  {rankings.map((entry) => {
                     const isMe = entry.user_id === user?.id;
                     const pos = entry.position || "—";
                     const wr = winRate(entry.matches_won, entry.matches_played);
@@ -495,73 +486,78 @@ function RankingPage() {
                     return (
                       <div
                         key={entry.user_id}
-                        className={`flex items-center gap-2 border-b border-border/50 px-3 py-2.5 last:border-b-0 transition-opacity ${
+                        className={`flex items-center border-b border-border/50 px-2 py-2 last:border-b-0 transition-opacity ${
                           isMe ? "bg-primary/5" : ""
                         } ${isDimmed ? "opacity-40" : ""}`}
                       >
-                        {/* Position */}
-                        <div
-                          className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg text-[11px] font-bold"
-                          style={{
-                            backgroundColor:
-                              typeof pos === "number" && pos === 1 ? "var(--rank-gold)"
-                              : typeof pos === "number" && pos === 2 ? "var(--rank-silver)"
-                              : typeof pos === "number" && pos === 3 ? "var(--rank-bronze)"
-                              : "transparent",
-                            color: typeof pos === "number" && pos <= 3 ? "var(--background)" : "var(--muted-foreground)",
-                          }}
-                        >
-                          {pos}
+                        {/* Position + change */}
+                        <div className="w-7 shrink-0 text-center">
+                          <div
+                            className="mx-auto flex h-5 w-5 items-center justify-center rounded-md text-[10px] font-bold"
+                            style={{
+                              backgroundColor:
+                                typeof pos === "number" && pos === 1 ? "var(--rank-gold)"
+                                : typeof pos === "number" && pos === 2 ? "var(--rank-silver)"
+                                : typeof pos === "number" && pos === 3 ? "var(--rank-bronze)"
+                                : "transparent",
+                              color: typeof pos === "number" && pos <= 3 ? "var(--background)" : "var(--muted-foreground)",
+                            }}
+                          >
+                            {pos}
+                          </div>
+                          {entry.positionChange !== undefined && entry.positionChange !== 0 && (
+                            <div className={`mt-0.5 text-[8px] font-bold leading-none ${
+                              entry.positionChange > 0 ? "text-success" : "text-destructive"
+                            }`}>
+                              {entry.positionChange > 0 ? "▲" : "▼"}{Math.abs(entry.positionChange)}
+                            </div>
+                          )}
                         </div>
 
                         {/* Avatar + Name */}
-                        <div className="flex flex-1 items-center gap-2 min-w-0">
-                          <PlayerAvatar avatarUrl={entry.profile?.avatar_url} name={entry.profile?.name || "?"} size="md" className="border border-border" />
+                        <div className="flex flex-1 items-center gap-1.5 min-w-0 pl-1">
+                          <PlayerAvatar avatarUrl={entry.profile?.avatar_url} name={entry.profile?.name || "?"} size="sm" className="border border-border !h-7 !w-7" />
                           <div className="min-w-0">
-                            <p className="truncate text-xs font-semibold text-foreground">
+                            <p className="text-[11px] font-semibold text-foreground leading-tight">
                               {displayName}
-                              {isMe && <span className="ml-1 text-primary">(você)</span>}
+                              {isMe && <span className="ml-0.5 text-primary text-[9px]">(você)</span>}
                             </p>
-                            {isDimmed && entry.hasSnapshot && (
-                              <p className="text-[9px] text-muted-foreground">Mín. não atingido</p>
-                            )}
                             {isDimmed && !entry.hasSnapshot && (
-                              <p className="text-[9px] text-muted-foreground">Sem partidas</p>
+                              <p className="text-[8px] text-muted-foreground leading-none">Sem partidas</p>
                             )}
                           </div>
                         </div>
 
-                        {/* Elo */}
-                        <div className="w-12 text-center">
-                          <p className="font-display text-xs font-bold text-foreground">{Math.round(entry.rating)}</p>
+                        {/* Elo + change */}
+                        <div className="w-11 text-center">
+                          <p className="font-display text-[11px] font-bold text-foreground leading-tight">{Math.round(entry.rating)}</p>
                           {entry.lastChange !== undefined && (
-                            <p className={`text-[9px] font-semibold ${entry.lastChange > 0 ? "text-success" : entry.lastChange < 0 ? "text-destructive" : "text-muted-foreground"}`}>
+                            <p className={`text-[8px] font-semibold leading-none ${entry.lastChange > 0 ? "text-success" : entry.lastChange < 0 ? "text-destructive" : "text-muted-foreground"}`}>
                               {entry.lastChange > 0 ? "+" : ""}{Math.round(entry.lastChange)}
                             </p>
                           )}
                         </div>
 
-                        {/* W/L */}
-                        <div className="w-10 text-center text-[11px] text-muted-foreground">
-                          <span className="text-success">{entry.matches_won}</span>
-                          /
-                          <span className="text-destructive">{entry.matches_played - entry.matches_won}</span>
-                        </div>
-
-                        {/* Win Rate */}
-                        <div className="w-10 text-center">
-                          <span className={`text-[11px] font-semibold ${wr >= 60 ? "text-success" : wr >= 40 ? "text-foreground" : "text-destructive"}`}>
+                        {/* V/D · WR% combined */}
+                        <div className="w-20 text-center">
+                          <span className="text-[10px] text-muted-foreground">
+                            <span className="text-success">{entry.matches_won}</span>
+                            /
+                            <span className="text-destructive">{entry.matches_played - entry.matches_won}</span>
+                          </span>
+                          <span className="mx-1 text-[8px] text-border">·</span>
+                          <span className={`text-[10px] font-semibold ${wr >= 60 ? "text-success" : wr >= 40 ? "text-foreground" : "text-destructive"}`}>
                             {entry.matches_played > 0 ? `${wr}%` : "—"}
                           </span>
                         </div>
 
                         {/* Last 5 results */}
-                        <div className="flex w-16 justify-center gap-0.5">
+                        <div className="flex w-14 justify-center gap-0.5">
                           {entry.last_5_results.length > 0 ? (
                             entry.last_5_results.slice(0, 5).map((r, i) => (
                               <div
                                 key={i}
-                                className={`h-3 w-3 rounded-full ${
+                                className={`h-2.5 w-2.5 rounded-full ${
                                   r === "W" ? "bg-success" : r === "L" ? "bg-destructive" : "bg-muted"
                                 }`}
                               />
