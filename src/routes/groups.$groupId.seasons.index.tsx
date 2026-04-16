@@ -553,66 +553,71 @@ function GroupSeasonsPage() {
                         {setsPerMatch === 3 ? "Melhor de 3 sets por confronto" : "1 set por confronto"}
                       </p>
                     </div>
-                    <div>
-                      <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Formação dos confrontos</label>
-                      <div className="space-y-1.5">
-                        {[
-                          { value: "manual", label: "Manual pelo admin", desc: "Admin define quem joga contra quem" },
-                          { value: "random", label: "Sorteio automático", desc: "Confrontos sorteados aleatoriamente" },
-                          { value: "round_robin", label: "Rodízio (todos contra todos)", desc: "Cada jogador enfrenta todos os outros" },
-                        ].map((opt) => (
-                          <button
-                            key={opt.value}
-                            onClick={() => setSinglesPairingMode(opt.value)}
-                            className={`flex w-full items-start gap-3 rounded-xl border p-3 text-left transition-colors ${
-                              singlesPairingMode === opt.value
-                                ? "border-primary bg-primary/5"
-                                : "border-border bg-background"
-                            }`}
-                          >
-                            <div className={`mt-0.5 h-4 w-4 rounded-full border-2 flex items-center justify-center ${
-                              singlesPairingMode === opt.value ? "border-primary" : "border-muted-foreground"
-                            }`}>
-                              {singlesPairingMode === opt.value && <div className="h-2 w-2 rounded-full bg-primary" />}
-                            </div>
-                            <div>
-                              <p className="text-sm font-medium text-foreground">{opt.label}</p>
-                              <p className="text-[10px] text-muted-foreground">{opt.desc}</p>
-                            </div>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                    <div>
-                      <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Se sobrar jogador na rodada</label>
-                      <div className="space-y-1.5">
-                        {[
-                          { value: "bye", label: "Bye sem pontuação", desc: "Jogador descansa sem ganhar pontos" },
-                          { value: "queue_point", label: "Fila com +1 ponto simbólico", desc: "Jogador ganha 1 ponto por estar presente" },
-                          { value: "admin_decides", label: "Admin decide manualmente", desc: "Decisão caso a caso" },
-                        ].map((opt) => (
-                          <button
-                            key={opt.value}
-                            onClick={() => setOddPlayerRule(opt.value)}
-                            className={`flex w-full items-start gap-3 rounded-xl border p-3 text-left transition-colors ${
-                              oddPlayerRule === opt.value
-                                ? "border-primary bg-primary/5"
-                                : "border-border bg-background"
-                            }`}
-                          >
-                            <div className={`mt-0.5 h-4 w-4 rounded-full border-2 flex items-center justify-center ${
-                              oddPlayerRule === opt.value ? "border-primary" : "border-muted-foreground"
-                            }`}>
-                              {oddPlayerRule === opt.value && <div className="h-2 w-2 rounded-full bg-primary" />}
-                            </div>
-                            <div>
-                              <p className="text-sm font-medium text-foreground">{opt.label}</p>
-                              <p className="text-[10px] text-muted-foreground">{opt.desc}</p>
-                            </div>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
+                    {/* Hide pairing mode and odd player rule for rivalry */}
+                    {!rivalry && (
+                      <>
+                        <div>
+                          <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Formação dos confrontos</label>
+                          <div className="space-y-1.5">
+                            {[
+                              { value: "manual", label: "Manual pelo admin", desc: "Admin define quem joga contra quem" },
+                              { value: "random", label: "Sorteio automático", desc: "Confrontos sorteados aleatoriamente" },
+                              { value: "round_robin", label: "Rodízio (todos contra todos)", desc: "Cada jogador enfrenta todos os outros" },
+                            ].map((opt) => (
+                              <button
+                                key={opt.value}
+                                onClick={() => setSinglesPairingMode(opt.value)}
+                                className={`flex w-full items-start gap-3 rounded-xl border p-3 text-left transition-colors ${
+                                  singlesPairingMode === opt.value
+                                    ? "border-primary bg-primary/5"
+                                    : "border-border bg-background"
+                                }`}
+                              >
+                                <div className={`mt-0.5 h-4 w-4 rounded-full border-2 flex items-center justify-center ${
+                                  singlesPairingMode === opt.value ? "border-primary" : "border-muted-foreground"
+                                }`}>
+                                  {singlesPairingMode === opt.value && <div className="h-2 w-2 rounded-full bg-primary" />}
+                                </div>
+                                <div>
+                                  <p className="text-sm font-medium text-foreground">{opt.label}</p>
+                                  <p className="text-[10px] text-muted-foreground">{opt.desc}</p>
+                                </div>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                        <div>
+                          <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Se sobrar jogador na rodada</label>
+                          <div className="space-y-1.5">
+                            {[
+                              { value: "bye", label: "Bye sem pontuação", desc: "Jogador descansa sem ganhar pontos" },
+                              { value: "queue_point", label: "Fila com +1 ponto simbólico", desc: "Jogador ganha 1 ponto por estar presente" },
+                              { value: "admin_decides", label: "Admin decide manualmente", desc: "Decisão caso a caso" },
+                            ].map((opt) => (
+                              <button
+                                key={opt.value}
+                                onClick={() => setOddPlayerRule(opt.value)}
+                                className={`flex w-full items-start gap-3 rounded-xl border p-3 text-left transition-colors ${
+                                  oddPlayerRule === opt.value
+                                    ? "border-primary bg-primary/5"
+                                    : "border-border bg-background"
+                                }`}
+                              >
+                                <div className={`mt-0.5 h-4 w-4 rounded-full border-2 flex items-center justify-center ${
+                                  oddPlayerRule === opt.value ? "border-primary" : "border-muted-foreground"
+                                }`}>
+                                  {oddPlayerRule === opt.value && <div className="h-2 w-2 rounded-full bg-primary" />}
+                                </div>
+                                <div>
+                                  <p className="text-sm font-medium text-foreground">{opt.label}</p>
+                                  <p className="text-[10px] text-muted-foreground">{opt.desc}</p>
+                                </div>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </>
+                    )}
                   </>
                 )}
                 <div>
