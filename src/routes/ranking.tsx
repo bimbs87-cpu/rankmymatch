@@ -151,7 +151,7 @@ function RankingPage() {
     <div className="min-h-screen bg-background pb-28">
       <header className="flex items-center justify-between px-5 pt-6 pb-2">
         <div>
-141:           <h1 className="font-display text-xl font-bold text-foreground">Ranking</h1>
+          <h1 className="font-display text-xl font-bold text-foreground">Ranking</h1>
           {selectedSeason && seasons.length > 1 ? (
             <button
               onClick={() => setShowSwitcher(!showSwitcher)}
@@ -166,6 +166,33 @@ function RankingPage() {
             </p>
           ) : null}
         </div>
+        <Link to="/ranking-info" className="rounded-full border border-border bg-card p-2 transition-colors hover:bg-accent">
+          <Info className="h-4 w-4 text-muted-foreground" />
+        </Link>
+      </header>
+
+      {/* Ranking switcher dropdown */}
+      {showSwitcher && seasons.length > 1 && (
+        <div className="mx-5 mt-1 rounded-2xl border border-border bg-card/95 backdrop-blur-xl overflow-hidden shadow-lg">
+          {seasons.map((s: any) => (
+            <button
+              key={s.id}
+              onClick={() => { setSelectedSeasonId(s.id); setShowSwitcher(false); }}
+              className={`flex w-full items-center justify-between px-4 py-3 text-left text-sm transition-colors border-b border-border/50 last:border-b-0 ${
+                selectedSeasonId === s.id ? "bg-primary/10 text-primary font-semibold" : "text-foreground hover:bg-accent/50"
+              }`}
+            >
+              <div>
+                <p className="font-medium">{s.groups?.name}</p>
+                <p className="text-[11px] text-muted-foreground">{s.name}</p>
+              </div>
+              {selectedSeasonId === s.id && (
+                <div className="h-2 w-2 rounded-full bg-primary" />
+              )}
+            </button>
+          ))}
+        </div>
+      )}
 
       <div className="space-y-4 px-5 pt-4">
         {!isAuthenticated ? (
@@ -178,24 +205,6 @@ function RankingPage() {
           </div>
         ) : (
           <>
-            {/* Season selector */}
-            {seasons.length > 0 && (
-              <div className="scrollbar-none flex gap-2 overflow-x-auto">
-                {seasons.map((s: any) => (
-                  <button
-                    key={s.id}
-                    onClick={() => setSelectedSeasonId(s.id)}
-                    className={`shrink-0 rounded-full px-4 py-2 text-xs font-semibold transition-colors ${
-                      selectedSeasonId === s.id
-                        ? "bg-primary text-primary-foreground"
-                        : "border border-border bg-card text-muted-foreground"
-                    }`}
-                  >
-                    {s.name}
-                  </button>
-                ))}
-              </div>
-            )}
 
             {/* My position card */}
             {myRanking && (
