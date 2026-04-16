@@ -10,7 +10,7 @@ import { SearchUserDialog } from "@/components/SearchUserDialog";
 import { useAuth } from "@/hooks/use-auth";
 import { TrophyLoadingBar } from "@/components/TrophyLoadingBar";
 import { usePendingMatch } from "@/hooks/use-pending-matches";
-import { useGroupSeasons } from "@/hooks/use-seasons";
+import { useGroupSeasons, useSeasonRounds } from "@/hooks/use-seasons";
 import { supabase } from "@/integrations/supabase/client";
 import { isRivalryGroup } from "@/lib/rivalry";
 import {
@@ -47,6 +47,9 @@ import {
   Link2,
   Ghost,
   Search,
+  Calendar,
+  Clock,
+  MapPin,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
@@ -62,7 +65,7 @@ function GroupDetailPage() {
     useGroupDetail(groupId);
   const { pendingMatch, refresh: refreshPending } = usePendingMatch(groupId);
   const navigate = useNavigate();
-  const [tab, setTab] = useState<"members" | "temporadas" | "requests" | "settings">("members");
+  const [tab, setTab] = useState<"members" | "resultados" | "temporadas" | "requests" | "settings">("members");
   const [inviteOpen, setInviteOpen] = useState(false);
   const [addPlaceholderOpen, setAddPlaceholderOpen] = useState(false);
   const [claimOpen, setClaimOpen] = useState(false);
