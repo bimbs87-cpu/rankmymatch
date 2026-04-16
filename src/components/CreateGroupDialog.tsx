@@ -72,13 +72,14 @@ export function CreateGroupDialog({ open, onClose }: Props) {
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
       <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative flex w-full max-w-lg flex-col overflow-hidden rounded-t-3xl border border-border bg-card p-5 animate-in slide-in-from-bottom duration-300 sm:rounded-3xl sm:p-6">
-        <div className="mb-5 flex items-center justify-between">
+      <div className="relative flex w-full max-w-lg flex-col overflow-hidden rounded-t-3xl border border-border bg-card animate-in slide-in-from-bottom duration-300 sm:rounded-3xl max-h-[85vh]">
+        <div className="flex items-center justify-between px-5 pt-5 pb-3 sm:px-6 sm:pt-6">
           <h2 className="font-display text-lg font-bold text-foreground">Criar Grupo</h2>
           <button onClick={onClose} disabled={submitting} className="rounded-full bg-muted p-2 disabled:opacity-50">
             <X className="h-4 w-4 text-muted-foreground" />
           </button>
         </div>
+        <div className="flex-1 overflow-y-auto px-5 pb-5 sm:px-6 sm:pb-6">
 
         <div className="space-y-4">
           {/* Imagem */}
@@ -171,6 +172,7 @@ export function CreateGroupDialog({ open, onClose }: Props) {
           >
             {submitting ? "Criando..." : "Criar Grupo"}
           </button>
+        </div>
         </div>
       </div>
     </div>
