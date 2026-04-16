@@ -151,17 +151,21 @@ function RankingPage() {
     <div className="min-h-screen bg-background pb-28">
       <header className="flex items-center justify-between px-5 pt-6 pb-2">
         <div>
-          <h1 className="font-display text-xl font-bold text-foreground">Ranking</h1>
-          {selectedSeason && (
+141:           <h1 className="font-display text-xl font-bold text-foreground">Ranking</h1>
+          {selectedSeason && seasons.length > 1 ? (
+            <button
+              onClick={() => setShowSwitcher(!showSwitcher)}
+              className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <span>{(selectedSeason as any).groups?.name} • {selectedSeason.name}</span>
+              <ChevronDown className={`h-3 w-3 transition-transform ${showSwitcher ? "rotate-180" : ""}`} />
+            </button>
+          ) : selectedSeason ? (
             <p className="text-xs text-muted-foreground">
               {(selectedSeason as any).groups?.name} • {selectedSeason.name}
             </p>
-          )}
+          ) : null}
         </div>
-        <Link to="/ranking-info" className="rounded-full border border-border bg-card p-2 transition-colors hover:bg-accent">
-          <Info className="h-4 w-4 text-muted-foreground" />
-        </Link>
-      </header>
 
       <div className="space-y-4 px-5 pt-4">
         {!isAuthenticated ? (
