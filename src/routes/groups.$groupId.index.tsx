@@ -3,6 +3,9 @@ import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { GroupSettingsForm } from "@/components/GroupSettingsForm";
 import { InviteLinkDialog } from "@/components/InviteLinkDialog";
 import { PendingMatchCard } from "@/components/PendingMatchCard";
+import { AddPlaceholderPlayerDialog } from "@/components/AddPlaceholderPlayerDialog";
+import { ClaimPlayerDialog } from "@/components/ClaimPlayerDialog";
+import { PlayerClaimsManager } from "@/components/PlayerClaimsManager";
 import { useAuth } from "@/hooks/use-auth";
 import { usePendingMatch } from "@/hooks/use-pending-matches";
 import { supabase } from "@/integrations/supabase/client";
@@ -38,6 +41,8 @@ import {
   AlertTriangle,
   Swords,
   TrendingUp,
+  Link2,
+  Ghost,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
@@ -55,9 +60,12 @@ function GroupDetailPage() {
   const navigate = useNavigate();
   const [tab, setTab] = useState<"members" | "requests" | "settings">("members");
   const [inviteOpen, setInviteOpen] = useState(false);
+  const [addPlaceholderOpen, setAddPlaceholderOpen] = useState(false);
+  const [claimOpen, setClaimOpen] = useState(false);
   const [leaveDialogOpen, setLeaveDialogOpen] = useState(false);
   const [hasResults, setHasResults] = useState(false);
   const [leavingLoading, setLeavingLoading] = useState(false);
+  const [placeholderUserIds, setPlaceholderUserIds] = useState<Set<string>>(new Set());
   const [rankingData, setRankingData] = useState<Record<string, { rating: number; position: number | null; matches_played: number; matches_won: number }>>({});
 
   const rivalry = isRivalryGroup(group, memberCount);
@@ -84,6 +92,24 @@ function GroupDetailPage() {
     };
     loadRanking();
   }, [groupId]);
+
+  // Detect which members are placeholders
+  useEffect(() => {
+    if (!members.length) return;
+    const userIds = members.map((m) => m.user_id);
+    supabase
+      .from("user_profiles")
+      .select("user_id")
+      .in("user_id", userIds)
+      .eq("is_placeholder", true)
+      .then(({ data }) => {
+        setPlaceholderUserIds(new Set((data || []).map((p) => p.user_id)));
+      });
+  }, [members]);
+
+  // Check if current user is already a member (to hide claim button)
+  const isMemberAlready = members.some((m) => m.user_id === user?.id);
+  const hasPlaceholders = placeholderUserIds.size > 0;
 
   if (isLoading) {
     return (
@@ -462,6 +488,12 @@ function GroupDetailPage() {
                             </span>
                             {m.role === "creator" && <Crown className="h-3 w-3 text-rank-gold flex-shrink-0" />}
                             {m.role === "admin" && <Shield className="h-3 w-3 text-info flex-shrink-0" />}
+                            {placeholderUserIds.has(m.user_id) && (
+                              <span className="flex items-center gap-0.5 rounded-full bg-muted px-1.5 py-0.5 text-[9px] font-medium text-muted-foreground flex-shrink-0">
+                                <Ghost className="h-2.5 w-2.5" />
+                                Sem conta
+                              </span>
+                            )}
                           </div>
                           {rank ? (
                             <p className="text-[10px] text-muted-foreground">
@@ -508,6 +540,33 @@ function GroupDetailPage() {
                   );
                 })}
               </div>
+            )}
+
+            {/* Admin: Claims pendentes */}
+            {isAdmin && (
+              <PlayerClaimsManager groupId={groupId} onResolved={refresh} />
+            )}
+
+            {/* Admin: Adicionar jogador sem conta */}
+            {isAdmin && (
+              <button
+                onClick={() => setAddPlaceholderOpen(true)}
+                className="flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-primary/30 bg-primary/5 p-3 text-sm font-medium text-primary transition-colors active:bg-primary/10"
+              >
+                <UserPlus className="h-4 w-4" />
+                Adicionar jogador (sem conta)
+              </button>
+            )}
+
+            {/* User: Vincular conta */}
+            {isAuthenticated && !isMemberAlready && hasPlaceholders && (
+              <button
+                onClick={() => setClaimOpen(true)}
+                className="flex w-full items-center justify-center gap-2 rounded-2xl border border-primary/30 bg-primary/5 p-3 text-sm font-medium text-primary transition-colors active:bg-primary/10"
+              >
+                <Link2 className="h-4 w-4" />
+                Vincular minha conta a um jogador
+              </button>
             )}
 
             {/* Convidar jogadores */}
@@ -617,6 +676,26 @@ function GroupDetailPage() {
         )}
       </div>
 
+      {/* Dialogs */}
+      {isAdmin && user && (
+        <AddPlaceholderPlayerDialog
+          open={addPlaceholderOpen}
+          onOpenChange={setAddPlaceholderOpen}
+          groupId={groupId}
+          adminUserId={user.id}
+          onAdded={refresh}
+        />
+      )}
+
+      {isAuthenticated && user && (
+        <ClaimPlayerDialog
+          open={claimOpen}
+          onOpenChange={setClaimOpen}
+          groupId={groupId}
+          claimerUserId={user.id}
+          onClaimed={refresh}
+        />
+      )}
     </div>
   );
 }
