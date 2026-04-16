@@ -5,10 +5,12 @@ import logoHorizontalDark from "@/assets/logo-horizontal-dark.png";
 import logoHorizontalLight from "@/assets/logo-horizontal-light.png";
 import { useTheme } from "@/lib/theme";
 import { useAuth } from "@/hooks/use-auth";
+import { useUserProfile } from "@/hooks/use-user-profile";
 import { useMyGroups } from "@/hooks/use-groups";
 import { useNotifications } from "@/hooks/use-notifications";
 import { usePendingMatch } from "@/hooks/use-pending-matches";
 import { PendingMatchCard } from "@/components/PendingMatchCard";
+import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { InstallBanner } from "@/components/InstallBanner";
 import { supabase } from "@/integrations/supabase/client";
 import { useState, useEffect, useCallback, useRef } from "react";
@@ -119,6 +121,7 @@ function DashboardPage() {
   const isPulling = useRef(false);
   const { pendingMatch, refresh: refreshPending } = usePendingMatch();
   const [adminGroupIds, setAdminGroupIds] = useState<Set<string>>(new Set());
+  const { displayName, nickname, avatarUrl: profileAvatarUrl } = useUserProfile();
 
   // Check which groups user is admin of
   useEffect(() => {
@@ -348,8 +351,8 @@ function DashboardPage() {
     );
   }
 
-  const displayName = user?.user_metadata?.full_name || user?.user_metadata?.name || "Jogador";
-  const avatarUrl = user?.user_metadata?.avatar_url || user?.user_metadata?.picture;
+  const headerDisplayName = displayName;
+  const headerAvatarUrl = profileAvatarUrl;
 
   const formatDate = (d: string | null) => {
     if (!d) return "";
