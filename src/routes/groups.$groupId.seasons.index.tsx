@@ -60,7 +60,7 @@ function getUpcomingMonthlyDates(count: number, roundsPlayed = 0): string[] {
 function GroupSeasonsPage() {
   const { groupId } = Route.useParams();
   const { user } = useAuth();
-  const { group, isAdmin } = useGroupDetail(groupId);
+  const { group, memberCount, isAdmin } = useGroupDetail(groupId);
   const { seasons, isLoading, refresh } = useGroupSeasons(groupId);
   const [showCreate, setShowCreate] = useState(false);
   const [step, setStep] = useState<"type" | "config" | "dates">("type");
@@ -85,6 +85,7 @@ function GroupSeasonsPage() {
   const [oddPlayerRule, setOddPlayerRule] = useState("admin_decides");
 
   const isSingles = group?.match_format === "singles";
+  const rivalry = isRivalryGroup(group, memberCount);
 
   const goStep = (next: "type" | "config" | "dates", dir: "forward" | "back") => {
     setStepDir(dir);
