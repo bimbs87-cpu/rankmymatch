@@ -1,12 +1,11 @@
 import { Link, useLocation } from "@tanstack/react-router";
-import { Home, Users, Trophy, Bell, User } from "lucide-react";
-import { useNotifications } from "@/hooks/use-notifications";
+import { Home, Users, Trophy, BarChart3, User } from "lucide-react";
 
 const NAV_ITEMS = [
   { to: "/", icon: Home, label: "Início" },
   { to: "/groups", icon: Users, label: "Grupos" },
   { to: "/seasons", icon: Trophy, label: "Temporadas" },
-  { to: "/notifications", icon: Bell, label: "Alertas" },
+  { to: "/ranking", icon: BarChart3, label: "Ranking" },
   { to: "/profile", icon: User, label: "Perfil" },
 ] as const;
 
