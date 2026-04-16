@@ -3,10 +3,10 @@ import { Home, Users, Trophy, BarChart3, User } from "lucide-react";
 
 const NAV_ITEMS = [
   { to: "/", icon: Home, label: "Início" },
-  { to: "/groups", icon: Users, label: "Grupos" },
-  { to: "/seasons", icon: Trophy, label: "Temporadas" },
   { to: "/ranking", icon: BarChart3, label: "Ranking" },
+  { to: "/seasons", icon: Trophy, label: "Temporadas" },
   { to: "/profile", icon: User, label: "Perfil" },
+  { to: "/groups", icon: Users, label: "Grupos" },
 ] as const;
 
 export function BottomNav() {
