@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import { EloChart } from "@/components/EloChart";
+import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { AvatarPickerDialog } from "@/components/AvatarPickerDialog";
 import { useEffect, useState } from "react";
 import { usePwaInstall } from "@/hooks/use-pwa-install";
@@ -168,14 +169,15 @@ function ProfilePage() {
     );
   }
 
-  const avatarUrl = profile?.avatar_url || user?.user_metadata?.avatar_url || user?.user_metadata?.picture;
+  const googlePhotoUrl = user?.user_metadata?.avatar_url || user?.user_metadata?.picture || null;
+  const avatarUrl = profile?.avatar_url || googlePhotoUrl;
 
-  const handleAvatarSelect = async (url: string) => {
+  const handleAvatarSelect = async (url: string, type: "google" | "emoji") => {
     if (!user) return;
     setSavingAvatar(true);
     const { error } = await supabase
       .from("user_profiles")
-      .update({ avatar_url: url, avatar_type: "premium" })
+      .update({ avatar_url: url, avatar_type: type === "google" ? "google" : "emoji" })
       .eq("user_id", user.id);
     if (error) {
       toast.error("Erro ao salvar avatar");
@@ -375,17 +377,7 @@ function ProfilePage() {
         <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-transparent" />
         <div className="relative flex flex-col items-center">
           <div className="relative mb-3">
-            {avatarUrl ? (
-              <img
-                src={avatarUrl}
-                alt=""
-                className="h-24 w-24 rounded-full border-2 border-border object-cover"
-              />
-            ) : (
-              <div className="flex h-24 w-24 items-center justify-center rounded-full border-2 border-border bg-muted font-display text-3xl font-bold text-foreground">
-                {displayName.charAt(0)}
-              </div>
-            )}
+            <PlayerAvatar avatarUrl={avatarUrl} name={displayName} size="xl" className="border-2 border-border" />
             <button
               onClick={() => setAvatarPickerOpen(true)}
               className="absolute bottom-0 right-0 flex h-8 w-8 items-center justify-center rounded-full border border-border bg-card text-foreground"
@@ -504,6 +496,7 @@ function ProfilePage() {
         currentAvatarUrl={profile?.avatar_url || null}
         onSelect={handleAvatarSelect}
         saving={savingAvatar}
+        googlePhotoUrl={googlePhotoUrl}
       />
     </div>
   );
