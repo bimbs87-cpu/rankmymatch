@@ -299,8 +299,27 @@ export async function drawTeams(roundId: string, confirmedPlayerIds: string[], a
 }
 
 export async function deleteMatch(matchId: string) {
+  // Get round_id before deleting
+  const { data: matchData } = await supabase
+    .from("matches")
+    .select("round_id")
+    .eq("id", matchId)
+    .single();
+
   const { error } = await supabase.from("matches").delete().eq("id", matchId);
   if (error) throw new Error(error.message);
+
+  // Check if round has any remaining matches; if not, reset to scheduled
+  if (matchData?.round_id) {
+    const { data: remaining } = await supabase
+      .from("matches")
+      .select("id")
+      .eq("round_id", matchData.round_id)
+      .limit(1);
+    if (!remaining?.length) {
+      await supabase.from("rounds").update({ status: "scheduled" }).eq("id", matchData.round_id);
+    }
+  }
 }
 
 export async function deleteRound(roundId: string) {
