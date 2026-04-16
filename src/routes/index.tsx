@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { LoadingBar } from "@/components/LoadingBar";
 import logoSymbolNeon from "@/assets/logo-symbol-neon.png";
 import logoSymbolBlack from "@/assets/logo-symbol-black.png";
 import logoHorizontalDark from "@/assets/logo-horizontal-dark.png";
@@ -305,11 +306,7 @@ function DashboardPage() {
   }, [pullDistance, handleRefresh]);
 
   if (isLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-      </div>
-    );
+    return <LoadingBar label="Carregando..." />;
   }
 
   if (!isAuthenticated) {

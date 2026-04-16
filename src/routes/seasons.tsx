@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { LoadingBar } from "@/components/LoadingBar";
 import { useAuth } from "@/hooks/use-auth";
 import { useMyGroups } from "@/hooks/use-groups";
 import { supabase } from "@/integrations/supabase/client";
@@ -59,11 +60,7 @@ function SeasonsPage() {
   }, [user, groups]);
 
   if (isLoading || groupsLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-      </div>
-    );
+    return <LoadingBar label="Carregando temporadas..." />;
   }
 
   const formatDate = (d: string | null) => {

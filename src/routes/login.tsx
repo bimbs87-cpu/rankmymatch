@@ -1,4 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { LoadingBar } from "@/components/LoadingBar";
 import { useState, useEffect } from "react";
 import { lovable } from "@/integrations/lovable/index";
 import { useAuth } from "@/hooks/use-auth";
@@ -26,11 +27,7 @@ function LoginPage() {
   }, [isAuthenticated, authLoading, navigate]);
 
   if (authLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-      </div>
-    );
+    return <LoadingBar label="Verificando sessão..." />;
   }
 
   if (isAuthenticated) {
