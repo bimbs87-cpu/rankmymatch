@@ -77,22 +77,37 @@ export function EloChart({ userId }: { userId: string }) {
 
         // Track each user's latest rating to compute positions at each match
         const userLatestRating = new Map<string, number>();
-        const matchOrder = events.map((e) => e.match_id);
+        const matchSet = new Set(events.map((e) => e.match_id));
 
         const allSorted = [...allEventsForSeasons].sort(
           (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
         );
 
+        // Group events by match_id to process all players of a match together
+        const eventsByMatch: Map<string, typeof allSorted> = new Map();
+        for (const ev of allSorted) {
+          const list = eventsByMatch.get(ev.match_id) || [];
+          list.push(ev);
+          eventsByMatch.set(ev.match_id, list);
+        }
+
         const positionAtMatch = new Map<string, number>();
 
-        for (const ev of allSorted) {
-          userLatestRating.set(ev.user_id, Number(ev.rating_after));
-
-          if (ev.user_id === userId && matchOrder.includes(ev.match_id)) {
+        // Process matches in chronological order (by first event's created_at)
+        const matchIds = [...eventsByMatch.keys()];
+        for (const matchId of matchIds) {
+          const matchEvents = eventsByMatch.get(matchId)!;
+          // Update all players' ratings for this match first
+          for (const ev of matchEvents) {
+            userLatestRating.set(ev.user_id, Number(ev.rating_after));
+          }
+          // Then compute position if this match belongs to our user
+          if (matchSet.has(matchId)) {
             const ratings = [...userLatestRating.values()].sort((a, b) => b - a);
-            const myRating = Number(ev.rating_after);
-            const pos = ratings.indexOf(myRating) + 1;
-            positionAtMatch.set(ev.match_id, pos);
+            const myRating = userLatestRating.get(userId)!;
+            // Count how many players have a strictly higher rating
+            const pos = ratings.filter((r) => r > myRating).length + 1;
+            positionAtMatch.set(matchId, pos);
           }
         }
 
