@@ -71,7 +71,7 @@ export function CreateGroupDialog({ open, onClose }: Props) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
-      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} style={{ touchAction: "none" }} />
       <div className="relative flex w-full max-w-lg flex-col overflow-hidden rounded-t-3xl border border-border bg-card animate-in slide-in-from-bottom duration-300 sm:rounded-3xl max-h-[85vh]">
         <div className="flex items-center justify-between px-5 pt-5 pb-3 sm:px-6 sm:pt-6">
           <h2 className="font-display text-lg font-bold text-foreground">Criar Grupo</h2>
@@ -79,7 +79,7 @@ export function CreateGroupDialog({ open, onClose }: Props) {
             <X className="h-4 w-4 text-muted-foreground" />
           </button>
         </div>
-        <div className="flex-1 overflow-y-auto px-5 pb-5 sm:px-6 sm:pb-6">
+        <div className="flex-1 overflow-y-auto overscroll-contain px-5 pb-5 sm:px-6 sm:pb-6" style={{ WebkitOverflowScrolling: "touch" }}>
 
         <div className="space-y-4">
           {/* Imagem */}
