@@ -542,6 +542,33 @@ function GroupDetailPage() {
               </div>
             )}
 
+            {/* Admin: Claims pendentes */}
+            {isAdmin && (
+              <PlayerClaimsManager groupId={groupId} onResolved={refresh} />
+            )}
+
+            {/* Admin: Adicionar jogador sem conta */}
+            {isAdmin && (
+              <button
+                onClick={() => setAddPlaceholderOpen(true)}
+                className="flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-primary/30 bg-primary/5 p-3 text-sm font-medium text-primary transition-colors active:bg-primary/10"
+              >
+                <UserPlus className="h-4 w-4" />
+                Adicionar jogador (sem conta)
+              </button>
+            )}
+
+            {/* User: Vincular conta */}
+            {isAuthenticated && !isMemberAlready && hasPlaceholders && (
+              <button
+                onClick={() => setClaimOpen(true)}
+                className="flex w-full items-center justify-center gap-2 rounded-2xl border border-primary/30 bg-primary/5 p-3 text-sm font-medium text-primary transition-colors active:bg-primary/10"
+              >
+                <Link2 className="h-4 w-4" />
+                Vincular minha conta a um jogador
+              </button>
+            )}
+
             {/* Convidar jogadores */}
             {isMember && !rivalry && (
               <button
