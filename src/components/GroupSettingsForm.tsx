@@ -16,29 +16,42 @@ interface Props {
   imageUrl: string | null;
   groupStatus?: string;
   isCreator?: boolean;
+  presenceOpenMode?: string;
+  presenceOpenTime?: string;
   onSaved: () => void;
 }
 
 export function GroupSettingsForm({
   groupId, name: initName, description: initDesc, isPublic: initPublic,
-  maxPlayers, sport, simultaneousCourts, imageUrl, groupStatus = "active", isCreator = false, onSaved,
+  maxPlayers, sport, simultaneousCourts, imageUrl, groupStatus = "active", isCreator = false,
+  presenceOpenMode: initPresenceMode = "1_day_before", presenceOpenTime: initPresenceTime = "10:00:00",
+  onSaved,
 }: Props) {
   const navigate = useNavigate();
   const [name, setName] = useState(initName);
   const [description, setDescription] = useState(initDesc || "");
   const [isPublic, setIsPublic] = useState(initPublic);
+  const [presenceMode, setPresenceMode] = useState(initPresenceMode);
+  const [presenceTime, setPresenceTime] = useState(initPresenceTime.slice(0, 5));
   const [saving, setSaving] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
-  const hasChanges = name !== initName || description !== (initDesc || "") || isPublic !== initPublic;
+  const hasChanges = name !== initName || description !== (initDesc || "") || isPublic !== initPublic
+    || presenceMode !== initPresenceMode || presenceTime !== initPresenceTime.slice(0, 5);
 
   const handleSave = async () => {
     if (!name.trim()) { toast.error("Nome é obrigatório"); return; }
     setSaving(true);
     const { error } = await supabase
       .from("groups")
-      .update({ name: name.trim(), description: description.trim() || null, is_public: isPublic })
+      .update({
+        name: name.trim(),
+        description: description.trim() || null,
+        is_public: isPublic,
+        presence_open_mode: presenceMode,
+        presence_open_time: presenceTime + ":00",
+      })
       .eq("id", groupId);
 
     if (error) { toast.error("Erro ao salvar"); }
@@ -109,6 +122,51 @@ export function GroupSettingsForm({
         <p className="mt-1.5 text-xs text-muted-foreground">
           {isPublic ? "Qualquer um pode encontrar e entrar." : "Entrada somente por convite ou aprovação."}
         </p>
+      </div>
+
+      {/* Presence opening config */}
+      <div>
+        <label className="mb-2 block text-xs font-medium text-muted-foreground">Abertura da lista de presença</label>
+        <div className="grid grid-cols-2 gap-2">
+          {[
+            { value: "always", label: "Sempre aberta" },
+            { value: "same_day", label: "No mesmo dia" },
+            { value: "1_day_before", label: "1 dia antes" },
+            { value: "2_days_before", label: "2 dias antes" },
+            { value: "random", label: "Aleatório" },
+          ].map((opt) => (
+            <button
+              key={opt.value}
+              onClick={() => setPresenceMode(opt.value)}
+              className={`rounded-2xl border p-2.5 text-xs font-medium transition-colors ${
+                presenceMode === opt.value
+                  ? "border-primary bg-primary/10 text-primary"
+                  : "border-border bg-background text-muted-foreground"
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+        <p className="mt-1.5 text-xs text-muted-foreground">
+          {presenceMode === "always" && "A lista fica aberta assim que a rodada é criada."}
+          {presenceMode === "same_day" && "A lista abre no dia do jogo no horário definido abaixo."}
+          {presenceMode === "1_day_before" && "A lista abre 1 dia antes do jogo no horário definido abaixo."}
+          {presenceMode === "2_days_before" && "A lista abre 2 dias antes do jogo no horário definido abaixo."}
+          {presenceMode === "random" && "A lista abre em um horário aleatório entre 36h e 24h antes do jogo."}
+        </p>
+
+        {presenceMode !== "always" && presenceMode !== "random" && (
+          <div className="mt-3">
+            <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Horário de abertura</label>
+            <input
+              type="time"
+              value={presenceTime}
+              onChange={(e) => setPresenceTime(e.target.value)}
+              className="w-full rounded-2xl border border-border bg-background px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+            />
+          </div>
+        )}
       </div>
 
       <div className="rounded-2xl border border-border bg-card/50 p-4">

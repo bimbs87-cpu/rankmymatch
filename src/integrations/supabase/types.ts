@@ -446,6 +446,8 @@ export type Database = {
           max_players: number
           mode: string
           name: string
+          presence_open_mode: string
+          presence_open_time: string
           simultaneous_courts: number
           slots_per_round: number
           sport: string
@@ -463,6 +465,8 @@ export type Database = {
           max_players?: number
           mode?: string
           name: string
+          presence_open_mode?: string
+          presence_open_time?: string
           simultaneous_courts?: number
           slots_per_round?: number
           sport?: string
@@ -480,6 +484,8 @@ export type Database = {
           max_players?: number
           mode?: string
           name?: string
+          presence_open_mode?: string
+          presence_open_time?: string
           simultaneous_courts?: number
           slots_per_round?: number
           sport?: string

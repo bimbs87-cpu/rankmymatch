@@ -23,8 +23,9 @@ import {
   Ban,
   ChevronDown,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { toast } from "sonner";
+import { isPresenceOpen, getPresenceOpenDate, formatPresenceOpenDate } from "@/lib/presence-schedule";
 
 export const Route = createFileRoute(
   "/groups/$groupId/seasons/$seasonId/rounds/$roundId"
@@ -45,6 +46,12 @@ function RoundDetailPage() {
   const [deletingRound, setDeletingRound] = useState(false);
   const [expandedMatch, setExpandedMatch] = useState<string | null>(null);
   const [matchRatings, setMatchRatings] = useState<Record<string, any[]>>({});
+
+  // Presence schedule config (must be before early returns)
+  const presenceConfig = useMemo(() => ({
+    presence_open_mode: (group as any)?.presence_open_mode || "always",
+    presence_open_time: (group as any)?.presence_open_time || "10:00:00",
+  }), [group]);
 
   const loadMatchRatings = async (matchId: string) => {
     if (matchRatings[matchId]) {
@@ -129,6 +136,9 @@ function RoundDetailPage() {
   const isConfirmed = myPresence?.status === "confirmed";
   const confirmedPlayers = presences.filter((p) => p.status === "confirmed");
   const canDraw = isAdmin && confirmedPlayers.length >= 4 && matches.length === 0;
+
+  const presenceListOpen = isPresenceOpen(presenceConfig, round.scheduled_date, round.scheduled_time, roundId);
+  const presenceOpenDate = getPresenceOpenDate(presenceConfig, round.scheduled_date, round.scheduled_time, roundId);
 
   const handleConfirm = async () => {
     if (!user) return;
@@ -262,23 +272,37 @@ function RoundDetailPage() {
 
       {/* Presence buttons */}
       {round.status === "scheduled" && (
-        <div className="mx-5 mb-5 flex gap-2">
-          {isConfirmed ? (
-            <button
-              onClick={handleCancel}
-              className="flex flex-1 items-center justify-center gap-2 rounded-2xl border border-destructive/30 bg-destructive/10 py-3 text-sm font-semibold text-destructive"
-            >
-              <UserX className="h-4 w-4" />
-              Cancelar presença
-            </button>
+        <div className="mx-5 mb-5">
+          {presenceListOpen ? (
+            <div className="flex gap-2">
+              {isConfirmed ? (
+                <button
+                  onClick={handleCancel}
+                  className="flex flex-1 items-center justify-center gap-2 rounded-2xl border border-destructive/30 bg-destructive/10 py-3 text-sm font-semibold text-destructive"
+                >
+                  <UserX className="h-4 w-4" />
+                  Cancelar presença
+                </button>
+              ) : (
+                <button
+                  onClick={handleConfirm}
+                  className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-primary py-3 text-sm font-bold text-primary-foreground"
+                >
+                  <UserCheck className="h-4 w-4" />
+                  Confirmar presença
+                </button>
+              )}
+            </div>
           ) : (
-            <button
-              onClick={handleConfirm}
-              className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-primary py-3 text-sm font-bold text-primary-foreground"
-            >
-              <UserCheck className="h-4 w-4" />
-              Confirmar presença
-            </button>
+            <div className="rounded-2xl border border-border bg-card/50 p-4 text-center">
+              <Clock className="mx-auto mb-2 h-5 w-5 text-muted-foreground" />
+              <p className="text-sm font-medium text-foreground">Lista ainda não aberta</p>
+              {presenceOpenDate && (
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Abre {formatPresenceOpenDate(presenceOpenDate)}
+                </p>
+              )}
+            </div>
           )}
         </div>
       )}
