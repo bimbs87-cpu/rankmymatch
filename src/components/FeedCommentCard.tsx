@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { type FeedComment, toggleReaction, postComment } from "@/hooks/use-feed";
+import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { MessageCircle, Send, Smile } from "lucide-react";
 
 const QUICK_EMOJIS = ["👍", "🔥", "😂", "👏", "💪", "🏆"];
@@ -39,21 +40,12 @@ function CommentBubble({
   return (
     <div className={`${isReply ? "ml-10 mt-2" : ""}`}>
       <div className="flex gap-2.5">
-        {comment.profile?.avatar_url ? (
-          <img
-            src={comment.profile.avatar_url}
-            alt=""
-            className={`rounded-full object-cover border border-border ${isReply ? "h-7 w-7" : "h-9 w-9"}`}
-          />
-        ) : (
-          <div
-            className={`flex items-center justify-center rounded-full bg-muted font-bold text-foreground ${
-              isReply ? "h-7 w-7 text-[9px]" : "h-9 w-9 text-xs"
-            }`}
-          >
-            {(comment.profile?.name || "?").charAt(0)}
-          </div>
-        )}
+        <PlayerAvatar
+          avatarUrl={comment.profile?.avatar_url || null}
+          name={comment.profile?.name || "?"}
+          size={isReply ? "sm" : "md"}
+          className={`border border-border ${isReply ? "!h-7 !w-7" : "!h-9 !w-9"}`}
+        />
 
         <div className="flex-1 min-w-0">
           <div className="rounded-2xl border border-border bg-card/50 px-3.5 py-2.5">
