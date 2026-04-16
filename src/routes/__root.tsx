@@ -89,8 +89,6 @@ function RootComponent() {
     }
   }, []);
 
-  const location = useLocation();
-  const hideNav = location.pathname === "/login" || location.pathname.startsWith("/invite/");
 
   return (
     <AuthProvider>
