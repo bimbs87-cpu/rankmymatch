@@ -392,21 +392,18 @@ function DashboardPage() {
       <header className="px-5 pb-2 pt-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            {avatarUrl ? (
-              <img src={avatarUrl} alt="" className="h-11 w-11 rounded-full border border-border object-cover" />
-            ) : (
-              <div className="flex h-11 w-11 items-center justify-center rounded-full bg-card text-foreground font-display font-bold">
-                {displayName.charAt(0)}
-              </div>
-            )}
+            <PlayerAvatar avatarUrl={headerAvatarUrl} name={headerDisplayName} size="lg" className="border border-border !h-11 !w-11" />
             <div>
               <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Olá,</p>
               <div className="flex items-center gap-1.5">
-                <p className="font-display text-base font-bold text-foreground">{displayName}</p>
+                <p className="font-display text-base font-bold text-foreground">{headerDisplayName}</p>
                 <Link to="/profile" className="rounded-full p-1 text-muted-foreground hover:text-foreground hover:bg-accent transition-colors">
                   <Pencil className="h-3 w-3" />
                 </Link>
               </div>
+              {nickname && (
+                <p className="text-[10px] text-muted-foreground -mt-0.5">@{nickname}</p>
+              )}
             </div>
           </div>
           <div className="flex items-center gap-2">
