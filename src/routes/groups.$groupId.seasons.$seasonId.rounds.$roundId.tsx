@@ -137,12 +137,6 @@ function RoundDetailPage() {
   const confirmedPlayers = presences.filter((p) => p.status === "confirmed");
   const canDraw = isAdmin && confirmedPlayers.length >= 4 && matches.length === 0;
 
-  // Check if presence list is open based on group config
-  const presenceConfig = useMemo(() => ({
-    presence_open_mode: (group as any)?.presence_open_mode || "always",
-    presence_open_time: (group as any)?.presence_open_time || "10:00:00",
-  }), [group]);
-
   const presenceListOpen = isPresenceOpen(presenceConfig, round.scheduled_date, round.scheduled_time, roundId);
   const presenceOpenDate = getPresenceOpenDate(presenceConfig, round.scheduled_date, round.scheduled_time, roundId);
 
