@@ -3,6 +3,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useGroupDetail } from "@/hooks/use-groups";
 import { useGroupSeasons } from "@/hooks/use-seasons";
 import { createSeasonWithRounds } from "@/hooks/use-season-creation";
+import { isRivalryGroup } from "@/lib/rivalry";
 import { ArrowLeft, Plus, Trophy, X, Calendar, Pencil, MoreVertical, EyeOff, CheckCircle2, Trash2 } from "lucide-react";
 import { WizardStepper } from "@/components/ui/wizard-stepper";
 import { useState } from "react";
