@@ -26,22 +26,28 @@ export function BottomNav() {
               key={item.to}
               to={item.to}
               className={`relative flex flex-col items-center gap-0.5 rounded-full px-3 py-1.5 text-[10px] font-medium transition-all duration-200 ${
+                isRanking ? "-mt-5" : ""
+              } ${
                 isActive
                   ? "text-primary"
-                  : isRanking
-                    ? "text-primary/60 hover:text-primary"
-                    : "text-muted-foreground hover:text-foreground"
+                  : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              <div className={`relative ${isRanking && !isActive ? "rounded-full bg-primary/10 p-1" : ""}`}>
+              <div
+                className={`flex items-center justify-center transition-all duration-200 ${
+                  isRanking
+                    ? "h-12 w-12 rounded-full border-2 border-primary/30 bg-card shadow-lg shadow-primary/10"
+                    : ""
+                } ${isRanking && isActive ? "border-primary bg-primary/15" : ""}`}
+              >
                 <Icon
                   className={`transition-all duration-200 ${
-                    isRanking ? "h-[22px] w-[22px]" : "h-5 w-5"
+                    isRanking ? "h-6 w-6" : "h-5 w-5"
                   } ${isActive ? "scale-110" : ""}`}
-                  strokeWidth={isActive ? 2.5 : isRanking ? 2 : 1.5}
+                  strokeWidth={isActive ? 2.5 : 1.5}
                 />
               </div>
-              <span className={isRanking ? "font-semibold" : ""}>{item.label}</span>
+              <span>{item.label}</span>
             </Link>
           );
         })}
