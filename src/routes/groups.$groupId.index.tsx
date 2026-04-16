@@ -60,9 +60,12 @@ function GroupDetailPage() {
   const navigate = useNavigate();
   const [tab, setTab] = useState<"members" | "requests" | "settings">("members");
   const [inviteOpen, setInviteOpen] = useState(false);
+  const [addPlaceholderOpen, setAddPlaceholderOpen] = useState(false);
+  const [claimOpen, setClaimOpen] = useState(false);
   const [leaveDialogOpen, setLeaveDialogOpen] = useState(false);
   const [hasResults, setHasResults] = useState(false);
   const [leavingLoading, setLeavingLoading] = useState(false);
+  const [placeholderUserIds, setPlaceholderUserIds] = useState<Set<string>>(new Set());
   const [rankingData, setRankingData] = useState<Record<string, { rating: number; position: number | null; matches_played: number; matches_won: number }>>({});
 
   const rivalry = isRivalryGroup(group, memberCount);
