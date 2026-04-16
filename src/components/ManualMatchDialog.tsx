@@ -105,6 +105,16 @@ export function ManualMatchDialog({ roundId, groupId, onClose, onSaved }: Props)
     );
   };
 
+  const moveMatchup = (idx: number, direction: "up" | "down") => {
+    setMatchups((prev) => {
+      const arr = [...prev];
+      const target = direction === "up" ? idx - 1 : idx + 1;
+      if (target < 0 || target >= arr.length) return prev;
+      [arr[idx], arr[target]] = [arr[target], arr[idx]];
+      return arr;
+    });
+  };
+
   const getDisplayName = (uid: string) => {
     const m = members.find((x) => x.user_id === uid);
     return m?.nickname || m?.name?.split(" ")[0] || "?";
