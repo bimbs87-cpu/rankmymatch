@@ -1,5 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useAuth } from "@/hooks/use-auth";
+import { useUserProfile } from "@/hooks/use-user-profile";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
 import { useState, useEffect } from "react";
@@ -74,6 +75,7 @@ function InviteAuthButtons({ inviteUrl }: { inviteUrl: string }) {
 function InvitePage() {
   const { code } = Route.useParams();
   const { user, isAuthenticated, isLoading: authLoading } = useAuth();
+  const { displayName: profileDisplayName } = useUserProfile();
   const navigate = useNavigate();
   const [invite, setInvite] = useState<InviteData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -152,7 +154,7 @@ function InvitePage() {
     if (!user || !invite) return;
     setJoining(true);
 
-    const userName = user.user_metadata?.full_name || user.user_metadata?.name || "Um jogador";
+    const userName = profileDisplayName || user.user_metadata?.full_name || user.user_metadata?.name || "Um jogador";
     const maxPlayers = invite.group?.max_players ?? 999;
     const currentCount = invite.group?.member_count ?? 0;
     const isFull = currentCount >= maxPlayers;

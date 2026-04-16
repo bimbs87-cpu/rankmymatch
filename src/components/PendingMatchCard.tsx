@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { Swords, ChevronRight, Edit3 } from "lucide-react";
 import { ScoreEntryDialog } from "@/components/ScoreEntryDialog";
+import { PlayerAvatar } from "@/components/PlayerAvatar";
 import type { PendingMatch } from "@/hooks/use-pending-matches";
 
 interface Props {
@@ -44,13 +45,7 @@ export function PendingMatchCard({ match, onScoreSaved, showGroupName = true, is
         <div className="flex items-center gap-3 mb-3">
           {/* Side A */}
           <div className="flex flex-1 items-center gap-2">
-            {match.teamA[0]?.avatar_url ? (
-              <img src={match.teamA[0].avatar_url} alt="" className="h-7 w-7 rounded-full object-cover ring-1 ring-primary/30" />
-            ) : (
-              <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-primary ring-1 ring-primary/30">
-                {playerAName.charAt(0)}
-              </div>
-            )}
+            <PlayerAvatar avatarUrl={match.teamA[0]?.avatar_url || null} name={playerAName} size="sm" className="ring-1 ring-primary/30 !h-7 !w-7" />
             <div className="min-w-0">
               <p className="text-xs font-semibold text-foreground truncate">{playerAName}</p>
               {!isSingles && match.teamA.length > 1 && (
@@ -73,13 +68,7 @@ export function PendingMatchCard({ match, onScoreSaved, showGroupName = true, is
                 </p>
               )}
             </div>
-            {match.teamB[0]?.avatar_url ? (
-              <img src={match.teamB[0].avatar_url} alt="" className="h-7 w-7 rounded-full object-cover ring-1 ring-info/30" />
-            ) : (
-              <div className="flex h-7 w-7 items-center justify-center rounded-full bg-info/10 text-[10px] font-bold text-info ring-1 ring-info/30">
-                {playerBName.charAt(0)}
-              </div>
-            )}
+            <PlayerAvatar avatarUrl={match.teamB[0]?.avatar_url || null} name={playerBName} size="sm" className="ring-1 ring-info/30 !h-7 !w-7" />
           </div>
         </div>
 

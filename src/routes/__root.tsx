@@ -1,5 +1,6 @@
 import { Outlet, Link, createRootRoute, HeadContent, Scripts } from "@tanstack/react-router";
 import { AuthProvider, useAuth } from "@/hooks/use-auth";
+import { UserProfileProvider } from "@/hooks/use-user-profile";
 import { BottomNav } from "@/components/BottomNav";
 import { Toaster } from "@/components/ui/sonner";
 import "../styles.css";
@@ -91,11 +92,13 @@ function RootComponent() {
 
   return (
     <AuthProvider>
-      <div className="mx-auto max-w-lg min-h-screen">
-        <Outlet />
-      </div>
-      <AuthNav />
-      <Toaster richColors position="top-center" />
+      <UserProfileProvider>
+        <div className="mx-auto max-w-lg min-h-screen">
+          <Outlet />
+        </div>
+        <AuthNav />
+        <Toaster richColors position="top-center" />
+      </UserProfileProvider>
     </AuthProvider>
   );
 }

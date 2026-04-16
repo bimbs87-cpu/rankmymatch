@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
+import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { useEffect, useState } from "react";
 import { ArrowLeft, TrendingUp, TrendingDown, Minus, Swords } from "lucide-react";
 
@@ -268,13 +269,7 @@ function HistoryPage() {
                     <div className="flex items-center gap-1">
                       {match.teammates.map((t, i) => (
                         <div key={i} className="flex items-center gap-1">
-                          {t.avatar_url ? (
-                            <img src={t.avatar_url} alt="" className="h-5 w-5 rounded-full object-cover" />
-                          ) : (
-                            <div className="flex h-5 w-5 items-center justify-center rounded-full bg-muted text-[9px] font-bold">
-                              {t.name.charAt(0)}
-                            </div>
-                          )}
+                          <PlayerAvatar avatarUrl={t.avatar_url || null} name={t.name} size="xs" />
                           <span className="text-foreground">{t.name}</span>
                         </div>
                       ))}
@@ -290,13 +285,7 @@ function HistoryPage() {
                       {match.opponents.map((o, i) => (
                         <div key={i} className="flex items-center gap-1">
                           <span className="text-foreground">{o.name}</span>
-                          {o.avatar_url ? (
-                            <img src={o.avatar_url} alt="" className="h-5 w-5 rounded-full object-cover" />
-                          ) : (
-                            <div className="flex h-5 w-5 items-center justify-center rounded-full bg-muted text-[9px] font-bold">
-                              {o.name.charAt(0)}
-                            </div>
-                          )}
+                          <PlayerAvatar avatarUrl={o.avatar_url || null} name={o.name} size="xs" />
                         </div>
                       ))}
                     </div>

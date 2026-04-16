@@ -5,10 +5,12 @@ import logoHorizontalDark from "@/assets/logo-horizontal-dark.png";
 import logoHorizontalLight from "@/assets/logo-horizontal-light.png";
 import { useTheme } from "@/lib/theme";
 import { useAuth } from "@/hooks/use-auth";
+import { useUserProfile } from "@/hooks/use-user-profile";
 import { useMyGroups } from "@/hooks/use-groups";
 import { useNotifications } from "@/hooks/use-notifications";
 import { usePendingMatch } from "@/hooks/use-pending-matches";
 import { PendingMatchCard } from "@/components/PendingMatchCard";
+import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { InstallBanner } from "@/components/InstallBanner";
 import { supabase } from "@/integrations/supabase/client";
 import { useState, useEffect, useCallback, useRef } from "react";
@@ -119,6 +121,7 @@ function DashboardPage() {
   const isPulling = useRef(false);
   const { pendingMatch, refresh: refreshPending } = usePendingMatch();
   const [adminGroupIds, setAdminGroupIds] = useState<Set<string>>(new Set());
+  const { displayName, nickname, avatarUrl: profileAvatarUrl } = useUserProfile();
 
   // Check which groups user is admin of
   useEffect(() => {
@@ -348,8 +351,8 @@ function DashboardPage() {
     );
   }
 
-  const displayName = user?.user_metadata?.full_name || user?.user_metadata?.name || "Jogador";
-  const avatarUrl = user?.user_metadata?.avatar_url || user?.user_metadata?.picture;
+  const headerDisplayName = displayName;
+  const headerAvatarUrl = profileAvatarUrl;
 
   const formatDate = (d: string | null) => {
     if (!d) return "";
@@ -389,21 +392,18 @@ function DashboardPage() {
       <header className="px-5 pb-2 pt-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            {avatarUrl ? (
-              <img src={avatarUrl} alt="" className="h-11 w-11 rounded-full border border-border object-cover" />
-            ) : (
-              <div className="flex h-11 w-11 items-center justify-center rounded-full bg-card text-foreground font-display font-bold">
-                {displayName.charAt(0)}
-              </div>
-            )}
+            <PlayerAvatar avatarUrl={headerAvatarUrl} name={headerDisplayName} size="lg" className="border border-border !h-11 !w-11" />
             <div>
               <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Olá,</p>
               <div className="flex items-center gap-1.5">
-                <p className="font-display text-base font-bold text-foreground">{displayName}</p>
+                <p className="font-display text-base font-bold text-foreground">{headerDisplayName}</p>
                 <Link to="/profile" className="rounded-full p-1 text-muted-foreground hover:text-foreground hover:bg-accent transition-colors">
                   <Pencil className="h-3 w-3" />
                 </Link>
               </div>
+              {nickname && (
+                <p className="text-[10px] text-muted-foreground -mt-0.5">@{nickname}</p>
+              )}
             </div>
           </div>
           <div className="flex items-center gap-2">

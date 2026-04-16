@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useAuth } from "@/hooks/use-auth";
+import { useUserProfile } from "@/hooks/use-user-profile";
 import { useGroupFeed, postComment } from "@/hooks/use-feed";
 import { useGroupDetail } from "@/hooks/use-groups";
 import { FeedCommentCard } from "@/components/FeedCommentCard";
@@ -14,6 +15,7 @@ export const Route = createFileRoute("/groups/$groupId/feed")({
 function GroupFeedPage() {
   const { groupId } = Route.useParams();
   const { user } = useAuth();
+  const { displayName: profileName } = useUserProfile();
   const { group } = useGroupDetail(groupId);
   const { comments, isLoading } = useGroupFeed(groupId);
   const [newComment, setNewComment] = useState("");
@@ -27,7 +29,7 @@ function GroupFeedPage() {
         groupId,
         userId: user.id,
         content: newComment.trim(),
-        userName: user.user_metadata?.full_name || user.email || undefined,
+        userName: profileName || user.email || undefined,
       });
       setNewComment("");
     } catch {
