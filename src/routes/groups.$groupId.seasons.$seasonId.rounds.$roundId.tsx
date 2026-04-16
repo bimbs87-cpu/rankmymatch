@@ -267,7 +267,7 @@ function RoundDetailPage() {
           )}
           <div className="flex items-center gap-1.5">
             <Users className="h-3.5 w-3.5" />
-            <span>{confirmedCount}/{group?.slots_per_round || round.max_players} confirmados</span>
+            <span>{confirmedCount}/{isSingles ? (group?.slots_per_round || 2) : (group?.slots_per_round || round.max_players)} confirmados</span>
           </div>
         </div>
       </div>
@@ -317,7 +317,9 @@ function RoundDetailPage() {
             className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-primary bg-primary/5 py-3.5 text-sm font-bold text-primary"
           >
             <Shuffle className="h-4 w-4" />
-            Sortear Times ({confirmedPlayers.length} jogadores → {Math.floor(confirmedPlayers.length / 4)} partida{Math.floor(confirmedPlayers.length / 4) !== 1 ? "s" : ""})
+            {isSingles
+              ? `Sortear Confrontos (${confirmedPlayers.length} jogadores → ${Math.floor(confirmedPlayers.length / 2)} confronto${Math.floor(confirmedPlayers.length / 2) !== 1 ? "s" : ""})`
+              : `Sortear Times (${confirmedPlayers.length} jogadores → ${Math.floor(confirmedPlayers.length / 4)} partida${Math.floor(confirmedPlayers.length / 4) !== 1 ? "s" : ""})`}
           </button>
         </div>
       )}
@@ -330,7 +332,7 @@ function RoundDetailPage() {
             className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-primary bg-primary/5 py-3.5 text-sm font-bold text-primary"
           >
             <Swords className="h-4 w-4" />
-            Lançar Rei da Quadra
+            {isSingles ? "Montar Confrontos" : "Lançar Rei da Quadra"}
           </button>
         </div>
       )}
