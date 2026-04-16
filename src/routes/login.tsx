@@ -17,10 +17,23 @@ function LoginPage() {
   const [error, setError] = useState("");
   const { resolved: resolvedTheme } = useTheme();
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
+
+  useEffect(() => {
+    if (!authLoading && isAuthenticated) {
+      navigate({ to: "/" });
+    }
+  }, [isAuthenticated, authLoading, navigate]);
+
+  if (authLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+      </div>
+    );
+  }
 
   if (isAuthenticated) {
-    navigate({ to: "/" });
     return null;
   }
 
