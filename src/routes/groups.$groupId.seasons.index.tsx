@@ -393,9 +393,9 @@ function GroupSeasonsPage() {
       </div>
 
       {showCreate && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4 pb-28 pt-6 sm:px-6 sm:pb-6 sm:pt-6">
           <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowCreate(false)} />
-          <div className="relative w-full max-w-lg rounded-t-3xl sm:rounded-3xl border border-border bg-card p-6 pb-10 sm:pb-6 animate-in slide-in-from-bottom duration-300 max-h-[85vh] overflow-y-auto">
+          <div className="relative w-full max-w-lg rounded-3xl border border-border bg-card p-6 pb-8 animate-in zoom-in-95 fade-in-0 duration-200 max-h-[calc(100vh-8rem)] overflow-y-auto sm:max-h-[85vh] sm:pb-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-display text-lg font-bold text-foreground">
                 {step === "type" ? "Tipo de Temporada" : step === "config" ? "Configurar Temporada" : "Datas das Rodadas"}
