@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { abbreviateName } from "@/lib/utils";
 import logoSymbolNeon from "@/assets/logo-symbol-neon.png";
 import logoSymbolBlack from "@/assets/logo-symbol-black.png";
 import logoHorizontalDark from "@/assets/logo-horizontal-dark.png";
@@ -351,7 +352,7 @@ function DashboardPage() {
     );
   }
 
-  const headerDisplayName = displayName;
+  const headerDisplayName = abbreviateName(displayName);
   const headerAvatarUrl = profileAvatarUrl;
 
   const formatDate = (d: string | null) => {
