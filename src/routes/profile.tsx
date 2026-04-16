@@ -177,7 +177,7 @@ function ProfilePage() {
     setSavingAvatar(true);
     const { error } = await supabase
       .from("user_profiles")
-      .update({ avatar_url: url, avatar_type: type === "google" ? "google" : "emoji" })
+      .update({ avatar_url: url, avatar_type: type === "google" ? "google" : "preset" })
       .eq("user_id", user.id);
     if (error) {
       toast.error("Erro ao salvar avatar");
