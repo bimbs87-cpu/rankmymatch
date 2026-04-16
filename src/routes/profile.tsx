@@ -168,14 +168,15 @@ function ProfilePage() {
     );
   }
 
-  const avatarUrl = profile?.avatar_url || user?.user_metadata?.avatar_url || user?.user_metadata?.picture;
+  const googlePhotoUrl = user?.user_metadata?.avatar_url || user?.user_metadata?.picture || null;
+  const avatarUrl = profile?.avatar_url || googlePhotoUrl;
 
-  const handleAvatarSelect = async (url: string) => {
+  const handleAvatarSelect = async (url: string, type: "google" | "emoji") => {
     if (!user) return;
     setSavingAvatar(true);
     const { error } = await supabase
       .from("user_profiles")
-      .update({ avatar_url: url, avatar_type: "premium" })
+      .update({ avatar_url: url, avatar_type: type === "google" ? "google" : "emoji" })
       .eq("user_id", user.id);
     if (error) {
       toast.error("Erro ao salvar avatar");
