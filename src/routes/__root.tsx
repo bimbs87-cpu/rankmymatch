@@ -1,5 +1,5 @@
 import { Outlet, Link, createRootRoute, HeadContent, Scripts, useLocation } from "@tanstack/react-router";
-import { AuthProvider } from "@/hooks/use-auth";
+import { AuthProvider, useAuth } from "@/hooks/use-auth";
 import { BottomNav } from "@/components/BottomNav";
 import { Toaster } from "@/components/ui/sonner";
 import appCss from "../styles.css?url";
@@ -89,16 +89,20 @@ function RootComponent() {
     }
   }, []);
 
-  const location = useLocation();
-  const hideNav = location.pathname === "/login" || location.pathname.startsWith("/invite/");
 
   return (
     <AuthProvider>
       <div className="mx-auto max-w-lg min-h-screen">
         <Outlet />
       </div>
-      {!hideNav && <BottomNav />}
+      <AuthNav />
       <Toaster richColors position="top-center" />
     </AuthProvider>
   );
+}
+
+function AuthNav() {
+  const { isAuthenticated, isLoading } = useAuth();
+  if (isLoading || !isAuthenticated) return null;
+  return <BottomNav />;
 }
