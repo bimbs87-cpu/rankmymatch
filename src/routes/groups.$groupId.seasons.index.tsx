@@ -79,13 +79,12 @@ function GroupSeasonsPage() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
   const [showHidden, setShowHidden] = useState(false);
-  // Singles-specific
-  const [setsPerMatch, setSetsPerMatch] = useState(rivalry ? 1 : 3);
-  const [singlesPairingMode, setSinglesPairingMode] = useState("manual");
-  const [oddPlayerRule, setOddPlayerRule] = useState("admin_decides");
-
   const isSingles = group?.match_format === "singles";
   const rivalry = isRivalryGroup(group, memberCount);
+  // Singles-specific
+  const [setsPerMatch, setSetsPerMatch] = useState(3);
+  const [singlesPairingMode, setSinglesPairingMode] = useState("manual");
+  const [oddPlayerRule, setOddPlayerRule] = useState("admin_decides");
 
   const goStep = (next: "type" | "config" | "dates", dir: "forward" | "back") => {
     setStepDir(dir);
