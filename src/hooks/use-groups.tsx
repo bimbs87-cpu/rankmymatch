@@ -213,6 +213,7 @@ export async function createGroup(data: {
   max_players: number;
   sport: string;
   userId: string;
+  match_format?: string;
 }) {
   const { data: group, error } = await supabase
     .from("groups")
@@ -223,6 +224,7 @@ export async function createGroup(data: {
       max_players: data.max_players,
       sport: data.sport,
       created_by: data.userId,
+      match_format: data.match_format || "doubles",
     })
     .select()
     .single();
