@@ -37,11 +37,6 @@ export function BottomNav() {
                   }`}
                   strokeWidth={isActive ? 2.5 : 1.5}
                 />
-                {showBadge && (
-                  <span className="absolute -right-1.5 -top-1 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-destructive px-0.5 text-[8px] font-bold text-destructive-foreground">
-                    {unreadCount > 9 ? "9+" : unreadCount}
-                  </span>
-                )}
               </div>
               <span>{item.label}</span>
             </Link>
