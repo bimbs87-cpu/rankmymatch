@@ -37,7 +37,7 @@ export function PendingMatchCard({ match, onScoreSaved, showGroupName = true, is
             </div>
           </div>
           <span className="rounded-full bg-warning/10 px-2 py-0.5 text-[10px] font-semibold text-warning">
-            Aguardando
+            Aguardando resultado
           </span>
         </div>
 
