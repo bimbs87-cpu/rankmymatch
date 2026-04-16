@@ -14,7 +14,7 @@ export function BottomNav() {
 
   return (
     <nav className="fixed bottom-5 left-4 right-4 z-50 mx-auto max-w-lg">
-      <div className="flex items-center justify-around rounded-full border border-border bg-card/80 px-2 py-2 backdrop-blur-xl">
+      <div className="flex items-end justify-around rounded-full border border-border bg-card/80 px-2 py-2 backdrop-blur-xl">
         {NAV_ITEMS.map((item) => {
           const isActive =
             location.pathname === item.to ||
@@ -25,28 +25,24 @@ export function BottomNav() {
             <Link
               key={item.to}
               to={item.to}
-              className={`relative flex flex-col items-center gap-0.5 rounded-full px-3 py-1.5 text-[10px] font-medium transition-all duration-200 ${
-                isRanking ? "-mt-5" : ""
-              } ${
+              className={`relative flex flex-col items-center rounded-full px-3 text-[10px] font-medium transition-all duration-200 ${
                 isActive
                   ? "text-primary"
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              <div
-                className={`flex items-center justify-center transition-all duration-200 ${
-                  isRanking
-                    ? "h-14 w-14 -mt-6 rounded-full bg-muted shadow-lg border border-border text-foreground"
-                    : ""
-                }`}
-              >
-                <Icon
-                  className={`transition-all duration-200 ${
-                    isRanking ? "h-7 w-7" : "h-5 w-5"
-                  } ${isActive ? "scale-110" : ""}`}
-                  strokeWidth={isActive ? 2.5 : 1.5}
-                />
-              </div>
+              {isRanking ? (
+                <div className="flex h-12 w-12 -mt-7 mb-0.5 items-center justify-center rounded-full border border-border bg-muted shadow-lg text-foreground">
+                  <Icon className="h-7 w-7" strokeWidth={isActive ? 2.5 : 1.5} />
+                </div>
+              ) : (
+                <div className="flex h-6 items-center justify-center mb-0.5">
+                  <Icon
+                    className={`h-5 w-5 transition-all duration-200 ${isActive ? "scale-110" : ""}`}
+                    strokeWidth={isActive ? 2.5 : 1.5}
+                  />
+                </div>
+              )}
               <span>{item.label}</span>
             </Link>
           );
