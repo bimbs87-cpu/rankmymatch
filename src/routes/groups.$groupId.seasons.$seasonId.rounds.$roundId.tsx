@@ -66,6 +66,13 @@ function RoundDetailPage() {
   const [expandedMatch, setExpandedMatch] = useState<string | null>(null);
   const [matchRatings, setMatchRatings] = useState<Record<string, any[]>>({});
 
+  const formatCompactName = (name?: string | null) => {
+    const safeName = (name || "Jogador").trim();
+    const parts = safeName.split(/\s+/).filter(Boolean);
+    if (parts.length <= 1) return safeName;
+    return `${parts[0]} ${parts[parts.length - 1][0]}.`;
+  };
+
   // Auto-load ratings for all completed matches
   useEffect(() => {
     if (!matches?.length) return;
@@ -77,17 +84,24 @@ function RoundDetailPage() {
         .select("*")
         .in("match_id", completedIds);
       if (!data?.length) return;
+
+      const userIds = [...new Set(data.map((row) => row.user_id))];
+      const { data: profiles } = await supabase
+        .from("user_profiles")
+        .select("user_id, name, nickname")
+        .in("user_id", userIds);
+
+      const profileMap = new Map((profiles || []).map((p) => [p.user_id, p]));
       const grouped: Record<string, any[]> = {};
       for (const d of data) {
         if (!grouped[d.match_id]) grouped[d.match_id] = [];
-        grouped[d.match_id].push(d);
+        grouped[d.match_id].push({ ...d, profile: profileMap.get(d.user_id) });
       }
       setMatchRatings(grouped);
     };
     loadAll();
   }, [matches]);
 
-  // Helper to get a player's Elo change for a match
   const getPlayerEloChange = (matchId: string, userId: string) => {
     const events = matchRatings[matchId];
     if (!events) return null;
@@ -563,28 +577,25 @@ function RoundDetailPage() {
                     </div>
 
                     <div className="flex items-center gap-3">
-                      {/* Team A */}
-                      <div className="flex-1">
+                      <div className="flex-1 space-y-1">
                         {teamA.map((mp: any) => {
                           const eloChange = match.status === "completed" ? getPlayerEloChange(match.id, mp.user_id) : null;
                           const isWinner = match.status === "completed" && match.winner_team === "A";
+                          const displayName = formatCompactName(mp.profile?.nickname || mp.profile?.name || "Jogador");
                           return (
-                            <div key={mp.id} className="flex items-center gap-1.5 py-0.5">
+                            <div key={mp.id} className="flex items-center gap-1.5 py-0.5 min-w-0">
                               <PlayerAvatar avatarUrl={mp.profile?.avatar_url || null} name={mp.profile?.name || "?"} size="xs" />
-                              <span className={`text-xs ${isWinner ? "font-bold text-primary" : "text-foreground"}`}>
-                                {mp.profile?.nickname || mp.profile?.name || "Jogador"}
+                              <span className={`min-w-0 flex-1 truncate text-xs ${isWinner ? "font-bold text-primary" : "text-foreground"}`}>
+                                {displayName}
                               </span>
-                              {eloChange !== null && (
-                                <span className={`text-[10px] font-bold ${eloChange > 0 ? "text-success" : "text-destructive"}`}>
-                                  {eloChange > 0 ? "+" : ""}{eloChange}
-                                </span>
-                              )}
+                              <span className={`w-9 text-right text-[10px] font-bold ${eloChange === null ? "opacity-0" : eloChange > 0 ? "text-success" : "text-destructive"}`}>
+                                {eloChange === null ? "0" : `${eloChange > 0 ? "+" : ""}${eloChange}`}
+                              </span>
                             </div>
                           );
                         })}
                       </div>
 
-                      {/* Score */}
                       <div className="flex items-center gap-1.5 text-center">
                         {sets.length > 0 ? (
                           sets.map((s: any) => (
@@ -599,20 +610,18 @@ function RoundDetailPage() {
                         )}
                       </div>
 
-                      {/* Team B */}
-                      <div className="flex-1 text-right">
+                      <div className="flex-1 space-y-1 text-right">
                         {teamB.map((mp: any) => {
                           const eloChange = match.status === "completed" ? getPlayerEloChange(match.id, mp.user_id) : null;
                           const isWinner = match.status === "completed" && match.winner_team === "B";
+                          const displayName = formatCompactName(mp.profile?.nickname || mp.profile?.name || "Jogador");
                           return (
-                            <div key={mp.id} className="flex items-center justify-end gap-1.5 py-0.5">
-                              {eloChange !== null && (
-                                <span className={`text-[10px] font-bold ${eloChange > 0 ? "text-success" : "text-destructive"}`}>
-                                  {eloChange > 0 ? "+" : ""}{eloChange}
-                                </span>
-                              )}
-                              <span className={`text-xs ${isWinner ? "font-bold text-primary" : "text-foreground"}`}>
-                                {mp.profile?.nickname || mp.profile?.name || "Jogador"}
+                            <div key={mp.id} className="flex items-center justify-end gap-1.5 py-0.5 min-w-0">
+                              <span className={`w-9 text-left text-[10px] font-bold ${eloChange === null ? "opacity-0" : eloChange > 0 ? "text-success" : "text-destructive"}`}>
+                                {eloChange === null ? "0" : `${eloChange > 0 ? "+" : ""}${eloChange}`}
+                              </span>
+                              <span className={`min-w-0 truncate text-xs ${isWinner ? "font-bold text-primary" : "text-foreground"}`}>
+                                {displayName}
                               </span>
                               <PlayerAvatar avatarUrl={mp.profile?.avatar_url || null} name={mp.profile?.name || "?"} size="xs" />
                             </div>
