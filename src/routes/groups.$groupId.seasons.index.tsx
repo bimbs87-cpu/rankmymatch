@@ -5,6 +5,7 @@ import { useGroupSeasons } from "@/hooks/use-seasons";
 import { createSeasonWithRounds } from "@/hooks/use-season-creation";
 import { isRivalryGroup } from "@/lib/rivalry";
 import { ArrowLeft, Plus, Trophy, X, Calendar, Pencil, MoreVertical, EyeOff, CheckCircle2, Trash2 } from "lucide-react";
+import { TrophyLoadingBar } from "@/components/TrophyLoadingBar";
 import { WizardStepper } from "@/components/ui/wizard-stepper";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -233,11 +234,7 @@ function GroupSeasonsPage() {
   const hiddenSeasons = seasons.filter((s) => s.status === "hidden");
 
   if (isLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-      </div>
-    );
+    return <TrophyLoadingBar />;
   }
 
   return (

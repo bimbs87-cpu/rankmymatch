@@ -86,9 +86,7 @@ function GroupsIndexPage() {
         </div>
 
         {loading ? (
-          <div className="flex justify-center py-12">
-            <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-          </div>
+          <TrophyLoadingBar fullScreen={false} compact />
         ) : groups.length === 0 ? (
           <div className="rounded-3xl border border-dashed border-border bg-card/50 p-8">
             <div className="flex flex-col items-center gap-3 text-center">
