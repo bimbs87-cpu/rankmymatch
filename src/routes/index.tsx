@@ -128,7 +128,7 @@ function DashboardPage() {
     // 1. Upcoming rounds
     const { data: rounds } = await supabase
       .from("rounds")
-      .select("*, groups(name)")
+      .select("*, groups(name, slots_per_round)")
       .in("group_id", groupIds)
       .in("status", ["scheduled", "in_progress"])
       .order("scheduled_date", { ascending: true })
@@ -155,7 +155,7 @@ function DashboardPage() {
             group_id: r.group_id,
             group_name: r.groups?.name || "Grupo",
             confirmed_count: roundPresences.filter((p) => p.status === "confirmed").length,
-            max_players: r.max_players,
+            max_players: r.groups?.slots_per_round || r.max_players,
             my_status: roundPresences.find((p) => p.user_id === user.id)?.status || null,
           };
         })
