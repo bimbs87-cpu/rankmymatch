@@ -68,7 +68,7 @@ export function AvatarPickerDialog({
         )}
 
         {/* Sport tabs */}
-        <div className="flex gap-1.5 overflow-x-auto px-5 pb-2 scrollbar-none">
+        <div className="flex gap-1.5 overflow-x-auto px-5 pb-2 scrollbar-none [&::-webkit-scrollbar]:hidden">
           {SPORT_TABS.map((s) => (
             <button
               key={s.key}
