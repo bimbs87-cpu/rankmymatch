@@ -34,7 +34,7 @@ import {
   LogOut,
   AlertTriangle,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/groups/$groupId/")({
@@ -52,6 +52,30 @@ function GroupDetailPage() {
   const [leaveDialogOpen, setLeaveDialogOpen] = useState(false);
   const [hasResults, setHasResults] = useState(false);
   const [leavingLoading, setLeavingLoading] = useState(false);
+  const [rankingData, setRankingData] = useState<Record<string, { rating: number; position: number | null; matches_played: number; matches_won: number }>>({});
+
+  useEffect(() => {
+    const loadRanking = async () => {
+      const { data: season } = await supabase
+        .from("seasons")
+        .select("id")
+        .eq("group_id", groupId)
+        .eq("status", "active")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (season) {
+        const { data: snaps } = await supabase
+          .from("ranking_snapshots")
+          .select("user_id, rating, position, matches_played, matches_won")
+          .eq("season_id", season.id);
+        const map: Record<string, any> = {};
+        (snaps || []).forEach((s) => { map[s.user_id] = s; });
+        setRankingData(map);
+      }
+    };
+    loadRanking();
+  }, [groupId]);
 
   if (isLoading) {
     return (
@@ -258,7 +282,7 @@ function GroupDetailPage() {
               tab === "members" ? "bg-primary text-primary-foreground" : "text-muted-foreground"
             }`}
           >
-            Membros
+            Ranking
           </button>
           {isAdmin && (
             <button
@@ -292,62 +316,88 @@ function GroupDetailPage() {
         {tab === "members" && (
           <>
             <div className="rounded-2xl border border-border bg-card/50 divide-y divide-border overflow-hidden">
-              {members.map((m) => (
-                <div
-                  key={m.id}
-                  className="flex items-center justify-between px-3 py-2.5"
-                >
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    {m.profile?.avatar_url ? (
-                      <img
-                        src={m.profile.avatar_url}
-                        alt=""
-                        className="h-8 w-8 rounded-full border border-border object-cover flex-shrink-0"
-                      />
-                    ) : (
-                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-xs font-bold text-foreground flex-shrink-0">
-                        {(m.profile?.name || "?").charAt(0)}
+              {[...members].sort((a, b) => {
+                const ra = rankingData[a.user_id]?.rating || 0;
+                const rb = rankingData[b.user_id]?.rating || 0;
+                return rb - ra;
+              }).map((m, idx) => {
+                const rank = rankingData[m.user_id];
+                return (
+                  <div
+                    key={m.id}
+                    className="flex items-center justify-between px-3 py-2.5"
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      {rank?.position ? (
+                        <span className="w-5 text-center text-xs font-bold text-muted-foreground">
+                          {rank.position}
+                        </span>
+                      ) : (
+                        <span className="w-5 text-center text-[10px] text-muted-foreground/40">—</span>
+                      )}
+                      {m.profile?.avatar_url ? (
+                        <img
+                          src={m.profile.avatar_url}
+                          alt=""
+                          className="h-8 w-8 rounded-full border border-border object-cover flex-shrink-0"
+                        />
+                      ) : (
+                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-xs font-bold text-foreground flex-shrink-0">
+                          {(m.profile?.name || "?").charAt(0)}
+                        </div>
+                      )}
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-sm font-medium text-foreground truncate">
+                            {m.profile?.nickname || m.profile?.name || "Jogador"}
+                          </span>
+                          {m.role === "creator" && <Crown className="h-3 w-3 text-rank-gold flex-shrink-0" />}
+                          {m.role === "admin" && <Shield className="h-3 w-3 text-info flex-shrink-0" />}
+                        </div>
+                        {rank ? (
+                          <p className="text-[10px] text-muted-foreground">
+                            {Math.round(rank.rating)} Elo · {rank.matches_won}V {rank.matches_played - rank.matches_won}D
+                          </p>
+                        ) : null}
                       </div>
-                    )}
-                    <div className="flex items-center gap-1.5 min-w-0">
-                      <span className="text-sm font-medium text-foreground truncate">
-                        {m.profile?.nickname || m.profile?.name || "Jogador"}
-                      </span>
-                      {m.role === "creator" && <Crown className="h-3 w-3 text-rank-gold flex-shrink-0" />}
-                      {m.role === "admin" && <Shield className="h-3 w-3 text-info flex-shrink-0" />}
+                    </div>
+
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      {rank && (
+                        <span className="text-xs font-bold text-primary">{Math.round(rank.rating)}</span>
+                      )}
+                      {isAdmin && m.user_id !== user?.id && m.role !== "creator" && (
+                        <div className="flex gap-1">
+                          {m.role === "member" ? (
+                            <button
+                              onClick={() => handlePromote(m.id)}
+                              className="rounded-lg bg-info/10 p-1.5 text-info"
+                              title="Promover"
+                            >
+                              <Shield className="h-3 w-3" />
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => handleDemote(m.id)}
+                              className="rounded-lg bg-warning/10 p-1.5 text-warning"
+                              title="Rebaixar"
+                            >
+                              <Shield className="h-3 w-3" />
+                            </button>
+                          )}
+                          <button
+                            onClick={() => handleRemove(m.id)}
+                            className="rounded-lg bg-destructive/10 p-1.5 text-destructive"
+                            title="Remover"
+                          >
+                            <UserMinus className="h-3 w-3" />
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </div>
-
-                  {isAdmin && m.user_id !== user?.id && m.role !== "creator" && (
-                    <div className="flex gap-1 flex-shrink-0">
-                      {m.role === "member" ? (
-                        <button
-                          onClick={() => handlePromote(m.id)}
-                          className="rounded-lg bg-info/10 p-1.5 text-info"
-                          title="Promover"
-                        >
-                          <Shield className="h-3 w-3" />
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => handleDemote(m.id)}
-                          className="rounded-lg bg-warning/10 p-1.5 text-warning"
-                          title="Rebaixar"
-                        >
-                          <Shield className="h-3 w-3" />
-                        </button>
-                      )}
-                      <button
-                        onClick={() => handleRemove(m.id)}
-                        className="rounded-lg bg-destructive/10 p-1.5 text-destructive"
-                        title="Remover"
-                      >
-                        <UserMinus className="h-3 w-3" />
-                      </button>
-                    </div>
-                  )}
-                </div>
-              ))}
+                );
+              })}
             </div>
 
             {/* Convidar jogadores - abaixo da lista de membros */}

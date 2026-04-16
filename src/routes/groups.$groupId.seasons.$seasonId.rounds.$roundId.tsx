@@ -21,6 +21,7 @@ import {
   PlusCircle,
   Trash2,
   Ban,
+  ChevronDown,
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -42,6 +43,32 @@ function RoundDetailPage() {
   const [showManualMatch, setShowManualMatch] = useState(false);
   const [deletingMatchId, setDeletingMatchId] = useState<string | null>(null);
   const [deletingRound, setDeletingRound] = useState(false);
+  const [expandedMatch, setExpandedMatch] = useState<string | null>(null);
+  const [matchRatings, setMatchRatings] = useState<Record<string, any[]>>({});
+
+  const loadMatchRatings = async (matchId: string) => {
+    if (matchRatings[matchId]) {
+      setExpandedMatch(expandedMatch === matchId ? null : matchId);
+      return;
+    }
+    const { data } = await supabase
+      .from("rating_events")
+      .select("*")
+      .eq("match_id", matchId);
+    if (data?.length) {
+      const userIds = data.map((d) => d.user_id);
+      const { data: profiles } = await supabase
+        .from("user_profiles")
+        .select("user_id, name, nickname")
+        .in("user_id", userIds);
+      const profileMap = new Map((profiles || []).map((p) => [p.user_id, p]));
+      const enriched = data.map((d) => ({ ...d, profile: profileMap.get(d.user_id) }));
+      setMatchRatings((prev) => ({ ...prev, [matchId]: enriched }));
+    } else {
+      setMatchRatings((prev) => ({ ...prev, [matchId]: [] }));
+    }
+    setExpandedMatch(matchId);
+  };
 
   const handleDeleteMatch = async (matchId: string) => {
     if (!confirm("Tem certeza que deseja apagar esta partida? Os dados de placar serão perdidos.")) return;
@@ -331,7 +358,7 @@ function RoundDetailPage() {
                       <div className="flex items-center gap-1.5">
                         <Swords className="h-3.5 w-3.5 text-primary" />
                         <span className="text-xs font-semibold text-foreground">
-                          Partida {match.match_number}
+                          {match.match_number}º Set
                         </span>
                       </div>
                       <div className="flex items-center gap-2">
@@ -361,9 +388,6 @@ function RoundDetailPage() {
                     <div className="flex items-center gap-3">
                       {/* Team A */}
                       <div className="flex-1">
-                        <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-primary">
-                          Time A
-                        </p>
                         {teamA.map((mp: any) => (
                           <div key={mp.id} className="flex items-center gap-1.5 py-0.5">
                             {mp.profile?.avatar_url ? (
@@ -373,8 +397,9 @@ function RoundDetailPage() {
                                 {(mp.profile?.name || "?").charAt(0)}
                               </div>
                             )}
-                            <span className="text-xs text-foreground">
+                            <span className={`text-xs ${match.status === "completed" && match.winner_team === "A" ? "font-bold text-primary" : "text-foreground"}`}>
                               {mp.profile?.nickname || mp.profile?.name || "Jogador"}
+                              {match.status === "completed" && match.winner_team === "A" && " 🏆"}
                             </span>
                           </div>
                         ))}
@@ -397,13 +422,11 @@ function RoundDetailPage() {
 
                       {/* Team B */}
                       <div className="flex-1 text-right">
-                        <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-info">
-                          Time B
-                        </p>
                         {teamB.map((mp: any) => (
                           <div key={mp.id} className="flex items-center justify-end gap-1.5 py-0.5">
-                            <span className="text-xs text-foreground">
+                            <span className={`text-xs ${match.status === "completed" && match.winner_team === "B" ? "font-bold text-primary" : "text-foreground"}`}>
                               {mp.profile?.nickname || mp.profile?.name || "Jogador"}
+                              {match.status === "completed" && match.winner_team === "B" && " 🏆"}
                             </span>
                             {mp.profile?.avatar_url ? (
                               <img src={mp.profile.avatar_url} alt="" className="h-5 w-5 rounded-full object-cover" />
@@ -417,7 +440,7 @@ function RoundDetailPage() {
                       </div>
                     </div>
 
-                    {/* Score entry / edit button */}
+                    {/* Score entry button */}
                     {isAdmin && match.status !== "completed" && (
                       <button
                         onClick={() => setScoringMatch(match)}
@@ -429,22 +452,42 @@ function RoundDetailPage() {
                     )}
 
                     {match.status === "completed" && (
-                      <div className="mt-3 flex items-center gap-2">
-                        {match.winner_team && (
-                          <div className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-success/10 py-1.5 text-xs font-semibold text-success">
-                            🏆 Time {match.winner_team} venceu
+                      <>
+                        <div className="mt-3 flex items-center gap-2">
+                          <button
+                            onClick={() => loadMatchRatings(match.id)}
+                            className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-muted/50 py-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors"
+                          >
+                            <ChevronDown className={`h-3 w-3 transition-transform ${expandedMatch === match.id ? "rotate-180" : ""}`} />
+                            Detalhes do ranking
+                          </button>
+                          {isAdmin && (
+                            <button
+                              onClick={() => setScoringMatch(match)}
+                              className="flex items-center gap-1.5 rounded-xl bg-muted/50 px-3 py-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                            >
+                              <Edit3 className="h-3 w-3" />
+                              Editar
+                            </button>
+                          )}
+                        </div>
+                        {expandedMatch === match.id && matchRatings[match.id] && (
+                          <div className="mt-2 space-y-1.5 rounded-xl border border-border bg-muted/20 p-3 animate-in slide-in-from-top-2 duration-200">
+                            <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">Impacto no Ranking</p>
+                            {matchRatings[match.id].map((re: any) => (
+                              <div key={re.id} className="flex items-center justify-between">
+                                <span className="text-xs text-foreground">{re.profile?.nickname || re.profile?.name || "Jogador"}</span>
+                                <div className="flex items-center gap-3 text-xs">
+                                  <span className={`font-bold ${Number(re.rating_change) > 0 ? "text-success" : "text-destructive"}`}>
+                                    {Number(re.rating_change) > 0 ? "+" : ""}{Math.round(Number(re.rating_change))} pts
+                                  </span>
+                                  <span className="text-muted-foreground">{Math.round(Number(re.rating_after))} Elo</span>
+                                </div>
+                              </div>
+                            ))}
                           </div>
                         )}
-                        {isAdmin && (
-                          <button
-                            onClick={() => setScoringMatch(match)}
-                            className="flex items-center gap-1.5 rounded-xl bg-muted/50 px-3 py-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-                          >
-                            <Edit3 className="h-3 w-3" />
-                            Editar
-                          </button>
-                        )}
-                      </div>
+                      </>
                     )}
                   </div>
                 );
