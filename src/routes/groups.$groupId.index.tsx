@@ -568,6 +568,28 @@ function GroupDetailPage() {
               </div>
             )}
 
+            {/* Feed do grupo - abaixo da tabela */}
+            {isMember && (
+              <Link
+                to="/groups/$groupId/feed"
+                params={{ groupId }}
+                className="flex items-center justify-between rounded-2xl border border-border bg-card/50 px-4 py-3 transition-colors active:bg-accent/30"
+              >
+                <div className="flex items-center gap-2.5">
+                  <MessageSquare className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm text-muted-foreground">Feed do grupo</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  {commentCount > 0 && (
+                    <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-primary/15 px-1.5 text-[10px] font-bold text-primary">
+                      {commentCount}
+                    </span>
+                  )}
+                  <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
+                </div>
+              </Link>
+            )}
+
             {/* Admin: Claims pendentes */}
             {isAdmin && (
               <PlayerClaimsManager groupId={groupId} onResolved={refresh} />
@@ -637,36 +659,6 @@ function GroupDetailPage() {
               </button>
             )}
 
-            {/* Feed */}
-            {isMember && (
-              <Link
-                to="/groups/$groupId/feed"
-                params={{ groupId }}
-                className="flex items-center justify-between rounded-2xl border border-border bg-card/50 px-4 py-3 transition-colors active:bg-accent/30"
-              >
-                <div className="flex items-center gap-2.5">
-                  <MessageSquare className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm text-muted-foreground">Feed do grupo</span>
-                </div>
-                <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
-              </Link>
-            )}
-
-            {/* Temporadas */}
-            {isMember && (
-              <Link
-                to="/groups/$groupId/seasons"
-                params={{ groupId }}
-                className="flex items-center justify-between rounded-2xl border border-border bg-card/50 px-4 py-3 transition-colors active:bg-accent/30"
-              >
-                <div className="flex items-center gap-2.5">
-                  <Trophy className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm text-muted-foreground">Temporadas</span>
-                </div>
-                <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
-              </Link>
-            )}
-
             {!isCreator && (
               <button
                 onClick={handleLeaveClick}
@@ -675,6 +667,76 @@ function GroupDetailPage() {
                 <LogOut className="h-4 w-4" />
                 Sair do grupo
               </button>
+            )}
+          </>
+        )}
+
+        {/* Temporadas tab */}
+        {tab === "temporadas" && (
+          <>
+            <div className="flex items-center justify-between mb-1">
+              <h2 className="text-sm font-semibold text-foreground">Temporadas</h2>
+              {isAdmin && (
+                <Link
+                  to="/groups/$groupId/seasons"
+                  params={{ groupId }}
+                  className="flex items-center gap-1.5 rounded-full bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground"
+                >
+                  Gerenciar
+                </Link>
+              )}
+            </div>
+            {seasonsLoading ? (
+              <div className="flex justify-center py-8">
+                <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+              </div>
+            ) : seasons.filter((s) => s.status !== "hidden").length === 0 ? (
+              <div className="rounded-3xl border border-dashed border-border bg-card/50 p-8">
+                <div className="flex flex-col items-center gap-3 text-center">
+                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10">
+                    <Trophy className="h-7 w-7 text-primary" />
+                  </div>
+                  <h3 className="font-display text-base font-bold text-foreground">Nenhuma temporada</h3>
+                  <p className="text-sm text-muted-foreground">
+                    {isAdmin
+                      ? "Crie a primeira temporada para começar o ranking."
+                      : "O admin do grupo ainda não criou temporadas."}
+                  </p>
+                  {isAdmin && (
+                    <Link
+                      to="/groups/$groupId/seasons"
+                      params={{ groupId }}
+                      className="mt-2 flex items-center gap-1.5 rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground"
+                    >
+                      Criar temporada
+                    </Link>
+                  )}
+                </div>
+              </div>
+            ) : (
+              seasons.filter((s) => s.status !== "hidden").map((s) => (
+                <Link
+                  key={s.id}
+                  to="/groups/$groupId/seasons/$seasonId"
+                  params={{ groupId, seasonId: s.id }}
+                  className="flex items-center justify-between rounded-2xl border border-border bg-card/50 p-4 transition-colors active:bg-accent/30"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
+                      <Trophy className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                      <span className="text-sm font-semibold text-foreground">{s.name}</span>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <span className={`inline-block h-1.5 w-1.5 rounded-full ${s.status === "active" ? "bg-success" : "bg-muted-foreground"}`} />
+                        <span className="capitalize">{s.status === "active" ? "Ativa" : s.status === "finished" ? "Encerrada" : s.status}</span>
+                        {s.total_rounds && <span>• {s.total_rounds} rodadas</span>}
+                      </div>
+                    </div>
+                  </div>
+                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                </Link>
+              ))
             )}
           </>
         )}
