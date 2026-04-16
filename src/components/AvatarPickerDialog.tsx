@@ -87,21 +87,25 @@ export function AvatarPickerDialog({
         {/* Avatar grid */}
         <div className="grid max-h-[50vh] grid-cols-4 gap-3 overflow-y-auto px-5 pb-5">
           {filtered.map((avatar) => {
-            const emojiUrl = `emoji:${avatar.id}`;
-            const isSelected = currentAvatarUrl === emojiUrl;
+            const avatarKey = `avatar:${avatar.id}`;
+            const isSelected = currentAvatarUrl === avatarKey || currentAvatarUrl === `emoji:${avatar.id}`;
             return (
               <button
                 key={avatar.id}
                 disabled={saving}
-                onClick={() => onSelect(emojiUrl, "emoji")}
-                className={`relative flex aspect-square items-center justify-center overflow-hidden rounded-2xl border-2 transition-all ${
+                onClick={() => onSelect(avatarKey, "emoji")}
+                className={`relative flex aspect-square items-center justify-center overflow-hidden rounded-2xl border-2 bg-muted/50 transition-all ${
                   isSelected
                     ? "border-primary ring-2 ring-primary/30"
                     : "border-transparent hover:border-border"
                 }`}
-                style={{ backgroundColor: avatar.bgColor }}
               >
-                <span className="text-3xl">{avatar.emoji}</span>
+                <img
+                  src={avatar.src}
+                  alt={avatar.id}
+                  className="h-full w-full object-cover"
+                  loading="lazy"
+                />
                 {isSelected && (
                   <div className="absolute inset-0 flex items-center justify-center bg-primary/30">
                     <Check className="h-6 w-6 text-primary-foreground drop-shadow-md" />
