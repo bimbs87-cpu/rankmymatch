@@ -214,18 +214,25 @@ export async function createGroup(data: {
   sport: string;
   userId: string;
   match_format?: string;
+  singles_group_type?: string;
 }) {
+  const insertData: Record<string, any> = {
+    name: data.name,
+    description: data.description || "",
+    is_public: data.is_public,
+    max_players: data.max_players,
+    sport: data.sport,
+    created_by: data.userId,
+    match_format: data.match_format || "doubles",
+  };
+  if (data.match_format === "singles" && data.singles_group_type) {
+    insertData.singles_group_type = data.singles_group_type;
+    // Adjust slots_per_round for singles
+    insertData.slots_per_round = 2;
+  }
   const { data: group, error } = await supabase
     .from("groups")
-    .insert({
-      name: data.name,
-      description: data.description || "",
-      is_public: data.is_public,
-      max_players: data.max_players,
-      sport: data.sport,
-      created_by: data.userId,
-      match_format: data.match_format || "doubles",
-    })
+    .insert(insertData)
     .select()
     .single();
 
