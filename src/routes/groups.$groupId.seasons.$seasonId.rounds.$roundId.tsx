@@ -692,6 +692,86 @@ function RoundDetailPage() {
             </div>
           </section>
         )}
+
+        {/* Resumo do Rei da Quadra — aggregate stats when all matches completed */}
+        {!isSingles && !rivalry && matches.length > 1 && matches.every((m: any) => m.status === "completed") && (() => {
+          // Aggregate player stats across all matches in this round
+          const playerStats: Record<string, { wins: number; gamesWon: number; gamesLost: number; eloChange: number; name: string; avatarUrl: string | null }> = {};
+          
+          for (const match of matches) {
+            const teamA = match.match_players?.filter((mp: any) => mp.team === "A") || [];
+            const teamB = match.match_players?.filter((mp: any) => mp.team === "B") || [];
+            const sets = match.match_sets || [];
+            
+            const setsA = sets.filter((s: any) => s.score_team_a > s.score_team_b).length;
+            const setsB = sets.filter((s: any) => s.score_team_b > s.score_team_a).length;
+            const gA = sets.reduce((sum: number, s: any) => sum + s.score_team_a, 0);
+            const gB = sets.reduce((sum: number, s: any) => sum + s.score_team_b, 0);
+            const winnerTeam = setsA > setsB ? "A" : setsB > setsA ? "B" : null;
+            
+            for (const mp of [...teamA, ...teamB]) {
+              if (!playerStats[mp.user_id]) {
+                playerStats[mp.user_id] = { wins: 0, gamesWon: 0, gamesLost: 0, eloChange: 0, name: mp.profile?.nickname || mp.profile?.name || "Jogador", avatarUrl: mp.profile?.avatar_url || null };
+              }
+              const isTeamA = mp.team === "A";
+              playerStats[mp.user_id].gamesWon += isTeamA ? gA : gB;
+              playerStats[mp.user_id].gamesLost += isTeamA ? gB : gA;
+              if (winnerTeam && ((isTeamA && winnerTeam === "A") || (!isTeamA && winnerTeam === "B"))) {
+                playerStats[mp.user_id].wins++;
+              }
+              const eloChange = getPlayerEloChange(match.id, mp.user_id);
+              if (eloChange !== null) playerStats[mp.user_id].eloChange += eloChange;
+            }
+          }
+
+          const sorted = Object.entries(playerStats).sort(([, a], [, b]) => {
+            if (b.wins !== a.wins) return b.wins - a.wins;
+            return (b.gamesWon - b.gamesLost) - (a.gamesWon - a.gamesLost);
+          });
+
+          return (
+            <section className="mt-2">
+              <div className="rounded-2xl border border-border bg-card/50 p-4">
+                <div className="mb-3 flex items-center gap-2">
+                  <Crown className="h-4 w-4 text-primary" />
+                  <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                    Resumo do Rei da Quadra
+                  </span>
+                </div>
+                <div className="space-y-2">
+                  {sorted.map(([uid, stats], i) => {
+                    const isWinner = i === 0;
+                    return (
+                      <div
+                        key={uid}
+                        className={`flex items-center gap-2.5 rounded-xl px-3 py-2.5 ${
+                          isWinner ? "bg-primary/10 border border-primary/20" : ""
+                        }`}
+                      >
+                        <span className={`w-5 text-sm font-bold ${isWinner ? "text-primary" : "text-muted-foreground"}`}>
+                          {i + 1}º
+                        </span>
+                        <PlayerAvatar avatarUrl={stats.avatarUrl} name={stats.name} size="xs" />
+                        <div className="flex-1 min-w-0">
+                          <span className={`text-sm truncate ${isWinner ? "text-primary font-bold" : "text-foreground font-medium"}`}>
+                            {stats.name}
+                          </span>
+                        </div>
+                        {stats.eloChange !== 0 && (
+                          <span className={`text-[10px] font-bold ${stats.eloChange > 0 ? "text-success" : "text-destructive"}`}>
+                            {stats.eloChange > 0 ? "+" : ""}{stats.eloChange}
+                          </span>
+                        )}
+                        <span className="text-xs font-bold text-success">{stats.wins}V</span>
+                        <span className="text-[11px] text-muted-foreground whitespace-nowrap">{stats.gamesWon}–{stats.gamesLost}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </section>
+          );
+        })()}
       </div>
 
       {/* Score Entry Dialog */}
