@@ -37,7 +37,7 @@ function RoundDetailPage() {
   const { groupId, seasonId, roundId } = Route.useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { group, isAdmin } = useGroupDetail(groupId);
+  const { group, memberCount, isAdmin } = useGroupDetail(groupId);
   const { round, presences, matches, myPresence, confirmedCount, isLoading, refresh } =
     useRoundDetail(roundId);
   const [scoringMatch, setScoringMatch] = useState<any>(null);
@@ -136,6 +136,13 @@ function RoundDetailPage() {
   const isConfirmed = myPresence?.status === "confirmed";
   const confirmedPlayers = presences.filter((p) => p.status === "confirmed");
   const isSingles = group?.match_format === "singles";
+  const singlesCapacity = Math.min(
+    round.max_players || 2,
+    group?.max_players || Number.POSITIVE_INFINITY,
+    memberCount > 0 ? memberCount : Number.POSITIVE_INFINITY,
+    group?.singles_group_type === "rivalry" ? 2 : Number.POSITIVE_INFINITY,
+  );
+  const displayCapacity = isSingles ? singlesCapacity : round.max_players;
   const minPlayersForDraw = isSingles ? 2 : 4;
   const canDraw = isAdmin && confirmedPlayers.length >= minPlayersForDraw && matches.length === 0;
 
@@ -267,7 +274,7 @@ function RoundDetailPage() {
           )}
           <div className="flex items-center gap-1.5">
             <Users className="h-3.5 w-3.5" />
-            <span>{confirmedCount}/{round.max_players} confirmados</span>
+            <span>{confirmedCount}/{displayCapacity} confirmados</span>
           </div>
         </div>
       </div>
