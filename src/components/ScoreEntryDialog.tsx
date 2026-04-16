@@ -1,7 +1,8 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import { submitMatchScore } from "@/lib/elo-engine";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
-import { X, Save, Trophy, AlertCircle, Loader2 } from "lucide-react";
+import { TrophyLoadingBar } from "@/components/TrophyLoadingBar";
+import { X, Save, Trophy, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 
 interface Props {
@@ -185,214 +186,176 @@ export function ScoreEntryDialog({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center px-4 pb-24 sm:pb-6">
-      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={submitting ? undefined : onClose} />
       <div className="relative w-full max-w-lg rounded-3xl border border-border bg-card p-6 pb-8 sm:pb-6 animate-in zoom-in-95 fade-in-0 duration-200 max-h-[calc(100vh-8rem)] overflow-y-auto sm:max-h-[85vh]">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-1">
-          <h2 className="font-display text-lg font-bold text-foreground">
-            {isSingles ? `Confronto ${matchNumber}` : `Partida ${matchNumber}`}
-          </h2>
-          <button onClick={onClose} className="rounded-full bg-muted p-2">
-            <X className="h-4 w-4 text-muted-foreground" />
-          </button>
-        </div>
-        <p className="mb-5 text-xs text-muted-foreground">
-          {isSingles ? "1 confronto" : "1 partida"}{isUnlimitedSets ? " • adicione sets conforme necessário" : maxSets === 1 ? " • 1 set" : ` • melhor de ${maxSets} sets`}
-        </p>
-
-        {/* Players header */}
-        {isSingles ? (
-          <div className="mb-4 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <PlayerAvatar avatarUrl={teamA[0]?.avatarUrl || null} name={playerAName} size="md" className="ring-2 ring-primary/30" />
-              <span className="text-sm font-semibold text-primary">{playerAName}</span>
-            </div>
-            <span className="text-xs font-bold text-muted-foreground">VS</span>
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-semibold text-info">{playerBName}</span>
-              <PlayerAvatar avatarUrl={teamB[0]?.avatarUrl || null} name={playerBName} size="md" className="ring-2 ring-info/30" />
-            </div>
-          </div>
-        ) : (
-          <div className="mb-4 flex items-center justify-between text-xs font-semibold uppercase tracking-wider">
-            <div className="flex-1 text-primary">
-              Time A
-              <div className="mt-1 flex flex-wrap gap-1">
-                {teamA.map((p, i) => (
-                  <span key={i} className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
-                    {p.name}
-                  </span>
-                ))}
-              </div>
-            </div>
-            <div className="px-3 text-muted-foreground">vs</div>
-            <div className="flex-1 text-right text-info">
-              Time B
-              <div className="mt-1 flex flex-wrap justify-end gap-1">
-                {teamB.map((p, i) => (
-                  <span key={i} className="rounded-full bg-info/10 px-2 py-0.5 text-[10px] font-medium text-info">
-                    {p.name}
-                  </span>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Live score summary for multi-set */}
-        {(isUnlimitedSets ? sets.length > 1 : maxSets > 1) && (
-          <div className="mb-3 flex items-center justify-center gap-3 rounded-2xl bg-muted/30 py-2">
-            <span className={`font-display text-2xl font-bold ${matchState.setsA > matchState.setsB ? "text-primary" : "text-muted-foreground"}`}>
-              {matchState.setsA}
-            </span>
-            <span className="text-xs text-muted-foreground">sets</span>
-            <span className={`font-display text-2xl font-bold ${matchState.setsB > matchState.setsA ? "text-info" : "text-muted-foreground"}`}>
-              {matchState.setsB}
-            </span>
-          </div>
-        )}
-
-        {/* Sets */}
-        <div className="space-y-3">
-          {sets.map((set, idx) => {
-            const result = matchState.setResults[idx];
-            const isLastAndRemovable = idx === sets.length - 1 && sets.length > 1;
-            const setLabel = `Set ${idx + 1}`;
-
-            return (
-              <div key={idx} className={`rounded-2xl border p-3 ${
-                result?.valid ? "border-success/30 bg-success/5" : 
-                (set.scoreA > 0 || set.scoreB > 0) && !result?.valid ? "border-warning/30 bg-warning/5" : 
-                "border-border bg-background"
-              }`}>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-semibold text-muted-foreground">{setLabel}</span>
-                  <div className="flex items-center gap-2">
-                    {result?.valid && result.winner && (
-                      <span className={`text-[10px] font-semibold ${result.winner === "A" ? "text-primary" : "text-info"}`}>
-                        {isSingles
-                          ? (result.winner === "A" ? playerAName : playerBName)
-                          : `Time ${result.winner}`
-                        } ✓
-                      </span>
-                    )}
-                    {!result?.valid && result?.reason && (set.scoreA > 0 || set.scoreB > 0) && (
-                      <span className="flex items-center gap-1 text-[10px] text-warning">
-                        <AlertCircle className="h-3 w-3" />
-                        {result.reason}
-                      </span>
-                    )}
-                    {isLastAndRemovable && (
-                      <button onClick={removeLastSet} className="text-xs text-destructive">
-                        <X className="h-3.5 w-3.5" />
-                      </button>
-                    )}
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="flex flex-1 items-center justify-center gap-2">
-                    <button
-                      onClick={() => updateScore(idx, "A", set.scoreA - 1)}
-                      className="flex h-8 w-8 items-center justify-center rounded-lg bg-muted text-sm font-bold text-foreground active:scale-95"
-                    >
-                      −
-                    </button>
-                    <span className={`w-8 text-center font-display text-xl font-bold ${
-                      result?.valid && result.winner === "A" ? "text-primary" : "text-foreground"
-                    }`}>
-                      {set.scoreA}
-                    </span>
-                    <button
-                      onClick={() => updateScore(idx, "A", set.scoreA + 1)}
-                      className="flex h-8 w-8 items-center justify-center rounded-lg bg-muted text-sm font-bold text-foreground active:scale-95"
-                    >
-                      +
-                    </button>
-                  </div>
-                  <span className="text-xs text-muted-foreground">×</span>
-                  <div className="flex flex-1 items-center justify-center gap-2">
-                    <button
-                      onClick={() => updateScore(idx, "B", set.scoreB - 1)}
-                      className="flex h-8 w-8 items-center justify-center rounded-lg bg-muted text-sm font-bold text-foreground active:scale-95"
-                    >
-                      −
-                    </button>
-                    <span className={`w-8 text-center font-display text-xl font-bold ${
-                      result?.valid && result.winner === "B" ? "text-info" : "text-foreground"
-                    }`}>
-                      {set.scoreB}
-                    </span>
-                    <button
-                      onClick={() => updateScore(idx, "B", set.scoreB + 1)}
-                      className="flex h-8 w-8 items-center justify-center rounded-lg bg-muted text-sm font-bold text-foreground active:scale-95"
-                    >
-                      +
-                    </button>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Add next set */}
-        {matchState.needsMoreSets && (
-          <button
-            onClick={addSet}
-            className="mt-3 w-full rounded-2xl border border-dashed border-border py-2.5 text-xs font-medium text-muted-foreground"
-          >
-            + Adicionar Set {sets.length + 1}
-          </button>
-        )}
-
-        {/* Preview winner */}
-        {matchState.matchWinner && matchState.canSubmit && (
-          <div className="mt-4 flex items-center justify-center gap-2 rounded-2xl bg-success/10 py-2.5">
-            <Trophy className="h-4 w-4 text-success" />
-            <span className="text-sm font-semibold text-success">
-              {isSingles
-                ? `${matchState.matchWinner === "A" ? playerAName : playerBName} venceu ${matchState.setsA}-${matchState.setsB}`
-                : `Time ${matchState.matchWinner} vence ${matchState.setsA}-${matchState.setsB}`
-              }
-            </span>
-          </div>
-        )}
-
-        {/* Set details summary */}
-        {matchState.matchWinner && matchState.canSubmit && (
-          <p className="mt-1.5 text-center text-xs text-muted-foreground">
-            Sets: {sets.map((s) => `${s.scoreA}-${s.scoreB}`).join(" • ")}
-          </p>
-        )}
-
-        {submitting ? (
-          <div className="mt-4 space-y-3">
-            <div className="flex items-center justify-center gap-3 rounded-2xl bg-primary/10 border border-primary/20 py-4 px-4">
-              <Loader2 className="h-5 w-5 animate-spin text-primary" />
-              <div className="flex-1">
-                <p className="text-sm font-bold text-primary">{saveStepLabel}</p>
-                <p className="text-[10px] text-muted-foreground mt-0.5">
-                  Não feche esta janela • Etapa {Math.min(saveStep, saveSteps.current.length)}/{saveSteps.current.length}
+        {submitting && (
+          <div className="absolute inset-0 z-20 flex items-center justify-center rounded-3xl bg-card/95 px-6 backdrop-blur-sm">
+            <div className="w-full max-w-sm space-y-4">
+              <TrophyLoadingBar
+                fullScreen={false}
+                progress={Math.min((saveStep / saveSteps.current.length) * 100, 95)}
+                label={saveStepLabel || "Processando resultado da partida..."}
+              />
+              <div className="rounded-2xl border border-primary/20 bg-primary/10 px-4 py-3 text-center">
+                <p className="text-sm font-semibold text-primary">Salvando resultado da partida</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Não feche esta janela nem navegue para outra aba até concluir.
                 </p>
               </div>
             </div>
-            <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
-              <div
-                className="h-full rounded-full bg-primary transition-all duration-700 ease-out"
-                style={{ width: `${Math.min((saveStep / saveSteps.current.length) * 100, 95)}%` }}
-              />
-            </div>
           </div>
-        ) : (
+        )}
+
+        <div className={submitting ? "pointer-events-none opacity-20" : ""}>
+          <div className="flex items-center justify-between mb-1">
+            <h2 className="font-display text-lg font-bold text-foreground">
+              {isSingles ? `Confronto ${matchNumber}` : `Partida ${matchNumber}`}
+            </h2>
+            <button onClick={onClose} disabled={submitting} className="rounded-full bg-muted p-2 disabled:opacity-50">
+              <X className="h-4 w-4 text-muted-foreground" />
+            </button>
+          </div>
+          <p className="mb-5 text-xs text-muted-foreground">
+            {isSingles ? "1 confronto" : "1 partida"}{isUnlimitedSets ? " • adicione sets conforme necessário" : maxSets === 1 ? " • 1 set" : ` • melhor de ${maxSets} sets`}
+          </p>
+
+          {isSingles ? (
+            <div className="mb-4 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <PlayerAvatar avatarUrl={teamA[0]?.avatarUrl || null} name={playerAName} size="md" className="ring-2 ring-primary/30" />
+                <span className="text-sm font-semibold text-primary">{playerAName}</span>
+              </div>
+              <span className="text-xs font-bold text-muted-foreground">VS</span>
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-semibold text-info">{playerBName}</span>
+                <PlayerAvatar avatarUrl={teamB[0]?.avatarUrl || null} name={playerBName} size="md" className="ring-2 ring-info/30" />
+              </div>
+            </div>
+          ) : (
+            <div className="mb-4 flex items-center justify-between text-xs font-semibold uppercase tracking-wider">
+              <div className="flex-1 text-primary">
+                Time A
+                <div className="mt-1 flex flex-wrap gap-1">
+                  {teamA.map((p, i) => (
+                    <span key={i} className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
+                      {p.name}
+                    </span>
+                  ))}
+                </div>
+              </div>
+              <div className="px-3 text-muted-foreground">vs</div>
+              <div className="flex-1 text-right text-info">
+                Time B
+                <div className="mt-1 flex flex-wrap justify-end gap-1">
+                  {teamB.map((p, i) => (
+                    <span key={i} className="rounded-full bg-info/10 px-2 py-0.5 text-[10px] font-medium text-info">
+                      {p.name}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {(isUnlimitedSets ? sets.length > 1 : maxSets > 1) && (
+            <div className="mb-3 flex items-center justify-center gap-3 rounded-2xl bg-muted/30 py-2">
+              <span className={`font-display text-2xl font-bold ${matchState.setsA > matchState.setsB ? "text-primary" : "text-muted-foreground"}`}>
+                {matchState.setsA}
+              </span>
+              <span className="text-xs text-muted-foreground">sets</span>
+              <span className={`font-display text-2xl font-bold ${matchState.setsB > matchState.setsA ? "text-info" : "text-muted-foreground"}`}>
+                {matchState.setsB}
+              </span>
+            </div>
+          )}
+
+          <div className="space-y-3">
+            {sets.map((set, idx) => {
+              const result = matchState.setResults[idx];
+              const isLastAndRemovable = idx === sets.length - 1 && sets.length > 1;
+              const setLabel = `Set ${idx + 1}`;
+
+              return (
+                <div key={idx} className={`rounded-2xl border p-3 ${
+                  result?.valid ? "border-success/30 bg-success/5" : 
+                  (set.scoreA > 0 || set.scoreB > 0) && !result?.valid ? "border-warning/30 bg-warning/5" : 
+                  "border-border bg-background"
+                }`}>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-semibold text-muted-foreground">{setLabel}</span>
+                    <div className="flex items-center gap-2">
+                      {result?.valid && result.winner && (
+                        <span className={`text-[10px] font-semibold ${result.winner === "A" ? "text-primary" : "text-info"}`}>
+                          {isSingles
+                            ? (result.winner === "A" ? playerAName : playerBName)
+                            : `Time ${result.winner}`
+                          } ✓
+                        </span>
+                      )}
+                      {!result?.valid && result?.reason && (set.scoreA > 0 || set.scoreB > 0) && (
+                        <span className="flex items-center gap-1 text-[10px] text-warning">
+                          <AlertCircle className="h-3 w-3" />
+                          {result.reason}
+                        </span>
+                      )}
+                      {isLastAndRemovable && (
+                        <button onClick={removeLastSet} className="text-xs text-destructive">
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="flex flex-1 items-center justify-center gap-2">
+                      <button onClick={() => updateScore(idx, "A", set.scoreA - 1)} className="flex h-8 w-8 items-center justify-center rounded-lg bg-muted text-sm font-bold text-foreground active:scale-95">−</button>
+                      <span className={`w-8 text-center font-display text-xl font-bold ${result?.valid && result.winner === "A" ? "text-primary" : "text-foreground"}`}>{set.scoreA}</span>
+                      <button onClick={() => updateScore(idx, "A", set.scoreA + 1)} className="flex h-8 w-8 items-center justify-center rounded-lg bg-muted text-sm font-bold text-foreground active:scale-95">+</button>
+                    </div>
+                    <span className="text-xs text-muted-foreground">×</span>
+                    <div className="flex flex-1 items-center justify-center gap-2">
+                      <button onClick={() => updateScore(idx, "B", set.scoreB - 1)} className="flex h-8 w-8 items-center justify-center rounded-lg bg-muted text-sm font-bold text-foreground active:scale-95">−</button>
+                      <span className={`w-8 text-center font-display text-xl font-bold ${result?.valid && result.winner === "B" ? "text-info" : "text-foreground"}`}>{set.scoreB}</span>
+                      <button onClick={() => updateScore(idx, "B", set.scoreB + 1)} className="flex h-8 w-8 items-center justify-center rounded-lg bg-muted text-sm font-bold text-foreground active:scale-95">+</button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {matchState.needsMoreSets && (
+            <button onClick={addSet} className="mt-3 w-full rounded-2xl border border-dashed border-border py-2.5 text-xs font-medium text-muted-foreground">
+              + Adicionar Set {sets.length + 1}
+            </button>
+          )}
+
+          {matchState.matchWinner && matchState.canSubmit && (
+            <div className="mt-4 flex items-center justify-center gap-2 rounded-2xl bg-success/10 py-2.5">
+              <Trophy className="h-4 w-4 text-success" />
+              <span className="text-sm font-semibold text-success">
+                {isSingles
+                  ? `${matchState.matchWinner === "A" ? playerAName : playerBName} venceu ${matchState.setsA}-${matchState.setsB}`
+                  : `Time ${matchState.matchWinner} vence ${matchState.setsA}-${matchState.setsB}`
+                }
+              </span>
+            </div>
+          )}
+
+          {matchState.matchWinner && matchState.canSubmit && (
+            <p className="mt-1.5 text-center text-xs text-muted-foreground">
+              Sets: {sets.map((s) => `${s.scoreA}-${s.scoreB}`).join(" • ")}
+            </p>
+          )}
+
           <button
             onClick={handleSubmit}
-            disabled={!matchState.canSubmit}
+            disabled={!matchState.canSubmit || submitting}
             className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-3.5 text-sm font-bold text-primary-foreground disabled:opacity-50"
           >
             <Save className="h-4 w-4" />
-            Salvar Placar e Calcular Elo
+            {submitting ? "Salvando resultado..." : "Salvar Placar e Calcular Elo"}
           </button>
-        )}
+        </div>
       </div>
     </div>
   );
