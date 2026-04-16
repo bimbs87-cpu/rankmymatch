@@ -676,6 +676,26 @@ function GroupDetailPage() {
         )}
       </div>
 
+      {/* Dialogs */}
+      {isAdmin && user && (
+        <AddPlaceholderPlayerDialog
+          open={addPlaceholderOpen}
+          onOpenChange={setAddPlaceholderOpen}
+          groupId={groupId}
+          adminUserId={user.id}
+          onAdded={refresh}
+        />
+      )}
+
+      {isAuthenticated && user && (
+        <ClaimPlayerDialog
+          open={claimOpen}
+          onOpenChange={setClaimOpen}
+          groupId={groupId}
+          claimerUserId={user.id}
+          onClaimed={refresh}
+        />
+      )}
     </div>
   );
 }
