@@ -9,6 +9,7 @@ import { PlayerClaimsManager } from "@/components/PlayerClaimsManager";
 import { SearchUserDialog } from "@/components/SearchUserDialog";
 import { useAuth } from "@/hooks/use-auth";
 import { usePendingMatch } from "@/hooks/use-pending-matches";
+import { useGroupSeasons } from "@/hooks/use-seasons";
 import { supabase } from "@/integrations/supabase/client";
 import { isRivalryGroup } from "@/lib/rivalry";
 import {
