@@ -90,7 +90,7 @@ export function ManualMatchDialog({ roundId, groupId, matchFormat = "doubles", o
     });
   };
 
-  const goToScores = () => {
+  const goToScores = async () => {
     if (selectedPlayers.length !== requiredPlayers) return;
     if (isSingles) {
       setMatchups(generateSinglesMatchup(selectedPlayers));
@@ -98,6 +98,89 @@ export function ManualMatchDialog({ roundId, groupId, matchFormat = "doubles", o
       setMatchups(generateDoublesMatchups(selectedPlayers));
     }
     setStep("scores");
+
+    // Fetch current ranking data for selected players
+    const { data: roundData } = await supabase
+      .from("rounds")
+      .select("season_id")
+      .eq("id", roundId)
+      .single();
+
+    if (roundData?.season_id) {
+      const { data: snapshots } = await supabase
+        .from("ranking_snapshots")
+        .select("user_id, rating, position")
+        .eq("season_id", roundData.season_id)
+        .in("user_id", selectedPlayers);
+
+      // Get previous round's positions by looking at rating_events
+      const { data: prevRounds } = await supabase
+        .from("rounds")
+        .select("id")
+        .eq("group_id", groupId)
+        .eq("season_id", roundData.season_id)
+        .neq("id", roundId)
+        .order("round_number", { ascending: false })
+        .limit(1);
+
+      const rankings: Record<string, { rating: number; position: number | null; prevPosition: number | null }> = {};
+      for (const uid of selectedPlayers) {
+        const snap = snapshots?.find((s) => s.user_id === uid);
+        rankings[uid] = {
+          rating: snap ? Number(snap.rating) : 1000,
+          position: snap?.position ?? null,
+          prevPosition: null,
+        };
+      }
+
+      // If there was a previous round, estimate previous positions from current data
+      if (prevRounds?.[0]) {
+        const prevRoundId = prevRounds[0].id;
+        const { data: prevMatches } = await supabase
+          .from("matches")
+          .select("id")
+          .eq("round_id", prevRoundId);
+
+        if (prevMatches?.length) {
+          const matchIds = prevMatches.map((m) => m.id);
+          const { data: prevEvents } = await supabase
+            .from("rating_events")
+            .select("user_id, rating_before")
+            .in("match_id", matchIds)
+            .in("user_id", selectedPlayers);
+
+          if (prevEvents?.length) {
+            // Get all snapshots to compute previous positions
+            const { data: allSnaps } = await supabase
+              .from("ranking_snapshots")
+              .select("user_id, rating, position")
+              .eq("season_id", roundData.season_id)
+              .eq("is_eligible", true)
+              .order("rating", { ascending: false });
+
+            if (allSnaps) {
+              // Previous rating = current rating - last change
+              const prevRatings: { uid: string; prevRating: number }[] = [];
+              for (const snap of allSnaps) {
+                const evt = prevEvents.find((e) => e.user_id === snap.user_id);
+                prevRatings.push({
+                  uid: snap.user_id,
+                  prevRating: evt ? Number(evt.rating_before) : Number(snap.rating),
+                });
+              }
+              prevRatings.sort((a, b) => b.prevRating - a.prevRating);
+              for (let i = 0; i < prevRatings.length; i++) {
+                if (rankings[prevRatings[i].uid]) {
+                  rankings[prevRatings[i].uid].prevPosition = i + 1;
+                }
+              }
+            }
+          }
+        }
+      }
+
+      setPlayerRankings(rankings);
+    }
   };
 
   const setScore = (matchIdx: number, team: "A" | "B", value: number) => {
