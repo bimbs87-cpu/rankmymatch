@@ -65,6 +65,35 @@ function RoundDetailPage() {
   const [expandedMatch, setExpandedMatch] = useState<string | null>(null);
   const [matchRatings, setMatchRatings] = useState<Record<string, any[]>>({});
 
+  // Auto-load ratings for all completed matches
+  useEffect(() => {
+    if (!matches?.length) return;
+    const completedIds = matches.filter((m: any) => m.status === "completed").map((m: any) => m.id);
+    if (completedIds.length === 0) return;
+    const loadAll = async () => {
+      const { data } = await supabase
+        .from("rating_events")
+        .select("*")
+        .in("match_id", completedIds);
+      if (!data?.length) return;
+      const grouped: Record<string, any[]> = {};
+      for (const d of data) {
+        if (!grouped[d.match_id]) grouped[d.match_id] = [];
+        grouped[d.match_id].push(d);
+      }
+      setMatchRatings(grouped);
+    };
+    loadAll();
+  }, [matches]);
+
+  // Helper to get a player's Elo change for a match
+  const getPlayerEloChange = (matchId: string, userId: string) => {
+    const events = matchRatings[matchId];
+    if (!events) return null;
+    const evt = events.find((e: any) => e.user_id === userId);
+    return evt ? Math.round(Number(evt.rating_change)) : null;
+  };
+
   // Presence schedule config (must be before early returns)
   const presenceConfig = useMemo(() => ({
     presence_open_mode: (group as any)?.presence_open_mode || "always",
