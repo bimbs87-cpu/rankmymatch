@@ -27,6 +27,7 @@ import {
   TrendingUp,
   TrendingDown,
   Minus,
+  Pencil,
 } from "lucide-react";
 
 export const Route = createFileRoute("/")({
@@ -380,7 +381,12 @@ function DashboardPage() {
             )}
             <div>
               <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Olá,</p>
-              <p className="font-display text-base font-bold text-foreground">{displayName}</p>
+              <div className="flex items-center gap-1.5">
+                <p className="font-display text-base font-bold text-foreground">{displayName}</p>
+                <Link to="/profile" className="rounded-full p-1 text-muted-foreground hover:text-foreground hover:bg-accent transition-colors">
+                  <Pencil className="h-3 w-3" />
+                </Link>
+              </div>
             </div>
           </div>
           <div className="flex items-center gap-2">
