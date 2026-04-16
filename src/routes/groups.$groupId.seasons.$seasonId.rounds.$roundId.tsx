@@ -7,6 +7,7 @@ import { useRoundDetail, confirmPresence, cancelPresence, drawTeams, deleteMatch
 import { supabase } from "@/integrations/supabase/client";
 import { ScoreEntryDialog } from "@/components/ScoreEntryDialog";
 import { ManualMatchDialog } from "@/components/ManualMatchDialog";
+import { isRivalryGroup } from "@/lib/rivalry";
 import {
   ArrowLeft,
   Check,
@@ -40,12 +41,14 @@ function RoundDetailPage() {
   const { groupId, seasonId, roundId } = Route.useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { group, memberCount, isAdmin } = useGroupDetail(groupId);
+  const { group, memberCount, members, isAdmin } = useGroupDetail(groupId);
   const { round, presences, matches, myPresence, confirmedCount, isLoading, refresh } =
     useRoundDetail(roundId);
   const [scoringMatch, setScoringMatch] = useState<any>(null);
   const [showManualMatch, setShowManualMatch] = useState(false);
   const [seasonData, setSeasonData] = useState<any>(null);
+
+  const rivalry = isRivalryGroup(group, memberCount);
 
   // Load season config for sets_per_match
   useEffect(() => {
@@ -96,6 +99,11 @@ function RoundDetailPage() {
     setDeletingMatchId(matchId);
     try {
       await deleteMatch(matchId);
+      // If this was the last match, reset round status
+      const remainingMatches = matches.filter(m => m.id !== matchId);
+      if (remainingMatches.length === 0) {
+        await supabase.from("rounds").update({ status: "scheduled" }).eq("id", roundId);
+      }
       toast.success("Partida apagada!");
       refresh();
     } catch (e: any) {
@@ -131,6 +139,74 @@ function RoundDetailPage() {
     }
   };
 
+  // Auto-create match for rivalry when clicking "Lançar Resultado"
+  const handleRivalryLaunchResult = async () => {
+    if (!rivalry || !user) return;
+    const twoMembers = members.slice(0, 2);
+    if (twoMembers.length < 2) {
+      toast.error("O grupo precisa de 2 membros para lançar resultado");
+      return;
+    }
+
+    // Create match automatically with both members
+    try {
+      const { data: match, error } = await supabase
+        .from("matches")
+        .insert({
+          round_id: roundId,
+          match_number: 1,
+          status: "scheduled",
+          match_format: "singles",
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      const matchPlayers = [
+        { match_id: match.id, user_id: twoMembers[0].user_id, team: "A" },
+        { match_id: match.id, user_id: twoMembers[1].user_id, team: "B" },
+      ];
+      await supabase.from("match_players").insert(matchPlayers);
+
+      // Auto-confirm presence for both
+      for (const m of twoMembers) {
+        await supabase.from("round_presence").upsert(
+          { round_id: roundId, user_id: m.user_id, status: "confirmed", confirmed_at: new Date().toISOString() },
+          { onConflict: "round_id,user_id" }
+        );
+      }
+
+      await supabase.from("rounds").update({ status: "in_progress" }).eq("id", roundId);
+
+      // Now open score dialog with fresh data
+      await refresh();
+
+      // Re-fetch to get profiles
+      const { data: freshMatch } = await supabase
+        .from("matches")
+        .select("*, match_players(*), match_sets(*)")
+        .eq("id", match.id)
+        .single();
+
+      if (freshMatch) {
+        const playerIds = (freshMatch.match_players || []).map((mp: any) => mp.user_id);
+        const { data: profiles } = await supabase.from("user_profiles").select("*").in("user_id", playerIds);
+        const profileMap = new Map((profiles || []).map((p) => [p.user_id, p]));
+        const enrichedMatch = {
+          ...freshMatch,
+          match_players: (freshMatch.match_players || []).map((mp: any) => ({
+            ...mp,
+            profile: profileMap.get(mp.user_id),
+          })),
+        };
+        setScoringMatch(enrichedMatch);
+      }
+    } catch (e: any) {
+      toast.error(e.message || "Erro ao criar confronto");
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
@@ -154,11 +230,11 @@ function RoundDetailPage() {
     round.max_players || 2,
     group?.max_players || Number.POSITIVE_INFINITY,
     memberCount > 0 ? memberCount : Number.POSITIVE_INFINITY,
-    group?.singles_group_type === "rivalry" ? 2 : Number.POSITIVE_INFINITY,
+    rivalry ? 2 : Number.POSITIVE_INFINITY,
   );
   const displayCapacity = isSingles ? singlesCapacity : round.max_players;
   const minPlayersForDraw = isSingles ? 2 : 4;
-  const canDraw = isAdmin && confirmedPlayers.length >= minPlayersForDraw && matches.length === 0;
+  const canDraw = isAdmin && confirmedPlayers.length >= minPlayersForDraw && matches.length === 0 && !rivalry;
 
   const presenceListOpen = isPresenceOpen(presenceConfig, round.scheduled_date, round.scheduled_time, roundId);
   const presenceOpenDate = getPresenceOpenDate(presenceConfig, round.scheduled_date, round.scheduled_time, roundId);
@@ -205,6 +281,12 @@ function RoundDetailPage() {
     });
   };
 
+  // For rivalry: check if there's already a completed match
+  const hasCompletedMatch = matches.some(m => m.status === "completed");
+  const hasAnyMatch = matches.length > 0;
+  const rivalryShowLaunch = rivalry && isAdmin && !hasAnyMatch && round.status !== "cancelled";
+  const rivalryShowEdit = rivalry && isAdmin && hasCompletedMatch;
+
   return (
     <div className="min-h-screen bg-background pb-28">
       {/* Header */}
@@ -237,7 +319,7 @@ function RoundDetailPage() {
               {round.status === "cancelled"
                 ? "Cancelada"
                 : round.status === "scheduled" && round.scheduled_date && round.scheduled_date <= new Date().toISOString().split("T")[0]
-                ? "Lançar resultado"
+                ? (rivalry ? "Lançar resultado" : "Lançar resultado")
                 : round.status === "scheduled" ? "Agendada" : round.status === "in_progress" ? "Em jogo" : "Encerrada"}
             </span>
           </div>
@@ -286,15 +368,17 @@ function RoundDetailPage() {
               <span>{round.location}</span>
             </div>
           )}
-          <div className="flex items-center gap-1.5">
-            <Users className="h-3.5 w-3.5" />
-            <span>{confirmedCount}/{displayCapacity} confirmados</span>
-          </div>
+          {!rivalry && (
+            <div className="flex items-center gap-1.5">
+              <Users className="h-3.5 w-3.5" />
+              <span>{confirmedCount}/{displayCapacity} confirmados</span>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Presence buttons */}
-      {round.status === "scheduled" && (
+      {/* Presence buttons - hide for rivalry (auto-managed) */}
+      {!rivalry && round.status === "scheduled" && (
         <div className="mx-5 mb-5">
           {presenceListOpen ? (
             <div className="flex gap-2">
@@ -330,7 +414,20 @@ function RoundDetailPage() {
         </div>
       )}
 
-      {/* Draw button */}
+      {/* Rivalry: Direct launch result button */}
+      {rivalryShowLaunch && (
+        <div className="mx-5 mb-5">
+          <button
+            onClick={handleRivalryLaunchResult}
+            className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-3.5 text-sm font-bold text-primary-foreground"
+          >
+            <Swords className="h-4 w-4" />
+            Lançar Resultado
+          </button>
+        </div>
+      )}
+
+      {/* Draw button - hidden for rivalry */}
       {canDraw && (
         <div className="mx-5 mb-5">
           <button
@@ -345,8 +442,8 @@ function RoundDetailPage() {
         </div>
       )}
 
-      {/* Manual match creation for admins when no matches exist */}
-      {isAdmin && matches.length === 0 && (
+      {/* Manual match creation - hidden for rivalry */}
+      {isAdmin && matches.length === 0 && !rivalry && (
         <div className="mx-5 mb-5">
           <button
             onClick={() => setShowManualMatch(true)}
@@ -359,35 +456,37 @@ function RoundDetailPage() {
       )}
 
       <div className="space-y-5 px-5">
-        {/* Confirmed players */}
-        <section>
-          <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            Jogadores confirmados ({confirmedCount})
-          </h2>
-          {confirmedPlayers.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Nenhum jogador confirmado ainda.</p>
-          ) : (
-            <div className="flex flex-wrap gap-2">
-              {confirmedPlayers.map((p) => (
-                <div
-                  key={p.id}
-                  className="flex items-center gap-2 rounded-full border border-border bg-card/50 px-3 py-1.5"
-                >
-                  <PlayerAvatar avatarUrl={p.profile?.avatar_url || null} name={p.profile?.name || "?"} size="xs" />
-                  <span className="text-xs font-medium text-foreground">
-                    {p.profile?.nickname || p.profile?.name || "Jogador"}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
+        {/* Confirmed players - hide for rivalry */}
+        {!rivalry && (
+          <section>
+            <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Jogadores confirmados ({confirmedCount})
+            </h2>
+            {confirmedPlayers.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Nenhum jogador confirmado ainda.</p>
+            ) : (
+              <div className="flex flex-wrap gap-2">
+                {confirmedPlayers.map((p) => (
+                  <div
+                    key={p.id}
+                    className="flex items-center gap-2 rounded-full border border-border bg-card/50 px-3 py-1.5"
+                  >
+                    <PlayerAvatar avatarUrl={p.profile?.avatar_url || null} name={p.profile?.name || "?"} size="xs" />
+                    <span className="text-xs font-medium text-foreground">
+                      {p.profile?.nickname || p.profile?.name || "Jogador"}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+        )}
 
         {/* Matches */}
         {matches.length > 0 && (
           <section>
             <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Partidas ({matches.length})
+              {rivalry ? "Confronto" : `Partidas (${matches.length})`}
             </h2>
             <div className="space-y-3">
               {matches.map((match: any) => {
@@ -401,7 +500,7 @@ function RoundDetailPage() {
                       <div className="flex items-center gap-1.5">
                         <Swords className="h-3.5 w-3.5 text-primary" />
                         <span className="text-xs font-semibold text-foreground">
-                          {isSingles ? `Confronto ${match.match_number}` : `${match.match_number}º Set`}
+                          {rivalry ? "Confronto" : isSingles ? `Confronto ${match.match_number}` : `${match.match_number}º Set`}
                         </span>
                       </div>
                       <div className="flex items-center gap-2">
@@ -471,8 +570,8 @@ function RoundDetailPage() {
                       </div>
                     </div>
 
-                    {/* Singles winner summary */}
-                    {isSingles && match.status === "completed" && match.winner_team && sets.length > 0 && (() => {
+                    {/* Singles/Rivalry winner summary */}
+                    {(isSingles || rivalry) && match.status === "completed" && match.winner_team && sets.length > 0 && (() => {
                       const winnerPlayers = match.winner_team === "A" ? teamA : teamB;
                       const winnerName = winnerPlayers[0]?.profile?.nickname || winnerPlayers[0]?.profile?.name || "Jogador";
                       const setsWonA = sets.filter((s: any) => s.score_team_a > s.score_team_b).length;
@@ -569,7 +668,7 @@ function RoundDetailPage() {
             scoreB: s.score_team_b,
           }))}
           setsPerMatch={isSingles ? (seasonData?.sets_per_match || 3) : 3}
-          isSingles={isSingles}
+          isSingles={isSingles || rivalry}
           onClose={() => setScoringMatch(null)}
           onSaved={refresh}
         />

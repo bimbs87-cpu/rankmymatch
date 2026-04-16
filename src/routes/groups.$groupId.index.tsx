@@ -6,6 +6,7 @@ import { PendingMatchCard } from "@/components/PendingMatchCard";
 import { useAuth } from "@/hooks/use-auth";
 import { usePendingMatch } from "@/hooks/use-pending-matches";
 import { supabase } from "@/integrations/supabase/client";
+import { isRivalryGroup } from "@/lib/rivalry";
 import {
   useGroupDetail,
   joinGroup,
@@ -35,6 +36,8 @@ import {
   MessageSquare,
   LogOut,
   AlertTriangle,
+  Swords,
+  TrendingUp,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
@@ -56,6 +59,8 @@ function GroupDetailPage() {
   const [hasResults, setHasResults] = useState(false);
   const [leavingLoading, setLeavingLoading] = useState(false);
   const [rankingData, setRankingData] = useState<Record<string, { rating: number; position: number | null; matches_played: number; matches_won: number }>>({});
+
+  const rivalry = isRivalryGroup(group, memberCount);
 
   useEffect(() => {
     const loadRanking = async () => {
@@ -172,6 +177,13 @@ function GroupDetailPage() {
     }
   };
 
+  // Rivalry duel data
+  const rivalryPlayers = rivalry ? members.slice(0, 2) : [];
+  const playerA = rivalryPlayers[0];
+  const playerB = rivalryPlayers[1];
+  const rankA = playerA ? rankingData[playerA.user_id] : null;
+  const rankB = playerB ? rankingData[playerB.user_id] : null;
+
   return (
     <div className="min-h-screen bg-background pb-28">
       {group.image_url && (
@@ -195,6 +207,11 @@ function GroupDetailPage() {
                 <Globe className="h-3.5 w-3.5 text-muted-foreground" />
               ) : (
                 <Lock className="h-3.5 w-3.5 text-muted-foreground" />
+              )}
+              {rivalry && (
+                <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary">
+                  Rivalidade
+                </span>
               )}
             </div>
             <p className="text-xs text-muted-foreground">{memberCount} membros ativos</p>
@@ -288,7 +305,7 @@ function GroupDetailPage() {
         </div>
       )}
 
-      {/* Tabs: Membros / Solicitações / Config */}
+      {/* Tabs */}
       {isMember && (
         <div className="mx-5 mb-4 flex gap-1 rounded-full border border-border bg-card p-1">
           <button
@@ -297,7 +314,7 @@ function GroupDetailPage() {
               tab === "members" ? "bg-primary text-primary-foreground" : "text-muted-foreground"
             }`}
           >
-            Ranking
+            {rivalry ? "Duelo" : "Ranking"}
           </button>
           {isAdmin && (
             <button
@@ -330,88 +347,171 @@ function GroupDetailPage() {
       <div className="space-y-3 px-5">
         {tab === "members" && (
           <>
-            <div className="rounded-2xl border border-border bg-card/50 divide-y divide-border overflow-hidden">
-              {[...members].sort((a, b) => {
-                const ra = rankingData[a.user_id]?.rating || 0;
-                const rb = rankingData[b.user_id]?.rating || 0;
-                return rb - ra;
-              }).map((m, idx) => {
-                const rank = rankingData[m.user_id];
-                return (
-                  <div
-                    key={m.id}
-                    className="flex items-center justify-between px-3 py-2.5"
-                  >
-                    <div className="flex items-center gap-2 min-w-0">
-                      {rank?.position ? (
-                        <span className="w-5 text-center text-xs font-bold text-muted-foreground">
-                          {rank.position}
-                        </span>
-                      ) : (
-                        <span className="w-5 text-center text-[10px] text-muted-foreground/40">—</span>
-                      )}
-                      <PlayerAvatar
-                        avatarUrl={m.profile?.avatar_url}
-                        name={m.profile?.name || "?"}
-                        size="lg"
-                        className="border border-border"
-                      />
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-sm font-medium text-foreground truncate">
-                            {m.profile?.nickname || m.profile?.name || "Jogador"}
-                          </span>
-                          {m.role === "creator" && <Crown className="h-3 w-3 text-rank-gold flex-shrink-0" />}
-                          {m.role === "admin" && <Shield className="h-3 w-3 text-info flex-shrink-0" />}
-                        </div>
-                        {rank ? (
-                          <p className="text-[10px] text-muted-foreground">
-                            {Math.round(rank.rating)} Elo · {rank.matches_won}V {rank.matches_played - rank.matches_won}D
-                          </p>
-                        ) : null}
-                      </div>
-                    </div>
+            {/* Rivalry Duel Card */}
+            {rivalry && playerA && playerB ? (
+              <div className="rounded-3xl border border-border bg-card/50 p-5">
+                <div className="flex items-center justify-center gap-1.5 mb-4">
+                  <Swords className="h-4 w-4 text-primary" />
+                  <span className="text-xs font-bold uppercase tracking-wider text-primary">Rivalidade</span>
+                </div>
 
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      {rank && (
-                        <span className="text-xs font-bold text-primary">{Math.round(rank.rating)}</span>
-                      )}
-                      {isAdmin && m.user_id !== user?.id && m.role !== "creator" && (
-                        <div className="flex gap-1">
-                          {m.role === "member" ? (
-                            <button
-                              onClick={() => handlePromote(m.id)}
-                              className="rounded-lg bg-info/10 p-1.5 text-info"
-                              title="Promover"
-                            >
-                              <Shield className="h-3 w-3" />
-                            </button>
-                          ) : (
-                            <button
-                              onClick={() => handleDemote(m.id)}
-                              className="rounded-lg bg-warning/10 p-1.5 text-warning"
-                              title="Rebaixar"
-                            >
-                              <Shield className="h-3 w-3" />
-                            </button>
-                          )}
-                          <button
-                            onClick={() => handleRemove(m.id)}
-                            className="rounded-lg bg-destructive/10 p-1.5 text-destructive"
-                            title="Remover"
-                          >
-                            <UserMinus className="h-3 w-3" />
-                          </button>
-                        </div>
-                      )}
+                {/* Players face-off */}
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex flex-col items-center gap-2 flex-1">
+                    <PlayerAvatar
+                      avatarUrl={playerA.profile?.avatar_url}
+                      name={playerA.profile?.name || "?"}
+                      size="xl"
+                      className="ring-2 ring-primary/30"
+                    />
+                    <div className="text-center">
+                      <p className="text-sm font-bold text-foreground truncate max-w-[100px]">
+                        {playerA.profile?.nickname || playerA.profile?.name || "Jogador 1"}
+                      </p>
+                      {playerA.role === "creator" && <Crown className="mx-auto h-3 w-3 text-rank-gold" />}
                     </div>
                   </div>
-                );
-              })}
-            </div>
 
-            {/* Convidar jogadores - abaixo da lista de membros */}
-            {isMember && (
+                  <div className="flex flex-col items-center gap-1 px-3">
+                    <span className="text-2xl font-display font-black text-muted-foreground">VS</span>
+                  </div>
+
+                  <div className="flex flex-col items-center gap-2 flex-1">
+                    <PlayerAvatar
+                      avatarUrl={playerB.profile?.avatar_url}
+                      name={playerB.profile?.name || "?"}
+                      size="xl"
+                      className="ring-2 ring-info/30"
+                    />
+                    <div className="text-center">
+                      <p className="text-sm font-bold text-foreground truncate max-w-[100px]">
+                        {playerB.profile?.nickname || playerB.profile?.name || "Jogador 2"}
+                      </p>
+                      {playerB.role === "creator" && <Crown className="mx-auto h-3 w-3 text-rank-gold" />}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Stats */}
+                <div className="flex items-center justify-between rounded-2xl bg-muted/30 px-4 py-3">
+                  <div className="text-center flex-1">
+                    <p className="font-display text-xl font-black text-primary">
+                      {rankA?.matches_won ?? 0}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground">vitórias</p>
+                  </div>
+                  <div className="h-8 w-px bg-border" />
+                  <div className="text-center flex-1">
+                    <p className="font-display text-sm font-bold text-muted-foreground">
+                      {(rankA?.matches_played ?? 0)} jogos
+                    </p>
+                  </div>
+                  <div className="h-8 w-px bg-border" />
+                  <div className="text-center flex-1">
+                    <p className="font-display text-xl font-black text-info">
+                      {rankB?.matches_won ?? 0}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground">vitórias</p>
+                  </div>
+                </div>
+
+                {/* Elo */}
+                <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
+                  <div className="flex items-center gap-1">
+                    <TrendingUp className="h-3 w-3" />
+                    <span>{Math.round(rankA?.rating ?? 1000)} Elo</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <TrendingUp className="h-3 w-3" />
+                    <span>{Math.round(rankB?.rating ?? 1000)} Elo</span>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              /* Standard ranking list */
+              <div className="rounded-2xl border border-border bg-card/50 divide-y divide-border overflow-hidden">
+                {[...members].sort((a, b) => {
+                  const ra = rankingData[a.user_id]?.rating || 0;
+                  const rb = rankingData[b.user_id]?.rating || 0;
+                  return rb - ra;
+                }).map((m) => {
+                  const rank = rankingData[m.user_id];
+                  return (
+                    <div
+                      key={m.id}
+                      className="flex items-center justify-between px-3 py-2.5"
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        {rank?.position ? (
+                          <span className="w-5 text-center text-xs font-bold text-muted-foreground">
+                            {rank.position}
+                          </span>
+                        ) : (
+                          <span className="w-5 text-center text-[10px] text-muted-foreground/40">—</span>
+                        )}
+                        <PlayerAvatar
+                          avatarUrl={m.profile?.avatar_url}
+                          name={m.profile?.name || "?"}
+                          size="lg"
+                          className="border border-border"
+                        />
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-sm font-medium text-foreground truncate">
+                              {m.profile?.nickname || m.profile?.name || "Jogador"}
+                            </span>
+                            {m.role === "creator" && <Crown className="h-3 w-3 text-rank-gold flex-shrink-0" />}
+                            {m.role === "admin" && <Shield className="h-3 w-3 text-info flex-shrink-0" />}
+                          </div>
+                          {rank ? (
+                            <p className="text-[10px] text-muted-foreground">
+                              {Math.round(rank.rating)} Elo · {rank.matches_won}V {rank.matches_played - rank.matches_won}D
+                            </p>
+                          ) : null}
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        {rank && (
+                          <span className="text-xs font-bold text-primary">{Math.round(rank.rating)}</span>
+                        )}
+                        {isAdmin && m.user_id !== user?.id && m.role !== "creator" && (
+                          <div className="flex gap-1">
+                            {m.role === "member" ? (
+                              <button
+                                onClick={() => handlePromote(m.id)}
+                                className="rounded-lg bg-info/10 p-1.5 text-info"
+                                title="Promover"
+                              >
+                                <Shield className="h-3 w-3" />
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => handleDemote(m.id)}
+                                className="rounded-lg bg-warning/10 p-1.5 text-warning"
+                                title="Rebaixar"
+                              >
+                                <Shield className="h-3 w-3" />
+                              </button>
+                            )}
+                            <button
+                              onClick={() => handleRemove(m.id)}
+                              className="rounded-lg bg-destructive/10 p-1.5 text-destructive"
+                              title="Remover"
+                            >
+                              <UserMinus className="h-3 w-3" />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Convidar jogadores */}
+            {isMember && !rivalry && (
               <button
                 onClick={handleShareInvite}
                 className="flex w-full items-center justify-center gap-2 rounded-2xl border border-border bg-card/50 p-3 text-sm font-medium text-foreground transition-colors active:bg-accent/30"
@@ -421,7 +521,7 @@ function GroupDetailPage() {
               </button>
             )}
 
-            {/* Feed - link discreto abaixo da lista */}
+            {/* Feed */}
             {isMember && (
               <Link
                 to="/groups/$groupId/feed"
@@ -436,7 +536,7 @@ function GroupDetailPage() {
               </Link>
             )}
 
-            {/* Temporadas - link discreto */}
+            {/* Temporadas */}
             {isMember && (
               <Link
                 to="/groups/$groupId/seasons"
