@@ -45,7 +45,13 @@ export function GroupSettingsForm({
     setSaving(true);
     const { error } = await supabase
       .from("groups")
-      .update({ name: name.trim(), description: description.trim() || null, is_public: isPublic })
+      .update({
+        name: name.trim(),
+        description: description.trim() || null,
+        is_public: isPublic,
+        presence_open_mode: presenceMode,
+        presence_open_time: presenceTime + ":00",
+      })
       .eq("id", groupId);
 
     if (error) { toast.error("Erro ao salvar"); }
