@@ -79,13 +79,12 @@ function GroupSeasonsPage() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
   const [showHidden, setShowHidden] = useState(false);
+  const isSingles = group?.match_format === "singles";
+  const rivalry = isRivalryGroup(group, memberCount);
   // Singles-specific
   const [setsPerMatch, setSetsPerMatch] = useState(3);
   const [singlesPairingMode, setSinglesPairingMode] = useState("manual");
   const [oddPlayerRule, setOddPlayerRule] = useState("admin_decides");
-
-  const isSingles = group?.match_format === "singles";
-  const rivalry = isRivalryGroup(group, memberCount);
 
   const goStep = (next: "type" | "config" | "dates", dir: "forward" | "back") => {
     setStepDir(dir);
@@ -106,7 +105,7 @@ function GroupSeasonsPage() {
     setIsRetroactive(false);
     setRoundsPlayed(0);
     setSubmitError(null);
-    setSetsPerMatch(3);
+    setSetsPerMatch(rivalry ? 1 : 3);
     setSinglesPairingMode("manual");
     setOddPlayerRule("admin_decides");
   };
@@ -532,6 +531,8 @@ function GroupSeasonsPage() {
                 {/* Singles-specific config */}
                 {isSingles && (
                   <>
+                    {/* Hide sets config for rivalry — defaults to 1 set, user adds more in score dialog */}
+                    {!rivalry && (
                     <div>
                       <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Sets por confronto</label>
                       <div className="flex gap-2">
@@ -553,6 +554,7 @@ function GroupSeasonsPage() {
                         {setsPerMatch === 3 ? "Melhor de 3 sets por confronto" : "1 set por confronto"}
                       </p>
                     </div>
+                    )}
                     {/* Hide pairing mode and odd player rule for rivalry */}
                     {!rivalry && (
                       <>

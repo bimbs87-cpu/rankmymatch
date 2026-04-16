@@ -43,12 +43,11 @@ export function ScoreEntryDialog({
   onClose,
   onSaved,
 }: Props) {
-  const maxSets = setsPerMatch;
+  const isUnlimitedSets = setsPerMatch >= 99;
+  const maxSets = isUnlimitedSets ? 99 : setsPerMatch;
   const initialSets = existingSets?.length
     ? existingSets.map((s) => ({ scoreA: s.scoreA, scoreB: s.scoreB }))
-    : maxSets === 1
-      ? [{ scoreA: 0, scoreB: 0 }]
-      : [{ scoreA: 0, scoreB: 0 }, { scoreA: 0, scoreB: 0 }];
+    : [{ scoreA: 0, scoreB: 0 }];
 
   const [sets, setSets] = useState<{ scoreA: number; scoreB: number }[]>(initialSets);
   const [submitting, setSubmitting] = useState(false);
@@ -70,7 +69,7 @@ export function ScoreEntryDialog({
   };
 
   const removeLastSet = () => {
-    if (sets.length > (maxSets === 1 ? 1 : 2)) {
+    if (sets.length > 1) {
       setSets(sets.slice(0, -1));
     }
   };
@@ -98,13 +97,27 @@ export function ScoreEntryDialog({
       setResults.push({ winner, valid: true });
     }
 
-    const neededToWin = maxSets === 1 ? 1 : 2;
-    const matchWinner = setsA >= neededToWin ? "A" : setsB >= neededToWin ? "B" : null;
     const allValid = setResults.every((r) => r.valid);
-    const canSubmit = matchWinner !== null && allValid;
+
+    let matchWinner: "A" | "B" | null = null;
+    let canSubmit = false;
+
+    if (isUnlimitedSets) {
+      // Rivalry: any valid set count, whoever has more sets wins
+      if (allValid && setsA !== setsB && setResults.some(r => r.valid)) {
+        matchWinner = setsA > setsB ? "A" : "B";
+        canSubmit = true;
+      }
+    } else {
+      const neededToWin = maxSets === 1 ? 1 : 2;
+      matchWinner = setsA >= neededToWin ? "A" : setsB >= neededToWin ? "B" : null;
+      canSubmit = matchWinner !== null && allValid;
+    }
 
     // Check if we need more sets
-    const needsMoreSets = !matchWinner && sets.length < maxSets && allValid && setResults.some(r => r.valid);
+    const needsMoreSets = isUnlimitedSets
+      ? allValid && setResults.some(r => r.valid)
+      : !matchWinner && sets.length < maxSets && allValid && setResults.some(r => r.valid);
 
     return { setsA, setsB, gamesA, gamesB, setResults, matchWinner, canSubmit, needsMoreSets };
   }, [sets, maxSets]);
@@ -153,7 +166,7 @@ export function ScoreEntryDialog({
           </button>
         </div>
         <p className="mb-5 text-xs text-muted-foreground">
-          {isSingles ? "1 confronto" : "1 partida"} • {maxSets === 1 ? "1 set" : `melhor de ${maxSets} sets`}
+          {isSingles ? "1 confronto" : "1 partida"}{isUnlimitedSets ? " • adicione sets conforme necessário" : maxSets === 1 ? " • 1 set" : ` • melhor de ${maxSets} sets`}
         </p>
 
         {/* Players header */}
@@ -196,7 +209,7 @@ export function ScoreEntryDialog({
         )}
 
         {/* Live score summary for multi-set */}
-        {maxSets > 1 && (
+        {(isUnlimitedSets ? sets.length > 1 : maxSets > 1) && (
           <div className="mb-3 flex items-center justify-center gap-3 rounded-2xl bg-muted/30 py-2">
             <span className={`font-display text-2xl font-bold ${matchState.setsA > matchState.setsB ? "text-primary" : "text-muted-foreground"}`}>
               {matchState.setsA}
@@ -212,8 +225,8 @@ export function ScoreEntryDialog({
         <div className="space-y-3">
           {sets.map((set, idx) => {
             const result = matchState.setResults[idx];
-            const isLastAndRemovable = idx === sets.length - 1 && sets.length > (maxSets === 1 ? 1 : 2);
-            const setLabel = maxSets === 1 ? "Set" : idx < 2 ? `Set ${idx + 1}` : `Set ${idx + 1}`;
+            const isLastAndRemovable = idx === sets.length - 1 && sets.length > 1;
+            const setLabel = `Set ${idx + 1}`;
 
             return (
               <div key={idx} className={`rounded-2xl border p-3 ${

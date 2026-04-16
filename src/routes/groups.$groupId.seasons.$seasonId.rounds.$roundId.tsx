@@ -667,7 +667,7 @@ function RoundDetailPage() {
             scoreA: s.score_team_a,
             scoreB: s.score_team_b,
           }))}
-          setsPerMatch={isSingles ? (seasonData?.sets_per_match || 3) : 3}
+          setsPerMatch={rivalry ? 99 : isSingles ? (seasonData?.sets_per_match || 3) : 3}
           isSingles={isSingles || rivalry}
           onClose={() => setScoringMatch(null)}
           onSaved={refresh}

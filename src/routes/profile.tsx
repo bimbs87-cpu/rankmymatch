@@ -1,4 +1,5 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
+import { abbreviateName } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import { EloChart } from "@/components/EloChart";
@@ -385,7 +386,7 @@ function ProfilePage() {
               <Camera className="h-4 w-4" />
             </button>
           </div>
-          <h1 className="font-display text-xl font-bold text-foreground">{displayName}</h1>
+          <h1 className="font-display text-xl font-bold text-foreground">{abbreviateName(displayName)}</h1>
           {profile?.nickname && (
             <p className="text-sm text-muted-foreground">@{profile.nickname}</p>
           )}
