@@ -93,6 +93,24 @@ function GroupDetailPage() {
     loadRanking();
   }, [groupId]);
 
+  // Detect which members are placeholders
+  useEffect(() => {
+    if (!members.length) return;
+    const userIds = members.map((m) => m.user_id);
+    supabase
+      .from("user_profiles")
+      .select("user_id")
+      .in("user_id", userIds)
+      .eq("is_placeholder", true)
+      .then(({ data }) => {
+        setPlaceholderUserIds(new Set((data || []).map((p) => p.user_id)));
+      });
+  }, [members]);
+
+  // Check if current user is already a member (to hide claim button)
+  const isMemberAlready = members.some((m) => m.user_id === user?.id);
+  const hasPlaceholders = placeholderUserIds.size > 0;
+
   if (isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
