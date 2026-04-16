@@ -563,12 +563,14 @@ function RankingPage() {
                           <Crown className="mb-1 h-5 w-5" style={{ color: "var(--rank-gold)" }} fill="var(--rank-gold)" />
                         )}
                         {/* Avatar */}
-                        <PlayerAvatar
-                          avatarUrl={entry.profile?.avatar_url}
-                          name={entry.profile?.name || "?"}
-                          size={isCenter ? "lg" : "md"}
-                          className={`${isCenter ? "!h-14 !w-14" : "!h-11 !w-11"}`}
-                        />
+                        <div className="rounded-full p-[2px]" style={{ backgroundColor: color }}>
+                          <PlayerAvatar
+                            avatarUrl={entry.profile?.avatar_url}
+                            name={entry.profile?.name || "?"}
+                            size={isCenter ? "lg" : "md"}
+                            className={`${isCenter ? "!h-14 !w-14" : "!h-11 !w-11"} border-2 border-background`}
+                          />
+                        </div>
                         {/* Name + Stats */}
                         <p className="mt-1.5 text-center text-[11px] font-semibold text-foreground leading-tight truncate w-full">{displayName}</p>
                         <p className="font-display text-sm font-bold text-primary">{Math.round(entry.rating).toLocaleString("pt-BR")}</p>
