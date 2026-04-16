@@ -600,20 +600,22 @@ function RankingPage() {
                 <span className="w-16 text-center">Últimas</span>
               </div>
 
-              {rankings.map((entry) => {
+              {rankings.map((entry, idx) => {
                 const isMe = entry.user_id === user?.id;
                 const pos = entry.position || "—";
                 const wr = winRate(entry.matches_won, entry.matches_played);
                 const isDimmed = !entry.is_eligible;
                 const displayName = entry.profile?.nickname || abbreviateName(entry.profile?.name || "Jogador");
                 const losses = entry.matches_played - entry.matches_won;
+                const isEven = idx % 2 === 0;
 
                 return (
                   <div
                     key={entry.user_id}
-                    className={`flex items-center border-b border-border/50 px-2 py-2 last:border-b-0 transition-opacity ${
-                      isMe ? "bg-primary/5" : ""
+                    className={`flex items-center px-2 py-2 transition-opacity ${
+                      isMe ? "bg-primary/5" : isEven ? "bg-muted/10" : ""
                     } ${isDimmed ? "opacity-40" : ""}`}
+                    style={{ boxShadow: idx > 0 ? "inset 0 1px 0 0 color-mix(in oklab, var(--border) 30%, transparent)" : undefined }}
                   >
                     {/* Position + change indicator */}
                     <div className="w-8 shrink-0 text-center">
