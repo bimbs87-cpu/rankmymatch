@@ -51,7 +51,8 @@ function RankingPage() {
   const [selectedSeasonId, setSelectedSeasonId] = useState<string | null>(null);
   const [seasons, setSeasons] = useState<any[]>([]);
   const [rankings, setRankings] = useState<RankingEntry[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [initialReady, setInitialReady] = useState(false);
   const [showSwitcher, setShowSwitcher] = useState(false);
   const [totalRounds, setTotalRounds] = useState(0);
   const [completedRounds, setCompletedRounds] = useState(0);
@@ -59,7 +60,12 @@ function RankingPage() {
 
   // Load seasons from user's groups, auto-select based on last match
   useEffect(() => {
-    if (!groups.length || !user?.id) return;
+    if (authLoading) return;
+    if (!groups.length || !user?.id) {
+      setLoading(false);
+      setInitialReady(true);
+      return;
+    }
     const loadSeasons = async () => {
       const groupIds = groups.map((g) => g.id);
       const { data } = await supabase
@@ -70,7 +76,13 @@ function RankingPage() {
         .order("created_at", { ascending: false });
       setSeasons(data || []);
 
-      if (data?.length && !selectedSeasonId) {
+      if (!data?.length) {
+        setLoading(false);
+        setInitialReady(true);
+        return;
+      }
+
+      if (!selectedSeasonId) {
         const { data: lastEvent } = await supabase
           .from("rating_events")
           .select("season_id")
@@ -85,7 +97,7 @@ function RankingPage() {
       }
     };
     loadSeasons();
-  }, [groups, user?.id]);
+  }, [groups, user?.id, authLoading]);
 
   // Load rankings for selected season
   useEffect(() => {
@@ -141,6 +153,7 @@ function RankingPage() {
       if (!allUserIds.length) {
         setRankings([]);
         setLoading(false);
+        setInitialReady(true);
         return;
       }
 
@@ -270,11 +283,12 @@ function RankingPage() {
 
       setRankings(entries);
       setLoading(false);
+      setInitialReady(true);
     };
     loadRankings();
   }, [selectedSeasonId, seasons]);
 
-  if (authLoading) {
+  if (authLoading || (!initialReady && isAuthenticated)) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
