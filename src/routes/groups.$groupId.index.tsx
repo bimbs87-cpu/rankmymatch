@@ -2,7 +2,9 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { GroupSettingsForm } from "@/components/GroupSettingsForm";
 import { InviteLinkDialog } from "@/components/InviteLinkDialog";
+import { PendingMatchCard } from "@/components/PendingMatchCard";
 import { useAuth } from "@/hooks/use-auth";
+import { usePendingMatch } from "@/hooks/use-pending-matches";
 import { supabase } from "@/integrations/supabase/client";
 import {
   useGroupDetail,
