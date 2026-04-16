@@ -564,15 +564,23 @@ function RoundDetailPage() {
                     <div className="flex items-center gap-3">
                       {/* Team A */}
                       <div className="flex-1">
-                        {teamA.map((mp: any) => (
-                          <div key={mp.id} className="flex items-center gap-1.5 py-0.5">
-                            <PlayerAvatar avatarUrl={mp.profile?.avatar_url || null} name={mp.profile?.name || "?"} size="xs" />
-                            <span className={`text-xs ${match.status === "completed" && match.winner_team === "A" ? "font-bold text-primary" : "text-foreground"}`}>
-                              {mp.profile?.nickname || mp.profile?.name || "Jogador"}
-                              {match.status === "completed" && match.winner_team === "A" && " 🏆"}
-                            </span>
-                          </div>
-                        ))}
+                        {teamA.map((mp: any) => {
+                          const eloChange = match.status === "completed" ? getPlayerEloChange(match.id, mp.user_id) : null;
+                          const isWinner = match.status === "completed" && match.winner_team === "A";
+                          return (
+                            <div key={mp.id} className="flex items-center gap-1.5 py-0.5">
+                              <PlayerAvatar avatarUrl={mp.profile?.avatar_url || null} name={mp.profile?.name || "?"} size="xs" />
+                              <span className={`text-xs ${isWinner ? "font-bold text-primary" : "text-foreground"}`}>
+                                {mp.profile?.nickname || mp.profile?.name || "Jogador"}
+                              </span>
+                              {eloChange !== null && (
+                                <span className={`text-[10px] font-bold ${eloChange > 0 ? "text-success" : "text-destructive"}`}>
+                                  {eloChange > 0 ? "+" : ""}{eloChange}
+                                </span>
+                              )}
+                            </div>
+                          );
+                        })}
                       </div>
 
                       {/* Score */}
