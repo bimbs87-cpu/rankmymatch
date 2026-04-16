@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { submitMatchScore } from "@/lib/elo-engine";
+import { PlayerAvatar as SharedPlayerAvatar } from "@/components/PlayerAvatar";
 import { X, Check, ChevronRight, Save, Swords, Users, Crown, ArrowUp, ArrowDown } from "lucide-react";
 import { toast } from "sonner";
 
@@ -250,14 +251,15 @@ export function ManualMatchDialog({ roundId, groupId, matchFormat = "doubles", o
   };
 
   const PlayerAvatar = ({ uid, size = "sm" }: { uid: string; size?: "sm" | "md" | "lg" }) => {
-    const sizes = { sm: "h-7 w-7", md: "h-9 w-9", lg: "h-10 w-10" };
-    const textSizes = { sm: "text-[10px]", md: "text-xs", lg: "text-sm" };
+    const sizeMap = { sm: "sm" as const, md: "md" as const, lg: "lg" as const };
     const av = getAvatar(uid);
-    if (av) return <img src={av} alt="" className={`${sizes[size]} rounded-full object-cover ring-2 ring-border`} />;
     return (
-      <div className={`flex ${sizes[size]} items-center justify-center rounded-full bg-muted ring-2 ring-border ${textSizes[size]} font-bold text-foreground`}>
-        {getInitial(uid)}
-      </div>
+      <SharedPlayerAvatar
+        avatarUrl={av || null}
+        name={getDisplayName(uid)}
+        size={sizeMap[size]}
+        className="ring-2 ring-border"
+      />
     );
   };
 
