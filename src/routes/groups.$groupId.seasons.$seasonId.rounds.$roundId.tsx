@@ -36,7 +36,7 @@ function RoundDetailPage() {
   const { groupId, seasonId, roundId } = Route.useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { isAdmin } = useGroupDetail(groupId);
+  const { group, isAdmin } = useGroupDetail(groupId);
   const { round, presences, matches, myPresence, confirmedCount, isLoading, refresh } =
     useRoundDetail(roundId);
   const [scoringMatch, setScoringMatch] = useState<any>(null);
