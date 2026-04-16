@@ -135,7 +135,9 @@ function RoundDetailPage() {
 
   const isConfirmed = myPresence?.status === "confirmed";
   const confirmedPlayers = presences.filter((p) => p.status === "confirmed");
-  const canDraw = isAdmin && confirmedPlayers.length >= 4 && matches.length === 0;
+  const isSingles = group?.match_format === "singles";
+  const minPlayersForDraw = isSingles ? 2 : 4;
+  const canDraw = isAdmin && confirmedPlayers.length >= minPlayersForDraw && matches.length === 0;
 
   const presenceListOpen = isPresenceOpen(presenceConfig, round.scheduled_date, round.scheduled_time, roundId);
   const presenceOpenDate = getPresenceOpenDate(presenceConfig, round.scheduled_date, round.scheduled_time, roundId);
