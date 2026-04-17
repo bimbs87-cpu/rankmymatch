@@ -624,7 +624,7 @@ function RoundDetailPage() {
         {!rivalry && (
           <section>
             <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Jogadores confirmados ({confirmedCount})
+              Jogadores confirmados ({effectiveConfirmedCount})
             </h2>
             {confirmedPlayers.length === 0 ? (
               <p className="text-sm text-muted-foreground">Nenhum jogador confirmado ainda.</p>
