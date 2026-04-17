@@ -17,6 +17,7 @@ function GroupsIndexPage() {
   const [showCreate, setShowCreate] = useState(false);
 
   const { groups: myGroups, isLoading: myLoading, refresh } = useMyGroups();
+  const { groups: pendingGroups, isLoading: pendingLoading, refresh: refreshPending } = useMyPendingJoinRequests();
   const { groups: publicGroups, isLoading: pubLoading } = usePublicGroups(tab === "explore" ? search : "");
 
   if (authLoading) {
