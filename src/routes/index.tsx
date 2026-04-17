@@ -150,11 +150,17 @@ function DashboardPage() {
   }, [user, myGroups]);
 
   const loadDashboard = useCallback(async () => {
-    if (!user || !myGroups.length) {
+    if (!user) {
       setDataLoading(false);
       return;
     }
+    if (!myGroups.length) {
+      // No groups yet — nothing to load, but only stop spinner once groups query finished
+      if (!groupsLoading) setDataLoading(false);
+      return;
+    }
 
+    setDataLoading(true);
     const groupIds = myGroups.map((g) => g.id);
 
     // 1. Upcoming rounds
