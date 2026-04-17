@@ -34,6 +34,7 @@ interface RankingEntry {
   lastChange?: number;
   positionChange?: number;
   hasSnapshot: boolean;
+  isFormerMember?: boolean;
 }
 
 function winRate(won: number, played: number) {
@@ -307,10 +308,13 @@ function RankingPage() {
         const eligibilityThreshold = Math.ceil(completedR * 0.3);
         const snapshotMap = new Map(snapshots.map((snapshot) => [snapshot.user_id, snapshot]));
 
+        const activeMemberIdsSet = new Set(members.map((m) => m.user_id));
+
         const entries: RankingEntry[] = allUserIds.map((userId) => {
           const snapshot = snapshotMap.get(userId);
           const profile = profileMap.get(userId);
           const computedResults = userResultsMap.get(userId) || [];
+          const isFormerMember = !activeMemberIdsSet.has(userId);
 
           if (snapshot) {
             const isEligible = snapshot.matches_played >= eligibilityThreshold && eligibilityThreshold > 0;
@@ -330,6 +334,7 @@ function RankingPage() {
               profile: profile || undefined,
               lastChange: lastChangeMap.get(userId),
               hasSnapshot: true,
+              isFormerMember,
             };
           }
 
@@ -348,6 +353,7 @@ function RankingPage() {
             profile: profile || undefined,
             lastChange: undefined,
             hasSnapshot: false,
+            isFormerMember,
           };
         });
 
