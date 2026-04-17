@@ -73,6 +73,7 @@ function GroupDetailPage() {
   const [addPlaceholderOpen, setAddPlaceholderOpen] = useState(false);
   const [claimOpen, setClaimOpen] = useState(false);
   const [searchUserOpen, setSearchUserOpen] = useState(false);
+  const [joinDialogOpen, setJoinDialogOpen] = useState(false);
   const [leaveDialogOpen, setLeaveDialogOpen] = useState(false);
   const [hasResults, setHasResults] = useState(false);
   const [leavingLoading, setLeavingLoading] = useState(false);
