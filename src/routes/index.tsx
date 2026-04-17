@@ -34,7 +34,18 @@ import {
   Minus,
   Pencil,
   Loader2,
+  Home,
+  User as UserIcon,
+  Crown,
 } from "lucide-react";
+
+const DESKTOP_NAV = [
+  { to: "/" as const, icon: Home, label: "Início" },
+  { to: "/profile" as const, icon: UserIcon, label: "Perfil" },
+  { to: "/ranking" as const, icon: Crown, label: "Ranking" },
+  { to: "/groups" as const, icon: Users, label: "Grupos" },
+  { to: "/notifications" as const, icon: Bell, label: "Alertas" },
+];
 
 function CardSpinner({ label = "Carregando..." }: { label?: string }) {
   return (
@@ -135,6 +146,8 @@ function DashboardPage() {
   const [recentMatches, setRecentMatches] = useState<RecentMatch[]>([]);
   const [rankings, setRankings] = useState<RankingOption[]>([]);
   const [selectedSeasonId, setSelectedSeasonId] = useState<string | null>(null);
+  // History per season for the desktop charts
+  const [historyBySeason, setHistoryBySeason] = useState<Map<string, { date: string; rating: number; position: number | null }[]>>(new Map());
   const [showRankingPicker, setShowRankingPicker] = useState(false);
   const [dashLoading, setDashLoading] = useState(true);
   const dataLoading = dashLoading || groupsLoading;
@@ -435,9 +448,25 @@ function DashboardPage() {
         if (prev && opts.some((o) => o.season_id === prev)) return prev;
         return opts[0]?.season_id || null;
       });
+
+      // Load historical snapshots for charts (desktop)
+      const { data: histSnaps } = await supabase
+        .from("ranking_snapshots")
+        .select("season_id, snapshot_date, rating, position")
+        .in("season_id", seasonIds)
+        .eq("user_id", user.id)
+        .order("snapshot_date", { ascending: true });
+      const hist = new Map<string, { date: string; rating: number; position: number | null }[]>();
+      for (const h of histSnaps || []) {
+        const arr = hist.get(h.season_id) || [];
+        arr.push({ date: h.snapshot_date, rating: Number(h.rating), position: h.position });
+        hist.set(h.season_id, arr);
+      }
+      setHistoryBySeason(hist);
     } else {
       setRankings([]);
       setSelectedSeasonId(null);
+      setHistoryBySeason(new Map());
     }
 
     setDataLoading(false);
@@ -584,10 +613,76 @@ function DashboardPage() {
     );
   };
 
+  // Simple responsive line chart for desktop charts card
+  const renderLineChart = (
+    points: { label: string; value: number }[],
+    opts: { color: string; invertY?: boolean; height?: number; yLabel?: string }
+  ) => {
+    const w = 520;
+    const h = opts.height ?? 160;
+    const padL = 32;
+    const padR = 12;
+    const padT = 12;
+    const padB = 22;
+    if (!points.length) {
+      return (
+        <div className="flex h-full items-center justify-center text-[11px] text-muted-foreground">
+          Sem histórico ainda
+        </div>
+      );
+    }
+    const values = points.map((p) => p.value);
+    const minV = Math.min(...values);
+    const maxV = Math.max(...values);
+    const range = Math.max(1, maxV - minV);
+    const innerW = w - padL - padR;
+    const innerH = h - padT - padB;
+    const xFor = (i: number) => padL + (points.length === 1 ? innerW / 2 : (i / (points.length - 1)) * innerW);
+    const yFor = (v: number) => {
+      const t = (v - minV) / range;
+      const norm = opts.invertY ? t : 1 - t;
+      return padT + norm * innerH;
+    };
+    const pathD = points
+      .map((p, i) => `${i === 0 ? "M" : "L"} ${xFor(i)} ${yFor(p.value)}`)
+      .join(" ");
+    const areaD =
+      `${pathD} L ${xFor(points.length - 1)} ${padT + innerH} L ${xFor(0)} ${padT + innerH} Z`;
+    // Y axis ticks (3 lines)
+    const yTicks = [0, 0.5, 1].map((t) => {
+      const val = opts.invertY ? minV + t * range : maxV - t * range;
+      const yPx = padT + t * innerH;
+      return { val, yPx };
+    });
+    return (
+      <svg viewBox={`0 0 ${w} ${h}`} className="h-full w-full" preserveAspectRatio="none">
+        {yTicks.map((t, i) => (
+          <g key={i}>
+            <line x1={padL} x2={w - padR} y1={t.yPx} y2={t.yPx} stroke="var(--border)" strokeDasharray="2 3" opacity="0.5" />
+            <text x={padL - 4} y={t.yPx + 3} textAnchor="end" fontSize="9" fill="var(--muted-foreground)">
+              {opts.invertY ? `${Math.round(t.val)}º` : Math.round(t.val)}
+            </text>
+          </g>
+        ))}
+        <defs>
+          <linearGradient id={`grad-${opts.color.replace("#", "")}`} x1="0" x2="0" y1="0" y2="1">
+            <stop offset="0%" stopColor={opts.color} stopOpacity="0.35" />
+            <stop offset="100%" stopColor={opts.color} stopOpacity="0" />
+          </linearGradient>
+        </defs>
+        <path d={areaD} fill={`url(#grad-${opts.color.replace("#", "")})`} />
+        <path d={pathD} fill="none" stroke={opts.color} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
+        {points.map((p, i) => (
+          <circle key={i} cx={xFor(i)} cy={yFor(p.value)} r="2.5" fill={opts.color} />
+        ))}
+      </svg>
+    );
+  };
+
   return (
     <div
       ref={scrollRef}
-      className="min-h-screen bg-background pb-28 overflow-y-auto"
+      className="min-h-screen bg-background pb-28 lg:pb-8 overflow-y-auto"
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
@@ -607,7 +702,7 @@ function DashboardPage() {
       </div>
       {/* Header */}
       <header className="px-5 pb-2 pt-6">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-6">
           <div className="flex items-center gap-3">
             <PlayerAvatar avatarUrl={headerAvatarUrl} name={headerDisplayName} size="lg" className="border border-border !h-11 !w-11" />
             <div>
@@ -623,6 +718,27 @@ function DashboardPage() {
               )}
             </div>
           </div>
+
+          {/* Desktop horizontal nav (only lg+) */}
+          <nav className="hidden lg:flex flex-1 items-center justify-center">
+            <div className="flex items-center gap-1 rounded-full border border-border bg-card/80 px-2 py-1.5 backdrop-blur-xl">
+              {DESKTOP_NAV.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <Link
+                    key={item.to}
+                    to={item.to}
+                    activeOptions={{ exact: item.to === "/" }}
+                    className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground [&.active]:bg-primary/15 [&.active]:text-primary"
+                  >
+                    <Icon className="h-4 w-4" />
+                    <span>{item.label}</span>
+                  </Link>
+                );
+              })}
+            </div>
+          </nav>
+
           <div className="flex items-center gap-2">
             <img src={resolvedTheme === "light" ? logoSymbolBlack : logoSymbolNeon} alt="RankMyMatch" className="h-7 w-7" />
             <Link to="/notifications" className="relative rounded-full border border-border bg-card p-2.5 transition-colors hover:bg-accent">
@@ -685,7 +801,7 @@ function DashboardPage() {
         )}
 
         {/* Ranking card + Quick action */}
-        <section className="grid grid-cols-2 gap-3 animate-fade-in lg:col-span-6">
+        <section className="grid grid-cols-2 gap-3 animate-fade-in lg:col-span-6 lg:order-1">
           {dataLoading ? (
             <div className="flex flex-col items-center justify-center rounded-3xl border border-border bg-card p-5 min-h-[140px]">
               <CardSpinner label="Carregando ranking" />
@@ -766,8 +882,160 @@ function DashboardPage() {
           </section>
         )}
 
+        {/* DESKTOP-ONLY: Últimos Resultados em formato de lista (col direita topo) */}
+        <section className="hidden lg:block lg:col-span-6 lg:order-2">
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Últimos Resultados
+            </h2>
+            <Link to="/history" className="flex items-center gap-0.5 text-xs font-medium text-primary">
+              Histórico <ChevronRight className="h-3.5 w-3.5" />
+            </Link>
+          </div>
+          {dataLoading ? (
+            <div className="flex flex-col items-center justify-center rounded-3xl border border-border bg-card p-6 min-h-[120px]">
+              <CardSpinner label="Carregando resultados" />
+            </div>
+          ) : recentMatches.length === 0 ? (
+            <div className="rounded-3xl border border-border bg-card p-5">
+              <div className="flex flex-col items-center gap-2 text-center">
+                <Swords className="h-7 w-7 text-muted-foreground/40" />
+                <p className="text-sm text-muted-foreground">Nenhuma partida ainda</p>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-1.5">
+              {recentMatches.slice(0, 5).map((m) => {
+                const won = m.winner_team === m.my_team;
+                return (
+                  <div
+                    key={m.id}
+                    className="flex items-center gap-2.5 rounded-xl border border-border bg-card px-3 py-2"
+                  >
+                    <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-xs font-bold ${
+                      won ? "bg-success/10 text-success" : "bg-destructive/10 text-destructive"
+                    }`}>
+                      {won ? "V" : "D"}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-semibold text-foreground truncate">
+                          {m.score_display}
+                        </p>
+                        {m.match_number != null && (
+                          <span className="rounded-full bg-muted px-1.5 py-0.5 text-[9px] font-semibold text-muted-foreground">
+                            Set {m.match_number}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex flex-wrap items-center gap-x-2.5 text-[10px] text-muted-foreground">
+                        {m.group_name && <span className="font-medium">{m.group_name}</span>}
+                        {m.partner_name && <span>c/ {m.partner_name}</span>}
+                        {m.opponent_names.length > 0 && (
+                          <span>vs {m.opponent_names.join(" & ")}</span>
+                        )}
+                      </div>
+                    </div>
+                    {m.rating_change !== null && (
+                      <div className="shrink-0 text-right">
+                        <p className={`text-sm font-bold ${
+                          m.rating_change > 0 ? "text-success" : m.rating_change < 0 ? "text-destructive" : "text-muted-foreground"
+                        }`}>
+                          {m.rating_change > 0 ? "+" : ""}{Math.round(m.rating_change)}
+                        </p>
+                        <p className="text-[9px] text-muted-foreground">Elo</p>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </section>
+
+        {/* DESKTOP-ONLY: Card de Gráficos — Posição no Ranking + Elo (col esquerda, abaixo do Ranking+CTA) */}
+        <section className="hidden lg:block lg:col-span-6 lg:order-3">
+          {(() => {
+            const history = currentRanking ? historyBySeason.get(currentRanking.season_id) || [] : [];
+            const ratingPoints = history
+              .filter((h) => h.rating != null)
+              .map((h) => ({ label: h.date, value: h.rating }));
+            const positionPoints = history
+              .filter((h) => h.position != null)
+              .map((h) => ({ label: h.date, value: h.position as number }));
+            const firstRating = ratingPoints[0]?.value;
+            const lastRating = ratingPoints[ratingPoints.length - 1]?.value;
+            const ratingDelta = firstRating != null && lastRating != null ? lastRating - firstRating : null;
+            const firstPos = positionPoints[0]?.value;
+            const lastPos = positionPoints[positionPoints.length - 1]?.value;
+            const posDelta = firstPos != null && lastPos != null ? firstPos - lastPos : null; // positive = subiu
+            return (
+              <div className="rounded-3xl border border-border bg-card p-5">
+                <div className="mb-4 flex items-center justify-between">
+                  <div>
+                    <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                      Evolução
+                    </h2>
+                    {currentRanking && (
+                      <p className="mt-0.5 text-[11px] text-muted-foreground/70 truncate">
+                        {currentRanking.group_name} · {currentRanking.season_name}
+                      </p>
+                    )}
+                  </div>
+                  <Link to="/ranking" className="flex items-center gap-0.5 text-xs font-medium text-primary">
+                    Detalhes <ChevronRight className="h-3.5 w-3.5" />
+                  </Link>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  {/* Position chart */}
+                  <div className="flex flex-col">
+                    <div className="mb-2 flex items-baseline justify-between">
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Posição</p>
+                      <div className="flex items-baseline gap-1.5">
+                        <span className="font-display text-lg font-bold text-foreground">
+                          {lastPos != null ? `${lastPos}º` : "—"}
+                        </span>
+                        {posDelta != null && posDelta !== 0 && (
+                          <span className={`flex items-center gap-0.5 text-[10px] font-semibold ${posDelta > 0 ? "text-success" : "text-destructive"}`}>
+                            {posDelta > 0 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+                            {posDelta > 0 ? "+" : ""}{posDelta}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="h-[160px] rounded-xl bg-muted/20 p-2">
+                      {renderLineChart(positionPoints, { color: "#84cc16", invertY: true })}
+                    </div>
+                  </div>
+
+                  {/* Elo chart */}
+                  <div className="flex flex-col">
+                    <div className="mb-2 flex items-baseline justify-between">
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Elo Points</p>
+                      <div className="flex items-baseline gap-1.5">
+                        <span className="font-display text-lg font-bold text-foreground">
+                          {lastRating != null ? Math.round(lastRating) : "—"}
+                        </span>
+                        {ratingDelta != null && Math.abs(ratingDelta) >= 1 && (
+                          <span className={`flex items-center gap-0.5 text-[10px] font-semibold ${ratingDelta > 0 ? "text-success" : "text-destructive"}`}>
+                            {ratingDelta > 0 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+                            {ratingDelta > 0 ? "+" : ""}{Math.round(ratingDelta)}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="h-[160px] rounded-xl bg-muted/20 p-2">
+                      {renderLineChart(ratingPoints, { color: "#3b82f6" })}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+        </section>
+
         {/* Próximas Rodadas */}
-        <section className="lg:col-span-6">
+        <section className="lg:col-span-6 lg:order-4">
           <div className="mb-3 flex items-center justify-between">
             <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Próximas Rodadas
@@ -856,8 +1124,8 @@ function DashboardPage() {
           )}
         </section>
 
-        {/* Últimos Resultados */}
-        <section className="lg:col-span-6">
+        {/* Últimos Resultados (mobile/tablet only — 3 cards horizontais) */}
+        <section className="lg:hidden">
           <div className="mb-3 flex items-center justify-between">
             <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Últimos Resultados
@@ -925,7 +1193,7 @@ function DashboardPage() {
         </section>
 
         {/* Meus Grupos */}
-        <section className="lg:col-span-12">
+        <section className="lg:col-span-12 lg:order-5">
           <div className="mb-3 flex items-center justify-between">
             <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Seus Grupos
