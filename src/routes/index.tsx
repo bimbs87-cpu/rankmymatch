@@ -1158,7 +1158,7 @@ function DashboardPage() {
               </div>
             ) : (
               <div className="divide-y divide-border/50">
-                {upcomingRounds.slice(0, 8).map((r) => {
+                {upcomingRounds.slice(0, 5).map((r) => {
                   const today = new Date().toISOString().split("T")[0];
                   const smartStatus = r.status === "in_progress"
                     ? "in_progress"
@@ -1168,20 +1168,35 @@ function DashboardPage() {
                   const statusLabel = smartStatus === "in_progress" ? "Em andamento" : smartStatus === "pending_result" ? "Aguardando" : "Agendada";
                   const statusCls = smartStatus === "in_progress" ? "bg-warning/15 text-warning" : smartStatus === "pending_result" ? "bg-warning/15 text-warning" : "bg-info/15 text-info";
                   const fillPct = r.max_players > 0 ? Math.min(100, (r.confirmed_count / r.max_players) * 100) : 0;
+                  const isFull = r.confirmed_count >= r.max_players;
+                  // Days until round
+                  let daysUntil: number | null = null;
+                  if (r.scheduled_date) {
+                    const todayD = new Date();
+                    todayD.setHours(0, 0, 0, 0);
+                    const sched = new Date(r.scheduled_date + "T00:00:00");
+                    daysUntil = Math.round((sched.getTime() - todayD.getTime()) / (1000 * 60 * 60 * 24));
+                  }
+                  const dayBadge = daysUntil === 0 ? "Hoje" : daysUntil === 1 ? "Amanhã" : daysUntil != null && daysUntil > 1 ? `em ${daysUntil}d` : null;
+                  // Presence list opening
+                  const presenceCfg = { presence_open_mode: r.presence_open_mode, presence_open_time: r.presence_open_time };
+                  const open = isPresenceOpen(presenceCfg, r.scheduled_date, r.scheduled_time, r.id);
+                  const openDate = !open ? getPresenceOpenDate(presenceCfg, r.scheduled_date, r.scheduled_time, r.id) : null;
+                  const canQuickConfirm = r.my_status !== "confirmed" && r.status === "scheduled" && open && !isFull;
                   return (
                     <Link
                       key={r.id}
                       to="/groups/$groupId/seasons/$seasonId/rounds/$roundId"
                       params={{ groupId: r.group_id, seasonId: r.season_id || "", roundId: r.id }}
-                      className="flex items-center gap-2.5 px-4 py-2 transition-colors hover:bg-accent/30"
+                      className="flex items-center gap-3 px-4 py-2.5 transition-colors hover:bg-accent/30"
                     >
-                      <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${
-                        r.status === "in_progress" ? "bg-warning/15" : "bg-primary/10"
+                      <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ring-1 ${
+                        r.status === "in_progress" ? "bg-warning/15 ring-warning/30" : "bg-primary/10 ring-primary/20"
                       }`}>
                         {r.status === "in_progress" ? (
-                          <Swords className="h-3.5 w-3.5 text-warning" />
+                          <Swords className="h-4 w-4 text-warning" />
                         ) : (
-                          <span className="font-display text-[11px] font-bold text-primary tabular-nums">
+                          <span className="font-display text-sm font-bold text-primary tabular-nums">
                             {r.round_number ?? "—"}
                           </span>
                         )}
@@ -1192,47 +1207,96 @@ function DashboardPage() {
                           <p className="text-sm font-semibold text-foreground truncate">
                             {r.group_name}
                           </p>
-                          <span className={`rounded-md px-1 py-0.5 text-[9px] font-semibold ${statusCls}`}>
+                          <span className={`rounded-md px-1.5 py-0.5 text-[10px] font-semibold ${statusCls}`}>
                             {statusLabel}
                           </span>
+                          {dayBadge && (
+                            <span className={`rounded-md px-1.5 py-0.5 text-[10px] font-semibold ${
+                              daysUntil === 0 ? "bg-primary/15 text-primary" : daysUntil === 1 ? "bg-info/15 text-info" : "bg-muted text-muted-foreground"
+                            }`}>
+                              {dayBadge}
+                            </span>
+                          )}
                         </div>
-                        <div className="flex items-center gap-x-2 text-[10px] text-muted-foreground">
-                          <span>Rodada {r.round_number}</span>
+                        <div className="mt-0.5 flex items-center gap-x-2.5 text-[11px] text-muted-foreground">
+                          {r.season_name && <span className="truncate max-w-[140px] font-medium text-foreground/70">{r.season_name}</span>}
                           {r.scheduled_date && (
                             <span className="flex items-center gap-0.5">
-                              <Calendar className="h-2.5 w-2.5" />
+                              <Calendar className="h-3 w-3" />
                               {formatDate(r.scheduled_date)}
                             </span>
                           )}
                           {r.scheduled_time && (
                             <span className="flex items-center gap-0.5">
-                              <Clock className="h-2.5 w-2.5" />
+                              <Clock className="h-3 w-3" />
                               {r.scheduled_time.slice(0, 5)}
                             </span>
                           )}
                           {r.location && (
-                            <span className="hidden xl:flex items-center gap-0.5 truncate max-w-[110px]">
-                              <MapPin className="h-2.5 w-2.5" />
+                            <span className="flex items-center gap-0.5 truncate max-w-[140px]">
+                              <MapPin className="h-3 w-3" />
                               <span className="truncate">{r.location}</span>
+                            </span>
+                          )}
+                        </div>
+                        {/* Presence breakdown */}
+                        <div className="mt-1 flex items-center gap-2 text-[10px]">
+                          <span className="flex items-center gap-1 text-success">
+                            <span className="inline-block h-1.5 w-1.5 rounded-full bg-success" />
+                            {r.confirmed_count} conf.
+                          </span>
+                          {r.pending_count > 0 && (
+                            <span className="flex items-center gap-1 text-muted-foreground">
+                              <span className="inline-block h-1.5 w-1.5 rounded-full bg-muted-foreground/60" />
+                              {r.pending_count} pend.
+                            </span>
+                          )}
+                          {r.declined_count > 0 && (
+                            <span className="flex items-center gap-1 text-destructive/80">
+                              <span className="inline-block h-1.5 w-1.5 rounded-full bg-destructive/60" />
+                              {r.declined_count} fora
+                            </span>
+                          )}
+                          {r.waiting_count > 0 && (
+                            <span className="flex items-center gap-1 text-warning">
+                              <span className="inline-block h-1.5 w-1.5 rounded-full bg-warning" />
+                              {r.waiting_count} fila
+                            </span>
+                          )}
+                          {!open && openDate && (
+                            <span className="text-muted-foreground/70 truncate">
+                              · Lista abre {formatPresenceOpenDate(openDate)}
                             </span>
                           )}
                         </div>
                       </div>
 
-                      <div className="shrink-0 flex flex-col items-end gap-0.5 min-w-[68px]">
-                        <p className="font-display text-xs font-bold text-foreground tabular-nums">
+                      {/* Quick confirm button */}
+                      {canQuickConfirm && (
+                        <button
+                          onClick={(e) => handleQuickConfirm(e, r)}
+                          className="hidden xl:flex shrink-0 items-center gap-1 rounded-full bg-primary px-3 py-1.5 text-[11px] font-semibold text-primary-foreground transition-all hover:bg-primary/90 active:scale-95"
+                        >
+                          ✓ Confirmar
+                        </button>
+                      )}
+
+                      <div className="shrink-0 flex flex-col items-end gap-1 min-w-[72px]">
+                        <p className="font-display text-sm font-bold text-foreground tabular-nums leading-none">
                           {r.confirmed_count}/{r.max_players}
                         </p>
-                        <div className="h-1 w-14 rounded-full bg-muted overflow-hidden">
+                        <div className="h-1.5 w-16 rounded-full bg-muted overflow-hidden">
                           <div
                             className={`h-full ${fillPct >= 100 ? "bg-success" : fillPct >= 50 ? "bg-primary" : "bg-warning"}`}
                             style={{ width: `${fillPct}%` }}
                           />
                         </div>
                         {r.my_status === "confirmed" ? (
-                          <p className="text-[9px] font-semibold text-success leading-none">✓ Confirmado</p>
+                          <p className="text-[10px] font-semibold text-success leading-none">✓ Confirmado</p>
+                        ) : r.my_status === "declined" ? (
+                          <p className="text-[10px] font-semibold text-destructive/80 leading-none">Não vou</p>
                         ) : (
-                          <p className="text-[9px] text-muted-foreground leading-none">Pendente</p>
+                          <p className="text-[10px] text-muted-foreground leading-none">Pendente</p>
                         )}
                       </div>
                     </Link>
