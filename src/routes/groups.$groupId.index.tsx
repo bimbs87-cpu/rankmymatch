@@ -1088,21 +1088,23 @@ function ActiveSeasonRounds({
     : s === "cancelled" ? "bg-destructive/10 text-destructive"
     : "bg-muted text-muted-foreground";
 
-  // Ordenar: realizadas (completed) primeiro pela mais recente; depois próximas em ordem cronológica
-  const sortedRounds = [...rounds].sort((a, b) => {
-    const aDone = a.status === "completed";
-    const bDone = b.status === "completed";
-    if (aDone && !bDone) return -1;
-    if (!aDone && bDone) return 1;
-    const aDate = a.scheduled_date || "";
-    const bDate = b.scheduled_date || "";
-    if (aDone && bDone) {
-      // mais recente primeiro
-      return bDate.localeCompare(aDate);
-    }
-    // próximas: cronológica (mais próxima primeiro)
-    return aDate.localeCompare(bDate);
-  });
+  // Separar em três grupos: recentes (encerradas), próximas (agendadas/em andamento) e canceladas
+  const completedRounds = rounds
+    .filter((r) => r.status === "completed")
+    .sort((a, b) => (b.scheduled_date || "").localeCompare(a.scheduled_date || ""));
+  const upcomingRounds = rounds
+    .filter((r) => r.status !== "completed" && r.status !== "cancelled")
+    .sort((a, b) => (a.scheduled_date || "").localeCompare(b.scheduled_date || ""));
+  const cancelledRounds = rounds
+    .filter((r) => r.status === "cancelled")
+    .sort((a, b) => (b.scheduled_date || "").localeCompare(a.scheduled_date || ""));
+
+  const sectionTitle = (label: string, count: number) => (
+    <div className="mt-4 mb-2 flex items-center gap-2 first:mt-0">
+      <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{label}</h3>
+      <span className="text-[10px] text-muted-foreground/60">({count})</span>
+    </div>
+  );
 
   return (
     <>
@@ -1121,7 +1123,7 @@ function ActiveSeasonRounds({
         </Link>
       </div>
 
-      {sortedRounds.length === 0 ? (
+      {rounds.length === 0 ? (
         <div className="rounded-3xl border border-dashed border-border bg-card/50 p-8">
           <div className="flex flex-col items-center gap-3 text-center">
             <Calendar className="h-10 w-10 text-muted-foreground/40" />
@@ -1132,19 +1134,68 @@ function ActiveSeasonRounds({
           </div>
         </div>
       ) : (
-        sortedRounds.map((r, idx) => (
-          <RoundResultCard
-            key={r.id}
-            round={r}
-            groupId={groupId}
-            seasonId={activeSeason.id}
-            defaultOpen={idx === 0}
-            formatDate={formatDate}
-            statusLabel={statusLabel}
-            statusClass={statusClass}
-            getSmartStatus={getSmartStatus}
-          />
-        ))
+        <>
+          {completedRounds.length > 0 && (
+            <>
+              {sectionTitle("Recentes", completedRounds.length)}
+              <div className="space-y-2">
+                {completedRounds.map((r, idx) => (
+                  <RoundResultCard
+                    key={r.id}
+                    round={r}
+                    groupId={groupId}
+                    seasonId={activeSeason.id}
+                    defaultOpen={idx === 0}
+                    formatDate={formatDate}
+                    statusLabel={statusLabel}
+                    statusClass={statusClass}
+                    getSmartStatus={getSmartStatus}
+                  />
+                ))}
+              </div>
+            </>
+          )}
+          {upcomingRounds.length > 0 && (
+            <>
+              {sectionTitle("Próximas", upcomingRounds.length)}
+              <div className="space-y-2">
+                {upcomingRounds.map((r) => (
+                  <RoundResultCard
+                    key={r.id}
+                    round={r}
+                    groupId={groupId}
+                    seasonId={activeSeason.id}
+                    defaultOpen={false}
+                    formatDate={formatDate}
+                    statusLabel={statusLabel}
+                    statusClass={statusClass}
+                    getSmartStatus={getSmartStatus}
+                  />
+                ))}
+              </div>
+            </>
+          )}
+          {cancelledRounds.length > 0 && (
+            <>
+              {sectionTitle("Canceladas", cancelledRounds.length)}
+              <div className="space-y-2">
+                {cancelledRounds.map((r) => (
+                  <RoundResultCard
+                    key={r.id}
+                    round={r}
+                    groupId={groupId}
+                    seasonId={activeSeason.id}
+                    defaultOpen={false}
+                    formatDate={formatDate}
+                    statusLabel={statusLabel}
+                    statusClass={statusClass}
+                    getSmartStatus={getSmartStatus}
+                  />
+                ))}
+              </div>
+            </>
+          )}
+        </>
       )}
     </>
   );
