@@ -1397,6 +1397,14 @@ export type Database = {
         Args: { _group_id: string; _user_id: string }
         Returns: boolean
       }
+      merge_former_member_into_active: {
+        Args: {
+          _former_user_id: string
+          _group_id: string
+          _target_user_id: string
+        }
+        Returns: undefined
+      }
       merge_placeholder_player: {
         Args: {
           _group_id: string
