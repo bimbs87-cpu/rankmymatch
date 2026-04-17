@@ -93,6 +93,7 @@ interface RecentMatch {
   score_display: string;
   rating_change: number | null;
   created_at: string;
+  match_date: string;
   partner_name: string | null;
   opponent_names: string[];
 }
@@ -291,7 +292,7 @@ function DashboardPage() {
       const [playersRes, roundsRes, setsRes] = await Promise.all([
         supabase.from("match_players").select("match_id, team, user_id").in("match_id", matchIds),
         roundIds.length
-          ? supabase.from("rounds").select("id, round_number, group_id, groups(name)").in("id", [...new Set(roundIds)])
+          ? supabase.from("rounds").select("id, round_number, scheduled_date, group_id, groups(name)").in("id", [...new Set(roundIds)])
           : Promise.resolve({ data: [] }),
         supabase.from("match_sets").select("match_id, score_team_a, score_team_b, set_number").in("match_id", matchIds).order("set_number"),
       ]);
@@ -336,6 +337,7 @@ function DashboardPage() {
             score_display: scoreDisplay,
             rating_change: Number(e.rating_change),
             created_at: e.created_at,
+            match_date: round?.scheduled_date || e.created_at,
             partner_name: shortName(partnerProfile),
             opponent_names: opponentNames,
           };
@@ -1041,10 +1043,10 @@ function DashboardPage() {
                         />
                         <div className="flex flex-col justify-center min-w-[36px]">
                           <p className="font-display text-base font-bold leading-none text-foreground tabular-nums">
-                            {new Date(m.created_at).getDate().toString().padStart(2, "0")}
+                            {(() => { const d = new Date(m.match_date + (m.match_date.length === 10 ? "T12:00:00" : "")); return d.getDate().toString().padStart(2, "0"); })()}
                           </p>
                           <p className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground mt-0.5">
-                            {new Date(m.created_at).toLocaleDateString("pt-BR", { month: "short" }).replace(".", "")}
+                            {(() => { const d = new Date(m.match_date + (m.match_date.length === 10 ? "T12:00:00" : "")); return d.toLocaleDateString("pt-BR", { month: "short" }).replace(".", ""); })()}
                           </p>
                         </div>
                       </div>
@@ -1070,8 +1072,8 @@ function DashboardPage() {
                             const myShort = (nickname?.trim() || displayName?.trim() || "Você").split(/\s+/)[0];
                             const myTeamNames = m.partner_name ? `${myShort} & ${m.partner_name}` : myShort;
                             const oppTeamNames = m.opponent_names.join(" & ");
-                            const winnerClass = "font-bold text-primary [text-shadow:0_0_10px_color-mix(in_oklab,var(--primary)_60%,transparent)]";
-                            const loserClass = "font-medium text-muted-foreground/70 line-through decoration-muted-foreground/40";
+                            const winnerClass = "text-primary [text-shadow:0_0_10px_color-mix(in_oklab,var(--primary)_60%,transparent)]";
+                            const loserClass = "text-muted-foreground/60";
                             return (
                               <>
                                 <span className={won ? winnerClass : loserClass}>{myTeamNames}</span>
