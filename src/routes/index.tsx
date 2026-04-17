@@ -146,6 +146,7 @@ function DashboardPage() {
   const isPulling = useRef(false);
   const { pendingMatch, refresh: refreshPending } = usePendingMatch();
   const [adminGroupIds, setAdminGroupIds] = useState<Set<string>>(new Set());
+  const [groupStats, setGroupStats] = useState<Map<string, { seasons: number; rounds_completed: number; rounds_total: number }>>(new Map());
   const { displayName, nickname, avatarUrl: profileAvatarUrl } = useUserProfile();
 
   // Check which groups user is admin of
@@ -161,6 +162,33 @@ function DashboardPage() {
         setAdminGroupIds(new Set((data || []).map((d) => d.group_id)));
       });
   }, [user, myGroups]);
+
+  // Load per-group stats: seasons count, rounds completed/total
+  useEffect(() => {
+    if (!myGroups.length) {
+      setGroupStats(new Map());
+      return;
+    }
+    const ids = myGroups.map((g) => g.id);
+    (async () => {
+      const [seasonsRes, roundsRes] = await Promise.all([
+        supabase.from("seasons").select("id, group_id").in("group_id", ids),
+        supabase.from("rounds").select("group_id, status").in("group_id", ids),
+      ]);
+      const stats = new Map<string, { seasons: number; rounds_completed: number; rounds_total: number }>();
+      for (const id of ids) stats.set(id, { seasons: 0, rounds_completed: 0, rounds_total: 0 });
+      for (const s of seasonsRes.data || []) {
+        const cur = stats.get(s.group_id)!;
+        cur.seasons += 1;
+      }
+      for (const r of roundsRes.data || []) {
+        const cur = stats.get(r.group_id)!;
+        cur.rounds_total += 1;
+        if (r.status === "completed") cur.rounds_completed += 1;
+      }
+      setGroupStats(stats);
+    })();
+  }, [myGroups]);
 
   const loadDashboard = useCallback(async () => {
     if (!user) {
@@ -908,29 +936,70 @@ function DashboardPage() {
               <CardSpinner label="Carregando grupos" />
             </div>
           ) : myGroups.length > 0 ? (
-            <div className="space-y-2">
-              {myGroups.slice(0, 3).map((g) => (
-                <Link
-                  key={g.id}
-                  to="/groups/$groupId"
-                  params={{ groupId: g.id }}
-                  className="flex items-center justify-between rounded-2xl border border-border bg-card p-3.5 transition-colors active:bg-accent/30"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-muted">
-                      <Users className="h-4 w-4 text-muted-foreground" />
+            <div className="grid grid-cols-2 gap-2.5">
+              {myGroups.slice(0, 4).map((g) => {
+                const stats = groupStats.get(g.id) || { seasons: 0, rounds_completed: 0, rounds_total: 0 };
+                const remaining = Math.max(0, stats.rounds_total - stats.rounds_completed);
+                return (
+                  <Link
+                    key={g.id}
+                    to="/groups/$groupId"
+                    params={{ groupId: g.id }}
+                    className="group relative aspect-square overflow-hidden rounded-2xl border border-border bg-card transition-transform active:scale-[0.98]"
+                  >
+                    {/* Background image */}
+                    {g.image_url ? (
+                      <img
+                        src={g.image_url}
+                        alt=""
+                        className="absolute inset-0 h-full w-full object-cover"
+                        loading="lazy"
+                      />
+                    ) : (
+                      <div className="absolute inset-0 bg-gradient-to-br from-primary/30 via-primary/10 to-muted" />
+                    )}
+                    {/* Contrast overlay */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/45 to-black/20" />
+
+                    {/* Top: privacy badge */}
+                    <div className="absolute right-2 top-2">
+                      <span className="flex h-6 w-6 items-center justify-center rounded-full bg-black/40 backdrop-blur-sm">
+                        {g.is_public ? (
+                          <Globe className="h-3 w-3 text-white" />
+                        ) : (
+                          <Lock className="h-3 w-3 text-white" />
+                        )}
+                      </span>
                     </div>
-                    <div>
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-sm font-semibold text-foreground">{g.name}</span>
-                        {g.is_public ? <Globe className="h-3 w-3 text-muted-foreground" /> : <Lock className="h-3 w-3 text-muted-foreground" />}
+
+                    {/* Bottom: info */}
+                    <div className="absolute inset-x-0 bottom-0 p-2.5 text-white">
+                      <h3 className="font-display text-sm font-bold leading-tight drop-shadow-md line-clamp-2">
+                        {g.name}
+                      </h3>
+                      <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] font-medium text-white/90">
+                        <span className="flex items-center gap-0.5">
+                          <Users className="h-2.5 w-2.5" />
+                          {g.member_count}
+                        </span>
+                        <span className="flex items-center gap-0.5">
+                          <Trophy className="h-2.5 w-2.5" />
+                          {stats.seasons}
+                        </span>
+                        <span className="flex items-center gap-0.5">
+                          <Calendar className="h-2.5 w-2.5" />
+                          {stats.rounds_completed}/{stats.rounds_total}
+                        </span>
                       </div>
-                      <p className="text-[11px] text-muted-foreground">{g.member_count} membros</p>
+                      {remaining > 0 && (
+                        <p className="mt-0.5 text-[9px] text-white/70">
+                          {remaining} rodada{remaining > 1 ? "s" : ""} restante{remaining > 1 ? "s" : ""}
+                        </p>
+                      )}
                     </div>
-                  </div>
-                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                </Link>
-              ))}
+                  </Link>
+                );
+              })}
             </div>
           ) : (
             <div className="rounded-3xl border border-border bg-card p-5">
