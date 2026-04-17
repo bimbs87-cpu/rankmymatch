@@ -55,6 +55,7 @@ import {
   UserCheck,
   Settings2,
   Pencil,
+  GitMerge,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
