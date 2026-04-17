@@ -77,13 +77,16 @@ interface RecentMatch {
   partner_name: string | null;
 }
 
-interface MyRanking {
+interface RankingOption {
+  season_id: string;
+  season_name: string;
   rating: number;
   position: number | null;
   matches_played: number;
   matches_won: number;
-  season_name: string;
   last_change: number | null;
+  last_events: number[];
+  last_event_at: string | null;
 }
 
 function DashboardPage() {
