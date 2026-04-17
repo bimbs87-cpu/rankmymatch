@@ -274,11 +274,8 @@ function HistoryPage() {
             {/* Column headers */}
             <div className="flex items-center gap-2 border-b border-border bg-muted/20 px-3 py-1.5 text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">
               <span className="w-6 flex-shrink-0" />
-              <span className="w-9 flex-shrink-0">Data</span>
-              <div className="min-w-0 flex-1 text-center">
-                Parceiro <span className="opacity-60">vs</span> Adversários
-              </div>
-              <span className="w-12 flex-shrink-0 text-center">Sets</span>
+              <span className="w-10 flex-shrink-0">Data</span>
+              <div className="min-w-0 flex-1">Confronto</div>
               <span className="w-10 flex-shrink-0 text-right">Elo</span>
             </div>
             {filteredMatches.map((match, idx) => {
@@ -294,13 +291,17 @@ function HistoryPage() {
               const oppStr = match.opponents.length
                 ? match.opponents.map((o) => shortName(o.name)).join(" & ")
                 : "—";
-              // Aggregate sets won x lost from my perspective
-              const setsWon = match.sets.filter((s) =>
-                match.myTeam === "A" ? s.scoreA > s.scoreB : s.scoreB > s.scoreA,
-              ).length;
-              const setsLost = match.sets.filter((s) =>
-                match.myTeam === "A" ? s.scoreB > s.scoreA : s.scoreA > s.scoreB,
-              ).length;
+              // Games per set from my perspective (e.g. "6x3 4x6 7x5")
+              const gamesStr =
+                match.sets.length > 0
+                  ? match.sets
+                      .map((s) =>
+                        match.myTeam === "A"
+                          ? `${s.scoreA}x${s.scoreB}`
+                          : `${s.scoreB}x${s.scoreA}`,
+                      )
+                      .join(" · ")
+                  : "—";
               return (
                 <button
                   key={match.id}
@@ -310,7 +311,7 @@ function HistoryPage() {
                   }`}
                 >
                   <span
-                    className={`flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-md text-[10px] font-bold ${
+                    className={`flex h-7 w-6 flex-shrink-0 items-center justify-center rounded-md text-[10px] font-bold ${
                       won
                         ? "bg-success/10 text-success"
                         : lost
@@ -320,21 +321,25 @@ function HistoryPage() {
                   >
                     {won ? "V" : lost ? "D" : "—"}
                   </span>
-                  <span className="w-9 flex-shrink-0 text-[10px] text-muted-foreground">{dateStr}</span>
-                  <div className="min-w-0 flex-1 text-center text-[11px] leading-tight text-foreground">
-                    <span className="truncate">
+                  <span className="w-10 flex-shrink-0 text-[10px] text-muted-foreground">{dateStr}</span>
+                  <div className="min-w-0 flex-1 leading-tight">
+                    <div className="truncate text-[11px] font-medium text-foreground">
                       {partnerStr} <span className="text-muted-foreground">vs</span> {oppStr}
-                    </span>
+                    </div>
+                    <div
+                      className={`truncate text-[10px] tabular-nums ${
+                        won
+                          ? "text-success"
+                          : lost
+                          ? "text-destructive"
+                          : "text-muted-foreground"
+                      }`}
+                    >
+                      {gamesStr}
+                    </div>
                   </div>
                   <span
-                    className={`w-12 flex-shrink-0 text-center text-[11px] font-bold tabular-nums ${
-                      won ? "text-success" : lost ? "text-destructive" : "text-muted-foreground"
-                    }`}
-                  >
-                    {match.sets.length > 0 ? `${setsWon}-${setsLost}` : "—"}
-                  </span>
-                  <span
-                    className={`flex w-10 flex-shrink-0 items-center justify-end gap-0.5 text-[10px] font-bold ${
+                    className={`flex w-10 flex-shrink-0 items-center justify-end gap-0.5 text-[11px] font-bold ${
                       match.ratingChange > 0
                         ? "text-success"
                         : match.ratingChange < 0
