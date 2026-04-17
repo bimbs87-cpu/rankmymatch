@@ -16,6 +16,7 @@ import { useGroupSeasons, useSeasonRounds } from "@/hooks/use-seasons";
 import type { Tables } from "@/integrations/supabase/types";
 import { supabase } from "@/integrations/supabase/client";
 import { isRivalryGroup } from "@/lib/rivalry";
+import { buildDisplayNames } from "@/lib/name-disambiguation";
 import {
   useGroupDetail,
   joinGroup,
@@ -1204,10 +1205,28 @@ function RoundResultCard({
     return () => { cancelled = true; };
   }, [open, matches, r.id, isCancelled]);
 
+  // Build disambiguated display names for all players in this round (first name only when unique)
+  const displayNames = (() => {
+    if (!matches) return new Map<string, string>();
+    const seen = new Map<string, { id: string; name: string; nickname?: string | null }>();
+    for (const m of matches) {
+      for (const mp of m.match_players || []) {
+        if (!seen.has(mp.user_id)) {
+          seen.set(mp.user_id, {
+            id: mp.user_id,
+            name: mp.profile?.name || "Jogador",
+            nickname: mp.profile?.nickname || null,
+          });
+        }
+      }
+    }
+    return buildDisplayNames([...seen.values()]);
+  })();
+
   const teamPlayers = (m: any, team: "A" | "B") =>
     (m.match_players || [])
       .filter((mp: any) => mp.team === team)
-      .map((mp: any) => mp.profile?.nickname || mp.profile?.name || "?")
+      .map((mp: any) => displayNames.get(mp.user_id) || mp.profile?.nickname || mp.profile?.name || "?")
       .join(" / ");
 
   const smartStatus = getSmartStatus(r);
