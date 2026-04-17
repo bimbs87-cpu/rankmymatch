@@ -144,10 +144,15 @@ function HistoryPage() {
           null;
         const groupName = groupId ? (groupMap.get(groupId) || "Grupo") : "Sem grupo";
 
+        const matchDate =
+          (match?.round_id ? (roundDateMap.get(match.round_id) as string | undefined) : undefined) ||
+          match?.created_at ||
+          event.created_at;
+
         return {
           id: event.match_id + event.created_at,
           matchId: event.match_id,
-          date: event.created_at,
+          date: matchDate,
           matchNumber: match?.match_number || null,
           winnerTeam: match?.winner_team || null,
           myTeam,
