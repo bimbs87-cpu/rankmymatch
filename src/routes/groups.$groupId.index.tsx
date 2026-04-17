@@ -692,8 +692,8 @@ function GroupDetailPage() {
               </div>
             )}
 
-            {/* User: Vincular conta */}
-            {isAuthenticated && !isMemberAlready && hasPlaceholders && (
+            {/* User: Vincular conta — only show inline here for active members (non-members see square card at top) */}
+            {isAuthenticated && isMemberAlready && hasPlaceholders && (
               <button
                 onClick={() => setClaimOpen(true)}
                 className="flex w-full items-center justify-center gap-2 rounded-2xl border border-primary/30 bg-primary/5 p-3 text-sm font-medium text-primary transition-colors active:bg-primary/10"
