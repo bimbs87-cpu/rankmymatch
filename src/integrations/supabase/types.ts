@@ -312,6 +312,8 @@ export type Database = {
       }
       group_join_requests: {
         Row: {
+          claimed_player_id: string | null
+          claimed_player_kind: string | null
           created_at: string
           group_id: string
           id: string
@@ -322,6 +324,8 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          claimed_player_id?: string | null
+          claimed_player_kind?: string | null
           created_at?: string
           group_id: string
           id?: string
@@ -332,6 +336,8 @@ export type Database = {
           user_id: string
         }
         Update: {
+          claimed_player_id?: string | null
+          claimed_player_kind?: string | null
           created_at?: string
           group_id?: string
           id?: string
@@ -455,6 +461,7 @@ export type Database = {
           sport: string
           status: string
           updated_at: string
+          visibility: string
         }
         Insert: {
           created_at?: string
@@ -476,6 +483,7 @@ export type Database = {
           sport?: string
           status?: string
           updated_at?: string
+          visibility?: string
         }
         Update: {
           created_at?: string
@@ -497,6 +505,7 @@ export type Database = {
           sport?: string
           status?: string
           updated_at?: string
+          visibility?: string
         }
         Relationships: []
       }
