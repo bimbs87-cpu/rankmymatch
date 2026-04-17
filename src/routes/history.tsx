@@ -3,14 +3,16 @@ import { useAuth } from "@/hooks/use-auth";
 import { TrophyLoadingBar } from "@/components/TrophyLoadingBar";
 import { supabase } from "@/integrations/supabase/client";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ArrowLeft, TrendingUp, TrendingDown, Minus, Swords } from "lucide-react";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
+import { buildDisplayNames, type NameInput } from "@/lib/name-disambiguation";
 
-function shortName(full: string): string {
-  const parts = full.trim().split(/\s+/);
-  if (parts.length === 1) return parts[0];
-  return `${parts[0]} ${parts[parts.length - 1][0]}.`;
+interface PlayerRef {
+  user_id: string;
+  name: string;
+  nickname: string | null;
+  avatar_url: string | null;
 }
 
 interface MatchHistory {
@@ -23,8 +25,8 @@ interface MatchHistory {
   ratingBefore: number;
   ratingAfter: number;
   ratingChange: number;
-  teammates: { name: string; avatar_url: string | null }[];
-  opponents: { name: string; avatar_url: string | null }[];
+  teammates: PlayerRef[];
+  opponents: PlayerRef[];
   sets: { scoreA: number; scoreB: number }[];
   seasonName: string;
   groupId: string | null;
