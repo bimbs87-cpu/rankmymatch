@@ -188,8 +188,8 @@ export function JoinGroupDialog({
       >
         <div className="flex items-center gap-2.5 min-w-0">
           <PlayerAvatar
-            avatarUrl={p.avatar_url}
-            name={p.name}
+            avatarUrl={p.kind === "former" ? null : p.avatar_url}
+            name={p.kind === "former" ? "?" : p.name}
             size="md"
             dimmed={p.kind === "former"}
             className="border border-border"
