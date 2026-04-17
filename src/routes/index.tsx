@@ -33,7 +33,17 @@ import {
   TrendingDown,
   Minus,
   Pencil,
+  Loader2,
 } from "lucide-react";
+
+function CardSpinner({ label = "Carregando..." }: { label?: string }) {
+  return (
+    <div className="flex flex-col items-center justify-center gap-2 py-2">
+      <Loader2 className="h-6 w-6 animate-spin text-primary" />
+      <p className="text-[10px] text-muted-foreground">{label}</p>
+    </div>
+  );
+}
 
 export const Route = createFileRoute("/")({
   component: DashboardPage,
