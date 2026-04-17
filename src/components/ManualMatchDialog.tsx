@@ -671,7 +671,12 @@ export function ManualMatchDialog({ roundId, groupId, matchFormat = "doubles", o
 
                     {/* Teams + Score */}
                     <div className="flex items-center gap-3">
-                      <TeamLabel players={mu.teamA} side="left" />
+                      <TeamLabelWithElo
+                        players={mu.teamA}
+                        side="left"
+                        delta={eloPreview.perMatch[idx]?.delta || {}}
+                        showDelta={!!winner && !isTied}
+                      />
 
                       <div className="flex items-center gap-2 mx-auto">
                         <div className="flex flex-col items-center gap-1.5">
@@ -721,7 +726,12 @@ export function ManualMatchDialog({ roundId, groupId, matchFormat = "doubles", o
                         </div>
                       </div>
 
-                      <TeamLabel players={mu.teamB} side="right" />
+                      <TeamLabelWithElo
+                        players={mu.teamB}
+                        side="right"
+                        delta={eloPreview.perMatch[idx]?.delta || {}}
+                        showDelta={!!winner && !isTied}
+                      />
                     </div>
                   </div>
                 );
@@ -752,6 +762,10 @@ export function ManualMatchDialog({ roundId, groupId, matchFormat = "doubles", o
                       const posChange = ranking?.prevPosition && ranking?.position
                         ? ranking.prevPosition - ranking.position
                         : null;
+                      const totalDelta = eloPreview.totals[uid] ?? 0;
+                      const projectedRating = (ranking?.rating ?? 1000) + totalDelta;
+                      const positiveDelta = totalDelta > 0;
+                      const negativeDelta = totalDelta < 0;
                       return (
                         <div
                           key={uid}
@@ -776,8 +790,15 @@ export function ManualMatchDialog({ roundId, groupId, matchFormat = "doubles", o
                               )}
                             </div>
                             {ranking && (
-                              <span className="text-[10px] text-muted-foreground">
-                                {Math.round(ranking.rating)} Elo
+                              <span className="flex items-center gap-1.5 text-[10px] text-muted-foreground tabular-nums">
+                                <span>{Math.round(ranking.rating)} → {Math.round(projectedRating)} Elo</span>
+                                <span
+                                  className={`font-bold ${
+                                    positiveDelta ? "text-success" : negativeDelta ? "text-destructive" : "text-muted-foreground"
+                                  }`}
+                                >
+                                  {formatEloDelta(totalDelta)}
+                                </span>
                               </span>
                             )}
                           </div>
