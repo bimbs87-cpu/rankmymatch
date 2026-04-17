@@ -135,8 +135,8 @@ export function usePublicGroups(search: string) {
         let query = supabase
           .from("groups")
           .select("*")
-          .eq("is_public", true)
           .eq("status", "active")
+          .neq("visibility", "hidden")
           .order("created_at", { ascending: false })
           .limit(20);
 
