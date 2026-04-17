@@ -5,6 +5,7 @@ import { InviteLinkDialog } from "@/components/InviteLinkDialog";
 import { PendingMatchCard } from "@/components/PendingMatchCard";
 import { AddPlaceholderPlayerDialog } from "@/components/AddPlaceholderPlayerDialog";
 import { ClaimPlayerDialog } from "@/components/ClaimPlayerDialog";
+import { MergeMembersDialog } from "@/components/MergeMembersDialog";
 import { PlayerClaimsManager } from "@/components/PlayerClaimsManager";
 import { SearchUserDialog } from "@/components/SearchUserDialog";
 import { JoinGroupDialog } from "@/components/JoinGroupDialog";
@@ -54,6 +55,7 @@ import {
   UserCheck,
   Settings2,
   Pencil,
+  GitMerge,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
@@ -84,6 +86,7 @@ function GroupDetailPage() {
   const [renamingUserId, setRenamingUserId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
   const [renameSaving, setRenameSaving] = useState(false);
+  const [mergeFormerMember, setMergeFormerMember] = useState<typeof members[number] | null>(null);
   const { seasons, isLoading: seasonsLoading } = useGroupSeasons(groupId);
 
   const handleStartRename = (userId: string, currentName: string) => {
@@ -361,6 +364,15 @@ function GroupDetailPage() {
         onOpenChange={setInviteOpen}
         groupId={groupId}
         isAdmin={isAdmin}
+      />
+
+      <MergeMembersDialog
+        open={!!mergeFormerMember}
+        onOpenChange={(o) => { if (!o) setMergeFormerMember(null); }}
+        groupId={groupId}
+        formerMember={mergeFormerMember as any}
+        activeMembers={activeMembers as any}
+        onMerged={() => { setMergeFormerMember(null); refresh(); }}
       />
 
       {/* Leave Group Dialog */}
@@ -657,13 +669,22 @@ function GroupDetailPage() {
                               </button>
                             </div>
                           ) : (
-                            <button
-                              onClick={() => handleStartRename(m.user_id, m.profile?.name || "")}
-                              className="rounded-lg bg-muted p-1.5 text-muted-foreground hover:text-foreground"
-                              title="Renomear ex-membro"
-                            >
-                              <Pencil className="h-3 w-3" />
-                            </button>
+                            <div className="flex gap-1">
+                              <button
+                                onClick={() => setMergeFormerMember(m)}
+                                className="rounded-lg bg-primary/10 p-1.5 text-primary hover:bg-primary/20"
+                                title="Mesclar com membro ativo"
+                              >
+                                <GitMerge className="h-3 w-3" />
+                              </button>
+                              <button
+                                onClick={() => handleStartRename(m.user_id, m.profile?.name || "")}
+                                className="rounded-lg bg-muted p-1.5 text-muted-foreground hover:text-foreground"
+                                title="Renomear ex-membro"
+                              >
+                                <Pencil className="h-3 w-3" />
+                              </button>
+                            </div>
                           )
                         )}
                         {!isFormer && isAdmin && m.user_id !== user?.id && m.role !== "creator" && (
