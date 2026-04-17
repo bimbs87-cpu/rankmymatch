@@ -263,6 +263,8 @@ function DashboardPage() {
       .eq("user_id", user.id)
       .order("created_at", { ascending: false })
       .limit(8);
+
+    if (events?.length) {
       const matchIds = events.map((e: any) => e.match_id);
       const roundIds = events.map((e: any) => (e.matches as any)?.round_id).filter(Boolean);
 
