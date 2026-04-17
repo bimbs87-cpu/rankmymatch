@@ -34,7 +34,18 @@ import {
   Minus,
   Pencil,
   Loader2,
+  Home,
+  User as UserIcon,
+  Crown,
 } from "lucide-react";
+
+const DESKTOP_NAV = [
+  { to: "/" as const, icon: Home, label: "Início" },
+  { to: "/profile" as const, icon: UserIcon, label: "Perfil" },
+  { to: "/ranking" as const, icon: Crown, label: "Ranking" },
+  { to: "/groups" as const, icon: Users, label: "Grupos" },
+  { to: "/notifications" as const, icon: Bell, label: "Alertas" },
+];
 
 function CardSpinner({ label = "Carregando..." }: { label?: string }) {
   return (
