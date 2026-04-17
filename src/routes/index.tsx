@@ -80,6 +80,9 @@ interface RecentMatch {
 interface RankingOption {
   season_id: string;
   season_name: string;
+  group_name: string;
+  rounds_completed: number;
+  rounds_total: number;
   rating: number;
   position: number | null;
   matches_played: number;
