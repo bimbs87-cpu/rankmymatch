@@ -331,10 +331,30 @@ export async function joinGroup(groupId: string, userId: string, isPublic: boole
 }
 
 export async function approveJoinRequest(requestId: string, groupId: string, userId: string, adminId: string) {
+  // Load the request to check if it claims an existing player
+  const { data: req } = await supabase
+    .from("group_join_requests")
+    .select("claimed_player_id, claimed_player_kind")
+    .eq("id", requestId)
+    .maybeSingle();
+
   await supabase
     .from("group_join_requests")
     .update({ status: "approved", resolved_by: adminId, resolved_at: new Date().toISOString() })
     .eq("id", requestId);
+
+  const claimedId = (req as any)?.claimed_player_id as string | null;
+  if (claimedId) {
+    // Merge placeholder/former player history into the new user
+    const { error: mergeErr } = await supabase.rpc("merge_placeholder_player", {
+      _placeholder_user_id: claimedId,
+      _real_user_id: userId,
+      _group_id: groupId,
+    });
+    if (mergeErr) throw mergeErr;
+    // merge_placeholder_player already creates/activates the group_members row
+    return;
+  }
 
   await supabase.from("group_members").insert({
     group_id: groupId,
