@@ -90,6 +90,8 @@ interface RankingOption {
   last_change: number | null;
   last_events: number[];
   last_event_at: string | null;
+  // Total games (a + b) for each of the user's last up to 3 sets, oldest -> newest
+  last_set_games: number[];
 }
 
 function DashboardPage() {
@@ -294,7 +296,7 @@ function DashboardPage() {
           .eq("user_id", user.id),
         supabase
           .from("rating_events")
-          .select("season_id, rating_change, created_at")
+          .select("season_id, match_id, rating_change, created_at")
           .in("season_id", seasonIds)
           .eq("user_id", user.id)
           .order("created_at", { ascending: false }),
@@ -306,10 +308,10 @@ function DashboardPage() {
 
       const groupNameMap = new Map(myGroups.map((g: any) => [g.id, g.name]));
       const seasonMap = new Map(seasonsList.map((s: any) => [s.id, s]));
-      const eventsBySeason = new Map<string, { rating_change: number; created_at: string }[]>();
+      const eventsBySeason = new Map<string, { rating_change: number; created_at: string; match_id: string }[]>();
       for (const e of eventsRes.data || []) {
         const arr = eventsBySeason.get(e.season_id!) || [];
-        arr.push({ rating_change: Number(e.rating_change), created_at: e.created_at });
+        arr.push({ rating_change: Number(e.rating_change), created_at: e.created_at, match_id: e.match_id });
         eventsBySeason.set(e.season_id!, arr);
       }
       // rounds: completed count + total count per season
@@ -321,13 +323,43 @@ function DashboardPage() {
         roundsBySeason.set(r.season_id!, cur);
       }
 
+      // Fetch sets for the last up to 3 matches (per season) of the user
+      const recentMatchIds = new Set<string>();
+      for (const arr of eventsBySeason.values()) {
+        for (const ev of arr.slice(0, 3)) recentMatchIds.add(ev.match_id);
+      }
+      let setsByMatch = new Map<string, { score_team_a: number; score_team_b: number; set_number: number }[]>();
+      if (recentMatchIds.size) {
+        const { data: setsData } = await supabase
+          .from("match_sets")
+          .select("match_id, score_team_a, score_team_b, set_number")
+          .in("match_id", [...recentMatchIds])
+          .order("set_number");
+        for (const s of setsData || []) {
+          const arr = setsByMatch.get(s.match_id) || [];
+          arr.push(s as any);
+          setsByMatch.set(s.match_id, arr);
+        }
+      }
+
       const opts: RankingOption[] = (snapsRes.data || [])
         .map((snap: any) => {
           const season = seasonMap.get(snap.season_id) as any;
           const evs = eventsBySeason.get(snap.season_id) || [];
           const last3 = evs.slice(0, 3).reverse().map((e) => e.rating_change);
+          // Last 3 sets: take sets from most recent matches (oldest -> newest)
+          const recentMatches = evs.slice(0, 3); // newest first
+          const allSets: number[] = [];
+          for (const ev of recentMatches) {
+            const sets = setsByMatch.get(ev.match_id) || [];
+            for (const s of sets) {
+              allSets.push((s.score_team_a || 0) + (s.score_team_b || 0));
+            }
+          }
+          // allSets is currently newest match -> oldest match (within match it's set_number asc).
+          // Reverse to chronological-ish (oldest first), then take last 3.
+          const lastSetGames = allSets.reverse().slice(-3);
           const roundCounts = roundsBySeason.get(snap.season_id) || { completed: 0, total: 0 };
-          // Prefer season.total_rounds if defined (planned total), else fall back to created rounds
           const plannedTotal = season?.total_rounds ?? roundCounts.total;
           return {
             season_id: snap.season_id,
@@ -342,6 +374,7 @@ function DashboardPage() {
             last_change: evs[0] ? evs[0].rating_change : null,
             last_events: last3,
             last_event_at: evs[0]?.created_at || season?.updated_at || null,
+            last_set_games: lastSetGames,
           };
         })
         .sort((a, b) => {
@@ -442,42 +475,45 @@ function DashboardPage() {
     return `${n}º`;
   };
 
-  // Build a compact sparkline (SVG) showing variation across last 3 events
-  const renderSparkline = (events: number[]) => {
-    if (!events || events.length === 0) return null;
-    // Cumulative deltas anchored at 0
-    const cum: number[] = [];
-    let acc = 0;
-    cum.push(0);
-    for (const e of events) {
-      acc += e;
-      cum.push(acc);
-    }
-    const w = 70;
-    const h = 22;
-    const min = Math.min(...cum);
-    const max = Math.max(...cum);
-    const range = Math.max(1, max - min);
-    const stepX = w / Math.max(1, cum.length - 1);
-    const points = cum
-      .map((v, i) => {
-        const x = i * stepX;
-        const y = h - ((v - min) / range) * h;
-        return `${x.toFixed(1)},${y.toFixed(1)}`;
-      })
-      .join(" ");
-    const last = cum[cum.length - 1];
-    const stroke = last > 0 ? "var(--success)" : last < 0 ? "var(--destructive)" : "var(--muted-foreground)";
+  // Compact bar chart: total games (a+b) of the user's last up to 3 sets, with value labels
+  const renderGamesBars = (games: number[]) => {
+    if (!games || games.length === 0) return null;
+    const w = 78;
+    const h = 30;
+    const n = games.length;
+    const gap = 4;
+    const barW = (w - gap * (n - 1)) / n;
+    const maxVal = Math.max(...games, 1);
     return (
       <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} className="overflow-visible">
-        <polyline
-          points={points}
-          fill="none"
-          stroke={stroke}
-          strokeWidth={1.5}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
+        {games.map((g, i) => {
+          const barH = Math.max(3, (g / maxVal) * (h - 10));
+          const x = i * (barW + gap);
+          const y = h - barH;
+          return (
+            <g key={i}>
+              <rect
+                x={x}
+                y={y}
+                width={barW}
+                height={barH}
+                rx={1.5}
+                fill="var(--primary)"
+                opacity={0.85}
+              />
+              <text
+                x={x + barW / 2}
+                y={y - 2}
+                textAnchor="middle"
+                fontSize="8"
+                fontWeight="700"
+                fill="var(--foreground)"
+              >
+                {g}
+              </text>
+            </g>
+          );
+        })}
       </svg>
     );
   };
@@ -588,12 +624,19 @@ function DashboardPage() {
                 to="/ranking"
                 className="flex flex-1 flex-col"
               >
-                {/* Position + sparkline */}
+                {/* Position + games bar chart */}
                 <div className="mt-1 flex items-end justify-between gap-2">
                   <span className="font-display text-3xl font-bold leading-none text-primary">
                     {ordinalSuffix(currentRanking.position)}
                   </span>
-                  <div className="opacity-90">{renderSparkline(currentRanking.last_events)}</div>
+                  {currentRanking.last_set_games.length > 0 && (
+                    <div className="flex flex-col items-end">
+                      <span className="text-[8px] uppercase tracking-wider text-muted-foreground/70 leading-none">
+                        Games (últ. {currentRanking.last_set_games.length} set{currentRanking.last_set_games.length > 1 ? "s" : ""})
+                      </span>
+                      <div className="mt-0.5">{renderGamesBars(currentRanking.last_set_games)}</div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Elo */}
