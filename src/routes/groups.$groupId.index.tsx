@@ -497,7 +497,7 @@ function GroupDetailPage() {
                       <p className="text-sm font-bold text-foreground truncate max-w-[100px]">
                         {playerA.profile?.nickname || playerA.profile?.name || "Jogador 1"}
                       </p>
-                      {playerA.role === "creator" && <Crown className="mx-auto h-3 w-3 text-rank-gold" />}
+                      {playerA.role === "creator" && <KeyRound className="mx-auto h-3 w-3 text-rank-gold" />}
                     </div>
                   </div>
 
@@ -516,7 +516,7 @@ function GroupDetailPage() {
                       <p className="text-sm font-bold text-foreground truncate max-w-[100px]">
                         {playerB.profile?.nickname || playerB.profile?.name || "Jogador 2"}
                       </p>
-                      {playerB.role === "creator" && <Crown className="mx-auto h-3 w-3 text-rank-gold" />}
+                      {playerB.role === "creator" && <KeyRound className="mx-auto h-3 w-3 text-rank-gold" />}
                     </div>
                   </div>
                 </div>
@@ -609,7 +609,7 @@ function GroupDetailPage() {
                                 {m.profile?.nickname || m.profile?.name || "Jogador"}
                               </span>
                             )}
-                            {!isFormer && m.role === "creator" && <Crown className="h-3 w-3 text-rank-gold flex-shrink-0" />}
+                            {!isFormer && m.role === "creator" && <KeyRound className="h-3 w-3 text-rank-gold flex-shrink-0" />}
                             {!isFormer && m.role === "admin" && <Shield className="h-3 w-3 text-info flex-shrink-0" />}
                             {!isFormer && placeholderUserIds.has(m.user_id) && (
                               <span className="flex items-center gap-0.5 rounded-full bg-muted px-1.5 py-0.5 text-[9px] font-medium text-muted-foreground flex-shrink-0">
