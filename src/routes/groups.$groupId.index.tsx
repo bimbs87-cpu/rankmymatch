@@ -1225,8 +1225,11 @@ function RoundResultCard({
   const [loadingMatches, setLoadingMatches] = useState(false);
   const isCancelled = r.status === "cancelled";
 
+  const isCompleted = r.status === "completed";
+
   useEffect(() => {
-    if (!open || matches !== null || isCancelled) return;
+    // Load eagerly for completed rounds (to show total games in header), or on demand when opening
+    if ((!open && !isCompleted) || matches !== null || isCancelled) return;
     let cancelled = false;
     (async () => {
       setLoadingMatches(true);
