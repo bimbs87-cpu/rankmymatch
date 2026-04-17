@@ -15,6 +15,8 @@ import { PendingMatchCard } from "@/components/PendingMatchCard";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { InstallBanner } from "@/components/InstallBanner";
 import { supabase } from "@/integrations/supabase/client";
+import { isPresenceOpen, getPresenceOpenDate, formatPresenceOpenDate } from "@/lib/presence-schedule";
+import { toast } from "sonner";
 import { useState, useEffect, useCallback, useRef } from "react";
 import {
   Trophy,
