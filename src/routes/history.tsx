@@ -5,6 +5,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { useEffect, useState } from "react";
 import { ArrowLeft, TrendingUp, TrendingDown, Minus, Swords } from "lucide-react";
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
+
+function shortName(full: string): string {
+  const parts = full.trim().split(/\s+/);
+  if (parts.length === 1) return parts[0];
+  return `${parts[0]} ${parts[parts.length - 1][0]}.`;
+}
 
 interface MatchHistory {
   id: string;
@@ -33,6 +40,7 @@ function HistoryPage() {
   const [matches, setMatches] = useState<MatchHistory[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [groupFilter, setGroupFilter] = useState<string>("all");
+  const [selected, setSelected] = useState<MatchHistory | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -244,7 +252,7 @@ function HistoryPage() {
         </div>
       )}
 
-      <div className="space-y-2.5 px-5">
+      <div className="px-5">
         {filteredMatches.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-3xl bg-primary/10">
@@ -254,38 +262,56 @@ function HistoryPage() {
             <p className="mt-1 text-sm text-muted-foreground">Suas partidas aparecerão aqui</p>
           </div>
         ) : (
-          filteredMatches.map((match) => {
-            const won = match.winnerTeam === match.myTeam;
-            const lost = match.winnerTeam && match.winnerTeam !== match.myTeam;
-            const dateStr = new Date(match.date).toLocaleDateString("pt-BR", {
-              day: "2-digit",
-              month: "short",
-            });
-
-            return (
-              <div
-                key={match.id}
-                className="rounded-2xl border border-border bg-card/50 p-4"
-              >
-                <div className="mb-2.5 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span
-                      className={`flex h-7 w-7 items-center justify-center rounded-lg text-xs font-bold ${
-                        won ? "bg-success/10 text-success" : lost ? "bg-destructive/10 text-destructive" : "bg-muted text-muted-foreground"
-                      }`}
-                    >
-                      {won ? "V" : lost ? "D" : "—"}
+          <div className="overflow-hidden rounded-2xl border border-border bg-card/50">
+            {filteredMatches.map((match, idx) => {
+              const won = match.winnerTeam === match.myTeam;
+              const lost = match.winnerTeam && match.winnerTeam !== match.myTeam;
+              const dateStr = new Date(match.date).toLocaleDateString("pt-BR", {
+                day: "2-digit",
+                month: "2-digit",
+              });
+              const partnerStr = match.teammates.length
+                ? match.teammates.map((t) => shortName(t.name)).join(" & ")
+                : "Solo";
+              const oppStr = match.opponents.length
+                ? match.opponents.map((o) => shortName(o.name)).join(" & ")
+                : "—";
+              return (
+                <button
+                  key={match.id}
+                  onClick={() => setSelected(match)}
+                  className={`flex w-full items-center gap-2 px-3 py-2 text-left transition hover:bg-muted/30 ${
+                    idx > 0 ? "border-t border-border" : ""
+                  }`}
+                >
+                  <span
+                    className={`flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-md text-[10px] font-bold ${
+                      won
+                        ? "bg-success/10 text-success"
+                        : lost
+                        ? "bg-destructive/10 text-destructive"
+                        : "bg-muted text-muted-foreground"
+                    }`}
+                  >
+                    {won ? "V" : lost ? "D" : "—"}
+                  </span>
+                  <span className="w-9 flex-shrink-0 text-[10px] text-muted-foreground">{dateStr}</span>
+                  <div className="min-w-0 flex-1 text-[11px] leading-tight text-foreground">
+                    <span className="truncate">
+                      {partnerStr} <span className="text-muted-foreground">vs</span> {oppStr}
                     </span>
-                    <div>
-                      <span className="text-xs font-semibold text-foreground">
-                        {match.seasonName}
-                        {match.matchNumber ? ` · Partida ${match.matchNumber}` : ""}
-                      </span>
-                      <p className="text-[10px] text-muted-foreground">{dateStr}</p>
-                    </div>
                   </div>
-                  <div
-                    className={`flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold ${
+                  {match.sets.length > 0 && (
+                    <span className="hidden flex-shrink-0 text-[10px] font-semibold text-muted-foreground xs:inline">
+                      {match.sets
+                        .map((s) =>
+                          match.myTeam === "A" ? `${s.scoreA}-${s.scoreB}` : `${s.scoreB}-${s.scoreA}`,
+                        )
+                        .join(" ")}
+                    </span>
+                  )}
+                  <span
+                    className={`flex flex-shrink-0 items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-bold ${
                       match.ratingChange > 0
                         ? "bg-success/10 text-success"
                         : match.ratingChange < 0
@@ -294,81 +320,150 @@ function HistoryPage() {
                     }`}
                   >
                     {match.ratingChange > 0 ? (
-                      <TrendingUp className="h-3 w-3" />
+                      <TrendingUp className="h-2.5 w-2.5" />
                     ) : match.ratingChange < 0 ? (
-                      <TrendingDown className="h-3 w-3" />
+                      <TrendingDown className="h-2.5 w-2.5" />
                     ) : (
-                      <Minus className="h-3 w-3" />
+                      <Minus className="h-2.5 w-2.5" />
                     )}
                     {match.ratingChange > 0 ? "+" : ""}
                     {Math.round(match.ratingChange)}
-                  </div>
-                </div>
-
-                {/* Sets */}
-                {match.sets.length > 0 && (
-                  <div className="mb-2.5 flex gap-1.5">
-                    {match.sets.map((s, i) => {
-                      const myScore = match.myTeam === "A" ? s.scoreA : s.scoreB;
-                      const oppScore = match.myTeam === "A" ? s.scoreB : s.scoreA;
-                      const setWon = myScore > oppScore;
-                      return (
-                        <div
-                          key={i}
-                          className={`rounded-lg px-2 py-1 text-xs font-bold ${
-                            setWon ? "bg-success/10 text-success" : "bg-destructive/10 text-destructive"
-                          }`}
-                        >
-                          {myScore}-{oppScore}
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-
-                {/* Players */}
-                <div className="flex items-center gap-3 text-[11px]">
-                  <div className="flex-1">
-                    <span className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                      Parceiro{match.teammates.length > 1 ? "s" : ""}
-                    </span>
-                    <div className="flex items-center gap-1">
-                      {match.teammates.map((t, i) => (
-                        <div key={i} className="flex items-center gap-1">
-                          <PlayerAvatar avatarUrl={t.avatar_url || null} name={t.name} size="xs" />
-                          <span className="text-foreground">{t.name}</span>
-                        </div>
-                      ))}
-                      {match.teammates.length === 0 && <span className="text-muted-foreground">Solo</span>}
-                    </div>
-                  </div>
-                  <div className="text-muted-foreground">vs</div>
-                  <div className="flex-1 text-right">
-                    <span className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                      Adversários
-                    </span>
-                    <div className="flex items-center justify-end gap-1">
-                      {match.opponents.map((o, i) => (
-                        <div key={i} className="flex items-center gap-1">
-                          <span className="text-foreground">{o.name}</span>
-                          <PlayerAvatar avatarUrl={o.avatar_url || null} name={o.name} size="xs" />
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Rating bar */}
-                <div className="mt-2.5 flex items-center justify-between rounded-xl bg-muted/30 px-3 py-1.5 text-[10px] text-muted-foreground">
-                  <span>{Math.round(match.ratingBefore)} →</span>
-                  <span className="font-bold text-foreground">{Math.round(match.ratingAfter)}</span>
-                </div>
-              </div>
-            );
-          })
+                  </span>
+                </button>
+              );
+            })}
+          </div>
         )}
       </div>
 
+      {/* Match details drawer */}
+      <Drawer open={!!selected} onOpenChange={(o) => !o && setSelected(null)}>
+        <DrawerContent>
+          {selected && (
+            <>
+              <DrawerHeader className="text-left">
+                <DrawerTitle className="font-display text-base">
+                  {selected.seasonName}
+                  {selected.matchNumber ? ` · Partida ${selected.matchNumber}` : ""}
+                </DrawerTitle>
+                <p className="text-xs text-muted-foreground">
+                  {selected.groupName} ·{" "}
+                  {new Date(selected.date).toLocaleDateString("pt-BR", {
+                    day: "2-digit",
+                    month: "long",
+                    year: "numeric",
+                  })}
+                </p>
+              </DrawerHeader>
+              <div className="space-y-4 px-4 pb-8">
+                {/* Result + rating change */}
+                <div className="flex items-center justify-between rounded-2xl border border-border bg-card p-3">
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`flex h-9 w-9 items-center justify-center rounded-xl text-sm font-bold ${
+                        selected.winnerTeam === selected.myTeam
+                          ? "bg-success/10 text-success"
+                          : selected.winnerTeam && selected.winnerTeam !== selected.myTeam
+                          ? "bg-destructive/10 text-destructive"
+                          : "bg-muted text-muted-foreground"
+                      }`}
+                    >
+                      {selected.winnerTeam === selected.myTeam
+                        ? "V"
+                        : selected.winnerTeam && selected.winnerTeam !== selected.myTeam
+                        ? "D"
+                        : "—"}
+                    </span>
+                    <div>
+                      <p className="text-xs font-semibold text-foreground">
+                        {selected.winnerTeam === selected.myTeam
+                          ? "Vitória"
+                          : selected.winnerTeam
+                          ? "Derrota"
+                          : "Sem resultado"}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground">
+                        {Math.round(selected.ratingBefore)} → {Math.round(selected.ratingAfter)}
+                      </p>
+                    </div>
+                  </div>
+                  <span
+                    className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold ${
+                      selected.ratingChange > 0
+                        ? "bg-success/10 text-success"
+                        : selected.ratingChange < 0
+                        ? "bg-destructive/10 text-destructive"
+                        : "bg-muted text-muted-foreground"
+                    }`}
+                  >
+                    {selected.ratingChange > 0 ? "+" : ""}
+                    {Math.round(selected.ratingChange)}
+                  </span>
+                </div>
+
+                {/* Sets */}
+                {selected.sets.length > 0 && (
+                  <div>
+                    <span className="mb-1.5 block text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      Sets
+                    </span>
+                    <div className="flex gap-1.5">
+                      {selected.sets.map((s, i) => {
+                        const myScore = selected.myTeam === "A" ? s.scoreA : s.scoreB;
+                        const oppScore = selected.myTeam === "A" ? s.scoreB : s.scoreA;
+                        const setWon = myScore > oppScore;
+                        return (
+                          <div
+                            key={i}
+                            className={`rounded-lg px-3 py-1.5 text-sm font-bold ${
+                              setWon ? "bg-success/10 text-success" : "bg-destructive/10 text-destructive"
+                            }`}
+                          >
+                            {myScore}-{oppScore}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Teams */}
+                <div className="space-y-2">
+                  <div className="rounded-2xl border border-border bg-card p-3">
+                    <span className="mb-1.5 block text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      Sua equipe
+                    </span>
+                    <div className="flex flex-wrap items-center gap-2">
+                      {selected.teammates.length === 0 && (
+                        <span className="text-xs text-muted-foreground">Solo</span>
+                      )}
+                      {selected.teammates.map((t, i) => (
+                        <div key={i} className="flex items-center gap-1.5">
+                          <PlayerAvatar avatarUrl={t.avatar_url || null} name={t.name} size="xs" />
+                          <span className="text-xs text-foreground">{t.name}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="rounded-2xl border border-border bg-card p-3">
+                    <span className="mb-1.5 block text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      Adversários
+                    </span>
+                    <div className="flex flex-wrap items-center gap-2">
+                      {selected.opponents.map((o, i) => (
+                        <div key={i} className="flex items-center gap-1.5">
+                          <PlayerAvatar avatarUrl={o.avatar_url || null} name={o.name} size="xs" />
+                          <span className="text-xs text-foreground">{o.name}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+        </DrawerContent>
+      </Drawer>
     </div>
   );
 }
