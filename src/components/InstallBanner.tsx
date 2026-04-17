@@ -1,6 +1,7 @@
 import { usePwaInstall } from "@/hooks/use-pwa-install";
 import { Download, Share, X, CheckCircle2, Loader2, Smartphone } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { InstallOverlay } from "./InstallOverlay";
 
 type InstallPhase = "idle" | "prompting" | "downloading" | "finalizing" | "success" | "cancelled";
 
@@ -95,6 +96,14 @@ export function InstallBanner() {
   };
 
   return (
+    <>
+      {(isInstalling || phase === "success") && (
+        <InstallOverlay
+          phase={phase as "prompting" | "downloading" | "finalizing" | "success"}
+          progress={progress}
+          phaseLabel={phaseLabel[phase]}
+        />
+      )}
     <div className="mx-4 mb-3 rounded-2xl border border-primary/30 bg-card/95 backdrop-blur-sm p-4 shadow-lg">
       <div className="flex items-start gap-3">
         <div
@@ -203,5 +212,6 @@ export function InstallBanner() {
         </button>
       )}
     </div>
+    </>
   );
 }
