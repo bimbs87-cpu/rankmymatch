@@ -691,46 +691,49 @@ function DashboardPage() {
               <CardSpinner label="Carregando ranking" />
             </div>
           ) : currentRanking ? (
-            <div className="relative flex flex-col rounded-3xl border border-primary/20 bg-primary/5 p-4 min-h-[140px]">
-              <div className="flex items-center justify-between gap-1">
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Seu Ranking</p>
-              </div>
+            <div className="relative flex flex-col rounded-3xl border border-primary/20 bg-primary/5 p-3 min-h-[140px]">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Seu Ranking</p>
 
               <Link
                 to="/ranking"
-                className="relative flex flex-1 flex-col"
+                className="flex flex-1 flex-col"
               >
-                {/* Games bar chart — anchored to the bottom-right, spanning nearly full card height */}
-                {currentRanking.last_set_games.length > 0 && (
-                  <div className="absolute bottom-0 right-0 flex flex-col items-end pointer-events-none">
-                    <span className="mb-1 text-[8px] uppercase tracking-wider text-muted-foreground/70 leading-none">
-                      Games (últ. {currentRanking.last_set_games.length} set{currentRanking.last_set_games.length > 1 ? "s" : ""})
+                {/* Top row: stats on the left, bar chart on the right */}
+                <div className="mt-1 flex flex-1 items-start gap-2">
+                  <div className="flex min-w-0 flex-1 flex-col">
+                    {/* Position */}
+                    <span className="font-display text-3xl font-bold leading-none text-primary">
+                      {ordinalSuffix(currentRanking.position)}
                     </span>
-                    {renderGamesBars(currentRanking.last_set_games, 110)}
+
+                    {/* Elo */}
+                    <p className="mt-1.5 font-display text-sm font-bold text-foreground leading-none">{Math.round(currentRanking.rating)} Elo</p>
+
+                    {/* V-D % ELO */}
+                    <div className="mt-1.5 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[10px] text-muted-foreground">
+                      <span className="font-semibold whitespace-nowrap">{currentRanking.matches_won}V {currentRanking.matches_played - currentRanking.matches_won}D</span>
+                      <span className="whitespace-nowrap">{winRate}%</span>
+                      {currentRanking.last_change !== null && (
+                        <span className={`flex items-center gap-0.5 font-semibold whitespace-nowrap ${currentRanking.last_change > 0 ? "text-success" : currentRanking.last_change < 0 ? "text-destructive" : ""}`}>
+                          {currentRanking.last_change > 0 ? <TrendingUp className="h-3 w-3" /> : currentRanking.last_change < 0 ? <TrendingDown className="h-3 w-3" /> : <Minus className="h-3 w-3" />}
+                          {currentRanking.last_change > 0 ? "+" : ""}{Math.round(currentRanking.last_change)}
+                        </span>
+                      )}
+                    </div>
                   </div>
-                )}
 
-                {/* Position */}
-                <span className="mt-1 font-display text-3xl font-bold leading-none text-primary">
-                  {ordinalSuffix(currentRanking.position)}
-                </span>
-
-                {/* Elo */}
-                <p className="mt-1.5 font-display text-sm font-bold text-foreground">{Math.round(currentRanking.rating)} Elo</p>
-
-                {/* V-D % ELO */}
-                <div className="mt-1 flex items-center gap-2 text-[10px] text-muted-foreground">
-                  <span className="font-semibold">{currentRanking.matches_won}V {currentRanking.matches_played - currentRanking.matches_won}D</span>
-                  <span>{winRate}%</span>
-                  {currentRanking.last_change !== null && (
-                    <span className={`flex items-center gap-0.5 font-semibold ${currentRanking.last_change > 0 ? "text-success" : currentRanking.last_change < 0 ? "text-destructive" : ""}`}>
-                      {currentRanking.last_change > 0 ? <TrendingUp className="h-3 w-3" /> : currentRanking.last_change < 0 ? <TrendingDown className="h-3 w-3" /> : <Minus className="h-3 w-3" />}
-                      {currentRanking.last_change > 0 ? "+" : ""}{Math.round(currentRanking.last_change)}
-                    </span>
+                  {/* Games bar chart — fixed width column */}
+                  {currentRanking.last_set_games.length > 0 && (
+                    <div className="flex shrink-0 flex-col items-end pointer-events-none">
+                      <span className="mb-1 text-[8px] uppercase tracking-wider text-muted-foreground/70 leading-none text-right">
+                        Últ. {currentRanking.last_set_games.length} set{currentRanking.last_set_games.length > 1 ? "s" : ""}
+                      </span>
+                      {renderGamesBars(currentRanking.last_set_games, 70)}
+                    </div>
                   )}
                 </div>
 
-                <p className="mt-auto pt-2 pr-20 text-[9px] text-muted-foreground/60 truncate">
+                <p className="mt-2 text-[9px] text-muted-foreground/60 truncate">
                   {currentRanking.group_name || ""}
                   {currentRanking.rounds_total > 0 ? `, ${currentRanking.rounds_completed}/${currentRanking.rounds_total}` : ""}
                   {currentRanking.season_name ? ` · ${currentRanking.season_name}` : ""}
