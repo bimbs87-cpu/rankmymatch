@@ -102,28 +102,39 @@ export function GroupSettingsForm({
 
       <div>
         <label className="mb-2 block text-xs font-medium text-muted-foreground">Visibilidade</label>
-        <div className="flex gap-2">
+        <div className="grid grid-cols-3 gap-2">
           <button
-            onClick={() => setIsPublic(true)}
-            className={`flex flex-1 items-center justify-center gap-2 rounded-2xl border p-3 text-sm font-medium transition-colors ${
-              isPublic ? "border-primary bg-primary/10 text-primary" : "border-border bg-background text-muted-foreground"
+            onClick={() => setVisibility("public")}
+            className={`flex flex-col items-center justify-center gap-1 rounded-2xl border p-3 text-xs font-medium transition-colors ${
+              visibility === "public" ? "border-primary bg-primary/10 text-primary" : "border-border bg-background text-muted-foreground"
             }`}
           >
             <Globe className="h-4 w-4" />
             Público
           </button>
           <button
-            onClick={() => setIsPublic(false)}
-            className={`flex flex-1 items-center justify-center gap-2 rounded-2xl border p-3 text-sm font-medium transition-colors ${
-              !isPublic ? "border-primary bg-primary/10 text-primary" : "border-border bg-background text-muted-foreground"
+            onClick={() => setVisibility("private")}
+            className={`flex flex-col items-center justify-center gap-1 rounded-2xl border p-3 text-xs font-medium transition-colors ${
+              visibility === "private" ? "border-primary bg-primary/10 text-primary" : "border-border bg-background text-muted-foreground"
             }`}
           >
             <Lock className="h-4 w-4" />
             Privado
           </button>
+          <button
+            onClick={() => setVisibility("hidden")}
+            className={`flex flex-col items-center justify-center gap-1 rounded-2xl border p-3 text-xs font-medium transition-colors ${
+              visibility === "hidden" ? "border-primary bg-primary/10 text-primary" : "border-border bg-background text-muted-foreground"
+            }`}
+          >
+            <EyeOff className="h-4 w-4" />
+            Oculto
+          </button>
         </div>
         <p className="mt-1.5 text-xs text-muted-foreground">
-          {isPublic ? "Qualquer um pode encontrar e entrar." : "Entrada somente por convite ou aprovação."}
+          {visibility === "public" && "Aparece em Explorar e qualquer pessoa pode ver tudo (membros, ranking, temporadas, resultados) antes de entrar."}
+          {visibility === "private" && "Aparece em Explorar mas só membros veem o conteúdo. Entrada por convite ou aprovação."}
+          {visibility === "hidden" && "Não aparece em Explorar. Só entra quem receber o link de convite direto."}
         </p>
       </div>
 
