@@ -791,12 +791,12 @@ function DashboardPage() {
             </div>
           ) : (
             <div className="space-y-1.5">
-              {upcomingRounds.slice(0, 3).map((r) => (
+              {upcomingRounds.slice(0, 6).map((r, idx) => (
                 <Link
                   key={r.id}
                   to="/groups/$groupId/seasons/$seasonId/rounds/$roundId"
                   params={{ groupId: r.group_id, seasonId: r.season_id || "", roundId: r.id }}
-                  className="flex items-center gap-2.5 rounded-xl border border-border bg-card px-3 py-2 transition-colors active:bg-accent/30"
+                  className={`flex items-center gap-2.5 rounded-xl border border-border bg-card px-3 py-2 transition-colors active:bg-accent/30 ${idx >= 3 ? "hidden lg:flex" : ""}`}
                 >
                   <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${
                     r.status === "in_progress" ? "bg-warning/10" : "bg-primary/10"
