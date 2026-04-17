@@ -233,7 +233,7 @@ function HistoryPage() {
   const winRate = filteredMatches.length > 0 ? Math.round((wins / filteredMatches.length) * 100) : 0;
   const totalElo = filteredMatches.reduce((sum, m) => sum + m.ratingChange, 0);
 
-  const groupedByMonth = useMemo(() => {
+  const groupedByMonth = (() => {
     const groups = new Map<string, MatchHistory[]>();
     for (const m of filteredMatches) {
       const d = new Date(m.date);
@@ -246,7 +246,7 @@ function HistoryPage() {
       const label = new Date(year, month, 1).toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
       return { key, label, items };
     });
-  }, [filteredMatches]);
+  })();
 
   return (
     <div className="min-h-screen bg-background pb-28">
