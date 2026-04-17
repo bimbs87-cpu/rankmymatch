@@ -128,7 +128,9 @@ function GroupsIndexPage() {
                       <p className="flex items-start gap-1.5 text-[11px] text-muted-foreground">
                         <Link2 className="mt-0.5 h-3 w-3 flex-shrink-0 text-primary" />
                         <span>
-                          Vinculação solicitada como{" "}
+                          {(group as { pending_kind?: "join_request" | "claim" }).pending_kind === "claim"
+                            ? "Vinculação pendente como "
+                            : "Vinculação solicitada como "}
                           <span className="font-semibold text-foreground">{group.claimed_player_name}</span>
                         </span>
                       </p>
