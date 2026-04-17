@@ -103,8 +103,8 @@ export function PendingMatchCard({ match, onScoreSaved, showGroupName = true, is
           matchId={match.id}
           seasonId={match.season_id}
           matchNumber={match.match_number || 1}
-          teamA={match.teamA.map((p) => ({ name: p.nickname || p.name, avatarUrl: p.avatar_url || undefined }))}
-          teamB={match.teamB.map((p) => ({ name: p.nickname || p.name, avatarUrl: p.avatar_url || undefined }))}
+          teamA={match.teamA.map((p) => ({ name: p.nickname || p.name, avatarUrl: p.avatar_url || undefined, userId: (p as any).user_id }))}
+          teamB={match.teamB.map((p) => ({ name: p.nickname || p.name, avatarUrl: p.avatar_url || undefined, userId: (p as any).user_id }))}
           existingSets={match.existingSets}
           setsPerMatch={match.sets_per_match}
           isSingles={match.group_match_format === "singles"}
