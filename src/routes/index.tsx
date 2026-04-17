@@ -90,6 +90,8 @@ interface RankingOption {
   last_change: number | null;
   last_events: number[];
   last_event_at: string | null;
+  // Total games (a + b) for each of the user's last up to 3 sets, oldest -> newest
+  last_set_games: number[];
 }
 
 function DashboardPage() {
