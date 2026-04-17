@@ -155,7 +155,8 @@ function GroupSeasonsPage() {
         // Dias alternados: weekly cadence from anchor (or today)
         const dates: string[] = [];
         const base = anchor ? parseISODateLocal(anchor) : new Date();
-        if (pastRounds > 0) {
+        // If user provided a start date, it IS round 1 — don't shift.
+        if (!anchor && pastRounds > 0) {
           base.setDate(base.getDate() - pastRounds * 7);
         }
         for (let i = 0; i < totalRounds; i++) {
