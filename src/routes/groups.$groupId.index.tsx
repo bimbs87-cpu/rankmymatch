@@ -156,15 +156,9 @@ function GroupDetailPage() {
 
   const isMember = !!myRole;
 
-  const handleJoin = async () => {
+  const handleJoin = () => {
     if (!user) return;
-    try {
-      await joinGroup(groupId, user.id, group.is_public);
-      toast.success(group.is_public ? "Você entrou no grupo!" : "Solicitação enviada!");
-      refresh();
-    } catch (e: any) {
-      toast.error(e.message?.includes("duplicate") ? "Você já é membro ou já solicitou." : "Erro ao entrar");
-    }
+    setJoinDialogOpen(true);
   };
 
   const handleShareInvite = () => {
