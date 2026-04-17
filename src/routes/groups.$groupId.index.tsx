@@ -1225,8 +1225,11 @@ function RoundResultCard({
   const [loadingMatches, setLoadingMatches] = useState(false);
   const isCancelled = r.status === "cancelled";
 
+  const isCompleted = r.status === "completed";
+
   useEffect(() => {
-    if (!open || matches !== null || isCancelled) return;
+    // Load eagerly for completed rounds (to show total games in header), or on demand when opening
+    if ((!open && !isCompleted) || matches !== null || isCancelled) return;
     let cancelled = false;
     (async () => {
       setLoadingMatches(true);
@@ -1254,7 +1257,19 @@ function RoundResultCard({
       setLoadingMatches(false);
     })();
     return () => { cancelled = true; };
-  }, [open, matches, r.id, isCancelled]);
+  }, [open, matches, r.id, isCancelled, isCompleted]);
+
+  // Total games played in this round (sum of all set scores across all matches)
+  const totalGames = (() => {
+    if (!matches) return null;
+    let total = 0;
+    for (const m of matches) {
+      for (const s of m.match_sets || []) {
+        total += (s.score_team_a || 0) + (s.score_team_b || 0);
+      }
+    }
+    return total;
+  })();
 
   // Build disambiguated display names for all players in this round (first name only when unique)
   const displayNames = (() => {
@@ -1314,6 +1329,11 @@ function RoundResultCard({
               <div className="flex items-center gap-1 text-xs text-muted-foreground">
                 <MapPin className="h-3 w-3" />
                 <span className="truncate">{r.location}</span>
+              </div>
+            )}
+            {isCompleted && totalGames !== null && totalGames > 0 && (
+              <div className="mt-0.5 text-[11px] font-semibold text-primary">
+                {totalGames} games disputados
               </div>
             )}
           </div>
