@@ -73,7 +73,7 @@ async function attachGroupStats<T extends { id: string }>(
 
 export function useMyGroups() {
   const { user } = useAuth();
-  const [groups, setGroups] = useState<(Group & { member_count: number } & GroupStats)[]>([]);
+  const [groups, setGroups] = useState<(Group & { member_count: number; my_role: string | null } & GroupStats)[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const refresh = useCallback(async () => {
