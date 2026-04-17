@@ -22,7 +22,7 @@ export function DesktopNav() {
   const headerName = nickname || displayName || "Você";
 
   return (
-    <header className="hidden lg:block sticky top-0 z-40 -mx-8 px-8 pt-6 pb-3 bg-background/80 backdrop-blur-xl border-b border-border/40">
+    <header className="hidden lg:block z-40 -mx-8 px-8 pt-6 pb-3 bg-background border-b border-border/40">
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-6">
         {/* Left: avatar + name */}
         <Link to="/profile" className="flex items-center gap-3 min-w-0 group">
