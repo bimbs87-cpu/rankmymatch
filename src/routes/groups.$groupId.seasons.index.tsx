@@ -54,7 +54,6 @@ function getUpcomingDates(dayOfWeek: number, count: number, roundsPlayed = 0, st
     current.setDate(current.getDate() + (diff === 0 && current.getHours() >= 12 ? 7 : diff === 0 ? 0 : diff));
     // Without an explicit start date, shift backward to include past rounds
     if (roundsPlayed > 0) {
-      current.setDate(current.getDate) - (roundsPlayed * 7);
       current.setDate(current.getDate() - (roundsPlayed * 7));
     }
   }
