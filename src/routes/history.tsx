@@ -377,8 +377,19 @@ function HistoryPage() {
 
                 <div className="overflow-hidden rounded-2xl border border-border bg-card">
                   {items.map((match, idx) => {
-                    const won = match.winnerTeam === match.myTeam;
-                    const lost = match.winnerTeam && match.winnerTeam !== match.myTeam;
+                    // Derive winner from set scores when winner_team is missing
+                    // (some matches store sets without ever flipping winner_team).
+                    const gamesA = match.sets.reduce((s, x) => s + x.scoreA, 0);
+                    const gamesB = match.sets.reduce((s, x) => s + x.scoreB, 0);
+                    const derivedWinner =
+                      match.winnerTeam ??
+                      (match.sets.length > 0 && gamesA !== gamesB
+                        ? gamesA > gamesB
+                          ? "A"
+                          : "B"
+                        : null);
+                    const won = derivedWinner === match.myTeam;
+                    const lost = derivedWinner != null && derivedWinner !== match.myTeam;
                     const d = new Date(match.date);
                     const dayStr = String(d.getDate()).padStart(2, "0");
                     const monthAbbr = d.toLocaleDateString("pt-BR", { month: "short" }).replace(".", "");
