@@ -102,6 +102,15 @@ export function InstallBanner() {
     }
   };
 
+  const phaseLabel: Record<InstallPhase, string> = {
+    idle: "",
+    prompting: "Confirme no aviso do navegador…",
+    downloading: "Baixando o aplicativo… aguarde",
+    finalizing: "Quase lá… finalizando instalação",
+    success: "Instalado com sucesso!",
+    cancelled: "Instalação cancelada",
+  };
+
   const isInstalling =
     phase === "prompting" || phase === "downloading" || phase === "finalizing";
   const overlayActive = isInstalling || phase === "success";
@@ -110,7 +119,6 @@ export function InstallBanner() {
   // ALWAYS render the overlay — even if the browser flips `isInstalled` to
   // true mid-flow (Android Chrome does this the moment the user accepts the
   // prompt, well before the icon actually appears on the home screen).
-  // Only the overlay matters during install; the banner card is hidden.
   if (overlayActive) {
     return (
       <InstallOverlay
@@ -126,40 +134,19 @@ export function InstallBanner() {
   if (dismissed) return null;
   if (!canInstall && !isIos) return null;
 
-  const phaseLabelLocal = phaseLabel; // keep reference stable below
-  void phaseLabelLocal;
-
   return (
-    <>
     <div className="mx-4 mb-3 rounded-2xl border border-primary/30 bg-card/95 backdrop-blur-sm p-4 shadow-lg">
       <div className="flex items-start gap-3">
-        <div
-          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-colors ${
-            phase === "success" ? "bg-success/15" : "bg-primary/15"
-          }`}
-        >
-          {phase === "success" ? (
-            <CheckCircle2 className="h-5 w-5 text-success" />
-          ) : isInstalling ? (
-            <Loader2 className="h-5 w-5 text-primary animate-spin" />
-          ) : (
-            <Download className="h-5 w-5 text-primary" />
-          )}
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/15">
+          <Download className="h-5 w-5 text-primary" />
         </div>
         <div className="flex-1 min-w-0">
-          <h3 className="text-sm font-semibold text-foreground">
-            {phase === "success" ? "RankMyMatch instalado!" : "Instalar RankMyMatch"}
-          </h3>
-          {phase === "success" ? (
-            <p className="mt-1 text-xs text-muted-foreground">
-              Procure o ícone na sua tela inicial.
-            </p>
-          ) : isInstalling || phase === "cancelled" ? (
-            <p className="mt-1 text-xs text-muted-foreground">{phaseLabel[phase]}</p>
+          <h3 className="text-sm font-semibold text-foreground">Instalar RankMyMatch</h3>
+          {phase === "cancelled" ? (
+            <p className="mt-1 text-xs text-muted-foreground">{phaseLabel.cancelled}</p>
           ) : isIos ? (
             <p className="mt-1 text-xs text-muted-foreground">
-              Toque em{" "}
-              <Share className="inline h-3.5 w-3.5 -mt-0.5" />{" "}
+              Toque em <Share className="inline h-3.5 w-3.5 -mt-0.5" />{" "}
               <span className="font-medium text-foreground">Compartilhar</span> e depois{" "}
               <span className="font-medium text-foreground">"Adicionar à Tela de Início"</span>
             </p>
@@ -169,59 +156,15 @@ export function InstallBanner() {
             </p>
           )}
         </div>
-        {!isInstalling && phase !== "success" && (
-          <button
-            onClick={() => setDismissed(true)}
-            className="shrink-0 p-1 text-muted-foreground hover:text-foreground"
-            aria-label="Dispensar"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        )}
+        <button
+          onClick={() => setDismissed(true)}
+          className="shrink-0 p-1 text-muted-foreground hover:text-foreground"
+          aria-label="Dispensar"
+        >
+          <X className="h-4 w-4" />
+        </button>
       </div>
 
-      {/* Progress UI while installing */}
-      {(isInstalling || phase === "success") && (
-        <div className="mt-3 space-y-2">
-          <div className="h-2 w-full overflow-hidden rounded-full bg-primary/15">
-            <div
-              className={`h-full rounded-full transition-[width,background-color] duration-500 ease-out ${
-                phase === "success" ? "bg-success" : "bg-primary"
-              }`}
-              style={{ width: `${progress}%` }}
-            />
-          </div>
-          <div className="flex items-center justify-between text-[11px]">
-            <span className="font-medium tabular-nums text-muted-foreground">
-              {phase === "success" ? "100%" : `${Math.round(progress)}% — instalando`}
-            </span>
-            {phase === "success" && (
-              <span className="font-semibold text-success">Concluído</span>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Prominent "do not close" warning — sticky during entire install */}
-      {isInstalling && (
-        <div
-          role="alert"
-          className="mt-3 flex items-start gap-2 rounded-xl border-2 border-warning/60 bg-warning/15 p-3 animate-pulse"
-        >
-          <Smartphone className="h-5 w-5 shrink-0 text-warning mt-0.5" />
-          <div className="text-[12px] leading-relaxed text-foreground space-y-1">
-            <p className="font-bold text-warning-foreground">
-              ⚠️ NÃO feche esta aba nem troque de janela
-            </p>
-            <p className="text-[11px] text-muted-foreground">
-              A instalação pode levar até 30 segundos. Aguarde até esta mensagem
-              desaparecer e o ícone aparecer na sua tela inicial.
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* Action button */}
       {canInstall && phase === "idle" && (
         <button
           onClick={handleInstall}
@@ -239,6 +182,5 @@ export function InstallBanner() {
         </button>
       )}
     </div>
-    </>
   );
 }
