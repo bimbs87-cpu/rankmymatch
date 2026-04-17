@@ -535,7 +535,7 @@ function RoundDetailPage() {
           {!rivalry && (
             <div className="flex items-center gap-1.5">
               <Users className="h-3.5 w-3.5" />
-              <span>{confirmedCount}/{displayCapacity} confirmados</span>
+              <span>{effectiveConfirmedCount}/{displayCapacity} confirmados</span>
             </div>
           )}
         </div>
