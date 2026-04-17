@@ -155,8 +155,8 @@ function DashboardPage() {
   const [recentMatches, setRecentMatches] = useState<RecentMatch[]>([]);
   const [rankings, setRankings] = useState<RankingOption[]>([]);
   const [selectedSeasonId, setSelectedSeasonId] = useState<string | null>(null);
-  // History per season for the desktop charts
-  const [historyBySeason, setHistoryBySeason] = useState<Map<string, { date: string; rating: number; position: number | null }[]>>(new Map());
+  // Per-match Elo history per season for the desktop chart
+  const [historyBySeason, setHistoryBySeason] = useState<Map<string, { date: string; rating: number; matchIndex: number }[]>>(new Map());
   const [showRankingPicker, setShowRankingPicker] = useState(false);
   const [dashLoading, setDashLoading] = useState(true);
   const dataLoading = dashLoading || groupsLoading;
@@ -471,20 +471,35 @@ function DashboardPage() {
         return opts[0]?.season_id || null;
       });
 
-      // Load historical snapshots for charts (desktop)
-      const { data: histSnaps } = await supabase
-        .from("ranking_snapshots")
-        .select("season_id, snapshot_date, rating, position")
+      // Build per-match Elo history from rating_events (rich per-match data)
+      const hist = new Map<string, { date: string; rating: number; matchIndex: number }[]>();
+      for (const [sid, evs] of eventsBySeason.entries()) {
+        // evs is newest-first; reverse to chronological (oldest -> newest)
+        const chrono = [...evs].reverse();
+        // We have rating_change per event. To rebuild rating_after we need the base rating.
+        // Fetch rating_after directly from rating_events to be exact.
+        const arr = chrono.map((e, i) => ({
+          date: e.created_at,
+          rating: 0, // placeholder, filled below
+          matchIndex: i + 1,
+        }));
+        hist.set(sid, arr);
+      }
+      // Fetch rating_after for all events of this user (single query)
+      const { data: ratingHist } = await supabase
+        .from("rating_events")
+        .select("season_id, created_at, rating_after")
         .in("season_id", seasonIds)
         .eq("user_id", user.id)
-        .order("snapshot_date", { ascending: true });
-      const hist = new Map<string, { date: string; rating: number; position: number | null }[]>();
-      for (const h of histSnaps || []) {
-        const arr = hist.get(h.season_id) || [];
-        arr.push({ date: h.snapshot_date, rating: Number(h.rating), position: h.position });
-        hist.set(h.season_id, arr);
+        .order("created_at", { ascending: true });
+      const histFinal = new Map<string, { date: string; rating: number; matchIndex: number }[]>();
+      for (const r of ratingHist || []) {
+        if (!r.season_id) continue;
+        const arr = histFinal.get(r.season_id) || [];
+        arr.push({ date: r.created_at, rating: Number(r.rating_after), matchIndex: arr.length + 1 });
+        histFinal.set(r.season_id, arr);
       }
-      setHistoryBySeason(hist);
+      setHistoryBySeason(histFinal);
     } else {
       setRankings([]);
       setSelectedSeasonId(null);
@@ -1320,31 +1335,28 @@ function DashboardPage() {
           </div>
         </section>
 
-        {/* DESKTOP-ONLY: Card de Gráficos — Posição no Ranking + Elo (col esquerda, abaixo do Ranking+CTA) */}
+        {/* DESKTOP-ONLY: Card de Evolução do Elo (col esquerda, abaixo do Ranking+CTA) */}
         <section className="hidden lg:block lg:col-span-4 lg:col-start-1 lg:row-start-2">
           {(() => {
             const history = currentRanking ? historyBySeason.get(currentRanking.season_id) || [] : [];
-            const ratingPoints = history
-              .filter((h) => h.rating != null)
-              .map((h) => ({ label: h.date, value: h.rating }));
-            const positionPoints = history
-              .filter((h) => h.position != null)
-              .map((h) => ({ label: h.date, value: h.position as number }));
+            const ratingPoints = history.map((h) => ({ label: h.date, value: h.rating }));
             const firstRating = ratingPoints[0]?.value;
             const lastRating = ratingPoints[ratingPoints.length - 1]?.value;
-            const ratingDelta = firstRating != null && lastRating != null ? lastRating - firstRating : null;
-            const firstPos = positionPoints[0]?.value;
-            const lastPos = positionPoints[positionPoints.length - 1]?.value;
-            const posDelta = firstPos != null && lastPos != null ? firstPos - lastPos : null; // positive = subiu
+            const ratingDelta =
+              firstRating != null && lastRating != null ? lastRating - firstRating : null;
+            const minRating = ratingPoints.length ? Math.min(...ratingPoints.map((p) => p.value)) : null;
+            const maxRating = ratingPoints.length ? Math.max(...ratingPoints.map((p) => p.value)) : null;
+            const currentPos = currentRanking?.position ?? null;
             return (
               <div className="flex h-full flex-col rounded-3xl border border-border bg-card p-5">
-                <div className="mb-3 flex items-center justify-between">
-                  <div>
+                {/* Header */}
+                <div className="mb-4 flex items-start justify-between">
+                  <div className="min-w-0">
                     <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                      Evolução
+                      Evolução do Elo
                     </h2>
                     {currentRanking && (
-                      <p className="mt-0.5 text-[11px] text-muted-foreground/70 truncate">
+                      <p className="mt-0.5 truncate text-[11px] text-muted-foreground/70">
                         {currentRanking.group_name} · {currentRanking.season_name}
                       </p>
                     )}
@@ -1353,47 +1365,64 @@ function DashboardPage() {
                     Detalhes <ChevronRight className="h-3.5 w-3.5" />
                   </Link>
                 </div>
-                <div className="grid flex-1 grid-cols-1 gap-3">
-                  {/* Position chart */}
-                  <div className="flex flex-1 flex-col">
-                    <div className="mb-1.5 flex items-baseline justify-between">
-                      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Posição</p>
-                      <div className="flex items-baseline gap-1.5">
-                        <span className="font-display text-base font-bold text-foreground">
-                          {lastPos != null ? `${lastPos}º` : "—"}
+
+                {/* KPIs */}
+                <div className="mb-4 grid grid-cols-3 gap-2">
+                  <div className="rounded-xl border border-border/60 bg-muted/20 px-3 py-2">
+                    <p className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      Atual
+                    </p>
+                    <div className="mt-0.5 flex items-baseline gap-1.5">
+                      <span className="font-display text-xl font-bold text-foreground">
+                        {lastRating != null ? Math.round(lastRating) : "—"}
+                      </span>
+                      {ratingDelta != null && Math.abs(ratingDelta) >= 1 && (
+                        <span
+                          className={`flex items-center gap-0.5 text-[10px] font-semibold ${
+                            ratingDelta > 0 ? "text-success" : "text-destructive"
+                          }`}
+                        >
+                          {ratingDelta > 0 ? (
+                            <TrendingUp className="h-3 w-3" />
+                          ) : (
+                            <TrendingDown className="h-3 w-3" />
+                          )}
+                          {ratingDelta > 0 ? "+" : ""}
+                          {Math.round(ratingDelta)}
                         </span>
-                        {posDelta != null && posDelta !== 0 && (
-                          <span className={`flex items-center gap-0.5 text-[10px] font-semibold ${posDelta > 0 ? "text-success" : "text-destructive"}`}>
-                            {posDelta > 0 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
-                            {posDelta > 0 ? "+" : ""}{posDelta}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    <div className="min-h-[80px] flex-1 rounded-xl bg-muted/20 p-2">
-                      {renderLineChart(positionPoints, { color: "#84cc16", invertY: true })}
+                      )}
                     </div>
                   </div>
+                  <div className="rounded-xl border border-border/60 bg-muted/20 px-3 py-2">
+                    <p className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      Pico
+                    </p>
+                    <p className="mt-0.5 font-display text-xl font-bold text-foreground">
+                      {maxRating != null ? Math.round(maxRating) : "—"}
+                    </p>
+                  </div>
+                  <div className="rounded-xl border border-border/60 bg-muted/20 px-3 py-2">
+                    <p className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      Posição
+                    </p>
+                    <p className="mt-0.5 font-display text-xl font-bold text-foreground">
+                      {currentPos != null ? `${currentPos}º` : "—"}
+                    </p>
+                  </div>
+                </div>
 
-                  {/* Elo chart */}
-                  <div className="flex flex-1 flex-col">
-                    <div className="mb-1.5 flex items-baseline justify-between">
-                      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Elo Points</p>
-                      <div className="flex items-baseline gap-1.5">
-                        <span className="font-display text-base font-bold text-foreground">
-                          {lastRating != null ? Math.round(lastRating) : "—"}
-                        </span>
-                        {ratingDelta != null && Math.abs(ratingDelta) >= 1 && (
-                          <span className={`flex items-center gap-0.5 text-[10px] font-semibold ${ratingDelta > 0 ? "text-success" : "text-destructive"}`}>
-                            {ratingDelta > 0 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
-                            {ratingDelta > 0 ? "+" : ""}{Math.round(ratingDelta)}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    <div className="min-h-[80px] flex-1 rounded-xl bg-muted/20 p-2">
-                      {renderLineChart(ratingPoints, { color: "#3b82f6" })}
-                    </div>
+                {/* Chart */}
+                <div className="flex flex-1 flex-col">
+                  <div className="mb-1.5 flex items-center justify-between text-[10px] text-muted-foreground">
+                    <span>{ratingPoints.length > 0 ? `${ratingPoints.length} partidas` : ""}</span>
+                    {minRating != null && maxRating != null && (
+                      <span className="font-mono">
+                        {Math.round(minRating)} – {Math.round(maxRating)}
+                      </span>
+                    )}
+                  </div>
+                  <div className="min-h-[220px] flex-1 rounded-xl bg-muted/10 p-2">
+                    {renderLineChart(ratingPoints, { color: "#84cc16", height: 240 })}
                   </div>
                 </div>
               </div>
