@@ -411,7 +411,6 @@ function RankingPage() {
   const remainingRounds = Math.max(0, (selectedSeason?.total_rounds || totalRounds) - completedRounds);
   const eligibleRankings = rankings.filter((r) => r.is_eligible);
 
-  // Disambiguate names within the current ranking (group-scoped via the season)
   const displayNameMap = useMemo(() => {
     return buildDisplayNames(
       rankings.map((r) => ({
@@ -439,7 +438,6 @@ function RankingPage() {
   const getDisplayName = (entry: RankingEntry) =>
     displayNameMap.get(entry.user_id) || entry.profile?.nickname || abbreviateName(entry.profile?.name || "Jogador");
 
-  // Check if user has a rivalry group and show duel page instead
   const rivalryGroup = groups.find((g: any) => isRivalryGroup(g, g.member_count));
   const [rivalrySeasonInfo, setRivalrySeasonInfo] = useState<{ id: string; name: string } | null>(null);
 
@@ -456,7 +454,6 @@ function RankingPage() {
       .then(({ data }) => { setRivalrySeasonInfo(data || null); });
   }, [rivalryGroup?.id]);
 
-  // If rivalry group exists AND it's the selected season's group (or user only has rivalry groups), show duel page
   const showRivalryDuel = rivalryGroup && (
     !selectedSeasonId ||
     seasons.find((s: any) => s.id === selectedSeasonId)?.group_id === rivalryGroup.id ||
@@ -476,7 +473,6 @@ function RankingPage() {
           </Link>
         </header>
 
-        {/* Season switcher — show if user also has non-rivalry groups */}
         {seasons.length > 1 && (
           <div className="px-5 mt-1 mb-3">
             <button
@@ -525,19 +521,57 @@ function RankingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background pb-28">
-      <header className="flex items-center justify-between px-5 pt-6 pb-2">
+    <div className="min-h-screen bg-background pb-28 lg:pb-8">
+      <header className="flex items-center justify-between px-5 pt-6 pb-2 lg:px-0 lg:pt-4">
         <div>
-          <h1 className="font-display text-xl font-bold text-foreground">Ranking</h1>
+          <h1 className="font-display text-xl lg:text-2xl font-bold text-foreground">Ranking</h1>
+          {selectedSeason && (
+            <p className="hidden lg:block mt-0.5 text-xs text-muted-foreground">
+              {(selectedSeason as any).groups?.name} • {selectedSeason.name}
+            </p>
+          )}
         </div>
-        <Link to="/ranking-info" className="rounded-full border border-border bg-card p-2 transition-colors hover:bg-accent">
-          <Info className="h-4 w-4 text-muted-foreground" />
-        </Link>
+        <div className="flex items-center gap-2">
+          {selectedSeason && seasons.length > 1 && (
+            <div className="hidden lg:block relative">
+              <button
+                onClick={() => setShowSwitcher(!showSwitcher)}
+                className="flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-accent"
+              >
+                <Layers className="h-3.5 w-3.5 text-primary" />
+                <span className="max-w-[220px] truncate">{(selectedSeason as any).groups?.name} • {selectedSeason.name}</span>
+                <ChevronDown className={`h-3.5 w-3.5 text-muted-foreground transition-transform ${showSwitcher ? "rotate-180" : ""}`} />
+              </button>
+              {showSwitcher && (
+                <div className="absolute right-0 top-full mt-2 w-72 rounded-2xl border border-border bg-card/95 backdrop-blur-xl overflow-hidden shadow-xl z-20">
+                  {seasons.map((s: any) => (
+                    <button
+                      key={s.id}
+                      onClick={() => { setSelectedSeasonId(s.id); setShowSwitcher(false); }}
+                      className={`flex w-full items-center justify-between px-4 py-3 text-left text-sm transition-colors border-b border-border/50 last:border-b-0 ${
+                        selectedSeasonId === s.id ? "bg-primary/10 text-primary font-semibold" : "text-foreground hover:bg-accent/50"
+                      }`}
+                    >
+                      <div>
+                        <p className="font-medium">{s.groups?.name}</p>
+                        <p className="text-[11px] text-muted-foreground">{s.name}</p>
+                      </div>
+                      {selectedSeasonId === s.id && <div className="h-2 w-2 rounded-full bg-primary" />}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+          <Link to="/ranking-info" className="rounded-full border border-border bg-card p-2 transition-colors hover:bg-accent" aria-label="Entenda a pontuação" title="Entenda a pontuação">
+            <Info className="h-4 w-4 text-muted-foreground" />
+          </Link>
+        </div>
       </header>
 
-      {/* Season switcher — centered with prominence */}
+      {/* MOBILE-only season switcher */}
       {selectedSeason && seasons.length > 1 ? (
-        <div className="px-5 mt-1">
+        <div className="px-5 mt-1 lg:hidden">
           <button
             onClick={() => setShowSwitcher(!showSwitcher)}
             className="flex w-full items-center justify-center gap-2 rounded-2xl border border-border bg-card/80 backdrop-blur-sm px-4 py-2.5 transition-colors hover:bg-accent"
@@ -548,7 +582,7 @@ function RankingPage() {
           </button>
         </div>
       ) : selectedSeason ? (
-        <div className="px-5 mt-1">
+        <div className="px-5 mt-1 lg:hidden">
           <div className="flex w-full items-center justify-center gap-2 rounded-2xl border border-border bg-card/80 px-4 py-2.5">
             <Layers className="h-3.5 w-3.5 text-primary" />
             <span className="text-sm font-semibold text-foreground">{(selectedSeason as any).groups?.name} • {selectedSeason.name}</span>
@@ -557,7 +591,7 @@ function RankingPage() {
       ) : null}
 
       {showSwitcher && seasons.length > 1 && (
-        <div className="mx-5 mt-2 rounded-2xl border border-border bg-card/95 backdrop-blur-xl overflow-hidden shadow-lg">
+        <div className="mx-5 mt-2 rounded-2xl border border-border bg-card/95 backdrop-blur-xl overflow-hidden shadow-lg lg:hidden">
           {seasons.map((s: any) => (
             <button
               key={s.id}
@@ -576,7 +610,7 @@ function RankingPage() {
         </div>
       )}
 
-      <div className="space-y-3 px-5 pt-3">
+      <div className="space-y-3 px-5 pt-3 lg:px-0 lg:pt-4 lg:space-y-0">
         {!isAuthenticated ? (
           <div className="rounded-3xl border border-border bg-card p-8 text-center">
             <BarChart3 className="mx-auto mb-3 h-8 w-8 text-muted-foreground/40" />
@@ -602,132 +636,140 @@ function RankingPage() {
             </div>
           </div>
         ) : (
-          <>
-            {/* My position + stats */}
-            {myRanking && (
-              <div className="rounded-2xl border border-primary/20 bg-primary/5 overflow-hidden">
-                <div className="flex items-center gap-3 px-4 py-3">
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10">
-                    <span className="font-display text-xl font-bold text-primary">
-                      {myRanking.position ? `#${myRanking.position}` : "—"}
-                    </span>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <p className="text-sm font-semibold text-foreground">Sua posição</p>
-                      {myRanking.positionChange !== undefined && myRanking.positionChange !== 0 && (
-                        <span className={`flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-bold ${
-                          myRanking.positionChange > 0 ? "bg-success/15 text-success" : "bg-destructive/15 text-destructive"
-                        }`}>
-                          {myRanking.positionChange > 0 ? <ArrowUp className="h-2.5 w-2.5" /> : <ArrowDown className="h-2.5 w-2.5" />}
-                          {Math.abs(myRanking.positionChange)}
-                        </span>
-                      )}
+          <div className="space-y-3 lg:grid lg:grid-cols-[340px_minmax(0,1fr)] lg:gap-5 lg:items-start lg:space-y-0">
+            {/* ============ LEFT (desktop sidebar) / TOP (mobile) ============ */}
+            <aside className="space-y-3 lg:sticky lg:top-4">
+              {myRanking && (
+                <div className="rounded-2xl border border-primary/20 bg-primary/5 overflow-hidden">
+                  <div className="flex items-center gap-3 px-4 py-3">
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10">
+                      <span className="font-display text-xl font-bold text-primary">
+                        {myRanking.position ? `#${myRanking.position}` : "—"}
+                      </span>
                     </div>
-                    <div className="mt-0.5 flex flex-wrap items-center gap-x-2.5 text-[11px] text-muted-foreground">
-                      <span className="font-display font-bold text-primary">{Math.round(myRanking.rating)} Elo</span>
-                      <span>{myRanking.matches_won}V {myRanking.matches_played - myRanking.matches_won}D</span>
-                      <span>🏆 {winRate(myRanking.matches_won, myRanking.matches_played)}%</span>
-                      {myRanking.lastChange !== undefined && (
-                        <span className={`flex items-center gap-0.5 font-bold ${
-                          myRanking.lastChange > 0 ? "text-success" : myRanking.lastChange < 0 ? "text-destructive" : "text-muted-foreground"
-                        }`}>
-                          {myRanking.lastChange > 0 ? "+" : ""}{Math.round(myRanking.lastChange)} pts
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-                <div className="flex border-t border-primary/10">
-                  <div className="flex flex-1 items-center justify-center gap-1.5 py-1.5">
-                    <Layers className="h-3 w-3 text-primary/70" />
-                    <span className="font-display text-sm font-bold text-foreground">{totalSets}</span>
-                    <span className="text-[9px] text-muted-foreground">sets</span>
-                  </div>
-                  <div className="w-px bg-primary/10" />
-                  <div className="flex flex-1 items-center justify-center gap-1.5 py-1.5">
-                    <Calendar className="h-3 w-3 text-primary/70" />
-                    <span className="font-display text-sm font-bold text-foreground">{completedRounds}</span>
-                    <span className="text-[9px] text-muted-foreground">rodadas</span>
-                  </div>
-                  <div className="w-px bg-primary/10" />
-                  <div className="flex flex-1 items-center justify-center gap-1.5 py-1.5">
-                    <Timer className="h-3 w-3 text-primary/70" />
-                    <span className="font-display text-sm font-bold text-foreground">{remainingRounds}</span>
-                    <span className="text-[9px] text-muted-foreground">restantes</span>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Podium */}
-            {eligibleRankings.length >= 3 && (() => {
-              const podiumOrder = [
-                { entry: eligibleRankings[1], pos: 2, height: "h-16", color: "var(--rank-silver)" },
-                { entry: eligibleRankings[0], pos: 1, height: "h-24", color: "var(--rank-gold)" },
-                { entry: eligibleRankings[2], pos: 3, height: "h-12", color: "var(--rank-bronze)" },
-              ];
-              return (
-                <div className="mb-1 flex items-end justify-center gap-2 pt-4 pb-1">
-                  {podiumOrder.map(({ entry, pos, height, color }) => {
-                    if (!entry) return null;
-                    const displayName = getDisplayName(entry);
-                    const wr = winRate(entry.matches_won, entry.matches_played);
-                    const isCenter = pos === 1;
-                    return (
-                      <div key={entry.user_id} className="flex flex-col items-center" style={{ width: isCenter ? 110 : 95 }}>
-                        {/* Crown for 1st */}
-                        {pos === 1 && (
-                          <Crown className="mb-1 h-5 w-5" style={{ color: "var(--rank-gold)" }} fill="var(--rank-gold)" />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-semibold text-foreground">Sua posição</p>
+                        {myRanking.positionChange !== undefined && myRanking.positionChange !== 0 && (
+                          <span className={`flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-bold ${
+                            myRanking.positionChange > 0 ? "bg-success/15 text-success" : "bg-destructive/15 text-destructive"
+                          }`}>
+                            {myRanking.positionChange > 0 ? <ArrowUp className="h-2.5 w-2.5" /> : <ArrowDown className="h-2.5 w-2.5" />}
+                            {Math.abs(myRanking.positionChange)}
+                          </span>
                         )}
-                        {/* Avatar */}
-                        <div className="rounded-full p-[2px]" style={{ backgroundColor: color }}>
-                          <PlayerAvatar
-                            avatarUrl={entry.profile?.avatar_url}
-                            name={entry.profile?.name || "?"}
-                            size={isCenter ? "lg" : "md"}
-                            dimmed={entry.isFormerMember}
-                            className={`${isCenter ? "!h-14 !w-14" : "!h-11 !w-11"} border-2 border-background`}
-                          />
-                        </div>
-                        {/* Name + Stats */}
-                        <p className={`mt-1.5 text-center text-[11px] font-semibold leading-tight truncate w-full ${entry.isFormerMember ? "text-muted-foreground line-through" : "text-foreground"}`}>{displayName}</p>
-                        <p className="font-display text-sm font-bold text-primary">{Math.round(entry.rating).toLocaleString("pt-BR")}</p>
-                        <p className="text-[9px] text-muted-foreground">{wr}% WR</p>
-                        {/* Pedestal block */}
-                        <div
-                          className={`mt-1.5 w-full rounded-t-lg ${height} flex items-center justify-center`}
-                          style={{ backgroundColor: `color-mix(in oklab, ${color} 25%, transparent)`, borderTop: `2px solid ${color}` }}
-                        >
-                          <span className="font-display text-lg font-bold" style={{ color }}>{pos}º</span>
-                        </div>
                       </div>
-                    );
-                  })}
+                      <div className="mt-0.5 flex flex-wrap items-center gap-x-2.5 text-[11px] text-muted-foreground">
+                        <span className="font-display font-bold text-primary">{Math.round(myRanking.rating)} Elo</span>
+                        <span>{myRanking.matches_won}V {myRanking.matches_played - myRanking.matches_won}D</span>
+                        <span>🏆 {winRate(myRanking.matches_won, myRanking.matches_played)}%</span>
+                        {myRanking.lastChange !== undefined && (
+                          <span className={`flex items-center gap-0.5 font-bold ${
+                            myRanking.lastChange > 0 ? "text-success" : myRanking.lastChange < 0 ? "text-destructive" : "text-muted-foreground"
+                          }`}>
+                            {myRanking.lastChange > 0 ? "+" : ""}{Math.round(myRanking.lastChange)} pts
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex border-t border-primary/10">
+                    <div className="flex flex-1 items-center justify-center gap-1.5 py-1.5">
+                      <Layers className="h-3 w-3 text-primary/70" />
+                      <span className="font-display text-sm font-bold text-foreground">{totalSets}</span>
+                      <span className="text-[9px] text-muted-foreground">sets</span>
+                    </div>
+                    <div className="w-px bg-primary/10" />
+                    <div className="flex flex-1 items-center justify-center gap-1.5 py-1.5">
+                      <Calendar className="h-3 w-3 text-primary/70" />
+                      <span className="font-display text-sm font-bold text-foreground">{completedRounds}</span>
+                      <span className="text-[9px] text-muted-foreground">rodadas</span>
+                    </div>
+                    <div className="w-px bg-primary/10" />
+                    <div className="flex flex-1 items-center justify-center gap-1.5 py-1.5">
+                      <Timer className="h-3 w-3 text-primary/70" />
+                      <span className="font-display text-sm font-bold text-foreground">{remainingRounds}</span>
+                      <span className="text-[9px] text-muted-foreground">restantes</span>
+                    </div>
+                  </div>
                 </div>
-              );
-            })()}
+              )}
 
-            {/* Name collision warning */}
-            {myNameCollides && (
-              <Link
-                to="/profile"
-                className="flex items-start gap-2 rounded-2xl border border-warning/30 bg-warning/10 px-3 py-2.5 transition hover:bg-warning/15"
-              >
-                <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0 text-warning" />
-                <div className="min-w-0 flex-1">
-                  <p className="text-xs font-semibold text-foreground">Nome em comum no ranking</p>
-                  <p className="text-[11px] leading-snug text-muted-foreground">
-                    Existem jogadores com o mesmo primeiro nome. Adicione um apelido no seu perfil para evitar confusão.
-                  </p>
-                </div>
-              </Link>
-            )}
+              {eligibleRankings.length >= 3 && (() => {
+                const podiumOrder = [
+                  { entry: eligibleRankings[1], pos: 2, height: "h-16", color: "var(--rank-silver)" },
+                  { entry: eligibleRankings[0], pos: 1, height: "h-24", color: "var(--rank-gold)" },
+                  { entry: eligibleRankings[2], pos: 3, height: "h-12", color: "var(--rank-bronze)" },
+                ];
+                return (
+                  <div className="rounded-2xl border border-border bg-card/50 px-3 pt-4 pb-2">
+                    <p className="hidden lg:block mb-2 text-center text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Pódio</p>
+                    <div className="flex items-end justify-center gap-2">
+                      {podiumOrder.map(({ entry, pos, height, color }) => {
+                        if (!entry) return null;
+                        const displayName = getDisplayName(entry);
+                        const wr = winRate(entry.matches_won, entry.matches_played);
+                        const isCenter = pos === 1;
+                        return (
+                          <div key={entry.user_id} className="flex flex-col items-center" style={{ width: isCenter ? 100 : 88 }}>
+                            {pos === 1 && (
+                              <Crown className="mb-1 h-5 w-5" style={{ color: "var(--rank-gold)" }} fill="var(--rank-gold)" />
+                            )}
+                            <div className="rounded-full p-[2px]" style={{ backgroundColor: color }}>
+                              <PlayerAvatar
+                                avatarUrl={entry.profile?.avatar_url}
+                                name={entry.profile?.name || "?"}
+                                size={isCenter ? "lg" : "md"}
+                                dimmed={entry.isFormerMember}
+                                className={`${isCenter ? "!h-14 !w-14" : "!h-11 !w-11"} border-2 border-background`}
+                              />
+                            </div>
+                            <p className={`mt-1.5 text-center text-[11px] font-semibold leading-tight truncate w-full ${entry.isFormerMember ? "text-muted-foreground line-through" : "text-foreground"}`}>{displayName}</p>
+                            <p className="font-display text-sm font-bold text-primary">{Math.round(entry.rating).toLocaleString("pt-BR")}</p>
+                            <p className="text-[9px] text-muted-foreground">{wr}% WR</p>
+                            <div
+                              className={`mt-1.5 w-full rounded-t-lg ${height} flex items-center justify-center`}
+                              style={{ backgroundColor: `color-mix(in oklab, ${color} 25%, transparent)`, borderTop: `2px solid ${color}` }}
+                            >
+                              <span className="font-display text-lg font-bold" style={{ color }}>{pos}º</span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })()}
 
-            {/* Ranking table */}
-            <div className="rounded-2xl border border-border overflow-hidden">
-              {/* Header */}
-              <div className="flex items-center border-b border-border bg-muted/30 px-2 py-1.5 text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">
+              {myNameCollides && (
+                <Link
+                  to="/profile"
+                  className="flex items-start gap-2 rounded-2xl border border-warning/30 bg-warning/10 px-3 py-2.5 transition hover:bg-warning/15"
+                >
+                  <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0 text-warning" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-semibold text-foreground">Nome em comum no ranking</p>
+                    <p className="text-[11px] leading-snug text-muted-foreground">
+                      Existem jogadores com o mesmo primeiro nome. Adicione um apelido no seu perfil para evitar confusão.
+                    </p>
+                  </div>
+                </Link>
+              )}
+            </aside>
+
+            {/* ============ RIGHT: Ranking table ============ */}
+            <div className="rounded-2xl border border-border overflow-hidden bg-card/30">
+              {/* Desktop header */}
+              <div className="hidden lg:grid lg:grid-cols-[60px_minmax(0,1fr)_90px_100px_140px_120px] items-center gap-3 border-b border-border bg-muted/40 px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                <span className="text-center">Pos.</span>
+                <span>Jogador</span>
+                <span className="text-center">Elo</span>
+                <span className="text-center">V / D</span>
+                <span className="text-center">Aproveitamento</span>
+                <span className="text-center">Últimos 5</span>
+              </div>
+              {/* Mobile header */}
+              <div className="flex lg:hidden items-center border-b border-border bg-muted/30 px-2 py-1.5 text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">
                 <span className="w-8 text-center">#</span>
                 <span className="flex-1 pl-1">Jogador</span>
                 <span className="w-11 text-center">Elo</span>
@@ -745,33 +787,37 @@ function RankingPage() {
                 const losses = entry.matches_played - entry.matches_won;
                 const isEven = idx % 2 === 0;
 
+                const posBg =
+                  typeof pos === "number" && pos === 1 ? "var(--rank-gold)"
+                  : typeof pos === "number" && pos === 2 ? "var(--rank-silver)"
+                  : typeof pos === "number" && pos === 3 ? "var(--rank-bronze)"
+                  : "transparent";
+                const posColor = typeof pos === "number" && pos <= 3 ? "var(--background)" : "var(--muted-foreground)";
+
                 return (
                   <div
                     key={entry.user_id}
-                    className={`flex items-center px-2 py-2 transition-opacity ${
-                      isMe ? "bg-primary/5" : isEven ? "bg-muted/10" : ""
-                    } ${isInactive || isFormer ? "opacity-50" : ""}`}
-                    style={{ boxShadow: idx > 0 ? "inset 0 1px 0 0 color-mix(in oklab, var(--border) 30%, transparent)" : undefined }}
+                    className={`
+                      flex lg:grid lg:grid-cols-[60px_minmax(0,1fr)_90px_100px_140px_120px] lg:gap-3 items-center
+                      px-2 py-2 lg:px-4 lg:py-2 transition-colors
+                      ${isMe ? "bg-primary/5 lg:bg-primary/10" : isEven ? "bg-muted/10" : ""}
+                      ${isInactive || isFormer ? "opacity-50" : ""}
+                      ${idx > 0 ? "border-t border-border/40" : ""}
+                      lg:hover:bg-accent/30
+                    `}
                   >
-                    {/* Position + change indicator */}
-                    <div className="w-8 shrink-0 text-center">
-                      <div className="flex items-center justify-center gap-0.5">
+                    {/* Position */}
+                    <div className="w-8 lg:w-auto shrink-0 text-center">
+                      <div className="flex items-center justify-center">
                         <div
-                          className="flex h-5 w-5 items-center justify-center rounded-md text-[10px] font-bold"
-                          style={{
-                            backgroundColor:
-                              typeof pos === "number" && pos === 1 ? "var(--rank-gold)"
-                              : typeof pos === "number" && pos === 2 ? "var(--rank-silver)"
-                              : typeof pos === "number" && pos === 3 ? "var(--rank-bronze)"
-                              : "transparent",
-                            color: typeof pos === "number" && pos <= 3 ? "var(--background)" : "var(--muted-foreground)",
-                          }}
+                          className="flex h-5 w-5 lg:h-7 lg:w-9 items-center justify-center rounded-md text-[10px] lg:text-xs font-bold"
+                          style={{ backgroundColor: posBg, color: posColor }}
                         >
                           {pos}
                         </div>
                       </div>
                       {entry.positionChange !== undefined && entry.positionChange !== 0 && (
-                        <div className={`mt-0.5 flex items-center justify-center gap-px text-[8px] font-bold leading-none ${
+                        <div className={`mt-0.5 flex items-center justify-center gap-px text-[8px] lg:text-[10px] font-bold leading-none ${
                           entry.positionChange > 0 ? "text-success" : "text-destructive"
                         }`}>
                           {entry.positionChange > 0 ? "▲" : "▼"}{Math.abs(entry.positionChange)}
@@ -780,33 +826,35 @@ function RankingPage() {
                     </div>
 
                     {/* Avatar + Name */}
-                    <div className="flex flex-1 items-center gap-1.5 min-w-0 pl-1">
-                      <PlayerAvatar avatarUrl={entry.profile?.avatar_url} name={entry.profile?.name || "?"} size="sm" dimmed={isFormer} className="border border-border !h-7 !w-7" />
+                    <div className="flex flex-1 lg:flex-none items-center gap-1.5 lg:gap-2.5 min-w-0 pl-1 lg:pl-0">
+                      <PlayerAvatar avatarUrl={entry.profile?.avatar_url} name={entry.profile?.name || "?"} size="sm" dimmed={isFormer} className="border border-border !h-7 !w-7 lg:!h-9 lg:!w-9" />
                       <div className="min-w-0">
-                        <p className={`text-[11px] font-semibold leading-tight ${isFormer ? "text-muted-foreground line-through" : "text-foreground"}`}>
+                        <p className={`text-[11px] lg:text-sm font-semibold leading-tight truncate ${isFormer ? "text-muted-foreground line-through" : "text-foreground"}`}>
                           {displayName}
-                          {isMe && <span className="ml-0.5 text-primary text-[9px]">(você)</span>}
+                          {isMe && <span className="ml-1 text-primary text-[9px] lg:text-[10px] font-bold">(você)</span>}
                         </p>
                         {isFormer ? (
-                          <p className="text-[8px] uppercase tracking-wide text-muted-foreground leading-none">Ex-membro</p>
+                          <p className="text-[8px] lg:text-[10px] uppercase tracking-wide text-muted-foreground leading-none mt-0.5">Ex-membro</p>
                         ) : isInactive && !entry.hasSnapshot ? (
-                          <p className="text-[8px] text-muted-foreground leading-none">Sem partidas</p>
+                          <p className="text-[8px] lg:text-[10px] text-muted-foreground leading-none mt-0.5">Sem partidas</p>
+                        ) : isInactive ? (
+                          <p className="hidden lg:block text-[10px] text-muted-foreground leading-none mt-0.5">Não elegível</p>
                         ) : null}
                       </div>
                     </div>
 
                     {/* Elo */}
-                    <div className="w-11 text-center">
-                      <p className="font-display text-[11px] font-bold text-foreground leading-tight">{Math.round(entry.rating)}</p>
+                    <div className="w-11 lg:w-auto text-center">
+                      <p className="font-display text-[11px] lg:text-base font-bold text-foreground leading-tight">{Math.round(entry.rating)}</p>
                       {entry.lastChange !== undefined && (
-                        <p className={`text-[8px] font-semibold leading-none ${entry.lastChange > 0 ? "text-success" : entry.lastChange < 0 ? "text-destructive" : "text-muted-foreground"}`}>
+                        <p className={`text-[8px] lg:text-[10px] font-semibold leading-none ${entry.lastChange > 0 ? "text-success" : entry.lastChange < 0 ? "text-destructive" : "text-muted-foreground"}`}>
                           {entry.lastChange > 0 ? "+" : ""}{Math.round(entry.lastChange)}
                         </p>
                       )}
                     </div>
 
-                    {/* V/D (WR%) */}
-                    <div className="w-[72px] text-center">
+                    {/* MOBILE V/D (WR%) */}
+                    <div className="w-[72px] text-center lg:hidden">
                       {entry.matches_played > 0 ? (
                         <span className="text-[10px]">
                           <span className="text-foreground">{entry.matches_won}/{losses}</span>
@@ -819,26 +867,59 @@ function RankingPage() {
                       )}
                     </div>
 
+                    {/* DESKTOP V / D split */}
+                    <div className="hidden lg:block text-center text-sm tabular-nums">
+                      {entry.matches_played > 0 ? (
+                        <span>
+                          <span className="font-semibold text-success">{entry.matches_won}</span>
+                          <span className="mx-1 text-muted-foreground">/</span>
+                          <span className="font-semibold text-destructive">{losses}</span>
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
+                    </div>
+
+                    {/* DESKTOP Win rate with bar */}
+                    <div className="hidden lg:flex flex-col items-center gap-1">
+                      {entry.matches_played > 0 ? (
+                        <>
+                          <span className={`text-xs font-semibold tabular-nums ${wr >= 60 ? "text-success" : wr >= 40 ? "text-foreground" : "text-destructive"}`}>
+                            {wr}%
+                          </span>
+                          <div className="h-1 w-20 rounded-full bg-muted overflow-hidden">
+                            <div
+                              className={`h-full ${wr >= 60 ? "bg-success" : wr >= 40 ? "bg-primary" : "bg-destructive"}`}
+                              style={{ width: `${wr}%` }}
+                            />
+                          </div>
+                        </>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">—</span>
+                      )}
+                    </div>
+
                     {/* Last 5 results */}
-                    <div className="flex w-16 justify-center gap-0.5">
+                    <div className="flex w-16 lg:w-auto justify-center gap-0.5 lg:gap-1">
                       {entry.last_5_results.length > 0 ? (
                         entry.last_5_results.slice(0, 5).map((r, i) => (
                           <div
                             key={i}
-                            className={`h-2.5 w-2.5 rounded-full ${
+                            className={`h-2.5 w-2.5 lg:h-3 lg:w-3 rounded-full ${
                               r === "W" ? "bg-success" : r === "L" ? "bg-destructive" : "bg-muted"
                             }`}
+                            title={r === "W" ? "Vitória" : r === "L" ? "Derrota" : ""}
                           />
                         ))
                       ) : (
-                        <span className="text-[9px] text-muted-foreground">—</span>
+                        <span className="text-[9px] lg:text-xs text-muted-foreground">—</span>
                       )}
                     </div>
                   </div>
                 );
               })}
             </div>
-          </>
+          </div>
         )}
       </div>
     </div>
