@@ -882,6 +882,158 @@ function DashboardPage() {
           </section>
         )}
 
+        {/* DESKTOP-ONLY: Últimos Resultados em formato de lista (col direita topo) */}
+        <section className="hidden lg:block lg:col-span-6 lg:order-2">
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Últimos Resultados
+            </h2>
+            <Link to="/history" className="flex items-center gap-0.5 text-xs font-medium text-primary">
+              Histórico <ChevronRight className="h-3.5 w-3.5" />
+            </Link>
+          </div>
+          {dataLoading ? (
+            <div className="flex flex-col items-center justify-center rounded-3xl border border-border bg-card p-6 min-h-[120px]">
+              <CardSpinner label="Carregando resultados" />
+            </div>
+          ) : recentMatches.length === 0 ? (
+            <div className="rounded-3xl border border-border bg-card p-5">
+              <div className="flex flex-col items-center gap-2 text-center">
+                <Swords className="h-7 w-7 text-muted-foreground/40" />
+                <p className="text-sm text-muted-foreground">Nenhuma partida ainda</p>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-1.5">
+              {recentMatches.slice(0, 5).map((m) => {
+                const won = m.winner_team === m.my_team;
+                return (
+                  <div
+                    key={m.id}
+                    className="flex items-center gap-2.5 rounded-xl border border-border bg-card px-3 py-2"
+                  >
+                    <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-xs font-bold ${
+                      won ? "bg-success/10 text-success" : "bg-destructive/10 text-destructive"
+                    }`}>
+                      {won ? "V" : "D"}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-semibold text-foreground truncate">
+                          {m.score_display}
+                        </p>
+                        {m.match_number != null && (
+                          <span className="rounded-full bg-muted px-1.5 py-0.5 text-[9px] font-semibold text-muted-foreground">
+                            Set {m.match_number}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex flex-wrap items-center gap-x-2.5 text-[10px] text-muted-foreground">
+                        {m.group_name && <span className="font-medium">{m.group_name}</span>}
+                        {m.partner_name && <span>c/ {m.partner_name}</span>}
+                        {m.opponent_names.length > 0 && (
+                          <span>vs {m.opponent_names.join(" & ")}</span>
+                        )}
+                      </div>
+                    </div>
+                    {m.rating_change !== null && (
+                      <div className="shrink-0 text-right">
+                        <p className={`text-sm font-bold ${
+                          m.rating_change > 0 ? "text-success" : m.rating_change < 0 ? "text-destructive" : "text-muted-foreground"
+                        }`}>
+                          {m.rating_change > 0 ? "+" : ""}{Math.round(m.rating_change)}
+                        </p>
+                        <p className="text-[9px] text-muted-foreground">Elo</p>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </section>
+
+        {/* DESKTOP-ONLY: Card de Gráficos — Posição no Ranking + Elo (col esquerda, abaixo do Ranking+CTA) */}
+        <section className="hidden lg:block lg:col-span-6 lg:order-3">
+          {(() => {
+            const history = currentRanking ? historyBySeason.get(currentRanking.season_id) || [] : [];
+            const ratingPoints = history
+              .filter((h) => h.rating != null)
+              .map((h) => ({ label: h.date, value: h.rating }));
+            const positionPoints = history
+              .filter((h) => h.position != null)
+              .map((h) => ({ label: h.date, value: h.position as number }));
+            const firstRating = ratingPoints[0]?.value;
+            const lastRating = ratingPoints[ratingPoints.length - 1]?.value;
+            const ratingDelta = firstRating != null && lastRating != null ? lastRating - firstRating : null;
+            const firstPos = positionPoints[0]?.value;
+            const lastPos = positionPoints[positionPoints.length - 1]?.value;
+            const posDelta = firstPos != null && lastPos != null ? firstPos - lastPos : null; // positive = subiu
+            return (
+              <div className="rounded-3xl border border-border bg-card p-5">
+                <div className="mb-4 flex items-center justify-between">
+                  <div>
+                    <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                      Evolução
+                    </h2>
+                    {currentRanking && (
+                      <p className="mt-0.5 text-[11px] text-muted-foreground/70 truncate">
+                        {currentRanking.group_name} · {currentRanking.season_name}
+                      </p>
+                    )}
+                  </div>
+                  <Link to="/ranking" className="flex items-center gap-0.5 text-xs font-medium text-primary">
+                    Detalhes <ChevronRight className="h-3.5 w-3.5" />
+                  </Link>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  {/* Position chart */}
+                  <div className="flex flex-col">
+                    <div className="mb-2 flex items-baseline justify-between">
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Posição</p>
+                      <div className="flex items-baseline gap-1.5">
+                        <span className="font-display text-lg font-bold text-foreground">
+                          {lastPos != null ? `${lastPos}º` : "—"}
+                        </span>
+                        {posDelta != null && posDelta !== 0 && (
+                          <span className={`flex items-center gap-0.5 text-[10px] font-semibold ${posDelta > 0 ? "text-success" : "text-destructive"}`}>
+                            {posDelta > 0 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+                            {posDelta > 0 ? "+" : ""}{posDelta}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="h-[160px] rounded-xl bg-muted/20 p-2">
+                      {renderLineChart(positionPoints, { color: "#84cc16", invertY: true })}
+                    </div>
+                  </div>
+
+                  {/* Elo chart */}
+                  <div className="flex flex-col">
+                    <div className="mb-2 flex items-baseline justify-between">
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Elo Points</p>
+                      <div className="flex items-baseline gap-1.5">
+                        <span className="font-display text-lg font-bold text-foreground">
+                          {lastRating != null ? Math.round(lastRating) : "—"}
+                        </span>
+                        {ratingDelta != null && Math.abs(ratingDelta) >= 1 && (
+                          <span className={`flex items-center gap-0.5 text-[10px] font-semibold ${ratingDelta > 0 ? "text-success" : "text-destructive"}`}>
+                            {ratingDelta > 0 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+                            {ratingDelta > 0 ? "+" : ""}{Math.round(ratingDelta)}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="h-[160px] rounded-xl bg-muted/20 p-2">
+                      {renderLineChart(ratingPoints, { color: "#3b82f6" })}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+        </section>
+
         {/* Próximas Rodadas */}
         <section className="lg:col-span-6 lg:order-4">
           <div className="mb-3 flex items-center justify-between">
