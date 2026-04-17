@@ -10,6 +10,7 @@ interface Props {
   name: string;
   description: string | null;
   isPublic: boolean;
+  visibility?: string;
   maxPlayers: number;
   sport: string;
   simultaneousCourts: number;
@@ -22,7 +23,7 @@ interface Props {
 }
 
 export function GroupSettingsForm({
-  groupId, name: initName, description: initDesc, isPublic: initPublic,
+  groupId, name: initName, description: initDesc, isPublic: initPublic, visibility: initVisibility,
   maxPlayers, sport, simultaneousCourts, imageUrl, groupStatus = "active", isCreator = false,
   presenceOpenMode: initPresenceMode = "1_day_before", presenceOpenTime: initPresenceTime = "10:00:00",
   onSaved,
@@ -30,14 +31,15 @@ export function GroupSettingsForm({
   const navigate = useNavigate();
   const [name, setName] = useState(initName);
   const [description, setDescription] = useState(initDesc || "");
-  const [isPublic, setIsPublic] = useState(initPublic);
+  const initialVis = initVisibility || (initPublic ? "public" : "private");
+  const [visibility, setVisibility] = useState<string>(initialVis);
   const [presenceMode, setPresenceMode] = useState(initPresenceMode);
   const [presenceTime, setPresenceTime] = useState(initPresenceTime.slice(0, 5));
   const [saving, setSaving] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
-  const hasChanges = name !== initName || description !== (initDesc || "") || isPublic !== initPublic
+  const hasChanges = name !== initName || description !== (initDesc || "") || visibility !== initialVis
     || presenceMode !== initPresenceMode || presenceTime !== initPresenceTime.slice(0, 5);
 
   const handleSave = async () => {
@@ -48,10 +50,11 @@ export function GroupSettingsForm({
       .update({
         name: name.trim(),
         description: description.trim() || null,
-        is_public: isPublic,
+        is_public: visibility === "public",
+        visibility,
         presence_open_mode: presenceMode,
         presence_open_time: presenceTime + ":00",
-      })
+      } as any)
       .eq("id", groupId);
 
     if (error) { toast.error("Erro ao salvar"); }
