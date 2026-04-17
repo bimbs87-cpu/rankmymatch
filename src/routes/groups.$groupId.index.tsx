@@ -1324,16 +1324,14 @@ function RoundResultCard({
                   <span>{r.scheduled_time?.slice(0, 5)}</span>
                 </>
               )}
+              {isCompleted && totalGames !== null && totalGames > 0 && (
+                <span className="font-semibold text-primary">{totalGames} games</span>
+              )}
             </div>
             {r.location && !isCancelled && (
               <div className="flex items-center gap-1 text-xs text-muted-foreground">
                 <MapPin className="h-3 w-3" />
                 <span className="truncate">{r.location}</span>
-              </div>
-            )}
-            {isCompleted && totalGames !== null && totalGames > 0 && (
-              <div className="mt-0.5 text-[11px] font-semibold text-primary">
-                {totalGames} games disputados
               </div>
             )}
           </div>
