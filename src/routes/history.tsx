@@ -189,18 +189,6 @@ function HistoryPage() {
     load();
   }, [user]);
 
-  if (authLoading || isLoading) {
-    return <TrophyLoadingBar />;
-  }
-
-  // Build unique groups list
-  const groupsList = Array.from(
-    new Map(matches.filter((m) => m.groupId).map((m) => [m.groupId!, m.groupName])).entries()
-  ).map(([id, name]) => ({ id, name }));
-
-  const filteredMatches =
-    groupFilter === "all" ? matches : matches.filter((m) => m.groupId === groupFilter);
-
   // Build a per-group display-name map. We collect every player ever seen in a
   // match for a given group, then disambiguate within that group only.
   const displayNameByGroup = useMemo(() => {
@@ -222,10 +210,21 @@ function HistoryPage() {
     return out;
   }, [matches]);
 
+  if (authLoading || isLoading) {
+    return <TrophyLoadingBar />;
+  }
+
   const labelFor = (groupId: string | null, player: PlayerRef): string => {
     const key = groupId || "__none__";
     return displayNameByGroup.get(key)?.get(player.user_id) || player.nickname || player.name;
   };
+
+  const groupsList = Array.from(
+    new Map(matches.filter((m) => m.groupId).map((m) => [m.groupId!, m.groupName])).entries()
+  ).map(([id, name]) => ({ id, name }));
+
+  const filteredMatches =
+    groupFilter === "all" ? matches : matches.filter((m) => m.groupId === groupFilter);
 
   const wins = filteredMatches.filter((m) => m.winnerTeam === m.myTeam).length;
   const losses = filteredMatches.filter((m) => m.winnerTeam && m.winnerTeam !== m.myTeam).length;
