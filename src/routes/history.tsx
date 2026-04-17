@@ -20,6 +20,8 @@ interface MatchHistory {
   opponents: { name: string; avatar_url: string | null }[];
   sets: { scoreA: number; scoreB: number }[];
   seasonName: string;
+  groupId: string | null;
+  groupName: string;
 }
 
 export const Route = createFileRoute("/history")({
@@ -30,6 +32,7 @@ function HistoryPage() {
   const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   const [matches, setMatches] = useState<MatchHistory[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [groupFilter, setGroupFilter] = useState<string>("all");
 
   useEffect(() => {
     if (!user) return;
@@ -55,11 +58,30 @@ function HistoryPage() {
 
       // Fetch matches, players, sets, seasons in parallel
       const [matchesRes, playersRes, setsRes, seasonsRes] = await Promise.all([
-        supabase.from("matches").select("id, match_number, winner_team, created_at").in("id", matchIds),
+        supabase.from("matches").select("id, match_number, winner_team, created_at, round_id").in("id", matchIds),
         supabase.from("match_players").select("match_id, user_id, team").in("match_id", matchIds),
         supabase.from("match_sets").select("match_id, set_number, score_team_a, score_team_b").in("match_id", matchIds).order("set_number", { ascending: true }),
-        seasonIds.length ? supabase.from("seasons").select("id, name").in("id", seasonIds) : Promise.resolve({ data: [] }),
+        seasonIds.length ? supabase.from("seasons").select("id, name, group_id").in("id", seasonIds) : Promise.resolve({ data: [] }),
       ]);
+
+      // Fetch rounds to map matches → group when no season
+      const roundIds = [...new Set((matchesRes.data || []).map((m: any) => m.round_id).filter(Boolean))];
+      const { data: roundsData } = roundIds.length
+        ? await supabase.from("rounds").select("id, group_id").in("id", roundIds)
+        : { data: [] as any[] };
+      const roundMap = new Map((roundsData || []).map((r: any) => [r.id, r.group_id]));
+
+      // Fetch group names
+      const groupIds = [
+        ...new Set([
+          ...((seasonsRes.data || []).map((s: any) => s.group_id)),
+          ...((roundsData || []).map((r: any) => r.group_id)),
+        ].filter(Boolean)),
+      ] as string[];
+      const { data: groupsData } = groupIds.length
+        ? await supabase.from("groups").select("id, name").in("id", groupIds)
+        : { data: [] as any[] };
+      const groupMap = new Map((groupsData || []).map((g: any) => [g.id, g.name]));
 
       // Fetch all player profiles
       const allPlayerIds = [...new Set((playersRes.data || []).map((p) => p.user_id))];
@@ -107,6 +129,12 @@ function HistoryPage() {
             return { name: prof?.nickname || prof?.name || "Jogador", avatar_url: prof?.avatar_url || null };
           });
 
+        const groupId =
+          (season as any)?.group_id ||
+          (match?.round_id ? roundMap.get(match.round_id) : null) ||
+          null;
+        const groupName = groupId ? (groupMap.get(groupId) || "Grupo") : "Sem grupo";
+
         return {
           id: event.match_id + event.created_at,
           matchId: event.match_id,
@@ -121,6 +149,8 @@ function HistoryPage() {
           opponents,
           sets: sets.map((s) => ({ scoreA: s.score_team_a, scoreB: s.score_team_b })),
           seasonName: season?.name || "Temporada",
+          groupId,
+          groupName,
         };
       });
 
@@ -135,8 +165,16 @@ function HistoryPage() {
     return <TrophyLoadingBar />;
   }
 
-  const wins = matches.filter((m) => m.winnerTeam === m.myTeam).length;
-  const losses = matches.filter((m) => m.winnerTeam && m.winnerTeam !== m.myTeam).length;
+  // Build unique groups list
+  const groupsList = Array.from(
+    new Map(matches.filter((m) => m.groupId).map((m) => [m.groupId!, m.groupName])).entries()
+  ).map(([id, name]) => ({ id, name }));
+
+  const filteredMatches =
+    groupFilter === "all" ? matches : matches.filter((m) => m.groupId === groupFilter);
+
+  const wins = filteredMatches.filter((m) => m.winnerTeam === m.myTeam).length;
+  const losses = filteredMatches.filter((m) => m.winnerTeam && m.winnerTeam !== m.myTeam).length;
 
   return (
     <div className="min-h-screen bg-background pb-28">
@@ -150,13 +188,44 @@ function HistoryPage() {
           </Link>
           <div className="flex-1">
             <h1 className="font-display text-lg font-bold text-foreground">Histórico</h1>
-            <p className="text-xs text-muted-foreground">{matches.length} partidas jogadas</p>
+            <p className="text-xs text-muted-foreground">{filteredMatches.length} partidas jogadas</p>
           </div>
         </div>
       </header>
 
+      {/* Group filter tabs */}
+      {groupsList.length > 1 && (
+        <div className="mb-4 px-5">
+          <div className="flex gap-1.5 overflow-x-auto scrollbar-none">
+            <button
+              onClick={() => setGroupFilter("all")}
+              className={`whitespace-nowrap rounded-full px-3.5 py-1.5 text-xs font-semibold transition ${
+                groupFilter === "all"
+                  ? "bg-primary text-primary-foreground"
+                  : "border border-border bg-card text-muted-foreground"
+              }`}
+            >
+              Todos
+            </button>
+            {groupsList.map((g) => (
+              <button
+                key={g.id}
+                onClick={() => setGroupFilter(g.id)}
+                className={`whitespace-nowrap rounded-full px-3.5 py-1.5 text-xs font-semibold transition ${
+                  groupFilter === g.id
+                    ? "bg-primary text-primary-foreground"
+                    : "border border-border bg-card text-muted-foreground"
+                }`}
+              >
+                {g.name}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Summary */}
-      {matches.length > 0 && (
+      {filteredMatches.length > 0 && (
         <div className="mx-5 mb-4 grid grid-cols-3 gap-2">
           <div className="flex flex-col items-center rounded-2xl border border-border bg-card p-3">
             <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Vitórias</span>
@@ -169,14 +238,14 @@ function HistoryPage() {
           <div className="flex flex-col items-center rounded-2xl border border-border bg-card p-3">
             <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Win Rate</span>
             <span className="mt-1 font-display text-lg font-bold text-foreground">
-              {matches.length > 0 ? Math.round((wins / matches.length) * 100) : 0}%
+              {filteredMatches.length > 0 ? Math.round((wins / filteredMatches.length) * 100) : 0}%
             </span>
           </div>
         </div>
       )}
 
       <div className="space-y-2.5 px-5">
-        {matches.length === 0 ? (
+        {filteredMatches.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-3xl bg-primary/10">
               <Swords className="h-8 w-8 text-primary" />
@@ -185,7 +254,7 @@ function HistoryPage() {
             <p className="mt-1 text-sm text-muted-foreground">Suas partidas aparecerão aqui</p>
           </div>
         ) : (
-          matches.map((match) => {
+          filteredMatches.map((match) => {
             const won = match.winnerTeam === match.myTeam;
             const lost = match.winnerTeam && match.winnerTeam !== match.myTeam;
             const dateStr = new Date(match.date).toLocaleDateString("pt-BR", {
