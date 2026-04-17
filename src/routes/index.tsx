@@ -843,33 +843,38 @@ function DashboardPage() {
               </div>
             </div>
           ) : (
-            <div className="space-y-1.5">
+            <div className="grid grid-cols-3 gap-2">
               {recentMatches.slice(0, 3).map((m) => {
                 const won = m.winner_team === m.my_team;
                 return (
                   <div
                     key={m.id}
-                    className="flex items-center gap-2.5 rounded-xl border border-border bg-card px-3 py-2"
+                    className="flex flex-col gap-1 rounded-xl border border-border bg-card p-2.5"
                   >
-                    <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[10px] font-bold ${
-                      won ? "bg-success/10 text-success" : "bg-destructive/10 text-destructive"
-                    }`}>
-                      {won ? "V" : "D"}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-xs font-semibold text-foreground truncate">
-                        {m.group_name && `${m.group_name} • `}Set {m.match_number}
-                      </p>
-                      <p className="text-[10px] text-muted-foreground truncate">
-                        {m.score_display}{m.partner_name ? ` · c/ ${m.partner_name}` : ""}
-                      </p>
-                    </div>
-                    {m.rating_change !== null && (
-                      <div className={`text-right text-xs font-bold ${
-                        m.rating_change > 0 ? "text-success" : m.rating_change < 0 ? "text-destructive" : "text-muted-foreground"
+                    <div className="flex items-center justify-between gap-1">
+                      <div className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-[10px] font-bold ${
+                        won ? "bg-success/10 text-success" : "bg-destructive/10 text-destructive"
                       }`}>
-                        {m.rating_change > 0 ? "+" : ""}{Math.round(m.rating_change)}
+                        {won ? "V" : "D"}
                       </div>
+                      {m.rating_change !== null && (
+                        <span className={`text-[11px] font-bold ${
+                          m.rating_change > 0 ? "text-success" : m.rating_change < 0 ? "text-destructive" : "text-muted-foreground"
+                        }`}>
+                          {m.rating_change > 0 ? "+" : ""}{Math.round(m.rating_change)}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-[11px] font-semibold text-foreground truncate leading-tight">
+                      {m.score_display}
+                    </p>
+                    <p className="text-[9px] text-muted-foreground truncate leading-tight">
+                      {m.group_name ? `${m.group_name} · ` : ""}Set {m.match_number}
+                    </p>
+                    {m.partner_name && (
+                      <p className="text-[9px] text-muted-foreground/80 truncate leading-tight">
+                        c/ {m.partner_name}
+                      </p>
                     )}
                   </div>
                 );
