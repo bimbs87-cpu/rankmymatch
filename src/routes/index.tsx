@@ -1165,7 +1165,7 @@ function DashboardPage() {
               </div>
 
               {/* DESKTOP: card unificado com header e lista densa */}
-              <div className="hidden lg:block rounded-3xl border border-border bg-card overflow-hidden">
+              <div className="hidden lg:flex h-full flex-col rounded-3xl border border-border bg-card overflow-hidden">
                 <div className="flex items-center justify-between border-b border-border/60 px-4 py-2.5">
                   <div className="flex items-center gap-2">
                     <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10">
