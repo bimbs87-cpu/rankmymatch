@@ -235,28 +235,31 @@ function DashboardPage() {
         supabase.from("match_sets").select("match_id, score_team_a, score_team_b, set_number").in("match_id", matchIds).order("set_number"),
       ]);
 
-      // Load partner profiles
-      const partnerIds = new Set<string>();
+      // Load partner + opponent profiles
+      const otherPlayerIds = new Set<string>();
       for (const e of events) {
-        const myPlayer = (playersRes.data || []).find((p: any) => p.match_id === e.match_id && p.user_id === user.id);
-        if (myPlayer) {
-          const partner = (playersRes.data || []).find((p: any) => p.match_id === e.match_id && p.team === myPlayer.team && p.user_id !== user.id);
-          if (partner) partnerIds.add(partner.user_id);
-        }
+        const others = (playersRes.data || []).filter((p: any) => p.match_id === e.match_id && p.user_id !== user.id);
+        for (const o of others) otherPlayerIds.add(o.user_id);
       }
-      const { data: partnerProfiles } = partnerIds.size > 0
-        ? await supabase.from("user_profiles").select("user_id, name, nickname").in("user_id", [...partnerIds])
+      const { data: otherProfiles } = otherPlayerIds.size > 0
+        ? await supabase.from("user_profiles").select("user_id, name, nickname").in("user_id", [...otherPlayerIds])
         : { data: [] as any[] };
-      const partnerMap = new Map((partnerProfiles || []).map((p: any) => [p.user_id, p]));
+      const profileMap = new Map((otherProfiles || []).map((p: any) => [p.user_id, p]));
+      const shortName = (p: any) => p?.nickname || p?.name?.split(" ")[0] || null;
 
       const roundMap = new Map((roundsRes.data || []).map((r: any) => [r.id, r]));
 
       setRecentMatches(
         events.map((e: any) => {
           const match = e.matches as any;
-          const myPlayer = (playersRes.data || []).find((p: any) => p.match_id === e.match_id && p.user_id === user.id);
-          const partner = (playersRes.data || []).find((p: any) => p.match_id === e.match_id && p.team === myPlayer?.team && p.user_id !== user.id);
-          const partnerProfile = partner ? partnerMap.get(partner.user_id) : null;
+          const matchPlayers = (playersRes.data || []).filter((p: any) => p.match_id === e.match_id);
+          const myPlayer = matchPlayers.find((p: any) => p.user_id === user.id);
+          const partner = matchPlayers.find((p: any) => p.team === myPlayer?.team && p.user_id !== user.id);
+          const opponents = matchPlayers.filter((p: any) => p.team !== myPlayer?.team);
+          const partnerProfile = partner ? profileMap.get(partner.user_id) : null;
+          const opponentNames = opponents
+            .map((o: any) => shortName(profileMap.get(o.user_id)))
+            .filter((n: any): n is string => Boolean(n));
           const round = roundMap.get(match?.round_id);
           const sets = (setsRes.data || []).filter((s: any) => s.match_id === e.match_id);
           const scoreDisplay = sets.length
@@ -272,7 +275,8 @@ function DashboardPage() {
             score_display: scoreDisplay,
             rating_change: Number(e.rating_change),
             created_at: e.created_at,
-            partner_name: partnerProfile?.nickname || partnerProfile?.name?.split(" ")[0] || null,
+            partner_name: shortName(partnerProfile),
+            opponent_names: opponentNames,
           };
         })
       );
