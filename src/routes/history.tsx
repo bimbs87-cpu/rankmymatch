@@ -201,6 +201,32 @@ function HistoryPage() {
   const filteredMatches =
     groupFilter === "all" ? matches : matches.filter((m) => m.groupId === groupFilter);
 
+  // Build a per-group display-name map. We collect every player ever seen in a
+  // match for a given group, then disambiguate within that group only.
+  const displayNameByGroup = useMemo(() => {
+    const byGroup = new Map<string, Map<string, NameInput>>();
+    for (const m of matches) {
+      const key = m.groupId || "__none__";
+      if (!byGroup.has(key)) byGroup.set(key, new Map());
+      const bucket = byGroup.get(key)!;
+      for (const p of [...m.teammates, ...m.opponents]) {
+        if (!bucket.has(p.user_id)) {
+          bucket.set(p.user_id, { id: p.user_id, name: p.name, nickname: p.nickname });
+        }
+      }
+    }
+    const out = new Map<string, Map<string, string>>();
+    for (const [groupKey, bucket] of byGroup) {
+      out.set(groupKey, buildDisplayNames([...bucket.values()]));
+    }
+    return out;
+  }, [matches]);
+
+  const labelFor = (groupId: string | null, player: PlayerRef): string => {
+    const key = groupId || "__none__";
+    return displayNameByGroup.get(key)?.get(player.user_id) || player.nickname || player.name;
+  };
+
   const wins = filteredMatches.filter((m) => m.winnerTeam === m.myTeam).length;
   const losses = filteredMatches.filter((m) => m.winnerTeam && m.winnerTeam !== m.myTeam).length;
 
