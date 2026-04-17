@@ -1,26 +1,123 @@
 import { usePwaInstall } from "@/hooks/use-pwa-install";
-import { Download, Share, X } from "lucide-react";
-import { useState } from "react";
+import { Download, Share, X, CheckCircle2, Loader2, Smartphone } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+
+type InstallPhase = "idle" | "prompting" | "downloading" | "finalizing" | "success" | "cancelled";
 
 export function InstallBanner() {
   const { canInstall, isIos, isInstalled, install } = usePwaInstall();
   const [dismissed, setDismissed] = useState(false);
+  const [phase, setPhase] = useState<InstallPhase>("idle");
+  const [progress, setProgress] = useState(0);
+  const progressTimer = useRef<number | null>(null);
 
-  // Don't show if already installed, dismissed, or not eligible
-  if (isInstalled || dismissed) return null;
-  if (!canInstall && !isIos) return null;
+  // Animated fake progress that converges to 95% while installing,
+  // then jumps to 100% when the browser confirms install.
+  useEffect(() => {
+    if (phase === "downloading" || phase === "finalizing") {
+      const target = phase === "downloading" ? 80 : 95;
+      progressTimer.current = window.setInterval(() => {
+        setProgress((p) => {
+          if (p >= target) return p;
+          // Slower as we get closer to target — feels realistic
+          const step = Math.max(0.5, (target - p) * 0.06);
+          return Math.min(target, p + step);
+        });
+      }, 120);
+    } else {
+      if (progressTimer.current) {
+        clearInterval(progressTimer.current);
+        progressTimer.current = null;
+      }
+    }
+    return () => {
+      if (progressTimer.current) {
+        clearInterval(progressTimer.current);
+        progressTimer.current = null;
+      }
+    };
+  }, [phase]);
+
+  // When the app actually installs, complete the bar and show success
+  useEffect(() => {
+    if (isInstalled && phase !== "idle" && phase !== "success") {
+      setProgress(100);
+      setPhase("success");
+      const t = window.setTimeout(() => setDismissed(true), 2400);
+      return () => clearTimeout(t);
+    }
+  }, [isInstalled, phase]);
+
+  const handleInstall = async () => {
+    setPhase("prompting");
+    setProgress(8);
+    try {
+      // Browser shows the native prompt here; user must tap "Install"
+      const accepted = await install();
+      if (!accepted) {
+        setPhase("cancelled");
+        setProgress(0);
+        // Allow retry after short delay
+        window.setTimeout(() => setPhase("idle"), 1800);
+        return;
+      }
+      // User accepted — Chrome is now downloading icons & registering SW
+      setPhase("downloading");
+      setProgress((p) => Math.max(p, 20));
+      // After a beat, shift into "finalizing" so the bar can climb higher
+      window.setTimeout(() => {
+        setPhase((cur) => (cur === "downloading" ? "finalizing" : cur));
+      }, 2500);
+    } catch {
+      setPhase("idle");
+      setProgress(0);
+    }
+  };
+
+  // Don't show if already installed (and we're not mid-celebration), dismissed, or not eligible
+  if (isInstalled && phase !== "success") return null;
+  if (dismissed) return null;
+  if (!canInstall && !isIos && phase === "idle") return null;
+
+  const isInstalling =
+    phase === "prompting" || phase === "downloading" || phase === "finalizing";
+
+  const phaseLabel: Record<InstallPhase, string> = {
+    idle: "",
+    prompting: "Confirme no aviso do navegador…",
+    downloading: "Baixando o aplicativo…",
+    finalizing: "Finalizando instalação…",
+    success: "Instalado com sucesso!",
+    cancelled: "Instalação cancelada",
+  };
 
   return (
     <div className="mx-4 mb-3 rounded-2xl border border-primary/30 bg-card/95 backdrop-blur-sm p-4 shadow-lg">
       <div className="flex items-start gap-3">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/15">
-          <Download className="h-5 w-5 text-primary" />
+        <div
+          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-colors ${
+            phase === "success" ? "bg-success/15" : "bg-primary/15"
+          }`}
+        >
+          {phase === "success" ? (
+            <CheckCircle2 className="h-5 w-5 text-success" />
+          ) : isInstalling ? (
+            <Loader2 className="h-5 w-5 text-primary animate-spin" />
+          ) : (
+            <Download className="h-5 w-5 text-primary" />
+          )}
         </div>
         <div className="flex-1 min-w-0">
           <h3 className="text-sm font-semibold text-foreground">
-            Instalar RankMyMatch
+            {phase === "success" ? "RankMyMatch instalado!" : "Instalar RankMyMatch"}
           </h3>
-          {isIos ? (
+          {phase === "success" ? (
+            <p className="mt-1 text-xs text-muted-foreground">
+              Procure o ícone na sua tela inicial.
+            </p>
+          ) : isInstalling || phase === "cancelled" ? (
+            <p className="mt-1 text-xs text-muted-foreground">{phaseLabel[phase]}</p>
+          ) : isIos ? (
             <p className="mt-1 text-xs text-muted-foreground">
               Toque em{" "}
               <Share className="inline h-3.5 w-3.5 -mt-0.5" />{" "}
@@ -29,23 +126,59 @@ export function InstallBanner() {
             </p>
           ) : (
             <p className="mt-1 text-xs text-muted-foreground">
-              Adicione um atalho na tela inicial do seu celular
+              Acesso rápido pela tela inicial, em tela cheia e sem barra do navegador.
             </p>
           )}
         </div>
-        <button
-          onClick={() => setDismissed(true)}
-          className="shrink-0 p-1 text-muted-foreground hover:text-foreground"
-        >
-          <X className="h-4 w-4" />
-        </button>
+        {!isInstalling && phase !== "success" && (
+          <button
+            onClick={() => setDismissed(true)}
+            className="shrink-0 p-1 text-muted-foreground hover:text-foreground"
+            aria-label="Dispensar"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        )}
       </div>
-      {canInstall && (
+
+      {/* Progress UI while installing */}
+      {(isInstalling || phase === "success") && (
+        <div className="mt-3 space-y-2">
+          <div className="h-2 w-full overflow-hidden rounded-full bg-primary/15">
+            <div
+              className={`h-full rounded-full transition-[width,background-color] duration-300 ease-out ${
+                phase === "success" ? "bg-success" : "bg-primary"
+              }`}
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+          <div className="flex items-center justify-between text-[11px]">
+            <span className="text-muted-foreground">{Math.round(progress)}%</span>
+            {isInstalling && (
+              <span className="flex items-center gap-1 text-muted-foreground">
+                <Smartphone className="h-3 w-3" />
+                Não feche o app durante a instalação
+              </span>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Action button */}
+      {canInstall && phase === "idle" && (
         <button
-          onClick={install}
+          onClick={handleInstall}
           className="mt-3 w-full rounded-xl bg-primary py-2.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
         >
           Instalar agora
+        </button>
+      )}
+      {phase === "cancelled" && (
+        <button
+          onClick={handleInstall}
+          className="mt-3 w-full rounded-xl bg-primary py-2.5 text-sm font-semibold text-primary-foreground"
+        >
+          Tentar novamente
         </button>
       )}
     </div>
