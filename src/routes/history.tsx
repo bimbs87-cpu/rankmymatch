@@ -229,33 +229,70 @@ function HistoryPage() {
   const wins = filteredMatches.filter((m) => m.winnerTeam === m.myTeam).length;
   const losses = filteredMatches.filter((m) => m.winnerTeam && m.winnerTeam !== m.myTeam).length;
 
+  // Group matches by month for visual chunking (Hick's law: easier to scan)
+  const winRate = filteredMatches.length > 0 ? Math.round((wins / filteredMatches.length) * 100) : 0;
+  const totalElo = filteredMatches.reduce((sum, m) => sum + m.ratingChange, 0);
+
+  const groupedByMonth = (() => {
+    const groups = new Map<string, MatchHistory[]>();
+    for (const m of filteredMatches) {
+      const d = new Date(m.date);
+      const key = `${d.getFullYear()}-${String(d.getMonth()).padStart(2, "0")}`;
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key)!.push(m);
+    }
+    return [...groups.entries()].map(([key, items]) => {
+      const [year, month] = key.split("-").map(Number);
+      const label = new Date(year, month, 1).toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+      return { key, label, items };
+    });
+  })();
+
   return (
     <div className="min-h-screen bg-background pb-28">
-      <header className="px-5 pb-4 pt-6">
-        <div className="flex items-center gap-3">
+      {/* Header with subtle gradient for depth */}
+      <header className="relative overflow-hidden px-5 pb-5 pt-6">
+        <div className="pointer-events-none absolute inset-x-0 -top-20 h-40 bg-gradient-to-b from-primary/5 to-transparent" />
+        <div className="relative flex items-center gap-3">
           <Link
             to="/profile"
-            className="flex h-9 w-9 items-center justify-center rounded-full border border-border bg-card"
+            aria-label="Voltar"
+            className="flex h-9 w-9 items-center justify-center rounded-full border border-border bg-card transition active:scale-95"
           >
             <ArrowLeft className="h-4 w-4 text-foreground" />
           </Link>
           <div className="flex-1">
-            <h1 className="font-display text-lg font-bold text-foreground">Histórico</h1>
-            <p className="text-xs text-muted-foreground">{filteredMatches.length} partidas jogadas</p>
+            <h1 className="font-display text-xl font-bold tracking-tight text-foreground">Histórico</h1>
+            <p className="text-[11px] text-muted-foreground">
+              {filteredMatches.length} {filteredMatches.length === 1 ? "partida" : "partidas"}
+              {filteredMatches.length > 0 && (
+                <>
+                  {" · "}
+                  <span
+                    className={
+                      totalElo > 0 ? "text-success" : totalElo < 0 ? "text-destructive" : "text-muted-foreground"
+                    }
+                  >
+                    {totalElo > 0 ? "+" : ""}
+                    {Math.round(totalElo)} Elo
+                  </span>
+                </>
+              )}
+            </p>
           </div>
         </div>
       </header>
 
       {/* Group filter tabs */}
       {groupsList.length > 1 && (
-        <div className="mb-4 px-5">
+        <div className="mb-3 px-5">
           <div className="flex gap-1.5 overflow-x-auto scrollbar-none">
             <button
               onClick={() => setGroupFilter("all")}
-              className={`whitespace-nowrap rounded-full px-3.5 py-1.5 text-xs font-semibold transition ${
+              className={`whitespace-nowrap rounded-full px-3.5 py-1.5 text-[11px] font-semibold transition ${
                 groupFilter === "all"
-                  ? "bg-primary text-primary-foreground"
-                  : "border border-border bg-card text-muted-foreground"
+                  ? "bg-primary text-primary-foreground shadow-sm"
+                  : "border border-border bg-card text-muted-foreground hover:text-foreground"
               }`}
             >
               Todos
@@ -264,10 +301,10 @@ function HistoryPage() {
               <button
                 key={g.id}
                 onClick={() => setGroupFilter(g.id)}
-                className={`whitespace-nowrap rounded-full px-3.5 py-1.5 text-xs font-semibold transition ${
+                className={`whitespace-nowrap rounded-full px-3.5 py-1.5 text-[11px] font-semibold transition ${
                   groupFilter === g.id
-                    ? "bg-primary text-primary-foreground"
-                    : "border border-border bg-card text-muted-foreground"
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "border border-border bg-card text-muted-foreground hover:text-foreground"
                 }`}
               >
                 {g.name}
@@ -277,22 +314,39 @@ function HistoryPage() {
         </div>
       )}
 
-      {/* Summary */}
+      {/* Summary — segmented progress bar (more emotionally rich than 3 cards) */}
       {filteredMatches.length > 0 && (
-        <div className="mx-5 mb-4 grid grid-cols-3 gap-2">
-          <div className="flex flex-col items-center rounded-2xl border border-border bg-card p-3">
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Vitórias</span>
-            <span className="mt-1 font-display text-lg font-bold text-success">{wins}</span>
+        <div className="mx-5 mb-4 rounded-2xl border border-border bg-card p-3.5">
+          <div className="mb-2.5 flex items-baseline justify-between">
+            <div className="flex items-baseline gap-1.5">
+              <span className="font-display text-2xl font-bold leading-none text-foreground tabular-nums">{winRate}%</span>
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Win Rate</span>
+            </div>
+            <div className="flex items-center gap-3 text-[11px] tabular-nums">
+              <span className="flex items-center gap-1 font-semibold text-success">
+                <span className="h-1.5 w-1.5 rounded-full bg-success" />
+                {wins}V
+              </span>
+              <span className="flex items-center gap-1 font-semibold text-destructive">
+                <span className="h-1.5 w-1.5 rounded-full bg-destructive" />
+                {losses}D
+              </span>
+            </div>
           </div>
-          <div className="flex flex-col items-center rounded-2xl border border-border bg-card p-3">
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Derrotas</span>
-            <span className="mt-1 font-display text-lg font-bold text-destructive">{losses}</span>
-          </div>
-          <div className="flex flex-col items-center rounded-2xl border border-border bg-card p-3">
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Win Rate</span>
-            <span className="mt-1 font-display text-lg font-bold text-foreground">
-              {filteredMatches.length > 0 ? Math.round((wins / filteredMatches.length) * 100) : 0}%
-            </span>
+          {/* Visual stacked bar — instant comprehension */}
+          <div className="flex h-1.5 overflow-hidden rounded-full bg-muted">
+            {wins > 0 && (
+              <div
+                className="bg-success transition-all"
+                style={{ width: `${(wins / Math.max(1, wins + losses)) * 100}%` }}
+              />
+            )}
+            {losses > 0 && (
+              <div
+                className="bg-destructive transition-all"
+                style={{ width: `${(losses / Math.max(1, wins + losses)) * 100}%` }}
+              />
+            )}
           </div>
         </div>
       )}
@@ -307,96 +361,121 @@ function HistoryPage() {
             <p className="mt-1 text-sm text-muted-foreground">Suas partidas aparecerão aqui</p>
           </div>
         ) : (
-          <div className="overflow-hidden rounded-2xl border border-border bg-card/50">
-            {/* Column headers */}
-            <div className="flex items-center gap-2 border-b border-border bg-muted/20 px-3 py-1.5 text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">
-              <span className="w-6 flex-shrink-0" />
-              <span className="w-10 flex-shrink-0">Data</span>
-              <div className="min-w-0 flex-1">Confronto</div>
-              <span className="w-10 flex-shrink-0 text-right">Elo</span>
-            </div>
-            {filteredMatches.map((match, idx) => {
-              const won = match.winnerTeam === match.myTeam;
-              const lost = match.winnerTeam && match.winnerTeam !== match.myTeam;
-              const dateStr = new Date(match.date).toLocaleDateString("pt-BR", {
-                day: "2-digit",
-                month: "2-digit",
-              });
-              const partnerStr = match.teammates.length
-                ? match.teammates.map((t) => labelFor(match.groupId, t)).join(" & ")
-                : "Solo";
-              const oppStr = match.opponents.length
-                ? match.opponents.map((o) => labelFor(match.groupId, o)).join(" & ")
-                : "—";
-              // Games per set from my perspective (e.g. "6x3 4x6 7x5")
-              const gamesStr =
-                match.sets.length > 0
-                  ? match.sets
-                      .map((s) =>
-                        match.myTeam === "A"
-                          ? `${s.scoreA}x${s.scoreB}`
-                          : `${s.scoreB}x${s.scoreA}`,
-                      )
-                      .join(" · ")
-                  : "—";
-              return (
-                <button
-                  key={match.id}
-                  onClick={() => setSelected(match)}
-                  className={`flex w-full items-center gap-2 px-3 py-2 text-left transition hover:bg-muted/30 ${
-                    idx > 0 ? "border-t border-border" : ""
-                  }`}
-                >
-                  <span
-                    className={`flex h-7 w-6 flex-shrink-0 items-center justify-center rounded-md text-[10px] font-bold ${
-                      won
-                        ? "bg-success/10 text-success"
-                        : lost
-                        ? "bg-destructive/10 text-destructive"
-                        : "bg-muted text-muted-foreground"
-                    }`}
-                  >
-                    {won ? "V" : lost ? "D" : "—"}
+          <div className="space-y-5">
+            {groupedByMonth.map(({ key, label, items }) => (
+              <section key={key}>
+                {/* Month label — small, sticky-feel chunking */}
+                <div className="mb-1.5 flex items-center gap-2 px-1">
+                  <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
+                    {label}
                   </span>
-                  <span className="w-10 flex-shrink-0 text-[10px] text-muted-foreground">{dateStr}</span>
-                  <div className="min-w-0 flex-1 leading-tight">
-                    <div className="truncate text-[11px] font-medium text-foreground">
-                      {partnerStr} <span className="text-muted-foreground">vs</span> {oppStr}
-                    </div>
-                    <div
-                      className={`truncate text-[10px] tabular-nums ${
-                        won
-                          ? "text-success"
-                          : lost
-                          ? "text-destructive"
-                          : "text-muted-foreground"
-                      }`}
-                    >
-                      {gamesStr}
-                    </div>
-                  </div>
-                  <span
-                    className={`flex w-10 flex-shrink-0 items-center justify-end gap-0.5 text-[11px] font-bold ${
-                      match.ratingChange > 0
-                        ? "text-success"
-                        : match.ratingChange < 0
-                        ? "text-destructive"
-                        : "text-muted-foreground"
-                    }`}
-                  >
-                    {match.ratingChange > 0 ? (
-                      <TrendingUp className="h-2.5 w-2.5" />
-                    ) : match.ratingChange < 0 ? (
-                      <TrendingDown className="h-2.5 w-2.5" />
-                    ) : (
-                      <Minus className="h-2.5 w-2.5" />
-                    )}
-                    {match.ratingChange > 0 ? "+" : ""}
-                    {Math.round(match.ratingChange)}
+                  <span className="h-px flex-1 bg-border" />
+                  <span className="text-[10px] font-semibold tabular-nums text-muted-foreground">
+                    {items.length}
                   </span>
-                </button>
-              );
-            })}
+                </div>
+
+                <div className="overflow-hidden rounded-2xl border border-border bg-card">
+                  {items.map((match, idx) => {
+                    const won = match.winnerTeam === match.myTeam;
+                    const lost = match.winnerTeam && match.winnerTeam !== match.myTeam;
+                    const d = new Date(match.date);
+                    const dayStr = String(d.getDate()).padStart(2, "0");
+                    const monthAbbr = d.toLocaleDateString("pt-BR", { month: "short" }).replace(".", "");
+                    const partnerStr = match.teammates.length
+                      ? match.teammates.map((t) => labelFor(match.groupId, t)).join(" & ")
+                      : "Solo";
+                    const oppStr = match.opponents.length
+                      ? match.opponents.map((o) => labelFor(match.groupId, o)).join(" & ")
+                      : "—";
+                    const gamesStr =
+                      match.sets.length > 0
+                        ? match.sets
+                            .map((s) =>
+                              match.myTeam === "A"
+                                ? `${s.scoreA}–${s.scoreB}`
+                                : `${s.scoreB}–${s.scoreA}`,
+                            )
+                            .join("  ")
+                        : "—";
+
+                    // Color accent for left border (visual anchor)
+                    const accent = won
+                      ? "before:bg-success"
+                      : lost
+                      ? "before:bg-destructive"
+                      : "before:bg-muted-foreground/40";
+
+                    return (
+                      <button
+                        key={match.id}
+                        onClick={() => setSelected(match)}
+                        className={`relative flex w-full items-center gap-2.5 py-2 pl-3 pr-3 text-left transition-colors hover:bg-muted/40 active:bg-muted/60 before:absolute before:left-0 before:top-1/2 before:h-7 before:w-[3px] before:-translate-y-1/2 before:rounded-r-full ${accent} ${
+                          idx > 0 ? "border-t border-border/60" : ""
+                        }`}
+                      >
+                        {/* Date stack — calendar-style for quick scan */}
+                        <div className="flex w-8 flex-shrink-0 flex-col items-center leading-none">
+                          <span className="font-display text-sm font-bold tabular-nums text-foreground">
+                            {dayStr}
+                          </span>
+                          <span className="mt-0.5 text-[8px] font-semibold uppercase tracking-wider text-muted-foreground">
+                            {monthAbbr}
+                          </span>
+                        </div>
+
+                        {/* Match info — two tight lines */}
+                        <div className="min-w-0 flex-1 leading-tight">
+                          <div className="truncate text-[12px] font-semibold text-foreground">
+                            {partnerStr}{" "}
+                            <span className="font-normal text-muted-foreground/70">vs</span>{" "}
+                            {oppStr}
+                          </div>
+                          <div className="mt-0.5 flex items-center gap-1.5">
+                            <span
+                              className={`text-[10px] font-bold uppercase tracking-wider ${
+                                won
+                                  ? "text-success"
+                                  : lost
+                                  ? "text-destructive"
+                                  : "text-muted-foreground"
+                              }`}
+                            >
+                              {won ? "Vitória" : lost ? "Derrota" : "—"}
+                            </span>
+                            <span className="text-[10px] text-muted-foreground/50">·</span>
+                            <span className="truncate text-[10px] tabular-nums text-muted-foreground">
+                              {gamesStr}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Elo delta — pill for emphasis */}
+                        <div
+                          className={`flex flex-shrink-0 items-center gap-0.5 rounded-md px-1.5 py-1 text-[11px] font-bold tabular-nums ${
+                            match.ratingChange > 0
+                              ? "bg-success/10 text-success"
+                              : match.ratingChange < 0
+                              ? "bg-destructive/10 text-destructive"
+                              : "bg-muted text-muted-foreground"
+                          }`}
+                        >
+                          {match.ratingChange > 0 ? (
+                            <TrendingUp className="h-3 w-3" />
+                          ) : match.ratingChange < 0 ? (
+                            <TrendingDown className="h-3 w-3" />
+                          ) : (
+                            <Minus className="h-3 w-3" />
+                          )}
+                          {match.ratingChange > 0 ? "+" : ""}
+                          {Math.round(match.ratingChange)}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </section>
+            ))}
           </div>
         )}
       </div>
