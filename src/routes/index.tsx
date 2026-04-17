@@ -801,7 +801,7 @@ function DashboardPage() {
         )}
 
         {/* Ranking card + Quick action */}
-        <section className="grid grid-cols-2 gap-3 animate-fade-in lg:col-span-4 lg:order-1">
+        <section className="grid grid-cols-2 gap-3 animate-fade-in lg:col-span-4 lg:col-start-1 lg:row-start-1 lg:self-start">
           {dataLoading ? (
             <div className="flex flex-col items-center justify-center rounded-3xl border border-border bg-card p-5 min-h-[140px] lg:min-h-0">
               <CardSpinner label="Carregando ranking" />
