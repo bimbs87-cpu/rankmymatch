@@ -823,6 +823,7 @@ function GroupDetailPage() {
             name={group.name}
             description={group.description}
             isPublic={group.is_public}
+            visibility={(group as any).visibility}
             maxPlayers={group.max_players}
             sport={group.sport}
             simultaneousCourts={group.simultaneous_courts}
