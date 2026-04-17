@@ -344,7 +344,42 @@ function RoundDetailPage() {
   }
 
   const isConfirmed = myPresence?.status === "confirmed";
-  const confirmedPlayers = presences.filter((p) => p.status === "confirmed");
+  const presenceConfirmed = presences.filter((p) => p.status === "confirmed");
+
+  // For rounds that already have matches (in_progress/completed), the real
+  // confirmed players are those who actually played — derive from match_players
+  // so e.g. a finished 2v2 always shows 4/4 even if presence rows weren't toggled.
+  const playedUserIds = useMemo(() => {
+    const set = new Set<string>();
+    for (const m of matches) {
+      for (const mp of m.match_players || []) set.add(mp.user_id);
+    }
+    return set;
+  }, [matches]);
+
+  const roundHasMatches = matches.length > 0;
+  const confirmedPlayers = roundHasMatches
+    ? (() => {
+        const presenceMap = new Map(presences.map((p) => [p.user_id, p]));
+        return Array.from(playedUserIds).map((uid) => {
+          const existing = presenceMap.get(uid);
+          if (existing) return existing;
+          // Fallback: build a minimal presence-like object from match_players profile
+          const mp = matches
+            .flatMap((m: any) => m.match_players || [])
+            .find((p: any) => p.user_id === uid);
+          return {
+            id: `played-${uid}`,
+            user_id: uid,
+            round_id: roundId,
+            status: "confirmed",
+            profile: mp?.profile,
+          } as any;
+        });
+      })()
+    : presenceConfirmed;
+  const effectiveConfirmedCount = confirmedPlayers.length;
+
   const isSingles = group?.match_format === "singles";
   const singlesCapacity = Math.min(
     round.max_players || 2,
@@ -354,7 +389,7 @@ function RoundDetailPage() {
   );
   const displayCapacity = isSingles ? singlesCapacity : round.max_players;
   const minPlayersForDraw = isSingles ? 2 : 4;
-  const canDraw = isAdmin && confirmedPlayers.length >= minPlayersForDraw && matches.length === 0 && !rivalry;
+  const canDraw = isAdmin && presenceConfirmed.length >= minPlayersForDraw && matches.length === 0 && !rivalry;
 
   const presenceListOpen = isPresenceOpen(presenceConfig, round.scheduled_date, round.scheduled_time, roundId);
   const presenceOpenDate = getPresenceOpenDate(presenceConfig, round.scheduled_date, round.scheduled_time, roundId);
