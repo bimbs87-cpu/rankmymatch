@@ -92,14 +92,14 @@ export function InstallOverlay({ phase, progress, phaseLabel }: InstallOverlayPr
           {!isSuccess && (
             <div
               role="alert"
-              className="mt-5 w-full flex items-start gap-2 rounded-2xl border-2 border-warning/60 bg-warning/15 p-3 text-left animate-pulse"
+              className="mt-5 w-full flex items-start gap-2 rounded-2xl border-2 border-warning/70 bg-warning/20 p-3 text-left animate-pulse"
             >
               <Smartphone className="h-5 w-5 shrink-0 text-warning mt-0.5" />
               <div className="text-xs leading-relaxed space-y-1">
-                <p className="font-bold text-warning-foreground">
+                <p className="font-bold text-warning">
                   ⚠️ NÃO feche esta aba nem troque de janela
                 </p>
-                <p className="text-[11px] text-muted-foreground">
+                <p className="text-[11px] text-foreground/90">
                   A instalação pode levar até 30 segundos. Aguarde até o ícone
                   aparecer na sua tela inicial.
                 </p>
