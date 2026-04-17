@@ -1056,7 +1056,7 @@ function DashboardPage() {
                   return (
                     <div
                       key={m.id}
-                      className="flex items-stretch gap-3 px-4 py-2.5 transition-colors hover:bg-accent/30"
+                      className="flex items-stretch gap-3 px-4 py-1 transition-colors hover:bg-accent/30"
                     >
                       {/* Date with colored bar (V/D indicator) */}
                       <div className="flex shrink-0 items-stretch gap-2">
