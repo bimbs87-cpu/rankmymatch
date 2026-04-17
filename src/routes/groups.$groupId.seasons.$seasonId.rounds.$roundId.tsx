@@ -103,81 +103,83 @@ function RoundDetailPage() {
     loadAll();
   }, [matches]);
 
-  // Load previous completed round in same season and compute previous "Rei da Quadra" positions
+  // Compute group ranking position variation: position BEFORE this round vs AFTER this round
+  // (using cumulative rating_change across the season for all players who have played).
   useEffect(() => {
     if (!round || !seasonId) return;
     const currentDate = (round as any).scheduled_date;
     const currentNumber = (round as any).round_number;
     (async () => {
-      // Find previous completed round in same season (by date desc, then round_number desc)
-      let query = supabase
+      // All completed rounds in season (we'll partition into "before" and "this/after")
+      const { data: allRounds } = await supabase
         .from("rounds")
         .select("id, scheduled_date, round_number, status")
         .eq("season_id", seasonId)
-        .eq("status", "completed")
-        .neq("id", roundId);
-      const { data: prevRounds } = await query;
-      if (!prevRounds?.length) { setPreviousPositions(null); return; }
-      // Sort to find the round immediately before current
-      const sorted = [...prevRounds].sort((a, b) => {
-        const da = a.scheduled_date || "";
-        const db = b.scheduled_date || "";
-        if (da !== db) return db.localeCompare(da);
-        return (b.round_number || 0) - (a.round_number || 0);
-      });
-      const prev = sorted.find((r) => {
+        .eq("status", "completed");
+      if (!allRounds?.length) { setPreviousPositions(null); return; }
+
+      const isBefore = (r: any) => {
         const d = r.scheduled_date || "";
         const cd = currentDate || "";
         if (d !== cd) return d < cd;
         return (r.round_number || 0) < (currentNumber || 0);
-      });
-      if (!prev) { setPreviousPositions(null); return; }
+      };
+      const beforeRoundIds = allRounds.filter(isBefore).map((r) => r.id);
+      const upToRoundIds = [...beforeRoundIds, roundId];
 
-      // Load matches + sets + players for prev round
-      const { data: prevMatches } = await supabase
+      // Fetch all matches for the relevant rounds in one go
+      const { data: relMatches } = await supabase
         .from("matches")
-        .select("id, status, match_players(user_id, team), match_sets(score_team_a, score_team_b)")
-        .eq("round_id", prev.id)
+        .select("id, round_id, status")
+        .in("round_id", upToRoundIds)
         .eq("status", "completed");
-      if (!prevMatches?.length || prevMatches.length < 2) { setPreviousPositions(null); return; }
+      if (!relMatches?.length) { setPreviousPositions(null); return; }
 
-      // Load rating events for those matches to mirror current sort
-      const ids = prevMatches.map((m: any) => m.id);
-      const { data: prevEvents } = await supabase
+      const matchToRound: Record<string, string> = {};
+      for (const m of relMatches) matchToRound[m.id] = (m as any).round_id;
+
+      const { data: events } = await supabase
         .from("rating_events")
         .select("match_id, user_id, rating_change")
-        .in("match_id", ids);
-      const eloByPlayer: Record<string, number> = {};
-      for (const e of prevEvents || []) {
-        eloByPlayer[e.user_id] = (eloByPlayer[e.user_id] || 0) + Math.round(Number(e.rating_change));
-      }
+        .in("match_id", relMatches.map((m) => m.id));
+      if (!events?.length) { setPreviousPositions(null); return; }
 
-      const stats: Record<string, { wins: number; gamesWon: number; gamesLost: number; eloChange: number }> = {};
-      for (const m of prevMatches as any[]) {
-        const sets = m.match_sets || [];
-        const setsA = sets.filter((s: any) => s.score_team_a > s.score_team_b).length;
-        const setsB = sets.filter((s: any) => s.score_team_b > s.score_team_a).length;
-        const gA = sets.reduce((s: number, x: any) => s + x.score_team_a, 0);
-        const gB = sets.reduce((s: number, x: any) => s + x.score_team_b, 0);
-        const winner = setsA > setsB ? "A" : setsB > setsA ? "B" : null;
-        for (const mp of m.match_players || []) {
-          if (!stats[mp.user_id]) stats[mp.user_id] = { wins: 0, gamesWon: 0, gamesLost: 0, eloChange: eloByPlayer[mp.user_id] || 0 };
-          const isA = mp.team === "A";
-          stats[mp.user_id].gamesWon += isA ? gA : gB;
-          stats[mp.user_id].gamesLost += isA ? gB : gA;
-          if (winner && ((isA && winner === "A") || (!isA && winner === "B"))) stats[mp.user_id].wins++;
+      // Cumulative rating before this round and after this round
+      const before: Record<string, number> = {};
+      const after: Record<string, number> = {};
+      const beforeSet = new Set(beforeRoundIds);
+      for (const ev of events) {
+        const rid = matchToRound[ev.match_id];
+        const change = Number(ev.rating_change);
+        after[ev.user_id] = (after[ev.user_id] || 0) + change;
+        if (beforeSet.has(rid)) {
+          before[ev.user_id] = (before[ev.user_id] || 0) + change;
         }
       }
-      const sortedPrev = Object.entries(stats).sort(([, a], [, b]) => {
-        if (b.eloChange !== a.eloChange) return b.eloChange - a.eloChange;
-        if (b.wins !== a.wins) return b.wins - a.wins;
-        return (b.gamesWon - b.gamesLost) - (a.gamesWon - a.gamesLost);
-      });
-      const positions: Record<string, number> = {};
-      sortedPrev.forEach(([uid], i) => { positions[uid] = i + 1; });
-      setPreviousPositions(positions);
+
+      // Build position maps (rank by rating desc; ties keep insertion order)
+      const sortMap = (m: Record<string, number>): Record<string, number> => {
+        const sorted = Object.entries(m).sort(([, a], [, b]) => b - a);
+        const out: Record<string, number> = {};
+        sorted.forEach(([uid], i) => { out[uid] = i + 1; });
+        return out;
+      };
+      const beforePos = sortMap(before);
+      const afterPos = sortMap(after);
+
+      // delta = beforePos - afterPos  (positive = subiu posições)
+      // For players with no "before" entry (first round played), delta is null (NEW)
+      const delta: Record<string, number> = {};
+      for (const uid of Object.keys(afterPos)) {
+        if (beforePos[uid] !== undefined) {
+          delta[uid] = beforePos[uid] - afterPos[uid];
+        }
+      }
+      // We re-use previousPositions state to store the *delta* keyed by user_id
+      setPreviousPositions(delta);
     })();
   }, [round, seasonId, roundId]);
+
 
   const getPlayerEloChange = (matchId: string, userId: string) => {
     const events = matchRatings[matchId];
@@ -830,8 +832,7 @@ function RoundDetailPage() {
                   {sorted.map(([uid, stats], i) => {
                     const isWinner = i === 0;
                     const currentPos = i + 1;
-                    const prevPos = previousPositions ? previousPositions[uid] : undefined;
-                    const delta = prevPos !== undefined ? prevPos - currentPos : null; // positive = subiu
+                    const delta = previousPositions && previousPositions[uid] !== undefined ? previousPositions[uid] : null;
                     return (
                       <div
                         key={uid}
@@ -847,7 +848,7 @@ function RoundDetailPage() {
                             className={`inline-flex items-center text-[10px] font-bold tabular-nums w-7 ${
                               delta > 0 ? "text-success" : delta < 0 ? "text-destructive" : "text-muted-foreground"
                             }`}
-                            title={prevPos ? `Posição anterior: ${prevPos}º` : ""}
+                            title="Variação de posição no ranking do grupo"
                           >
                             {delta > 0 ? `▲${delta}` : delta < 0 ? `▼${Math.abs(delta)}` : "—"}
                           </span>
