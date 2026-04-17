@@ -636,6 +636,36 @@ function GroupDetailPage() {
                         {!isFormer && rank && (
                           <span className="text-xs font-bold text-primary">{Math.round(rank.rating)}</span>
                         )}
+                        {isFormer && isAdmin && (
+                          renamingUserId === m.user_id ? (
+                            <div className="flex gap-1">
+                              <button
+                                onClick={handleSaveRename}
+                                disabled={renameSaving}
+                                className="rounded-lg bg-success/10 p-1.5 text-success disabled:opacity-50"
+                                title="Salvar"
+                              >
+                                <Check className="h-3 w-3" />
+                              </button>
+                              <button
+                                onClick={() => setRenamingUserId(null)}
+                                disabled={renameSaving}
+                                className="rounded-lg bg-muted p-1.5 text-muted-foreground disabled:opacity-50"
+                                title="Cancelar"
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => handleStartRename(m.user_id, m.profile?.name || "")}
+                              className="rounded-lg bg-muted p-1.5 text-muted-foreground hover:text-foreground"
+                              title="Renomear ex-membro"
+                            >
+                              <Pencil className="h-3 w-3" />
+                            </button>
+                          )
+                        )}
                         {!isFormer && isAdmin && m.user_id !== user?.id && m.role !== "creator" && (
                           <div className="flex gap-1">
                             {m.role === "member" ? (
