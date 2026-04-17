@@ -86,6 +86,7 @@ function GroupDetailPage() {
   const [renamingUserId, setRenamingUserId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
   const [renameSaving, setRenameSaving] = useState(false);
+  const [mergeFormerMember, setMergeFormerMember] = useState<typeof members[number] | null>(null);
   const { seasons, isLoading: seasonsLoading } = useGroupSeasons(groupId);
 
   const handleStartRename = (userId: string, currentName: string) => {
