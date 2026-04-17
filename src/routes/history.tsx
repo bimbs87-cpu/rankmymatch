@@ -20,6 +20,8 @@ interface MatchHistory {
   opponents: { name: string; avatar_url: string | null }[];
   sets: { scoreA: number; scoreB: number }[];
   seasonName: string;
+  groupId: string | null;
+  groupName: string;
 }
 
 export const Route = createFileRoute("/history")({
