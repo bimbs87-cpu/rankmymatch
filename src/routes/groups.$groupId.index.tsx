@@ -1257,7 +1257,19 @@ function RoundResultCard({
       setLoadingMatches(false);
     })();
     return () => { cancelled = true; };
-  }, [open, matches, r.id, isCancelled]);
+  }, [open, matches, r.id, isCancelled, isCompleted]);
+
+  // Total games played in this round (sum of all set scores across all matches)
+  const totalGames = (() => {
+    if (!matches) return null;
+    let total = 0;
+    for (const m of matches) {
+      for (const s of m.match_sets || []) {
+        total += (s.score_team_a || 0) + (s.score_team_b || 0);
+      }
+    }
+    return total;
+  })();
 
   // Build disambiguated display names for all players in this round (first name only when unique)
   const displayNames = (() => {
