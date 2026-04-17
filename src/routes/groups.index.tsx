@@ -3,7 +3,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useMyGroups, useMyPendingJoinRequests, usePublicGroups } from "@/hooks/use-groups";
 import { CreateGroupDialog } from "@/components/CreateGroupDialog";
 import { TrophyLoadingBar } from "@/components/TrophyLoadingBar";
-import { Plus, Search, Users, Lock, Globe, Trophy, CalendarDays, Sparkles, Clock, Link2 } from "lucide-react";
+import { Plus, Search, Users, Lock, Globe, Trophy, CalendarDays, Sparkles, Clock, Link2, Shield } from "lucide-react";
 import { useState } from "react";
 
 export const Route = createFileRoute("/groups/")({
