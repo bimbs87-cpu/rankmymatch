@@ -274,42 +274,69 @@ function DashboardPage() {
       setRecentMatches([]);
     }
 
-    // 3. My ranking (best active season)
+    // 3. My rankings — all seasons (active + ended) where the user has a snapshot
     const { data: seasonsList } = await supabase
       .from("seasons")
-      .select("id, name")
+      .select("id, name, status, updated_at")
       .in("group_id", groupIds)
-      .eq("status", "active")
-      .limit(1);
+      .in("status", ["active", "ended", "completed"]);
 
     if (seasonsList?.length) {
-      const season = seasonsList[0];
-      const { data: snap } = await supabase
-        .from("ranking_snapshots")
-        .select("*")
-        .eq("season_id", season.id)
-        .eq("user_id", user.id)
-        .single();
-
-      if (snap) {
-        const { data: lastEvent } = await supabase
+      const seasonIds = seasonsList.map((s: any) => s.id);
+      const [snapsRes, eventsRes] = await Promise.all([
+        supabase
+          .from("ranking_snapshots")
+          .select("season_id, rating, position, matches_played, matches_won")
+          .in("season_id", seasonIds)
+          .eq("user_id", user.id),
+        supabase
           .from("rating_events")
-          .select("rating_change")
+          .select("season_id, rating_change, created_at")
+          .in("season_id", seasonIds)
           .eq("user_id", user.id)
-          .eq("season_id", season.id)
-          .order("created_at", { ascending: false })
-          .limit(1)
-          .maybeSingle();
+          .order("created_at", { ascending: false }),
+      ]);
 
-        setMyRanking({
-          rating: Number(snap.rating),
-          position: snap.position,
-          matches_played: snap.matches_played,
-          matches_won: snap.matches_won,
-          season_name: season.name,
-          last_change: lastEvent ? Number(lastEvent.rating_change) : null,
-        });
+      const seasonMap = new Map(seasonsList.map((s: any) => [s.id, s]));
+      const eventsBySeason = new Map<string, { rating_change: number; created_at: string }[]>();
+      for (const e of eventsRes.data || []) {
+        const arr = eventsBySeason.get(e.season_id!) || [];
+        arr.push({ rating_change: Number(e.rating_change), created_at: e.created_at });
+        eventsBySeason.set(e.season_id!, arr);
       }
+
+      const opts: RankingOption[] = (snapsRes.data || [])
+        .map((snap: any) => {
+          const season = seasonMap.get(snap.season_id) as any;
+          const evs = eventsBySeason.get(snap.season_id) || [];
+          const last3 = evs.slice(0, 3).reverse().map((e) => e.rating_change);
+          return {
+            season_id: snap.season_id,
+            season_name: season?.name || "Temporada",
+            rating: Number(snap.rating),
+            position: snap.position,
+            matches_played: snap.matches_played,
+            matches_won: snap.matches_won,
+            last_change: evs[0] ? evs[0].rating_change : null,
+            last_events: last3,
+            last_event_at: evs[0]?.created_at || season?.updated_at || null,
+          };
+        })
+        // Sort by most recently played (last event), fallback to season update
+        .sort((a, b) => {
+          const at = a.last_event_at ? new Date(a.last_event_at).getTime() : 0;
+          const bt = b.last_event_at ? new Date(b.last_event_at).getTime() : 0;
+          return bt - at;
+        });
+
+      setRankings(opts);
+      setSelectedSeasonId((prev) => {
+        if (prev && opts.some((o) => o.season_id === prev)) return prev;
+        return opts[0]?.season_id || null;
+      });
+    } else {
+      setRankings([]);
+      setSelectedSeasonId(null);
     }
 
     setDataLoading(false);
