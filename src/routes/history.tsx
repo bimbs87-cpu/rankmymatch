@@ -424,9 +424,9 @@ function HistoryPage() {
                           </span>
                         </div>
 
-                        {/* Match info — single centered line: partner [score] vs [score] opponents */}
-                        <div className="flex min-w-0 flex-1 items-center">
-                          <div className="min-w-0 truncate text-[12px] font-semibold text-foreground">
+                        {/* Match info — centered line: partner [score] vs [score] opponents */}
+                        <div className="flex min-w-0 flex-1 items-center justify-center">
+                          <div className="min-w-0 truncate text-center text-[12px] font-semibold text-foreground">
                             {partnerStr}
                             {hasScore && (
                               <span className="mx-1 font-bold tabular-nums text-foreground/90">
