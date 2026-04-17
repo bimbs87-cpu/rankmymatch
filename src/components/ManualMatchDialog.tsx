@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { submitMatchScore } from "@/lib/elo-engine";
+import { submitMatchScore, previewMatchEloChanges } from "@/lib/elo-engine";
 import { PlayerAvatar as SharedPlayerAvatar } from "@/components/PlayerAvatar";
 import { TrophyLoadingBar } from "@/components/TrophyLoadingBar";
 import { X, Check, ChevronRight, Save, Swords, Users, Crown, ArrowUp, ArrowDown } from "lucide-react";
@@ -53,7 +53,7 @@ export function ManualMatchDialog({ roundId, groupId, matchFormat = "doubles", o
   const [step, setStep] = useState<"select" | "scores">("select");
   const [submitting, setSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [playerRankings, setPlayerRankings] = useState<Record<string, { rating: number; position: number | null; prevPosition: number | null }>>({});
+  const [playerRankings, setPlayerRankings] = useState<Record<string, { rating: number; position: number | null; prevPosition: number | null; matchesPlayed: number }>>({});
   const [saveStep, setSaveStep] = useState(0);
   const [saveStepLabel, setSaveStepLabel] = useState("");
 
@@ -150,7 +150,7 @@ export function ManualMatchDialog({ roundId, groupId, matchFormat = "doubles", o
     if (roundData?.season_id) {
       const { data: snapshots } = await supabase
         .from("ranking_snapshots")
-        .select("user_id, rating, position")
+        .select("user_id, rating, position, matches_played")
         .eq("season_id", roundData.season_id)
         .in("user_id", selectedPlayers);
 
@@ -164,13 +164,14 @@ export function ManualMatchDialog({ roundId, groupId, matchFormat = "doubles", o
         .order("round_number", { ascending: false })
         .limit(1);
 
-      const rankings: Record<string, { rating: number; position: number | null; prevPosition: number | null }> = {};
+      const rankings: Record<string, { rating: number; position: number | null; prevPosition: number | null; matchesPlayed: number }> = {};
       for (const uid of selectedPlayers) {
         const snap = snapshots?.find((s) => s.user_id === uid);
         rankings[uid] = {
           rating: snap ? Number(snap.rating) : 1000,
           position: snap?.position ?? null,
           prevPosition: null,
+          matchesPlayed: snap?.matches_played ?? 0,
         };
       }
 
