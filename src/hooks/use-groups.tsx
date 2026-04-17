@@ -18,6 +18,59 @@ async function attachMemberCounts(groups: Group[]) {
   );
 }
 
+export interface GroupStats {
+  rounds_done: number;
+  rounds_total: number;
+  seasons_done: number;
+  current_season_name: string | null;
+}
+
+async function attachGroupStats<T extends { id: string }>(
+  groups: T[],
+): Promise<(T & GroupStats)[]> {
+  if (!groups.length) return [];
+  const ids = groups.map((g) => g.id);
+
+  const [roundsRes, seasonsRes] = await Promise.all([
+    supabase.from("rounds").select("group_id, status").in("group_id", ids),
+    supabase
+      .from("seasons")
+      .select("group_id, name, status, created_at")
+      .in("group_id", ids)
+      .order("created_at", { ascending: false }),
+  ]);
+
+  const roundsByGroup = new Map<string, { done: number; total: number }>();
+  for (const r of roundsRes.data || []) {
+    const acc = roundsByGroup.get(r.group_id) || { done: 0, total: 0 };
+    acc.total += 1;
+    if (r.status === "completed" || r.status === "finished" || r.status === "done") {
+      acc.done += 1;
+    }
+    roundsByGroup.set(r.group_id, acc);
+  }
+
+  const seasonsByGroup = new Map<string, { done: number; current: string | null }>();
+  for (const s of seasonsRes.data || []) {
+    const acc = seasonsByGroup.get(s.group_id) || { done: 0, current: null };
+    if (s.status === "active" && !acc.current) acc.current = s.name;
+    if (s.status === "completed" || s.status === "finished") acc.done += 1;
+    seasonsByGroup.set(s.group_id, acc);
+  }
+
+  return groups.map((g) => {
+    const r = roundsByGroup.get(g.id) || { done: 0, total: 0 };
+    const s = seasonsByGroup.get(g.id) || { done: 0, current: null };
+    return {
+      ...g,
+      rounds_done: r.done,
+      rounds_total: r.total,
+      seasons_done: s.done,
+      current_season_name: s.current,
+    };
+  });
+}
+
 export function useMyGroups() {
   const { user } = useAuth();
   const [groups, setGroups] = useState<(Group & { member_count: number } & GroupStats)[]>([]);
