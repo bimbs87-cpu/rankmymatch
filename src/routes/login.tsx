@@ -4,10 +4,11 @@ import { lovable } from "@/integrations/lovable/index";
 import { useAuth } from "@/hooks/use-auth";
 import { TrophyLoadingBar } from "@/components/TrophyLoadingBar";
 import { Button } from "@/components/ui/button";
-import { Zap, Users, BarChart3, Trophy } from "lucide-react";
+import { Zap, Users, BarChart3, Trophy, Download } from "lucide-react";
 import logoHorizontalDark from "@/assets/logo-horizontal-dark.png";
 import logoHorizontalLight from "@/assets/logo-horizontal-light.png";
 import { useTheme } from "@/lib/theme";
+import { useInstallFlow } from "@/components/InstallFlowProvider";
 
 export const Route = createFileRoute("/login")({
   component: LoginPage,
@@ -19,6 +20,7 @@ function LoginPage() {
   const { resolved: resolvedTheme } = useTheme();
   const navigate = useNavigate();
   const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const { canInstall, isFlowActive, startInstall, isInstalled } = useInstallFlow();
 
   useEffect(() => {
     if (!authLoading && isAuthenticated) {
@@ -103,6 +105,17 @@ function LoginPage() {
 
           {error && (
             <p className="text-center text-sm text-destructive">{error}</p>
+          )}
+
+          {/* Install App Button - shown when not installed and can install */}
+          {!isInstalled && canInstall && !isFlowActive && (
+            <button
+              onClick={() => void startInstall()}
+              className="flex w-full items-center justify-center gap-3 rounded-full border-2 border-primary/30 bg-card px-6 py-3 text-sm font-semibold text-foreground transition-all hover:bg-primary/10 active:scale-[0.98]"
+            >
+              <Download className="h-5 w-5 text-primary" />
+              Instalar aplicativo
+            </button>
           )}
 
           <p className="text-center text-xs text-muted-foreground">
