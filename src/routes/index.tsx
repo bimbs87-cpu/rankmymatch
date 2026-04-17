@@ -224,7 +224,7 @@ function DashboardPage() {
       .in("group_id", groupIds)
       .in("status", ["scheduled", "in_progress"])
       .order("scheduled_date", { ascending: true })
-      .limit(5);
+      .limit(8);
 
     if (rounds?.length) {
       const roundIds = rounds.map((r) => r.id);
@@ -262,7 +262,7 @@ function DashboardPage() {
       .select("*, matches(match_number, winner_team, round_id, status)")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false })
-      .limit(5);
+      .limit(8);
 
     if (events?.length) {
       const matchIds = events.map((e: any) => e.match_id);
@@ -803,11 +803,11 @@ function DashboardPage() {
         {/* Ranking card + Quick action */}
         <section className="grid grid-cols-2 gap-3 animate-fade-in lg:col-span-6 lg:order-1">
           {dataLoading ? (
-            <div className="flex flex-col items-center justify-center rounded-3xl border border-border bg-card p-5 min-h-[140px]">
+            <div className="flex flex-col items-center justify-center rounded-3xl border border-border bg-card p-5 min-h-[140px] lg:min-h-0">
               <CardSpinner label="Carregando ranking" />
             </div>
           ) : currentRanking ? (
-            <div className="relative flex flex-col rounded-3xl border border-primary/20 bg-primary/5 p-3 min-h-[140px]">
+            <div className="relative flex flex-col rounded-3xl border border-primary/20 bg-primary/5 p-3 min-h-[140px] lg:min-h-0">
               <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Seu Ranking</p>
 
               <Link
@@ -857,14 +857,14 @@ function DashboardPage() {
               </Link>
             </div>
           ) : (
-            <Link to="/ranking" className="flex flex-col items-center justify-center gap-1.5 rounded-3xl border border-border bg-card p-5 text-foreground min-h-[140px]">
+            <Link to="/ranking" className="flex flex-col items-center justify-center gap-1.5 rounded-3xl border border-border bg-card p-5 text-foreground min-h-[140px] lg:min-h-0">
               <BarChart3 className="h-7 w-7 text-muted-foreground/40" />
               <span className="text-sm font-semibold text-muted-foreground">Seu Ranking</span>
               <span className="text-[10px] text-muted-foreground/60">Jogue para aparecer</span>
             </Link>
           )}
-          <Link to="/groups" className="flex flex-col items-center justify-center gap-1.5 rounded-3xl bg-primary p-5 text-primary-foreground transition-transform active:scale-[0.97]">
-            <Plus className="h-7 w-7" strokeWidth={2.5} />
+          <Link to="/groups" className="flex flex-col items-center justify-center gap-1.5 rounded-3xl bg-primary p-5 lg:p-3 text-primary-foreground transition-transform active:scale-[0.97]">
+            <Plus className="h-7 w-7 lg:h-5 lg:w-5" strokeWidth={2.5} />
             <span className="text-sm font-semibold">Criar / Entrar</span>
             <span className="text-[10px] opacity-70">em um grupo</span>
           </Link>
@@ -884,73 +884,114 @@ function DashboardPage() {
 
         {/* DESKTOP-ONLY: Últimos Resultados em formato de lista (col direita topo) */}
         <section className="hidden lg:block lg:col-span-6 lg:order-2">
-          <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Últimos Resultados
-            </h2>
-            <Link to="/history" className="flex items-center gap-0.5 text-xs font-medium text-primary">
-              Histórico <ChevronRight className="h-3.5 w-3.5" />
-            </Link>
-          </div>
-          {dataLoading ? (
-            <div className="flex flex-col items-center justify-center rounded-3xl border border-border bg-card p-6 min-h-[120px]">
-              <CardSpinner label="Carregando resultados" />
+          <div className="rounded-3xl border border-border bg-card overflow-hidden">
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-border/60 px-4 py-2.5">
+              <div className="flex items-center gap-2">
+                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10">
+                  <Swords className="h-3.5 w-3.5 text-primary" />
+                </div>
+                <div>
+                  <h2 className="text-xs font-semibold uppercase tracking-wider text-foreground">
+                    Últimos Resultados
+                  </h2>
+                  {!dataLoading && recentMatches.length > 0 && (() => {
+                    const wins = recentMatches.filter(m => m.winner_team === m.my_team).length;
+                    const losses = recentMatches.length - wins;
+                    const eloSum = recentMatches.reduce((s, m) => s + (m.rating_change || 0), 0);
+                    return (
+                      <p className="text-[10px] text-muted-foreground">
+                        <span className="text-success font-semibold">{wins}V</span>
+                        <span className="mx-1">·</span>
+                        <span className="text-destructive font-semibold">{losses}D</span>
+                        <span className="mx-1">·</span>
+                        <span className={`font-semibold ${eloSum > 0 ? "text-success" : eloSum < 0 ? "text-destructive" : ""}`}>
+                          {eloSum > 0 ? "+" : ""}{Math.round(eloSum)} Elo
+                        </span>
+                      </p>
+                    );
+                  })()}
+                </div>
+              </div>
+              <Link to="/history" className="flex items-center gap-0.5 text-xs font-medium text-primary hover:text-primary/80">
+                Histórico <ChevronRight className="h-3.5 w-3.5" />
+              </Link>
             </div>
-          ) : recentMatches.length === 0 ? (
-            <div className="rounded-3xl border border-border bg-card p-5">
-              <div className="flex flex-col items-center gap-2 text-center">
+
+            {dataLoading ? (
+              <div className="flex flex-col items-center justify-center p-6 min-h-[120px]">
+                <CardSpinner label="Carregando resultados" />
+              </div>
+            ) : recentMatches.length === 0 ? (
+              <div className="flex flex-col items-center gap-2 p-6 text-center">
                 <Swords className="h-7 w-7 text-muted-foreground/40" />
                 <p className="text-sm text-muted-foreground">Nenhuma partida ainda</p>
               </div>
-            </div>
-          ) : (
-            <div className="space-y-1.5">
-              {recentMatches.slice(0, 5).map((m) => {
-                const won = m.winner_team === m.my_team;
-                return (
-                  <div
-                    key={m.id}
-                    className="flex items-center gap-2.5 rounded-xl border border-border bg-card px-3 py-2"
-                  >
-                    <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-xs font-bold ${
-                      won ? "bg-success/10 text-success" : "bg-destructive/10 text-destructive"
-                    }`}>
-                      {won ? "V" : "D"}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <p className="text-sm font-semibold text-foreground truncate">
-                          {m.score_display}
-                        </p>
-                        {m.match_number != null && (
-                          <span className="rounded-full bg-muted px-1.5 py-0.5 text-[9px] font-semibold text-muted-foreground">
-                            Set {m.match_number}
-                          </span>
+            ) : (
+              <div className="divide-y divide-border/50">
+                {recentMatches.slice(0, 8).map((m) => {
+                  const won = m.winner_team === m.my_team;
+                  const dateStr = new Date(m.created_at).toLocaleDateString("pt-BR", {
+                    day: "2-digit",
+                    month: "short",
+                  });
+                  return (
+                    <div
+                      key={m.id}
+                      className="flex items-center gap-2.5 px-4 py-2 transition-colors hover:bg-accent/30"
+                    >
+                      {/* V/D pill */}
+                      <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-[11px] font-bold ${
+                        won ? "bg-success/15 text-success" : "bg-destructive/15 text-destructive"
+                      }`}>
+                        {won ? "V" : "D"}
+                      </div>
+
+                      {/* Score + meta */}
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5">
+                          <p className="font-display text-sm font-bold text-foreground tabular-nums">
+                            {m.score_display}
+                          </p>
+                          {m.match_number != null && (
+                            <span className="rounded-md bg-muted px-1 py-0.5 text-[9px] font-semibold text-muted-foreground">
+                              Set {m.match_number}
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-x-2 text-[10px] text-muted-foreground truncate">
+                          {m.partner_name && <span className="truncate">c/ <span className="text-foreground/80 font-medium">{m.partner_name}</span></span>}
+                          {m.opponent_names.length > 0 && (
+                            <span className="truncate">vs <span className="text-foreground/80 font-medium">{m.opponent_names.join(" & ")}</span></span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Group + date */}
+                      <div className="hidden xl:block shrink-0 text-right max-w-[100px]">
+                        {m.group_name && (
+                          <p className="text-[10px] font-medium text-foreground/70 truncate">{m.group_name}</p>
                         )}
+                        <p className="text-[9px] text-muted-foreground">{dateStr}</p>
                       </div>
-                      <div className="flex flex-wrap items-center gap-x-2.5 text-[10px] text-muted-foreground">
-                        {m.group_name && <span className="font-medium">{m.group_name}</span>}
-                        {m.partner_name && <span>c/ {m.partner_name}</span>}
-                        {m.opponent_names.length > 0 && (
-                          <span>vs {m.opponent_names.join(" & ")}</span>
-                        )}
-                      </div>
+
+                      {/* Elo delta */}
+                      {m.rating_change !== null && (
+                        <div className="shrink-0 text-right min-w-[44px]">
+                          <p className={`font-display text-sm font-bold tabular-nums ${
+                            m.rating_change > 0 ? "text-success" : m.rating_change < 0 ? "text-destructive" : "text-muted-foreground"
+                          }`}>
+                            {m.rating_change > 0 ? "+" : ""}{Math.round(m.rating_change)}
+                          </p>
+                          <p className="text-[9px] text-muted-foreground/70 leading-none">Elo</p>
+                        </div>
+                      )}
                     </div>
-                    {m.rating_change !== null && (
-                      <div className="shrink-0 text-right">
-                        <p className={`text-sm font-bold ${
-                          m.rating_change > 0 ? "text-success" : m.rating_change < 0 ? "text-destructive" : "text-muted-foreground"
-                        }`}>
-                          {m.rating_change > 0 ? "+" : ""}{Math.round(m.rating_change)}
-                        </p>
-                        <p className="text-[9px] text-muted-foreground">Elo</p>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </section>
 
         {/* DESKTOP-ONLY: Card de Gráficos — Posição no Ranking + Elo (col esquerda, abaixo do Ranking+CTA) */}
@@ -1036,7 +1077,8 @@ function DashboardPage() {
 
         {/* Próximas Rodadas */}
         <section className="lg:col-span-6 lg:order-4">
-          <div className="mb-3 flex items-center justify-between">
+          {/* Mobile/tablet header */}
+          <div className="mb-3 flex items-center justify-between lg:hidden">
             <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Próximas Rodadas
             </h2>
@@ -1058,69 +1100,190 @@ function DashboardPage() {
               </div>
             </div>
           ) : (
-            <div className="space-y-1.5">
-              {upcomingRounds.slice(0, 6).map((r, idx) => (
-                <Link
-                  key={r.id}
-                  to="/groups/$groupId/seasons/$seasonId/rounds/$roundId"
-                  params={{ groupId: r.group_id, seasonId: r.season_id || "", roundId: r.id }}
-                  className={`flex items-center gap-2.5 rounded-xl border border-border bg-card px-3 py-2 transition-colors active:bg-accent/30 ${idx >= 3 ? "hidden lg:flex" : ""}`}
-                >
-                  <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${
-                    r.status === "in_progress" ? "bg-warning/10" : "bg-primary/10"
-                  }`}>
-                    {r.status === "in_progress" ? (
-                      <Swords className="h-4 w-4 text-warning" />
-                    ) : (
-                      <Calendar className="h-4 w-4 text-primary" />
-                    )}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <p className="text-sm font-semibold text-foreground">
-                        Rodada {r.round_number}
-                      </p>
+            <>
+              {/* Mobile/tablet: lista solta sem container */}
+              <div className="space-y-1.5 lg:hidden">
+                {upcomingRounds.slice(0, 3).map((r) => (
+                  <Link
+                    key={r.id}
+                    to="/groups/$groupId/seasons/$seasonId/rounds/$roundId"
+                    params={{ groupId: r.group_id, seasonId: r.season_id || "", roundId: r.id }}
+                    className="flex items-center gap-2.5 rounded-xl border border-border bg-card px-3 py-2 transition-colors active:bg-accent/30"
+                  >
+                    <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${
+                      r.status === "in_progress" ? "bg-warning/10" : "bg-primary/10"
+                    }`}>
+                      {r.status === "in_progress" ? (
+                        <Swords className="h-4 w-4 text-warning" />
+                      ) : (
+                        <Calendar className="h-4 w-4 text-primary" />
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-semibold text-foreground">
+                          Rodada {r.round_number}
+                        </p>
+                        {(() => {
+                          const today = new Date().toISOString().split("T")[0];
+                          const smartStatus = r.status === "in_progress"
+                            ? "in_progress"
+                            : r.status === "scheduled" && r.scheduled_date && r.scheduled_date <= today
+                            ? "pending_result"
+                            : "scheduled";
+                          const label = smartStatus === "in_progress" ? "Em andamento" : smartStatus === "pending_result" ? "Aguardando resultado" : "Agendada";
+                          const cls = smartStatus === "in_progress" ? "bg-warning/10 text-warning" : smartStatus === "pending_result" ? "bg-warning/10 text-warning" : "bg-info/10 text-info";
+                          return <span className={`rounded-full px-1.5 py-0.5 text-[9px] font-semibold ${cls}`}>{label}</span>;
+                        })()}
+                      </div>
+                      <div className="flex flex-wrap items-center gap-x-2.5 text-[10px] text-muted-foreground">
+                        <span className="font-medium">{r.group_name}</span>
+                        {r.scheduled_date && (
+                          <span className="flex items-center gap-0.5">
+                            <Calendar className="h-2.5 w-2.5" />
+                            {formatDate(r.scheduled_date)}
+                          </span>
+                        )}
+                        {r.scheduled_time && (
+                          <span className="flex items-center gap-0.5">
+                            <Clock className="h-2.5 w-2.5" />
+                            {r.scheduled_time.slice(0, 5)}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="shrink-0 text-right">
+                      <p className="text-xs font-semibold text-foreground">{r.confirmed_count}/{r.max_players}</p>
+                      {r.my_status === "confirmed" ? (
+                        <p className="text-[9px] font-semibold text-success">Confirmado</p>
+                      ) : (
+                        <p className="text-[9px] text-muted-foreground">Pendente</p>
+                      )}
+                    </div>
+                  </Link>
+                ))}
+              </div>
+
+              {/* DESKTOP: card unificado com header e lista densa */}
+              <div className="hidden lg:block rounded-3xl border border-border bg-card overflow-hidden">
+                <div className="flex items-center justify-between border-b border-border/60 px-4 py-2.5">
+                  <div className="flex items-center gap-2">
+                    <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10">
+                      <Calendar className="h-3.5 w-3.5 text-primary" />
+                    </div>
+                    <div>
+                      <h2 className="text-xs font-semibold uppercase tracking-wider text-foreground">
+                        Próximas Rodadas
+                      </h2>
                       {(() => {
-                        const today = new Date().toISOString().split("T")[0];
-                        const smartStatus = r.status === "in_progress"
-                          ? "in_progress"
-                          : r.status === "completed"
-                          ? "completed"
-                          : r.status === "scheduled" && r.scheduled_date && r.scheduled_date <= today
-                          ? "pending_result"
-                          : "scheduled";
-                        const label = smartStatus === "completed" ? "Encerrada" : smartStatus === "in_progress" ? "Em andamento" : smartStatus === "pending_result" ? "Aguardando resultado" : "Agendada";
-                        const cls = smartStatus === "completed" ? "bg-success/10 text-success" : smartStatus === "in_progress" ? "bg-warning/10 text-warning" : smartStatus === "pending_result" ? "bg-warning/10 text-warning" : "bg-info/10 text-info";
-                        return <span className={`rounded-full px-1.5 py-0.5 text-[9px] font-semibold ${cls}`}>{label}</span>;
+                        const totalConfirmedMine = upcomingRounds.filter(r => r.my_status === "confirmed").length;
+                        const inProgress = upcomingRounds.filter(r => r.status === "in_progress").length;
+                        return (
+                          <p className="text-[10px] text-muted-foreground">
+                            <span className="font-semibold text-foreground/80">{upcomingRounds.length}</span> agendadas
+                            <span className="mx-1">·</span>
+                            <span className="text-success font-semibold">{totalConfirmedMine} confirmada{totalConfirmedMine !== 1 ? "s" : ""}</span>
+                            {inProgress > 0 && (
+                              <>
+                                <span className="mx-1">·</span>
+                                <span className="text-warning font-semibold">{inProgress} em andamento</span>
+                              </>
+                            )}
+                          </p>
+                        );
                       })()}
                     </div>
-                    <div className="flex flex-wrap items-center gap-x-2.5 text-[10px] text-muted-foreground">
-                      <span className="font-medium">{r.group_name}</span>
-                      {r.scheduled_date && (
-                        <span className="flex items-center gap-0.5">
-                          <Calendar className="h-2.5 w-2.5" />
-                          {formatDate(r.scheduled_date)}
-                        </span>
-                      )}
-                      {r.scheduled_time && (
-                        <span className="flex items-center gap-0.5">
-                          <Clock className="h-2.5 w-2.5" />
-                          {r.scheduled_time.slice(0, 5)}
-                        </span>
-                      )}
-                    </div>
                   </div>
-                  <div className="shrink-0 text-right">
-                    <p className="text-xs font-semibold text-foreground">{r.confirmed_count}/{r.max_players}</p>
-                    {r.my_status === "confirmed" ? (
-                      <p className="text-[9px] font-semibold text-success">Confirmado</p>
-                    ) : (
-                      <p className="text-[9px] text-muted-foreground">Pendente</p>
-                    )}
-                  </div>
-                </Link>
-              ))}
-            </div>
+                  <Link to="/seasons" className="flex items-center gap-0.5 text-xs font-medium text-primary hover:text-primary/80">
+                    Ver todas <ChevronRight className="h-3.5 w-3.5" />
+                  </Link>
+                </div>
+
+                <div className="divide-y divide-border/50">
+                  {upcomingRounds.slice(0, 8).map((r) => {
+                    const today = new Date().toISOString().split("T")[0];
+                    const smartStatus = r.status === "in_progress"
+                      ? "in_progress"
+                      : r.status === "scheduled" && r.scheduled_date && r.scheduled_date <= today
+                      ? "pending_result"
+                      : "scheduled";
+                    const statusLabel = smartStatus === "in_progress" ? "Em andamento" : smartStatus === "pending_result" ? "Aguardando" : "Agendada";
+                    const statusCls = smartStatus === "in_progress" ? "bg-warning/15 text-warning" : smartStatus === "pending_result" ? "bg-warning/15 text-warning" : "bg-info/15 text-info";
+                    const fillPct = r.max_players > 0 ? Math.min(100, (r.confirmed_count / r.max_players) * 100) : 0;
+                    return (
+                      <Link
+                        key={r.id}
+                        to="/groups/$groupId/seasons/$seasonId/rounds/$roundId"
+                        params={{ groupId: r.group_id, seasonId: r.season_id || "", roundId: r.id }}
+                        className="flex items-center gap-2.5 px-4 py-2 transition-colors hover:bg-accent/30"
+                      >
+                        <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${
+                          r.status === "in_progress" ? "bg-warning/15" : "bg-primary/10"
+                        }`}>
+                          {r.status === "in_progress" ? (
+                            <Swords className="h-3.5 w-3.5 text-warning" />
+                          ) : (
+                            <span className="font-display text-[11px] font-bold text-primary tabular-nums">
+                              {r.round_number ?? "—"}
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-1.5">
+                            <p className="text-sm font-semibold text-foreground truncate">
+                              {r.group_name}
+                            </p>
+                            <span className={`rounded-md px-1 py-0.5 text-[9px] font-semibold ${statusCls}`}>
+                              {statusLabel}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-x-2 text-[10px] text-muted-foreground">
+                            <span>Rodada {r.round_number}</span>
+                            {r.scheduled_date && (
+                              <span className="flex items-center gap-0.5">
+                                <Calendar className="h-2.5 w-2.5" />
+                                {formatDate(r.scheduled_date)}
+                              </span>
+                            )}
+                            {r.scheduled_time && (
+                              <span className="flex items-center gap-0.5">
+                                <Clock className="h-2.5 w-2.5" />
+                                {r.scheduled_time.slice(0, 5)}
+                              </span>
+                            )}
+                            {r.location && (
+                              <span className="hidden xl:flex items-center gap-0.5 truncate max-w-[110px]">
+                                <MapPin className="h-2.5 w-2.5" />
+                                <span className="truncate">{r.location}</span>
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Presence progress bar + count */}
+                        <div className="shrink-0 flex flex-col items-end gap-0.5 min-w-[68px]">
+                          <p className="font-display text-xs font-bold text-foreground tabular-nums">
+                            {r.confirmed_count}/{r.max_players}
+                          </p>
+                          <div className="h-1 w-14 rounded-full bg-muted overflow-hidden">
+                            <div
+                              className={`h-full ${fillPct >= 100 ? "bg-success" : fillPct >= 50 ? "bg-primary" : "bg-warning"}`}
+                              style={{ width: `${fillPct}%` }}
+                            />
+                          </div>
+                          {r.my_status === "confirmed" ? (
+                            <p className="text-[9px] font-semibold text-success leading-none">✓ Confirmado</p>
+                          ) : (
+                            <p className="text-[9px] text-muted-foreground leading-none">Pendente</p>
+                          )}
+                        </div>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+            </>
           )}
         </section>
 
