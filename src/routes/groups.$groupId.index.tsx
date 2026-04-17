@@ -783,16 +783,7 @@ function GroupDetailPage() {
               </div>
             )}
 
-            {/* User: Vincular conta — only show inline here for active members (non-members see square card at top) */}
-            {isAuthenticated && isMemberAlready && hasPlaceholders && (
-              <button
-                onClick={() => setClaimOpen(true)}
-                className="flex w-full items-center justify-center gap-2 rounded-2xl border border-primary/30 bg-primary/5 p-3 text-sm font-medium text-primary transition-colors active:bg-primary/10"
-              >
-                <Link2 className="h-4 w-4" />
-                Vincular minha conta a um jogador
-              </button>
-            )}
+            {/* Botão "Vincular minha conta" removido para membros ativos — só aparece como card quadrado na tela de entrada de não-membros */}
 
             {/* Convidar jogadores */}
             {isMember && !isAdmin && !rivalry && (
