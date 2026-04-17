@@ -1077,7 +1077,8 @@ function DashboardPage() {
 
         {/* Próximas Rodadas */}
         <section className="lg:col-span-6 lg:order-4">
-          <div className="mb-3 flex items-center justify-between">
+          {/* Mobile/tablet header */}
+          <div className="mb-3 flex items-center justify-between lg:hidden">
             <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Próximas Rodadas
             </h2>
@@ -1099,69 +1100,190 @@ function DashboardPage() {
               </div>
             </div>
           ) : (
-            <div className="space-y-1.5">
-              {upcomingRounds.slice(0, 6).map((r, idx) => (
-                <Link
-                  key={r.id}
-                  to="/groups/$groupId/seasons/$seasonId/rounds/$roundId"
-                  params={{ groupId: r.group_id, seasonId: r.season_id || "", roundId: r.id }}
-                  className={`flex items-center gap-2.5 rounded-xl border border-border bg-card px-3 py-2 transition-colors active:bg-accent/30 ${idx >= 3 ? "hidden lg:flex" : ""}`}
-                >
-                  <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${
-                    r.status === "in_progress" ? "bg-warning/10" : "bg-primary/10"
-                  }`}>
-                    {r.status === "in_progress" ? (
-                      <Swords className="h-4 w-4 text-warning" />
-                    ) : (
-                      <Calendar className="h-4 w-4 text-primary" />
-                    )}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <p className="text-sm font-semibold text-foreground">
-                        Rodada {r.round_number}
-                      </p>
+            <>
+              {/* Mobile/tablet: lista solta sem container */}
+              <div className="space-y-1.5 lg:hidden">
+                {upcomingRounds.slice(0, 3).map((r) => (
+                  <Link
+                    key={r.id}
+                    to="/groups/$groupId/seasons/$seasonId/rounds/$roundId"
+                    params={{ groupId: r.group_id, seasonId: r.season_id || "", roundId: r.id }}
+                    className="flex items-center gap-2.5 rounded-xl border border-border bg-card px-3 py-2 transition-colors active:bg-accent/30"
+                  >
+                    <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${
+                      r.status === "in_progress" ? "bg-warning/10" : "bg-primary/10"
+                    }`}>
+                      {r.status === "in_progress" ? (
+                        <Swords className="h-4 w-4 text-warning" />
+                      ) : (
+                        <Calendar className="h-4 w-4 text-primary" />
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-semibold text-foreground">
+                          Rodada {r.round_number}
+                        </p>
+                        {(() => {
+                          const today = new Date().toISOString().split("T")[0];
+                          const smartStatus = r.status === "in_progress"
+                            ? "in_progress"
+                            : r.status === "scheduled" && r.scheduled_date && r.scheduled_date <= today
+                            ? "pending_result"
+                            : "scheduled";
+                          const label = smartStatus === "in_progress" ? "Em andamento" : smartStatus === "pending_result" ? "Aguardando resultado" : "Agendada";
+                          const cls = smartStatus === "in_progress" ? "bg-warning/10 text-warning" : smartStatus === "pending_result" ? "bg-warning/10 text-warning" : "bg-info/10 text-info";
+                          return <span className={`rounded-full px-1.5 py-0.5 text-[9px] font-semibold ${cls}`}>{label}</span>;
+                        })()}
+                      </div>
+                      <div className="flex flex-wrap items-center gap-x-2.5 text-[10px] text-muted-foreground">
+                        <span className="font-medium">{r.group_name}</span>
+                        {r.scheduled_date && (
+                          <span className="flex items-center gap-0.5">
+                            <Calendar className="h-2.5 w-2.5" />
+                            {formatDate(r.scheduled_date)}
+                          </span>
+                        )}
+                        {r.scheduled_time && (
+                          <span className="flex items-center gap-0.5">
+                            <Clock className="h-2.5 w-2.5" />
+                            {r.scheduled_time.slice(0, 5)}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="shrink-0 text-right">
+                      <p className="text-xs font-semibold text-foreground">{r.confirmed_count}/{r.max_players}</p>
+                      {r.my_status === "confirmed" ? (
+                        <p className="text-[9px] font-semibold text-success">Confirmado</p>
+                      ) : (
+                        <p className="text-[9px] text-muted-foreground">Pendente</p>
+                      )}
+                    </div>
+                  </Link>
+                ))}
+              </div>
+
+              {/* DESKTOP: card unificado com header e lista densa */}
+              <div className="hidden lg:block rounded-3xl border border-border bg-card overflow-hidden">
+                <div className="flex items-center justify-between border-b border-border/60 px-4 py-2.5">
+                  <div className="flex items-center gap-2">
+                    <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10">
+                      <Calendar className="h-3.5 w-3.5 text-primary" />
+                    </div>
+                    <div>
+                      <h2 className="text-xs font-semibold uppercase tracking-wider text-foreground">
+                        Próximas Rodadas
+                      </h2>
                       {(() => {
-                        const today = new Date().toISOString().split("T")[0];
-                        const smartStatus = r.status === "in_progress"
-                          ? "in_progress"
-                          : r.status === "completed"
-                          ? "completed"
-                          : r.status === "scheduled" && r.scheduled_date && r.scheduled_date <= today
-                          ? "pending_result"
-                          : "scheduled";
-                        const label = smartStatus === "completed" ? "Encerrada" : smartStatus === "in_progress" ? "Em andamento" : smartStatus === "pending_result" ? "Aguardando resultado" : "Agendada";
-                        const cls = smartStatus === "completed" ? "bg-success/10 text-success" : smartStatus === "in_progress" ? "bg-warning/10 text-warning" : smartStatus === "pending_result" ? "bg-warning/10 text-warning" : "bg-info/10 text-info";
-                        return <span className={`rounded-full px-1.5 py-0.5 text-[9px] font-semibold ${cls}`}>{label}</span>;
+                        const totalConfirmedMine = upcomingRounds.filter(r => r.my_status === "confirmed").length;
+                        const inProgress = upcomingRounds.filter(r => r.status === "in_progress").length;
+                        return (
+                          <p className="text-[10px] text-muted-foreground">
+                            <span className="font-semibold text-foreground/80">{upcomingRounds.length}</span> agendadas
+                            <span className="mx-1">·</span>
+                            <span className="text-success font-semibold">{totalConfirmedMine} confirmada{totalConfirmedMine !== 1 ? "s" : ""}</span>
+                            {inProgress > 0 && (
+                              <>
+                                <span className="mx-1">·</span>
+                                <span className="text-warning font-semibold">{inProgress} em andamento</span>
+                              </>
+                            )}
+                          </p>
+                        );
                       })()}
                     </div>
-                    <div className="flex flex-wrap items-center gap-x-2.5 text-[10px] text-muted-foreground">
-                      <span className="font-medium">{r.group_name}</span>
-                      {r.scheduled_date && (
-                        <span className="flex items-center gap-0.5">
-                          <Calendar className="h-2.5 w-2.5" />
-                          {formatDate(r.scheduled_date)}
-                        </span>
-                      )}
-                      {r.scheduled_time && (
-                        <span className="flex items-center gap-0.5">
-                          <Clock className="h-2.5 w-2.5" />
-                          {r.scheduled_time.slice(0, 5)}
-                        </span>
-                      )}
-                    </div>
                   </div>
-                  <div className="shrink-0 text-right">
-                    <p className="text-xs font-semibold text-foreground">{r.confirmed_count}/{r.max_players}</p>
-                    {r.my_status === "confirmed" ? (
-                      <p className="text-[9px] font-semibold text-success">Confirmado</p>
-                    ) : (
-                      <p className="text-[9px] text-muted-foreground">Pendente</p>
-                    )}
-                  </div>
-                </Link>
-              ))}
-            </div>
+                  <Link to="/seasons" className="flex items-center gap-0.5 text-xs font-medium text-primary hover:text-primary/80">
+                    Ver todas <ChevronRight className="h-3.5 w-3.5" />
+                  </Link>
+                </div>
+
+                <div className="divide-y divide-border/50">
+                  {upcomingRounds.slice(0, 8).map((r) => {
+                    const today = new Date().toISOString().split("T")[0];
+                    const smartStatus = r.status === "in_progress"
+                      ? "in_progress"
+                      : r.status === "scheduled" && r.scheduled_date && r.scheduled_date <= today
+                      ? "pending_result"
+                      : "scheduled";
+                    const statusLabel = smartStatus === "in_progress" ? "Em andamento" : smartStatus === "pending_result" ? "Aguardando" : "Agendada";
+                    const statusCls = smartStatus === "in_progress" ? "bg-warning/15 text-warning" : smartStatus === "pending_result" ? "bg-warning/15 text-warning" : "bg-info/15 text-info";
+                    const fillPct = r.max_players > 0 ? Math.min(100, (r.confirmed_count / r.max_players) * 100) : 0;
+                    return (
+                      <Link
+                        key={r.id}
+                        to="/groups/$groupId/seasons/$seasonId/rounds/$roundId"
+                        params={{ groupId: r.group_id, seasonId: r.season_id || "", roundId: r.id }}
+                        className="flex items-center gap-2.5 px-4 py-2 transition-colors hover:bg-accent/30"
+                      >
+                        <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${
+                          r.status === "in_progress" ? "bg-warning/15" : "bg-primary/10"
+                        }`}>
+                          {r.status === "in_progress" ? (
+                            <Swords className="h-3.5 w-3.5 text-warning" />
+                          ) : (
+                            <span className="font-display text-[11px] font-bold text-primary tabular-nums">
+                              {r.round_number ?? "—"}
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-1.5">
+                            <p className="text-sm font-semibold text-foreground truncate">
+                              {r.group_name}
+                            </p>
+                            <span className={`rounded-md px-1 py-0.5 text-[9px] font-semibold ${statusCls}`}>
+                              {statusLabel}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-x-2 text-[10px] text-muted-foreground">
+                            <span>Rodada {r.round_number}</span>
+                            {r.scheduled_date && (
+                              <span className="flex items-center gap-0.5">
+                                <Calendar className="h-2.5 w-2.5" />
+                                {formatDate(r.scheduled_date)}
+                              </span>
+                            )}
+                            {r.scheduled_time && (
+                              <span className="flex items-center gap-0.5">
+                                <Clock className="h-2.5 w-2.5" />
+                                {r.scheduled_time.slice(0, 5)}
+                              </span>
+                            )}
+                            {r.location && (
+                              <span className="hidden xl:flex items-center gap-0.5 truncate max-w-[110px]">
+                                <MapPin className="h-2.5 w-2.5" />
+                                <span className="truncate">{r.location}</span>
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Presence progress bar + count */}
+                        <div className="shrink-0 flex flex-col items-end gap-0.5 min-w-[68px]">
+                          <p className="font-display text-xs font-bold text-foreground tabular-nums">
+                            {r.confirmed_count}/{r.max_players}
+                          </p>
+                          <div className="h-1 w-14 rounded-full bg-muted overflow-hidden">
+                            <div
+                              className={`h-full ${fillPct >= 100 ? "bg-success" : fillPct >= 50 ? "bg-primary" : "bg-warning"}`}
+                              style={{ width: `${fillPct}%` }}
+                            />
+                          </div>
+                          {r.my_status === "confirmed" ? (
+                            <p className="text-[9px] font-semibold text-success leading-none">✓ Confirmado</p>
+                          ) : (
+                            <p className="text-[9px] text-muted-foreground leading-none">Pendente</p>
+                          )}
+                        </div>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+            </>
           )}
         </section>
 
