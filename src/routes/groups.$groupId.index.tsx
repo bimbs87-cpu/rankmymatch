@@ -80,7 +80,40 @@ function GroupDetailPage() {
   const [placeholderUserIds, setPlaceholderUserIds] = useState<Set<string>>(new Set());
   const [rankingData, setRankingData] = useState<Record<string, { rating: number; position: number | null; matches_played: number; matches_won: number }>>({});
   const [commentCount, setCommentCount] = useState(0);
+  const [renamingUserId, setRenamingUserId] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState("");
+  const [renameSaving, setRenameSaving] = useState(false);
   const { seasons, isLoading: seasonsLoading } = useGroupSeasons(groupId);
+
+  const handleStartRename = (userId: string, currentName: string) => {
+    setRenamingUserId(userId);
+    setRenameValue(currentName);
+  };
+
+  const handleSaveRename = async () => {
+    if (!renamingUserId) return;
+    const newName = renameValue.trim();
+    if (!newName) {
+      toast.error("Nome não pode ficar vazio");
+      return;
+    }
+    setRenameSaving(true);
+    try {
+      const { error } = await supabase
+        .from("user_profiles")
+        .update({ name: newName })
+        .eq("user_id", renamingUserId);
+      if (error) throw error;
+      toast.success("Nome atualizado");
+      setRenamingUserId(null);
+      refresh();
+    } catch (e) {
+      console.error(e);
+      toast.error("Erro ao atualizar nome");
+    } finally {
+      setRenameSaving(false);
+    }
+  };
 
   const rivalry = isRivalryGroup(group, memberCount);
 
