@@ -502,6 +502,63 @@ function DashboardPage() {
     setRefreshing(false);
   }, [loadDashboard]);
 
+  const handleQuickConfirm = useCallback(
+    async (e: React.MouseEvent, round: UpcomingRound) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (!user) return;
+      const open = isPresenceOpen(
+        { presence_open_mode: round.presence_open_mode, presence_open_time: round.presence_open_time },
+        round.scheduled_date,
+        round.scheduled_time,
+        round.id
+      );
+      if (!open) {
+        const openDate = getPresenceOpenDate(
+          { presence_open_mode: round.presence_open_mode, presence_open_time: round.presence_open_time },
+          round.scheduled_date,
+          round.scheduled_time,
+          round.id
+        );
+        toast.error("Lista ainda não aberta", {
+          description: openDate ? `Abre em ${formatPresenceOpenDate(openDate)}` : undefined,
+        });
+        return;
+      }
+      // Optimistic update
+      setUpcomingRounds((prev) =>
+        prev.map((r) =>
+          r.id === round.id
+            ? {
+                ...r,
+                my_status: "confirmed",
+                confirmed_count: r.my_status === "confirmed" ? r.confirmed_count : r.confirmed_count + 1,
+                pending_count: r.my_status === "pending" ? Math.max(0, r.pending_count - 1) : r.pending_count,
+              }
+            : r
+        )
+      );
+      const { error } = await supabase
+        .from("round_presence")
+        .upsert(
+          {
+            round_id: round.id,
+            user_id: user.id,
+            status: "confirmed",
+            confirmed_at: new Date().toISOString(),
+          },
+          { onConflict: "round_id,user_id" }
+        );
+      if (error) {
+        toast.error("Erro ao confirmar", { description: error.message });
+        loadDashboard();
+      } else {
+        toast.success("Presença confirmada");
+      }
+    },
+    [user, loadDashboard]
+  );
+
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
     const el = scrollRef.current;
     if (el && el.scrollTop <= 0) {
