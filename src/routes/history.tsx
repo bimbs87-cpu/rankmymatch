@@ -5,6 +5,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { useEffect, useState } from "react";
 import { ArrowLeft, TrendingUp, TrendingDown, Minus, Swords } from "lucide-react";
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
+
+function shortName(full: string): string {
+  const parts = full.trim().split(/\s+/);
+  if (parts.length === 1) return parts[0];
+  return `${parts[0]} ${parts[parts.length - 1][0]}.`;
+}
 
 interface MatchHistory {
   id: string;
