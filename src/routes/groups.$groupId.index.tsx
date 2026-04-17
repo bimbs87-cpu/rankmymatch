@@ -619,10 +619,6 @@ function GroupDetailPage() {
               </Link>
             )}
 
-            {/* Admin: Claims pendentes */}
-            {isAdmin && (
-              <PlayerClaimsManager groupId={groupId} onResolved={refresh} />
-            )}
 
             {/* Admin: Adicionar jogador sem conta */}
             {isAdmin && (
@@ -688,7 +684,7 @@ function GroupDetailPage() {
               </button>
             )}
 
-            {!isCreator && (
+            {isMember && !isCreator && (
               <button
                 onClick={handleLeaveClick}
                 className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl border border-destructive/30 py-3 text-sm font-medium text-destructive transition-colors active:bg-destructive/10"

@@ -123,15 +123,19 @@ export function useMyGroups() {
   return { groups, isLoading, refresh };
 }
 
+interface PendingGroupCard extends Group {
+  member_count: number;
+  claimed_player_name?: string | null;
+  pending_kind: "join_request" | "claim";
+}
+
 /**
- * Pending join requests by the current user.
- * Used to show "awaiting approval" cards on My Groups list.
+ * Pending approvals tied to the current user.
+ * Includes both group join requests and player-link claims.
  */
 export function useMyPendingJoinRequests() {
   const { user } = useAuth();
-  const [groups, setGroups] = useState<
-    (Group & { member_count: number; claimed_player_name?: string | null })[]
-  >([]);
+  const [groups, setGroups] = useState<PendingGroupCard[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const refresh = useCallback(async () => {
@@ -140,42 +144,73 @@ export function useMyPendingJoinRequests() {
       setIsLoading(false);
       return;
     }
+
     setIsLoading(true);
     try {
-      const { data: reqs, error } = await supabase
-        .from("group_join_requests")
-        .select("group_id, claimed_player_id")
-        .eq("user_id", user.id)
-        .eq("status", "pending");
-      if (error) throw error;
-      if (!reqs?.length) {
+      const [joinReqsRes, claimReqsRes] = await Promise.all([
+        supabase
+          .from("group_join_requests")
+          .select("group_id, claimed_player_id")
+          .eq("user_id", user.id)
+          .eq("status", "pending"),
+        supabase
+          .from("player_claims")
+          .select("group_id, placeholder_user_id")
+          .eq("claimer_user_id", user.id)
+          .eq("status", "pending"),
+      ]);
+
+      if (joinReqsRes.error) throw joinReqsRes.error;
+      if (claimReqsRes.error) throw claimReqsRes.error;
+
+      const joinReqs = joinReqsRes.data || [];
+      const claimReqs = claimReqsRes.data || [];
+      const allGroupIds = [...new Set([...joinReqs.map((r) => r.group_id), ...claimReqs.map((r) => r.group_id)])];
+
+      if (!allGroupIds.length) {
         setGroups([]);
         return;
       }
-      const ids = reqs.map((r) => r.group_id);
-      const { data: groupsData } = await supabase.from("groups").select("*").in("id", ids);
-      const withCounts = await attachMemberCounts(groupsData || []);
 
-      const claimedIds = reqs.map((r) => r.claimed_player_id).filter(Boolean) as string[];
+      const { data: groupsData, error: groupsError } = await supabase
+        .from("groups")
+        .select("*")
+        .in("id", allGroupIds);
+
+      if (groupsError) throw groupsError;
+
+      const withCounts = await attachMemberCounts(groupsData || []);
+      const claimedIds = [
+        ...joinReqs.map((r) => r.claimed_player_id).filter(Boolean),
+        ...claimReqs.map((r) => r.placeholder_user_id).filter(Boolean),
+      ] as string[];
+
       const claimNames: Record<string, string> = {};
       if (claimedIds.length) {
-        const { data: profs } = await supabase
+        const { data: profiles, error: profilesError } = await supabase
           .from("user_profiles")
           .select("user_id, name")
-          .in("user_id", claimedIds);
-        for (const p of profs || []) claimNames[p.user_id] = p.name;
+          .in("user_id", [...new Set(claimedIds)]);
+
+        if (profilesError) throw profilesError;
+        for (const profile of profiles || []) claimNames[profile.user_id] = profile.name;
       }
 
-      const byId: Record<string, (typeof reqs)[number]> = {};
-      for (const r of reqs) byId[r.group_id] = r;
+      const joinReqByGroup = new Map(joinReqs.map((req) => [req.group_id, req]));
+      const claimReqByGroup = new Map(claimReqs.map((req) => [req.group_id, req]));
 
       setGroups(
-        withCounts.map((g) => ({
-          ...g,
-          claimed_player_name: byId[g.id]?.claimed_player_id
-            ? claimNames[byId[g.id].claimed_player_id as string] || null
-            : null,
-        })),
+        withCounts.map((group) => {
+          const joinReq = joinReqByGroup.get(group.id);
+          const claimReq = claimReqByGroup.get(group.id);
+          const claimedPlayerId = joinReq?.claimed_player_id || claimReq?.placeholder_user_id || null;
+
+          return {
+            ...group,
+            claimed_player_name: claimedPlayerId ? claimNames[claimedPlayerId] || null : null,
+            pending_kind: claimReq ? "claim" : "join_request",
+          };
+        }),
       );
     } catch (e) {
       console.error("Erro ao carregar solicitações pendentes:", e);
