@@ -424,22 +424,30 @@ function HistoryPage() {
                           </span>
                         </div>
 
-                        {/* Match info — centered line: partner [score] vs [score] opponents */}
+                        {/* Match info — centered: partner [score pill] opponents */}
                         <div className="flex min-w-0 flex-1 items-center justify-center">
-                          <div className="min-w-0 truncate text-center text-[12px] font-semibold text-foreground">
-                            {partnerStr}
-                            {hasScore && (
-                              <span className="mx-1 font-bold tabular-nums text-foreground/90">
-                                {myGames}
+                          <div className="flex min-w-0 items-center justify-center gap-2 text-[12px] font-semibold text-foreground">
+                            <span className="truncate text-right">{partnerStr}</span>
+                            {hasScore ? (
+                              <span
+                                className={`inline-flex flex-shrink-0 items-center gap-1 rounded-md border px-1.5 py-0.5 font-display text-[11px] font-bold tabular-nums leading-none ${
+                                  won
+                                    ? "border-success/30 bg-success/10 text-success"
+                                    : lost
+                                    ? "border-destructive/30 bg-destructive/10 text-destructive"
+                                    : "border-border bg-muted text-muted-foreground"
+                                }`}
+                              >
+                                <span>{myGames}</span>
+                                <span className="text-foreground/40">·</span>
+                                <span>{oppGames}</span>
+                              </span>
+                            ) : (
+                              <span className="flex-shrink-0 text-[10px] font-normal text-muted-foreground/70">
+                                vs
                               </span>
                             )}
-                            <span className="font-normal text-muted-foreground/70">vs</span>
-                            {hasScore && (
-                              <span className="mx-1 font-bold tabular-nums text-foreground/90">
-                                {oppGames}
-                              </span>
-                            )}{" "}
-                            {oppStr}
+                            <span className="truncate text-left">{oppStr}</span>
                           </div>
                         </div>
 
