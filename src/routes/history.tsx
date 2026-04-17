@@ -72,12 +72,13 @@ function HistoryPage() {
         seasonIds.length ? supabase.from("seasons").select("id, name, group_id").in("id", seasonIds) : Promise.resolve({ data: [] }),
       ]);
 
-      // Fetch rounds to map matches → group when no season
+      // Fetch rounds to map matches → group when no season + get scheduled date
       const roundIds = [...new Set((matchesRes.data || []).map((m: any) => m.round_id).filter(Boolean))];
       const { data: roundsData } = roundIds.length
-        ? await supabase.from("rounds").select("id, group_id").in("id", roundIds)
+        ? await supabase.from("rounds").select("id, group_id, scheduled_date, created_at").in("id", roundIds)
         : { data: [] as any[] };
       const roundMap = new Map((roundsData || []).map((r: any) => [r.id, r.group_id]));
+      const roundDateMap = new Map((roundsData || []).map((r: any) => [r.id, r.scheduled_date || r.created_at]));
 
       // Fetch group names
       const groupIds = [
