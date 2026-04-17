@@ -939,7 +939,7 @@ function DashboardPage() {
               <CardSpinner label="Carregando grupos" />
             </div>
           ) : myGroups.length > 0 ? (
-            <div className="grid grid-cols-2 gap-2.5">
+            <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-4">
               {myGroups.slice(0, 4).map((g) => {
                 const stats = groupStats.get(g.id) || { seasons: 0, rounds_completed: 0, rounds_total: 0 };
                 const remaining = Math.max(0, stats.rounds_total - stats.rounds_completed);
