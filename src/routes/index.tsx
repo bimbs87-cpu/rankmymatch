@@ -15,6 +15,8 @@ import { PendingMatchCard } from "@/components/PendingMatchCard";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { InstallBanner } from "@/components/InstallBanner";
 import { supabase } from "@/integrations/supabase/client";
+import { isPresenceOpen, getPresenceOpenDate, formatPresenceOpenDate } from "@/lib/presence-schedule";
+import { toast } from "sonner";
 import { useState, useEffect, useCallback, useRef } from "react";
 import {
   Trophy,
@@ -68,11 +70,17 @@ interface UpcomingRound {
   location: string | null;
   status: string;
   season_id: string | null;
+  season_name: string | null;
   group_id: string;
   group_name: string;
   confirmed_count: number;
+  pending_count: number;
+  declined_count: number;
+  waiting_count: number;
   max_players: number;
   my_status: string | null;
+  presence_open_mode: string;
+  presence_open_time: string;
 }
 
 interface RecentMatch {
@@ -220,7 +228,7 @@ function DashboardPage() {
     // 1. Upcoming rounds
     const { data: rounds } = await supabase
       .from("rounds")
-      .select("*, groups(name, slots_per_round)")
+      .select("*, groups(name, slots_per_round, presence_open_mode, presence_open_time), seasons(name)")
       .in("group_id", groupIds)
       .in("status", ["scheduled", "in_progress"])
       .order("scheduled_date", { ascending: true })
@@ -228,10 +236,16 @@ function DashboardPage() {
 
     if (rounds?.length) {
       const roundIds = rounds.map((r) => r.id);
-      const { data: presences } = await supabase
-        .from("round_presence")
-        .select("round_id, status, user_id")
-        .in("round_id", roundIds);
+      const [{ data: presences }, { data: waiters }] = await Promise.all([
+        supabase
+          .from("round_presence")
+          .select("round_id, status, user_id")
+          .in("round_id", roundIds),
+        supabase
+          .from("waiting_list")
+          .select("round_id")
+          .in("round_id", roundIds),
+      ]);
 
       setUpcomingRounds(
         rounds.map((r: any) => {
@@ -244,11 +258,17 @@ function DashboardPage() {
             location: r.location,
             status: r.status,
             season_id: r.season_id,
+            season_name: (r.seasons as any)?.name || null,
             group_id: r.group_id,
             group_name: r.groups?.name || "Grupo",
             confirmed_count: roundPresences.filter((p) => p.status === "confirmed").length,
+            pending_count: roundPresences.filter((p) => p.status === "pending").length,
+            declined_count: roundPresences.filter((p) => p.status === "declined").length,
+            waiting_count: (waiters || []).filter((w) => w.round_id === r.id).length,
             max_players: r.groups?.slots_per_round || r.max_players,
             my_status: roundPresences.find((p) => p.user_id === user.id)?.status || null,
+            presence_open_mode: r.groups?.presence_open_mode || "always",
+            presence_open_time: r.groups?.presence_open_time || "10:00:00",
           };
         })
       );
@@ -481,6 +501,63 @@ function DashboardPage() {
     await loadDashboard();
     setRefreshing(false);
   }, [loadDashboard]);
+
+  const handleQuickConfirm = useCallback(
+    async (e: React.MouseEvent, round: UpcomingRound) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (!user) return;
+      const open = isPresenceOpen(
+        { presence_open_mode: round.presence_open_mode, presence_open_time: round.presence_open_time },
+        round.scheduled_date,
+        round.scheduled_time,
+        round.id
+      );
+      if (!open) {
+        const openDate = getPresenceOpenDate(
+          { presence_open_mode: round.presence_open_mode, presence_open_time: round.presence_open_time },
+          round.scheduled_date,
+          round.scheduled_time,
+          round.id
+        );
+        toast.error("Lista ainda não aberta", {
+          description: openDate ? `Abre em ${formatPresenceOpenDate(openDate)}` : undefined,
+        });
+        return;
+      }
+      // Optimistic update
+      setUpcomingRounds((prev) =>
+        prev.map((r) =>
+          r.id === round.id
+            ? {
+                ...r,
+                my_status: "confirmed",
+                confirmed_count: r.my_status === "confirmed" ? r.confirmed_count : r.confirmed_count + 1,
+                pending_count: r.my_status === "pending" ? Math.max(0, r.pending_count - 1) : r.pending_count,
+              }
+            : r
+        )
+      );
+      const { error } = await supabase
+        .from("round_presence")
+        .upsert(
+          {
+            round_id: round.id,
+            user_id: user.id,
+            status: "confirmed",
+            confirmed_at: new Date().toISOString(),
+          },
+          { onConflict: "round_id,user_id" }
+        );
+      if (error) {
+        toast.error("Erro ao confirmar", { description: error.message });
+        loadDashboard();
+      } else {
+        toast.success("Presença confirmada");
+      }
+    },
+    [user, loadDashboard]
+  );
 
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
     const el = scrollRef.current;
@@ -930,37 +1007,57 @@ function DashboardPage() {
               </div>
             ) : (
               <div className="divide-y divide-border/50">
-                {recentMatches.slice(0, 8).map((m) => {
+                {recentMatches.slice(0, 5).map((m) => {
                   const won = m.winner_team === m.my_team;
                   const dateStr = new Date(m.created_at).toLocaleDateString("pt-BR", {
                     day: "2-digit",
                     month: "short",
                   });
+                  const timeStr = new Date(m.created_at).toLocaleTimeString("pt-BR", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  });
+                  // Per-set wins from score string ("6-4 / 7-5"): I am team A unless my_team === "B"
+                  const setsRaw = m.score_display === "—" ? [] : m.score_display.split(" / ");
+                  const setOutcomes = setsRaw.map((s) => {
+                    const [a, b] = s.split("-").map((n) => parseInt(n, 10));
+                    if (isNaN(a) || isNaN(b)) return null;
+                    const myScore = m.my_team === "B" ? b : a;
+                    const oppScore = m.my_team === "B" ? a : b;
+                    return myScore > oppScore;
+                  });
+                  const setsWon = setOutcomes.filter((s) => s === true).length;
+                  const setsLost = setOutcomes.filter((s) => s === false).length;
                   return (
                     <div
                       key={m.id}
-                      className="flex items-center gap-2.5 px-4 py-2 transition-colors hover:bg-accent/30"
+                      className="flex items-center gap-3 px-4 py-2.5 transition-colors hover:bg-accent/30"
                     >
                       {/* V/D pill */}
-                      <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-[11px] font-bold ${
-                        won ? "bg-success/15 text-success" : "bg-destructive/15 text-destructive"
+                      <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-sm font-bold ${
+                        won ? "bg-success/15 text-success ring-1 ring-success/30" : "bg-destructive/15 text-destructive ring-1 ring-destructive/30"
                       }`}>
                         {won ? "V" : "D"}
                       </div>
 
                       {/* Score + meta */}
                       <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-1.5">
-                          <p className="font-display text-sm font-bold text-foreground tabular-nums">
+                        <div className="flex items-center gap-2">
+                          <p className="font-display text-base font-bold text-foreground tabular-nums">
                             {m.score_display}
                           </p>
+                          {setOutcomes.length > 0 && (
+                            <span className="rounded-md bg-muted px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground tabular-nums">
+                              {setsWon}-{setsLost} sets
+                            </span>
+                          )}
                           {m.match_number != null && (
-                            <span className="rounded-md bg-muted px-1 py-0.5 text-[9px] font-semibold text-muted-foreground">
-                              Set {m.match_number}
+                            <span className="rounded-md bg-muted/60 px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground">
+                              #{m.match_number}
                             </span>
                           )}
                         </div>
-                        <div className="flex items-center gap-x-2 text-[10px] text-muted-foreground truncate">
+                        <div className="mt-0.5 flex items-center gap-x-2 text-[11px] text-muted-foreground truncate">
                           {m.partner_name && <span className="truncate">c/ <span className="text-foreground/80 font-medium">{m.partner_name}</span></span>}
                           {m.opponent_names.length > 0 && (
                             <span className="truncate">vs <span className="text-foreground/80 font-medium">{m.opponent_names.join(" & ")}</span></span>
@@ -968,23 +1065,44 @@ function DashboardPage() {
                         </div>
                       </div>
 
+                      {/* Per-set tiles */}
+                      {setOutcomes.length > 0 && (
+                        <div className="hidden xl:flex shrink-0 gap-1">
+                          {setOutcomes.map((s, i) => (
+                            <span
+                              key={i}
+                              className={`flex h-6 w-6 items-center justify-center rounded-md text-[9px] font-bold ${
+                                s === true ? "bg-success/20 text-success" : s === false ? "bg-destructive/20 text-destructive" : "bg-muted text-muted-foreground"
+                              }`}
+                              title={`Set ${i + 1}: ${setsRaw[i]}`}
+                            >
+                              {i + 1}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+
                       {/* Group + date */}
-                      <div className="hidden xl:block shrink-0 text-right max-w-[100px]">
+                      <div className="shrink-0 text-right max-w-[120px]">
                         {m.group_name && (
-                          <p className="text-[10px] font-medium text-foreground/70 truncate">{m.group_name}</p>
+                          <p className="text-[11px] font-semibold text-foreground/80 truncate">{m.group_name}</p>
                         )}
-                        <p className="text-[9px] text-muted-foreground">{dateStr}</p>
+                        <p className="text-[10px] text-muted-foreground">
+                          {dateStr}
+                          {m.round_number != null && <span className="ml-1">· R{m.round_number}</span>}
+                        </p>
+                        <p className="text-[9px] text-muted-foreground/60">{timeStr}</p>
                       </div>
 
                       {/* Elo delta */}
                       {m.rating_change !== null && (
-                        <div className="shrink-0 text-right min-w-[44px]">
-                          <p className={`font-display text-sm font-bold tabular-nums ${
+                        <div className="shrink-0 text-right min-w-[52px]">
+                          <p className={`font-display text-base font-bold tabular-nums leading-none ${
                             m.rating_change > 0 ? "text-success" : m.rating_change < 0 ? "text-destructive" : "text-muted-foreground"
                           }`}>
                             {m.rating_change > 0 ? "+" : ""}{Math.round(m.rating_change)}
                           </p>
-                          <p className="text-[9px] text-muted-foreground/70 leading-none">Elo</p>
+                          <p className="mt-0.5 text-[9px] uppercase tracking-wider text-muted-foreground/70 leading-none">Elo</p>
                         </div>
                       )}
                     </div>
@@ -1040,7 +1158,7 @@ function DashboardPage() {
               </div>
             ) : (
               <div className="divide-y divide-border/50">
-                {upcomingRounds.slice(0, 8).map((r) => {
+                {upcomingRounds.slice(0, 5).map((r) => {
                   const today = new Date().toISOString().split("T")[0];
                   const smartStatus = r.status === "in_progress"
                     ? "in_progress"
@@ -1050,20 +1168,35 @@ function DashboardPage() {
                   const statusLabel = smartStatus === "in_progress" ? "Em andamento" : smartStatus === "pending_result" ? "Aguardando" : "Agendada";
                   const statusCls = smartStatus === "in_progress" ? "bg-warning/15 text-warning" : smartStatus === "pending_result" ? "bg-warning/15 text-warning" : "bg-info/15 text-info";
                   const fillPct = r.max_players > 0 ? Math.min(100, (r.confirmed_count / r.max_players) * 100) : 0;
+                  const isFull = r.confirmed_count >= r.max_players;
+                  // Days until round
+                  let daysUntil: number | null = null;
+                  if (r.scheduled_date) {
+                    const todayD = new Date();
+                    todayD.setHours(0, 0, 0, 0);
+                    const sched = new Date(r.scheduled_date + "T00:00:00");
+                    daysUntil = Math.round((sched.getTime() - todayD.getTime()) / (1000 * 60 * 60 * 24));
+                  }
+                  const dayBadge = daysUntil === 0 ? "Hoje" : daysUntil === 1 ? "Amanhã" : daysUntil != null && daysUntil > 1 ? `em ${daysUntil}d` : null;
+                  // Presence list opening
+                  const presenceCfg = { presence_open_mode: r.presence_open_mode, presence_open_time: r.presence_open_time };
+                  const open = isPresenceOpen(presenceCfg, r.scheduled_date, r.scheduled_time, r.id);
+                  const openDate = !open ? getPresenceOpenDate(presenceCfg, r.scheduled_date, r.scheduled_time, r.id) : null;
+                  const canQuickConfirm = r.my_status !== "confirmed" && r.status === "scheduled" && open && !isFull;
                   return (
                     <Link
                       key={r.id}
                       to="/groups/$groupId/seasons/$seasonId/rounds/$roundId"
                       params={{ groupId: r.group_id, seasonId: r.season_id || "", roundId: r.id }}
-                      className="flex items-center gap-2.5 px-4 py-2 transition-colors hover:bg-accent/30"
+                      className="flex items-center gap-3 px-4 py-2.5 transition-colors hover:bg-accent/30"
                     >
-                      <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${
-                        r.status === "in_progress" ? "bg-warning/15" : "bg-primary/10"
+                      <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ring-1 ${
+                        r.status === "in_progress" ? "bg-warning/15 ring-warning/30" : "bg-primary/10 ring-primary/20"
                       }`}>
                         {r.status === "in_progress" ? (
-                          <Swords className="h-3.5 w-3.5 text-warning" />
+                          <Swords className="h-4 w-4 text-warning" />
                         ) : (
-                          <span className="font-display text-[11px] font-bold text-primary tabular-nums">
+                          <span className="font-display text-sm font-bold text-primary tabular-nums">
                             {r.round_number ?? "—"}
                           </span>
                         )}
@@ -1074,47 +1207,96 @@ function DashboardPage() {
                           <p className="text-sm font-semibold text-foreground truncate">
                             {r.group_name}
                           </p>
-                          <span className={`rounded-md px-1 py-0.5 text-[9px] font-semibold ${statusCls}`}>
+                          <span className={`rounded-md px-1.5 py-0.5 text-[10px] font-semibold ${statusCls}`}>
                             {statusLabel}
                           </span>
+                          {dayBadge && (
+                            <span className={`rounded-md px-1.5 py-0.5 text-[10px] font-semibold ${
+                              daysUntil === 0 ? "bg-primary/15 text-primary" : daysUntil === 1 ? "bg-info/15 text-info" : "bg-muted text-muted-foreground"
+                            }`}>
+                              {dayBadge}
+                            </span>
+                          )}
                         </div>
-                        <div className="flex items-center gap-x-2 text-[10px] text-muted-foreground">
-                          <span>Rodada {r.round_number}</span>
+                        <div className="mt-0.5 flex items-center gap-x-2.5 text-[11px] text-muted-foreground">
+                          {r.season_name && <span className="truncate max-w-[140px] font-medium text-foreground/70">{r.season_name}</span>}
                           {r.scheduled_date && (
                             <span className="flex items-center gap-0.5">
-                              <Calendar className="h-2.5 w-2.5" />
+                              <Calendar className="h-3 w-3" />
                               {formatDate(r.scheduled_date)}
                             </span>
                           )}
                           {r.scheduled_time && (
                             <span className="flex items-center gap-0.5">
-                              <Clock className="h-2.5 w-2.5" />
+                              <Clock className="h-3 w-3" />
                               {r.scheduled_time.slice(0, 5)}
                             </span>
                           )}
                           {r.location && (
-                            <span className="hidden xl:flex items-center gap-0.5 truncate max-w-[110px]">
-                              <MapPin className="h-2.5 w-2.5" />
+                            <span className="flex items-center gap-0.5 truncate max-w-[140px]">
+                              <MapPin className="h-3 w-3" />
                               <span className="truncate">{r.location}</span>
+                            </span>
+                          )}
+                        </div>
+                        {/* Presence breakdown */}
+                        <div className="mt-1 flex items-center gap-2 text-[10px]">
+                          <span className="flex items-center gap-1 text-success">
+                            <span className="inline-block h-1.5 w-1.5 rounded-full bg-success" />
+                            {r.confirmed_count} conf.
+                          </span>
+                          {r.pending_count > 0 && (
+                            <span className="flex items-center gap-1 text-muted-foreground">
+                              <span className="inline-block h-1.5 w-1.5 rounded-full bg-muted-foreground/60" />
+                              {r.pending_count} pend.
+                            </span>
+                          )}
+                          {r.declined_count > 0 && (
+                            <span className="flex items-center gap-1 text-destructive/80">
+                              <span className="inline-block h-1.5 w-1.5 rounded-full bg-destructive/60" />
+                              {r.declined_count} fora
+                            </span>
+                          )}
+                          {r.waiting_count > 0 && (
+                            <span className="flex items-center gap-1 text-warning">
+                              <span className="inline-block h-1.5 w-1.5 rounded-full bg-warning" />
+                              {r.waiting_count} fila
+                            </span>
+                          )}
+                          {!open && openDate && (
+                            <span className="text-muted-foreground/70 truncate">
+                              · Lista abre {formatPresenceOpenDate(openDate)}
                             </span>
                           )}
                         </div>
                       </div>
 
-                      <div className="shrink-0 flex flex-col items-end gap-0.5 min-w-[68px]">
-                        <p className="font-display text-xs font-bold text-foreground tabular-nums">
+                      {/* Quick confirm button */}
+                      {canQuickConfirm && (
+                        <button
+                          onClick={(e) => handleQuickConfirm(e, r)}
+                          className="hidden xl:flex shrink-0 items-center gap-1 rounded-full bg-primary px-3 py-1.5 text-[11px] font-semibold text-primary-foreground transition-all hover:bg-primary/90 active:scale-95"
+                        >
+                          ✓ Confirmar
+                        </button>
+                      )}
+
+                      <div className="shrink-0 flex flex-col items-end gap-1 min-w-[72px]">
+                        <p className="font-display text-sm font-bold text-foreground tabular-nums leading-none">
                           {r.confirmed_count}/{r.max_players}
                         </p>
-                        <div className="h-1 w-14 rounded-full bg-muted overflow-hidden">
+                        <div className="h-1.5 w-16 rounded-full bg-muted overflow-hidden">
                           <div
                             className={`h-full ${fillPct >= 100 ? "bg-success" : fillPct >= 50 ? "bg-primary" : "bg-warning"}`}
                             style={{ width: `${fillPct}%` }}
                           />
                         </div>
                         {r.my_status === "confirmed" ? (
-                          <p className="text-[9px] font-semibold text-success leading-none">✓ Confirmado</p>
+                          <p className="text-[10px] font-semibold text-success leading-none">✓ Confirmado</p>
+                        ) : r.my_status === "declined" ? (
+                          <p className="text-[10px] font-semibold text-destructive/80 leading-none">Não vou</p>
                         ) : (
-                          <p className="text-[9px] text-muted-foreground leading-none">Pendente</p>
+                          <p className="text-[10px] text-muted-foreground leading-none">Pendente</p>
                         )}
                       </div>
                     </Link>
