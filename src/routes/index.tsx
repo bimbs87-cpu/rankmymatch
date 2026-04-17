@@ -296,7 +296,7 @@ function DashboardPage() {
           .eq("user_id", user.id),
         supabase
           .from("rating_events")
-          .select("season_id, rating_change, created_at")
+          .select("season_id, match_id, rating_change, created_at")
           .in("season_id", seasonIds)
           .eq("user_id", user.id)
           .order("created_at", { ascending: false }),
@@ -308,10 +308,10 @@ function DashboardPage() {
 
       const groupNameMap = new Map(myGroups.map((g: any) => [g.id, g.name]));
       const seasonMap = new Map(seasonsList.map((s: any) => [s.id, s]));
-      const eventsBySeason = new Map<string, { rating_change: number; created_at: string }[]>();
+      const eventsBySeason = new Map<string, { rating_change: number; created_at: string; match_id: string }[]>();
       for (const e of eventsRes.data || []) {
         const arr = eventsBySeason.get(e.season_id!) || [];
-        arr.push({ rating_change: Number(e.rating_change), created_at: e.created_at });
+        arr.push({ rating_change: Number(e.rating_change), created_at: e.created_at, match_id: e.match_id });
         eventsBySeason.set(e.season_id!, arr);
       }
       // rounds: completed count + total count per season
@@ -323,13 +323,43 @@ function DashboardPage() {
         roundsBySeason.set(r.season_id!, cur);
       }
 
+      // Fetch sets for the last up to 3 matches (per season) of the user
+      const recentMatchIds = new Set<string>();
+      for (const arr of eventsBySeason.values()) {
+        for (const ev of arr.slice(0, 3)) recentMatchIds.add(ev.match_id);
+      }
+      let setsByMatch = new Map<string, { score_team_a: number; score_team_b: number; set_number: number }[]>();
+      if (recentMatchIds.size) {
+        const { data: setsData } = await supabase
+          .from("match_sets")
+          .select("match_id, score_team_a, score_team_b, set_number")
+          .in("match_id", [...recentMatchIds])
+          .order("set_number");
+        for (const s of setsData || []) {
+          const arr = setsByMatch.get(s.match_id) || [];
+          arr.push(s as any);
+          setsByMatch.set(s.match_id, arr);
+        }
+      }
+
       const opts: RankingOption[] = (snapsRes.data || [])
         .map((snap: any) => {
           const season = seasonMap.get(snap.season_id) as any;
           const evs = eventsBySeason.get(snap.season_id) || [];
           const last3 = evs.slice(0, 3).reverse().map((e) => e.rating_change);
+          // Last 3 sets: take sets from most recent matches (oldest -> newest)
+          const recentMatches = evs.slice(0, 3); // newest first
+          const allSets: number[] = [];
+          for (const ev of recentMatches) {
+            const sets = setsByMatch.get(ev.match_id) || [];
+            for (const s of sets) {
+              allSets.push((s.score_team_a || 0) + (s.score_team_b || 0));
+            }
+          }
+          // allSets is currently newest match -> oldest match (within match it's set_number asc).
+          // Reverse to chronological-ish (oldest first), then take last 3.
+          const lastSetGames = allSets.reverse().slice(-3);
           const roundCounts = roundsBySeason.get(snap.season_id) || { completed: 0, total: 0 };
-          // Prefer season.total_rounds if defined (planned total), else fall back to created rounds
           const plannedTotal = season?.total_rounds ?? roundCounts.total;
           return {
             season_id: snap.season_id,
@@ -344,6 +374,7 @@ function DashboardPage() {
             last_change: evs[0] ? evs[0].rating_change : null,
             last_events: last3,
             last_event_at: evs[0]?.created_at || season?.updated_at || null,
+            last_set_games: lastSetGames,
           };
         })
         .sort((a, b) => {
