@@ -698,9 +698,9 @@ function DashboardPage() {
                 </div>
 
                 <p className="mt-auto pt-2 pr-20 text-[9px] text-muted-foreground/60 truncate">
-                  {currentRanking.season_name}
-                  {currentRanking.group_name ? ` · ${currentRanking.group_name}` : ""}
-                  {currentRanking.rounds_total > 0 ? ` · ${currentRanking.rounds_completed}/${currentRanking.rounds_total}` : ""}
+                  {currentRanking.group_name || ""}
+                  {currentRanking.rounds_total > 0 ? `, ${currentRanking.rounds_completed}/${currentRanking.rounds_total}` : ""}
+                  {currentRanking.season_name ? ` · ${currentRanking.season_name}` : ""}
                 </p>
               </Link>
             </div>
