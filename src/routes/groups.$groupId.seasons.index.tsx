@@ -31,32 +31,48 @@ const WEEKDAYS = [
 
 const COURT_OPTIONS = [1, 2, 3, 4];
 
-function getUpcomingDates(dayOfWeek: number, count: number, roundsPlayed = 0): string[] {
+function parseISODateLocal(iso: string): Date {
+  // Parse YYYY-MM-DD as local date (avoid UTC shift)
+  const [y, m, d] = iso.split("-").map(Number);
+  return new Date(y, (m || 1) - 1, d || 1);
+}
+
+function toISODate(d: Date): string {
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+function getUpcomingDates(dayOfWeek: number, count: number, roundsPlayed = 0, startDate?: string): string[] {
   const dates: string[] = [];
-  const today = new Date();
-  const current = new Date(today);
-  // Find the next occurrence of the chosen day
-  const diff = (dayOfWeek - current.getDay() + 7) % 7;
-  current.setDate(current.getDate() + (diff === 0 && current.getHours() >= 12 ? 7 : diff === 0 ? 0 : diff));
+  const anchor = startDate ? parseISODateLocal(startDate) : new Date();
+  const current = new Date(anchor);
+  if (!startDate) {
+    // Find the next occurrence of the chosen day from today
+    const diff = (dayOfWeek - current.getDay() + 7) % 7;
+    current.setDate(current.getDate() + (diff === 0 && current.getHours() >= 12 ? 7 : diff === 0 ? 0 : diff));
+  }
   // Go back for rounds already played
   if (roundsPlayed > 0) {
     current.setDate(current.getDate() - (roundsPlayed * 7));
   }
   for (let i = 0; i < count; i++) {
-    dates.push(current.toISOString().split("T")[0]);
+    dates.push(toISODate(current));
     current.setDate(current.getDate() + 7);
   }
   return dates;
 }
 
-function getUpcomingMonthlyDates(count: number, roundsPlayed = 0): string[] {
+function getUpcomingMonthlyDates(count: number, roundsPlayed = 0, startDate?: string): string[] {
   const dates: string[] = [];
-  const today = new Date();
+  const anchor = startDate ? parseISODateLocal(startDate) : new Date();
   const startOffset = roundsPlayed > 0 ? -roundsPlayed : 0;
   for (let i = 0; i < count; i++) {
-    const month = today.getMonth() + startOffset + i;
-    const mid = new Date(today.getFullYear(), month, 15);
-    dates.push(mid.toISOString().split("T")[0]);
+    const month = anchor.getMonth() + startOffset + i;
+    const day = startDate ? anchor.getDate() : 15;
+    const d = new Date(anchor.getFullYear(), month, day);
+    dates.push(toISODate(d));
   }
   return dates;
 }
@@ -79,6 +95,7 @@ function GroupSeasonsPage() {
   const [courts, setCourts] = useState(1);
   const [isRetroactive, setIsRetroactive] = useState(false);
   const [roundsPlayed, setRoundsPlayed] = useState(0);
+  const [startDate, setStartDate] = useState<string>("");
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
@@ -108,6 +125,7 @@ function GroupSeasonsPage() {
     setCourts(1);
     setIsRetroactive(false);
     setRoundsPlayed(0);
+    setStartDate("");
     setSubmitError(null);
     setSetsPerMatch(rivalry ? 1 : 3);
     setSinglesPairingMode("manual");
@@ -129,25 +147,26 @@ function GroupSeasonsPage() {
       return;
     }
     const pastRounds = isRetroactive ? roundsPlayed : 0;
+    const anchor = startDate || undefined;
     if (durationType === "weekly" && selectedDay !== null) {
       if (selectedDay === -1) {
-        // Dias alternados: generate weekly dates starting from today (editable)
+        // Dias alternados: weekly cadence from anchor (or today)
         const dates: string[] = [];
-        const today = new Date();
+        const base = anchor ? parseISODateLocal(anchor) : new Date();
         if (pastRounds > 0) {
-          today.setDate(today.getDate() - pastRounds * 7);
+          base.setDate(base.getDate() - pastRounds * 7);
         }
         for (let i = 0; i < totalRounds; i++) {
-          const d = new Date(today);
+          const d = new Date(base);
           d.setDate(d.getDate() + i * 7);
-          dates.push(d.toISOString().split("T")[0]);
+          dates.push(toISODate(d));
         }
         setRoundDates(dates);
       } else {
-        setRoundDates(getUpcomingDates(selectedDay, totalRounds, pastRounds));
+        setRoundDates(getUpcomingDates(selectedDay, totalRounds, pastRounds, anchor));
       }
     } else {
-      setRoundDates(getUpcomingMonthlyDates(totalRounds, pastRounds));
+      setRoundDates(getUpcomingMonthlyDates(totalRounds, pastRounds, anchor));
     }
     goStep("dates", "forward");
   };
@@ -639,22 +658,53 @@ function GroupSeasonsPage() {
                     </div>
                   </button>
                   {isRetroactive && (
-                    <div className="mt-2">
-                      <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Rodadas já realizadas</label>
-                      <div className="flex items-center gap-3">
-                        <input
-                          type="range"
-                          min={1}
-                          max={Math.max(1, totalRounds - 1)}
-                          value={roundsPlayed}
-                          onChange={(e) => setRoundsPlayed(Number(e.target.value))}
-                          className="flex-1 accent-primary"
-                        />
-                        <span className="w-10 text-center font-display text-lg font-bold text-foreground">{roundsPlayed}</span>
+                    <div className="mt-2 space-y-3">
+                      <div>
+                        <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Data de início da temporada</label>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <button
+                              type="button"
+                              className={cn(
+                                "flex w-full items-center justify-between rounded-xl border border-border bg-background px-3 py-2.5 text-sm",
+                                !startDate && "text-muted-foreground"
+                              )}
+                            >
+                              <span>{startDate ? formatDateBR(startDate) : "Selecionar data"}</span>
+                              <Calendar className="h-4 w-4 opacity-60" />
+                            </button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <CalendarPicker
+                              mode="single"
+                              selected={startDate ? parseISODateLocal(startDate) : undefined}
+                              onSelect={(date) => date && setStartDate(toISODate(date))}
+                              initialFocus
+                              className={cn("p-3 pointer-events-auto")}
+                            />
+                          </PopoverContent>
+                        </Popover>
+                        <p className="mt-1 text-[10px] text-muted-foreground">
+                          Data da 1ª rodada (passada). As demais serão geradas em sequência.
+                        </p>
                       </div>
-                      <p className="mt-1 text-[10px] text-muted-foreground">
-                        {roundsPlayed} rodada(s) no passado + {totalRounds - roundsPlayed} futuras
-                      </p>
+                      <div>
+                        <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Rodadas já realizadas</label>
+                        <div className="flex items-center gap-3">
+                          <input
+                            type="range"
+                            min={1}
+                            max={Math.max(1, totalRounds - 1)}
+                            value={roundsPlayed}
+                            onChange={(e) => setRoundsPlayed(Number(e.target.value))}
+                            className="flex-1 accent-primary"
+                          />
+                          <span className="w-10 text-center font-display text-lg font-bold text-foreground">{roundsPlayed}</span>
+                        </div>
+                        <p className="mt-1 text-[10px] text-muted-foreground">
+                          {roundsPlayed} rodada(s) no passado + {totalRounds - roundsPlayed} futuras
+                        </p>
+                      </div>
                     </div>
                   )}
                 </div>
