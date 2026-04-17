@@ -4,10 +4,11 @@ import { lovable } from "@/integrations/lovable/index";
 import { useAuth } from "@/hooks/use-auth";
 import { TrophyLoadingBar } from "@/components/TrophyLoadingBar";
 import { Button } from "@/components/ui/button";
-import { Zap, Users, BarChart3, Trophy } from "lucide-react";
+import { Zap, Users, BarChart3, Trophy, Download } from "lucide-react";
 import logoHorizontalDark from "@/assets/logo-horizontal-dark.png";
 import logoHorizontalLight from "@/assets/logo-horizontal-light.png";
 import { useTheme } from "@/lib/theme";
+import { useInstallFlow } from "@/components/InstallFlowProvider";
 
 export const Route = createFileRoute("/login")({
   component: LoginPage,
