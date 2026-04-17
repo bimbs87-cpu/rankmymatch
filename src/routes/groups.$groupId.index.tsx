@@ -660,13 +660,22 @@ function GroupDetailPage() {
                               </button>
                             </div>
                           ) : (
-                            <button
-                              onClick={() => handleStartRename(m.user_id, m.profile?.name || "")}
-                              className="rounded-lg bg-muted p-1.5 text-muted-foreground hover:text-foreground"
-                              title="Renomear ex-membro"
-                            >
-                              <Pencil className="h-3 w-3" />
-                            </button>
+                            <div className="flex gap-1">
+                              <button
+                                onClick={() => setMergeFormerMember(m)}
+                                className="rounded-lg bg-primary/10 p-1.5 text-primary hover:bg-primary/20"
+                                title="Mesclar com membro ativo"
+                              >
+                                <GitMerge className="h-3 w-3" />
+                              </button>
+                              <button
+                                onClick={() => handleStartRename(m.user_id, m.profile?.name || "")}
+                                className="rounded-lg bg-muted p-1.5 text-muted-foreground hover:text-foreground"
+                                title="Renomear ex-membro"
+                              >
+                                <Pencil className="h-3 w-3" />
+                              </button>
+                            </div>
                           )
                         )}
                         {!isFormer && isAdmin && m.user_id !== user?.id && m.role !== "creator" && (
