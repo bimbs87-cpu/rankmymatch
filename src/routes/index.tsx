@@ -471,20 +471,35 @@ function DashboardPage() {
         return opts[0]?.season_id || null;
       });
 
-      // Load historical snapshots for charts (desktop)
-      const { data: histSnaps } = await supabase
-        .from("ranking_snapshots")
-        .select("season_id, snapshot_date, rating, position")
+      // Build per-match Elo history from rating_events (rich per-match data)
+      const hist = new Map<string, { date: string; rating: number; matchIndex: number }[]>();
+      for (const [sid, evs] of eventsBySeason.entries()) {
+        // evs is newest-first; reverse to chronological (oldest -> newest)
+        const chrono = [...evs].reverse();
+        // We have rating_change per event. To rebuild rating_after we need the base rating.
+        // Fetch rating_after directly from rating_events to be exact.
+        const arr = chrono.map((e, i) => ({
+          date: e.created_at,
+          rating: 0, // placeholder, filled below
+          matchIndex: i + 1,
+        }));
+        hist.set(sid, arr);
+      }
+      // Fetch rating_after for all events of this user (single query)
+      const { data: ratingHist } = await supabase
+        .from("rating_events")
+        .select("season_id, created_at, rating_after")
         .in("season_id", seasonIds)
         .eq("user_id", user.id)
-        .order("snapshot_date", { ascending: true });
-      const hist = new Map<string, { date: string; rating: number; position: number | null }[]>();
-      for (const h of histSnaps || []) {
-        const arr = hist.get(h.season_id) || [];
-        arr.push({ date: h.snapshot_date, rating: Number(h.rating), position: h.position });
-        hist.set(h.season_id, arr);
+        .order("created_at", { ascending: true });
+      const histFinal = new Map<string, { date: string; rating: number; matchIndex: number }[]>();
+      for (const r of ratingHist || []) {
+        if (!r.season_id) continue;
+        const arr = histFinal.get(r.season_id) || [];
+        arr.push({ date: r.created_at, rating: Number(r.rating_after), matchIndex: arr.length + 1 });
+        histFinal.set(r.season_id, arr);
       }
-      setHistoryBySeason(hist);
+      setHistoryBySeason(histFinal);
     } else {
       setRankings([]);
       setSelectedSeasonId(null);
