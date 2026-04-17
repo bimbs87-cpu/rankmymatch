@@ -388,7 +388,11 @@ function RoundDetailPage() {
     memberCount > 0 ? memberCount : Number.POSITIVE_INFINITY,
     rivalry ? 2 : Number.POSITIVE_INFINITY,
   );
-  const displayCapacity = isSingles ? singlesCapacity : round.max_players;
+  const doublesCapacity = Math.min(
+    round.max_players,
+    memberCount > 0 ? memberCount : Number.POSITIVE_INFINITY,
+  );
+  const displayCapacity = isSingles ? singlesCapacity : doublesCapacity;
   const minPlayersForDraw = isSingles ? 2 : 4;
   const canDraw = isAdmin && presenceConfirmed.length >= minPlayersForDraw && matches.length === 0 && !rivalry;
 
