@@ -53,6 +53,7 @@ import {
   MapPin,
   UserCheck,
   Settings2,
+  Pencil,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
@@ -80,7 +81,40 @@ function GroupDetailPage() {
   const [placeholderUserIds, setPlaceholderUserIds] = useState<Set<string>>(new Set());
   const [rankingData, setRankingData] = useState<Record<string, { rating: number; position: number | null; matches_played: number; matches_won: number }>>({});
   const [commentCount, setCommentCount] = useState(0);
+  const [renamingUserId, setRenamingUserId] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState("");
+  const [renameSaving, setRenameSaving] = useState(false);
   const { seasons, isLoading: seasonsLoading } = useGroupSeasons(groupId);
+
+  const handleStartRename = (userId: string, currentName: string) => {
+    setRenamingUserId(userId);
+    setRenameValue(currentName);
+  };
+
+  const handleSaveRename = async () => {
+    if (!renamingUserId) return;
+    const newName = renameValue.trim();
+    if (!newName) {
+      toast.error("Nome não pode ficar vazio");
+      return;
+    }
+    setRenameSaving(true);
+    try {
+      const { error } = await supabase
+        .from("user_profiles")
+        .update({ name: newName })
+        .eq("user_id", renamingUserId);
+      if (error) throw error;
+      toast.success("Nome atualizado");
+      setRenamingUserId(null);
+      refresh();
+    } catch (e) {
+      console.error(e);
+      toast.error("Erro ao atualizar nome");
+    } finally {
+      setRenameSaving(false);
+    }
+  };
 
   const rivalry = isRivalryGroup(group, memberCount);
 
@@ -287,13 +321,38 @@ function GroupDetailPage() {
 
       {isAuthenticated && !isMember && (
         <div className="px-5 pb-4">
-          <button
-            onClick={handleJoin}
-            className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-3 text-sm font-bold text-primary-foreground"
-          >
-            <UserPlus className="h-4 w-4" />
-            {group.is_public ? "Entrar no grupo" : "Solicitar entrada"}
-          </button>
+          <div className={`grid gap-3 ${hasPlaceholders ? "grid-cols-2" : "grid-cols-1"}`}>
+            <button
+              onClick={handleJoin}
+              className="flex aspect-square flex-col items-center justify-center gap-2 rounded-2xl bg-primary p-4 text-primary-foreground transition-transform active:scale-95"
+            >
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary-foreground/15">
+                <UserPlus className="h-6 w-6" />
+              </div>
+              <span className="text-sm font-bold leading-tight text-center">
+                {group.is_public ? "Entrar no grupo" : "Solicitar entrada"}
+              </span>
+              <span className="text-[10px] font-medium opacity-80 text-center leading-tight">
+                Como novo jogador
+              </span>
+            </button>
+            {hasPlaceholders && (
+              <button
+                onClick={() => setClaimOpen(true)}
+                className="flex aspect-square flex-col items-center justify-center gap-2 rounded-2xl border border-primary/30 bg-primary/5 p-4 text-primary transition-transform active:scale-95"
+              >
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10">
+                  <Link2 className="h-6 w-6" />
+                </div>
+                <span className="text-sm font-bold leading-tight text-center text-foreground">
+                  Entrar e vincular
+                </span>
+                <span className="text-[10px] font-medium text-muted-foreground text-center leading-tight">
+                  A um jogador existente
+                </span>
+              </button>
+            )}
+          </div>
         </div>
       )}
 
@@ -530,11 +589,26 @@ function GroupDetailPage() {
                           className="border border-border"
                           dimmed={isFormer}
                         />
-                        <div className="min-w-0">
+                        <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-1.5">
-                            <span className={`text-sm font-medium truncate ${isFormer ? "text-muted-foreground line-through" : "text-foreground"}`}>
-                              {m.profile?.nickname || m.profile?.name || "Jogador"}
-                            </span>
+                            {isFormer && isAdmin && renamingUserId === m.user_id ? (
+                              <input
+                                type="text"
+                                value={renameValue}
+                                onChange={(e) => setRenameValue(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") handleSaveRename();
+                                  if (e.key === "Escape") setRenamingUserId(null);
+                                }}
+                                autoFocus
+                                disabled={renameSaving}
+                                className="flex-1 min-w-0 rounded-lg border border-primary/40 bg-background px-2 py-1 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                              />
+                            ) : (
+                              <span className={`text-sm font-medium truncate ${isFormer ? "text-muted-foreground line-through" : "text-foreground"}`}>
+                                {m.profile?.nickname || m.profile?.name || "Jogador"}
+                              </span>
+                            )}
                             {!isFormer && m.role === "creator" && <Crown className="h-3 w-3 text-rank-gold flex-shrink-0" />}
                             {!isFormer && m.role === "admin" && <Shield className="h-3 w-3 text-info flex-shrink-0" />}
                             {!isFormer && placeholderUserIds.has(m.user_id) && (
@@ -543,14 +617,14 @@ function GroupDetailPage() {
                                 Sem conta
                               </span>
                             )}
-                            {isFormer && (
+                            {isFormer && renamingUserId !== m.user_id && (
                               <span className="flex items-center gap-0.5 rounded-full bg-muted px-1.5 py-0.5 text-[9px] font-medium text-muted-foreground flex-shrink-0">
                                 <UserMinus className="h-2.5 w-2.5" />
                                 Ex-membro
                               </span>
                             )}
                           </div>
-                          {rank ? (
+                          {rank && renamingUserId !== m.user_id ? (
                             <p className={`text-[10px] ${isFormer ? "text-muted-foreground/60" : "text-muted-foreground"}`}>
                               {Math.round(rank.rating)} Elo · {rank.matches_won}V {rank.matches_played - rank.matches_won}D
                             </p>
@@ -561,6 +635,36 @@ function GroupDetailPage() {
                       <div className="flex items-center gap-2 flex-shrink-0">
                         {!isFormer && rank && (
                           <span className="text-xs font-bold text-primary">{Math.round(rank.rating)}</span>
+                        )}
+                        {isFormer && isAdmin && (
+                          renamingUserId === m.user_id ? (
+                            <div className="flex gap-1">
+                              <button
+                                onClick={handleSaveRename}
+                                disabled={renameSaving}
+                                className="rounded-lg bg-success/10 p-1.5 text-success disabled:opacity-50"
+                                title="Salvar"
+                              >
+                                <Check className="h-3 w-3" />
+                              </button>
+                              <button
+                                onClick={() => setRenamingUserId(null)}
+                                disabled={renameSaving}
+                                className="rounded-lg bg-muted p-1.5 text-muted-foreground disabled:opacity-50"
+                                title="Cancelar"
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => handleStartRename(m.user_id, m.profile?.name || "")}
+                              className="rounded-lg bg-muted p-1.5 text-muted-foreground hover:text-foreground"
+                              title="Renomear ex-membro"
+                            >
+                              <Pencil className="h-3 w-3" />
+                            </button>
+                          )
                         )}
                         {!isFormer && isAdmin && m.user_id !== user?.id && m.role !== "creator" && (
                           <div className="flex gap-1">
@@ -667,8 +771,8 @@ function GroupDetailPage() {
               </div>
             )}
 
-            {/* User: Vincular conta */}
-            {isAuthenticated && !isMemberAlready && hasPlaceholders && (
+            {/* User: Vincular conta — only show inline here for active members (non-members see square card at top) */}
+            {isAuthenticated && isMemberAlready && hasPlaceholders && (
               <button
                 onClick={() => setClaimOpen(true)}
                 className="flex w-full items-center justify-center gap-2 rounded-2xl border border-primary/30 bg-primary/5 p-3 text-sm font-medium text-primary transition-colors active:bg-primary/10"
