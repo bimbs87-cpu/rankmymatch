@@ -884,73 +884,114 @@ function DashboardPage() {
 
         {/* DESKTOP-ONLY: Últimos Resultados em formato de lista (col direita topo) */}
         <section className="hidden lg:block lg:col-span-6 lg:order-2">
-          <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Últimos Resultados
-            </h2>
-            <Link to="/history" className="flex items-center gap-0.5 text-xs font-medium text-primary">
-              Histórico <ChevronRight className="h-3.5 w-3.5" />
-            </Link>
-          </div>
-          {dataLoading ? (
-            <div className="flex flex-col items-center justify-center rounded-3xl border border-border bg-card p-6 min-h-[120px]">
-              <CardSpinner label="Carregando resultados" />
+          <div className="rounded-3xl border border-border bg-card overflow-hidden">
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-border/60 px-4 py-2.5">
+              <div className="flex items-center gap-2">
+                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10">
+                  <Swords className="h-3.5 w-3.5 text-primary" />
+                </div>
+                <div>
+                  <h2 className="text-xs font-semibold uppercase tracking-wider text-foreground">
+                    Últimos Resultados
+                  </h2>
+                  {!dataLoading && recentMatches.length > 0 && (() => {
+                    const wins = recentMatches.filter(m => m.winner_team === m.my_team).length;
+                    const losses = recentMatches.length - wins;
+                    const eloSum = recentMatches.reduce((s, m) => s + (m.rating_change || 0), 0);
+                    return (
+                      <p className="text-[10px] text-muted-foreground">
+                        <span className="text-success font-semibold">{wins}V</span>
+                        <span className="mx-1">·</span>
+                        <span className="text-destructive font-semibold">{losses}D</span>
+                        <span className="mx-1">·</span>
+                        <span className={`font-semibold ${eloSum > 0 ? "text-success" : eloSum < 0 ? "text-destructive" : ""}`}>
+                          {eloSum > 0 ? "+" : ""}{Math.round(eloSum)} Elo
+                        </span>
+                      </p>
+                    );
+                  })()}
+                </div>
+              </div>
+              <Link to="/history" className="flex items-center gap-0.5 text-xs font-medium text-primary hover:text-primary/80">
+                Histórico <ChevronRight className="h-3.5 w-3.5" />
+              </Link>
             </div>
-          ) : recentMatches.length === 0 ? (
-            <div className="rounded-3xl border border-border bg-card p-5">
-              <div className="flex flex-col items-center gap-2 text-center">
+
+            {dataLoading ? (
+              <div className="flex flex-col items-center justify-center p-6 min-h-[120px]">
+                <CardSpinner label="Carregando resultados" />
+              </div>
+            ) : recentMatches.length === 0 ? (
+              <div className="flex flex-col items-center gap-2 p-6 text-center">
                 <Swords className="h-7 w-7 text-muted-foreground/40" />
                 <p className="text-sm text-muted-foreground">Nenhuma partida ainda</p>
               </div>
-            </div>
-          ) : (
-            <div className="space-y-1.5">
-              {recentMatches.slice(0, 5).map((m) => {
-                const won = m.winner_team === m.my_team;
-                return (
-                  <div
-                    key={m.id}
-                    className="flex items-center gap-2.5 rounded-xl border border-border bg-card px-3 py-2"
-                  >
-                    <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-xs font-bold ${
-                      won ? "bg-success/10 text-success" : "bg-destructive/10 text-destructive"
-                    }`}>
-                      {won ? "V" : "D"}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <p className="text-sm font-semibold text-foreground truncate">
-                          {m.score_display}
-                        </p>
-                        {m.match_number != null && (
-                          <span className="rounded-full bg-muted px-1.5 py-0.5 text-[9px] font-semibold text-muted-foreground">
-                            Set {m.match_number}
-                          </span>
+            ) : (
+              <div className="divide-y divide-border/50">
+                {recentMatches.slice(0, 8).map((m) => {
+                  const won = m.winner_team === m.my_team;
+                  const dateStr = new Date(m.created_at).toLocaleDateString("pt-BR", {
+                    day: "2-digit",
+                    month: "short",
+                  });
+                  return (
+                    <div
+                      key={m.id}
+                      className="flex items-center gap-2.5 px-4 py-2 transition-colors hover:bg-accent/30"
+                    >
+                      {/* V/D pill */}
+                      <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-[11px] font-bold ${
+                        won ? "bg-success/15 text-success" : "bg-destructive/15 text-destructive"
+                      }`}>
+                        {won ? "V" : "D"}
+                      </div>
+
+                      {/* Score + meta */}
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5">
+                          <p className="font-display text-sm font-bold text-foreground tabular-nums">
+                            {m.score_display}
+                          </p>
+                          {m.match_number != null && (
+                            <span className="rounded-md bg-muted px-1 py-0.5 text-[9px] font-semibold text-muted-foreground">
+                              Set {m.match_number}
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-x-2 text-[10px] text-muted-foreground truncate">
+                          {m.partner_name && <span className="truncate">c/ <span className="text-foreground/80 font-medium">{m.partner_name}</span></span>}
+                          {m.opponent_names.length > 0 && (
+                            <span className="truncate">vs <span className="text-foreground/80 font-medium">{m.opponent_names.join(" & ")}</span></span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Group + date */}
+                      <div className="hidden xl:block shrink-0 text-right max-w-[100px]">
+                        {m.group_name && (
+                          <p className="text-[10px] font-medium text-foreground/70 truncate">{m.group_name}</p>
                         )}
+                        <p className="text-[9px] text-muted-foreground">{dateStr}</p>
                       </div>
-                      <div className="flex flex-wrap items-center gap-x-2.5 text-[10px] text-muted-foreground">
-                        {m.group_name && <span className="font-medium">{m.group_name}</span>}
-                        {m.partner_name && <span>c/ {m.partner_name}</span>}
-                        {m.opponent_names.length > 0 && (
-                          <span>vs {m.opponent_names.join(" & ")}</span>
-                        )}
-                      </div>
+
+                      {/* Elo delta */}
+                      {m.rating_change !== null && (
+                        <div className="shrink-0 text-right min-w-[44px]">
+                          <p className={`font-display text-sm font-bold tabular-nums ${
+                            m.rating_change > 0 ? "text-success" : m.rating_change < 0 ? "text-destructive" : "text-muted-foreground"
+                          }`}>
+                            {m.rating_change > 0 ? "+" : ""}{Math.round(m.rating_change)}
+                          </p>
+                          <p className="text-[9px] text-muted-foreground/70 leading-none">Elo</p>
+                        </div>
+                      )}
                     </div>
-                    {m.rating_change !== null && (
-                      <div className="shrink-0 text-right">
-                        <p className={`text-sm font-bold ${
-                          m.rating_change > 0 ? "text-success" : m.rating_change < 0 ? "text-destructive" : "text-muted-foreground"
-                        }`}>
-                          {m.rating_change > 0 ? "+" : ""}{Math.round(m.rating_change)}
-                        </p>
-                        <p className="text-[9px] text-muted-foreground">Elo</p>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </section>
 
         {/* DESKTOP-ONLY: Card de Gráficos — Posição no Ranking + Elo (col esquerda, abaixo do Ranking+CTA) */}
