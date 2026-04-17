@@ -3,14 +3,16 @@ import { useAuth } from "@/hooks/use-auth";
 import { TrophyLoadingBar } from "@/components/TrophyLoadingBar";
 import { supabase } from "@/integrations/supabase/client";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ArrowLeft, TrendingUp, TrendingDown, Minus, Swords } from "lucide-react";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
+import { buildDisplayNames, type NameInput } from "@/lib/name-disambiguation";
 
-function shortName(full: string): string {
-  const parts = full.trim().split(/\s+/);
-  if (parts.length === 1) return parts[0];
-  return `${parts[0]} ${parts[parts.length - 1][0]}.`;
+interface PlayerRef {
+  user_id: string;
+  name: string;
+  nickname: string | null;
+  avatar_url: string | null;
 }
 
 interface MatchHistory {
@@ -23,8 +25,8 @@ interface MatchHistory {
   ratingBefore: number;
   ratingAfter: number;
   ratingChange: number;
-  teammates: { name: string; avatar_url: string | null }[];
-  opponents: { name: string; avatar_url: string | null }[];
+  teammates: PlayerRef[];
+  opponents: PlayerRef[];
   sets: { scoreA: number; scoreB: number }[];
   seasonName: string;
   groupId: string | null;
@@ -124,18 +126,28 @@ function HistoryPage() {
         const myPlayer = players.find((p) => p.user_id === user!.id);
         const myTeam = myPlayer?.team || "A";
 
-        const teammates = players
+        const teammates: PlayerRef[] = players
           .filter((p) => p.team === myTeam && p.user_id !== user!.id)
           .map((p) => {
             const prof = profileMap.get(p.user_id);
-            return { name: prof?.nickname || prof?.name || "Jogador", avatar_url: prof?.avatar_url || null };
+            return {
+              user_id: p.user_id,
+              name: prof?.name || "Jogador",
+              nickname: prof?.nickname || null,
+              avatar_url: prof?.avatar_url || null,
+            };
           });
 
-        const opponents = players
+        const opponents: PlayerRef[] = players
           .filter((p) => p.team !== myTeam)
           .map((p) => {
             const prof = profileMap.get(p.user_id);
-            return { name: prof?.nickname || prof?.name || "Jogador", avatar_url: prof?.avatar_url || null };
+            return {
+              user_id: p.user_id,
+              name: prof?.name || "Jogador",
+              nickname: prof?.nickname || null,
+              avatar_url: prof?.avatar_url || null,
+            };
           });
 
         const groupId =
@@ -177,11 +189,36 @@ function HistoryPage() {
     load();
   }, [user]);
 
+  // Build a per-group display-name map. We collect every player ever seen in a
+  // match for a given group, then disambiguate within that group only.
+  const displayNameByGroup = useMemo(() => {
+    const byGroup = new Map<string, Map<string, NameInput>>();
+    for (const m of matches) {
+      const key = m.groupId || "__none__";
+      if (!byGroup.has(key)) byGroup.set(key, new Map());
+      const bucket = byGroup.get(key)!;
+      for (const p of [...m.teammates, ...m.opponents]) {
+        if (!bucket.has(p.user_id)) {
+          bucket.set(p.user_id, { id: p.user_id, name: p.name, nickname: p.nickname });
+        }
+      }
+    }
+    const out = new Map<string, Map<string, string>>();
+    for (const [groupKey, bucket] of byGroup) {
+      out.set(groupKey, buildDisplayNames([...bucket.values()]));
+    }
+    return out;
+  }, [matches]);
+
   if (authLoading || isLoading) {
     return <TrophyLoadingBar />;
   }
 
-  // Build unique groups list
+  const labelFor = (groupId: string | null, player: PlayerRef): string => {
+    const key = groupId || "__none__";
+    return displayNameByGroup.get(key)?.get(player.user_id) || player.nickname || player.name;
+  };
+
   const groupsList = Array.from(
     new Map(matches.filter((m) => m.groupId).map((m) => [m.groupId!, m.groupName])).entries()
   ).map(([id, name]) => ({ id, name }));
@@ -286,10 +323,10 @@ function HistoryPage() {
                 month: "2-digit",
               });
               const partnerStr = match.teammates.length
-                ? match.teammates.map((t) => shortName(t.name)).join(" & ")
+                ? match.teammates.map((t) => labelFor(match.groupId, t)).join(" & ")
                 : "Solo";
               const oppStr = match.opponents.length
-                ? match.opponents.map((o) => shortName(o.name)).join(" & ")
+                ? match.opponents.map((o) => labelFor(match.groupId, o)).join(" & ")
                 : "—";
               // Games per set from my perspective (e.g. "6x3 4x6 7x5")
               const gamesStr =

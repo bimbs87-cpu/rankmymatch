@@ -2,12 +2,13 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useAuth } from "@/hooks/use-auth";
 import { TrophyLoadingBar } from "@/components/TrophyLoadingBar";
 import { useMyGroups } from "@/hooks/use-groups";
-import { BarChart3, Info, ChevronDown, ArrowUp, ArrowDown, Calendar, Layers, Timer, Crown } from "lucide-react";
-import { useState, useEffect } from "react";
+import { BarChart3, Info, ChevronDown, ArrowUp, ArrowDown, Calendar, Layers, Timer, Crown, AlertTriangle } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { isRivalryGroup } from "@/lib/rivalry";
 import { RivalryDuelPage } from "@/components/RivalryDuelPage";
+import { buildDisplayNames, getCollidingFirstNames } from "@/lib/name-disambiguation";
 
 export const Route = createFileRoute("/ranking")({
   component: RankingPage,
@@ -404,6 +405,34 @@ function RankingPage() {
   const remainingRounds = Math.max(0, (selectedSeason?.total_rounds || totalRounds) - completedRounds);
   const eligibleRankings = rankings.filter((r) => r.is_eligible);
 
+  // Disambiguate names within the current ranking (group-scoped via the season)
+  const displayNameMap = useMemo(() => {
+    return buildDisplayNames(
+      rankings.map((r) => ({
+        id: r.user_id,
+        name: r.profile?.name || "Jogador",
+        nickname: r.profile?.nickname || null,
+      })),
+    );
+  }, [rankings]);
+
+  const collidingFirstNames = useMemo(() => {
+    return getCollidingFirstNames(
+      rankings.map((r) => ({
+        id: r.user_id,
+        name: r.profile?.name || "Jogador",
+        nickname: r.profile?.nickname || null,
+      })),
+    );
+  }, [rankings]);
+
+  const myFirstName = (myRanking?.profile?.name || "").trim().split(/\s+/)[0]?.toLowerCase() || "";
+  const myNameCollides =
+    !!myRanking && !myRanking.profile?.nickname && collidingFirstNames.has(myFirstName);
+
+  const getDisplayName = (entry: RankingEntry) =>
+    displayNameMap.get(entry.user_id) || entry.profile?.nickname || abbreviateName(entry.profile?.name || "Jogador");
+
   // Check if user has a rivalry group and show duel page instead
   const rivalryGroup = groups.find((g: any) => isRivalryGroup(g, g.member_count));
   const [rivalrySeasonInfo, setRivalrySeasonInfo] = useState<{ id: string; name: string } | null>(null);
@@ -636,7 +665,7 @@ function RankingPage() {
                 <div className="mb-1 flex items-end justify-center gap-2 pt-4 pb-1">
                   {podiumOrder.map(({ entry, pos, height, color }) => {
                     if (!entry) return null;
-                    const displayName = entry.profile?.nickname || abbreviateName(entry.profile?.name || "Jogador");
+                    const displayName = getDisplayName(entry);
                     const wr = winRate(entry.matches_won, entry.matches_played);
                     const isCenter = pos === 1;
                     return (
@@ -672,6 +701,22 @@ function RankingPage() {
               );
             })()}
 
+            {/* Name collision warning */}
+            {myNameCollides && (
+              <Link
+                to="/profile"
+                className="flex items-start gap-2 rounded-2xl border border-warning/30 bg-warning/10 px-3 py-2.5 transition hover:bg-warning/15"
+              >
+                <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0 text-warning" />
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-semibold text-foreground">Nome em comum no ranking</p>
+                  <p className="text-[11px] leading-snug text-muted-foreground">
+                    Existem jogadores com o mesmo primeiro nome. Adicione um apelido no seu perfil para evitar confusão.
+                  </p>
+                </div>
+              </Link>
+            )}
+
             {/* Ranking table */}
             <div className="rounded-2xl border border-border overflow-hidden">
               {/* Header */}
@@ -688,7 +733,7 @@ function RankingPage() {
                 const pos = entry.position || "—";
                 const wr = winRate(entry.matches_won, entry.matches_played);
                 const isDimmed = !entry.is_eligible;
-                const displayName = entry.profile?.nickname || abbreviateName(entry.profile?.name || "Jogador");
+                const displayName = getDisplayName(entry);
                 const losses = entry.matches_played - entry.matches_won;
                 const isEven = idx % 2 === 0;
 
