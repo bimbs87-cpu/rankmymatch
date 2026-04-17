@@ -995,7 +995,7 @@ function DashboardPage() {
         </section>
 
         {/* DESKTOP-ONLY: Card de Gráficos — Posição no Ranking + Elo (col esquerda, abaixo do Ranking+CTA) */}
-        <section className="hidden lg:block lg:col-span-6 lg:order-3">
+        <section className="hidden lg:block lg:col-span-4 lg:order-3">
           {(() => {
             const history = currentRanking ? historyBySeason.get(currentRanking.season_id) || [] : [];
             const ratingPoints = history
