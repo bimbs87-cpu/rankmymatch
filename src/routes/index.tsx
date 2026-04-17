@@ -225,6 +225,8 @@ function DashboardPage() {
       .in("status", ["scheduled", "in_progress"])
       .order("scheduled_date", { ascending: true })
       .limit(8);
+
+    if (rounds?.length) {
       const roundIds = rounds.map((r) => r.id);
       const { data: presences } = await supabase
         .from("round_presence")
