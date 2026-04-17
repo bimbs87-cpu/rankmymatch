@@ -75,6 +75,7 @@ interface RecentMatch {
   rating_change: number | null;
   created_at: string;
   partner_name: string | null;
+  opponent_names: string[];
 }
 
 interface RankingOption {
