@@ -504,19 +504,23 @@ function GroupDetailPage() {
             ) : (
               /* Standard ranking list */
               <div className="rounded-2xl border border-border bg-card/50 divide-y divide-border overflow-hidden">
-                {[...members].sort((a, b) => {
-                  const ra = rankingData[a.user_id]?.rating || 0;
-                  const rb = rankingData[b.user_id]?.rating || 0;
-                  return rb - ra;
-                }).map((m) => {
+                {[
+                  ...[...activeMembers].sort((a, b) => {
+                    const ra = rankingData[a.user_id]?.rating || 0;
+                    const rb = rankingData[b.user_id]?.rating || 0;
+                    return rb - ra;
+                  }),
+                  ...formerMembers,
+                ].map((m) => {
                   const rank = rankingData[m.user_id];
+                  const isFormer = (m as any).status !== "active";
                   return (
                     <div
                       key={m.id}
-                      className="flex items-center justify-between px-3 py-2.5"
+                      className={`flex items-center justify-between px-3 py-2.5 ${isFormer ? "bg-muted/10" : ""}`}
                     >
                       <div className="flex items-center gap-2 min-w-0">
-                        {rank?.position ? (
+                        {!isFormer && rank?.position ? (
                           <span className="w-5 text-center text-xs font-bold text-muted-foreground">
                             {rank.position}
                           </span>
@@ -528,23 +532,30 @@ function GroupDetailPage() {
                           name={m.profile?.name || "?"}
                           size="lg"
                           className="border border-border"
+                          dimmed={isFormer}
                         />
                         <div className="min-w-0">
                           <div className="flex items-center gap-1.5">
-                            <span className="text-sm font-medium text-foreground truncate">
+                            <span className={`text-sm font-medium truncate ${isFormer ? "text-muted-foreground line-through" : "text-foreground"}`}>
                               {m.profile?.nickname || m.profile?.name || "Jogador"}
                             </span>
-                            {m.role === "creator" && <Crown className="h-3 w-3 text-rank-gold flex-shrink-0" />}
-                            {m.role === "admin" && <Shield className="h-3 w-3 text-info flex-shrink-0" />}
-                            {placeholderUserIds.has(m.user_id) && (
+                            {!isFormer && m.role === "creator" && <Crown className="h-3 w-3 text-rank-gold flex-shrink-0" />}
+                            {!isFormer && m.role === "admin" && <Shield className="h-3 w-3 text-info flex-shrink-0" />}
+                            {!isFormer && placeholderUserIds.has(m.user_id) && (
                               <span className="flex items-center gap-0.5 rounded-full bg-muted px-1.5 py-0.5 text-[9px] font-medium text-muted-foreground flex-shrink-0">
                                 <Ghost className="h-2.5 w-2.5" />
                                 Sem conta
                               </span>
                             )}
+                            {isFormer && (
+                              <span className="flex items-center gap-0.5 rounded-full bg-muted px-1.5 py-0.5 text-[9px] font-medium text-muted-foreground flex-shrink-0">
+                                <UserMinus className="h-2.5 w-2.5" />
+                                Ex-membro
+                              </span>
+                            )}
                           </div>
                           {rank ? (
-                            <p className="text-[10px] text-muted-foreground">
+                            <p className={`text-[10px] ${isFormer ? "text-muted-foreground/60" : "text-muted-foreground"}`}>
                               {Math.round(rank.rating)} Elo · {rank.matches_won}V {rank.matches_played - rank.matches_won}D
                             </p>
                           ) : null}
@@ -552,10 +563,10 @@ function GroupDetailPage() {
                       </div>
 
                       <div className="flex items-center gap-2 flex-shrink-0">
-                        {rank && (
+                        {!isFormer && rank && (
                           <span className="text-xs font-bold text-primary">{Math.round(rank.rating)}</span>
                         )}
-                        {isAdmin && m.user_id !== user?.id && m.role !== "creator" && (
+                        {!isFormer && isAdmin && m.user_id !== user?.id && m.role !== "creator" && (
                           <div className="flex gap-1">
                             {m.role === "member" ? (
                               <button
