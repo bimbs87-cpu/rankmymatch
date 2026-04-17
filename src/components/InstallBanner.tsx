@@ -13,7 +13,7 @@ export function InstallBanner() {
   if (!canInstall && !isIos) return null;
 
   return (
-    <div className="mx-4 mb-3 rounded-2xl border border-primary/30 bg-card/95 backdrop-blur-sm p-4 shadow-lg">
+    <div className="lg:hidden mx-4 mb-3 rounded-2xl border border-primary/30 bg-card/95 backdrop-blur-sm p-4 shadow-lg">
       <div className="flex items-start gap-3">
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/15">
           <Download className="h-5 w-5 text-primary" />
