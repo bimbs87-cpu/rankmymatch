@@ -360,7 +360,7 @@ function GroupDetailPage() {
               tab === "members" ? "bg-primary text-primary-foreground" : "text-muted-foreground"
             }`}
           >
-            {rivalry ? "Duelo" : "Ranking"}
+            {rivalry ? "Duelo" : "Membros"}
           </button>
           <button
             onClick={() => setTab("resultados")}
@@ -381,11 +381,12 @@ function GroupDetailPage() {
           {isAdmin && (
             <button
               onClick={() => setTab("requests")}
-              className={`relative flex-1 rounded-full py-2 text-xs font-semibold transition-colors ${
-                tab === "requests" ? "bg-primary text-primary-foreground" : "text-muted-foreground"
+              className={`relative flex h-9 w-9 items-center justify-center rounded-full transition-colors ${
+                tab === "requests" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"
               }`}
+              title="Solicitações"
             >
-              Solicitações
+              <UserCheck className="h-4 w-4" />
               {pendingRequests.length > 0 && (
                 <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground">
                   {pendingRequests.length}
@@ -396,11 +397,12 @@ function GroupDetailPage() {
           {isAdmin && (
             <button
               onClick={() => setTab("settings")}
-              className={`flex-1 rounded-full py-2 text-xs font-semibold transition-colors ${
-                tab === "settings" ? "bg-primary text-primary-foreground" : "text-muted-foreground"
+              className={`flex h-9 w-9 items-center justify-center rounded-full transition-colors ${
+                tab === "settings" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"
               }`}
+              title="Configurações"
             >
-              Config
+              <Settings2 className="h-4 w-4" />
             </button>
           )}
         </div>
