@@ -125,6 +125,7 @@ function GroupSeasonsPage() {
     setCourts(1);
     setIsRetroactive(false);
     setRoundsPlayed(0);
+    setStartDate("");
     setSubmitError(null);
     setSetsPerMatch(rivalry ? 1 : 3);
     setSinglesPairingMode("manual");
