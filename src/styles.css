@@ -228,3 +228,18 @@
   50% { transform: translateX(150%); }
   100% { transform: translateX(-100%); }
 }
+
+@keyframes loadingSweep {
+  0% { transform: translateX(-120%); }
+  100% { transform: translateX(420%); }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+@keyframes dotPulse {
+  0%, 100% { opacity: 0.3; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1.1); }
+}
