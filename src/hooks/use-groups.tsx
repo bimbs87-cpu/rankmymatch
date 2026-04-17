@@ -20,7 +20,7 @@ async function attachMemberCounts(groups: Group[]) {
 
 export function useMyGroups() {
   const { user } = useAuth();
-  const [groups, setGroups] = useState<(Group & { member_count: number })[]>([]);
+  const [groups, setGroups] = useState<(Group & { member_count: number } & GroupStats)[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const refresh = useCallback(async () => {
