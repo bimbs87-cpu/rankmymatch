@@ -84,31 +84,28 @@ function RootComponent() {
     const isInIframe = (() => {
       try { return window.self !== window.top; } catch { return true; }
     })();
-    const isPreview = window.location.hostname.includes("id-preview--");
+    const host = window.location.hostname;
+    const isPreview =
+      host.includes("id-preview--") ||
+      host.includes("lovableproject.com") ||
+      host.includes("lovable.dev");
 
     if (!isInIframe && !isPreview && "serviceWorker" in navigator) {
       navigator.serviceWorker
         .register("/sw.js", { updateViaCache: "none" })
         .then((reg) => {
-          // Force-check for updates on every page load so users stuck on an
-          // old SW (which was breaking OAuth on Chrome/iOS) get the fix
-          // without needing a manual cache clear.
           reg.update().catch(() => {});
         })
         .catch(() => {});
-
-      // When the new SW takes control, reload once so the fresh (non-
-      // intercepting) worker handles all subsequent requests.
-      let reloaded = false;
-      navigator.serviceWorker.addEventListener("controllerchange", () => {
-        if (reloaded) return;
-        reloaded = true;
-        window.location.reload();
+    } else if ("serviceWorker" in navigator) {
+      // Preview / iframe: aggressively unregister any SW + clear caches so
+      // an old worker can't keep the app stuck on a loading screen.
+      navigator.serviceWorker.getRegistrations().then((regs) => {
+        regs.forEach((r) => r.unregister());
       });
-    } else if (isInIframe || isPreview) {
-      navigator.serviceWorker?.getRegistrations().then((regs) =>
-        regs.forEach((r) => r.unregister())
-      );
+      if (typeof caches !== "undefined") {
+        caches.keys().then((keys) => keys.forEach((k) => caches.delete(k)));
+      }
     }
   }, []);
 
