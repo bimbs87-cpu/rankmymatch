@@ -69,9 +69,10 @@ export function InstallBanner() {
       setPhase("downloading");
       setProgress((p) => Math.max(p, 20));
       // After a beat, shift into "finalizing" so the bar can climb higher
+      // Hold "downloading" longer so the bar can't race past reality
       window.setTimeout(() => {
         setPhase((cur) => (cur === "downloading" ? "finalizing" : cur));
-      }, 2500);
+      }, 6000);
     } catch {
       setPhase("idle");
       setProgress(0);
