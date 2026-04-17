@@ -388,16 +388,16 @@ function HistoryPage() {
                     const oppStr = match.opponents.length
                       ? match.opponents.map((o) => labelFor(match.groupId, o)).join(" & ")
                       : "—";
-                    const gamesStr =
-                      match.sets.length > 0
-                        ? match.sets
-                            .map((s) =>
-                              match.myTeam === "A"
-                                ? `${s.scoreA}–${s.scoreB}`
-                                : `${s.scoreB}–${s.scoreA}`,
-                            )
-                            .join("  ")
-                        : "—";
+                    // Aggregate games across sets from my perspective
+                    const myGames = match.sets.reduce(
+                      (sum, s) => sum + (match.myTeam === "A" ? s.scoreA : s.scoreB),
+                      0,
+                    );
+                    const oppGames = match.sets.reduce(
+                      (sum, s) => sum + (match.myTeam === "A" ? s.scoreB : s.scoreA),
+                      0,
+                    );
+                    const hasScore = match.sets.length > 0;
 
                     // Color accent for left border (visual anchor)
                     const accent = won
