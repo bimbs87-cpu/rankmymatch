@@ -163,6 +163,33 @@ function DashboardPage() {
       });
   }, [user, myGroups]);
 
+  // Load per-group stats: seasons count, rounds completed/total
+  useEffect(() => {
+    if (!myGroups.length) {
+      setGroupStats(new Map());
+      return;
+    }
+    const ids = myGroups.map((g) => g.id);
+    (async () => {
+      const [seasonsRes, roundsRes] = await Promise.all([
+        supabase.from("seasons").select("id, group_id").in("group_id", ids),
+        supabase.from("rounds").select("group_id, status").in("group_id", ids),
+      ]);
+      const stats = new Map<string, { seasons: number; rounds_completed: number; rounds_total: number }>();
+      for (const id of ids) stats.set(id, { seasons: 0, rounds_completed: 0, rounds_total: 0 });
+      for (const s of seasonsRes.data || []) {
+        const cur = stats.get(s.group_id)!;
+        cur.seasons += 1;
+      }
+      for (const r of roundsRes.data || []) {
+        const cur = stats.get(r.group_id)!;
+        cur.rounds_total += 1;
+        if (r.status === "completed") cur.rounds_completed += 1;
+      }
+      setGroupStats(stats);
+    })();
+  }, [myGroups]);
+
   const loadDashboard = useCallback(async () => {
     if (!user) {
       setDataLoading(false);
