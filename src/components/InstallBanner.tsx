@@ -11,19 +11,23 @@ export function InstallBanner() {
   const [progress, setProgress] = useState(0);
   const progressTimer = useRef<number | null>(null);
 
-  // Animated fake progress that converges to 95% while installing,
-  // then jumps to 100% when the browser confirms install.
+  // Genuine-feeling progress: climbs slowly and asymptotically toward a
+  // ceiling that is ALWAYS below 100. Only the real `appinstalled` event
+  // is allowed to push the bar to 100%. This prevents the bar from
+  // looking "done" before the icon is actually on the home screen.
   useEffect(() => {
     if (phase === "downloading" || phase === "finalizing") {
-      const target = phase === "downloading" ? 80 : 95;
+      // Hard ceilings — never reach 100 from the timer
+      const target = phase === "downloading" ? 60 : 90;
       progressTimer.current = window.setInterval(() => {
         setProgress((p) => {
           if (p >= target) return p;
-          // Slower as we get closer to target — feels realistic
-          const step = Math.max(0.5, (target - p) * 0.06);
+          // Very slow asymptotic approach — installation on Android
+          // typically takes 5–15s, so we want the bar to feel patient.
+          const step = Math.max(0.15, (target - p) * 0.015);
           return Math.min(target, p + step);
         });
-      }, 120);
+      }, 250);
     } else {
       if (progressTimer.current) {
         clearInterval(progressTimer.current);
@@ -65,9 +69,10 @@ export function InstallBanner() {
       setPhase("downloading");
       setProgress((p) => Math.max(p, 20));
       // After a beat, shift into "finalizing" so the bar can climb higher
+      // Hold "downloading" longer so the bar can't race past reality
       window.setTimeout(() => {
         setPhase((cur) => (cur === "downloading" ? "finalizing" : cur));
-      }, 2500);
+      }, 6000);
     } catch {
       setPhase("idle");
       setProgress(0);
@@ -146,21 +151,34 @@ export function InstallBanner() {
         <div className="mt-3 space-y-2">
           <div className="h-2 w-full overflow-hidden rounded-full bg-primary/15">
             <div
-              className={`h-full rounded-full transition-[width,background-color] duration-300 ease-out ${
+              className={`h-full rounded-full transition-[width,background-color] duration-500 ease-out ${
                 phase === "success" ? "bg-success" : "bg-primary"
               }`}
               style={{ width: `${progress}%` }}
             />
           </div>
           <div className="flex items-center justify-between text-[11px]">
-            <span className="text-muted-foreground">{Math.round(progress)}%</span>
-            {isInstalling && (
-              <span className="flex items-center gap-1 text-muted-foreground">
-                <Smartphone className="h-3 w-3" />
-                Não feche o app durante a instalação
-              </span>
+            <span className="font-medium tabular-nums text-muted-foreground">
+              {Math.round(progress)}%
+            </span>
+            {phase === "success" && (
+              <span className="font-semibold text-success">Concluído</span>
             )}
           </div>
+        </div>
+      )}
+
+      {/* Prominent "do not close" warning during install */}
+      {isInstalling && (
+        <div
+          role="alert"
+          className="mt-3 flex items-start gap-2 rounded-xl border border-warning/40 bg-warning/10 p-3"
+        >
+          <Smartphone className="h-4 w-4 shrink-0 text-warning mt-0.5" />
+          <p className="text-[11px] leading-relaxed text-foreground">
+            <span className="font-semibold">Não feche o app nem troque de janela.</span>{" "}
+            Aguarde a instalação terminar — o ícone aparecerá na sua tela inicial.
+          </p>
         </div>
       )}
 
