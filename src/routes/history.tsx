@@ -168,6 +168,8 @@ function HistoryPage() {
         };
       });
 
+      result.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
       setMatches(result);
       setIsLoading(false);
     }
