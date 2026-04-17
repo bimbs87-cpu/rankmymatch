@@ -636,22 +636,22 @@ function DashboardPage() {
 
               <Link
                 to="/ranking"
-                className="flex flex-1 flex-col"
+                className="relative flex flex-1 flex-col"
               >
-                {/* Position + games bar chart */}
-                <div className="mt-1 flex items-end justify-between gap-2">
-                  <span className="font-display text-3xl font-bold leading-none text-primary">
-                    {ordinalSuffix(currentRanking.position)}
-                  </span>
-                  {currentRanking.last_set_games.length > 0 && (
-                    <div className="flex flex-col items-end">
-                      <span className="text-[8px] uppercase tracking-wider text-muted-foreground/70 leading-none">
-                        Games (últ. {currentRanking.last_set_games.length} set{currentRanking.last_set_games.length > 1 ? "s" : ""})
-                      </span>
-                      <div className="mt-0.5">{renderGamesBars(currentRanking.last_set_games)}</div>
-                    </div>
-                  )}
-                </div>
+                {/* Games bar chart — anchored to the bottom-right, spanning nearly full card height */}
+                {currentRanking.last_set_games.length > 0 && (
+                  <div className="absolute bottom-0 right-0 flex flex-col items-end pointer-events-none">
+                    <span className="mb-1 text-[8px] uppercase tracking-wider text-muted-foreground/70 leading-none">
+                      Games (últ. {currentRanking.last_set_games.length} set{currentRanking.last_set_games.length > 1 ? "s" : ""})
+                    </span>
+                    {renderGamesBars(currentRanking.last_set_games, 110)}
+                  </div>
+                )}
+
+                {/* Position */}
+                <span className="mt-1 font-display text-3xl font-bold leading-none text-primary">
+                  {ordinalSuffix(currentRanking.position)}
+                </span>
 
                 {/* Elo */}
                 <p className="mt-1.5 font-display text-sm font-bold text-foreground">{Math.round(currentRanking.rating)} Elo</p>
@@ -668,7 +668,7 @@ function DashboardPage() {
                   )}
                 </div>
 
-                <p className="mt-auto pt-2 text-[9px] text-muted-foreground/60 truncate">
+                <p className="mt-auto pt-2 pr-20 text-[9px] text-muted-foreground/60 truncate">
                   {currentRanking.season_name}
                   {currentRanking.group_name ? ` · ${currentRanking.group_name}` : ""}
                   {currentRanking.rounds_total > 0 ? ` · ${currentRanking.rounds_completed}/${currentRanking.rounds_total}` : ""}
