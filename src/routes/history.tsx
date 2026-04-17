@@ -445,7 +445,7 @@ function HistoryPage() {
 
                         {/* Elo delta — pill for emphasis */}
                         <div
-                          className={`flex flex-shrink-0 items-center gap-0.5 rounded-md px-1.5 py-1 text-[11px] font-bold tabular-nums ${
+                          className={`flex flex-shrink-0 self-center items-center gap-0.5 rounded-md px-1.5 py-1 text-[11px] font-bold tabular-nums ${
                             match.ratingChange > 0
                               ? "bg-success/10 text-success"
                               : match.ratingChange < 0
