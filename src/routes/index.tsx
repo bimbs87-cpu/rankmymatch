@@ -77,13 +77,16 @@ interface RecentMatch {
   partner_name: string | null;
 }
 
-interface MyRanking {
+interface RankingOption {
+  season_id: string;
+  season_name: string;
   rating: number;
   position: number | null;
   matches_played: number;
   matches_won: number;
-  season_name: string;
   last_change: number | null;
+  last_events: number[];
+  last_event_at: string | null;
 }
 
 function DashboardPage() {
@@ -124,7 +127,9 @@ function DashboardPage() {
   const { resolved: resolvedTheme } = themeData;
   const [upcomingRounds, setUpcomingRounds] = useState<UpcomingRound[]>([]);
   const [recentMatches, setRecentMatches] = useState<RecentMatch[]>([]);
-  const [myRanking, setMyRanking] = useState<MyRanking | null>(null);
+  const [rankings, setRankings] = useState<RankingOption[]>([]);
+  const [selectedSeasonId, setSelectedSeasonId] = useState<string | null>(null);
+  const [showRankingPicker, setShowRankingPicker] = useState(false);
   const [dashLoading, setDashLoading] = useState(true);
   const dataLoading = dashLoading || groupsLoading;
   const setDataLoading = setDashLoading;
@@ -269,42 +274,69 @@ function DashboardPage() {
       setRecentMatches([]);
     }
 
-    // 3. My ranking (best active season)
+    // 3. My rankings — all seasons (active + ended) where the user has a snapshot
     const { data: seasonsList } = await supabase
       .from("seasons")
-      .select("id, name")
+      .select("id, name, status, updated_at")
       .in("group_id", groupIds)
-      .eq("status", "active")
-      .limit(1);
+      .in("status", ["active", "ended", "completed"]);
 
     if (seasonsList?.length) {
-      const season = seasonsList[0];
-      const { data: snap } = await supabase
-        .from("ranking_snapshots")
-        .select("*")
-        .eq("season_id", season.id)
-        .eq("user_id", user.id)
-        .single();
-
-      if (snap) {
-        const { data: lastEvent } = await supabase
+      const seasonIds = seasonsList.map((s: any) => s.id);
+      const [snapsRes, eventsRes] = await Promise.all([
+        supabase
+          .from("ranking_snapshots")
+          .select("season_id, rating, position, matches_played, matches_won")
+          .in("season_id", seasonIds)
+          .eq("user_id", user.id),
+        supabase
           .from("rating_events")
-          .select("rating_change")
+          .select("season_id, rating_change, created_at")
+          .in("season_id", seasonIds)
           .eq("user_id", user.id)
-          .eq("season_id", season.id)
-          .order("created_at", { ascending: false })
-          .limit(1)
-          .maybeSingle();
+          .order("created_at", { ascending: false }),
+      ]);
 
-        setMyRanking({
-          rating: Number(snap.rating),
-          position: snap.position,
-          matches_played: snap.matches_played,
-          matches_won: snap.matches_won,
-          season_name: season.name,
-          last_change: lastEvent ? Number(lastEvent.rating_change) : null,
-        });
+      const seasonMap = new Map(seasonsList.map((s: any) => [s.id, s]));
+      const eventsBySeason = new Map<string, { rating_change: number; created_at: string }[]>();
+      for (const e of eventsRes.data || []) {
+        const arr = eventsBySeason.get(e.season_id!) || [];
+        arr.push({ rating_change: Number(e.rating_change), created_at: e.created_at });
+        eventsBySeason.set(e.season_id!, arr);
       }
+
+      const opts: RankingOption[] = (snapsRes.data || [])
+        .map((snap: any) => {
+          const season = seasonMap.get(snap.season_id) as any;
+          const evs = eventsBySeason.get(snap.season_id) || [];
+          const last3 = evs.slice(0, 3).reverse().map((e) => e.rating_change);
+          return {
+            season_id: snap.season_id,
+            season_name: season?.name || "Temporada",
+            rating: Number(snap.rating),
+            position: snap.position,
+            matches_played: snap.matches_played,
+            matches_won: snap.matches_won,
+            last_change: evs[0] ? evs[0].rating_change : null,
+            last_events: last3,
+            last_event_at: evs[0]?.created_at || season?.updated_at || null,
+          };
+        })
+        // Sort by most recently played (last event), fallback to season update
+        .sort((a, b) => {
+          const at = a.last_event_at ? new Date(a.last_event_at).getTime() : 0;
+          const bt = b.last_event_at ? new Date(b.last_event_at).getTime() : 0;
+          return bt - at;
+        });
+
+      setRankings(opts);
+      setSelectedSeasonId((prev) => {
+        if (prev && opts.some((o) => o.season_id === prev)) return prev;
+        return opts[0]?.season_id || null;
+      });
+    } else {
+      setRankings([]);
+      setSelectedSeasonId(null);
     }
 
     setDataLoading(false);
@@ -379,9 +411,55 @@ function DashboardPage() {
     });
   };
 
-  const winRate = myRanking && myRanking.matches_played > 0
-    ? Math.round((myRanking.matches_won / myRanking.matches_played) * 100)
+  const currentRanking = rankings.find((r) => r.season_id === selectedSeasonId) || rankings[0] || null;
+  const winRate = currentRanking && currentRanking.matches_played > 0
+    ? Math.round((currentRanking.matches_won / currentRanking.matches_played) * 100)
     : 0;
+
+  const ordinalSuffix = (n: number | null) => {
+    if (!n) return "—";
+    return `${n}º`;
+  };
+
+  // Build a compact sparkline (SVG) showing variation across last 3 events
+  const renderSparkline = (events: number[]) => {
+    if (!events || events.length === 0) return null;
+    // Cumulative deltas anchored at 0
+    const cum: number[] = [];
+    let acc = 0;
+    cum.push(0);
+    for (const e of events) {
+      acc += e;
+      cum.push(acc);
+    }
+    const w = 70;
+    const h = 22;
+    const min = Math.min(...cum);
+    const max = Math.max(...cum);
+    const range = Math.max(1, max - min);
+    const stepX = w / Math.max(1, cum.length - 1);
+    const points = cum
+      .map((v, i) => {
+        const x = i * stepX;
+        const y = h - ((v - min) / range) * h;
+        return `${x.toFixed(1)},${y.toFixed(1)}`;
+      })
+      .join(" ");
+    const last = cum[cum.length - 1];
+    const stroke = last > 0 ? "var(--success)" : last < 0 ? "var(--destructive)" : "var(--muted-foreground)";
+    return (
+      <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} className="overflow-visible">
+        <polyline
+          points={points}
+          fill="none"
+          stroke={stroke}
+          strokeWidth={1.5}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    );
+  };
 
   return (
     <div
@@ -446,29 +524,77 @@ function DashboardPage() {
             <div className="flex flex-col items-center justify-center rounded-3xl border border-border bg-card p-5 min-h-[140px]">
               <CardSpinner label="Carregando ranking" />
             </div>
-          ) : myRanking ? (
-            <Link to="/ranking" className="flex flex-col rounded-3xl border border-primary/20 bg-primary/5 p-4">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Seu Ranking</p>
-              <div className="mt-1 flex items-baseline gap-1.5">
-                <span className="font-display text-3xl font-bold text-primary">
-                  {myRanking.position ? `#${myRanking.position}` : "—"}
-                </span>
-              </div>
-              <p className="font-display text-sm font-bold text-foreground">{Math.round(myRanking.rating)} Elo</p>
-              <div className="mt-1 flex items-center gap-2 text-[10px] text-muted-foreground">
-                <span>{myRanking.matches_won}V {myRanking.matches_played - myRanking.matches_won}D</span>
-                <span className="font-semibold">{winRate}%</span>
-                {myRanking.last_change !== null && (
-                  <span className={`flex items-center gap-0.5 font-semibold ${myRanking.last_change > 0 ? "text-success" : myRanking.last_change < 0 ? "text-destructive" : ""}`}>
-                    {myRanking.last_change > 0 ? <TrendingUp className="h-3 w-3" /> : myRanking.last_change < 0 ? <TrendingDown className="h-3 w-3" /> : <Minus className="h-3 w-3" />}
-                    {myRanking.last_change > 0 ? "+" : ""}{Math.round(myRanking.last_change)}
-                  </span>
+          ) : currentRanking ? (
+            <div className="relative flex flex-col rounded-3xl border border-primary/20 bg-primary/5 p-4 min-h-[140px]">
+              {/* Header: title + season switcher */}
+              <div className="flex items-center justify-between gap-1">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Seu Ranking</p>
+                {rankings.length > 1 && (
+                  <button
+                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowRankingPicker((v) => !v); }}
+                    className="flex items-center gap-0.5 rounded-full bg-card/60 px-1.5 py-0.5 text-[9px] font-semibold text-muted-foreground hover:text-foreground"
+                    aria-label="Trocar temporada"
+                  >
+                    Trocar <ChevronRight className="h-2.5 w-2.5 rotate-90" />
+                  </button>
                 )}
               </div>
-              <p className="mt-auto pt-2 text-[9px] text-muted-foreground/60">{myRanking.season_name}</p>
-            </Link>
+
+              {/* Ranking picker dropdown */}
+              {showRankingPicker && rankings.length > 1 && (
+                <div className="absolute left-3 right-3 top-9 z-20 max-h-44 overflow-y-auto rounded-2xl border border-border bg-card p-1 shadow-lg">
+                  {rankings.map((r) => (
+                    <button
+                      key={r.season_id}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setSelectedSeasonId(r.season_id);
+                        setShowRankingPicker(false);
+                      }}
+                      className={`flex w-full items-center justify-between gap-2 rounded-xl px-2 py-1.5 text-left text-[11px] ${
+                        r.season_id === currentRanking.season_id ? "bg-primary/15 text-primary" : "hover:bg-accent/50 text-foreground"
+                      }`}
+                    >
+                      <span className="truncate">{r.season_name}</span>
+                      <span className="shrink-0 font-semibold">{ordinalSuffix(r.position)}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              <Link
+                to="/ranking"
+                className="flex flex-1 flex-col"
+              >
+                {/* Position + sparkline */}
+                <div className="mt-1 flex items-end justify-between gap-2">
+                  <span className="font-display text-3xl font-bold leading-none text-primary">
+                    {ordinalSuffix(currentRanking.position)}
+                  </span>
+                  <div className="opacity-90">{renderSparkline(currentRanking.last_events)}</div>
+                </div>
+
+                {/* Elo */}
+                <p className="mt-1.5 font-display text-sm font-bold text-foreground">{Math.round(currentRanking.rating)} Elo</p>
+
+                {/* V-D % ELO */}
+                <div className="mt-1 flex items-center gap-2 text-[10px] text-muted-foreground">
+                  <span className="font-semibold">{currentRanking.matches_won}V {currentRanking.matches_played - currentRanking.matches_won}D</span>
+                  <span>{winRate}%</span>
+                  {currentRanking.last_change !== null && (
+                    <span className={`flex items-center gap-0.5 font-semibold ${currentRanking.last_change > 0 ? "text-success" : currentRanking.last_change < 0 ? "text-destructive" : ""}`}>
+                      {currentRanking.last_change > 0 ? <TrendingUp className="h-3 w-3" /> : currentRanking.last_change < 0 ? <TrendingDown className="h-3 w-3" /> : <Minus className="h-3 w-3" />}
+                      {currentRanking.last_change > 0 ? "+" : ""}{Math.round(currentRanking.last_change)}
+                    </span>
+                  )}
+                </div>
+
+                <p className="mt-auto pt-2 text-[9px] text-muted-foreground/60 truncate">{currentRanking.season_name}</p>
+              </Link>
+            </div>
           ) : (
-            <Link to="/ranking" className="flex flex-col items-center justify-center gap-1.5 rounded-3xl border border-border bg-card p-5 text-foreground">
+            <Link to="/ranking" className="flex flex-col items-center justify-center gap-1.5 rounded-3xl border border-border bg-card p-5 text-foreground min-h-[140px]">
               <BarChart3 className="h-7 w-7 text-muted-foreground/40" />
               <span className="text-sm font-semibold text-muted-foreground">Seu Ranking</span>
               <span className="text-[10px] text-muted-foreground/60">Jogue para aparecer</span>
