@@ -323,22 +323,34 @@ function DashboardPage() {
         roundsBySeason.set(r.season_id!, cur);
       }
 
-      // Fetch sets for the last up to 3 matches (per season) of the user
+      // Fetch sets + user's team for the last up to 3 matches (per season) of the user
       const recentMatchIds = new Set<string>();
       for (const arr of eventsBySeason.values()) {
         for (const ev of arr.slice(0, 3)) recentMatchIds.add(ev.match_id);
       }
       let setsByMatch = new Map<string, { score_team_a: number; score_team_b: number; set_number: number }[]>();
+      let teamByMatch = new Map<string, string>();
       if (recentMatchIds.size) {
-        const { data: setsData } = await supabase
-          .from("match_sets")
-          .select("match_id, score_team_a, score_team_b, set_number")
-          .in("match_id", [...recentMatchIds])
-          .order("set_number");
-        for (const s of setsData || []) {
+        const matchIdsArr = [...recentMatchIds];
+        const [setsRes, playersRes] = await Promise.all([
+          supabase
+            .from("match_sets")
+            .select("match_id, score_team_a, score_team_b, set_number")
+            .in("match_id", matchIdsArr)
+            .order("set_number"),
+          supabase
+            .from("match_players")
+            .select("match_id, team")
+            .in("match_id", matchIdsArr)
+            .eq("user_id", user.id),
+        ]);
+        for (const s of setsRes.data || []) {
           const arr = setsByMatch.get(s.match_id) || [];
           arr.push(s as any);
           setsByMatch.set(s.match_id, arr);
+        }
+        for (const p of playersRes.data || []) {
+          teamByMatch.set(p.match_id, p.team);
         }
       }
 
