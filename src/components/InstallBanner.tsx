@@ -13,48 +13,75 @@ export function InstallBanner() {
   const progressTimer = useRef<number | null>(null);
   const installStartRef = useRef<number | null>(null);
 
-  // Genuine progress: climbs slowly toward a ceiling well below 100.
-  // 100% ONLY when the real `appinstalled` event fires (justInstalled).
+  // Minimum total install duration before we ever show 100%.
+  // Android Chrome fires `appinstalled` almost immediately when the user
+  // taps "Install" in the native prompt — but the OS still needs ~15–25s
+  // to actually place the icon on the home screen. We IGNORE the event
+  // as a completion signal and instead drive progress purely by elapsed
+  // time so the bar reflects what the user actually experiences.
+  const MIN_INSTALL_MS = 22000;
+
+  // Time-based progress: bar fills linearly over MIN_INSTALL_MS, capped at 97
+  // until the minimum time has fully elapsed. Only THEN do we jump to 100.
   useEffect(() => {
-    if (phase === "downloading" || phase === "finalizing") {
-      // Hard ceilings — never reach 100 from the timer
-      const target = phase === "downloading" ? 45 : 80;
-      progressTimer.current = window.setInterval(() => {
-        setProgress((p) => {
-          if (p >= target) return p;
-          // Very slow asymptotic approach — installs can take 10–30s
-          const step = Math.max(0.08, (target - p) * 0.008);
-          return Math.min(target, p + step);
-        });
-      }, 300);
-    } else {
+    if (phase !== "downloading" && phase !== "finalizing") {
       if (progressTimer.current) {
         clearInterval(progressTimer.current);
         progressTimer.current = null;
       }
+      return;
     }
+    progressTimer.current = window.setInterval(() => {
+      const start = installStartRef.current;
+      if (!start) return;
+      const elapsed = Date.now() - start;
+      const ratio = Math.min(1, elapsed / MIN_INSTALL_MS);
+      // Cap at 97% until time has fully elapsed AND appinstalled fired
+      const capped = Math.min(97, ratio * 97);
+      setProgress((p) => Math.max(p, capped));
+
+      // Switch label from "downloading" to "finalizing" past the halfway mark
+      if (elapsed > MIN_INSTALL_MS * 0.55) {
+        setPhase((cur) => (cur === "downloading" ? "finalizing" : cur));
+      }
+
+      // Only complete when BOTH conditions are met: appinstalled fired
+      // AND the minimum visible duration has elapsed.
+      if (elapsed >= MIN_INSTALL_MS && justInstalled) {
+        setProgress(100);
+        setPhase("success");
+      }
+    }, 200);
     return () => {
       if (progressTimer.current) {
         clearInterval(progressTimer.current);
         progressTimer.current = null;
       }
     };
+  }, [phase, justInstalled]);
+
+  // Auto-dismiss after success celebration
+  useEffect(() => {
+    if (phase !== "success") return;
+    const t = window.setTimeout(() => setDismissed(true), 4000);
+    return () => clearTimeout(t);
   }, [phase]);
 
-  // ONLY the real `appinstalled` event can push us to success/100%.
+  // Safety net: if appinstalled never fires (some Android flows) but the
+  // minimum duration has long since passed, complete after a generous timeout
+  // so the user is never stuck on the overlay forever.
   useEffect(() => {
-    if (justInstalled && phase !== "success") {
+    if (phase !== "downloading" && phase !== "finalizing") return;
+    const safety = window.setTimeout(() => {
       setProgress(100);
       setPhase("success");
-      const t = window.setTimeout(() => setDismissed(true), 4000);
-      return () => clearTimeout(t);
-    }
-  }, [justInstalled, phase]);
+    }, MIN_INSTALL_MS + 25000); // ~47s total worst case
+    return () => clearTimeout(safety);
+  }, [phase]);
 
   const handleInstall = async () => {
     setPhase("prompting");
-    setProgress(5);
-    installStartRef.current = Date.now();
+    setProgress(2);
     try {
       // Browser shows the native prompt; user must tap "Instalar"
       const accepted = await install();
@@ -64,14 +91,11 @@ export function InstallBanner() {
         window.setTimeout(() => setPhase("idle"), 1800);
         return;
       }
-      // IMPORTANT: `accepted` only means the user tapped "Install" in the
-      // native prompt. The OS install can still take 10–30s after this.
-      // We must wait for the real `appinstalled` event before showing 100%.
+      // User accepted. Start the timer NOW — this is when the OS install
+      // actually begins. The bar will fill linearly from this moment.
+      installStartRef.current = Date.now();
       setPhase("downloading");
-      setProgress((p) => Math.max(p, 12));
-      window.setTimeout(() => {
-        setPhase((cur) => (cur === "downloading" ? "finalizing" : cur));
-      }, 10000);
+      setProgress(4);
     } catch {
       setPhase("idle");
       setProgress(0);
