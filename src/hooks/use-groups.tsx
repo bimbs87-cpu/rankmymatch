@@ -107,7 +107,9 @@ export function useMyGroups() {
 
       if (groupsError) throw groupsError;
 
-      setGroups(await attachMemberCounts(groupsData || []));
+      const withCounts = await attachMemberCounts(groupsData || []);
+      const withStats = await attachGroupStats(withCounts);
+      setGroups(withStats);
     } catch (error) {
       console.error("Erro ao carregar meus grupos:", error);
       setGroups([]);
