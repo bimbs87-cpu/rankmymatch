@@ -201,11 +201,12 @@ export function useGroupDetail(groupId: string) {
 
       setMemberCount(count || 0);
 
+      // Load ALL members (active + removed/left) so ex-members can be shown dimmed.
+      // memberCount above already counts only actives via RPC.
       const { data: mems, error: membersError } = await supabase
         .from("group_members")
         .select("*")
-        .eq("group_id", groupId)
-        .eq("status", "active");
+        .eq("group_id", groupId);
 
       if (membersError) throw membersError;
 
