@@ -262,9 +262,7 @@ function DashboardPage() {
       .select("*, matches(match_number, winner_team, round_id, status)")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false })
-      .limit(5);
-
-    if (events?.length) {
+      .limit(8);
       const matchIds = events.map((e: any) => e.match_id);
       const roundIds = events.map((e: any) => (e.matches as any)?.round_id).filter(Boolean);
 
