@@ -204,3 +204,44 @@ function GroupsIndexPage() {
     </div>
   );
 }
+
+interface StatTileProps {
+  icon: React.ReactNode;
+  label: string;
+  primary: string;
+  secondary: string;
+  truncate?: boolean;
+  highlight?: boolean;
+}
+
+function StatTile({ icon, label, primary, secondary, truncate, highlight }: StatTileProps) {
+  return (
+    <div
+      className={`aspect-square flex flex-col justify-between rounded-xl border p-2 ${
+        highlight
+          ? "border-primary/30 bg-primary/5"
+          : "border-border/60 bg-muted/30"
+      }`}
+    >
+      <div className="flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider text-muted-foreground">
+        <span className={highlight ? "text-primary" : ""}>{icon}</span>
+        <span className="truncate">{label}</span>
+      </div>
+      <div className="flex flex-col leading-tight">
+        <span
+          className={`font-display text-lg font-bold tabular-nums ${
+            highlight ? "text-primary" : "text-foreground"
+          }`}
+        >
+          {primary}
+        </span>
+        <span
+          className={`text-[9px] text-muted-foreground ${truncate ? "truncate" : ""}`}
+          title={secondary}
+        >
+          {secondary}
+        </span>
+      </div>
+    </div>
+  );
+}
