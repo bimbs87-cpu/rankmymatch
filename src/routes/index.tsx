@@ -448,9 +448,25 @@ function DashboardPage() {
         if (prev && opts.some((o) => o.season_id === prev)) return prev;
         return opts[0]?.season_id || null;
       });
+
+      // Load historical snapshots for charts (desktop)
+      const { data: histSnaps } = await supabase
+        .from("ranking_snapshots")
+        .select("season_id, snapshot_date, rating, position")
+        .in("season_id", seasonIds)
+        .eq("user_id", user.id)
+        .order("snapshot_date", { ascending: true });
+      const hist = new Map<string, { date: string; rating: number; position: number | null }[]>();
+      for (const h of histSnaps || []) {
+        const arr = hist.get(h.season_id) || [];
+        arr.push({ date: h.snapshot_date, rating: Number(h.rating), position: h.position });
+        hist.set(h.season_id, arr);
+      }
+      setHistoryBySeason(hist);
     } else {
       setRankings([]);
       setSelectedSeasonId(null);
+      setHistoryBySeason(new Map());
     }
 
     setDataLoading(false);
