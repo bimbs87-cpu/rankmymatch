@@ -587,17 +587,8 @@ function DashboardPage() {
           </div>
 
           {dataLoading ? (
-            <div className="space-y-2">
-              {[1, 2].map((i) => (
-                <div key={i} className="flex items-center gap-3 rounded-2xl border border-border bg-card p-3 animate-pulse">
-                  <div className="h-9 w-9 shrink-0 rounded-xl bg-muted" />
-                  <div className="flex-1 space-y-2">
-                    <div className="h-3 w-32 rounded bg-muted" />
-                    <div className="h-2.5 w-24 rounded bg-muted" />
-                  </div>
-                  <div className="h-3 w-6 rounded bg-muted" />
-                </div>
-              ))}
+            <div className="flex flex-col items-center justify-center rounded-3xl border border-border bg-card p-6 min-h-[120px]">
+              <CardSpinner label="Carregando resultados" />
             </div>
           ) : recentMatches.length === 0 ? (
             <div className="rounded-3xl border border-border bg-card p-5">
