@@ -125,7 +125,9 @@ function DashboardPage() {
   const [upcomingRounds, setUpcomingRounds] = useState<UpcomingRound[]>([]);
   const [recentMatches, setRecentMatches] = useState<RecentMatch[]>([]);
   const [myRanking, setMyRanking] = useState<MyRanking | null>(null);
-  const [dataLoading, setDataLoading] = useState(true);
+  const [dashLoading, setDashLoading] = useState(true);
+  const dataLoading = dashLoading || groupsLoading;
+  const setDataLoading = setDashLoading;
   const [refreshing, setRefreshing] = useState(false);
   const [pullDistance, setPullDistance] = useState(0);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -150,11 +152,17 @@ function DashboardPage() {
   }, [user, myGroups]);
 
   const loadDashboard = useCallback(async () => {
-    if (!user || !myGroups.length) {
+    if (!user) {
       setDataLoading(false);
       return;
     }
+    if (!myGroups.length) {
+      // No groups yet — nothing to load, but only stop spinner once groups query finished
+      if (!groupsLoading) setDataLoading(false);
+      return;
+    }
 
+    setDataLoading(true);
     const groupIds = myGroups.map((g) => g.id);
 
     // 1. Upcoming rounds
