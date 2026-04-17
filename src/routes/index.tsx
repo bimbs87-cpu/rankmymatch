@@ -591,7 +591,7 @@ function DashboardPage() {
       <div className="space-y-5 px-5 pt-5">
         {/* Season switcher button — above the ranking card */}
         {!dataLoading && currentRanking && rankings.length > 1 && (
-          <div className="relative -mb-2 flex animate-fade-in">
+          <div className="relative flex animate-fade-in">
             <button
               onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowRankingPicker((v) => !v); }}
               className="flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-3 py-1.5 text-[11px] font-semibold text-primary transition-colors hover:bg-primary/15"
