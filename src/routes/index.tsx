@@ -68,11 +68,17 @@ interface UpcomingRound {
   location: string | null;
   status: string;
   season_id: string | null;
+  season_name: string | null;
   group_id: string;
   group_name: string;
   confirmed_count: number;
+  pending_count: number;
+  declined_count: number;
+  waiting_count: number;
   max_players: number;
   my_status: string | null;
+  presence_open_mode: string;
+  presence_open_time: string;
 }
 
 interface RecentMatch {
