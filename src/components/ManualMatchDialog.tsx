@@ -749,9 +749,12 @@ export function ManualMatchDialog({ roundId, groupId, matchFormat = "doubles", o
                 </div>
                 <div className="space-y-2">
                   {selectedPlayers
+                    .slice()
                     .sort((a, b) => {
-                      const diff = (playerPoints[b]?.wins || 0) - (playerPoints[a]?.wins || 0);
-                      if (diff !== 0) return diff;
+                      const eloDiff = (eloPreview.totals[b] ?? 0) - (eloPreview.totals[a] ?? 0);
+                      if (eloDiff !== 0) return eloDiff;
+                      const winsDiff = (playerPoints[b]?.wins || 0) - (playerPoints[a]?.wins || 0);
+                      if (winsDiff !== 0) return winsDiff;
                       return ((playerPoints[b]?.gamesWon || 0) - (playerPoints[b]?.gamesLost || 0)) -
                              ((playerPoints[a]?.gamesWon || 0) - (playerPoints[a]?.gamesLost || 0));
                     })

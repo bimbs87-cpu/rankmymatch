@@ -735,6 +735,7 @@ function RoundDetailPage() {
           }
 
           const sorted = Object.entries(playerStats).sort(([, a], [, b]) => {
+            if (b.eloChange !== a.eloChange) return b.eloChange - a.eloChange;
             if (b.wins !== a.wins) return b.wins - a.wins;
             return (b.gamesWon - b.gamesLost) - (a.gamesWon - a.gamesLost);
           });
