@@ -613,6 +613,72 @@ function DashboardPage() {
     );
   };
 
+  // Simple responsive line chart for desktop charts card
+  const renderLineChart = (
+    points: { label: string; value: number }[],
+    opts: { color: string; invertY?: boolean; height?: number; yLabel?: string }
+  ) => {
+    const w = 520;
+    const h = opts.height ?? 160;
+    const padL = 32;
+    const padR = 12;
+    const padT = 12;
+    const padB = 22;
+    if (!points.length) {
+      return (
+        <div className="flex h-full items-center justify-center text-[11px] text-muted-foreground">
+          Sem histórico ainda
+        </div>
+      );
+    }
+    const values = points.map((p) => p.value);
+    const minV = Math.min(...values);
+    const maxV = Math.max(...values);
+    const range = Math.max(1, maxV - minV);
+    const innerW = w - padL - padR;
+    const innerH = h - padT - padB;
+    const xFor = (i: number) => padL + (points.length === 1 ? innerW / 2 : (i / (points.length - 1)) * innerW);
+    const yFor = (v: number) => {
+      const t = (v - minV) / range;
+      const norm = opts.invertY ? t : 1 - t;
+      return padT + norm * innerH;
+    };
+    const pathD = points
+      .map((p, i) => `${i === 0 ? "M" : "L"} ${xFor(i)} ${yFor(p.value)}`)
+      .join(" ");
+    const areaD =
+      `${pathD} L ${xFor(points.length - 1)} ${padT + innerH} L ${xFor(0)} ${padT + innerH} Z`;
+    // Y axis ticks (3 lines)
+    const yTicks = [0, 0.5, 1].map((t) => {
+      const val = opts.invertY ? minV + t * range : maxV - t * range;
+      const yPx = padT + t * innerH;
+      return { val, yPx };
+    });
+    return (
+      <svg viewBox={`0 0 ${w} ${h}`} className="h-full w-full" preserveAspectRatio="none">
+        {yTicks.map((t, i) => (
+          <g key={i}>
+            <line x1={padL} x2={w - padR} y1={t.yPx} y2={t.yPx} stroke="var(--border)" strokeDasharray="2 3" opacity="0.5" />
+            <text x={padL - 4} y={t.yPx + 3} textAnchor="end" fontSize="9" fill="var(--muted-foreground)">
+              {opts.invertY ? `${Math.round(t.val)}º` : Math.round(t.val)}
+            </text>
+          </g>
+        ))}
+        <defs>
+          <linearGradient id={`grad-${opts.color.replace("#", "")}`} x1="0" x2="0" y1="0" y2="1">
+            <stop offset="0%" stopColor={opts.color} stopOpacity="0.35" />
+            <stop offset="100%" stopColor={opts.color} stopOpacity="0" />
+          </linearGradient>
+        </defs>
+        <path d={areaD} fill={`url(#grad-${opts.color.replace("#", "")})`} />
+        <path d={pathD} fill="none" stroke={opts.color} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
+        {points.map((p, i) => (
+          <circle key={i} cx={xFor(i)} cy={yFor(p.value)} r="2.5" fill={opts.color} />
+        ))}
+      </svg>
+    );
+  };
+
   return (
     <div
       ref={scrollRef}
