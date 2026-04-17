@@ -32,6 +32,7 @@ function HistoryPage() {
   const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   const [matches, setMatches] = useState<MatchHistory[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [groupFilter, setGroupFilter] = useState<string>("all");
 
   useEffect(() => {
     if (!user) return;
