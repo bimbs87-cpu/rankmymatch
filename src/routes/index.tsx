@@ -803,11 +803,11 @@ function DashboardPage() {
         {/* Ranking card + Quick action */}
         <section className="grid grid-cols-2 gap-3 animate-fade-in lg:col-span-6 lg:order-1">
           {dataLoading ? (
-            <div className="flex flex-col items-center justify-center rounded-3xl border border-border bg-card p-5 min-h-[140px]">
+            <div className="flex flex-col items-center justify-center rounded-3xl border border-border bg-card p-5 min-h-[140px] lg:min-h-0">
               <CardSpinner label="Carregando ranking" />
             </div>
           ) : currentRanking ? (
-            <div className="relative flex flex-col rounded-3xl border border-primary/20 bg-primary/5 p-3 min-h-[140px]">
+            <div className="relative flex flex-col rounded-3xl border border-primary/20 bg-primary/5 p-3 min-h-[140px] lg:min-h-0">
               <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Seu Ranking</p>
 
               <Link
@@ -857,14 +857,14 @@ function DashboardPage() {
               </Link>
             </div>
           ) : (
-            <Link to="/ranking" className="flex flex-col items-center justify-center gap-1.5 rounded-3xl border border-border bg-card p-5 text-foreground min-h-[140px]">
+            <Link to="/ranking" className="flex flex-col items-center justify-center gap-1.5 rounded-3xl border border-border bg-card p-5 text-foreground min-h-[140px] lg:min-h-0">
               <BarChart3 className="h-7 w-7 text-muted-foreground/40" />
               <span className="text-sm font-semibold text-muted-foreground">Seu Ranking</span>
               <span className="text-[10px] text-muted-foreground/60">Jogue para aparecer</span>
             </Link>
           )}
-          <Link to="/groups" className="flex flex-col items-center justify-center gap-1.5 rounded-3xl bg-primary p-5 text-primary-foreground transition-transform active:scale-[0.97]">
-            <Plus className="h-7 w-7" strokeWidth={2.5} />
+          <Link to="/groups" className="flex flex-col items-center justify-center gap-1.5 rounded-3xl bg-primary p-5 lg:p-3 text-primary-foreground transition-transform active:scale-[0.97]">
+            <Plus className="h-7 w-7 lg:h-5 lg:w-5" strokeWidth={2.5} />
             <span className="text-sm font-semibold">Criar / Entrar</span>
             <span className="text-[10px] opacity-70">em um grupo</span>
           </Link>
