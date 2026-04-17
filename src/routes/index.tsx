@@ -411,9 +411,55 @@ function DashboardPage() {
     });
   };
 
-  const winRate = myRanking && myRanking.matches_played > 0
-    ? Math.round((myRanking.matches_won / myRanking.matches_played) * 100)
+  const currentRanking = rankings.find((r) => r.season_id === selectedSeasonId) || rankings[0] || null;
+  const winRate = currentRanking && currentRanking.matches_played > 0
+    ? Math.round((currentRanking.matches_won / currentRanking.matches_played) * 100)
     : 0;
+
+  const ordinalSuffix = (n: number | null) => {
+    if (!n) return "—";
+    return `${n}º`;
+  };
+
+  // Build a compact sparkline (SVG) showing variation across last 3 events
+  const renderSparkline = (events: number[]) => {
+    if (!events || events.length === 0) return null;
+    // Cumulative deltas anchored at 0
+    const cum: number[] = [];
+    let acc = 0;
+    cum.push(0);
+    for (const e of events) {
+      acc += e;
+      cum.push(acc);
+    }
+    const w = 70;
+    const h = 22;
+    const min = Math.min(...cum);
+    const max = Math.max(...cum);
+    const range = Math.max(1, max - min);
+    const stepX = w / Math.max(1, cum.length - 1);
+    const points = cum
+      .map((v, i) => {
+        const x = i * stepX;
+        const y = h - ((v - min) / range) * h;
+        return `${x.toFixed(1)},${y.toFixed(1)}`;
+      })
+      .join(" ");
+    const last = cum[cum.length - 1];
+    const stroke = last > 0 ? "var(--success)" : last < 0 ? "var(--destructive)" : "var(--muted-foreground)";
+    return (
+      <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} className="overflow-visible">
+        <polyline
+          points={points}
+          fill="none"
+          stroke={stroke}
+          strokeWidth={1.5}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    );
+  };
 
   return (
     <div
