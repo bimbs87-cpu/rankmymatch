@@ -405,6 +405,34 @@ function RankingPage() {
   const remainingRounds = Math.max(0, (selectedSeason?.total_rounds || totalRounds) - completedRounds);
   const eligibleRankings = rankings.filter((r) => r.is_eligible);
 
+  // Disambiguate names within the current ranking (group-scoped via the season)
+  const displayNameMap = useMemo(() => {
+    return buildDisplayNames(
+      rankings.map((r) => ({
+        id: r.user_id,
+        name: r.profile?.name || "Jogador",
+        nickname: r.profile?.nickname || null,
+      })),
+    );
+  }, [rankings]);
+
+  const collidingFirstNames = useMemo(() => {
+    return getCollidingFirstNames(
+      rankings.map((r) => ({
+        id: r.user_id,
+        name: r.profile?.name || "Jogador",
+        nickname: r.profile?.nickname || null,
+      })),
+    );
+  }, [rankings]);
+
+  const myFirstName = (myRanking?.profile?.name || "").trim().split(/\s+/)[0]?.toLowerCase() || "";
+  const myNameCollides =
+    !!myRanking && !myRanking.profile?.nickname && collidingFirstNames.has(myFirstName);
+
+  const getDisplayName = (entry: RankingEntry) =>
+    displayNameMap.get(entry.user_id) || entry.profile?.nickname || abbreviateName(entry.profile?.name || "Jogador");
+
   // Check if user has a rivalry group and show duel page instead
   const rivalryGroup = groups.find((g: any) => isRivalryGroup(g, g.member_count));
   const [rivalrySeasonInfo, setRivalrySeasonInfo] = useState<{ id: string; name: string } | null>(null);
