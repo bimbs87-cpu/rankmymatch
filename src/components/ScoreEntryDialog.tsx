@@ -55,6 +55,13 @@ export function ScoreEntryDialog({
   const [saveStep, setSaveStep] = useState(0);
   const [saveStepLabel, setSaveStepLabel] = useState("");
 
+  const waitForNextPaint = () =>
+    new Promise<void>((resolve) => {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => resolve());
+      });
+    });
+
   // Animate through save steps to give visual feedback
   const saveSteps = useRef([
     "Salvando sets...",
@@ -164,6 +171,7 @@ export function ScoreEntryDialog({
     }
     setSubmitting(true);
     try {
+      await waitForNextPaint();
       const result = await submitMatchScore(
         matchId,
         seasonId,
