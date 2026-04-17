@@ -114,7 +114,7 @@ function RootComponent() {
     <AuthProvider>
       <UserProfileProvider>
         <InstallFlowProvider>
-          <div className="mx-auto max-w-lg min-h-screen">
+          <div className="mx-auto max-w-lg lg:max-w-7xl lg:px-8 min-h-screen">
             <Outlet />
           </div>
           <AuthNav />
