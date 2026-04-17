@@ -41,6 +41,22 @@ function LoginPage() {
     setLoading(true);
     setError("");
     try {
+      // iOS Safari has known issues persisting Supabase sessions when
+      // localStorage is in a transient state right after an OAuth callback.
+      // Verify localStorage is usable before initiating the flow.
+      try {
+        const testKey = "__rmm_ls_test__";
+        window.localStorage.setItem(testKey, "1");
+        window.localStorage.removeItem(testKey);
+      } catch {
+        setError(
+          "Seu navegador está bloqueando o armazenamento local (talvez Modo Privado do Safari). " +
+          "Abra em uma aba normal para entrar."
+        );
+        setLoading(false);
+        return;
+      }
+
       const result = await lovable.auth.signInWithOAuth("google", {
         redirect_uri: window.location.origin,
       });
@@ -55,24 +71,29 @@ function LoginPage() {
       }
       // Tokens received and session set by lovable integration.
       // On iOS Safari, the onAuthStateChange listener can be slow/unreliable
-      // after setSession — so we explicitly verify the session is persisted
-      // and force-navigate to the dashboard.
+      // after setSession — so we explicitly verify the session is persisted.
       let confirmed = false;
-      for (let i = 0; i < 20; i++) {
+      for (let i = 0; i < 30; i++) {
         const { data } = await supabase.auth.getSession();
         if (data.session) {
           confirmed = true;
           break;
         }
-        await new Promise((r) => setTimeout(r, 150));
+        await new Promise((r) => setTimeout(r, 200));
       }
-      if (confirmed) {
-        // Hard navigation ensures iOS Safari fully reloads with the new session
-        window.location.replace("/");
-      } else {
+      if (!confirmed) {
         setError("Sessão não pôde ser estabelecida. Tente novamente.");
         setLoading(false);
+        return;
       }
+
+      // CRITICAL for iOS Safari: give WebKit time to flush localStorage to
+      // disk before navigating. iOS WebKit can swallow pending writes if
+      // navigation happens too fast after setSession(). Then use a hard
+      // navigation (assign, NOT replace) — replace() in iOS Safari has been
+      // observed to drop the just-written session in some flows.
+      await new Promise((r) => setTimeout(r, 400));
+      window.location.assign("/");
     } catch (err) {
       console.error("[login] OAuth error:", err);
       setError("Erro inesperado. Tente novamente.");
