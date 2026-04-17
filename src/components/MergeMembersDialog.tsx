@@ -115,7 +115,7 @@ export function MergeMembersDialog({
         className="fixed inset-0 bg-black/60 backdrop-blur-sm"
         onClick={() => !merging && onOpenChange(false)}
       />
-      <div className="relative w-full max-w-md rounded-t-3xl border border-border bg-card p-5 sm:rounded-3xl">
+      <div className="relative w-full max-w-md rounded-t-3xl border border-border bg-card p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom)+6rem)] sm:rounded-3xl sm:pb-5 max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-primary/10">
