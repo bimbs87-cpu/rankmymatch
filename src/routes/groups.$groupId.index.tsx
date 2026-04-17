@@ -287,13 +287,38 @@ function GroupDetailPage() {
 
       {isAuthenticated && !isMember && (
         <div className="px-5 pb-4">
-          <button
-            onClick={handleJoin}
-            className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-3 text-sm font-bold text-primary-foreground"
-          >
-            <UserPlus className="h-4 w-4" />
-            {group.is_public ? "Entrar no grupo" : "Solicitar entrada"}
-          </button>
+          <div className={`grid gap-3 ${hasPlaceholders ? "grid-cols-2" : "grid-cols-1"}`}>
+            <button
+              onClick={handleJoin}
+              className="flex aspect-square flex-col items-center justify-center gap-2 rounded-2xl bg-primary p-4 text-primary-foreground transition-transform active:scale-95"
+            >
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary-foreground/15">
+                <UserPlus className="h-6 w-6" />
+              </div>
+              <span className="text-sm font-bold leading-tight text-center">
+                {group.is_public ? "Entrar no grupo" : "Solicitar entrada"}
+              </span>
+              <span className="text-[10px] font-medium opacity-80 text-center leading-tight">
+                Como novo jogador
+              </span>
+            </button>
+            {hasPlaceholders && (
+              <button
+                onClick={() => setClaimOpen(true)}
+                className="flex aspect-square flex-col items-center justify-center gap-2 rounded-2xl border border-primary/30 bg-primary/5 p-4 text-primary transition-transform active:scale-95"
+              >
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10">
+                  <Link2 className="h-6 w-6" />
+                </div>
+                <span className="text-sm font-bold leading-tight text-center text-foreground">
+                  Entrar e vincular
+                </span>
+                <span className="text-[10px] font-medium text-muted-foreground text-center leading-tight">
+                  A um jogador existente
+                </span>
+              </button>
+            )}
+          </div>
         </div>
       )}
 
