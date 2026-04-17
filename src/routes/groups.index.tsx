@@ -3,7 +3,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useMyGroups, usePublicGroups } from "@/hooks/use-groups";
 import { CreateGroupDialog } from "@/components/CreateGroupDialog";
 import { TrophyLoadingBar } from "@/components/TrophyLoadingBar";
-import { Plus, Search, Users, Lock, Globe } from "lucide-react";
+import { Plus, Search, Users, Lock, Globe, Trophy, CalendarDays, Sparkles } from "lucide-react";
 import { useState } from "react";
 
 export const Route = createFileRoute("/groups/")({
@@ -114,34 +114,82 @@ function GroupsIndexPage() {
             </div>
           </div>
         ) : (
-          <div className="space-y-3">
-            {groups.map((group) => (
-              <Link
-                key={group.id}
-                to="/groups/$groupId"
-                params={{ groupId: group.id }}
-                className="flex items-center justify-between rounded-2xl border border-border bg-card/50 p-4 transition-colors active:bg-accent/30"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-muted">
-                    <Users className="h-5 w-5 text-muted-foreground" />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-sm font-semibold text-foreground">{group.name}</span>
-                      {group.is_public ? (
-                        <Globe className="h-3 w-3 text-muted-foreground" />
-                      ) : (
-                        <Lock className="h-3 w-3 text-muted-foreground" />
-                      )}
+          <div className={tab === "my" ? "grid grid-cols-1 gap-3 sm:grid-cols-2" : "space-y-3"}>
+            {groups.map((group) => {
+              const isMyTab = tab === "my";
+              const stats = group as typeof group & {
+                rounds_done?: number;
+                rounds_total?: number;
+                seasons_done?: number;
+                current_season_name?: string | null;
+              };
+              const roundsDone = stats.rounds_done ?? 0;
+              const roundsTotal = stats.rounds_total ?? 0;
+              const roundsRemaining = Math.max(0, roundsTotal - roundsDone);
+              const seasonsDone = stats.seasons_done ?? 0;
+              const currentSeason = stats.current_season_name ?? null;
+
+              return (
+                <Link
+                  key={group.id}
+                  to="/groups/$groupId"
+                  params={{ groupId: group.id }}
+                  className="group relative flex flex-col overflow-hidden rounded-2xl border border-border bg-card transition-all hover:border-primary/40 hover:shadow-lg active:scale-[0.99]"
+                >
+                  {/* Top — identity */}
+                  <div className="flex items-start gap-3 p-4">
+                    <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl bg-primary/10 ring-1 ring-primary/20">
+                      <Users className="h-5 w-5 text-primary" />
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                      {group.member_count} membro{group.member_count !== 1 ? "s" : ""}
-                    </p>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5">
+                        <span className="truncate text-sm font-bold text-foreground">{group.name}</span>
+                        {group.is_public ? (
+                          <Globe className="h-3 w-3 flex-shrink-0 text-muted-foreground" />
+                        ) : (
+                          <Lock className="h-3 w-3 flex-shrink-0 text-muted-foreground" />
+                        )}
+                      </div>
+                      <p className="mt-0.5 text-[11px] text-muted-foreground">
+                        {group.member_count} membro{group.member_count !== 1 ? "s" : ""}
+                      </p>
+                    </div>
                   </div>
-                </div>
-              </Link>
-            ))}
+
+                  {isMyTab && (
+                    <>
+                      {/* Stats grid — 3 square mini-cards */}
+                      <div className="grid grid-cols-3 gap-1.5 px-3 pb-3">
+                        <StatTile
+                          icon={<CalendarDays className="h-3 w-3" />}
+                          label="Rodadas"
+                          primary={String(roundsDone)}
+                          secondary={
+                            roundsTotal > 0
+                              ? `${roundsRemaining} restante${roundsRemaining === 1 ? "" : "s"}`
+                              : "—"
+                          }
+                        />
+                        <StatTile
+                          icon={<Trophy className="h-3 w-3" />}
+                          label="Temporadas"
+                          primary={String(seasonsDone)}
+                          secondary={seasonsDone === 1 ? "concluída" : "concluídas"}
+                        />
+                        <StatTile
+                          icon={<Sparkles className="h-3 w-3" />}
+                          label="Atual"
+                          primary={currentSeason ? "•" : "—"}
+                          secondary={currentSeason || "Nenhuma"}
+                          truncate
+                          highlight={!!currentSeason}
+                        />
+                      </div>
+                    </>
+                  )}
+                </Link>
+              );
+            })}
           </div>
         )}
       </div>
