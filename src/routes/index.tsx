@@ -146,6 +146,7 @@ function DashboardPage() {
   const isPulling = useRef(false);
   const { pendingMatch, refresh: refreshPending } = usePendingMatch();
   const [adminGroupIds, setAdminGroupIds] = useState<Set<string>>(new Set());
+  const [groupStats, setGroupStats] = useState<Map<string, { seasons: number; rounds_completed: number; rounds_total: number }>>(new Map());
   const { displayName, nickname, avatarUrl: profileAvatarUrl } = useUserProfile();
 
   // Check which groups user is admin of
