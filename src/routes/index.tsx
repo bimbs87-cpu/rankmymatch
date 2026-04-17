@@ -1345,10 +1345,12 @@ function DashboardPage() {
             const history = currentRanking ? historyBySeason.get(currentRanking.season_id) || [] : [];
             const ratingPoints = history.map((h) => ({ label: h.date, value: h.rating }));
             const lastRating = ratingPoints[ratingPoints.length - 1]?.value;
-            const prevRating = ratingPoints[ratingPoints.length - 2]?.value;
-            // Delta = variação na última partida (atual − anterior), não desde o início
+            const firstRating = ratingPoints[0]?.value;
+            // Delta = variação acumulada na temporada (atual − inicial)
             const ratingDelta =
-              prevRating != null && lastRating != null ? lastRating - prevRating : null;
+              firstRating != null && lastRating != null && ratingPoints.length > 1
+                ? lastRating - firstRating
+                : null;
             const minRating = ratingPoints.length ? Math.min(...ratingPoints.map((p) => p.value)) : null;
             const maxRating = ratingPoints.length ? Math.max(...ratingPoints.map((p) => p.value)) : null;
             const currentPos = currentRanking?.position ?? null;
