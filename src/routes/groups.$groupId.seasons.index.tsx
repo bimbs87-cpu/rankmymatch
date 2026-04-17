@@ -147,25 +147,26 @@ function GroupSeasonsPage() {
       return;
     }
     const pastRounds = isRetroactive ? roundsPlayed : 0;
+    const anchor = startDate || undefined;
     if (durationType === "weekly" && selectedDay !== null) {
       if (selectedDay === -1) {
-        // Dias alternados: generate weekly dates starting from today (editable)
+        // Dias alternados: weekly cadence from anchor (or today)
         const dates: string[] = [];
-        const today = new Date();
+        const base = anchor ? parseISODateLocal(anchor) : new Date();
         if (pastRounds > 0) {
-          today.setDate(today.getDate() - pastRounds * 7);
+          base.setDate(base.getDate() - pastRounds * 7);
         }
         for (let i = 0; i < totalRounds; i++) {
-          const d = new Date(today);
+          const d = new Date(base);
           d.setDate(d.getDate() + i * 7);
-          dates.push(d.toISOString().split("T")[0]);
+          dates.push(toISODate(d));
         }
         setRoundDates(dates);
       } else {
-        setRoundDates(getUpcomingDates(selectedDay, totalRounds, pastRounds));
+        setRoundDates(getUpcomingDates(selectedDay, totalRounds, pastRounds, anchor));
       }
     } else {
-      setRoundDates(getUpcomingMonthlyDates(totalRounds, pastRounds));
+      setRoundDates(getUpcomingMonthlyDates(totalRounds, pastRounds, anchor));
     }
     goStep("dates", "forward");
   };
