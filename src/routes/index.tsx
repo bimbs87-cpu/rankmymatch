@@ -589,6 +589,49 @@ function DashboardPage() {
       <InstallBanner />
 
       <div className="space-y-5 px-5 pt-5">
+        {/* Season switcher button — above the ranking card */}
+        {!dataLoading && currentRanking && rankings.length > 1 && (
+          <div className="relative -mb-2 flex animate-fade-in">
+            <button
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowRankingPicker((v) => !v); }}
+              className="flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-3 py-1.5 text-[11px] font-semibold text-primary transition-colors hover:bg-primary/15"
+              aria-label="Trocar ranking de grupo/temporada"
+            >
+              <BarChart3 className="h-3.5 w-3.5" />
+              <span className="truncate max-w-[200px]">
+                Ranking: {currentRanking.season_name}
+                {currentRanking.group_name ? ` · ${currentRanking.group_name}` : ""}
+              </span>
+              <ChevronRight className={`h-3 w-3 transition-transform ${showRankingPicker ? "-rotate-90" : "rotate-90"}`} />
+            </button>
+
+            {showRankingPicker && (
+              <div className="absolute left-0 top-full z-30 mt-1 max-h-56 min-w-[260px] max-w-[340px] overflow-y-auto rounded-2xl border border-border bg-card p-1 shadow-lg">
+                {rankings.map((r) => (
+                  <button
+                    key={r.season_id}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setSelectedSeasonId(r.season_id);
+                      setShowRankingPicker(false);
+                    }}
+                    className={`flex w-full items-center justify-between gap-2 rounded-xl px-2.5 py-2 text-left text-[11px] ${
+                      r.season_id === currentRanking.season_id ? "bg-primary/15 text-primary" : "hover:bg-accent/50 text-foreground"
+                    }`}
+                  >
+                    <span className="truncate">
+                      {r.season_name}
+                      {r.group_name ? ` · ${r.group_name}` : ""}
+                    </span>
+                    <span className="shrink-0 font-semibold">{ordinalSuffix(r.position)}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Ranking card + Quick action */}
         <section className="grid grid-cols-2 gap-3 animate-fade-in">
           {dataLoading ? (
@@ -597,42 +640,9 @@ function DashboardPage() {
             </div>
           ) : currentRanking ? (
             <div className="relative flex flex-col rounded-3xl border border-primary/20 bg-primary/5 p-4 min-h-[140px]">
-              {/* Header: title + season switcher */}
               <div className="flex items-center justify-between gap-1">
                 <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Seu Ranking</p>
-                {rankings.length > 1 && (
-                  <button
-                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowRankingPicker((v) => !v); }}
-                    className="flex items-center gap-0.5 rounded-full bg-card/60 px-1.5 py-0.5 text-[9px] font-semibold text-muted-foreground hover:text-foreground"
-                    aria-label="Trocar temporada"
-                  >
-                    Trocar <ChevronRight className="h-2.5 w-2.5 rotate-90" />
-                  </button>
-                )}
               </div>
-
-              {/* Ranking picker dropdown */}
-              {showRankingPicker && rankings.length > 1 && (
-                <div className="absolute left-3 right-3 top-9 z-20 max-h-44 overflow-y-auto rounded-2xl border border-border bg-card p-1 shadow-lg">
-                  {rankings.map((r) => (
-                    <button
-                      key={r.season_id}
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        setSelectedSeasonId(r.season_id);
-                        setShowRankingPicker(false);
-                      }}
-                      className={`flex w-full items-center justify-between gap-2 rounded-xl px-2 py-1.5 text-left text-[11px] ${
-                        r.season_id === currentRanking.season_id ? "bg-primary/15 text-primary" : "hover:bg-accent/50 text-foreground"
-                      }`}
-                    >
-                      <span className="truncate">{r.season_name}</span>
-                      <span className="shrink-0 font-semibold">{ordinalSuffix(r.position)}</span>
-                    </button>
-                  ))}
-                </div>
-              )}
 
               <Link
                 to="/ranking"
