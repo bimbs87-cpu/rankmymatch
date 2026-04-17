@@ -29,7 +29,7 @@ import {
   Users,
   Globe,
   Lock,
-  Crown,
+  KeyRound,
   Shield,
   Copy,
   UserPlus,
