@@ -43,8 +43,8 @@ export function TrophyLoadingBar({
     return () => cancelAnimationFrame(id);
   }, [displayProgress, isIndeterminate]);
 
-  const iconSize = compact ? "h-12 w-12" : "h-16 w-16";
-  const glowSize = compact ? "h-24 w-24" : "h-32 w-32";
+  const iconSize = compact ? "h-20 w-20" : "h-28 w-28";
+  const glowSize = compact ? "h-32 w-32" : "h-44 w-44";
   const barHeight = compact ? "h-1.5" : "h-2";
   const trackWidth = compact ? "w-48" : "w-64";
 
