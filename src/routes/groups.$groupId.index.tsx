@@ -701,6 +701,18 @@ function GroupDetailPage() {
               </div>
             )}
 
+            {/* Botão para ranking completo */}
+            <Link
+              to="/ranking"
+              className="flex items-center justify-between rounded-2xl border border-primary/30 bg-gradient-to-r from-primary/15 to-primary/5 px-4 py-3 transition-colors active:bg-primary/20"
+            >
+              <div className="flex items-center gap-2.5">
+                <Trophy className="h-4 w-4 text-primary" />
+                <span className="text-sm font-bold text-foreground">Ver ranking completo</span>
+              </div>
+              <ChevronRight className="h-4 w-4 text-primary" />
+            </Link>
+
             {/* Admin: Claims pendentes */}
             {isAdmin && (
               <PlayerClaimsManager groupId={groupId} onResolved={refresh} />
