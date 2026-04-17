@@ -1049,9 +1049,9 @@ function DashboardPage() {
                         </div>
                       </div>
 
-                      {/* Score + meta */}
-                      <div className="min-w-0 flex-1 flex flex-col justify-center">
-                        <div className="flex items-center gap-2">
+                      {/* Score + match number */}
+                      <div className="shrink-0 flex flex-col justify-center min-w-[60px]">
+                        <div className="flex items-center gap-1.5">
                           <p className="font-display text-base font-bold text-foreground tabular-nums">
                             {m.score_display}
                           </p>
@@ -1061,12 +1061,24 @@ function DashboardPage() {
                             </span>
                           )}
                         </div>
-                        <div className="mt-0.5 flex items-center gap-x-2 text-[11px] text-muted-foreground truncate">
-                          {m.partner_name && <span className="truncate">c/ <span className="text-foreground/80 font-medium">{m.partner_name}</span></span>}
-                          {m.opponent_names.length > 0 && (
-                            <span className="truncate">vs <span className="text-foreground/80 font-medium">{m.opponent_names.join(" & ")}</span></span>
+                      </div>
+
+                      {/* Confronto destacado no centro */}
+                      <div className="min-w-0 flex-1 flex items-center justify-center px-2">
+                        <p className="text-sm text-foreground/90 truncate text-center">
+                          {m.partner_name && (
+                            <>
+                              <span className="text-muted-foreground">c/ </span>
+                              <span className="font-semibold text-foreground">{m.partner_name}</span>
+                            </>
                           )}
-                        </div>
+                          {m.opponent_names.length > 0 && (
+                            <>
+                              <span className="text-muted-foreground mx-1.5">vs</span>
+                              <span className="font-semibold text-foreground">{m.opponent_names.join(" & ")}</span>
+                            </>
+                          )}
+                        </p>
                       </div>
 
                       {/* Group */}
