@@ -624,12 +624,19 @@ function DashboardPage() {
                 to="/ranking"
                 className="flex flex-1 flex-col"
               >
-                {/* Position + sparkline */}
+                {/* Position + games bar chart */}
                 <div className="mt-1 flex items-end justify-between gap-2">
                   <span className="font-display text-3xl font-bold leading-none text-primary">
                     {ordinalSuffix(currentRanking.position)}
                   </span>
-                  <div className="opacity-90">{renderSparkline(currentRanking.last_events)}</div>
+                  {currentRanking.last_set_games.length > 0 && (
+                    <div className="flex flex-col items-end">
+                      <span className="text-[8px] uppercase tracking-wider text-muted-foreground/70 leading-none">
+                        Games (últ. {currentRanking.last_set_games.length} set{currentRanking.last_set_games.length > 1 ? "s" : ""})
+                      </span>
+                      <div className="mt-0.5">{renderGamesBars(currentRanking.last_set_games)}</div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Elo */}
