@@ -1,5 +1,6 @@
 import { useRef, useEffect, useState } from "react";
-import { Trophy } from "lucide-react";
+import racketNeon from "@/assets/logo-symbol-neon.png";
+import racketBlack from "@/assets/logo-symbol-black.png";
 
 interface TrophyLoadingBarProps {
   /** 0–100. If omitted, an indeterminate animation plays. */
@@ -80,7 +81,7 @@ export function TrophyLoadingBar({
           </span>
         ))}
 
-        {/* Trophy icon with 3D rotation */}
+        {/* Racket icon with 3D rotation — neon on dark, black on light */}
         <div
           className="transition-transform duration-500 ease-out"
           style={{
@@ -88,7 +89,18 @@ export function TrophyLoadingBar({
             transformStyle: "preserve-3d",
           }}
         >
-          <Trophy className="h-10 w-10 text-primary drop-shadow-[0_0_12px_var(--primary)]" />
+          <img
+            src={racketNeon}
+            alt=""
+            aria-hidden="true"
+            className="hidden h-10 w-10 object-contain drop-shadow-[0_0_12px_var(--primary)] dark:block"
+          />
+          <img
+            src={racketBlack}
+            alt=""
+            aria-hidden="true"
+            className="block h-10 w-10 object-contain dark:hidden"
+          />
         </div>
       </div>
 
