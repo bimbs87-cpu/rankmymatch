@@ -257,6 +257,7 @@ function GroupsIndexPage() {
         onClose={() => {
           setShowCreate(false);
           refresh();
+          refreshPending();
         }}
       />
     </div>
