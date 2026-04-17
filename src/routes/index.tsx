@@ -435,12 +435,8 @@ function DashboardPage() {
         {/* Ranking card + Quick action */}
         <section className="grid grid-cols-2 gap-3 animate-fade-in">
           {dataLoading ? (
-            <div className="flex flex-col rounded-3xl border border-border bg-card p-4 animate-pulse">
-              <div className="h-2.5 w-16 rounded bg-muted" />
-              <div className="mt-3 h-8 w-12 rounded bg-muted" />
-              <div className="mt-2 h-3 w-20 rounded bg-muted" />
-              <div className="mt-2 h-2 w-24 rounded bg-muted" />
-              <div className="mt-auto pt-3 h-2 w-16 rounded bg-muted" />
+            <div className="flex flex-col items-center justify-center rounded-3xl border border-border bg-card p-5 min-h-[140px]">
+              <CardSpinner label="Carregando ranking" />
             </div>
           ) : myRanking ? (
             <Link to="/ranking" className="flex flex-col rounded-3xl border border-primary/20 bg-primary/5 p-4">
