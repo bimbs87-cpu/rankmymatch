@@ -791,7 +791,7 @@ function DashboardPage() {
             </div>
           ) : (
             <div className="space-y-1.5">
-              {upcomingRounds.slice(0, 3).map((r) => (
+              {upcomingRounds.slice(0, 6).map((r, idx) => (
                 <Link
                   key={r.id}
                   to="/groups/$groupId/seasons/$seasonId/rounds/$roundId"
