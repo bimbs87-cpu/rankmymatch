@@ -854,15 +854,15 @@ function RoundDetailPage() {
                         )}
                         <PlayerAvatar avatarUrl={stats.avatarUrl} name={stats.name} size="xs" />
                         <div className="flex-1 min-w-0">
-                          <span className={`text-sm truncate ${isWinner ? "text-primary font-bold" : "text-foreground font-medium"}`}>
+                          <span className={`block text-sm truncate ${isWinner ? "text-primary font-bold" : "text-foreground font-medium"}`}>
                             {stats.name}
                           </span>
+                          {stats.eloChange !== 0 && (
+                            <span className={`mt-0.5 inline-flex items-center gap-0.5 text-[10px] font-bold ${stats.eloChange > 0 ? "text-success" : "text-destructive"}`}>
+                              {stats.eloChange > 0 ? "▲" : "▼"} {stats.eloChange > 0 ? "+" : ""}{stats.eloChange} pts
+                            </span>
+                          )}
                         </div>
-                        {stats.eloChange !== 0 && (
-                          <span className={`text-[10px] font-bold ${stats.eloChange > 0 ? "text-success" : "text-destructive"}`}>
-                            {stats.eloChange > 0 ? "+" : ""}{stats.eloChange}
-                          </span>
-                        )}
                         <span className="text-xs font-bold text-success">{stats.wins}V</span>
                         <span className="text-[11px] text-muted-foreground whitespace-nowrap">{stats.gamesWon}–{stats.gamesLost}</span>
                       </div>
