@@ -223,14 +223,28 @@ function HistoryPage() {
     new Map(matches.filter((m) => m.groupId).map((m) => [m.groupId!, m.groupName])).entries()
   ).map(([id, name]) => ({ id, name }));
 
+  // Helper: derive winner from set scores when winner_team is missing.
+  // Mirrors the same logic used per-card so summary numbers stay in sync.
+  const resolveWinner = (m: MatchHistory): string | null => {
+    if (m.winnerTeam) return m.winnerTeam;
+    if (m.sets.length === 0) return null;
+    const a = m.sets.reduce((s, x) => s + x.scoreA, 0);
+    const b = m.sets.reduce((s, x) => s + x.scoreB, 0);
+    if (a === b) return null;
+    return a > b ? "A" : "B";
+  };
+
   const filteredMatches =
     groupFilter === "all" ? matches : matches.filter((m) => m.groupId === groupFilter);
 
-  const wins = filteredMatches.filter((m) => m.winnerTeam === m.myTeam).length;
-  const losses = filteredMatches.filter((m) => m.winnerTeam && m.winnerTeam !== m.myTeam).length;
-
-  // Group matches by month for visual chunking (Hick's law: easier to scan)
-  const winRate = filteredMatches.length > 0 ? Math.round((wins / filteredMatches.length) * 100) : 0;
+  const wins = filteredMatches.filter((m) => resolveWinner(m) === m.myTeam).length;
+  const losses = filteredMatches.filter((m) => {
+    const w = resolveWinner(m);
+    return w != null && w !== m.myTeam;
+  }).length;
+  const pending = filteredMatches.length - wins - losses;
+  const decided = wins + losses;
+  const winRate = decided > 0 ? Math.round((wins / decided) * 100) : 0;
   const totalElo = filteredMatches.reduce((sum, m) => sum + m.ratingChange, 0);
 
   const groupedByMonth = (() => {
@@ -314,39 +328,65 @@ function HistoryPage() {
         </div>
       )}
 
-      {/* Summary — segmented progress bar (more emotionally rich than 3 cards) */}
+      {/* Summary — professional split bar with precise W/L/pending breakdown */}
       {filteredMatches.length > 0 && (
-        <div className="mx-5 mb-4 rounded-2xl border border-border bg-card p-3.5">
-          <div className="mb-2.5 flex items-baseline justify-between">
-            <div className="flex items-baseline gap-1.5">
-              <span className="font-display text-2xl font-bold leading-none text-foreground tabular-nums">{winRate}%</span>
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Win Rate</span>
+        <div className="mx-5 mb-4 rounded-2xl border border-border bg-card p-4">
+          <div className="mb-3 flex items-end justify-between gap-3">
+            <div className="flex items-baseline gap-2">
+              <span className="font-display text-3xl font-bold leading-none text-foreground tabular-nums">
+                {winRate}
+                <span className="text-lg text-muted-foreground">%</span>
+              </span>
+              <div className="flex flex-col leading-tight">
+                <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
+                  Win Rate
+                </span>
+                <span className="text-[10px] tabular-nums text-muted-foreground/70">
+                  {decided} {decided === 1 ? "decidida" : "decididas"}
+                  {pending > 0 ? ` · ${pending} pend.` : ""}
+                </span>
+              </div>
             </div>
-            <div className="flex items-center gap-3 text-[11px] tabular-nums">
-              <span className="flex items-center gap-1 font-semibold text-success">
+            <div className="flex items-center gap-2 text-[11px] tabular-nums">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-success/30 bg-success/10 px-2 py-0.5 font-bold text-success">
                 <span className="h-1.5 w-1.5 rounded-full bg-success" />
                 {wins}V
               </span>
-              <span className="flex items-center gap-1 font-semibold text-destructive">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-destructive/30 bg-destructive/10 px-2 py-0.5 font-bold text-destructive">
                 <span className="h-1.5 w-1.5 rounded-full bg-destructive" />
                 {losses}D
               </span>
             </div>
           </div>
-          {/* Visual stacked bar — instant comprehension */}
-          <div className="flex h-1.5 overflow-hidden rounded-full bg-muted">
-            {wins > 0 && (
-              <div
-                className="bg-success transition-all"
-                style={{ width: `${(wins / Math.max(1, wins + losses)) * 100}%` }}
-              />
-            )}
-            {losses > 0 && (
-              <div
-                className="bg-destructive transition-all"
-                style={{ width: `${(losses / Math.max(1, wins + losses)) * 100}%` }}
-              />
-            )}
+          {/* Track with segments proportional to total matches.
+              Pending matches reserve space in muted gray for honesty. */}
+          <div className="relative">
+            <div className="flex h-2 w-full overflow-hidden rounded-full bg-muted">
+              {wins > 0 && (
+                <div
+                  className="bg-gradient-to-r from-success/80 to-success transition-[width] duration-500 ease-out"
+                  style={{ width: `${(wins / filteredMatches.length) * 100}%` }}
+                />
+              )}
+              {losses > 0 && (
+                <div
+                  className="bg-gradient-to-r from-destructive to-destructive/80 transition-[width] duration-500 ease-out"
+                  style={{ width: `${(losses / filteredMatches.length) * 100}%` }}
+                />
+              )}
+              {pending > 0 && (
+                <div
+                  className="bg-muted-foreground/30 transition-[width] duration-500 ease-out"
+                  style={{ width: `${(pending / filteredMatches.length) * 100}%` }}
+                  title="Sem resultado registrado"
+                />
+              )}
+            </div>
+            {/* 50% midpoint marker — quick visual reference */}
+            <div
+              className="pointer-events-none absolute inset-y-0 left-1/2 w-px bg-background/60"
+              aria-hidden="true"
+            />
           </div>
         </div>
       )}
