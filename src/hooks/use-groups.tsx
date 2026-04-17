@@ -73,7 +73,7 @@ async function attachGroupStats<T extends { id: string }>(
 
 export function useMyGroups() {
   const { user } = useAuth();
-  const [groups, setGroups] = useState<(Group & { member_count: number } & GroupStats)[]>([]);
+  const [groups, setGroups] = useState<(Group & { member_count: number; my_role: string | null } & GroupStats)[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const refresh = useCallback(async () => {
@@ -88,7 +88,7 @@ export function useMyGroups() {
     try {
       const { data: memberships, error: membershipsError } = await supabase
         .from("group_members")
-        .select("group_id")
+        .select("group_id, role")
         .eq("user_id", user.id)
         .eq("status", "active");
 
@@ -99,6 +99,7 @@ export function useMyGroups() {
         return;
       }
 
+      const roleByGroup = new Map(memberships.map((m) => [m.group_id, m.role]));
       const ids = memberships.map((membership) => membership.group_id);
       const { data: groupsData, error: groupsError } = await supabase
         .from("groups")
@@ -109,7 +110,7 @@ export function useMyGroups() {
 
       const withCounts = await attachMemberCounts(groupsData || []);
       const withStats = await attachGroupStats(withCounts);
-      setGroups(withStats);
+      setGroups(withStats.map((g) => ({ ...g, my_role: roleByGroup.get(g.id) || null })));
     } catch (error) {
       console.error("Erro ao carregar meus grupos:", error);
       setGroups([]);
