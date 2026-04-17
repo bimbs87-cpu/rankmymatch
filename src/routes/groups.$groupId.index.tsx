@@ -280,7 +280,7 @@ function GroupDetailPage() {
     <div className="min-h-screen bg-background pb-28">
       {group.image_url && (
         <div className="relative h-36 w-full">
-          <img src={group.image_url} alt={group.name} className="h-full w-full object-cover" />
+          <img src={group.image_url} alt={group.name} className="h-full w-full object-cover object-top" />
           <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent" />
         </div>
       )}
