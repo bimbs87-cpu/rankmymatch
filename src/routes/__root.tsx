@@ -2,6 +2,7 @@ import { Outlet, Link, createRootRoute, HeadContent, Scripts } from "@tanstack/r
 import { AuthProvider, useAuth } from "@/hooks/use-auth";
 import { UserProfileProvider } from "@/hooks/use-user-profile";
 import { BottomNav } from "@/components/BottomNav";
+import { DesktopNav } from "@/components/DesktopNav";
 import { InstallFlowProvider } from "@/components/InstallFlowProvider";
 import { Toaster } from "@/components/ui/sonner";
 import "../styles.css";
@@ -116,6 +117,7 @@ function RootComponent() {
       <UserProfileProvider>
         <InstallFlowProvider>
           <div className="mx-auto max-w-lg lg:max-w-7xl lg:px-8 min-h-screen">
+            <AuthDesktopNav />
             <Outlet />
           </div>
           <AuthNav />
@@ -126,8 +128,18 @@ function RootComponent() {
   );
 }
 
+function AuthDesktopNav() {
+  const { isAuthenticated, isLoading } = useAuth();
+  if (isLoading || !isAuthenticated) return null;
+  return <DesktopNav />;
+}
+
 function AuthNav() {
   const { isAuthenticated, isLoading } = useAuth();
   if (isLoading || !isAuthenticated) return null;
-  return <BottomNav />;
+  return (
+    <>
+      <BottomNav />
+    </>
+  );
 }

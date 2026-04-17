@@ -794,8 +794,8 @@ function DashboardPage() {
           }}
         />
       </div>
-      {/* Header */}
-      <header className="px-5 pb-2 pt-6">
+      {/* Header (mobile/tablet only — desktop uses global DesktopNav) */}
+      <header className="lg:hidden px-5 pb-2 pt-6">
         <div className="flex items-center justify-between gap-6">
           <div className="flex items-center gap-3">
             <PlayerAvatar avatarUrl={headerAvatarUrl} name={headerDisplayName} size="lg" className="border border-border !h-11 !w-11" />
