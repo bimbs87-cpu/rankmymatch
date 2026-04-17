@@ -123,6 +123,75 @@ export function useMyGroups() {
   return { groups, isLoading, refresh };
 }
 
+/**
+ * Pending join requests by the current user.
+ * Used to show "awaiting approval" cards on My Groups list.
+ */
+export function useMyPendingJoinRequests() {
+  const { user } = useAuth();
+  const [groups, setGroups] = useState<
+    (Group & { member_count: number; claimed_player_name?: string | null })[]
+  >([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const refresh = useCallback(async () => {
+    if (!user) {
+      setGroups([]);
+      setIsLoading(false);
+      return;
+    }
+    setIsLoading(true);
+    try {
+      const { data: reqs, error } = await supabase
+        .from("group_join_requests")
+        .select("group_id, claimed_player_id")
+        .eq("user_id", user.id)
+        .eq("status", "pending");
+      if (error) throw error;
+      if (!reqs?.length) {
+        setGroups([]);
+        return;
+      }
+      const ids = reqs.map((r) => r.group_id);
+      const { data: groupsData } = await supabase.from("groups").select("*").in("id", ids);
+      const withCounts = await attachMemberCounts(groupsData || []);
+
+      const claimedIds = reqs.map((r) => r.claimed_player_id).filter(Boolean) as string[];
+      const claimNames: Record<string, string> = {};
+      if (claimedIds.length) {
+        const { data: profs } = await supabase
+          .from("user_profiles")
+          .select("user_id, name")
+          .in("user_id", claimedIds);
+        for (const p of profs || []) claimNames[p.user_id] = p.name;
+      }
+
+      const byId: Record<string, (typeof reqs)[number]> = {};
+      for (const r of reqs) byId[r.group_id] = r;
+
+      setGroups(
+        withCounts.map((g) => ({
+          ...g,
+          claimed_player_name: byId[g.id]?.claimed_player_id
+            ? claimNames[byId[g.id].claimed_player_id as string] || null
+            : null,
+        })),
+      );
+    } catch (e) {
+      console.error("Erro ao carregar solicitações pendentes:", e);
+      setGroups([]);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
+
+  return { groups, isLoading, refresh };
+}
+
 export function usePublicGroups(search: string) {
   const [groups, setGroups] = useState<(Group & { member_count: number })[]>([]);
   const [isLoading, setIsLoading] = useState(true);

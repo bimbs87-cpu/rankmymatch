@@ -1,9 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useAuth } from "@/hooks/use-auth";
-import { useMyGroups, usePublicGroups } from "@/hooks/use-groups";
+import { useMyGroups, useMyPendingJoinRequests, usePublicGroups } from "@/hooks/use-groups";
 import { CreateGroupDialog } from "@/components/CreateGroupDialog";
 import { TrophyLoadingBar } from "@/components/TrophyLoadingBar";
-import { Plus, Search, Users, Lock, Globe, Trophy, CalendarDays, Sparkles } from "lucide-react";
+import { Plus, Search, Users, Lock, Globe, Trophy, CalendarDays, Sparkles, Clock, Link2 } from "lucide-react";
 import { useState } from "react";
 
 export const Route = createFileRoute("/groups/")({
@@ -17,6 +17,7 @@ function GroupsIndexPage() {
   const [showCreate, setShowCreate] = useState(false);
 
   const { groups: myGroups, isLoading: myLoading, refresh } = useMyGroups();
+  const { groups: pendingGroups, isLoading: pendingLoading, refresh: refreshPending } = useMyPendingJoinRequests();
   const { groups: publicGroups, isLoading: pubLoading } = usePublicGroups(tab === "explore" ? search : "");
 
   if (authLoading) {
@@ -83,6 +84,63 @@ function GroupsIndexPage() {
               onChange={(e) => setSearch(e.target.value)}
               className="w-full bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
             />
+          </div>
+        )}
+
+        {tab === "my" && !myLoading && pendingGroups.length > 0 && (
+          <div className="space-y-2">
+            <div className="flex items-center gap-1.5 px-1">
+              <Clock className="h-3 w-3 text-warning" />
+              <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                Aguardando aprovação
+              </span>
+            </div>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              {pendingGroups.map((group) => (
+                <div
+                  key={group.id}
+                  className="relative flex flex-col overflow-hidden rounded-2xl border border-warning/30 bg-card opacity-90"
+                >
+                  <div className="absolute right-2 top-2 flex items-center gap-1 rounded-full bg-warning/15 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-warning">
+                    <Clock className="h-2.5 w-2.5" />
+                    Pendente
+                  </div>
+                  <div className="flex items-start gap-3 p-4">
+                    <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl bg-warning/10 ring-1 ring-warning/20">
+                      <Users className="h-5 w-5 text-warning" />
+                    </div>
+                    <div className="min-w-0 flex-1 pr-16">
+                      <div className="flex items-center gap-1.5">
+                        <span className="truncate text-sm font-bold text-foreground">{group.name}</span>
+                        {group.is_public ? (
+                          <Globe className="h-3 w-3 flex-shrink-0 text-muted-foreground" />
+                        ) : (
+                          <Lock className="h-3 w-3 flex-shrink-0 text-muted-foreground" />
+                        )}
+                      </div>
+                      <p className="mt-0.5 text-[11px] text-muted-foreground">
+                        {group.member_count} membro{group.member_count !== 1 ? "s" : ""}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="px-4 pb-3">
+                    {group.claimed_player_name ? (
+                      <p className="flex items-start gap-1.5 text-[11px] text-muted-foreground">
+                        <Link2 className="mt-0.5 h-3 w-3 flex-shrink-0 text-primary" />
+                        <span>
+                          Vinculação solicitada como{" "}
+                          <span className="font-semibold text-foreground">{group.claimed_player_name}</span>
+                        </span>
+                      </p>
+                    ) : (
+                      <p className="text-[11px] text-muted-foreground">
+                        Aguarde o admin aprovar sua entrada.
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
@@ -199,6 +257,7 @@ function GroupsIndexPage() {
         onClose={() => {
           setShowCreate(false);
           refresh();
+          refreshPending();
         }}
       />
     </div>
