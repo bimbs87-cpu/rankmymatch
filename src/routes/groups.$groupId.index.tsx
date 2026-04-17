@@ -366,6 +366,15 @@ function GroupDetailPage() {
         isAdmin={isAdmin}
       />
 
+      <MergeMembersDialog
+        open={!!mergeFormerMember}
+        onOpenChange={(o) => { if (!o) setMergeFormerMember(null); }}
+        groupId={groupId}
+        formerMember={mergeFormerMember as any}
+        activeMembers={activeMembers as any}
+        onMerged={() => { setMergeFormerMember(null); refresh(); }}
+      />
+
       {/* Leave Group Dialog */}
       {leaveDialogOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
