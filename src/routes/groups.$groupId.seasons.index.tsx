@@ -7,6 +7,9 @@ import { isRivalryGroup } from "@/lib/rivalry";
 import { ArrowLeft, Plus, Trophy, X, Calendar, Pencil, MoreVertical, EyeOff, CheckCircle2, Trash2 } from "lucide-react";
 import { TrophyLoadingBar } from "@/components/TrophyLoadingBar";
 import { WizardStepper } from "@/components/ui/wizard-stepper";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar as CalendarPicker } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
 import { useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -694,30 +697,40 @@ function GroupSeasonsPage() {
                         <span className={`flex h-7 w-7 items-center justify-center rounded-lg text-xs font-bold ${isPast ? "bg-warning/10 text-warning" : "bg-primary/10 text-primary"}`}>
                           {idx + 1}
                         </span>
-                        {editingIdx === idx ? (
-                          <input
-                            type="date"
-                            value={d}
-                            onChange={(e) => handleDateChange(idx, e.target.value)}
-                            onBlur={() => setEditingIdx(null)}
-                            autoFocus
-                            className="rounded-lg border border-primary bg-background px-2 py-1 text-sm text-foreground focus:outline-none"
-                          />
-                        ) : (
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-sm text-foreground">{formatDateBR(d)}</span>
-                            {isPast && <span className="rounded bg-warning/10 px-1.5 py-0.5 text-[9px] font-medium text-warning">passada</span>}
-                          </div>
-                        )}
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-sm text-foreground">{formatDateBR(d)}</span>
+                          {isPast && <span className="rounded bg-warning/10 px-1.5 py-0.5 text-[9px] font-medium text-warning">passada</span>}
+                        </div>
                       </div>
-                      {editingIdx !== idx && (
-                        <button
-                          onClick={() => setEditingIdx(idx)}
-                          className="rounded-lg p-1.5 text-muted-foreground hover:bg-accent/30"
-                        >
-                          <Pencil className="h-3.5 w-3.5" />
-                        </button>
-                      )}
+                      <Popover
+                        open={editingIdx === idx}
+                        onOpenChange={(open) => setEditingIdx(open ? idx : null)}
+                      >
+                        <PopoverTrigger asChild>
+                          <button
+                            className="rounded-lg p-1.5 text-muted-foreground hover:bg-accent/30"
+                            aria-label="Alterar data"
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="end">
+                          <CalendarPicker
+                            mode="single"
+                            selected={d ? new Date(`${d}T12:00:00`) : undefined}
+                            onSelect={(date) => {
+                              if (date) {
+                                const yyyy = date.getFullYear();
+                                const mm = String(date.getMonth() + 1).padStart(2, "0");
+                                const dd = String(date.getDate()).padStart(2, "0");
+                                handleDateChange(idx, `${yyyy}-${mm}-${dd}`);
+                              }
+                            }}
+                            initialFocus
+                            className={cn("p-3 pointer-events-auto")}
+                          />
+                        </PopoverContent>
+                      </Popover>
                     </div>
                     );
                   })}
