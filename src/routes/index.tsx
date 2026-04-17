@@ -146,6 +146,8 @@ function DashboardPage() {
   const [recentMatches, setRecentMatches] = useState<RecentMatch[]>([]);
   const [rankings, setRankings] = useState<RankingOption[]>([]);
   const [selectedSeasonId, setSelectedSeasonId] = useState<string | null>(null);
+  // History per season for the desktop charts
+  const [historyBySeason, setHistoryBySeason] = useState<Map<string, { date: string; rating: number; position: number | null }[]>>(new Map());
   const [showRankingPicker, setShowRankingPicker] = useState(false);
   const [dashLoading, setDashLoading] = useState(true);
   const dataLoading = dashLoading || groupsLoading;
