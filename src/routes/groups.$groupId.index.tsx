@@ -50,6 +50,8 @@ import {
   Calendar,
   Clock,
   MapPin,
+  UserCheck,
+  Settings2,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
