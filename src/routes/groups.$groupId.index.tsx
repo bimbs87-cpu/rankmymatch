@@ -583,8 +583,8 @@ function GroupDetailPage() {
                           <span className="w-5 text-center text-[10px] text-muted-foreground/40">—</span>
                         )}
                         <PlayerAvatar
-                          avatarUrl={m.profile?.avatar_url}
-                          name={m.profile?.name || "?"}
+                          avatarUrl={isFormer ? null : m.profile?.avatar_url}
+                          name={isFormer ? "?" : (m.profile?.name || "?")}
                           size="lg"
                           className="border border-border"
                           dimmed={isFormer}
