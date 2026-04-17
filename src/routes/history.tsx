@@ -305,7 +305,7 @@ function HistoryPage() {
                     {won ? "V" : lost ? "D" : "—"}
                   </span>
                   <span className="w-9 flex-shrink-0 text-[10px] text-muted-foreground">{dateStr}</span>
-                  <div className="min-w-0 flex-1 text-[11px] leading-tight text-foreground">
+                  <div className="min-w-0 flex-1 text-center text-[11px] leading-tight text-foreground">
                     <span className="truncate">
                       {partnerStr} <span className="text-muted-foreground">vs</span> {oppStr}
                     </span>
