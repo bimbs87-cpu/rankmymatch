@@ -135,8 +135,8 @@ export function usePublicGroups(search: string) {
         let query = supabase
           .from("groups")
           .select("*")
-          .eq("is_public", true)
           .eq("status", "active")
+          .neq("visibility", "hidden")
           .order("created_at", { ascending: false })
           .limit(20);
 
@@ -201,11 +201,12 @@ export function useGroupDetail(groupId: string) {
 
       setMemberCount(count || 0);
 
+      // Load ALL members (active + removed/left) so ex-members can be shown dimmed.
+      // memberCount above already counts only actives via RPC.
       const { data: mems, error: membersError } = await supabase
         .from("group_members")
         .select("*")
-        .eq("group_id", groupId)
-        .eq("status", "active");
+        .eq("group_id", groupId);
 
       if (membersError) throw membersError;
 
@@ -225,7 +226,7 @@ export function useGroupDetail(groupId: string) {
       }
 
       if (user) {
-        const me = mems?.find((member) => member.user_id === user.id);
+        const me = mems?.find((member) => member.user_id === user.id && member.status === "active");
         setMyRole(me?.role || null);
 
         const { data: reqs, error: requestsError } = await supabase
@@ -330,10 +331,30 @@ export async function joinGroup(groupId: string, userId: string, isPublic: boole
 }
 
 export async function approveJoinRequest(requestId: string, groupId: string, userId: string, adminId: string) {
+  // Load the request to check if it claims an existing player
+  const { data: req } = await supabase
+    .from("group_join_requests")
+    .select("claimed_player_id, claimed_player_kind")
+    .eq("id", requestId)
+    .maybeSingle();
+
   await supabase
     .from("group_join_requests")
     .update({ status: "approved", resolved_by: adminId, resolved_at: new Date().toISOString() })
     .eq("id", requestId);
+
+  const claimedId = (req as any)?.claimed_player_id as string | null;
+  if (claimedId) {
+    // Merge placeholder/former player history into the new user
+    const { error: mergeErr } = await supabase.rpc("merge_placeholder_player", {
+      _placeholder_user_id: claimedId,
+      _real_user_id: userId,
+      _group_id: groupId,
+    });
+    if (mergeErr) throw mergeErr;
+    // merge_placeholder_player already creates/activates the group_members row
+    return;
+  }
 
   await supabase.from("group_members").insert({
     group_id: groupId,

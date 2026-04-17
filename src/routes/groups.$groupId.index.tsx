@@ -7,6 +7,7 @@ import { AddPlaceholderPlayerDialog } from "@/components/AddPlaceholderPlayerDia
 import { ClaimPlayerDialog } from "@/components/ClaimPlayerDialog";
 import { PlayerClaimsManager } from "@/components/PlayerClaimsManager";
 import { SearchUserDialog } from "@/components/SearchUserDialog";
+import { JoinGroupDialog } from "@/components/JoinGroupDialog";
 import { useAuth } from "@/hooks/use-auth";
 import { TrophyLoadingBar } from "@/components/TrophyLoadingBar";
 import { usePendingMatch } from "@/hooks/use-pending-matches";
@@ -72,6 +73,7 @@ function GroupDetailPage() {
   const [addPlaceholderOpen, setAddPlaceholderOpen] = useState(false);
   const [claimOpen, setClaimOpen] = useState(false);
   const [searchUserOpen, setSearchUserOpen] = useState(false);
+  const [joinDialogOpen, setJoinDialogOpen] = useState(false);
   const [leaveDialogOpen, setLeaveDialogOpen] = useState(false);
   const [hasResults, setHasResults] = useState(false);
   const [leavingLoading, setLeavingLoading] = useState(false);
@@ -131,9 +133,11 @@ function GroupDetailPage() {
       });
   }, [groupId]);
 
-  // Check if current user is already a member (to hide claim button)
-  const isMemberAlready = members.some((m) => m.user_id === user?.id);
+  // Check if current user is already an ACTIVE member (to hide claim button)
+  const isMemberAlready = members.some((m) => m.user_id === user?.id && (m as any).status === "active");
   const hasPlaceholders = placeholderUserIds.size > 0;
+  const activeMembers = members.filter((m) => (m as any).status === "active");
+  const formerMembers = members.filter((m) => (m as any).status !== "active");
 
   if (isLoading) {
     return <TrophyLoadingBar />;
@@ -152,15 +156,9 @@ function GroupDetailPage() {
 
   const isMember = !!myRole;
 
-  const handleJoin = async () => {
+  const handleJoin = () => {
     if (!user) return;
-    try {
-      await joinGroup(groupId, user.id, group.is_public);
-      toast.success(group.is_public ? "Você entrou no grupo!" : "Solicitação enviada!");
-      refresh();
-    } catch (e: any) {
-      toast.error(e.message?.includes("duplicate") ? "Você já é membro ou já solicitou." : "Erro ao entrar");
-    }
+    setJoinDialogOpen(true);
   };
 
   const handleShareInvite = () => {
@@ -232,7 +230,7 @@ function GroupDetailPage() {
   };
 
   // Rivalry duel data
-  const rivalryPlayers = rivalry ? members.slice(0, 2) : [];
+  const rivalryPlayers = rivalry ? activeMembers.slice(0, 2) : [];
   const playerA = rivalryPlayers[0];
   const playerB = rivalryPlayers[1];
   const rankA = playerA ? rankingData[playerA.user_id] : null;
@@ -502,19 +500,23 @@ function GroupDetailPage() {
             ) : (
               /* Standard ranking list */
               <div className="rounded-2xl border border-border bg-card/50 divide-y divide-border overflow-hidden">
-                {[...members].sort((a, b) => {
-                  const ra = rankingData[a.user_id]?.rating || 0;
-                  const rb = rankingData[b.user_id]?.rating || 0;
-                  return rb - ra;
-                }).map((m) => {
+                {[
+                  ...[...activeMembers].sort((a, b) => {
+                    const ra = rankingData[a.user_id]?.rating || 0;
+                    const rb = rankingData[b.user_id]?.rating || 0;
+                    return rb - ra;
+                  }),
+                  ...formerMembers,
+                ].map((m) => {
                   const rank = rankingData[m.user_id];
+                  const isFormer = (m as any).status !== "active";
                   return (
                     <div
                       key={m.id}
-                      className="flex items-center justify-between px-3 py-2.5"
+                      className={`flex items-center justify-between px-3 py-2.5 ${isFormer ? "bg-muted/10" : ""}`}
                     >
                       <div className="flex items-center gap-2 min-w-0">
-                        {rank?.position ? (
+                        {!isFormer && rank?.position ? (
                           <span className="w-5 text-center text-xs font-bold text-muted-foreground">
                             {rank.position}
                           </span>
@@ -526,23 +528,30 @@ function GroupDetailPage() {
                           name={m.profile?.name || "?"}
                           size="lg"
                           className="border border-border"
+                          dimmed={isFormer}
                         />
                         <div className="min-w-0">
                           <div className="flex items-center gap-1.5">
-                            <span className="text-sm font-medium text-foreground truncate">
+                            <span className={`text-sm font-medium truncate ${isFormer ? "text-muted-foreground line-through" : "text-foreground"}`}>
                               {m.profile?.nickname || m.profile?.name || "Jogador"}
                             </span>
-                            {m.role === "creator" && <Crown className="h-3 w-3 text-rank-gold flex-shrink-0" />}
-                            {m.role === "admin" && <Shield className="h-3 w-3 text-info flex-shrink-0" />}
-                            {placeholderUserIds.has(m.user_id) && (
+                            {!isFormer && m.role === "creator" && <Crown className="h-3 w-3 text-rank-gold flex-shrink-0" />}
+                            {!isFormer && m.role === "admin" && <Shield className="h-3 w-3 text-info flex-shrink-0" />}
+                            {!isFormer && placeholderUserIds.has(m.user_id) && (
                               <span className="flex items-center gap-0.5 rounded-full bg-muted px-1.5 py-0.5 text-[9px] font-medium text-muted-foreground flex-shrink-0">
                                 <Ghost className="h-2.5 w-2.5" />
                                 Sem conta
                               </span>
                             )}
+                            {isFormer && (
+                              <span className="flex items-center gap-0.5 rounded-full bg-muted px-1.5 py-0.5 text-[9px] font-medium text-muted-foreground flex-shrink-0">
+                                <UserMinus className="h-2.5 w-2.5" />
+                                Ex-membro
+                              </span>
+                            )}
                           </div>
                           {rank ? (
-                            <p className="text-[10px] text-muted-foreground">
+                            <p className={`text-[10px] ${isFormer ? "text-muted-foreground/60" : "text-muted-foreground"}`}>
                               {Math.round(rank.rating)} Elo · {rank.matches_won}V {rank.matches_played - rank.matches_won}D
                             </p>
                           ) : null}
@@ -550,10 +559,10 @@ function GroupDetailPage() {
                       </div>
 
                       <div className="flex items-center gap-2 flex-shrink-0">
-                        {rank && (
+                        {!isFormer && rank && (
                           <span className="text-xs font-bold text-primary">{Math.round(rank.rating)}</span>
                         )}
-                        {isAdmin && m.user_id !== user?.id && m.role !== "creator" && (
+                        {!isFormer && isAdmin && m.user_id !== user?.id && m.role !== "creator" && (
                           <div className="flex gap-1">
                             {m.role === "member" ? (
                               <button
@@ -810,6 +819,7 @@ function GroupDetailPage() {
             name={group.name}
             description={group.description}
             isPublic={group.is_public}
+            visibility={(group as any).visibility}
             maxPlayers={group.max_players}
             sport={group.sport}
             simultaneousCourts={group.simultaneous_courts}
@@ -851,6 +861,17 @@ function GroupDetailPage() {
           groupId={groupId}
           existingMemberIds={members.map((m) => m.user_id)}
           onAdded={refresh}
+        />
+      )}
+
+      {isAuthenticated && user && !isMember && (
+        <JoinGroupDialog
+          open={joinDialogOpen}
+          onOpenChange={setJoinDialogOpen}
+          groupId={groupId}
+          isPublicGroup={group.is_public}
+          userId={user.id}
+          onJoined={refresh}
         />
       )}
     </div>
