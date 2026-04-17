@@ -182,12 +182,15 @@ function GroupsIndexPage() {
                 rounds_total?: number;
                 seasons_done?: number;
                 current_season_name?: string | null;
+                my_role?: string | null;
               };
               const roundsDone = stats.rounds_done ?? 0;
               const roundsTotal = stats.rounds_total ?? 0;
               const roundsRemaining = Math.max(0, roundsTotal - roundsDone);
               const seasonsDone = stats.seasons_done ?? 0;
               const currentSeason = stats.current_season_name ?? null;
+              const isAdmin = stats.my_role === "admin" || stats.my_role === "creator";
+              const isCreator = stats.my_role === "creator";
 
               return (
                 <Link
@@ -196,12 +199,18 @@ function GroupsIndexPage() {
                   params={{ groupId: group.id }}
                   className="group relative flex flex-col overflow-hidden rounded-2xl border border-border bg-card transition-all hover:border-primary/40 hover:shadow-lg active:scale-[0.99]"
                 >
+                  {isMyTab && isAdmin && (
+                    <div className="absolute right-2 top-2 flex items-center gap-1 rounded-full bg-primary/15 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-primary ring-1 ring-primary/30">
+                      <Shield className="h-2.5 w-2.5" />
+                      {isCreator ? "Criador" : "Admin"}
+                    </div>
+                  )}
                   {/* Top — identity */}
                   <div className="flex items-start gap-3 p-4">
                     <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl bg-primary/10 ring-1 ring-primary/20">
                       <Users className="h-5 w-5 text-primary" />
                     </div>
-                    <div className="min-w-0 flex-1">
+                    <div className={`min-w-0 flex-1 ${isMyTab && isAdmin ? "pr-16" : ""}`}>
                       <div className="flex items-center gap-1.5">
                         <span className="truncate text-sm font-bold text-foreground">{group.name}</span>
                         {group.is_public ? (
