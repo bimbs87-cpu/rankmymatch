@@ -13,6 +13,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { TrophyLoadingBar } from "@/components/TrophyLoadingBar";
 import { usePendingMatch } from "@/hooks/use-pending-matches";
 import { useGroupSeasons, useSeasonRounds } from "@/hooks/use-seasons";
+import type { Tables } from "@/integrations/supabase/types";
 import { supabase } from "@/integrations/supabase/client";
 import { isRivalryGroup } from "@/lib/rivalry";
 import {
