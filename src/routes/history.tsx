@@ -126,18 +126,28 @@ function HistoryPage() {
         const myPlayer = players.find((p) => p.user_id === user!.id);
         const myTeam = myPlayer?.team || "A";
 
-        const teammates = players
+        const teammates: PlayerRef[] = players
           .filter((p) => p.team === myTeam && p.user_id !== user!.id)
           .map((p) => {
             const prof = profileMap.get(p.user_id);
-            return { name: prof?.nickname || prof?.name || "Jogador", avatar_url: prof?.avatar_url || null };
+            return {
+              user_id: p.user_id,
+              name: prof?.name || "Jogador",
+              nickname: prof?.nickname || null,
+              avatar_url: prof?.avatar_url || null,
+            };
           });
 
-        const opponents = players
+        const opponents: PlayerRef[] = players
           .filter((p) => p.team !== myTeam)
           .map((p) => {
             const prof = profileMap.get(p.user_id);
-            return { name: prof?.nickname || prof?.name || "Jogador", avatar_url: prof?.avatar_url || null };
+            return {
+              user_id: p.user_id,
+              name: prof?.name || "Jogador",
+              nickname: prof?.nickname || null,
+              avatar_url: prof?.avatar_url || null,
+            };
           });
 
         const groupId =
