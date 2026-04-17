@@ -586,7 +586,7 @@ function RankingPage() {
             </Link>
           </div>
         ) : isPageLoading ? (
-          <div className="rounded-3xl border border-border bg-card/60 p-8">
+          <div className="py-8">
             <LoadingBar progress={loadProgress} label={loadLabel} />
           </div>
         ) : rankings.length === 0 ? (
