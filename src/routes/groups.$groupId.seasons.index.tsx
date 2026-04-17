@@ -114,24 +114,54 @@ function GroupSeasonsPage() {
     setStep(next);
   };
 
-  const resetForm = () => {
+  const resetForm = async () => {
     setStep("type");
     setStepDir("forward");
     setName("");
-    setDurationType("");
-    setTotalRounds(10);
-    setSelectedDay(null);
     setRoundDates([]);
     setEditingIdx(null);
-    setTime("19:00");
-    setCourts(1);
     setIsRetroactive(false);
     setRoundsPlayed(0);
     setStartDate("");
     setSubmitError(null);
-    setSetsPerMatch(rivalry ? 1 : 3);
-    setSinglesPairingMode("manual");
-    setOddPlayerRule("admin_decides");
+
+    // Try to pre-fill from the most recent season of this group
+    const last = seasons[0]; // already ordered by created_at desc
+    if (last) {
+      setDurationType((last.duration_type as "weekly" | "monthly") || "weekly");
+      setTotalRounds(last.total_rounds ?? 10);
+      setSetsPerMatch(last.sets_per_match ?? (rivalry ? 1 : 3));
+      setSinglesPairingMode(last.singles_pairing_mode || "manual");
+      setOddPlayerRule(last.odd_player_rule || "admin_decides");
+
+      // Fetch first round to derive day-of-week and time
+      const { data: firstRound } = await supabase
+        .from("rounds")
+        .select("scheduled_date, scheduled_time")
+        .eq("season_id", last.id)
+        .order("round_number", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      if (firstRound?.scheduled_time) {
+        setTime(firstRound.scheduled_time.slice(0, 5));
+      } else {
+        setTime("19:00");
+      }
+      if (firstRound?.scheduled_date) {
+        setSelectedDay(parseISODateLocal(firstRound.scheduled_date).getDay());
+      } else {
+        setSelectedDay(null);
+      }
+    } else {
+      setDurationType("");
+      setTotalRounds(10);
+      setSelectedDay(null);
+      setTime("19:00");
+      setSetsPerMatch(rivalry ? 1 : 3);
+      setSinglesPairingMode("manual");
+      setOddPlayerRule("admin_decides");
+    }
+    setCourts(group?.simultaneous_courts ?? 1);
   };
 
   const handleSelectType = (type: "weekly" | "monthly") => {
