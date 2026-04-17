@@ -323,10 +323,10 @@ function HistoryPage() {
                 month: "2-digit",
               });
               const partnerStr = match.teammates.length
-                ? match.teammates.map((t) => shortName(t.name)).join(" & ")
+                ? match.teammates.map((t) => labelFor(match.groupId, t)).join(" & ")
                 : "Solo";
               const oppStr = match.opponents.length
-                ? match.opponents.map((o) => shortName(o.name)).join(" & ")
+                ? match.opponents.map((o) => labelFor(match.groupId, o)).join(" & ")
                 : "—";
               // Games per set from my perspective (e.g. "6x3 4x6 7x5")
               const gamesStr =
