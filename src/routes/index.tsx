@@ -1065,19 +1065,25 @@ function DashboardPage() {
 
                       {/* Confronto destacado no centro */}
                       <div className="min-w-0 flex-1 flex items-center justify-center px-2">
-                        <p className="text-sm text-foreground/90 truncate text-center">
-                          {m.partner_name && (
-                            <>
-                              <span className="text-muted-foreground">c/ </span>
-                              <span className="font-semibold text-foreground">{m.partner_name}</span>
-                            </>
-                          )}
-                          {m.opponent_names.length > 0 && (
-                            <>
-                              <span className="text-muted-foreground mx-1.5">vs</span>
-                              <span className="font-semibold text-foreground">{m.opponent_names.join(" & ")}</span>
-                            </>
-                          )}
+                        <p className="text-sm truncate text-center">
+                          {(() => {
+                            const myShort = (nickname?.trim() || displayName?.trim() || "Você").split(/\s+/)[0];
+                            const myTeamNames = m.partner_name ? `${myShort} & ${m.partner_name}` : myShort;
+                            const oppTeamNames = m.opponent_names.join(" & ");
+                            const winnerClass = "font-bold text-primary [text-shadow:0_0_8px_hsl(var(--primary)/0.6)]";
+                            const loserClass = "font-medium text-muted-foreground/70 line-through decoration-muted-foreground/40";
+                            return (
+                              <>
+                                <span className={won ? winnerClass : loserClass}>{myTeamNames}</span>
+                                {oppTeamNames && (
+                                  <>
+                                    <span className="text-muted-foreground mx-2">vs</span>
+                                    <span className={!won ? winnerClass : loserClass}>{oppTeamNames}</span>
+                                  </>
+                                )}
+                              </>
+                            );
+                          })()}
                         </p>
                       </div>
 
