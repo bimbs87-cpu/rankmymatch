@@ -234,7 +234,7 @@ function GroupDetailPage() {
   };
 
   // Rivalry duel data
-  const rivalryPlayers = rivalry ? members.slice(0, 2) : [];
+  const rivalryPlayers = rivalry ? activeMembers.slice(0, 2) : [];
   const playerA = rivalryPlayers[0];
   const playerB = rivalryPlayers[1];
   const rankA = playerA ? rankingData[playerA.user_id] : null;
