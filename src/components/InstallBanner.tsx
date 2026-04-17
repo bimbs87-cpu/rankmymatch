@@ -5,29 +5,27 @@ import { useEffect, useRef, useState } from "react";
 type InstallPhase = "idle" | "prompting" | "downloading" | "finalizing" | "success" | "cancelled";
 
 export function InstallBanner() {
-  const { canInstall, isIos, isInstalled, install } = usePwaInstall();
+  const { canInstall, isIos, isInstalled, justInstalled, install } = usePwaInstall();
   const [dismissed, setDismissed] = useState(false);
   const [phase, setPhase] = useState<InstallPhase>("idle");
   const [progress, setProgress] = useState(0);
   const progressTimer = useRef<number | null>(null);
+  const installStartRef = useRef<number | null>(null);
 
-  // Genuine-feeling progress: climbs slowly and asymptotically toward a
-  // ceiling that is ALWAYS below 100. Only the real `appinstalled` event
-  // is allowed to push the bar to 100%. This prevents the bar from
-  // looking "done" before the icon is actually on the home screen.
+  // Genuine progress: climbs slowly toward a ceiling well below 100.
+  // 100% ONLY when the real `appinstalled` event fires (justInstalled).
   useEffect(() => {
     if (phase === "downloading" || phase === "finalizing") {
       // Hard ceilings — never reach 100 from the timer
-      const target = phase === "downloading" ? 60 : 90;
+      const target = phase === "downloading" ? 45 : 80;
       progressTimer.current = window.setInterval(() => {
         setProgress((p) => {
           if (p >= target) return p;
-          // Very slow asymptotic approach — installation on Android
-          // typically takes 5–15s, so we want the bar to feel patient.
-          const step = Math.max(0.15, (target - p) * 0.015);
+          // Very slow asymptotic approach — installs can take 10–30s
+          const step = Math.max(0.08, (target - p) * 0.008);
           return Math.min(target, p + step);
         });
-      }, 250);
+      }, 300);
     } else {
       if (progressTimer.current) {
         clearInterval(progressTimer.current);
@@ -42,56 +40,56 @@ export function InstallBanner() {
     };
   }, [phase]);
 
-  // When the app actually installs, complete the bar and show success
+  // ONLY the real `appinstalled` event can push us to success/100%.
   useEffect(() => {
-    if (isInstalled && phase !== "idle" && phase !== "success") {
+    if (justInstalled && phase !== "success") {
       setProgress(100);
       setPhase("success");
-      const t = window.setTimeout(() => setDismissed(true), 2400);
+      const t = window.setTimeout(() => setDismissed(true), 4000);
       return () => clearTimeout(t);
     }
-  }, [isInstalled, phase]);
+  }, [justInstalled, phase]);
 
   const handleInstall = async () => {
     setPhase("prompting");
-    setProgress(8);
+    setProgress(5);
+    installStartRef.current = Date.now();
     try {
-      // Browser shows the native prompt here; user must tap "Install"
+      // Browser shows the native prompt; user must tap "Instalar"
       const accepted = await install();
       if (!accepted) {
         setPhase("cancelled");
         setProgress(0);
-        // Allow retry after short delay
         window.setTimeout(() => setPhase("idle"), 1800);
         return;
       }
-      // User accepted — Chrome is now downloading icons & registering SW
+      // IMPORTANT: `accepted` only means the user tapped "Install" in the
+      // native prompt. The OS install can still take 10–30s after this.
+      // We must wait for the real `appinstalled` event before showing 100%.
       setPhase("downloading");
-      setProgress((p) => Math.max(p, 20));
-      // After a beat, shift into "finalizing" so the bar can climb higher
-      // Hold "downloading" longer so the bar can't race past reality
+      setProgress((p) => Math.max(p, 12));
       window.setTimeout(() => {
         setPhase((cur) => (cur === "downloading" ? "finalizing" : cur));
-      }, 6000);
+      }, 10000);
     } catch {
       setPhase("idle");
       setProgress(0);
     }
   };
 
-  // Don't show if already installed (and we're not mid-celebration), dismissed, or not eligible
+  // Don't show if already installed (unless mid-celebration), dismissed, or ineligible.
+  // CRITICAL: while installing, NEVER auto-hide the banner — the user needs the warning.
   if (isInstalled && phase !== "success") return null;
-  if (dismissed) return null;
-  if (!canInstall && !isIos && phase === "idle") return null;
-
   const isInstalling =
     phase === "prompting" || phase === "downloading" || phase === "finalizing";
+  if (dismissed && !isInstalling) return null;
+  if (!canInstall && !isIos && phase === "idle") return null;
 
   const phaseLabel: Record<InstallPhase, string> = {
     idle: "",
     prompting: "Confirme no aviso do navegador…",
-    downloading: "Baixando o aplicativo…",
-    finalizing: "Finalizando instalação…",
+    downloading: "Baixando o aplicativo… aguarde",
+    finalizing: "Quase lá… finalizando instalação",
     success: "Instalado com sucesso!",
     cancelled: "Instalação cancelada",
   };
@@ -159,7 +157,7 @@ export function InstallBanner() {
           </div>
           <div className="flex items-center justify-between text-[11px]">
             <span className="font-medium tabular-nums text-muted-foreground">
-              {Math.round(progress)}%
+              {phase === "success" ? "100%" : `${Math.round(progress)}% — instalando`}
             </span>
             {phase === "success" && (
               <span className="font-semibold text-success">Concluído</span>
@@ -168,17 +166,22 @@ export function InstallBanner() {
         </div>
       )}
 
-      {/* Prominent "do not close" warning during install */}
+      {/* Prominent "do not close" warning — sticky during entire install */}
       {isInstalling && (
         <div
           role="alert"
-          className="mt-3 flex items-start gap-2 rounded-xl border border-warning/40 bg-warning/10 p-3"
+          className="mt-3 flex items-start gap-2 rounded-xl border-2 border-warning/60 bg-warning/15 p-3 animate-pulse"
         >
-          <Smartphone className="h-4 w-4 shrink-0 text-warning mt-0.5" />
-          <p className="text-[11px] leading-relaxed text-foreground">
-            <span className="font-semibold">Não feche o app nem troque de janela.</span>{" "}
-            Aguarde a instalação terminar — o ícone aparecerá na sua tela inicial.
-          </p>
+          <Smartphone className="h-5 w-5 shrink-0 text-warning mt-0.5" />
+          <div className="text-[12px] leading-relaxed text-foreground space-y-1">
+            <p className="font-bold text-warning-foreground">
+              ⚠️ NÃO feche esta aba nem troque de janela
+            </p>
+            <p className="text-[11px] text-muted-foreground">
+              A instalação pode levar até 30 segundos. Aguarde até esta mensagem
+              desaparecer e o ícone aparecer na sua tela inicial.
+            </p>
+          </div>
         </div>
       )}
 

@@ -9,6 +9,7 @@ export function usePwaInstall() {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isInstalled, setIsInstalled] = useState(false);
   const [isIos, setIsIos] = useState(false);
+  const [justInstalled, setJustInstalled] = useState(false);
 
   useEffect(() => {
     // Check if already installed (standalone mode)
@@ -33,6 +34,7 @@ export function usePwaInstall() {
     // Detect when app gets installed
     window.addEventListener("appinstalled", () => {
       setIsInstalled(true);
+      setJustInstalled(true);
       setDeferredPrompt(null);
     });
 
@@ -52,6 +54,7 @@ export function usePwaInstall() {
   return {
     canInstall: !!deferredPrompt && !isInstalled,
     isInstalled,
+    justInstalled,
     isIos,
     install,
   };
