@@ -1007,37 +1007,57 @@ function DashboardPage() {
               </div>
             ) : (
               <div className="divide-y divide-border/50">
-                {recentMatches.slice(0, 8).map((m) => {
+                {recentMatches.slice(0, 5).map((m) => {
                   const won = m.winner_team === m.my_team;
                   const dateStr = new Date(m.created_at).toLocaleDateString("pt-BR", {
                     day: "2-digit",
                     month: "short",
                   });
+                  const timeStr = new Date(m.created_at).toLocaleTimeString("pt-BR", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  });
+                  // Per-set wins from score string ("6-4 / 7-5"): I am team A unless my_team === "B"
+                  const setsRaw = m.score_display === "—" ? [] : m.score_display.split(" / ");
+                  const setOutcomes = setsRaw.map((s) => {
+                    const [a, b] = s.split("-").map((n) => parseInt(n, 10));
+                    if (isNaN(a) || isNaN(b)) return null;
+                    const myScore = m.my_team === "B" ? b : a;
+                    const oppScore = m.my_team === "B" ? a : b;
+                    return myScore > oppScore;
+                  });
+                  const setsWon = setOutcomes.filter((s) => s === true).length;
+                  const setsLost = setOutcomes.filter((s) => s === false).length;
                   return (
                     <div
                       key={m.id}
-                      className="flex items-center gap-2.5 px-4 py-2 transition-colors hover:bg-accent/30"
+                      className="flex items-center gap-3 px-4 py-2.5 transition-colors hover:bg-accent/30"
                     >
                       {/* V/D pill */}
-                      <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-[11px] font-bold ${
-                        won ? "bg-success/15 text-success" : "bg-destructive/15 text-destructive"
+                      <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-sm font-bold ${
+                        won ? "bg-success/15 text-success ring-1 ring-success/30" : "bg-destructive/15 text-destructive ring-1 ring-destructive/30"
                       }`}>
                         {won ? "V" : "D"}
                       </div>
 
                       {/* Score + meta */}
                       <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-1.5">
-                          <p className="font-display text-sm font-bold text-foreground tabular-nums">
+                        <div className="flex items-center gap-2">
+                          <p className="font-display text-base font-bold text-foreground tabular-nums">
                             {m.score_display}
                           </p>
+                          {setOutcomes.length > 0 && (
+                            <span className="rounded-md bg-muted px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground tabular-nums">
+                              {setsWon}-{setsLost} sets
+                            </span>
+                          )}
                           {m.match_number != null && (
-                            <span className="rounded-md bg-muted px-1 py-0.5 text-[9px] font-semibold text-muted-foreground">
-                              Set {m.match_number}
+                            <span className="rounded-md bg-muted/60 px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground">
+                              #{m.match_number}
                             </span>
                           )}
                         </div>
-                        <div className="flex items-center gap-x-2 text-[10px] text-muted-foreground truncate">
+                        <div className="mt-0.5 flex items-center gap-x-2 text-[11px] text-muted-foreground truncate">
                           {m.partner_name && <span className="truncate">c/ <span className="text-foreground/80 font-medium">{m.partner_name}</span></span>}
                           {m.opponent_names.length > 0 && (
                             <span className="truncate">vs <span className="text-foreground/80 font-medium">{m.opponent_names.join(" & ")}</span></span>
@@ -1045,23 +1065,44 @@ function DashboardPage() {
                         </div>
                       </div>
 
+                      {/* Per-set tiles */}
+                      {setOutcomes.length > 0 && (
+                        <div className="hidden xl:flex shrink-0 gap-1">
+                          {setOutcomes.map((s, i) => (
+                            <span
+                              key={i}
+                              className={`flex h-6 w-6 items-center justify-center rounded-md text-[9px] font-bold ${
+                                s === true ? "bg-success/20 text-success" : s === false ? "bg-destructive/20 text-destructive" : "bg-muted text-muted-foreground"
+                              }`}
+                              title={`Set ${i + 1}: ${setsRaw[i]}`}
+                            >
+                              {i + 1}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+
                       {/* Group + date */}
-                      <div className="hidden xl:block shrink-0 text-right max-w-[100px]">
+                      <div className="shrink-0 text-right max-w-[120px]">
                         {m.group_name && (
-                          <p className="text-[10px] font-medium text-foreground/70 truncate">{m.group_name}</p>
+                          <p className="text-[11px] font-semibold text-foreground/80 truncate">{m.group_name}</p>
                         )}
-                        <p className="text-[9px] text-muted-foreground">{dateStr}</p>
+                        <p className="text-[10px] text-muted-foreground">
+                          {dateStr}
+                          {m.round_number != null && <span className="ml-1">· R{m.round_number}</span>}
+                        </p>
+                        <p className="text-[9px] text-muted-foreground/60">{timeStr}</p>
                       </div>
 
                       {/* Elo delta */}
                       {m.rating_change !== null && (
-                        <div className="shrink-0 text-right min-w-[44px]">
-                          <p className={`font-display text-sm font-bold tabular-nums ${
+                        <div className="shrink-0 text-right min-w-[52px]">
+                          <p className={`font-display text-base font-bold tabular-nums leading-none ${
                             m.rating_change > 0 ? "text-success" : m.rating_change < 0 ? "text-destructive" : "text-muted-foreground"
                           }`}>
                             {m.rating_change > 0 ? "+" : ""}{Math.round(m.rating_change)}
                           </p>
-                          <p className="text-[9px] text-muted-foreground/70 leading-none">Elo</p>
+                          <p className="mt-0.5 text-[9px] uppercase tracking-wider text-muted-foreground/70 leading-none">Elo</p>
                         </div>
                       )}
                     </div>
