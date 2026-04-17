@@ -1,16 +1,17 @@
 import { useState, useMemo, useEffect, useRef } from "react";
-import { submitMatchScore } from "@/lib/elo-engine";
+import { submitMatchScore, previewMatchEloChanges } from "@/lib/elo-engine";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { TrophyLoadingBar } from "@/components/TrophyLoadingBar";
 import { X, Save, Trophy, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Props {
   matchId: string;
   seasonId: string;
   matchNumber: number;
-  teamA: { name: string; avatarUrl?: string }[];
-  teamB: { name: string; avatarUrl?: string }[];
+  teamA: { name: string; avatarUrl?: string; userId?: string }[];
+  teamB: { name: string; avatarUrl?: string; userId?: string }[];
   existingSets?: { setNumber: number; scoreA: number; scoreB: number }[];
   setsPerMatch?: number; // 1 or 3, from season config
   isSingles?: boolean;
@@ -54,6 +55,32 @@ export function ScoreEntryDialog({
   const [submitting, setSubmitting] = useState(false);
   const [saveStep, setSaveStep] = useState(0);
   const [saveStepLabel, setSaveStepLabel] = useState("");
+  const [playerStats, setPlayerStats] = useState<Record<string, { rating: number; matchesPlayed: number }>>({});
+
+  // Load current rating snapshots for preview of Elo deltas while typing
+  useEffect(() => {
+    const ids = [...teamA, ...teamB].map((p) => p.userId).filter(Boolean) as string[];
+    if (!ids.length) return;
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("ranking_snapshots")
+        .select("user_id, rating, matches_played")
+        .eq("season_id", seasonId)
+        .in("user_id", ids);
+      if (cancelled) return;
+      const map: Record<string, { rating: number; matchesPlayed: number }> = {};
+      for (const id of ids) {
+        const snap = data?.find((d) => d.user_id === id);
+        map[id] = {
+          rating: snap ? Number(snap.rating) : 1000,
+          matchesPlayed: snap?.matches_played ?? 0,
+        };
+      }
+      setPlayerStats(map);
+    })();
+    return () => { cancelled = true; };
+  }, [seasonId, matchId]);
 
   const waitForNextPaint = () =>
     new Promise<void>((resolve) => {
@@ -161,6 +188,52 @@ export function ScoreEntryDialog({
     return { setsA, setsB, gamesA, gamesB, setResults, matchWinner, canSubmit, needsMoreSets };
   }, [sets, maxSets]);
 
+  // Preview Elo deltas for the current scoreboard (only when there is a winner)
+  const eloDeltas = useMemo(() => {
+    const idsA = teamA.map((p) => p.userId).filter(Boolean) as string[];
+    const idsB = teamB.map((p) => p.userId).filter(Boolean) as string[];
+    if (!idsA.length || !idsB.length || !matchState.matchWinner) return {};
+    return previewMatchEloChanges({
+      teamA: idsA.map((id) => ({
+        userId: id,
+        rating: playerStats[id]?.rating,
+        matchesPlayed: playerStats[id]?.matchesPlayed,
+      })),
+      teamB: idsB.map((id) => ({
+        userId: id,
+        rating: playerStats[id]?.rating,
+        matchesPlayed: playerStats[id]?.matchesPlayed,
+      })),
+      setsTeamA: matchState.setsA,
+      setsTeamB: matchState.setsB,
+      gamesTeamA: matchState.gamesA,
+      gamesTeamB: matchState.gamesB,
+    });
+  }, [matchState, playerStats, teamA, teamB]);
+
+  const formatEloDelta = (delta: number) => {
+    if (!delta) return "±0";
+    const rounded = Math.round(delta);
+    if (rounded === 0) return `${delta > 0 ? "+" : ""}${delta.toFixed(1)}`;
+    return `${rounded > 0 ? "+" : ""}${rounded}`;
+  };
+
+  const renderEloBadge = (uid?: string) => {
+    if (!uid || !matchState.matchWinner) return null;
+    const d = eloDeltas[uid] ?? 0;
+    const positive = d > 0;
+    const negative = d < 0;
+    return (
+      <span
+        className={`mt-0.5 text-[10px] font-bold tabular-nums ${
+          positive ? "text-success" : negative ? "text-destructive" : "text-muted-foreground"
+        }`}
+      >
+        {formatEloDelta(d)} Elo
+      </span>
+    );
+  };
+
   const playerAName = teamA[0]?.name || "Jogador A";
   const playerBName = teamB[0]?.name || "Jogador B";
 
@@ -231,11 +304,17 @@ export function ScoreEntryDialog({
             <div className="mb-4 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <PlayerAvatar avatarUrl={teamA[0]?.avatarUrl || null} name={playerAName} size="md" className="ring-2 ring-primary/30" />
-                <span className="text-sm font-semibold text-primary">{playerAName}</span>
+                <div className="flex flex-col">
+                  <span className="text-sm font-semibold text-primary leading-tight">{playerAName}</span>
+                  {renderEloBadge(teamA[0]?.userId)}
+                </div>
               </div>
               <span className="text-xs font-bold text-muted-foreground">VS</span>
               <div className="flex items-center gap-2">
-                <span className="text-sm font-semibold text-info">{playerBName}</span>
+                <div className="flex flex-col items-end">
+                  <span className="text-sm font-semibold text-info leading-tight">{playerBName}</span>
+                  {renderEloBadge(teamB[0]?.userId)}
+                </div>
                 <PlayerAvatar avatarUrl={teamB[0]?.avatarUrl || null} name={playerBName} size="md" className="ring-2 ring-info/30" />
               </div>
             </div>
@@ -245,8 +324,24 @@ export function ScoreEntryDialog({
                 Time A
                 <div className="mt-1 flex flex-wrap gap-1">
                   {teamA.map((p, i) => (
-                    <span key={i} className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
+                    <span
+                      key={i}
+                      className="flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary"
+                    >
                       {p.name}
+                      {p.userId && matchState.matchWinner && (
+                        <span
+                          className={`tabular-nums font-bold ${
+                            (eloDeltas[p.userId] ?? 0) > 0
+                              ? "text-success"
+                              : (eloDeltas[p.userId] ?? 0) < 0
+                              ? "text-destructive"
+                              : "text-muted-foreground"
+                          }`}
+                        >
+                          {formatEloDelta(eloDeltas[p.userId] ?? 0)}
+                        </span>
+                      )}
                     </span>
                   ))}
                 </div>
@@ -256,8 +351,24 @@ export function ScoreEntryDialog({
                 Time B
                 <div className="mt-1 flex flex-wrap justify-end gap-1">
                   {teamB.map((p, i) => (
-                    <span key={i} className="rounded-full bg-info/10 px-2 py-0.5 text-[10px] font-medium text-info">
+                    <span
+                      key={i}
+                      className="flex items-center gap-1 rounded-full bg-info/10 px-2 py-0.5 text-[10px] font-medium text-info"
+                    >
                       {p.name}
+                      {p.userId && matchState.matchWinner && (
+                        <span
+                          className={`tabular-nums font-bold ${
+                            (eloDeltas[p.userId] ?? 0) > 0
+                              ? "text-success"
+                              : (eloDeltas[p.userId] ?? 0) < 0
+                              ? "text-destructive"
+                              : "text-muted-foreground"
+                          }`}
+                        >
+                          {formatEloDelta(eloDeltas[p.userId] ?? 0)}
+                        </span>
+                      )}
                     </span>
                   ))}
                 </div>
