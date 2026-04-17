@@ -228,7 +228,7 @@ function DashboardPage() {
     // 1. Upcoming rounds
     const { data: rounds } = await supabase
       .from("rounds")
-      .select("*, groups(name, slots_per_round)")
+      .select("*, groups(name, slots_per_round, presence_open_mode, presence_open_time), seasons(name)")
       .in("group_id", groupIds)
       .in("status", ["scheduled", "in_progress"])
       .order("scheduled_date", { ascending: true })
@@ -236,10 +236,16 @@ function DashboardPage() {
 
     if (rounds?.length) {
       const roundIds = rounds.map((r) => r.id);
-      const { data: presences } = await supabase
-        .from("round_presence")
-        .select("round_id, status, user_id")
-        .in("round_id", roundIds);
+      const [{ data: presences }, { data: waiters }] = await Promise.all([
+        supabase
+          .from("round_presence")
+          .select("round_id, status, user_id")
+          .in("round_id", roundIds),
+        supabase
+          .from("waiting_list")
+          .select("round_id")
+          .in("round_id", roundIds),
+      ]);
 
       setUpcomingRounds(
         rounds.map((r: any) => {
@@ -252,11 +258,17 @@ function DashboardPage() {
             location: r.location,
             status: r.status,
             season_id: r.season_id,
+            season_name: (r.seasons as any)?.name || null,
             group_id: r.group_id,
             group_name: r.groups?.name || "Grupo",
             confirmed_count: roundPresences.filter((p) => p.status === "confirmed").length,
+            pending_count: roundPresences.filter((p) => p.status === "pending").length,
+            declined_count: roundPresences.filter((p) => p.status === "declined").length,
+            waiting_count: (waiters || []).filter((w) => w.round_id === r.id).length,
             max_players: r.groups?.slots_per_round || r.max_players,
             my_status: roundPresences.find((p) => p.user_id === user.id)?.status || null,
+            presence_open_mode: r.groups?.presence_open_mode || "always",
+            presence_open_time: r.groups?.presence_open_time || "10:00:00",
           };
         })
       );
