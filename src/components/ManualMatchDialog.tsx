@@ -1,7 +1,8 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { submitMatchScore } from "@/lib/elo-engine";
 import { PlayerAvatar as SharedPlayerAvatar } from "@/components/PlayerAvatar";
+import { TrophyLoadingBar } from "@/components/TrophyLoadingBar";
 import { X, Check, ChevronRight, Save, Swords, Users, Crown, ArrowUp, ArrowDown } from "lucide-react";
 import { toast } from "sonner";
 
@@ -53,6 +54,24 @@ export function ManualMatchDialog({ roundId, groupId, matchFormat = "doubles", o
   const [submitting, setSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
   const [playerRankings, setPlayerRankings] = useState<Record<string, { rating: number; position: number | null; prevPosition: number | null }>>({});
+  const [saveStep, setSaveStep] = useState(0);
+  const [saveStepLabel, setSaveStepLabel] = useState("");
+
+  const saveSteps = useRef([
+    "Confirmando presença...",
+    isSingles ? "Salvando confronto..." : "Salvando jogos...",
+    "Calculando vencedor...",
+    "Atualizando Elo...",
+    "Atualizando ranking...",
+    "Finalizando...",
+  ]);
+
+  const waitForNextPaint = () =>
+    new Promise<void>((resolve) => {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => resolve());
+      });
+    });
 
   useEffect(() => {
     const load = async () => {
@@ -81,6 +100,28 @@ export function ManualMatchDialog({ roundId, groupId, matchFormat = "doubles", o
     };
     load();
   }, [groupId]);
+
+  useEffect(() => {
+    if (!submitting) {
+      setSaveStep(0);
+      setSaveStepLabel("");
+      return;
+    }
+
+    setSaveStep(1);
+    setSaveStepLabel(saveSteps.current[0]);
+
+    let step = 1;
+    const interval = setInterval(() => {
+      step += 1;
+      if (step <= saveSteps.current.length) {
+        setSaveStep(step);
+        setSaveStepLabel(saveSteps.current[step - 1]);
+      }
+    }, 1200);
+
+    return () => clearInterval(interval);
+  }, [submitting]);
 
   const togglePlayer = (uid: string) => {
     setSelectedPlayers((prev) => {
@@ -251,6 +292,8 @@ export function ManualMatchDialog({ roundId, groupId, matchFormat = "doubles", o
     }
     setSubmitting(true);
     try {
+      await waitForNextPaint();
+
       for (const uid of selectedPlayers) {
         await supabase.from("round_presence").upsert(
           { round_id: roundId, user_id: uid, status: "confirmed", confirmed_at: new Date().toISOString() },
@@ -360,8 +403,29 @@ export function ManualMatchDialog({ roundId, groupId, matchFormat = "doubles", o
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={submitting ? undefined : onClose} />
       <div className="relative w-full max-w-lg max-h-[85vh] overflow-y-auto rounded-3xl border border-border bg-card p-5 pb-6 animate-in zoom-in-95 duration-300">
+        {submitting && (
+          <div className="absolute inset-0 z-20 flex items-center justify-center rounded-3xl bg-card/95 px-6 backdrop-blur-sm">
+            <div className="w-full max-w-sm space-y-4">
+              <TrophyLoadingBar
+                fullScreen={false}
+                progress={Math.min((saveStep / saveSteps.current.length) * 100, 95)}
+                label={saveStepLabel || "Processando resultados..."}
+              />
+              <div className="rounded-2xl border border-primary/20 bg-primary/10 px-4 py-3 text-center">
+                <p className="text-sm font-semibold text-primary">
+                  {isSingles ? "Salvando confronto" : "Salvando resultados"}
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Aguarde a confirmação antes de fechar ou navegar para outra tela.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div className={submitting ? "pointer-events-none opacity-20" : ""}>
         {/* Header */}
         <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-2.5">
@@ -381,7 +445,11 @@ export function ManualMatchDialog({ roundId, groupId, matchFormat = "doubles", o
               </p>
             </div>
           </div>
-          <button onClick={onClose} className="rounded-full bg-muted/50 p-2 hover:bg-muted transition-colors">
+          <button
+            onClick={onClose}
+            disabled={submitting}
+            className="rounded-full bg-muted/50 p-2 transition-colors hover:bg-muted disabled:opacity-50"
+          >
             <X className="h-4 w-4 text-muted-foreground" />
           </button>
         </div>
@@ -444,6 +512,7 @@ export function ManualMatchDialog({ roundId, groupId, matchFormat = "doubles", o
           <div>
             <button
               onClick={() => setStep("select")}
+              disabled={submitting}
               className="mb-4 text-xs text-primary font-semibold hover:underline"
             >
               ← Alterar jogadores
@@ -623,6 +692,7 @@ export function ManualMatchDialog({ roundId, groupId, matchFormat = "doubles", o
             </button>
           </div>
         )}
+        </div>
       </div>
     </div>
   );
