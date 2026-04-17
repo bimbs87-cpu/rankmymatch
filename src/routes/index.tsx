@@ -1041,7 +1041,7 @@ function DashboardPage() {
         </section>
 
         {/* Meus Grupos */}
-        <section className="lg:col-span-12">
+        <section className="lg:col-span-12 lg:order-5">
           <div className="mb-3 flex items-center justify-between">
             <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Seus Grupos
