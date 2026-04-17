@@ -2,12 +2,13 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useAuth } from "@/hooks/use-auth";
 import { TrophyLoadingBar } from "@/components/TrophyLoadingBar";
 import { useMyGroups } from "@/hooks/use-groups";
-import { BarChart3, Info, ChevronDown, ArrowUp, ArrowDown, Calendar, Layers, Timer, Crown } from "lucide-react";
-import { useState, useEffect } from "react";
+import { BarChart3, Info, ChevronDown, ArrowUp, ArrowDown, Calendar, Layers, Timer, Crown, AlertTriangle } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { isRivalryGroup } from "@/lib/rivalry";
 import { RivalryDuelPage } from "@/components/RivalryDuelPage";
+import { buildDisplayNames, getCollidingFirstNames } from "@/lib/name-disambiguation";
 
 export const Route = createFileRoute("/ranking")({
   component: RankingPage,
