@@ -2,6 +2,7 @@ import { Outlet, Link, createRootRoute, HeadContent, Scripts } from "@tanstack/r
 import { AuthProvider, useAuth } from "@/hooks/use-auth";
 import { UserProfileProvider } from "@/hooks/use-user-profile";
 import { BottomNav } from "@/components/BottomNav";
+import { InstallFlowProvider } from "@/components/InstallFlowProvider";
 import { Toaster } from "@/components/ui/sonner";
 import "../styles.css";
 import { useEffect } from "react";
@@ -98,11 +99,13 @@ function RootComponent() {
   return (
     <AuthProvider>
       <UserProfileProvider>
-        <div className="mx-auto max-w-lg min-h-screen">
-          <Outlet />
-        </div>
-        <AuthNav />
-        <Toaster richColors position="top-center" />
+        <InstallFlowProvider>
+          <div className="mx-auto max-w-lg min-h-screen">
+            <Outlet />
+          </div>
+          <AuthNav />
+          <Toaster richColors position="top-center" />
+        </InstallFlowProvider>
       </UserProfileProvider>
     </AuthProvider>
   );
