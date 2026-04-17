@@ -95,7 +95,7 @@ function GroupsIndexPage() {
                 Aguardando aprovação
               </span>
             </div>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {pendingGroups.map((group) => (
                 <div
                   key={group.id}
@@ -174,7 +174,7 @@ function GroupsIndexPage() {
             </div>
           </div>
         ) : (
-          <div className={tab === "my" ? "grid grid-cols-1 gap-3 sm:grid-cols-2" : "space-y-3"}>
+          <div className={tab === "my" ? "grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" : "grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3"}>
             {groups.map((group) => {
               const isMyTab = tab === "my";
               const stats = group as typeof group & {

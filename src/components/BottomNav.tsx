@@ -13,7 +13,7 @@ export function BottomNav() {
   const location = useLocation();
 
   return (
-    <nav className="fixed bottom-5 left-4 right-4 z-50 mx-auto max-w-lg">
+    <nav className="fixed bottom-5 left-4 right-4 z-50 mx-auto max-w-lg lg:max-w-2xl">
       <div className="flex items-end justify-around rounded-full border border-border bg-card/80 px-2 py-2 backdrop-blur-xl">
         {NAV_ITEMS.map((item) => {
           const isActive =

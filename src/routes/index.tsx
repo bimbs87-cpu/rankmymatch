@@ -640,10 +640,10 @@ function DashboardPage() {
       {/* PWA Install Banner */}
       <InstallBanner />
 
-      <div className="space-y-5 px-5 pt-5">
+      <div className="space-y-5 px-5 pt-5 lg:grid lg:grid-cols-12 lg:gap-6 lg:space-y-0">
         {/* Season switcher button — above the ranking card */}
         {!dataLoading && currentRanking && rankings.length > 1 && (
-          <div className="relative flex animate-fade-in">
+          <div className="relative flex animate-fade-in lg:col-span-12">
             <button
               onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowRankingPicker((v) => !v); }}
               className="flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-3 py-1.5 text-[11px] font-semibold text-primary transition-colors hover:bg-primary/15"
@@ -685,7 +685,7 @@ function DashboardPage() {
         )}
 
         {/* Ranking card + Quick action */}
-        <section className="grid grid-cols-2 gap-3 animate-fade-in">
+        <section className="grid grid-cols-2 gap-3 animate-fade-in lg:col-span-6">
           {dataLoading ? (
             <div className="flex flex-col items-center justify-center rounded-3xl border border-border bg-card p-5 min-h-[140px]">
               <CardSpinner label="Carregando ranking" />
@@ -756,7 +756,7 @@ function DashboardPage() {
 
         {/* Próximo confronto pendente */}
         {pendingMatch && (
-          <section className="animate-fade-in">
+          <section className="animate-fade-in lg:col-span-6">
             <PendingMatchCard
               match={pendingMatch}
               onScoreSaved={() => { refreshPending(); loadDashboard(); }}
@@ -767,7 +767,7 @@ function DashboardPage() {
         )}
 
         {/* Próximas Rodadas */}
-        <section>
+        <section className="lg:col-span-6">
           <div className="mb-3 flex items-center justify-between">
             <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Próximas Rodadas
@@ -857,7 +857,7 @@ function DashboardPage() {
         </section>
 
         {/* Últimos Resultados */}
-        <section>
+        <section className="lg:col-span-6">
           <div className="mb-3 flex items-center justify-between">
             <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Últimos Resultados
@@ -925,7 +925,7 @@ function DashboardPage() {
         </section>
 
         {/* Meus Grupos */}
-        <section>
+        <section className="lg:col-span-12">
           <div className="mb-3 flex items-center justify-between">
             <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Seus Grupos
@@ -939,7 +939,7 @@ function DashboardPage() {
               <CardSpinner label="Carregando grupos" />
             </div>
           ) : myGroups.length > 0 ? (
-            <div className="grid grid-cols-2 gap-2.5">
+            <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-4">
               {myGroups.slice(0, 4).map((g) => {
                 const stats = groupStats.get(g.id) || { seasons: 0, rounds_completed: 0, rounds_total: 0 };
                 const remaining = Math.max(0, stats.rounds_total - stats.rounds_completed);
