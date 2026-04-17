@@ -165,8 +165,16 @@ function HistoryPage() {
     return <TrophyLoadingBar />;
   }
 
-  const wins = matches.filter((m) => m.winnerTeam === m.myTeam).length;
-  const losses = matches.filter((m) => m.winnerTeam && m.winnerTeam !== m.myTeam).length;
+  // Build unique groups list
+  const groupsList = Array.from(
+    new Map(matches.filter((m) => m.groupId).map((m) => [m.groupId!, m.groupName])).entries()
+  ).map(([id, name]) => ({ id, name }));
+
+  const filteredMatches =
+    groupFilter === "all" ? matches : matches.filter((m) => m.groupId === groupFilter);
+
+  const wins = filteredMatches.filter((m) => m.winnerTeam === m.myTeam).length;
+  const losses = filteredMatches.filter((m) => m.winnerTeam && m.winnerTeam !== m.myTeam).length;
 
   return (
     <div className="min-h-screen bg-background pb-28">
@@ -180,13 +188,44 @@ function HistoryPage() {
           </Link>
           <div className="flex-1">
             <h1 className="font-display text-lg font-bold text-foreground">Histórico</h1>
-            <p className="text-xs text-muted-foreground">{matches.length} partidas jogadas</p>
+            <p className="text-xs text-muted-foreground">{filteredMatches.length} partidas jogadas</p>
           </div>
         </div>
       </header>
 
+      {/* Group filter tabs */}
+      {groupsList.length > 1 && (
+        <div className="mb-4 px-5">
+          <div className="flex gap-1.5 overflow-x-auto scrollbar-none">
+            <button
+              onClick={() => setGroupFilter("all")}
+              className={`whitespace-nowrap rounded-full px-3.5 py-1.5 text-xs font-semibold transition ${
+                groupFilter === "all"
+                  ? "bg-primary text-primary-foreground"
+                  : "border border-border bg-card text-muted-foreground"
+              }`}
+            >
+              Todos
+            </button>
+            {groupsList.map((g) => (
+              <button
+                key={g.id}
+                onClick={() => setGroupFilter(g.id)}
+                className={`whitespace-nowrap rounded-full px-3.5 py-1.5 text-xs font-semibold transition ${
+                  groupFilter === g.id
+                    ? "bg-primary text-primary-foreground"
+                    : "border border-border bg-card text-muted-foreground"
+                }`}
+              >
+                {g.name}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Summary */}
-      {matches.length > 0 && (
+      {filteredMatches.length > 0 && (
         <div className="mx-5 mb-4 grid grid-cols-3 gap-2">
           <div className="flex flex-col items-center rounded-2xl border border-border bg-card p-3">
             <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Vitórias</span>
@@ -199,14 +238,14 @@ function HistoryPage() {
           <div className="flex flex-col items-center rounded-2xl border border-border bg-card p-3">
             <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Win Rate</span>
             <span className="mt-1 font-display text-lg font-bold text-foreground">
-              {matches.length > 0 ? Math.round((wins / matches.length) * 100) : 0}%
+              {filteredMatches.length > 0 ? Math.round((wins / filteredMatches.length) * 100) : 0}%
             </span>
           </div>
         </div>
       )}
 
       <div className="space-y-2.5 px-5">
-        {matches.length === 0 ? (
+        {filteredMatches.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-3xl bg-primary/10">
               <Swords className="h-8 w-8 text-primary" />
@@ -215,7 +254,7 @@ function HistoryPage() {
             <p className="mt-1 text-sm text-muted-foreground">Suas partidas aparecerão aqui</p>
           </div>
         ) : (
-          matches.map((match) => {
+          filteredMatches.map((match) => {
             const won = match.winnerTeam === match.myTeam;
             const lost = match.winnerTeam && match.winnerTeam !== match.myTeam;
             const dateStr = new Date(match.date).toLocaleDateString("pt-BR", {
