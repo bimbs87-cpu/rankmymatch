@@ -616,7 +616,7 @@ function DashboardPage() {
   return (
     <div
       ref={scrollRef}
-      className="min-h-screen bg-background pb-28 overflow-y-auto"
+      className="min-h-screen bg-background pb-28 lg:pb-8 overflow-y-auto"
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
