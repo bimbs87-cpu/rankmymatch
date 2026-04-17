@@ -13,6 +13,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { TrophyLoadingBar } from "@/components/TrophyLoadingBar";
 import { usePendingMatch } from "@/hooks/use-pending-matches";
 import { useGroupSeasons, useSeasonRounds } from "@/hooks/use-seasons";
+import type { Tables } from "@/integrations/supabase/types";
 import { supabase } from "@/integrations/supabase/client";
 import { isRivalryGroup } from "@/lib/rivalry";
 import {
@@ -56,6 +57,7 @@ import {
   Settings2,
   Pencil,
   GitMerge,
+  ChevronDown,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
@@ -1085,6 +1087,22 @@ function ActiveSeasonRounds({
     : s === "cancelled" ? "bg-destructive/10 text-destructive"
     : "bg-muted text-muted-foreground";
 
+  // Ordenar: realizadas (completed) primeiro pela mais recente; depois próximas em ordem cronológica
+  const sortedRounds = [...rounds].sort((a, b) => {
+    const aDone = a.status === "completed";
+    const bDone = b.status === "completed";
+    if (aDone && !bDone) return -1;
+    if (!aDone && bDone) return 1;
+    const aDate = a.scheduled_date || "";
+    const bDate = b.scheduled_date || "";
+    if (aDone && bDone) {
+      // mais recente primeiro
+      return bDate.localeCompare(aDate);
+    }
+    // próximas: cronológica (mais próxima primeiro)
+    return aDate.localeCompare(bDate);
+  });
+
   return (
     <>
       <div className="flex items-center justify-between mb-1">
@@ -1102,7 +1120,7 @@ function ActiveSeasonRounds({
         </Link>
       </div>
 
-      {rounds.length === 0 ? (
+      {sortedRounds.length === 0 ? (
         <div className="rounded-3xl border border-dashed border-border bg-card/50 p-8">
           <div className="flex flex-col items-center gap-3 text-center">
             <Calendar className="h-10 w-10 text-muted-foreground/40" />
@@ -1113,73 +1131,175 @@ function ActiveSeasonRounds({
           </div>
         </div>
       ) : (
-        rounds.map((r) => (
-          <div key={r.id} className={`rounded-2xl border border-border bg-card/50 ${r.status === "cancelled" ? "opacity-50" : ""}`}>
-            {r.status !== "cancelled" ? (
-              <Link
-                to="/groups/$groupId/seasons/$seasonId/rounds/$roundId"
-                params={{ groupId, seasonId: activeSeason.id, roundId: r.id }}
-                className="flex items-center justify-between p-4 active:bg-accent/30"
-              >
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 flex-shrink-0">
-                    <span className="font-display text-sm font-bold text-primary">
-                      R{r.round_number || "?"}
-                    </span>
-                  </div>
-                  <div className="min-w-0">
-                    <span className="text-sm font-semibold text-foreground">Rodada {r.round_number}</span>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <Calendar className="h-3 w-3" />
-                      <span>{formatDate(r.scheduled_date)}</span>
-                      {r.scheduled_time && (
-                        <>
-                          <Clock className="h-3 w-3" />
-                          <span>{r.scheduled_time?.slice(0, 5)}</span>
-                        </>
-                      )}
-                    </div>
-                    {r.location && (
-                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                        <MapPin className="h-3 w-3" />
-                        <span className="truncate">{r.location}</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-                <div className="flex items-center gap-2 flex-shrink-0">
-                  <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-semibold ${statusClass(getSmartStatus(r))}`}>
-                    {statusLabel(getSmartStatus(r))}
-                  </span>
-                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                </div>
-              </Link>
-            ) : (
-              <div className="flex items-center justify-between p-4">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-muted">
-                    <span className="font-display text-sm font-bold text-muted-foreground">
-                      R{r.round_number || "?"}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-sm font-semibold text-muted-foreground line-through">
-                      Rodada {r.round_number}
-                    </span>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <Calendar className="h-3 w-3" />
-                      <span>{formatDate(r.scheduled_date)}</span>
-                    </div>
-                  </div>
-                </div>
-                <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-semibold ${statusClass(r.status)}`}>
-                  {statusLabel(r.status)}
-                </span>
-              </div>
-            )}
-          </div>
+        sortedRounds.map((r, idx) => (
+          <RoundResultCard
+            key={r.id}
+            round={r}
+            groupId={groupId}
+            seasonId={activeSeason.id}
+            defaultOpen={idx === 0}
+            formatDate={formatDate}
+            statusLabel={statusLabel}
+            statusClass={statusClass}
+            getSmartStatus={getSmartStatus}
+          />
         ))
       )}
     </>
+  );
+}
+
+function RoundResultCard({
+  round: r,
+  groupId,
+  seasonId,
+  defaultOpen,
+  formatDate,
+  statusLabel,
+  statusClass,
+  getSmartStatus,
+}: {
+  round: Tables<"rounds">;
+  groupId: string;
+  seasonId: string;
+  defaultOpen: boolean;
+  formatDate: (d: string | null) => string;
+  statusLabel: (s: string) => string;
+  statusClass: (s: string) => string;
+  getSmartStatus: (r: Tables<"rounds">) => string;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  const [matches, setMatches] = useState<any[] | null>(null);
+  const [loadingMatches, setLoadingMatches] = useState(false);
+  const isCancelled = r.status === "cancelled";
+
+  useEffect(() => {
+    if (!open || matches !== null || isCancelled) return;
+    let cancelled = false;
+    (async () => {
+      setLoadingMatches(true);
+      const { data: matchesData } = await supabase
+        .from("matches")
+        .select("*, match_players(*), match_sets(*)")
+        .eq("round_id", r.id)
+        .order("match_number", { ascending: true });
+      if (cancelled) return;
+      const playerIds = (matchesData || []).flatMap((m: any) => (m.match_players || []).map((mp: any) => mp.user_id));
+      const uniqueIds = [...new Set(playerIds)];
+      let profileMap = new Map<string, any>();
+      if (uniqueIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from("user_profiles")
+          .select("user_id, name, nickname")
+          .in("user_id", uniqueIds);
+        profileMap = new Map((profiles || []).map((p: any) => [p.user_id, p]));
+      }
+      const enriched = (matchesData || []).map((m: any) => ({
+        ...m,
+        match_players: (m.match_players || []).map((mp: any) => ({ ...mp, profile: profileMap.get(mp.user_id) })),
+      }));
+      setMatches(enriched);
+      setLoadingMatches(false);
+    })();
+    return () => { cancelled = true; };
+  }, [open, matches, r.id, isCancelled]);
+
+  const teamPlayers = (m: any, team: "A" | "B") =>
+    (m.match_players || [])
+      .filter((mp: any) => mp.team === team)
+      .map((mp: any) => mp.profile?.nickname || mp.profile?.name || "?")
+      .join(" / ");
+
+  const smartStatus = getSmartStatus(r);
+
+  return (
+    <div className={`rounded-2xl border border-border bg-card/50 ${isCancelled ? "opacity-50" : ""}`}>
+      <button
+        type="button"
+        onClick={() => !isCancelled && setOpen((v) => !v)}
+        disabled={isCancelled}
+        className="flex w-full items-center justify-between p-4 text-left active:bg-accent/30 disabled:cursor-default"
+      >
+        <div className="flex items-center gap-3 min-w-0">
+          <div className={`flex h-10 w-10 items-center justify-center rounded-xl flex-shrink-0 ${isCancelled ? "bg-muted" : "bg-primary/10"}`}>
+            <span className={`font-display text-sm font-bold ${isCancelled ? "text-muted-foreground" : "text-primary"}`}>
+              R{r.round_number || "?"}
+            </span>
+          </div>
+          <div className="min-w-0">
+            <span className={`text-sm font-semibold ${isCancelled ? "text-muted-foreground line-through" : "text-foreground"}`}>
+              Rodada {r.round_number}
+            </span>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <Calendar className="h-3 w-3" />
+              <span>{formatDate(r.scheduled_date)}</span>
+              {r.scheduled_time && !isCancelled && (
+                <>
+                  <Clock className="h-3 w-3" />
+                  <span>{r.scheduled_time?.slice(0, 5)}</span>
+                </>
+              )}
+            </div>
+            {r.location && !isCancelled && (
+              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                <MapPin className="h-3 w-3" />
+                <span className="truncate">{r.location}</span>
+              </div>
+            )}
+          </div>
+        </div>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-semibold ${statusClass(isCancelled ? r.status : smartStatus)}`}>
+            {statusLabel(isCancelled ? r.status : smartStatus)}
+          </span>
+          {!isCancelled && (
+            <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} />
+          )}
+        </div>
+      </button>
+
+      {open && !isCancelled && (
+        <div className="border-t border-border px-4 pb-4 pt-3 space-y-2">
+          {loadingMatches ? (
+            <p className="text-xs text-muted-foreground py-2">Carregando partidas...</p>
+          ) : !matches || matches.length === 0 ? (
+            <p className="text-xs text-muted-foreground py-2">Nenhuma partida registrada ainda.</p>
+          ) : (
+            <div className="space-y-2">
+              {matches.map((m: any) => {
+                const sets = (m.match_sets || []).sort((a: any, b: any) => a.set_number - b.set_number);
+                const winA = m.winner_team === "A";
+                const winB = m.winner_team === "B";
+                return (
+                  <div key={m.id} className="rounded-xl border border-border bg-background/50 p-3">
+                    <div className="flex items-center justify-between gap-2 text-xs">
+                      <span className={`flex-1 truncate font-medium ${winA ? "text-success" : "text-foreground"}`}>
+                        {teamPlayers(m, "A") || "—"}
+                      </span>
+                      <span className="font-mono text-[11px] text-muted-foreground whitespace-nowrap">
+                        {sets.length > 0
+                          ? sets.map((s: any) => `${s.score_team_a}-${s.score_team_b}`).join("  ")
+                          : m.status === "completed" ? "vs" : "agendada"}
+                      </span>
+                      <span className={`flex-1 truncate text-right font-medium ${winB ? "text-success" : "text-foreground"}`}>
+                        {teamPlayers(m, "B") || "—"}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          <Link
+            to="/groups/$groupId/seasons/$seasonId/rounds/$roundId"
+            params={{ groupId, seasonId, roundId: r.id }}
+            className="mt-2 flex items-center justify-center gap-1 rounded-full border border-border bg-card px-3 py-2 text-[11px] font-semibold text-foreground"
+          >
+            Ver detalhes da rodada
+            <ChevronRight className="h-3 w-3" />
+          </Link>
+        </div>
+      )}
+    </div>
   );
 }
