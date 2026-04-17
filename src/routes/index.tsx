@@ -80,6 +80,9 @@ interface RecentMatch {
 interface RankingOption {
   season_id: string;
   season_name: string;
+  group_name: string;
+  rounds_completed: number;
+  rounds_total: number;
   rating: number;
   position: number | null;
   matches_played: number;
@@ -277,13 +280,13 @@ function DashboardPage() {
     // 3. My rankings — all seasons (active + ended) where the user has a snapshot
     const { data: seasonsList } = await supabase
       .from("seasons")
-      .select("id, name, status, updated_at")
+      .select("id, name, status, updated_at, group_id, total_rounds")
       .in("group_id", groupIds)
       .in("status", ["active", "ended", "completed"]);
 
     if (seasonsList?.length) {
       const seasonIds = seasonsList.map((s: any) => s.id);
-      const [snapsRes, eventsRes] = await Promise.all([
+      const [snapsRes, eventsRes, roundsRes] = await Promise.all([
         supabase
           .from("ranking_snapshots")
           .select("season_id, rating, position, matches_played, matches_won")
@@ -295,8 +298,13 @@ function DashboardPage() {
           .in("season_id", seasonIds)
           .eq("user_id", user.id)
           .order("created_at", { ascending: false }),
+        supabase
+          .from("rounds")
+          .select("season_id, status")
+          .in("season_id", seasonIds),
       ]);
 
+      const groupNameMap = new Map(myGroups.map((g: any) => [g.id, g.name]));
       const seasonMap = new Map(seasonsList.map((s: any) => [s.id, s]));
       const eventsBySeason = new Map<string, { rating_change: number; created_at: string }[]>();
       for (const e of eventsRes.data || []) {
@@ -304,15 +312,29 @@ function DashboardPage() {
         arr.push({ rating_change: Number(e.rating_change), created_at: e.created_at });
         eventsBySeason.set(e.season_id!, arr);
       }
+      // rounds: completed count + total count per season
+      const roundsBySeason = new Map<string, { completed: number; total: number }>();
+      for (const r of roundsRes.data || []) {
+        const cur = roundsBySeason.get(r.season_id!) || { completed: 0, total: 0 };
+        cur.total += 1;
+        if (r.status === "completed") cur.completed += 1;
+        roundsBySeason.set(r.season_id!, cur);
+      }
 
       const opts: RankingOption[] = (snapsRes.data || [])
         .map((snap: any) => {
           const season = seasonMap.get(snap.season_id) as any;
           const evs = eventsBySeason.get(snap.season_id) || [];
           const last3 = evs.slice(0, 3).reverse().map((e) => e.rating_change);
+          const roundCounts = roundsBySeason.get(snap.season_id) || { completed: 0, total: 0 };
+          // Prefer season.total_rounds if defined (planned total), else fall back to created rounds
+          const plannedTotal = season?.total_rounds ?? roundCounts.total;
           return {
             season_id: snap.season_id,
             season_name: season?.name || "Temporada",
+            group_name: groupNameMap.get(season?.group_id) || "",
+            rounds_completed: roundCounts.completed,
+            rounds_total: Math.max(roundCounts.completed, plannedTotal),
             rating: Number(snap.rating),
             position: snap.position,
             matches_played: snap.matches_played,
@@ -322,7 +344,6 @@ function DashboardPage() {
             last_event_at: evs[0]?.created_at || season?.updated_at || null,
           };
         })
-        // Sort by most recently played (last event), fallback to season update
         .sort((a, b) => {
           const at = a.last_event_at ? new Date(a.last_event_at).getTime() : 0;
           const bt = b.last_event_at ? new Date(b.last_event_at).getTime() : 0;
@@ -590,7 +611,11 @@ function DashboardPage() {
                   )}
                 </div>
 
-                <p className="mt-auto pt-2 text-[9px] text-muted-foreground/60 truncate">{currentRanking.season_name}</p>
+                <p className="mt-auto pt-2 text-[9px] text-muted-foreground/60 truncate">
+                  {currentRanking.season_name}
+                  {currentRanking.group_name ? ` · ${currentRanking.group_name}` : ""}
+                  {currentRanking.rounds_total > 0 ? ` · ${currentRanking.rounds_completed}/${currentRanking.rounds_total}` : ""}
+                </p>
               </Link>
             </div>
           ) : (
