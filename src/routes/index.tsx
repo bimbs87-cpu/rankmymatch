@@ -1070,7 +1070,7 @@ function DashboardPage() {
                             const myShort = (nickname?.trim() || displayName?.trim() || "Você").split(/\s+/)[0];
                             const myTeamNames = m.partner_name ? `${myShort} & ${m.partner_name}` : myShort;
                             const oppTeamNames = m.opponent_names.join(" & ");
-                            const winnerClass = "font-bold text-primary [text-shadow:0_0_8px_hsl(var(--primary)/0.6)]";
+                            const winnerClass = "font-bold text-primary [text-shadow:0_0_10px_color-mix(in_oklab,var(--primary)_60%,transparent)]";
                             const loserClass = "font-medium text-muted-foreground/70 line-through decoration-muted-foreground/40";
                             return (
                               <>
