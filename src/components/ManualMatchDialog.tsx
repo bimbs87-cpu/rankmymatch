@@ -514,14 +514,14 @@ export function ManualMatchDialog({ roundId, groupId, matchFormat = "doubles", o
       <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={submitting ? undefined : onClose} />
       <div className="relative w-full max-w-lg max-h-[85vh] overflow-y-auto rounded-3xl border border-border bg-card p-5 pb-6 animate-in zoom-in-95 duration-300">
         {submitting && (
-          <div className="absolute inset-0 z-20 flex items-center justify-center rounded-3xl bg-card/95 px-6 backdrop-blur-sm">
+          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-background/85 px-6 backdrop-blur-md">
             <div className="w-full max-w-sm space-y-4">
               <TrophyLoadingBar
                 fullScreen={false}
                 progress={Math.min((saveStep / saveSteps.current.length) * 100, 95)}
                 label={saveStepLabel || "Processando resultados..."}
               />
-              <div className="rounded-2xl border border-primary/20 bg-primary/10 px-4 py-3 text-center">
+              <div className="rounded-2xl border border-primary/30 bg-primary/10 px-4 py-3 text-center shadow-xl">
                 <p className="text-sm font-semibold text-primary">
                   {isSingles ? "Salvando confronto" : "Salvando resultados"}
                 </p>
