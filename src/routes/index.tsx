@@ -1076,7 +1076,7 @@ function DashboardPage() {
         </section>
 
         {/* Próximas Rodadas */}
-        <section className="lg:col-span-6 lg:order-4">
+        <section className="lg:col-span-8 lg:order-4">
           {/* Mobile/tablet header */}
           <div className="mb-3 flex items-center justify-between lg:hidden">
             <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
