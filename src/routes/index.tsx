@@ -993,9 +993,17 @@ function DashboardPage() {
                   })()}
                 </div>
               </div>
-              <Link to="/history" className="flex items-center gap-0.5 text-xs font-medium text-primary hover:text-primary/80">
-                Histórico <ChevronRight className="h-3.5 w-3.5" />
-              </Link>
+              <div className="flex items-center gap-3">
+                <Link
+                  to="/ranking-info"
+                  className="hidden lg:inline-flex items-center gap-1 rounded-full border border-primary/30 bg-primary/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-primary hover:bg-primary/15"
+                >
+                  Entenda a pontuação
+                </Link>
+                <Link to="/history" className="flex items-center gap-0.5 text-xs font-medium text-primary hover:text-primary/80">
+                  Histórico <ChevronRight className="h-3.5 w-3.5" />
+                </Link>
+              </div>
             </div>
 
             {dataLoading ? (
