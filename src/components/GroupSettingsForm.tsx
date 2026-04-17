@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Globe, Lock, Save, Loader2, AlertTriangle, EyeOff, CheckCircle2, Trash2 } from "lucide-react";
+import { Globe, Lock, Save, Loader2, AlertTriangle, EyeOff, CheckCircle2, Trash2, Eye } from "lucide-react";
 import { toast } from "sonner";
 import { GroupImageUpload } from "@/components/GroupImageUpload";
 import { useNavigate } from "@tanstack/react-router";
