@@ -1031,26 +1031,30 @@ function DashboardPage() {
                   return (
                     <div
                       key={m.id}
-                      className="flex items-center gap-3 px-4 py-2.5 transition-colors hover:bg-accent/30"
+                      className="flex items-stretch gap-3 px-4 py-2.5 transition-colors hover:bg-accent/30"
                     >
-                      {/* V/D pill */}
-                      <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-sm font-bold ${
-                        won ? "bg-success/15 text-success ring-1 ring-success/30" : "bg-destructive/15 text-destructive ring-1 ring-destructive/30"
-                      }`}>
-                        {won ? "V" : "D"}
+                      {/* Date with colored bar (V/D indicator) */}
+                      <div className="flex shrink-0 items-stretch gap-2">
+                        <div
+                          className={`w-1 rounded-full ${won ? "bg-success" : "bg-destructive"}`}
+                          aria-label={won ? "Vitória" : "Derrota"}
+                        />
+                        <div className="flex flex-col justify-center min-w-[36px]">
+                          <p className="font-display text-base font-bold leading-none text-foreground tabular-nums">
+                            {new Date(m.created_at).getDate().toString().padStart(2, "0")}
+                          </p>
+                          <p className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground mt-0.5">
+                            {new Date(m.created_at).toLocaleDateString("pt-BR", { month: "short" }).replace(".", "")}
+                          </p>
+                        </div>
                       </div>
 
                       {/* Score + meta */}
-                      <div className="min-w-0 flex-1">
+                      <div className="min-w-0 flex-1 flex flex-col justify-center">
                         <div className="flex items-center gap-2">
                           <p className="font-display text-base font-bold text-foreground tabular-nums">
                             {m.score_display}
                           </p>
-                          {setOutcomes.length > 0 && (
-                            <span className="rounded-md bg-muted px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground tabular-nums">
-                              {setsWon}-{setsLost} sets
-                            </span>
-                          )}
                           {m.match_number != null && (
                             <span className="rounded-md bg-muted/60 px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground">
                               #{m.match_number}
@@ -1065,33 +1069,14 @@ function DashboardPage() {
                         </div>
                       </div>
 
-                      {/* Per-set tiles */}
-                      {setOutcomes.length > 0 && (
-                        <div className="hidden xl:flex shrink-0 gap-1">
-                          {setOutcomes.map((s, i) => (
-                            <span
-                              key={i}
-                              className={`flex h-6 w-6 items-center justify-center rounded-md text-[9px] font-bold ${
-                                s === true ? "bg-success/20 text-success" : s === false ? "bg-destructive/20 text-destructive" : "bg-muted text-muted-foreground"
-                              }`}
-                              title={`Set ${i + 1}: ${setsRaw[i]}`}
-                            >
-                              {i + 1}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-
-                      {/* Group + date */}
-                      <div className="shrink-0 text-right max-w-[120px]">
+                      {/* Group */}
+                      <div className="shrink-0 text-right max-w-[140px] flex flex-col justify-center">
                         {m.group_name && (
                           <p className="text-[11px] font-semibold text-foreground/80 truncate">{m.group_name}</p>
                         )}
-                        <p className="text-[10px] text-muted-foreground">
-                          {dateStr}
-                          {m.round_number != null && <span className="ml-1">· R{m.round_number}</span>}
-                        </p>
-                        <p className="text-[9px] text-muted-foreground/60">{timeStr}</p>
+                        {m.round_number != null && (
+                          <p className="text-[10px] text-muted-foreground">R{m.round_number}</p>
+                        )}
                       </div>
 
                       {/* Elo delta */}
