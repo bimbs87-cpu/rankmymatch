@@ -117,6 +117,7 @@ function RootComponent() {
       <UserProfileProvider>
         <InstallFlowProvider>
           <div className="mx-auto max-w-lg lg:max-w-7xl lg:px-8 min-h-screen">
+            <AuthDesktopNav />
             <Outlet />
           </div>
           <AuthNav />
@@ -125,6 +126,12 @@ function RootComponent() {
       </UserProfileProvider>
     </AuthProvider>
   );
+}
+
+function AuthDesktopNav() {
+  const { isAuthenticated, isLoading } = useAuth();
+  if (isLoading || !isAuthenticated) return null;
+  return <DesktopNav />;
 }
 
 function AuthNav() {
