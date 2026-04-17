@@ -351,7 +351,13 @@ export async function rejectJoinRequest(requestId: string, adminId: string) {
 }
 
 export async function removeMember(memberId: string) {
-  await supabase.from("group_members").delete().eq("id", memberId);
+  // Soft-remove: keep group_members row with status='removed' so the original
+  // name continues to appear (dimmed) in rankings, matches and history.
+  const { error } = await supabase
+    .from("group_members")
+    .update({ status: "removed", updated_at: new Date().toISOString() })
+    .eq("id", memberId);
+  if (error) throw error;
 }
 
 export async function updateMemberRole(memberId: string, role: string) {

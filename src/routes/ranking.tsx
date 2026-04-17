@@ -34,6 +34,7 @@ interface RankingEntry {
   lastChange?: number;
   positionChange?: number;
   hasSnapshot: boolean;
+  isFormerMember?: boolean;
 }
 
 function winRate(won: number, played: number) {
@@ -307,10 +308,13 @@ function RankingPage() {
         const eligibilityThreshold = Math.ceil(completedR * 0.3);
         const snapshotMap = new Map(snapshots.map((snapshot) => [snapshot.user_id, snapshot]));
 
+        const activeMemberIdsSet = new Set(members.map((m) => m.user_id));
+
         const entries: RankingEntry[] = allUserIds.map((userId) => {
           const snapshot = snapshotMap.get(userId);
           const profile = profileMap.get(userId);
           const computedResults = userResultsMap.get(userId) || [];
+          const isFormerMember = !activeMemberIdsSet.has(userId);
 
           if (snapshot) {
             const isEligible = snapshot.matches_played >= eligibilityThreshold && eligibilityThreshold > 0;
@@ -330,6 +334,7 @@ function RankingPage() {
               profile: profile || undefined,
               lastChange: lastChangeMap.get(userId),
               hasSnapshot: true,
+              isFormerMember,
             };
           }
 
@@ -348,6 +353,7 @@ function RankingPage() {
             profile: profile || undefined,
             lastChange: undefined,
             hasSnapshot: false,
+            isFormerMember,
           };
         });
 
@@ -680,11 +686,12 @@ function RankingPage() {
                             avatarUrl={entry.profile?.avatar_url}
                             name={entry.profile?.name || "?"}
                             size={isCenter ? "lg" : "md"}
+                            dimmed={entry.isFormerMember}
                             className={`${isCenter ? "!h-14 !w-14" : "!h-11 !w-11"} border-2 border-background`}
                           />
                         </div>
                         {/* Name + Stats */}
-                        <p className="mt-1.5 text-center text-[11px] font-semibold text-foreground leading-tight truncate w-full">{displayName}</p>
+                        <p className={`mt-1.5 text-center text-[11px] font-semibold leading-tight truncate w-full ${entry.isFormerMember ? "text-muted-foreground line-through" : "text-foreground"}`}>{displayName}</p>
                         <p className="font-display text-sm font-bold text-primary">{Math.round(entry.rating).toLocaleString("pt-BR")}</p>
                         <p className="text-[9px] text-muted-foreground">{wr}% WR</p>
                         {/* Pedestal block */}
@@ -732,7 +739,8 @@ function RankingPage() {
                 const isMe = entry.user_id === user?.id;
                 const pos = entry.position || "—";
                 const wr = winRate(entry.matches_won, entry.matches_played);
-                const isDimmed = !entry.is_eligible;
+                const isInactive = !entry.is_eligible;
+                const isFormer = !!entry.isFormerMember;
                 const displayName = getDisplayName(entry);
                 const losses = entry.matches_played - entry.matches_won;
                 const isEven = idx % 2 === 0;
@@ -742,7 +750,7 @@ function RankingPage() {
                     key={entry.user_id}
                     className={`flex items-center px-2 py-2 transition-opacity ${
                       isMe ? "bg-primary/5" : isEven ? "bg-muted/10" : ""
-                    } ${isDimmed ? "opacity-40" : ""}`}
+                    } ${isInactive || isFormer ? "opacity-50" : ""}`}
                     style={{ boxShadow: idx > 0 ? "inset 0 1px 0 0 color-mix(in oklab, var(--border) 30%, transparent)" : undefined }}
                   >
                     {/* Position + change indicator */}
@@ -773,15 +781,17 @@ function RankingPage() {
 
                     {/* Avatar + Name */}
                     <div className="flex flex-1 items-center gap-1.5 min-w-0 pl-1">
-                      <PlayerAvatar avatarUrl={entry.profile?.avatar_url} name={entry.profile?.name || "?"} size="sm" className="border border-border !h-7 !w-7" />
+                      <PlayerAvatar avatarUrl={entry.profile?.avatar_url} name={entry.profile?.name || "?"} size="sm" dimmed={isFormer} className="border border-border !h-7 !w-7" />
                       <div className="min-w-0">
-                        <p className="text-[11px] font-semibold text-foreground leading-tight">
+                        <p className={`text-[11px] font-semibold leading-tight ${isFormer ? "text-muted-foreground line-through" : "text-foreground"}`}>
                           {displayName}
                           {isMe && <span className="ml-0.5 text-primary text-[9px]">(você)</span>}
                         </p>
-                        {isDimmed && !entry.hasSnapshot && (
+                        {isFormer ? (
+                          <p className="text-[8px] uppercase tracking-wide text-muted-foreground leading-none">Ex-membro</p>
+                        ) : isInactive && !entry.hasSnapshot ? (
                           <p className="text-[8px] text-muted-foreground leading-none">Sem partidas</p>
-                        )}
+                        ) : null}
                       </div>
                     </div>
 

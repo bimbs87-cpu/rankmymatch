@@ -181,10 +181,18 @@ function GroupDetailPage() {
     refresh();
   };
 
-  const handleRemove = async (memberId: string) => {
-    await removeMember(memberId);
-    toast.success("Membro removido");
-    refresh();
+  const handleRemove = async (memberId: string, memberName?: string) => {
+    const ok = window.confirm(
+      `Desvincular ${memberName || "este membro"} do grupo?\n\nO acesso ao grupo será revogado, mas o nome continuará aparecendo (esmaecido) em rankings, partidas e históricos.`,
+    );
+    if (!ok) return;
+    try {
+      await removeMember(memberId);
+      toast.success("Membro desvinculado");
+      refresh();
+    } catch (e) {
+      toast.error("Não foi possível desvincular o membro");
+    }
   };
 
   const handlePromote = async (memberId: string) => {
@@ -565,9 +573,9 @@ function GroupDetailPage() {
                               </button>
                             )}
                             <button
-                              onClick={() => handleRemove(m.id)}
+                              onClick={() => handleRemove(m.id, m.profile?.name)}
                               className="rounded-lg bg-destructive/10 p-1.5 text-destructive"
-                              title="Remover"
+                              title="Desvincular do grupo"
                             >
                               <UserMinus className="h-3 w-3" />
                             </button>

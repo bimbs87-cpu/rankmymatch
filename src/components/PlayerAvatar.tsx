@@ -5,6 +5,8 @@ interface PlayerAvatarProps {
   name?: string;
   size?: "xs" | "sm" | "md" | "lg" | "xl";
   className?: string;
+  /** When true, renders the avatar with reduced opacity + grayscale to indicate the player is no longer an active group member. */
+  dimmed?: boolean;
 }
 
 const SIZES = {
@@ -15,8 +17,9 @@ const SIZES = {
   xl: { container: "h-20 w-20", text: "text-xl" },
 };
 
-export function PlayerAvatar({ avatarUrl, name = "", size = "sm", className = "" }: PlayerAvatarProps) {
+export function PlayerAvatar({ avatarUrl, name = "", size = "sm", className = "", dimmed = false }: PlayerAvatarProps) {
   const s = SIZES[size];
+  const dimClass = dimmed ? "opacity-40 grayscale" : "";
 
   // Premium avatar (avatar:padel-01 or legacy emoji:padel-01)
   const prefix = avatarUrl?.startsWith("avatar:") ? "avatar:" : avatarUrl?.startsWith("emoji:") ? "emoji:" : null;
@@ -28,7 +31,7 @@ export function PlayerAvatar({ avatarUrl, name = "", size = "sm", className = ""
         <img
           src={src}
           alt=""
-          className={`shrink-0 rounded-full object-cover ${s.container} ${className}`}
+          className={`shrink-0 rounded-full object-cover ${s.container} ${dimClass} ${className}`}
         />
       );
     }
@@ -41,7 +44,7 @@ export function PlayerAvatar({ avatarUrl, name = "", size = "sm", className = ""
         src={avatarUrl}
         alt=""
         referrerPolicy="no-referrer"
-        className={`shrink-0 rounded-full object-cover ${s.container} ${className}`}
+        className={`shrink-0 rounded-full object-cover ${s.container} ${dimClass} ${className}`}
       />
     );
   }
@@ -55,7 +58,7 @@ export function PlayerAvatar({ avatarUrl, name = "", size = "sm", className = ""
     .slice(0, 2) || "?";
 
   return (
-    <div className={`flex shrink-0 items-center justify-center rounded-full bg-muted font-bold text-foreground ${s.container} ${s.text} ${className}`}>
+    <div className={`flex shrink-0 items-center justify-center rounded-full bg-muted font-bold text-foreground ${s.container} ${s.text} ${dimClass} ${className}`}>
       {initials}
     </div>
   );
