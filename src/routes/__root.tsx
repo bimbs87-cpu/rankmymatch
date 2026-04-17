@@ -87,7 +87,24 @@ function RootComponent() {
     const isPreview = window.location.hostname.includes("id-preview--");
 
     if (!isInIframe && !isPreview && "serviceWorker" in navigator) {
-      navigator.serviceWorker.register("/sw.js").catch(() => {});
+      navigator.serviceWorker
+        .register("/sw.js", { updateViaCache: "none" })
+        .then((reg) => {
+          // Force-check for updates on every page load so users stuck on an
+          // old SW (which was breaking OAuth on Chrome/iOS) get the fix
+          // without needing a manual cache clear.
+          reg.update().catch(() => {});
+        })
+        .catch(() => {});
+
+      // When the new SW takes control, reload once so the fresh (non-
+      // intercepting) worker handles all subsequent requests.
+      let reloaded = false;
+      navigator.serviceWorker.addEventListener("controllerchange", () => {
+        if (reloaded) return;
+        reloaded = true;
+        window.location.reload();
+      });
     } else if (isInIframe || isPreview) {
       navigator.serviceWorker?.getRegistrations().then((regs) =>
         regs.forEach((r) => r.unregister())
