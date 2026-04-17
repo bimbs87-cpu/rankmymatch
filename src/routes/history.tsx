@@ -57,11 +57,30 @@ function HistoryPage() {
 
       // Fetch matches, players, sets, seasons in parallel
       const [matchesRes, playersRes, setsRes, seasonsRes] = await Promise.all([
-        supabase.from("matches").select("id, match_number, winner_team, created_at").in("id", matchIds),
+        supabase.from("matches").select("id, match_number, winner_team, created_at, round_id").in("id", matchIds),
         supabase.from("match_players").select("match_id, user_id, team").in("match_id", matchIds),
         supabase.from("match_sets").select("match_id, set_number, score_team_a, score_team_b").in("match_id", matchIds).order("set_number", { ascending: true }),
-        seasonIds.length ? supabase.from("seasons").select("id, name").in("id", seasonIds) : Promise.resolve({ data: [] }),
+        seasonIds.length ? supabase.from("seasons").select("id, name, group_id").in("id", seasonIds) : Promise.resolve({ data: [] }),
       ]);
+
+      // Fetch rounds to map matches → group when no season
+      const roundIds = [...new Set((matchesRes.data || []).map((m: any) => m.round_id).filter(Boolean))];
+      const { data: roundsData } = roundIds.length
+        ? await supabase.from("rounds").select("id, group_id").in("id", roundIds)
+        : { data: [] as any[] };
+      const roundMap = new Map((roundsData || []).map((r: any) => [r.id, r.group_id]));
+
+      // Fetch group names
+      const groupIds = [
+        ...new Set([
+          ...((seasonsRes.data || []).map((s: any) => s.group_id)),
+          ...((roundsData || []).map((r: any) => r.group_id)),
+        ].filter(Boolean)),
+      ] as string[];
+      const { data: groupsData } = groupIds.length
+        ? await supabase.from("groups").select("id, name").in("id", groupIds)
+        : { data: [] as any[] };
+      const groupMap = new Map((groupsData || []).map((g: any) => [g.id, g.name]));
 
       // Fetch all player profiles
       const allPlayerIds = [...new Set((playersRes.data || []).map((p) => p.user_id))];
