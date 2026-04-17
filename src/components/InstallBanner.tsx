@@ -151,21 +151,34 @@ export function InstallBanner() {
         <div className="mt-3 space-y-2">
           <div className="h-2 w-full overflow-hidden rounded-full bg-primary/15">
             <div
-              className={`h-full rounded-full transition-[width,background-color] duration-300 ease-out ${
+              className={`h-full rounded-full transition-[width,background-color] duration-500 ease-out ${
                 phase === "success" ? "bg-success" : "bg-primary"
               }`}
               style={{ width: `${progress}%` }}
             />
           </div>
           <div className="flex items-center justify-between text-[11px]">
-            <span className="text-muted-foreground">{Math.round(progress)}%</span>
-            {isInstalling && (
-              <span className="flex items-center gap-1 text-muted-foreground">
-                <Smartphone className="h-3 w-3" />
-                Não feche o app durante a instalação
-              </span>
+            <span className="font-medium tabular-nums text-muted-foreground">
+              {Math.round(progress)}%
+            </span>
+            {phase === "success" && (
+              <span className="font-semibold text-success">Concluído</span>
             )}
           </div>
+        </div>
+      )}
+
+      {/* Prominent "do not close" warning during install */}
+      {isInstalling && (
+        <div
+          role="alert"
+          className="mt-3 flex items-start gap-2 rounded-xl border border-amber-500/40 bg-amber-500/10 p-3"
+        >
+          <Smartphone className="h-4 w-4 shrink-0 text-amber-500 mt-0.5" />
+          <p className="text-[11px] leading-relaxed text-amber-100">
+            <span className="font-semibold">Não feche o app nem troque de janela.</span>{" "}
+            Aguarde a instalação terminar — o ícone aparecerá na sua tela inicial.
+          </p>
         </div>
       )}
 
