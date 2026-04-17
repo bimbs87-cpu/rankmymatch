@@ -31,32 +31,48 @@ const WEEKDAYS = [
 
 const COURT_OPTIONS = [1, 2, 3, 4];
 
-function getUpcomingDates(dayOfWeek: number, count: number, roundsPlayed = 0): string[] {
+function parseISODateLocal(iso: string): Date {
+  // Parse YYYY-MM-DD as local date (avoid UTC shift)
+  const [y, m, d] = iso.split("-").map(Number);
+  return new Date(y, (m || 1) - 1, d || 1);
+}
+
+function toISODate(d: Date): string {
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+function getUpcomingDates(dayOfWeek: number, count: number, roundsPlayed = 0, startDate?: string): string[] {
   const dates: string[] = [];
-  const today = new Date();
-  const current = new Date(today);
-  // Find the next occurrence of the chosen day
-  const diff = (dayOfWeek - current.getDay() + 7) % 7;
-  current.setDate(current.getDate() + (diff === 0 && current.getHours() >= 12 ? 7 : diff === 0 ? 0 : diff));
+  const anchor = startDate ? parseISODateLocal(startDate) : new Date();
+  const current = new Date(anchor);
+  if (!startDate) {
+    // Find the next occurrence of the chosen day from today
+    const diff = (dayOfWeek - current.getDay() + 7) % 7;
+    current.setDate(current.getDate() + (diff === 0 && current.getHours() >= 12 ? 7 : diff === 0 ? 0 : diff));
+  }
   // Go back for rounds already played
   if (roundsPlayed > 0) {
     current.setDate(current.getDate() - (roundsPlayed * 7));
   }
   for (let i = 0; i < count; i++) {
-    dates.push(current.toISOString().split("T")[0]);
+    dates.push(toISODate(current));
     current.setDate(current.getDate() + 7);
   }
   return dates;
 }
 
-function getUpcomingMonthlyDates(count: number, roundsPlayed = 0): string[] {
+function getUpcomingMonthlyDates(count: number, roundsPlayed = 0, startDate?: string): string[] {
   const dates: string[] = [];
-  const today = new Date();
+  const anchor = startDate ? parseISODateLocal(startDate) : new Date();
   const startOffset = roundsPlayed > 0 ? -roundsPlayed : 0;
   for (let i = 0; i < count; i++) {
-    const month = today.getMonth() + startOffset + i;
-    const mid = new Date(today.getFullYear(), month, 15);
-    dates.push(mid.toISOString().split("T")[0]);
+    const month = anchor.getMonth() + startOffset + i;
+    const day = startDate ? anchor.getDate() : 15;
+    const d = new Date(anchor.getFullYear(), month, day);
+    dates.push(toISODate(d));
   }
   return dates;
 }
