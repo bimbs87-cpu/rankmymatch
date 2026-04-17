@@ -597,6 +597,11 @@ function GroupDetailPage() {
               </div>
             )}
 
+            {/* Admin: Claims pendentes */}
+            {isAdmin && (
+              <PlayerClaimsManager groupId={groupId} onResolved={refresh} />
+            )}
+
             {/* Feed do grupo - abaixo da tabela */}
             {isMember && (
               <Link
