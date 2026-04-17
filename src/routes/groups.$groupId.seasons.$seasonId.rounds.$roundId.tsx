@@ -331,6 +331,41 @@ function RoundDetailPage() {
     }
   };
 
+  // Derive the real participant list from match_players for rounds with matches.
+  // Ensures finished rounds always show e.g. 4/4 even if presence rows weren't
+  // toggled before scoring. Hooks must run before any early return.
+  const playedUserIds = useMemo(() => {
+    const set = new Set<string>();
+    for (const m of matches) {
+      for (const mp of m.match_players || []) set.add(mp.user_id);
+    }
+    return set;
+  }, [matches]);
+
+  const presenceConfirmed = useMemo(
+    () => presences.filter((p) => p.status === "confirmed"),
+    [presences],
+  );
+
+  const confirmedPlayers = useMemo(() => {
+    if (matches.length === 0) return presenceConfirmed;
+    const presenceMap = new Map(presences.map((p) => [p.user_id, p]));
+    return Array.from(playedUserIds).map((uid) => {
+      const existing = presenceMap.get(uid);
+      if (existing) return existing;
+      const mp = matches
+        .flatMap((m: any) => m.match_players || [])
+        .find((p: any) => p.user_id === uid);
+      return {
+        id: `played-${uid}`,
+        user_id: uid,
+        round_id: roundId,
+        status: "confirmed",
+        profile: mp?.profile,
+      } as any;
+    });
+  }, [matches, presences, playedUserIds, presenceConfirmed, roundId]);
+
   if (isLoading) {
     return <TrophyLoadingBar />;
   }
@@ -344,40 +379,6 @@ function RoundDetailPage() {
   }
 
   const isConfirmed = myPresence?.status === "confirmed";
-  const presenceConfirmed = presences.filter((p) => p.status === "confirmed");
-
-  // For rounds that already have matches (in_progress/completed), the real
-  // confirmed players are those who actually played — derive from match_players
-  // so e.g. a finished 2v2 always shows 4/4 even if presence rows weren't toggled.
-  const playedUserIds = useMemo(() => {
-    const set = new Set<string>();
-    for (const m of matches) {
-      for (const mp of m.match_players || []) set.add(mp.user_id);
-    }
-    return set;
-  }, [matches]);
-
-  const roundHasMatches = matches.length > 0;
-  const confirmedPlayers = roundHasMatches
-    ? (() => {
-        const presenceMap = new Map(presences.map((p) => [p.user_id, p]));
-        return Array.from(playedUserIds).map((uid) => {
-          const existing = presenceMap.get(uid);
-          if (existing) return existing;
-          // Fallback: build a minimal presence-like object from match_players profile
-          const mp = matches
-            .flatMap((m: any) => m.match_players || [])
-            .find((p: any) => p.user_id === uid);
-          return {
-            id: `played-${uid}`,
-            user_id: uid,
-            round_id: roundId,
-            status: "confirmed",
-            profile: mp?.profile,
-          } as any;
-        });
-      })()
-    : presenceConfirmed;
   const effectiveConfirmedCount = confirmedPlayers.length;
 
   const isSingles = group?.match_format === "singles";
