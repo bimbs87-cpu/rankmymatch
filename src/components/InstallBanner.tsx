@@ -102,32 +102,35 @@ export function InstallBanner() {
     }
   };
 
-  // Don't show if already installed (unless mid-celebration), dismissed, or ineligible.
-  // CRITICAL: while installing, NEVER auto-hide the banner — the user needs the warning.
-  if (isInstalled && phase !== "success") return null;
   const isInstalling =
     phase === "prompting" || phase === "downloading" || phase === "finalizing";
-  if (dismissed && !isInstalling) return null;
-  if (!canInstall && !isIos && phase === "idle") return null;
+  const overlayActive = isInstalling || phase === "success";
 
-  const phaseLabel: Record<InstallPhase, string> = {
-    idle: "",
-    prompting: "Confirme no aviso do navegador…",
-    downloading: "Baixando o aplicativo… aguarde",
-    finalizing: "Quase lá… finalizando instalação",
-    success: "Instalado com sucesso!",
-    cancelled: "Instalação cancelada",
-  };
+  // CRITICAL: while the user is actively installing (or we're celebrating),
+  // ALWAYS render the overlay — even if the browser flips `isInstalled` to
+  // true mid-flow (Android Chrome does this the moment the user accepts the
+  // prompt, well before the icon actually appears on the home screen).
+  // Only the overlay matters during install; the banner card is hidden.
+  if (overlayActive) {
+    return (
+      <InstallOverlay
+        phase={phase === "success" ? "success" : (phase as "prompting" | "downloading" | "finalizing")}
+        progress={progress}
+        phaseLabel={phaseLabel[phase]}
+      />
+    );
+  }
+
+  // Outside the install flow: hide if already installed, dismissed, or ineligible.
+  if (isInstalled) return null;
+  if (dismissed) return null;
+  if (!canInstall && !isIos) return null;
+
+  const phaseLabelLocal = phaseLabel; // keep reference stable below
+  void phaseLabelLocal;
 
   return (
     <>
-      {(isInstalling || phase === "success") && (
-        <InstallOverlay
-          phase={phase as "prompting" | "downloading" | "finalizing" | "success"}
-          progress={progress}
-          phaseLabel={phaseLabel[phase]}
-        />
-      )}
     <div className="mx-4 mb-3 rounded-2xl border border-primary/30 bg-card/95 backdrop-blur-sm p-4 shadow-lg">
       <div className="flex items-start gap-3">
         <div
