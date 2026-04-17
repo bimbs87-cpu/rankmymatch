@@ -172,10 +172,10 @@ export function InstallBanner() {
       {isInstalling && (
         <div
           role="alert"
-          className="mt-3 flex items-start gap-2 rounded-xl border border-amber-500/40 bg-amber-500/10 p-3"
+          className="mt-3 flex items-start gap-2 rounded-xl border border-warning/40 bg-warning/10 p-3"
         >
-          <Smartphone className="h-4 w-4 shrink-0 text-amber-500 mt-0.5" />
-          <p className="text-[11px] leading-relaxed text-amber-100">
+          <Smartphone className="h-4 w-4 shrink-0 text-warning mt-0.5" />
+          <p className="text-[11px] leading-relaxed text-foreground">
             <span className="font-semibold">Não feche o app nem troque de janela.</span>{" "}
             Aguarde a instalação terminar — o ícone aparecerá na sua tela inicial.
           </p>
