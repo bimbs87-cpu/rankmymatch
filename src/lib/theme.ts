@@ -14,8 +14,9 @@ export function getResolvedTheme(theme: Theme): "light" | "dark" {
 function applyTheme(theme: Theme) {
   if (typeof document === "undefined") return;
   const resolved = getResolvedTheme(theme);
-  document.documentElement.classList.toggle("light", resolved === "light");
-  document.documentElement.classList.toggle("dark", resolved === "dark");
+  const cl = document.documentElement.classList;
+  cl.toggle("dark", resolved === "dark");
+  cl.toggle("light", resolved === "light");
 }
 
 export function useTheme() {
