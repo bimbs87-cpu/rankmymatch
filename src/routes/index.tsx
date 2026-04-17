@@ -125,7 +125,9 @@ function DashboardPage() {
   const [upcomingRounds, setUpcomingRounds] = useState<UpcomingRound[]>([]);
   const [recentMatches, setRecentMatches] = useState<RecentMatch[]>([]);
   const [myRanking, setMyRanking] = useState<MyRanking | null>(null);
-  const [dataLoading, setDataLoading] = useState(true);
+  const [dashLoading, setDashLoading] = useState(true);
+  const dataLoading = dashLoading || groupsLoading;
+  const setDataLoading = setDashLoading;
   const [refreshing, setRefreshing] = useState(false);
   const [pullDistance, setPullDistance] = useState(0);
   const scrollRef = useRef<HTMLDivElement>(null);
