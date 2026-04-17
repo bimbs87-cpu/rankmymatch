@@ -65,6 +65,7 @@ function RoundDetailPage() {
   const [deletingRound, setDeletingRound] = useState(false);
   const [expandedMatch, setExpandedMatch] = useState<string | null>(null);
   const [matchRatings, setMatchRatings] = useState<Record<string, any[]>>({});
+  const [previousPositions, setPreviousPositions] = useState<Record<string, number> | null>(null);
 
   const formatCompactName = (name?: string | null) => {
     const safeName = (name || "Jogador").trim();
@@ -101,6 +102,82 @@ function RoundDetailPage() {
     };
     loadAll();
   }, [matches]);
+
+  // Load previous completed round in same season and compute previous "Rei da Quadra" positions
+  useEffect(() => {
+    if (!round || !seasonId) return;
+    const currentDate = (round as any).scheduled_date;
+    const currentNumber = (round as any).round_number;
+    (async () => {
+      // Find previous completed round in same season (by date desc, then round_number desc)
+      let query = supabase
+        .from("rounds")
+        .select("id, scheduled_date, round_number, status")
+        .eq("season_id", seasonId)
+        .eq("status", "completed")
+        .neq("id", roundId);
+      const { data: prevRounds } = await query;
+      if (!prevRounds?.length) { setPreviousPositions(null); return; }
+      // Sort to find the round immediately before current
+      const sorted = [...prevRounds].sort((a, b) => {
+        const da = a.scheduled_date || "";
+        const db = b.scheduled_date || "";
+        if (da !== db) return db.localeCompare(da);
+        return (b.round_number || 0) - (a.round_number || 0);
+      });
+      const prev = sorted.find((r) => {
+        const d = r.scheduled_date || "";
+        const cd = currentDate || "";
+        if (d !== cd) return d < cd;
+        return (r.round_number || 0) < (currentNumber || 0);
+      });
+      if (!prev) { setPreviousPositions(null); return; }
+
+      // Load matches + sets + players for prev round
+      const { data: prevMatches } = await supabase
+        .from("matches")
+        .select("id, status, match_players(user_id, team), match_sets(score_team_a, score_team_b)")
+        .eq("round_id", prev.id)
+        .eq("status", "completed");
+      if (!prevMatches?.length || prevMatches.length < 2) { setPreviousPositions(null); return; }
+
+      // Load rating events for those matches to mirror current sort
+      const ids = prevMatches.map((m: any) => m.id);
+      const { data: prevEvents } = await supabase
+        .from("rating_events")
+        .select("match_id, user_id, rating_change")
+        .in("match_id", ids);
+      const eloByPlayer: Record<string, number> = {};
+      for (const e of prevEvents || []) {
+        eloByPlayer[e.user_id] = (eloByPlayer[e.user_id] || 0) + Math.round(Number(e.rating_change));
+      }
+
+      const stats: Record<string, { wins: number; gamesWon: number; gamesLost: number; eloChange: number }> = {};
+      for (const m of prevMatches as any[]) {
+        const sets = m.match_sets || [];
+        const setsA = sets.filter((s: any) => s.score_team_a > s.score_team_b).length;
+        const setsB = sets.filter((s: any) => s.score_team_b > s.score_team_a).length;
+        const gA = sets.reduce((s: number, x: any) => s + x.score_team_a, 0);
+        const gB = sets.reduce((s: number, x: any) => s + x.score_team_b, 0);
+        const winner = setsA > setsB ? "A" : setsB > setsA ? "B" : null;
+        for (const mp of m.match_players || []) {
+          if (!stats[mp.user_id]) stats[mp.user_id] = { wins: 0, gamesWon: 0, gamesLost: 0, eloChange: eloByPlayer[mp.user_id] || 0 };
+          const isA = mp.team === "A";
+          stats[mp.user_id].gamesWon += isA ? gA : gB;
+          stats[mp.user_id].gamesLost += isA ? gB : gA;
+          if (winner && ((isA && winner === "A") || (!isA && winner === "B"))) stats[mp.user_id].wins++;
+        }
+      }
+      const sortedPrev = Object.entries(stats).sort(([, a], [, b]) => {
+        if (b.eloChange !== a.eloChange) return b.eloChange - a.eloChange;
+        if (b.wins !== a.wins) return b.wins - a.wins;
+        return (b.gamesWon - b.gamesLost) - (a.gamesWon - a.gamesLost);
+      });
+      const positions: Record<string, number> = {};
+      sortedPrev.forEach(([uid], i) => { positions[uid] = i + 1; });
+      setPreviousPositions(positions);
+    })();
+  }, [round, seasonId, roundId]);
 
   const getPlayerEloChange = (matchId: string, userId: string) => {
     const events = matchRatings[matchId];
@@ -752,6 +829,9 @@ function RoundDetailPage() {
                 <div className="space-y-2">
                   {sorted.map(([uid, stats], i) => {
                     const isWinner = i === 0;
+                    const currentPos = i + 1;
+                    const prevPos = previousPositions ? previousPositions[uid] : undefined;
+                    const delta = prevPos !== undefined ? prevPos - currentPos : null; // positive = subiu
                     return (
                       <div
                         key={uid}
@@ -760,8 +840,18 @@ function RoundDetailPage() {
                         }`}
                       >
                         <span className={`w-5 text-sm font-bold ${isWinner ? "text-primary" : "text-muted-foreground"}`}>
-                          {i + 1}º
+                          {currentPos}º
                         </span>
+                        {delta !== null && (
+                          <span
+                            className={`inline-flex items-center text-[10px] font-bold tabular-nums w-7 ${
+                              delta > 0 ? "text-success" : delta < 0 ? "text-destructive" : "text-muted-foreground"
+                            }`}
+                            title={prevPos ? `Posição anterior: ${prevPos}º` : ""}
+                          >
+                            {delta > 0 ? `▲${delta}` : delta < 0 ? `▼${Math.abs(delta)}` : "—"}
+                          </span>
+                        )}
                         <PlayerAvatar avatarUrl={stats.avatarUrl} name={stats.name} size="xs" />
                         <div className="flex-1 min-w-0">
                           <span className={`text-sm truncate ${isWinner ? "text-primary font-bold" : "text-foreground font-medium"}`}>
