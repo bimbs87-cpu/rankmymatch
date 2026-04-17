@@ -65,6 +65,7 @@ function RoundDetailPage() {
   const [deletingRound, setDeletingRound] = useState(false);
   const [expandedMatch, setExpandedMatch] = useState<string | null>(null);
   const [matchRatings, setMatchRatings] = useState<Record<string, any[]>>({});
+  const [previousPositions, setPreviousPositions] = useState<Record<string, number> | null>(null);
 
   const formatCompactName = (name?: string | null) => {
     const safeName = (name || "Jogador").trim();
