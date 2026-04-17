@@ -226,7 +226,7 @@ export function useGroupDetail(groupId: string) {
       }
 
       if (user) {
-        const me = mems?.find((member) => member.user_id === user.id);
+        const me = mems?.find((member) => member.user_id === user.id && member.status === "active");
         setMyRole(me?.role || null);
 
         const { data: reqs, error: requestsError } = await supabase
