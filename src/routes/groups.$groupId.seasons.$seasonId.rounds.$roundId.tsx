@@ -795,12 +795,14 @@ function RoundDetailPage() {
             .map((mp: any) => ({
               name: mp.profile?.nickname || mp.profile?.name || "Jogador",
               avatarUrl: mp.profile?.avatar_url,
+              userId: mp.user_id,
             }))}
           teamB={(scoringMatch.match_players || [])
             .filter((mp: any) => mp.team === "B")
             .map((mp: any) => ({
               name: mp.profile?.nickname || mp.profile?.name || "Jogador",
               avatarUrl: mp.profile?.avatar_url,
+              userId: mp.user_id,
             }))}
           existingSets={(scoringMatch.match_sets || []).map((s: any) => ({
             setNumber: s.set_number,

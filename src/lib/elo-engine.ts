@@ -4,22 +4,82 @@ import { supabase } from "@/integrations/supabase/client";
 const BASE_K = 28;
 const INITIAL_RATING = 1000;
 
-function expectedScore(ratingA: number, ratingB: number): number {
+export function expectedScore(ratingA: number, ratingB: number): number {
   return 1 / (1 + Math.pow(10, (ratingB - ratingA) / 400));
 }
 
-function marginMultiplier(setsWon: number, setsLost: number, gamesWon: number, gamesLost: number): number {
+export function marginMultiplier(setsWon: number, setsLost: number, gamesWon: number, gamesLost: number): number {
   const setDiff = setsWon - setsLost;
   const gameDiff = gamesWon - gamesLost;
   // Bigger wins get a small bonus (1.0 to 1.5)
   return 1 + (setDiff * 0.1) + (Math.max(0, gameDiff) * 0.02);
 }
 
-function kFactor(matchesPlayed: number): number {
+export function kFactor(matchesPlayed: number): number {
   // New players have higher K for faster calibration
   if (matchesPlayed < 10) return 40;
   if (matchesPlayed < 30) return 32;
   return BASE_K;
+}
+
+/**
+ * Pure preview of Elo deltas for a single match. Mirrors the logic of
+ * processMatchElo but without any database writes — used to show the user
+ * the expected rating change before the score is saved.
+ *
+ * Each player record provides their current rating and how many matches they
+ * have played (used to derive the K-factor). Ratings default to 1000 and
+ * matchesPlayed defaults to 0 when not provided.
+ */
+export interface PlayerEloInput {
+  userId: string;
+  rating?: number;
+  matchesPlayed?: number;
+}
+
+export function previewMatchEloChanges(params: {
+  teamA: PlayerEloInput[];
+  teamB: PlayerEloInput[];
+  setsTeamA: number;
+  setsTeamB: number;
+  gamesTeamA: number;
+  gamesTeamB: number;
+}): Record<string, number> {
+  const { teamA, teamB, setsTeamA, setsTeamB, gamesTeamA, gamesTeamB } = params;
+  const winnerTeam: "A" | "B" | null =
+    setsTeamA > setsTeamB ? "A" : setsTeamB > setsTeamA ? "B" :
+    gamesTeamA > gamesTeamB ? "A" : gamesTeamB > gamesTeamA ? "B" : null;
+
+  const result: Record<string, number> = {};
+  if (!winnerTeam) {
+    for (const p of [...teamA, ...teamB]) result[p.userId] = 0;
+    return result;
+  }
+
+  const ratingOf = (p: PlayerEloInput) => p.rating ?? INITIAL_RATING;
+  const avgA = teamA.reduce((s, p) => s + ratingOf(p), 0) / Math.max(teamA.length, 1);
+  const avgB = teamB.reduce((s, p) => s + ratingOf(p), 0) / Math.max(teamB.length, 1);
+
+  const expectedA = expectedScore(avgA, avgB);
+  const expectedB = 1 - expectedA;
+
+  const mm = marginMultiplier(
+    winnerTeam === "A" ? setsTeamA : setsTeamB,
+    winnerTeam === "A" ? setsTeamB : setsTeamA,
+    winnerTeam === "A" ? gamesTeamA : gamesTeamB,
+    winnerTeam === "A" ? gamesTeamB : gamesTeamA,
+  );
+
+  const compute = (p: PlayerEloInput, isTeamA: boolean) => {
+    const expected = isTeamA ? expectedA : expectedB;
+    const actual = (isTeamA && winnerTeam === "A") || (!isTeamA && winnerTeam === "B") ? 1 : 0;
+    const k = kFactor(p.matchesPlayed ?? 0);
+    return Math.round(k * mm * (actual - expected) * 100) / 100;
+  };
+
+  for (const p of teamA) result[p.userId] = compute(p, true);
+  for (const p of teamB) result[p.userId] = compute(p, false);
+  return result;
 }
 
 interface MatchResult {

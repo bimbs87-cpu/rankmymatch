@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { submitMatchScore } from "@/lib/elo-engine";
+import { submitMatchScore, previewMatchEloChanges } from "@/lib/elo-engine";
 import { PlayerAvatar as SharedPlayerAvatar } from "@/components/PlayerAvatar";
 import { TrophyLoadingBar } from "@/components/TrophyLoadingBar";
 import { X, Check, ChevronRight, Save, Swords, Users, Crown, ArrowUp, ArrowDown } from "lucide-react";
@@ -53,7 +53,7 @@ export function ManualMatchDialog({ roundId, groupId, matchFormat = "doubles", o
   const [step, setStep] = useState<"select" | "scores">("select");
   const [submitting, setSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [playerRankings, setPlayerRankings] = useState<Record<string, { rating: number; position: number | null; prevPosition: number | null }>>({});
+  const [playerRankings, setPlayerRankings] = useState<Record<string, { rating: number; position: number | null; prevPosition: number | null; matchesPlayed: number }>>({});
   const [saveStep, setSaveStep] = useState(0);
   const [saveStepLabel, setSaveStepLabel] = useState("");
 
@@ -150,7 +150,7 @@ export function ManualMatchDialog({ roundId, groupId, matchFormat = "doubles", o
     if (roundData?.season_id) {
       const { data: snapshots } = await supabase
         .from("ranking_snapshots")
-        .select("user_id, rating, position")
+        .select("user_id, rating, position, matches_played")
         .eq("season_id", roundData.season_id)
         .in("user_id", selectedPlayers);
 
@@ -164,13 +164,14 @@ export function ManualMatchDialog({ roundId, groupId, matchFormat = "doubles", o
         .order("round_number", { ascending: false })
         .limit(1);
 
-      const rankings: Record<string, { rating: number; position: number | null; prevPosition: number | null }> = {};
+      const rankings: Record<string, { rating: number; position: number | null; prevPosition: number | null; matchesPlayed: number }> = {};
       for (const uid of selectedPlayers) {
         const snap = snapshots?.find((s) => s.user_id === uid);
         rankings[uid] = {
           rating: snap ? Number(snap.rating) : 1000,
           position: snap?.position ?? null,
           prevPosition: null,
+          matchesPlayed: snap?.matches_played ?? 0,
         };
       }
 
@@ -285,6 +286,67 @@ export function ManualMatchDialog({ roundId, groupId, matchFormat = "doubles", o
     return pts;
   }, [matchups, selectedPlayers]);
 
+  // Live preview of Elo deltas — per match and aggregated across all matches
+  // for the round. Uses simulated rating updates between matches so the
+  // sequential effect mirrors what processMatchElo will do at save time.
+  const eloPreview = useMemo(() => {
+    const perMatch: { delta: Record<string, number>; ratingsBefore: Record<string, number> }[] = [];
+    const totals: Record<string, number> = {};
+    const liveRatings: Record<string, number> = {};
+    const matchesPlayedSim: Record<string, number> = {};
+
+    for (const uid of selectedPlayers) {
+      liveRatings[uid] = playerRankings[uid]?.rating ?? 1000;
+      matchesPlayedSim[uid] = playerRankings[uid]?.matchesPlayed ?? 0;
+      totals[uid] = 0;
+    }
+
+    for (const mu of matchups) {
+      const valid = mu.scoreA !== mu.scoreB && (mu.scoreA > 0 || mu.scoreB > 0);
+      const ratingsBefore = { ...liveRatings };
+      if (!valid) {
+        const empty: Record<string, number> = {};
+        [...mu.teamA, ...mu.teamB].forEach((uid) => (empty[uid] = 0));
+        perMatch.push({ delta: empty, ratingsBefore });
+        continue;
+      }
+      const delta = previewMatchEloChanges({
+        teamA: mu.teamA.map((uid) => ({
+          userId: uid,
+          rating: liveRatings[uid],
+          matchesPlayed: matchesPlayedSim[uid],
+        })),
+        teamB: mu.teamB.map((uid) => ({
+          userId: uid,
+          rating: liveRatings[uid],
+          matchesPlayed: matchesPlayedSim[uid],
+        })),
+        setsTeamA: mu.scoreA > mu.scoreB ? 1 : 0,
+        setsTeamB: mu.scoreB > mu.scoreA ? 1 : 0,
+        gamesTeamA: mu.scoreA,
+        gamesTeamB: mu.scoreB,
+      });
+      perMatch.push({ delta, ratingsBefore });
+      for (const uid of [...mu.teamA, ...mu.teamB]) {
+        const d = delta[uid] ?? 0;
+        liveRatings[uid] = (liveRatings[uid] ?? 1000) + d;
+        matchesPlayedSim[uid] = (matchesPlayedSim[uid] ?? 0) + 1;
+        totals[uid] = (totals[uid] ?? 0) + d;
+      }
+    }
+
+    return { perMatch, totals, liveRatings };
+  }, [matchups, selectedPlayers, playerRankings]);
+
+  const formatEloDelta = (delta: number) => {
+    if (!delta) return "±0";
+    const rounded = Math.round(delta);
+    if (rounded === 0) {
+      return `${delta > 0 ? "+" : ""}${delta.toFixed(1)}`;
+    }
+    return `${rounded > 0 ? "+" : ""}${rounded}`;
+  };
+
   const handleSubmit = async () => {
     if (!allValid) {
       toast.error("Todos os confrontos precisam ter um vencedor (sem empates)");
@@ -398,6 +460,52 @@ export function ManualMatchDialog({ roundId, groupId, matchFormat = "doubles", o
           <span className="text-sm font-medium text-foreground">{getDisplayName(uid)}</span>
         </div>
       ))}
+    </div>
+  );
+
+  const TeamLabelWithElo = ({
+    players,
+    side,
+    delta,
+    showDelta,
+  }: {
+    players: string[];
+    side: "left" | "right";
+    delta: Record<string, number>;
+    showDelta: boolean;
+  }) => (
+    <div className={`flex flex-col gap-1.5 ${side === "right" ? "items-end" : "items-start"}`}>
+      {players.map((uid) => {
+        const d = delta[uid] ?? 0;
+        const positive = d > 0;
+        const negative = d < 0;
+        return (
+          <div
+            key={uid}
+            className={`flex items-center gap-2 ${side === "right" ? "flex-row-reverse" : ""}`}
+          >
+            <PlayerAvatar uid={uid} />
+            <div className={`flex flex-col ${side === "right" ? "items-end" : "items-start"}`}>
+              <span className="text-sm font-medium text-foreground leading-tight">
+                {getDisplayName(uid)}
+              </span>
+              {showDelta ? (
+                <span
+                  className={`text-[10px] font-bold leading-tight tabular-nums ${
+                    positive ? "text-success" : negative ? "text-destructive" : "text-muted-foreground"
+                  }`}
+                >
+                  {formatEloDelta(d)} Elo
+                </span>
+              ) : (
+                <span className="text-[10px] font-medium leading-tight text-muted-foreground/60">
+                  — Elo
+                </span>
+              )}
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 
@@ -563,7 +671,12 @@ export function ManualMatchDialog({ roundId, groupId, matchFormat = "doubles", o
 
                     {/* Teams + Score */}
                     <div className="flex items-center gap-3">
-                      <TeamLabel players={mu.teamA} side="left" />
+                      <TeamLabelWithElo
+                        players={mu.teamA}
+                        side="left"
+                        delta={eloPreview.perMatch[idx]?.delta || {}}
+                        showDelta={!!winner && !isTied}
+                      />
 
                       <div className="flex items-center gap-2 mx-auto">
                         <div className="flex flex-col items-center gap-1.5">
@@ -613,7 +726,12 @@ export function ManualMatchDialog({ roundId, groupId, matchFormat = "doubles", o
                         </div>
                       </div>
 
-                      <TeamLabel players={mu.teamB} side="right" />
+                      <TeamLabelWithElo
+                        players={mu.teamB}
+                        side="right"
+                        delta={eloPreview.perMatch[idx]?.delta || {}}
+                        showDelta={!!winner && !isTied}
+                      />
                     </div>
                   </div>
                 );
@@ -644,6 +762,10 @@ export function ManualMatchDialog({ roundId, groupId, matchFormat = "doubles", o
                       const posChange = ranking?.prevPosition && ranking?.position
                         ? ranking.prevPosition - ranking.position
                         : null;
+                      const totalDelta = eloPreview.totals[uid] ?? 0;
+                      const projectedRating = (ranking?.rating ?? 1000) + totalDelta;
+                      const positiveDelta = totalDelta > 0;
+                      const negativeDelta = totalDelta < 0;
                       return (
                         <div
                           key={uid}
@@ -668,8 +790,15 @@ export function ManualMatchDialog({ roundId, groupId, matchFormat = "doubles", o
                               )}
                             </div>
                             {ranking && (
-                              <span className="text-[10px] text-muted-foreground">
-                                {Math.round(ranking.rating)} Elo
+                              <span className="flex items-center gap-1.5 text-[10px] text-muted-foreground tabular-nums">
+                                <span>{Math.round(ranking.rating)} → {Math.round(projectedRating)} Elo</span>
+                                <span
+                                  className={`font-bold ${
+                                    positiveDelta ? "text-success" : negativeDelta ? "text-destructive" : "text-muted-foreground"
+                                  }`}
+                                >
+                                  {formatEloDelta(totalDelta)}
+                                </span>
                               </span>
                             )}
                           </div>
