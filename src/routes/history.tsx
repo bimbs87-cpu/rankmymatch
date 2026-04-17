@@ -128,6 +128,12 @@ function HistoryPage() {
             return { name: prof?.nickname || prof?.name || "Jogador", avatar_url: prof?.avatar_url || null };
           });
 
+        const groupId =
+          (season as any)?.group_id ||
+          (match?.round_id ? roundMap.get(match.round_id) : null) ||
+          null;
+        const groupName = groupId ? (groupMap.get(groupId) || "Grupo") : "Sem grupo";
+
         return {
           id: event.match_id + event.created_at,
           matchId: event.match_id,
@@ -142,6 +148,8 @@ function HistoryPage() {
           opponents,
           sets: sets.map((s) => ({ scoreA: s.score_team_a, scoreB: s.score_team_b })),
           seasonName: season?.name || "Temporada",
+          groupId,
+          groupName,
         };
       });
 
