@@ -263,6 +263,15 @@ function HistoryPage() {
           </div>
         ) : (
           <div className="overflow-hidden rounded-2xl border border-border bg-card/50">
+            {/* Column headers */}
+            <div className="flex items-center gap-2 border-b border-border bg-muted/20 px-3 py-1.5 text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">
+              <span className="w-6 flex-shrink-0" />
+              <span className="w-9 flex-shrink-0">Data</span>
+              <div className="min-w-0 flex-1 text-center">
+                Parceiro <span className="opacity-60">vs</span> Adversários
+              </div>
+              <span className="w-10 flex-shrink-0 text-right">Elo</span>
+            </div>
             {filteredMatches.map((match, idx) => {
               const won = match.winnerTeam === match.myTeam;
               const lost = match.winnerTeam && match.winnerTeam !== match.myTeam;
@@ -296,7 +305,7 @@ function HistoryPage() {
                     {won ? "V" : lost ? "D" : "—"}
                   </span>
                   <span className="w-9 flex-shrink-0 text-[10px] text-muted-foreground">{dateStr}</span>
-                  <div className="min-w-0 flex-1 text-[11px] leading-tight text-foreground">
+                  <div className="min-w-0 flex-1 text-center text-[11px] leading-tight text-foreground">
                     <span className="truncate">
                       {partnerStr} <span className="text-muted-foreground">vs</span> {oppStr}
                     </span>
