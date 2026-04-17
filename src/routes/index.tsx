@@ -756,7 +756,7 @@ function DashboardPage() {
       {/* PWA Install Banner */}
       <InstallBanner />
 
-      <div className="space-y-5 px-5 pt-5 lg:grid lg:grid-cols-12 lg:gap-6 lg:space-y-0">
+      <div className="space-y-5 px-5 pt-5 lg:grid lg:grid-cols-12 lg:grid-rows-[auto_1fr] lg:gap-6 lg:space-y-0">
         {/* Season switcher button — above the ranking card */}
         {!dataLoading && currentRanking && rankings.length > 1 && (
           <div className="relative flex animate-fade-in lg:col-span-12">
