@@ -1,13 +1,14 @@
 import { useState, useEffect } from "react";
-import { Link2, X, Check, Clock } from "lucide-react";
+import { Link2, X, Clock, UserMinus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 
-interface PlaceholderPlayer {
+interface ClaimablePlayer {
   user_id: string;
   name: string;
   avatar_url: string | null;
+  kind: "placeholder" | "former";
 }
 
 interface Props {
@@ -19,7 +20,8 @@ interface Props {
 }
 
 export function ClaimPlayerDialog({ open, onOpenChange, groupId, claimerUserId, onClaimed }: Props) {
-  const [placeholders, setPlaceholders] = useState<PlaceholderPlayer[]>([]);
+  const [placeholders, setPlaceholders] = useState<ClaimablePlayer[]>([]);
+  const [formerMembers, setFormerMembers] = useState<ClaimablePlayer[]>([]);
   const [pendingClaims, setPendingClaims] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [claimingId, setClaimingId] = useState<string | null>(null);
@@ -32,29 +34,41 @@ export function ClaimPlayerDialog({ open, onOpenChange, groupId, claimerUserId, 
   const loadData = async () => {
     setLoading(true);
     try {
-      // Get placeholder members in this group
+      // All members in this group (active + removed/left)
       const { data: members } = await supabase
         .from("group_members")
-        .select("user_id")
-        .eq("group_id", groupId)
-        .eq("status", "active");
+        .select("user_id, status")
+        .eq("group_id", groupId);
 
       if (!members?.length) {
         setPlaceholders([]);
+        setFormerMembers([]);
         setLoading(false);
         return;
       }
 
-      const userIds = members.map((m) => m.user_id);
+      const activeIds = members.filter((m) => m.status === "active").map((m) => m.user_id);
+      const formerIds = members
+        .filter((m) => m.status === "removed" || m.status === "left")
+        .map((m) => m.user_id)
+        .filter((id) => id !== claimerUserId);
+
       const { data: profiles } = await supabase
         .from("user_profiles")
-        .select("user_id, name, avatar_url")
-        .in("user_id", userIds)
-        .eq("is_placeholder", true);
+        .select("user_id, name, avatar_url, is_placeholder")
+        .in("user_id", [...activeIds, ...formerIds]);
 
-      setPlaceholders(profiles || []);
+      const placeholderList: ClaimablePlayer[] = (profiles || [])
+        .filter((p) => p.is_placeholder && activeIds.includes(p.user_id))
+        .map((p) => ({ user_id: p.user_id, name: p.name, avatar_url: p.avatar_url, kind: "placeholder" }));
 
-      // Check existing claims
+      const formerList: ClaimablePlayer[] = (profiles || [])
+        .filter((p) => !p.is_placeholder && formerIds.includes(p.user_id))
+        .map((p) => ({ user_id: p.user_id, name: p.name, avatar_url: p.avatar_url, kind: "former" }));
+
+      setPlaceholders(placeholderList);
+      setFormerMembers(formerList);
+
       const { data: claims } = await supabase
         .from("player_claims")
         .select("placeholder_user_id")
@@ -102,10 +116,44 @@ export function ClaimPlayerDialog({ open, onOpenChange, groupId, claimerUserId, 
 
   if (!open) return null;
 
+  const renderRow = (p: ClaimablePlayer) => {
+    const isPending = pendingClaims.includes(p.user_id);
+    const dimmed = p.kind === "former";
+    return (
+      <div
+        key={p.user_id}
+        className="flex items-center justify-between rounded-2xl border border-border bg-muted/20 px-4 py-3"
+      >
+        <div className="flex items-center gap-3">
+          <PlayerAvatar avatarUrl={p.avatar_url} name={p.name} size="lg" dimmed={dimmed} />
+          <span className={`text-sm font-medium ${dimmed ? "text-muted-foreground line-through" : "text-foreground"}`}>
+            {p.name}
+          </span>
+        </div>
+        {isPending ? (
+          <span className="flex items-center gap-1 text-xs text-warning">
+            <Clock className="h-3 w-3" />
+            Pendente
+          </span>
+        ) : (
+          <button
+            onClick={() => handleClaim(p.user_id)}
+            disabled={claimingId === p.user_id}
+            className="rounded-xl bg-primary/10 px-3 py-1.5 text-xs font-bold text-primary disabled:opacity-50"
+          >
+            {claimingId === p.user_id ? "..." : "Sou eu"}
+          </button>
+        )}
+      </div>
+    );
+  };
+
+  const hasAny = placeholders.length > 0 || formerMembers.length > 0;
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={() => onOpenChange(false)} />
-      <div className="relative w-[90%] max-w-sm rounded-3xl border border-border bg-card p-6 animate-in zoom-in-95 duration-200">
+      <div className="relative max-h-[90vh] w-[90%] max-w-sm overflow-y-auto rounded-3xl border border-border bg-card p-6 animate-in zoom-in-95 duration-200">
         <button
           onClick={() => onOpenChange(false)}
           className="absolute right-4 top-4 rounded-full p-1 text-muted-foreground hover:text-foreground"
@@ -124,38 +172,30 @@ export function ClaimPlayerDialog({ open, onOpenChange, groupId, claimerUserId, 
 
           {loading ? (
             <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-          ) : placeholders.length === 0 ? (
+          ) : !hasAny ? (
             <p className="text-sm text-muted-foreground">Nenhum jogador disponível para vincular</p>
           ) : (
-            <div className="w-full space-y-2">
-              {placeholders.map((p) => {
-                const isPending = pendingClaims.includes(p.user_id);
-                return (
-                  <div
-                    key={p.user_id}
-                    className="flex items-center justify-between rounded-2xl border border-border bg-muted/20 px-4 py-3"
-                  >
-                    <div className="flex items-center gap-3">
-                      <PlayerAvatar avatarUrl={p.avatar_url} name={p.name} size="lg" />
-                      <span className="text-sm font-medium text-foreground">{p.name}</span>
-                    </div>
-                    {isPending ? (
-                      <span className="flex items-center gap-1 text-xs text-warning">
-                        <Clock className="h-3 w-3" />
-                        Pendente
-                      </span>
-                    ) : (
-                      <button
-                        onClick={() => handleClaim(p.user_id)}
-                        disabled={claimingId === p.user_id}
-                        className="rounded-xl bg-primary/10 px-3 py-1.5 text-xs font-bold text-primary disabled:opacity-50"
-                      >
-                        {claimingId === p.user_id ? "..." : "Sou eu"}
-                      </button>
-                    )}
+            <div className="w-full space-y-4">
+              {placeholders.length > 0 && (
+                <div className="space-y-2">
+                  {placeholders.map(renderRow)}
+                </div>
+              )}
+
+              {formerMembers.length > 0 && (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 pt-2">
+                    <UserMinus className="h-3.5 w-3.5 text-muted-foreground" />
+                    <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                      Ex-membros
+                    </span>
                   </div>
-                );
-              })}
+                  <p className="text-[11px] text-muted-foreground">
+                    Estes jogadores saíram do grupo. Reivindique apenas se este nome for você.
+                  </p>
+                  {formerMembers.map(renderRow)}
+                </div>
+              )}
             </div>
           )}
         </div>
