@@ -840,8 +840,18 @@ function RoundDetailPage() {
                         }`}
                       >
                         <span className={`w-5 text-sm font-bold ${isWinner ? "text-primary" : "text-muted-foreground"}`}>
-                          {i + 1}º
+                          {currentPos}º
                         </span>
+                        {delta !== null && (
+                          <span
+                            className={`inline-flex items-center text-[10px] font-bold tabular-nums w-7 ${
+                              delta > 0 ? "text-success" : delta < 0 ? "text-destructive" : "text-muted-foreground"
+                            }`}
+                            title={prevPos ? `Posição anterior: ${prevPos}º` : ""}
+                          >
+                            {delta > 0 ? `▲${delta}` : delta < 0 ? `▼${Math.abs(delta)}` : "—"}
+                          </span>
+                        )}
                         <PlayerAvatar avatarUrl={stats.avatarUrl} name={stats.name} size="xs" />
                         <div className="flex-1 min-w-0">
                           <span className={`text-sm truncate ${isWinner ? "text-primary font-bold" : "text-foreground font-medium"}`}>
