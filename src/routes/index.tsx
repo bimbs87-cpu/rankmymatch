@@ -643,7 +643,11 @@ function DashboardPage() {
               Explorar <ChevronRight className="h-3.5 w-3.5" />
             </Link>
           </div>
-          {myGroups.length > 0 ? (
+          {groupsLoading ? (
+            <div className="flex flex-col items-center justify-center rounded-3xl border border-border bg-card p-6 min-h-[120px]">
+              <CardSpinner label="Carregando grupos" />
+            </div>
+          ) : myGroups.length > 0 ? (
             <div className="space-y-2">
               {myGroups.slice(0, 3).map((g) => (
                 <Link
