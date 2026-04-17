@@ -882,9 +882,10 @@ function DashboardPage() {
           </section>
         )}
 
-        {/* DESKTOP-ONLY: Últimos Resultados em formato de lista (col direita topo) */}
-        <section className="hidden lg:block lg:col-span-8 lg:order-2">
-          <div className="flex h-full flex-col rounded-3xl border border-border bg-card overflow-hidden">
+        {/* DESKTOP-ONLY: Right column = Últimos Resultados + Próximas Rodadas stacked */}
+        <section className="hidden lg:flex lg:flex-col lg:gap-6 lg:col-span-8 lg:col-start-5 lg:row-start-1 lg:row-span-2">
+          {/* Últimos Resultados card */}
+          <div className="flex flex-col rounded-3xl border border-border bg-card overflow-hidden">
             {/* Header */}
             <div className="flex items-center justify-between border-b border-border/60 px-4 py-2.5">
               <div className="flex items-center gap-2">
