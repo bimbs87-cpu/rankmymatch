@@ -829,6 +829,9 @@ function RoundDetailPage() {
                 <div className="space-y-2">
                   {sorted.map(([uid, stats], i) => {
                     const isWinner = i === 0;
+                    const currentPos = i + 1;
+                    const prevPos = previousPositions ? previousPositions[uid] : undefined;
+                    const delta = prevPos !== undefined ? prevPos - currentPos : null; // positive = subiu
                     return (
                       <div
                         key={uid}
