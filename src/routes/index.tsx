@@ -1011,8 +1011,8 @@ function DashboardPage() {
             const lastPos = positionPoints[positionPoints.length - 1]?.value;
             const posDelta = firstPos != null && lastPos != null ? firstPos - lastPos : null; // positive = subiu
             return (
-              <div className="rounded-3xl border border-border bg-card p-5">
-                <div className="mb-4 flex items-center justify-between">
+              <div className="flex h-full flex-col rounded-3xl border border-border bg-card p-5">
+                <div className="mb-3 flex items-center justify-between">
                   <div>
                     <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                       Evolução
@@ -1027,13 +1027,13 @@ function DashboardPage() {
                     Detalhes <ChevronRight className="h-3.5 w-3.5" />
                   </Link>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid flex-1 grid-cols-1 gap-3">
                   {/* Position chart */}
-                  <div className="flex flex-col">
-                    <div className="mb-2 flex items-baseline justify-between">
+                  <div className="flex flex-1 flex-col">
+                    <div className="mb-1.5 flex items-baseline justify-between">
                       <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Posição</p>
                       <div className="flex items-baseline gap-1.5">
-                        <span className="font-display text-lg font-bold text-foreground">
+                        <span className="font-display text-base font-bold text-foreground">
                           {lastPos != null ? `${lastPos}º` : "—"}
                         </span>
                         {posDelta != null && posDelta !== 0 && (
@@ -1044,17 +1044,17 @@ function DashboardPage() {
                         )}
                       </div>
                     </div>
-                    <div className="h-[160px] rounded-xl bg-muted/20 p-2">
+                    <div className="min-h-[80px] flex-1 rounded-xl bg-muted/20 p-2">
                       {renderLineChart(positionPoints, { color: "#84cc16", invertY: true })}
                     </div>
                   </div>
 
                   {/* Elo chart */}
-                  <div className="flex flex-col">
-                    <div className="mb-2 flex items-baseline justify-between">
+                  <div className="flex flex-1 flex-col">
+                    <div className="mb-1.5 flex items-baseline justify-between">
                       <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Elo Points</p>
                       <div className="flex items-baseline gap-1.5">
-                        <span className="font-display text-lg font-bold text-foreground">
+                        <span className="font-display text-base font-bold text-foreground">
                           {lastRating != null ? Math.round(lastRating) : "—"}
                         </span>
                         {ratingDelta != null && Math.abs(ratingDelta) >= 1 && (
@@ -1065,7 +1065,7 @@ function DashboardPage() {
                         )}
                       </div>
                     </div>
-                    <div className="h-[160px] rounded-xl bg-muted/20 p-2">
+                    <div className="min-h-[80px] flex-1 rounded-xl bg-muted/20 p-2">
                       {renderLineChart(ratingPoints, { color: "#3b82f6" })}
                     </div>
                   </div>
