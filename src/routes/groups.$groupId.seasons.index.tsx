@@ -658,22 +658,53 @@ function GroupSeasonsPage() {
                     </div>
                   </button>
                   {isRetroactive && (
-                    <div className="mt-2">
-                      <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Rodadas já realizadas</label>
-                      <div className="flex items-center gap-3">
-                        <input
-                          type="range"
-                          min={1}
-                          max={Math.max(1, totalRounds - 1)}
-                          value={roundsPlayed}
-                          onChange={(e) => setRoundsPlayed(Number(e.target.value))}
-                          className="flex-1 accent-primary"
-                        />
-                        <span className="w-10 text-center font-display text-lg font-bold text-foreground">{roundsPlayed}</span>
+                    <div className="mt-2 space-y-3">
+                      <div>
+                        <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Data de início da temporada</label>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <button
+                              type="button"
+                              className={cn(
+                                "flex w-full items-center justify-between rounded-xl border border-border bg-background px-3 py-2.5 text-sm",
+                                !startDate && "text-muted-foreground"
+                              )}
+                            >
+                              <span>{startDate ? formatDateBR(startDate) : "Selecionar data"}</span>
+                              <Calendar className="h-4 w-4 opacity-60" />
+                            </button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <CalendarPicker
+                              mode="single"
+                              selected={startDate ? parseISODateLocal(startDate) : undefined}
+                              onSelect={(date) => date && setStartDate(toISODate(date))}
+                              initialFocus
+                              className={cn("p-3 pointer-events-auto")}
+                            />
+                          </PopoverContent>
+                        </Popover>
+                        <p className="mt-1 text-[10px] text-muted-foreground">
+                          Data da 1ª rodada (passada). As demais serão geradas em sequência.
+                        </p>
                       </div>
-                      <p className="mt-1 text-[10px] text-muted-foreground">
-                        {roundsPlayed} rodada(s) no passado + {totalRounds - roundsPlayed} futuras
-                      </p>
+                      <div>
+                        <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Rodadas já realizadas</label>
+                        <div className="flex items-center gap-3">
+                          <input
+                            type="range"
+                            min={1}
+                            max={Math.max(1, totalRounds - 1)}
+                            value={roundsPlayed}
+                            onChange={(e) => setRoundsPlayed(Number(e.target.value))}
+                            className="flex-1 accent-primary"
+                          />
+                          <span className="w-10 text-center font-display text-lg font-bold text-foreground">{roundsPlayed}</span>
+                        </div>
+                        <p className="mt-1 text-[10px] text-muted-foreground">
+                          {roundsPlayed} rodada(s) no passado + {totalRounds - roundsPlayed} futuras
+                        </p>
+                      </div>
                     </div>
                   )}
                 </div>
