@@ -5,6 +5,7 @@ import { InviteLinkDialog } from "@/components/InviteLinkDialog";
 import { PendingMatchCard } from "@/components/PendingMatchCard";
 import { AddPlaceholderPlayerDialog } from "@/components/AddPlaceholderPlayerDialog";
 import { ClaimPlayerDialog } from "@/components/ClaimPlayerDialog";
+import { MergeMembersDialog } from "@/components/MergeMembersDialog";
 import { PlayerClaimsManager } from "@/components/PlayerClaimsManager";
 import { SearchUserDialog } from "@/components/SearchUserDialog";
 import { JoinGroupDialog } from "@/components/JoinGroupDialog";
