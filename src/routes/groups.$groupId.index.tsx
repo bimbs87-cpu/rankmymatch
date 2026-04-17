@@ -131,9 +131,11 @@ function GroupDetailPage() {
       });
   }, [groupId]);
 
-  // Check if current user is already a member (to hide claim button)
-  const isMemberAlready = members.some((m) => m.user_id === user?.id);
+  // Check if current user is already an ACTIVE member (to hide claim button)
+  const isMemberAlready = members.some((m) => m.user_id === user?.id && (m as any).status === "active");
   const hasPlaceholders = placeholderUserIds.size > 0;
+  const activeMembers = members.filter((m) => (m as any).status === "active");
+  const formerMembers = members.filter((m) => (m as any).status !== "active");
 
   if (isLoading) {
     return <TrophyLoadingBar />;
