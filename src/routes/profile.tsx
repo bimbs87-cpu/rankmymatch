@@ -461,7 +461,7 @@ function ProfilePage() {
           {!isInstalled && (canInstall || isIos) && (
             <button
               onClick={canInstall ? () => void startInstall() : undefined}
-              className="flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left transition-colors hover:bg-accent"
+              className="lg:hidden flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left transition-colors hover:bg-accent"
             >
               <Download className="h-4 w-4 text-primary" />
               <span className="flex-1 text-sm font-medium text-foreground">Instalar App</span>
