@@ -665,7 +665,7 @@ function RankingPage() {
                 <div className="mb-1 flex items-end justify-center gap-2 pt-4 pb-1">
                   {podiumOrder.map(({ entry, pos, height, color }) => {
                     if (!entry) return null;
-                    const displayName = entry.profile?.nickname || abbreviateName(entry.profile?.name || "Jogador");
+                    const displayName = getDisplayName(entry);
                     const wr = winRate(entry.matches_won, entry.matches_played);
                     const isCenter = pos === 1;
                     return (
