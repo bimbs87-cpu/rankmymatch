@@ -832,8 +832,7 @@ function RoundDetailPage() {
                   {sorted.map(([uid, stats], i) => {
                     const isWinner = i === 0;
                     const currentPos = i + 1;
-                    const prevPos = previousPositions ? previousPositions[uid] : undefined;
-                    const delta = prevPos !== undefined ? prevPos - currentPos : null; // positive = subiu
+                    const delta = previousPositions && previousPositions[uid] !== undefined ? previousPositions[uid] : null;
                     return (
                       <div
                         key={uid}
@@ -849,7 +848,7 @@ function RoundDetailPage() {
                             className={`inline-flex items-center text-[10px] font-bold tabular-nums w-7 ${
                               delta > 0 ? "text-success" : delta < 0 ? "text-destructive" : "text-muted-foreground"
                             }`}
-                            title={prevPos ? `Posição anterior: ${prevPos}º` : ""}
+                            title="Variação de posição no ranking do grupo"
                           >
                             {delta > 0 ? `▲${delta}` : delta < 0 ? `▼${Math.abs(delta)}` : "—"}
                           </span>
