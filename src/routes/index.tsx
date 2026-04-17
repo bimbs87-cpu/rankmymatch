@@ -127,7 +127,9 @@ function DashboardPage() {
   const { resolved: resolvedTheme } = themeData;
   const [upcomingRounds, setUpcomingRounds] = useState<UpcomingRound[]>([]);
   const [recentMatches, setRecentMatches] = useState<RecentMatch[]>([]);
-  const [myRanking, setMyRanking] = useState<MyRanking | null>(null);
+  const [rankings, setRankings] = useState<RankingOption[]>([]);
+  const [selectedSeasonId, setSelectedSeasonId] = useState<string | null>(null);
+  const [showRankingPicker, setShowRankingPicker] = useState(false);
   const [dashLoading, setDashLoading] = useState(true);
   const dataLoading = dashLoading || groupsLoading;
   const setDataLoading = setDashLoading;
