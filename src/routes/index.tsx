@@ -489,19 +489,20 @@ function DashboardPage() {
     return `${n}º`;
   };
 
-  // Compact bar chart: total games (a+b) of the user's last up to 3 sets, with value labels
-  const renderGamesBars = (games: number[]) => {
+  // Tall bar chart anchored at the bottom: user's games in the last up to 3 sets, with value labels above each bar
+  const renderGamesBars = (games: number[], height: number = 110) => {
     if (!games || games.length === 0) return null;
-    const w = 78;
-    const h = 30;
     const n = games.length;
-    const gap = 4;
-    const barW = (w - gap * (n - 1)) / n;
-    const maxVal = Math.max(...games, 1);
+    const barW = 18;
+    const gap = 6;
+    const w = n * barW + (n - 1) * gap;
+    const h = height;
+    const labelSpace = 14;
+    const maxVal = Math.max(...games, 6); // baseline scale so single-digit values look meaningful
     return (
       <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} className="overflow-visible">
         {games.map((g, i) => {
-          const barH = Math.max(3, (g / maxVal) * (h - 10));
+          const barH = Math.max(4, (g / maxVal) * (h - labelSpace));
           const x = i * (barW + gap);
           const y = h - barH;
           return (
@@ -511,15 +512,14 @@ function DashboardPage() {
                 y={y}
                 width={barW}
                 height={barH}
-                rx={1.5}
+                rx={3}
                 fill="var(--primary)"
-                opacity={0.85}
               />
               <text
                 x={x + barW / 2}
-                y={y - 2}
+                y={y - 3}
                 textAnchor="middle"
-                fontSize="8"
+                fontSize="10"
                 fontWeight="700"
                 fill="var(--foreground)"
               >
