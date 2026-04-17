@@ -130,5 +130,9 @@ function RootComponent() {
 function AuthNav() {
   const { isAuthenticated, isLoading } = useAuth();
   if (isLoading || !isAuthenticated) return null;
-  return <BottomNav />;
+  return (
+    <>
+      <BottomNav />
+    </>
+  );
 }
