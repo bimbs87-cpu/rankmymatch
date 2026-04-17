@@ -20,6 +20,7 @@ function LoginPage() {
   const { resolved: resolvedTheme } = useTheme();
   const navigate = useNavigate();
   const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const { canInstall, isFlowActive, startInstall, isInstalled } = useInstallFlow();
 
   useEffect(() => {
     if (!authLoading && isAuthenticated) {
