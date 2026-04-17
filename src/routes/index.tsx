@@ -884,7 +884,7 @@ function DashboardPage() {
 
         {/* DESKTOP-ONLY: Últimos Resultados em formato de lista (col direita topo) */}
         <section className="hidden lg:block lg:col-span-8 lg:order-2">
-          <div className="rounded-3xl border border-border bg-card overflow-hidden">
+          <div className="flex h-full flex-col rounded-3xl border border-border bg-card overflow-hidden">
             {/* Header */}
             <div className="flex items-center justify-between border-b border-border/60 px-4 py-2.5">
               <div className="flex items-center gap-2">
