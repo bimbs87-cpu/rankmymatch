@@ -863,6 +863,17 @@ function GroupDetailPage() {
           onAdded={refresh}
         />
       )}
+
+      {isAuthenticated && user && !isMember && (
+        <JoinGroupDialog
+          open={joinDialogOpen}
+          onOpenChange={setJoinDialogOpen}
+          groupId={groupId}
+          isPublicGroup={group.is_public}
+          userId={user.id}
+          onJoined={refresh}
+        />
+      )}
     </div>
   );
 }
