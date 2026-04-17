@@ -524,29 +524,77 @@ function DashboardPage() {
             <div className="flex flex-col items-center justify-center rounded-3xl border border-border bg-card p-5 min-h-[140px]">
               <CardSpinner label="Carregando ranking" />
             </div>
-          ) : myRanking ? (
-            <Link to="/ranking" className="flex flex-col rounded-3xl border border-primary/20 bg-primary/5 p-4">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Seu Ranking</p>
-              <div className="mt-1 flex items-baseline gap-1.5">
-                <span className="font-display text-3xl font-bold text-primary">
-                  {myRanking.position ? `#${myRanking.position}` : "—"}
-                </span>
-              </div>
-              <p className="font-display text-sm font-bold text-foreground">{Math.round(myRanking.rating)} Elo</p>
-              <div className="mt-1 flex items-center gap-2 text-[10px] text-muted-foreground">
-                <span>{myRanking.matches_won}V {myRanking.matches_played - myRanking.matches_won}D</span>
-                <span className="font-semibold">{winRate}%</span>
-                {myRanking.last_change !== null && (
-                  <span className={`flex items-center gap-0.5 font-semibold ${myRanking.last_change > 0 ? "text-success" : myRanking.last_change < 0 ? "text-destructive" : ""}`}>
-                    {myRanking.last_change > 0 ? <TrendingUp className="h-3 w-3" /> : myRanking.last_change < 0 ? <TrendingDown className="h-3 w-3" /> : <Minus className="h-3 w-3" />}
-                    {myRanking.last_change > 0 ? "+" : ""}{Math.round(myRanking.last_change)}
-                  </span>
+          ) : currentRanking ? (
+            <div className="relative flex flex-col rounded-3xl border border-primary/20 bg-primary/5 p-4 min-h-[140px]">
+              {/* Header: title + season switcher */}
+              <div className="flex items-center justify-between gap-1">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Seu Ranking</p>
+                {rankings.length > 1 && (
+                  <button
+                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowRankingPicker((v) => !v); }}
+                    className="flex items-center gap-0.5 rounded-full bg-card/60 px-1.5 py-0.5 text-[9px] font-semibold text-muted-foreground hover:text-foreground"
+                    aria-label="Trocar temporada"
+                  >
+                    Trocar <ChevronRight className="h-2.5 w-2.5 rotate-90" />
+                  </button>
                 )}
               </div>
-              <p className="mt-auto pt-2 text-[9px] text-muted-foreground/60">{myRanking.season_name}</p>
-            </Link>
+
+              {/* Ranking picker dropdown */}
+              {showRankingPicker && rankings.length > 1 && (
+                <div className="absolute left-3 right-3 top-9 z-20 max-h-44 overflow-y-auto rounded-2xl border border-border bg-card p-1 shadow-lg">
+                  {rankings.map((r) => (
+                    <button
+                      key={r.season_id}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setSelectedSeasonId(r.season_id);
+                        setShowRankingPicker(false);
+                      }}
+                      className={`flex w-full items-center justify-between gap-2 rounded-xl px-2 py-1.5 text-left text-[11px] ${
+                        r.season_id === currentRanking.season_id ? "bg-primary/15 text-primary" : "hover:bg-accent/50 text-foreground"
+                      }`}
+                    >
+                      <span className="truncate">{r.season_name}</span>
+                      <span className="shrink-0 font-semibold">{ordinalSuffix(r.position)}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              <Link
+                to="/ranking"
+                className="flex flex-1 flex-col"
+              >
+                {/* Position + sparkline */}
+                <div className="mt-1 flex items-end justify-between gap-2">
+                  <span className="font-display text-3xl font-bold leading-none text-primary">
+                    {ordinalSuffix(currentRanking.position)}
+                  </span>
+                  <div className="opacity-90">{renderSparkline(currentRanking.last_events)}</div>
+                </div>
+
+                {/* Elo */}
+                <p className="mt-1.5 font-display text-sm font-bold text-foreground">{Math.round(currentRanking.rating)} Elo</p>
+
+                {/* V-D % ELO */}
+                <div className="mt-1 flex items-center gap-2 text-[10px] text-muted-foreground">
+                  <span className="font-semibold">{currentRanking.matches_won}V {currentRanking.matches_played - currentRanking.matches_won}D</span>
+                  <span>{winRate}%</span>
+                  {currentRanking.last_change !== null && (
+                    <span className={`flex items-center gap-0.5 font-semibold ${currentRanking.last_change > 0 ? "text-success" : currentRanking.last_change < 0 ? "text-destructive" : ""}`}>
+                      {currentRanking.last_change > 0 ? <TrendingUp className="h-3 w-3" /> : currentRanking.last_change < 0 ? <TrendingDown className="h-3 w-3" /> : <Minus className="h-3 w-3" />}
+                      {currentRanking.last_change > 0 ? "+" : ""}{Math.round(currentRanking.last_change)}
+                    </span>
+                  )}
+                </div>
+
+                <p className="mt-auto pt-2 text-[9px] text-muted-foreground/60 truncate">{currentRanking.season_name}</p>
+              </Link>
+            </div>
           ) : (
-            <Link to="/ranking" className="flex flex-col items-center justify-center gap-1.5 rounded-3xl border border-border bg-card p-5 text-foreground">
+            <Link to="/ranking" className="flex flex-col items-center justify-center gap-1.5 rounded-3xl border border-border bg-card p-5 text-foreground min-h-[140px]">
               <BarChart3 className="h-7 w-7 text-muted-foreground/40" />
               <span className="text-sm font-semibold text-muted-foreground">Seu Ranking</span>
               <span className="text-[10px] text-muted-foreground/60">Jogue para aparecer</span>
