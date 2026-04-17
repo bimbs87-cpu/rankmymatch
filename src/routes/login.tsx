@@ -107,6 +107,17 @@ function LoginPage() {
             <p className="text-center text-sm text-destructive">{error}</p>
           )}
 
+          {/* Install App Button - shown when not installed and can install */}
+          {!isInstalled && canInstall && !isFlowActive && (
+            <button
+              onClick={() => void startInstall()}
+              className="flex w-full items-center justify-center gap-3 rounded-full border-2 border-primary/30 bg-card px-6 py-3 text-sm font-semibold text-foreground transition-all hover:bg-primary/10 active:scale-[0.98]"
+            >
+              <Download className="h-5 w-5 text-primary" />
+              Instalar aplicativo
+            </button>
+          )}
+
           <p className="text-center text-xs text-muted-foreground">
             Ao entrar, você concorda com nossos Termos de Uso e Política de Privacidade.
           </p>
