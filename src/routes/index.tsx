@@ -611,7 +611,11 @@ function DashboardPage() {
                   )}
                 </div>
 
-                <p className="mt-auto pt-2 text-[9px] text-muted-foreground/60 truncate">{currentRanking.season_name}</p>
+                <p className="mt-auto pt-2 text-[9px] text-muted-foreground/60 truncate">
+                  {currentRanking.season_name}
+                  {currentRanking.group_name ? ` · ${currentRanking.group_name}` : ""}
+                  {currentRanking.rounds_total > 0 ? ` · ${currentRanking.rounds_completed}/${currentRanking.rounds_total}` : ""}
+                </p>
               </Link>
             </div>
           ) : (
