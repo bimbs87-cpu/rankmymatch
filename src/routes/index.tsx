@@ -972,8 +972,8 @@ function DashboardPage() {
           )}
         </section>
 
-        {/* Últimos Resultados */}
-        <section className="lg:col-span-6">
+        {/* Últimos Resultados (mobile/tablet only — 3 cards horizontais) */}
+        <section className="lg:hidden">
           <div className="mb-3 flex items-center justify-between">
             <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Últimos Resultados
