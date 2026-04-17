@@ -16,6 +16,7 @@ import { useGroupSeasons, useSeasonRounds } from "@/hooks/use-seasons";
 import type { Tables } from "@/integrations/supabase/types";
 import { supabase } from "@/integrations/supabase/client";
 import { isRivalryGroup } from "@/lib/rivalry";
+import { buildDisplayNames } from "@/lib/name-disambiguation";
 import {
   useGroupDetail,
   joinGroup,
