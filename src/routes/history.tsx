@@ -40,6 +40,7 @@ function HistoryPage() {
   const [matches, setMatches] = useState<MatchHistory[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [groupFilter, setGroupFilter] = useState<string>("all");
+  const [selected, setSelected] = useState<MatchHistory | null>(null);
 
   useEffect(() => {
     if (!user) return;
