@@ -52,11 +52,13 @@ function getUpcomingDates(dayOfWeek: number, count: number, roundsPlayed = 0, st
     // Find the next occurrence of the chosen day from today
     const diff = (dayOfWeek - current.getDay() + 7) % 7;
     current.setDate(current.getDate() + (diff === 0 && current.getHours() >= 12 ? 7 : diff === 0 ? 0 : diff));
+    // Without an explicit start date, shift backward to include past rounds
+    if (roundsPlayed > 0) {
+      current.setDate(current.getDate) - (roundsPlayed * 7);
+      current.setDate(current.getDate() - (roundsPlayed * 7));
+    }
   }
-  // Go back for rounds already played
-  if (roundsPlayed > 0) {
-    current.setDate(current.getDate() - (roundsPlayed * 7));
-  }
+  // When startDate is provided, it IS round 1 — do not shift.
   for (let i = 0; i < count; i++) {
     dates.push(toISODate(current));
     current.setDate(current.getDate() + 7);
@@ -67,7 +69,8 @@ function getUpcomingDates(dayOfWeek: number, count: number, roundsPlayed = 0, st
 function getUpcomingMonthlyDates(count: number, roundsPlayed = 0, startDate?: string): string[] {
   const dates: string[] = [];
   const anchor = startDate ? parseISODateLocal(startDate) : new Date();
-  const startOffset = roundsPlayed > 0 ? -roundsPlayed : 0;
+  // When startDate is provided, it IS round 1. Otherwise, shift back by roundsPlayed.
+  const startOffset = startDate ? 0 : (roundsPlayed > 0 ? -roundsPlayed : 0);
   for (let i = 0; i < count; i++) {
     const month = anchor.getMonth() + startOffset + i;
     const day = startDate ? anchor.getDate() : 15;
