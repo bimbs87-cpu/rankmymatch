@@ -364,12 +364,14 @@ function DashboardPage() {
           const allSets: number[] = [];
           for (const ev of recentMatches) {
             const sets = setsByMatch.get(ev.match_id) || [];
+            const myTeam = teamByMatch.get(ev.match_id);
             for (const s of sets) {
-              allSets.push((s.score_team_a || 0) + (s.score_team_b || 0));
+              const myGames = myTeam === "B" ? (s.score_team_b || 0) : (s.score_team_a || 0);
+              allSets.push(myGames);
             }
           }
           // allSets is currently newest match -> oldest match (within match it's set_number asc).
-          // Reverse to chronological-ish (oldest first), then take last 3.
+          // Reverse to chronological order (oldest first), then take last 3.
           const lastSetGames = allSets.reverse().slice(-3);
           const roundCounts = roundsBySeason.get(snap.season_id) || { completed: 0, total: 0 };
           const plannedTotal = season?.total_rounds ?? roundCounts.total;
