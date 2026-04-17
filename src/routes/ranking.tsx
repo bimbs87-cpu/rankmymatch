@@ -717,7 +717,7 @@ function RankingPage() {
                 const pos = entry.position || "—";
                 const wr = winRate(entry.matches_won, entry.matches_played);
                 const isDimmed = !entry.is_eligible;
-                const displayName = entry.profile?.nickname || abbreviateName(entry.profile?.name || "Jogador");
+                const displayName = getDisplayName(entry);
                 const losses = entry.matches_played - entry.matches_won;
                 const isEven = idx % 2 === 0;
 
