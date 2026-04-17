@@ -475,42 +475,45 @@ function DashboardPage() {
     return `${n}º`;
   };
 
-  // Build a compact sparkline (SVG) showing variation across last 3 events
-  const renderSparkline = (events: number[]) => {
-    if (!events || events.length === 0) return null;
-    // Cumulative deltas anchored at 0
-    const cum: number[] = [];
-    let acc = 0;
-    cum.push(0);
-    for (const e of events) {
-      acc += e;
-      cum.push(acc);
-    }
-    const w = 70;
-    const h = 22;
-    const min = Math.min(...cum);
-    const max = Math.max(...cum);
-    const range = Math.max(1, max - min);
-    const stepX = w / Math.max(1, cum.length - 1);
-    const points = cum
-      .map((v, i) => {
-        const x = i * stepX;
-        const y = h - ((v - min) / range) * h;
-        return `${x.toFixed(1)},${y.toFixed(1)}`;
-      })
-      .join(" ");
-    const last = cum[cum.length - 1];
-    const stroke = last > 0 ? "var(--success)" : last < 0 ? "var(--destructive)" : "var(--muted-foreground)";
+  // Compact bar chart: total games (a+b) of the user's last up to 3 sets, with value labels
+  const renderGamesBars = (games: number[]) => {
+    if (!games || games.length === 0) return null;
+    const w = 78;
+    const h = 30;
+    const n = games.length;
+    const gap = 4;
+    const barW = (w - gap * (n - 1)) / n;
+    const maxVal = Math.max(...games, 1);
     return (
       <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} className="overflow-visible">
-        <polyline
-          points={points}
-          fill="none"
-          stroke={stroke}
-          strokeWidth={1.5}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
+        {games.map((g, i) => {
+          const barH = Math.max(3, (g / maxVal) * (h - 10));
+          const x = i * (barW + gap);
+          const y = h - barH;
+          return (
+            <g key={i}>
+              <rect
+                x={x}
+                y={y}
+                width={barW}
+                height={barH}
+                rx={1.5}
+                fill="var(--primary)"
+                opacity={0.85}
+              />
+              <text
+                x={x + barW / 2}
+                y={y - 2}
+                textAnchor="middle"
+                fontSize="8"
+                fontWeight="700"
+                fill="var(--foreground)"
+              >
+                {g}
+              </text>
+            </g>
+          );
+        })}
       </svg>
     );
   };
