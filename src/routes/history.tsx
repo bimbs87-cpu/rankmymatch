@@ -410,12 +410,12 @@ function HistoryPage() {
                       <button
                         key={match.id}
                         onClick={() => setSelected(match)}
-                        className={`relative flex w-full items-center gap-2.5 py-2 pl-3 pr-3 text-left transition-colors hover:bg-muted/40 active:bg-muted/60 before:absolute before:left-0 before:top-1/2 before:h-7 before:w-[3px] before:-translate-y-1/2 before:rounded-r-full ${accent} ${
+                        className={`relative flex w-full items-stretch gap-2.5 py-2 pl-3 pr-3 text-left transition-colors hover:bg-muted/40 active:bg-muted/60 before:absolute before:left-0 before:top-1/2 before:h-7 before:w-[3px] before:-translate-y-1/2 before:rounded-r-full ${accent} ${
                           idx > 0 ? "border-t border-border/60" : ""
                         }`}
                       >
                         {/* Date stack — calendar-style for quick scan */}
-                        <div className="flex w-8 flex-shrink-0 flex-col items-center leading-none">
+                        <div className="flex w-8 flex-shrink-0 flex-col items-center justify-center leading-none">
                           <span className="font-display text-sm font-bold tabular-nums text-foreground">
                             {dayStr}
                           </span>
@@ -424,29 +424,22 @@ function HistoryPage() {
                           </span>
                         </div>
 
-                        {/* Match info — two tight lines */}
-                        <div className="min-w-0 flex-1 leading-tight">
-                          <div className="truncate text-[12px] font-semibold text-foreground">
-                            {partnerStr}{" "}
-                            <span className="font-normal text-muted-foreground/70">vs</span>{" "}
+                        {/* Match info — single centered line: partner [score] vs [score] opponents */}
+                        <div className="flex min-w-0 flex-1 items-center">
+                          <div className="min-w-0 truncate text-[12px] font-semibold text-foreground">
+                            {partnerStr}
+                            {hasScore && (
+                              <span className="mx-1 font-bold tabular-nums text-foreground/90">
+                                {myGames}
+                              </span>
+                            )}
+                            <span className="font-normal text-muted-foreground/70">vs</span>
+                            {hasScore && (
+                              <span className="mx-1 font-bold tabular-nums text-foreground/90">
+                                {oppGames}
+                              </span>
+                            )}{" "}
                             {oppStr}
-                          </div>
-                          <div className="mt-0.5 flex items-center gap-1.5">
-                            <span
-                              className={`text-[10px] font-bold uppercase tracking-wider ${
-                                won
-                                  ? "text-success"
-                                  : lost
-                                  ? "text-destructive"
-                                  : "text-muted-foreground"
-                              }`}
-                            >
-                              {won ? "Vitória" : lost ? "Derrota" : "—"}
-                            </span>
-                            <span className="text-[10px] text-muted-foreground/50">·</span>
-                            <span className="truncate text-[10px] tabular-nums text-muted-foreground">
-                              {gamesStr}
-                            </span>
                           </div>
                         </div>
 
