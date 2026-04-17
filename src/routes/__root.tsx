@@ -34,7 +34,7 @@ export const Route = createRootRoute({
   head: () => ({
     meta: [
       { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1" },
+      { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
       { title: "RankMyMatch — Rankings de Padel, Beach Tênis, Tênis e mais.." },
       { name: "description", content: "O app definitivo para feirinos com rankings, temporadas de padel entre amigos e clubes." },
       { property: "og:title", content: "RankMyMatch — Rankings de Padel, Beach Tênis, Tênis e mais.." },
@@ -86,7 +86,6 @@ function RootShell({ children }: { children: React.ReactNode }) {
 
 function RootComponent() {
   useEffect(() => {
-    // Register service worker for PWA install support (production only)
     const isInIframe = (() => {
       try { return window.self !== window.top; } catch { return true; }
     })();
@@ -96,7 +95,17 @@ function RootComponent() {
       host.includes("lovableproject.com") ||
       host.includes("lovable.dev");
 
-    if (!isInIframe && !isPreview && "serviceWorker" in navigator) {
+    // iOS Safari has well-known bugs where service workers intercept and
+    // break OAuth callbacks (Supabase sessions silently fail to persist
+    // after an OAuth redirect). Detect iOS and ALWAYS unregister any SW
+    // there, regardless of environment.
+    const ua = typeof navigator !== "undefined" ? navigator.userAgent : "";
+    const isIos = /iPad|iPhone|iPod/.test(ua) ||
+      (typeof navigator !== "undefined" && navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+
+    const shouldRegister = !isInIframe && !isPreview && !isIos && "serviceWorker" in navigator;
+
+    if (shouldRegister) {
       navigator.serviceWorker
         .register("/sw.js", { updateViaCache: "none" })
         .then((reg) => {
@@ -104,13 +113,13 @@ function RootComponent() {
         })
         .catch(() => {});
     } else if ("serviceWorker" in navigator) {
-      // Preview / iframe: aggressively unregister any SW + clear caches so
-      // an old worker can't keep the app stuck on a loading screen.
+      // iOS / preview / iframe: aggressively unregister any SW + clear caches
+      // so an old worker can't break OAuth or keep the app stuck loading.
       navigator.serviceWorker.getRegistrations().then((regs) => {
         regs.forEach((r) => r.unregister());
-      });
+      }).catch(() => {});
       if (typeof caches !== "undefined") {
-        caches.keys().then((keys) => keys.forEach((k) => caches.delete(k)));
+        caches.keys().then((keys) => keys.forEach((k) => caches.delete(k))).catch(() => {});
       }
     }
   }, []);
