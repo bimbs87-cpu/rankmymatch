@@ -11,19 +11,23 @@ export function InstallBanner() {
   const [progress, setProgress] = useState(0);
   const progressTimer = useRef<number | null>(null);
 
-  // Animated fake progress that converges to 95% while installing,
-  // then jumps to 100% when the browser confirms install.
+  // Genuine-feeling progress: climbs slowly and asymptotically toward a
+  // ceiling that is ALWAYS below 100. Only the real `appinstalled` event
+  // is allowed to push the bar to 100%. This prevents the bar from
+  // looking "done" before the icon is actually on the home screen.
   useEffect(() => {
     if (phase === "downloading" || phase === "finalizing") {
-      const target = phase === "downloading" ? 80 : 95;
+      // Hard ceilings — never reach 100 from the timer
+      const target = phase === "downloading" ? 60 : 90;
       progressTimer.current = window.setInterval(() => {
         setProgress((p) => {
           if (p >= target) return p;
-          // Slower as we get closer to target — feels realistic
-          const step = Math.max(0.5, (target - p) * 0.06);
+          // Very slow asymptotic approach — installation on Android
+          // typically takes 5–15s, so we want the bar to feel patient.
+          const step = Math.max(0.15, (target - p) * 0.015);
           return Math.min(target, p + step);
         });
-      }, 120);
+      }, 250);
     } else {
       if (progressTimer.current) {
         clearInterval(progressTimer.current);
