@@ -4,7 +4,7 @@ import { useGroupDetail } from "@/hooks/use-groups";
 import { useGroupSeasons } from "@/hooks/use-seasons";
 import { createSeasonWithRounds } from "@/hooks/use-season-creation";
 import { isRivalryGroup } from "@/lib/rivalry";
-import { ArrowLeft, Plus, Trophy, X, Calendar, Pencil, MoreVertical, EyeOff, CheckCircle2, Trash2 } from "lucide-react";
+import { ArrowLeft, Plus, Trophy, X, Calendar, Pencil, MoreVertical, EyeOff, CheckCircle2, Trash2, Edit3 } from "lucide-react";
 import { TrophyLoadingBar } from "@/components/TrophyLoadingBar";
 import { WizardStepper } from "@/components/ui/wizard-stepper";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -222,7 +222,7 @@ function GroupSeasonsPage() {
     }
   };
 
-  const handleSeasonAction = async (seasonId: string, action: "deactivate" | "activate" | "finish" | "delete") => {
+  const handleSeasonAction = async (seasonId: string, action: "deactivate" | "activate" | "finish" | "delete" | "rename") => {
     setMenuOpenId(null);
     try {
       if (action === "delete") {
@@ -239,6 +239,17 @@ function GroupSeasonsPage() {
       } else if (action === "finish") {
         await supabase.from("seasons").update({ status: "finished" }).eq("id", seasonId);
         toast.success("Temporada concluída");
+      } else if (action === "rename") {
+        const current = seasons.find((s) => s.id === seasonId);
+        const next = window.prompt("Novo nome da temporada:", current?.name || "")?.trim();
+        if (!next || next === current?.name) return;
+        if (next.length > 60) {
+          toast.error("Nome muito longo (máx. 60 caracteres)");
+          return;
+        }
+        const { error } = await supabase.from("seasons").update({ name: next }).eq("id", seasonId);
+        if (error) throw error;
+        toast.success("Nome atualizado");
       }
       refresh();
     } catch (e) {
@@ -337,6 +348,13 @@ function GroupSeasonsPage() {
                     </button>
                     {menuOpenId === s.id && (
                       <div className="absolute right-0 top-8 z-20 w-44 rounded-xl border border-border bg-card shadow-lg overflow-hidden">
+                        <button
+                          onClick={(e) => { e.preventDefault(); handleSeasonAction(s.id, "rename"); }}
+                          className="flex w-full items-center gap-2 px-3 py-2.5 text-xs text-foreground hover:bg-accent/30"
+                        >
+                          <Edit3 className="h-3.5 w-3.5 text-primary" />
+                          Renomear
+                        </button>
                         {s.status === "active" && (
                           <button
                             onClick={() => handleSeasonAction(s.id, "finish")}
