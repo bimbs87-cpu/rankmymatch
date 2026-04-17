@@ -33,7 +33,17 @@ import {
   TrendingDown,
   Minus,
   Pencil,
+  Loader2,
 } from "lucide-react";
+
+function CardSpinner({ label = "Carregando..." }: { label?: string }) {
+  return (
+    <div className="flex flex-col items-center justify-center gap-2 py-2">
+      <Loader2 className="h-6 w-6 animate-spin text-primary" />
+      <p className="text-[10px] text-muted-foreground">{label}</p>
+    </div>
+  );
+}
 
 export const Route = createFileRoute("/")({
   component: DashboardPage,
@@ -425,12 +435,8 @@ function DashboardPage() {
         {/* Ranking card + Quick action */}
         <section className="grid grid-cols-2 gap-3 animate-fade-in">
           {dataLoading ? (
-            <div className="flex flex-col rounded-3xl border border-border bg-card p-4 animate-pulse">
-              <div className="h-2.5 w-16 rounded bg-muted" />
-              <div className="mt-3 h-8 w-12 rounded bg-muted" />
-              <div className="mt-2 h-3 w-20 rounded bg-muted" />
-              <div className="mt-2 h-2 w-24 rounded bg-muted" />
-              <div className="mt-auto pt-3 h-2 w-16 rounded bg-muted" />
+            <div className="flex flex-col items-center justify-center rounded-3xl border border-border bg-card p-5 min-h-[140px]">
+              <CardSpinner label="Carregando ranking" />
             </div>
           ) : myRanking ? (
             <Link to="/ranking" className="flex flex-col rounded-3xl border border-primary/20 bg-primary/5 p-4">
@@ -491,20 +497,8 @@ function DashboardPage() {
           </div>
 
           {dataLoading ? (
-            <div className="space-y-2">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="flex items-center gap-3 rounded-2xl border border-border bg-card p-3.5 animate-pulse">
-                  <div className="h-10 w-10 shrink-0 rounded-xl bg-muted" />
-                  <div className="flex-1 space-y-2">
-                    <div className="h-3.5 w-28 rounded bg-muted" />
-                    <div className="h-2.5 w-40 rounded bg-muted" />
-                  </div>
-                  <div className="space-y-1.5 text-right">
-                    <div className="ml-auto h-3 w-8 rounded bg-muted" />
-                    <div className="ml-auto h-2 w-14 rounded bg-muted" />
-                  </div>
-                </div>
-              ))}
+            <div className="flex flex-col items-center justify-center rounded-3xl border border-border bg-card p-6 min-h-[120px]">
+              <CardSpinner label="Carregando rodadas" />
             </div>
           ) : upcomingRounds.length === 0 ? (
             <div className="rounded-3xl border border-border bg-card p-5">
@@ -593,17 +587,8 @@ function DashboardPage() {
           </div>
 
           {dataLoading ? (
-            <div className="space-y-2">
-              {[1, 2].map((i) => (
-                <div key={i} className="flex items-center gap-3 rounded-2xl border border-border bg-card p-3 animate-pulse">
-                  <div className="h-9 w-9 shrink-0 rounded-xl bg-muted" />
-                  <div className="flex-1 space-y-2">
-                    <div className="h-3 w-32 rounded bg-muted" />
-                    <div className="h-2.5 w-24 rounded bg-muted" />
-                  </div>
-                  <div className="h-3 w-6 rounded bg-muted" />
-                </div>
-              ))}
+            <div className="flex flex-col items-center justify-center rounded-3xl border border-border bg-card p-6 min-h-[120px]">
+              <CardSpinner label="Carregando resultados" />
             </div>
           ) : recentMatches.length === 0 ? (
             <div className="rounded-3xl border border-border bg-card p-5">
@@ -658,7 +643,11 @@ function DashboardPage() {
               Explorar <ChevronRight className="h-3.5 w-3.5" />
             </Link>
           </div>
-          {myGroups.length > 0 ? (
+          {groupsLoading ? (
+            <div className="flex flex-col items-center justify-center rounded-3xl border border-border bg-card p-6 min-h-[120px]">
+              <CardSpinner label="Carregando grupos" />
+            </div>
+          ) : myGroups.length > 0 ? (
             <div className="space-y-2">
               {myGroups.slice(0, 3).map((g) => (
                 <Link
