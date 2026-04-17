@@ -43,9 +43,24 @@ function InviteAuthButtons({ inviteUrl }: { inviteUrl: string }) {
       if (result.error) {
         toast.error("Erro ao fazer login. Tente novamente.");
         setLoading(false);
+        return;
       }
       if (result.redirected) return;
-    } catch {
+      // Tokens received — verify session is persisted (iOS Safari workaround)
+      let confirmed = false;
+      for (let i = 0; i < 20; i++) {
+        const { data } = await supabase.auth.getSession();
+        if (data.session) { confirmed = true; break; }
+        await new Promise((r) => setTimeout(r, 150));
+      }
+      if (confirmed) {
+        window.location.replace(inviteUrl);
+      } else {
+        toast.error("Sessão não pôde ser estabelecida. Tente novamente.");
+        setLoading(false);
+      }
+    } catch (err) {
+      console.error("[invite] OAuth error:", err);
       toast.error("Erro inesperado. Tente novamente.");
       setLoading(false);
     }

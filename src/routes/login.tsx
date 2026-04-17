@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import { lovable } from "@/integrations/lovable/index";
+import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { TrophyLoadingBar } from "@/components/TrophyLoadingBar";
 import { Button } from "@/components/ui/button";
@@ -45,11 +46,36 @@ function LoginPage() {
       });
       if (result.error) {
         setError("Erro ao fazer login. Tente novamente.");
+        setLoading(false);
+        return;
       }
-      if (result.redirected) return;
-    } catch {
+      if (result.redirected) {
+        // Browser will redirect; keep loading state
+        return;
+      }
+      // Tokens received and session set by lovable integration.
+      // On iOS Safari, the onAuthStateChange listener can be slow/unreliable
+      // after setSession — so we explicitly verify the session is persisted
+      // and force-navigate to the dashboard.
+      let confirmed = false;
+      for (let i = 0; i < 20; i++) {
+        const { data } = await supabase.auth.getSession();
+        if (data.session) {
+          confirmed = true;
+          break;
+        }
+        await new Promise((r) => setTimeout(r, 150));
+      }
+      if (confirmed) {
+        // Hard navigation ensures iOS Safari fully reloads with the new session
+        window.location.replace("/");
+      } else {
+        setError("Sessão não pôde ser estabelecida. Tente novamente.");
+        setLoading(false);
+      }
+    } catch (err) {
+      console.error("[login] OAuth error:", err);
       setError("Erro inesperado. Tente novamente.");
-    } finally {
       setLoading(false);
     }
   };
