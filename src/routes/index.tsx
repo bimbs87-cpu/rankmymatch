@@ -499,21 +499,40 @@ function DashboardPage() {
     const h = height;
     const labelSpace = 14;
     const maxVal = Math.max(...games, 6); // baseline scale so single-digit values look meaningful
+    const colorFor = (g: number) => {
+      if (g >= 6) return "#84cc16"; // win — vivid green
+      if (g === 5) return "#bef264"; // yellow-green
+      if (g >= 3) return "#facc15"; // yellow
+      return "#f9a8d4"; // 0-2 light pink
+    };
     return (
       <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} className="overflow-visible">
         {games.map((g, i) => {
           const barH = Math.max(4, (g / maxVal) * (h - labelSpace));
           const x = i * (barW + gap);
           const y = h - barH;
+          const isWin = g >= 6;
+          const color = colorFor(g);
           return (
             <g key={i}>
+              {isWin && (
+                <rect
+                  x={x - 1.5}
+                  y={y - 1.5}
+                  width={barW + 3}
+                  height={barH + 1.5}
+                  rx={4}
+                  fill={color}
+                  opacity={0.25}
+                />
+              )}
               <rect
                 x={x}
                 y={y}
                 width={barW}
                 height={barH}
                 rx={3}
-                fill="var(--primary)"
+                fill={color}
               />
               <text
                 x={x + barW / 2}
