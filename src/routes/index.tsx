@@ -881,6 +881,11 @@ function DashboardPage() {
                         c/ {m.partner_name}
                       </p>
                     )}
+                    {m.opponent_names.length > 0 && (
+                      <p className="text-[9px] text-muted-foreground/80 truncate leading-tight">
+                        vs {m.opponent_names.join(" & ")}
+                      </p>
+                    )}
                   </div>
                 );
               })}
