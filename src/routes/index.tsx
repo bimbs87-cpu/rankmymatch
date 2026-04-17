@@ -40,6 +40,7 @@ import {
   Home,
   User as UserIcon,
   Crown,
+  HelpCircle,
 } from "lucide-react";
 
 const DESKTOP_NAV = [
