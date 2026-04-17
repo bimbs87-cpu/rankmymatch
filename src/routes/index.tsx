@@ -14,6 +14,7 @@ import { usePendingMatch } from "@/hooks/use-pending-matches";
 import { PendingMatchCard } from "@/components/PendingMatchCard";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { InstallBanner } from "@/components/InstallBanner";
+import { EloEvolutionChart } from "@/components/EloEvolutionChart";
 import { supabase } from "@/integrations/supabase/client";
 import { isPresenceOpen, getPresenceOpenDate, formatPresenceOpenDate } from "@/lib/presence-schedule";
 import { toast } from "sonner";
@@ -1413,7 +1414,7 @@ function DashboardPage() {
 
                 {/* Chart */}
                 <div className="flex flex-1 flex-col">
-                  <div className="mb-1.5 flex items-center justify-between text-[10px] text-muted-foreground">
+                  <div className="mb-1 flex items-center justify-between text-[10px] text-muted-foreground">
                     <span>{ratingPoints.length > 0 ? `${ratingPoints.length} partidas` : ""}</span>
                     {minRating != null && maxRating != null && (
                       <span className="font-mono">
@@ -1421,8 +1422,12 @@ function DashboardPage() {
                       </span>
                     )}
                   </div>
-                  <div className="min-h-[220px] flex-1 rounded-xl bg-muted/10 p-2">
-                    {renderLineChart(ratingPoints, { color: "#84cc16", height: 240 })}
+                  <div className="min-h-[260px] flex-1">
+                    <EloEvolutionChart
+                      points={history.map((h) => ({ date: h.date, rating: h.rating }))}
+                      color="#84cc16"
+                      height={260}
+                    />
                   </div>
                 </div>
               </div>
