@@ -7,6 +7,7 @@ import { AddPlaceholderPlayerDialog } from "@/components/AddPlaceholderPlayerDia
 import { ClaimPlayerDialog } from "@/components/ClaimPlayerDialog";
 import { PlayerClaimsManager } from "@/components/PlayerClaimsManager";
 import { SearchUserDialog } from "@/components/SearchUserDialog";
+import { JoinGroupDialog } from "@/components/JoinGroupDialog";
 import { useAuth } from "@/hooks/use-auth";
 import { TrophyLoadingBar } from "@/components/TrophyLoadingBar";
 import { usePendingMatch } from "@/hooks/use-pending-matches";
