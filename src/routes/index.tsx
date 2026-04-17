@@ -756,7 +756,7 @@ function DashboardPage() {
       {/* PWA Install Banner */}
       <InstallBanner />
 
-      <div className="space-y-5 px-5 pt-5 lg:grid lg:grid-cols-12 lg:gap-6 lg:space-y-0">
+      <div className="space-y-5 px-5 pt-5 lg:grid lg:grid-cols-12 lg:grid-rows-[auto_1fr] lg:gap-6 lg:space-y-0">
         {/* Season switcher button — above the ranking card */}
         {!dataLoading && currentRanking && rankings.length > 1 && (
           <div className="relative flex animate-fade-in lg:col-span-12">
@@ -801,7 +801,7 @@ function DashboardPage() {
         )}
 
         {/* Ranking card + Quick action */}
-        <section className="grid grid-cols-2 gap-3 animate-fade-in lg:col-span-6 lg:order-1">
+        <section className="grid grid-cols-2 gap-3 animate-fade-in lg:col-span-4 lg:col-start-1 lg:row-start-1 lg:self-start">
           {dataLoading ? (
             <div className="flex flex-col items-center justify-center rounded-3xl border border-border bg-card p-5 min-h-[140px] lg:min-h-0">
               <CardSpinner label="Carregando ranking" />
@@ -882,9 +882,10 @@ function DashboardPage() {
           </section>
         )}
 
-        {/* DESKTOP-ONLY: Últimos Resultados em formato de lista (col direita topo) */}
-        <section className="hidden lg:block lg:col-span-6 lg:order-2">
-          <div className="rounded-3xl border border-border bg-card overflow-hidden">
+        {/* DESKTOP-ONLY: Right column = Últimos Resultados + Próximas Rodadas stacked */}
+        <section className="hidden lg:flex lg:flex-col lg:gap-6 lg:col-span-8 lg:col-start-5 lg:row-start-1 lg:row-span-2">
+          {/* Últimos Resultados card */}
+          <div className="flex flex-col rounded-3xl border border-border bg-card overflow-hidden">
             {/* Header */}
             <div className="flex items-center justify-between border-b border-border/60 px-4 py-2.5">
               <div className="flex items-center gap-2">
@@ -992,10 +993,140 @@ function DashboardPage() {
               </div>
             )}
           </div>
+
+          {/* Próximas Rodadas card (desktop) */}
+          <div className="flex flex-1 flex-col rounded-3xl border border-border bg-card overflow-hidden">
+            <div className="flex items-center justify-between border-b border-border/60 px-4 py-2.5">
+              <div className="flex items-center gap-2">
+                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10">
+                  <Calendar className="h-3.5 w-3.5 text-primary" />
+                </div>
+                <div>
+                  <h2 className="text-xs font-semibold uppercase tracking-wider text-foreground">
+                    Próximas Rodadas
+                  </h2>
+                  {(() => {
+                    const totalConfirmedMine = upcomingRounds.filter(r => r.my_status === "confirmed").length;
+                    const inProgress = upcomingRounds.filter(r => r.status === "in_progress").length;
+                    return (
+                      <p className="text-[10px] text-muted-foreground">
+                        <span className="font-semibold text-foreground/80">{upcomingRounds.length}</span> agendadas
+                        <span className="mx-1">·</span>
+                        <span className="text-success font-semibold">{totalConfirmedMine} confirmada{totalConfirmedMine !== 1 ? "s" : ""}</span>
+                        {inProgress > 0 && (
+                          <>
+                            <span className="mx-1">·</span>
+                            <span className="text-warning font-semibold">{inProgress} em andamento</span>
+                          </>
+                        )}
+                      </p>
+                    );
+                  })()}
+                </div>
+              </div>
+              <Link to="/seasons" className="flex items-center gap-0.5 text-xs font-medium text-primary hover:text-primary/80">
+                Ver todas <ChevronRight className="h-3.5 w-3.5" />
+              </Link>
+            </div>
+
+            {dataLoading ? (
+              <div className="flex flex-col items-center justify-center p-6 min-h-[120px]">
+                <CardSpinner label="Carregando rodadas" />
+              </div>
+            ) : upcomingRounds.length === 0 ? (
+              <div className="flex flex-col items-center gap-2 p-6 text-center">
+                <Calendar className="h-7 w-7 text-muted-foreground/40" />
+                <p className="text-sm text-muted-foreground">Nenhuma rodada agendada</p>
+              </div>
+            ) : (
+              <div className="divide-y divide-border/50">
+                {upcomingRounds.slice(0, 8).map((r) => {
+                  const today = new Date().toISOString().split("T")[0];
+                  const smartStatus = r.status === "in_progress"
+                    ? "in_progress"
+                    : r.status === "scheduled" && r.scheduled_date && r.scheduled_date <= today
+                    ? "pending_result"
+                    : "scheduled";
+                  const statusLabel = smartStatus === "in_progress" ? "Em andamento" : smartStatus === "pending_result" ? "Aguardando" : "Agendada";
+                  const statusCls = smartStatus === "in_progress" ? "bg-warning/15 text-warning" : smartStatus === "pending_result" ? "bg-warning/15 text-warning" : "bg-info/15 text-info";
+                  const fillPct = r.max_players > 0 ? Math.min(100, (r.confirmed_count / r.max_players) * 100) : 0;
+                  return (
+                    <Link
+                      key={r.id}
+                      to="/groups/$groupId/seasons/$seasonId/rounds/$roundId"
+                      params={{ groupId: r.group_id, seasonId: r.season_id || "", roundId: r.id }}
+                      className="flex items-center gap-2.5 px-4 py-2 transition-colors hover:bg-accent/30"
+                    >
+                      <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${
+                        r.status === "in_progress" ? "bg-warning/15" : "bg-primary/10"
+                      }`}>
+                        {r.status === "in_progress" ? (
+                          <Swords className="h-3.5 w-3.5 text-warning" />
+                        ) : (
+                          <span className="font-display text-[11px] font-bold text-primary tabular-nums">
+                            {r.round_number ?? "—"}
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5">
+                          <p className="text-sm font-semibold text-foreground truncate">
+                            {r.group_name}
+                          </p>
+                          <span className={`rounded-md px-1 py-0.5 text-[9px] font-semibold ${statusCls}`}>
+                            {statusLabel}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-x-2 text-[10px] text-muted-foreground">
+                          <span>Rodada {r.round_number}</span>
+                          {r.scheduled_date && (
+                            <span className="flex items-center gap-0.5">
+                              <Calendar className="h-2.5 w-2.5" />
+                              {formatDate(r.scheduled_date)}
+                            </span>
+                          )}
+                          {r.scheduled_time && (
+                            <span className="flex items-center gap-0.5">
+                              <Clock className="h-2.5 w-2.5" />
+                              {r.scheduled_time.slice(0, 5)}
+                            </span>
+                          )}
+                          {r.location && (
+                            <span className="hidden xl:flex items-center gap-0.5 truncate max-w-[110px]">
+                              <MapPin className="h-2.5 w-2.5" />
+                              <span className="truncate">{r.location}</span>
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="shrink-0 flex flex-col items-end gap-0.5 min-w-[68px]">
+                        <p className="font-display text-xs font-bold text-foreground tabular-nums">
+                          {r.confirmed_count}/{r.max_players}
+                        </p>
+                        <div className="h-1 w-14 rounded-full bg-muted overflow-hidden">
+                          <div
+                            className={`h-full ${fillPct >= 100 ? "bg-success" : fillPct >= 50 ? "bg-primary" : "bg-warning"}`}
+                            style={{ width: `${fillPct}%` }}
+                          />
+                        </div>
+                        {r.my_status === "confirmed" ? (
+                          <p className="text-[9px] font-semibold text-success leading-none">✓ Confirmado</p>
+                        ) : (
+                          <p className="text-[9px] text-muted-foreground leading-none">Pendente</p>
+                        )}
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </section>
 
         {/* DESKTOP-ONLY: Card de Gráficos — Posição no Ranking + Elo (col esquerda, abaixo do Ranking+CTA) */}
-        <section className="hidden lg:block lg:col-span-6 lg:order-3">
+        <section className="hidden lg:block lg:col-span-4 lg:col-start-1 lg:row-start-2">
           {(() => {
             const history = currentRanking ? historyBySeason.get(currentRanking.season_id) || [] : [];
             const ratingPoints = history
@@ -1011,8 +1142,8 @@ function DashboardPage() {
             const lastPos = positionPoints[positionPoints.length - 1]?.value;
             const posDelta = firstPos != null && lastPos != null ? firstPos - lastPos : null; // positive = subiu
             return (
-              <div className="rounded-3xl border border-border bg-card p-5">
-                <div className="mb-4 flex items-center justify-between">
+              <div className="flex h-full flex-col rounded-3xl border border-border bg-card p-5">
+                <div className="mb-3 flex items-center justify-between">
                   <div>
                     <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                       Evolução
@@ -1027,13 +1158,13 @@ function DashboardPage() {
                     Detalhes <ChevronRight className="h-3.5 w-3.5" />
                   </Link>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid flex-1 grid-cols-1 gap-3">
                   {/* Position chart */}
-                  <div className="flex flex-col">
-                    <div className="mb-2 flex items-baseline justify-between">
+                  <div className="flex flex-1 flex-col">
+                    <div className="mb-1.5 flex items-baseline justify-between">
                       <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Posição</p>
                       <div className="flex items-baseline gap-1.5">
-                        <span className="font-display text-lg font-bold text-foreground">
+                        <span className="font-display text-base font-bold text-foreground">
                           {lastPos != null ? `${lastPos}º` : "—"}
                         </span>
                         {posDelta != null && posDelta !== 0 && (
@@ -1044,17 +1175,17 @@ function DashboardPage() {
                         )}
                       </div>
                     </div>
-                    <div className="h-[160px] rounded-xl bg-muted/20 p-2">
+                    <div className="min-h-[80px] flex-1 rounded-xl bg-muted/20 p-2">
                       {renderLineChart(positionPoints, { color: "#84cc16", invertY: true })}
                     </div>
                   </div>
 
                   {/* Elo chart */}
-                  <div className="flex flex-col">
-                    <div className="mb-2 flex items-baseline justify-between">
+                  <div className="flex flex-1 flex-col">
+                    <div className="mb-1.5 flex items-baseline justify-between">
                       <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Elo Points</p>
                       <div className="flex items-baseline gap-1.5">
-                        <span className="font-display text-lg font-bold text-foreground">
+                        <span className="font-display text-base font-bold text-foreground">
                           {lastRating != null ? Math.round(lastRating) : "—"}
                         </span>
                         {ratingDelta != null && Math.abs(ratingDelta) >= 1 && (
@@ -1065,7 +1196,7 @@ function DashboardPage() {
                         )}
                       </div>
                     </div>
-                    <div className="h-[160px] rounded-xl bg-muted/20 p-2">
+                    <div className="min-h-[80px] flex-1 rounded-xl bg-muted/20 p-2">
                       {renderLineChart(ratingPoints, { color: "#3b82f6" })}
                     </div>
                   </div>
@@ -1075,8 +1206,8 @@ function DashboardPage() {
           })()}
         </section>
 
-        {/* Próximas Rodadas */}
-        <section className="lg:col-span-6 lg:order-4">
+        {/* Próximas Rodadas (mobile/tablet only — desktop version is inside the right column wrapper above) */}
+        <section className="lg:hidden">
           {/* Mobile/tablet header */}
           <div className="mb-3 flex items-center justify-between lg:hidden">
             <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -1163,126 +1294,6 @@ function DashboardPage() {
                   </Link>
                 ))}
               </div>
-
-              {/* DESKTOP: card unificado com header e lista densa */}
-              <div className="hidden lg:block rounded-3xl border border-border bg-card overflow-hidden">
-                <div className="flex items-center justify-between border-b border-border/60 px-4 py-2.5">
-                  <div className="flex items-center gap-2">
-                    <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10">
-                      <Calendar className="h-3.5 w-3.5 text-primary" />
-                    </div>
-                    <div>
-                      <h2 className="text-xs font-semibold uppercase tracking-wider text-foreground">
-                        Próximas Rodadas
-                      </h2>
-                      {(() => {
-                        const totalConfirmedMine = upcomingRounds.filter(r => r.my_status === "confirmed").length;
-                        const inProgress = upcomingRounds.filter(r => r.status === "in_progress").length;
-                        return (
-                          <p className="text-[10px] text-muted-foreground">
-                            <span className="font-semibold text-foreground/80">{upcomingRounds.length}</span> agendadas
-                            <span className="mx-1">·</span>
-                            <span className="text-success font-semibold">{totalConfirmedMine} confirmada{totalConfirmedMine !== 1 ? "s" : ""}</span>
-                            {inProgress > 0 && (
-                              <>
-                                <span className="mx-1">·</span>
-                                <span className="text-warning font-semibold">{inProgress} em andamento</span>
-                              </>
-                            )}
-                          </p>
-                        );
-                      })()}
-                    </div>
-                  </div>
-                  <Link to="/seasons" className="flex items-center gap-0.5 text-xs font-medium text-primary hover:text-primary/80">
-                    Ver todas <ChevronRight className="h-3.5 w-3.5" />
-                  </Link>
-                </div>
-
-                <div className="divide-y divide-border/50">
-                  {upcomingRounds.slice(0, 8).map((r) => {
-                    const today = new Date().toISOString().split("T")[0];
-                    const smartStatus = r.status === "in_progress"
-                      ? "in_progress"
-                      : r.status === "scheduled" && r.scheduled_date && r.scheduled_date <= today
-                      ? "pending_result"
-                      : "scheduled";
-                    const statusLabel = smartStatus === "in_progress" ? "Em andamento" : smartStatus === "pending_result" ? "Aguardando" : "Agendada";
-                    const statusCls = smartStatus === "in_progress" ? "bg-warning/15 text-warning" : smartStatus === "pending_result" ? "bg-warning/15 text-warning" : "bg-info/15 text-info";
-                    const fillPct = r.max_players > 0 ? Math.min(100, (r.confirmed_count / r.max_players) * 100) : 0;
-                    return (
-                      <Link
-                        key={r.id}
-                        to="/groups/$groupId/seasons/$seasonId/rounds/$roundId"
-                        params={{ groupId: r.group_id, seasonId: r.season_id || "", roundId: r.id }}
-                        className="flex items-center gap-2.5 px-4 py-2 transition-colors hover:bg-accent/30"
-                      >
-                        <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${
-                          r.status === "in_progress" ? "bg-warning/15" : "bg-primary/10"
-                        }`}>
-                          {r.status === "in_progress" ? (
-                            <Swords className="h-3.5 w-3.5 text-warning" />
-                          ) : (
-                            <span className="font-display text-[11px] font-bold text-primary tabular-nums">
-                              {r.round_number ?? "—"}
-                            </span>
-                          )}
-                        </div>
-
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-1.5">
-                            <p className="text-sm font-semibold text-foreground truncate">
-                              {r.group_name}
-                            </p>
-                            <span className={`rounded-md px-1 py-0.5 text-[9px] font-semibold ${statusCls}`}>
-                              {statusLabel}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-x-2 text-[10px] text-muted-foreground">
-                            <span>Rodada {r.round_number}</span>
-                            {r.scheduled_date && (
-                              <span className="flex items-center gap-0.5">
-                                <Calendar className="h-2.5 w-2.5" />
-                                {formatDate(r.scheduled_date)}
-                              </span>
-                            )}
-                            {r.scheduled_time && (
-                              <span className="flex items-center gap-0.5">
-                                <Clock className="h-2.5 w-2.5" />
-                                {r.scheduled_time.slice(0, 5)}
-                              </span>
-                            )}
-                            {r.location && (
-                              <span className="hidden xl:flex items-center gap-0.5 truncate max-w-[110px]">
-                                <MapPin className="h-2.5 w-2.5" />
-                                <span className="truncate">{r.location}</span>
-                              </span>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Presence progress bar + count */}
-                        <div className="shrink-0 flex flex-col items-end gap-0.5 min-w-[68px]">
-                          <p className="font-display text-xs font-bold text-foreground tabular-nums">
-                            {r.confirmed_count}/{r.max_players}
-                          </p>
-                          <div className="h-1 w-14 rounded-full bg-muted overflow-hidden">
-                            <div
-                              className={`h-full ${fillPct >= 100 ? "bg-success" : fillPct >= 50 ? "bg-primary" : "bg-warning"}`}
-                              style={{ width: `${fillPct}%` }}
-                            />
-                          </div>
-                          {r.my_status === "confirmed" ? (
-                            <p className="text-[9px] font-semibold text-success leading-none">✓ Confirmado</p>
-                          ) : (
-                            <p className="text-[9px] text-muted-foreground leading-none">Pendente</p>
-                          )}
-                        </div>
-                      </Link>
-                    );
-                  })}
-                </div>
-              </div>
             </>
           )}
         </section>
@@ -1356,7 +1367,7 @@ function DashboardPage() {
         </section>
 
         {/* Meus Grupos */}
-        <section className="lg:col-span-12 lg:order-5">
+        <section className="lg:col-span-12 lg:col-start-1 lg:row-start-3">
           <div className="mb-3 flex items-center justify-between">
             <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Seus Grupos
