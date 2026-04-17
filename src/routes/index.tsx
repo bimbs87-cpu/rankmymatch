@@ -1377,7 +1377,7 @@ function DashboardPage() {
                 <div className="mb-4 grid grid-cols-3 gap-2">
                   <div className="rounded-xl border border-border/60 bg-muted/20 px-3 py-2">
                     <p className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">
-                      Atual
+                      Elo Atual
                     </p>
                     <div className="mt-0.5 flex items-baseline gap-1.5">
                       <span className="font-display text-xl font-bold text-foreground">
@@ -1385,6 +1385,7 @@ function DashboardPage() {
                       </span>
                       {ratingDelta != null && Math.abs(ratingDelta) >= 1 && (
                         <span
+                          title="Variação acumulada na temporada (Elo atual − Elo inicial)"
                           className={`flex items-center gap-0.5 text-[10px] font-semibold ${
                             ratingDelta > 0 ? "text-success" : "text-destructive"
                           }`}
@@ -1399,6 +1400,9 @@ function DashboardPage() {
                         </span>
                       )}
                     </div>
+                    <p className="mt-1 text-[9px] text-muted-foreground/70">
+                      vs. início da temporada
+                    </p>
                   </div>
                   <div className="rounded-xl border border-border/60 bg-muted/20 px-3 py-2">
                     <p className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">
