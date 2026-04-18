@@ -164,26 +164,12 @@ function SistemaPage() {
               </p>
             </div>
 
-            {/* Mockup hero: iMac (desktop) + iPhone flutuante */}
-            <div className="relative hidden lg:block">
+            {/* Mockup hero: somente iMac */}
+            <div className="relative">
               <img
                 src={mockupImacHome}
                 alt="RankMyMatch projetado em um iMac com ranking, evolução do Elo e rodadas"
                 className="block w-full"
-                loading="eager"
-              />
-              <img
-                src={mockupPhoneHome}
-                alt="Tela inicial do RankMyMatch em um iPhone"
-                className="pointer-events-none absolute -bottom-6 -left-4 w-32 xl:-bottom-10 xl:-left-6 xl:w-40 drop-shadow-[0_30px_40px_rgba(0,0,0,0.6)]"
-                loading="eager"
-              />
-            </div>
-            <div className="lg:hidden">
-              <img
-                src={mockupPhoneHome}
-                alt="Tela inicial do RankMyMatch em um iPhone"
-                className="mx-auto block w-full max-w-[260px]"
                 loading="eager"
               />
             </div>
