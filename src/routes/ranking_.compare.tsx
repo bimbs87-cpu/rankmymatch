@@ -1117,7 +1117,7 @@ function CareerTab({ a, b }: { a: PlayerAggregate; b: PlayerAggregate }) {
 
       {/* Row 2: Conquistas + Sequências/Frequência */}
       <div className="mt-3 grid grid-cols-1 gap-3 xl:grid-cols-2">
-        <SectionCard title="Conquistas" icon={<Trophy className="h-4 w-4 text-warning" />} className="mt-0 h-full">
+        <SectionCard title="Conquistas" icon={<Trophy className="h-4 w-4 text-warning" />} className="mt-0 h-full" a={a} b={b}>
           <StatRow label="Temporadas" a={a.career.seasons_played} b={b.career.seasons_played} />
           <StatRow label="Títulos (1º)" a={a.career.titles} b={b.career.titles} />
           <StatRow label="Pódios" a={a.career.podiums} b={b.career.podiums} />
@@ -1130,7 +1130,7 @@ function CareerTab({ a, b }: { a: PlayerAggregate; b: PlayerAggregate }) {
           />
         </SectionCard>
 
-        <SectionCard title="Sequências e frequência" icon={<TrendingUp className="h-4 w-4 text-success" />} className="mt-0 h-full">
+        <SectionCard title="Sequências e frequência" icon={<TrendingUp className="h-4 w-4 text-success" />} className="mt-0 h-full" a={a} b={b}>
           <StatRow label="Maior sequência V" a={a.streakMax} b={b.streakMax} />
           <StatRow
             label="Sequência atual"
