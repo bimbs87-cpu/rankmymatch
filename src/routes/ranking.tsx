@@ -889,6 +889,26 @@ function RankingPage() {
                                 />
                               </span>
                             )}
+                            {!compareMode && canSelect && (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  const initial = [entry.user_id];
+                                  if (user?.id && user.id !== entry.user_id && rankings.some((r) => r.user_id === user.id && r.matches_played > 0 && !r.isFormerMember)) {
+                                    initial.unshift(user.id);
+                                  }
+                                  setExpandedUserId(null);
+                                  setCompareSelection(initial);
+                                  setCompareMode(true);
+                                }}
+                                className="inline-flex h-4 w-4 lg:h-5 lg:w-5 shrink-0 items-center justify-center rounded-full border border-primary/30 bg-primary/10 text-primary transition-all hover:bg-primary hover:text-primary-foreground hover:border-primary"
+                                title={`Comparar com ${displayName}`}
+                                aria-label={`Comparar com ${displayName}`}
+                              >
+                                <GitCompareArrows className="h-2.5 w-2.5 lg:h-3 lg:w-3" />
+                              </button>
+                            )}
                           </div>
                           {isFormer ? (
                             <p className="text-[8px] lg:text-[10px] uppercase tracking-wide text-muted-foreground leading-none mt-0.5">Ex-membro</p>
