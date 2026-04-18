@@ -48,6 +48,7 @@ import { GroupOverviewPanel } from "@/components/groups/internal/GroupOverviewPa
 import { MembersPanel } from "@/components/groups/internal/MembersPanel";
 import { ResultsPanel } from "@/components/groups/internal/ResultsPanel";
 import { SeasonsPanel } from "@/components/groups/internal/SeasonsPanel";
+import { GroupComparePanel } from "@/components/groups/internal/GroupComparePanel";
 import { AdminPanel } from "@/components/groups/internal/AdminPanel";
 
 export const Route = createFileRoute("/groups/$groupId/")({
