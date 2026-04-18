@@ -258,13 +258,15 @@ function SistemaPage() {
             </ul>
           </div>
 
-          <div className="mx-auto w-full max-w-[280px] lg:max-w-[340px]">
-            <img
-              src={mockupPhoneRanking}
-              alt="Tela de ranking do RankMyMatch com pódio e classificação geral"
-              className="block w-full"
-              loading="lazy"
-            />
+          <div className="mx-auto w-full max-w-[260px] lg:max-w-[300px]">
+            <PhoneFrame>
+              <img
+                src={screenshotMobileRanking}
+                alt="Tela de ranking do RankMyMatch no celular"
+                className="block w-full"
+                loading="lazy"
+              />
+            </PhoneFrame>
           </div>
         </div>
       </section>
@@ -272,13 +274,15 @@ function SistemaPage() {
       {/* MOBILE SHOWCASE */}
       <section className="mx-auto max-w-7xl px-5 py-10 lg:px-8 lg:py-14">
         <div className="grid gap-10 lg:grid-cols-2 lg:items-center">
-          <div className="order-2 mx-auto w-full max-w-[280px] lg:order-1 lg:max-w-[340px]">
-            <img
-              src={mockupPhoneHome}
-              alt="Tela inicial do RankMyMatch no celular com Elo e estatísticas"
-              className="block w-full"
-              loading="lazy"
-            />
+          <div className="order-2 mx-auto w-full max-w-[260px] lg:order-1 lg:max-w-[300px]">
+            <PhoneFrame>
+              <img
+                src={screenshotMobileHome}
+                alt="Tela inicial do RankMyMatch no celular"
+                className="block w-full"
+                loading="lazy"
+              />
+            </PhoneFrame>
           </div>
           <div className="order-1 lg:order-2">
             <div className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
