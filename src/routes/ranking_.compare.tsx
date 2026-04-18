@@ -3,6 +3,7 @@ import { zodValidator, fallback } from "@tanstack/zod-adapter";
 import { z } from "zod";
 import { useEffect, useMemo, useState } from "react";
 import { ArrowLeft, Trophy, Activity, Swords, Users, TrendingUp, Share2, ArrowLeftRight } from "lucide-react";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { TrophyLoadingBar } from "@/components/TrophyLoadingBar";
@@ -14,7 +15,7 @@ const searchSchema = z.object({
   c: fallback(z.string(), "").default(""),
   d: fallback(z.string(), "").default(""),
   groupId: fallback(z.string(), "").default(""),
-  tab: fallback(z.enum(["career", "season"]), "season").default("season"),
+  tab: fallback(z.enum(["career", "season"]), "career").default("career"),
   seasonId: fallback(z.string(), "").default(""),
 });
 
@@ -513,12 +514,42 @@ function ComparePage() {
       players.length >= 2
         ? `Comparativo: ${players.map((p) => displayName(p)).join(" vs ")}`
         : "Comparativo";
-    if (navigator.share) {
-      try { await navigator.share({ title, url }); } catch { /* ignore */ }
-    } else {
+    const text = title;
+    // Try Web Share API first (mobile / supported browsers)
+    const nav = navigator as Navigator & {
+      share?: (data: { title?: string; text?: string; url?: string }) => Promise<void>;
+    };
+    if (nav.share) {
       try {
+        await nav.share({ title, text, url });
+        return;
+      } catch (err: any) {
+        // User cancelled — don't fall through to clipboard
+        if (err?.name === "AbortError") return;
+        // Other errors fall through to clipboard fallback
+      }
+    }
+    // Clipboard fallback
+    try {
+      if (navigator.clipboard?.writeText) {
         await navigator.clipboard.writeText(url);
-      } catch { /* ignore */ }
+        toast.success("Link copiado para a área de transferência");
+        return;
+      }
+    } catch { /* ignore */ }
+    // Last-resort fallback
+    try {
+      const ta = document.createElement("textarea");
+      ta.value = url;
+      ta.style.position = "fixed";
+      ta.style.left = "-9999px";
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      ta.remove();
+      toast.success("Link copiado");
+    } catch {
+      toast.error("Não foi possível compartilhar");
     }
   };
 
