@@ -1333,8 +1333,8 @@ function DashboardPage() {
           </div>
         </section>
 
-        {/* DESKTOP-ONLY: Card de Evolução do Elo (col esquerda, abaixo do Ranking+CTA) */}
-        <section className="hidden lg:block lg:col-span-4 lg:col-start-1 lg:row-start-2">
+        {/* DESKTOP-ONLY: Card de Evolução do Elo (col esquerda, abaixo do seletor de ranking) */}
+        <section className="hidden lg:block lg:col-span-4 lg:col-start-1 lg:row-start-3">
           {(() => {
             const history = currentRanking ? historyBySeason.get(currentRanking.season_id) || [] : [];
             const ratingPoints = history.map((h) => ({ label: h.date, value: h.rating }));
