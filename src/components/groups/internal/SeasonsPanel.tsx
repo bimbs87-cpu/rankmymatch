@@ -8,6 +8,7 @@ import { useGroupSeasons } from "@/hooks/use-seasons";
 import { useSeasonRounds } from "@/hooks/use-rounds";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { SeasonFinalRanking } from "./SeasonFinalRanking";
 
 interface Props {
   groupId: string;
@@ -186,6 +187,7 @@ function SeasonAccordion({
       </div>
       {expanded && (
         <div className="border-t border-border bg-background/40">
+          {!isActive && <SeasonFinalRanking seasonId={season.id} />}
           <SeasonRoundsInline groupId={groupId} seasonId={season.id} isAdmin={isAdmin} />
         </div>
       )}

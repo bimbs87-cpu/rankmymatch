@@ -115,10 +115,8 @@ export function SeasonFinalRanking({ seasonId }: { seasonId: string }) {
                 {r.position}
               </span>
               <PlayerAvatar
-                name={r.name}
-                nickname={r.nickname}
+                name={r.nickname || r.name}
                 avatarUrl={r.avatar_url}
-                avatarType={r.avatar_type}
                 size="xs"
               />
               <div className="min-w-0 flex-1">
@@ -149,10 +147,8 @@ function PodiumColumn({
       <div className="relative">
         {crown && <Crown className="absolute -top-3 left-1/2 h-4 w-4 -translate-x-1/2 text-warning" />}
         <PlayerAvatar
-          name={row.name}
-          nickname={row.nickname}
+          name={row.nickname || row.name}
           avatarUrl={row.avatar_url}
-          avatarType={row.avatar_type}
           size="md"
         />
       </div>
