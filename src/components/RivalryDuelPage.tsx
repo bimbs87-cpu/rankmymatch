@@ -1174,8 +1174,8 @@ export function RivalryDuelPage({ groupId, groupName, seasonId, seasonName }: Pr
         card={{
           groupName,
           seasonName,
-          playerA: { name: displayNameA, rating: playerA.rating_current, avatarUrl: playerA.avatar_url },
-          playerB: { name: displayNameB, rating: playerB.rating_current, avatarUrl: playerB.avatar_url },
+          playerA: { name: displayNameA, rating: playerA.rating, avatarUrl: playerA.avatar_url },
+          playerB: { name: displayNameB, rating: playerB.rating, avatarUrl: playerB.avatar_url },
           winsA,
           winsB,
           totalMatches,
