@@ -475,12 +475,20 @@ function CompareLandingPage() {
 
   const saveFavorite = async () => {
     if (!user || !selectedGroupId || picked.length < 2) return;
+    if (favorites.length >= MAX_FAVORITES) {
+      toast.error(`Limite de ${MAX_FAVORITES} favoritos por grupo atingido`);
+      return;
+    }
     const label = favLabel.trim() || "Comparação";
+    const nextOrder = favorites.length
+      ? Math.max(...favorites.map((f) => f.sort_order ?? 0)) + 1
+      : 0;
     const { error } = await supabase.from("compare_favorites" as any).insert({
       user_id: user.id,
       group_id: selectedGroupId,
       label,
       player_ids: picked,
+      sort_order: nextOrder,
     });
     if (error) {
       toast.error("Não foi possível salvar o favorito");
@@ -498,6 +506,64 @@ function CompareLandingPage() {
       return;
     }
     setFavorites((prev) => prev.filter((f) => f.id !== id));
+  };
+
+  const openRename = (fav: FavoriteRow) => {
+    setRenameTarget(fav);
+    setRenameLabel(fav.label);
+  };
+
+  const confirmRename = async () => {
+    if (!renameTarget) return;
+    const label = renameLabel.trim();
+    if (!label) {
+      toast.error("Informe um nome");
+      return;
+    }
+    const { error } = await supabase
+      .from("compare_favorites" as any)
+      .update({ label })
+      .eq("id", renameTarget.id);
+    if (error) {
+      toast.error("Erro ao renomear");
+      return;
+    }
+    setFavorites((prev) =>
+      prev.map((f) => (f.id === renameTarget.id ? { ...f, label } : f)),
+    );
+    setRenameTarget(null);
+  };
+
+  const persistOrder = async (ordered: FavoriteRow[]) => {
+    // Optimistic update
+    setFavorites(ordered.map((f, i) => ({ ...f, sort_order: i })));
+    // Persist sequentially
+    for (let i = 0; i < ordered.length; i++) {
+      await supabase
+        .from("compare_favorites" as any)
+        .update({ sort_order: i })
+        .eq("id", ordered[i].id);
+    }
+  };
+
+  const handleDragStart = (id: string) => setDragId(id);
+  const handleDragOver = (e: React.DragEvent, overId: string) => {
+    e.preventDefault();
+    if (!dragId || dragId === overId) return;
+    setFavorites((prev) => {
+      const fromIdx = prev.findIndex((f) => f.id === dragId);
+      const toIdx = prev.findIndex((f) => f.id === overId);
+      if (fromIdx < 0 || toIdx < 0) return prev;
+      const next = [...prev];
+      const [moved] = next.splice(fromIdx, 1);
+      next.splice(toIdx, 0, moved);
+      return next;
+    });
+  };
+  const handleDragEnd = () => {
+    if (!dragId) return;
+    setDragId(null);
+    void persistOrder(favorites);
   };
 
   if (loadingGroups) {
