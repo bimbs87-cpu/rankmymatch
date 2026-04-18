@@ -439,7 +439,7 @@ function RankingPage() {
   const getDisplayName = (entry: RankingEntry) =>
     displayNameMap.get(entry.user_id) || entry.profile?.nickname || abbreviateName(entry.profile?.name || "Jogador");
 
-  const rivalryGroup = groups.find((g: any) => isRivalryGroup(g, g.member_count));
+  const rivalryGroup = groups.find((g: any) => isRivalryGroup(g));
   const [rivalrySeasonInfo, setRivalrySeasonInfo] = useState<{ id: string; name: string } | null>(null);
 
   useEffect(() => {
@@ -458,7 +458,7 @@ function RankingPage() {
   const showRivalryDuel = rivalryGroup && (
     !selectedSeasonId ||
     seasons.find((s: any) => s.id === selectedSeasonId)?.group_id === rivalryGroup.id ||
-    groups.every((g: any) => isRivalryGroup(g, g.member_count))
+    groups.every((g: any) => isRivalryGroup(g))
   );
 
   if (showRivalryDuel && rivalryGroup && !isPageLoading) {
@@ -490,7 +490,7 @@ function RankingPage() {
         {showSwitcher && seasons.length > 1 && (
           <div className="mx-5 mt-2 mb-3 rounded-2xl border border-border bg-card/95 backdrop-blur-xl overflow-hidden shadow-lg">
             {seasons.map((s: any) => {
-              const isRivalrySeason = groups.find((g: any) => g.id === s.group_id && isRivalryGroup(g, g.member_count));
+              const isRivalrySeason = groups.find((g: any) => g.id === s.group_id && isRivalryGroup(g));
               return (
                 <button
                   key={s.id}

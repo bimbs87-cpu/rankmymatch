@@ -51,7 +51,7 @@ function RoundDetailPage() {
   const [showManualMatch, setShowManualMatch] = useState(false);
   const [seasonData, setSeasonData] = useState<any>(null);
 
-  const rivalry = isRivalryGroup(group, memberCount);
+  const rivalry = isRivalryGroup(group);
 
   // Load season config for sets_per_match + sets_mode
   useEffect(() => {

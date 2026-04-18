@@ -122,7 +122,7 @@ function GroupDetailPage() {
     }
   };
 
-  const rivalry = isRivalryGroup(group, memberCount);
+  const rivalry = isRivalryGroup(group);
 
   useEffect(() => {
     const loadRanking = async () => {

@@ -103,7 +103,7 @@ function GroupSeasonsPage() {
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
   const [showHidden, setShowHidden] = useState(false);
   const isSingles = group?.match_format === "singles";
-  const rivalry = isRivalryGroup(group, memberCount);
+  const rivalry = isRivalryGroup(group);
   // Singles-specific
   const [setsPerMatch, setSetsPerMatch] = useState(3);
   const [setsMode, setSetsMode] = useState<"fixed" | "flexible" | "unlimited">("fixed");
