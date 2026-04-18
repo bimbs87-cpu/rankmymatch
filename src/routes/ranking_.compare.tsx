@@ -350,7 +350,7 @@ function ComparePage() {
             eloLow,
             eloCurrent,
             streakMax,
-            streakCurrent,
+            streakCurrent: streakCurrentSigned,
             roundsPresent,
             roundsTotal,
           };
