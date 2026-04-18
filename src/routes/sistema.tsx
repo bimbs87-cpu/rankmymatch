@@ -22,9 +22,9 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
-import mockupImacHome from "@/assets/mockup-imac-home.png";
-import mockupPhoneHome from "@/assets/mockup-phone-home.png";
-import mockupPhoneRanking from "@/assets/mockup-phone-ranking.png";
+import screenshotDesktopHome from "@/assets/mockup-desktop-home.png";
+import screenshotMobileHome from "@/assets/mockup-mobile-home.png";
+import screenshotMobileRanking from "@/assets/mockup-mobile-ranking.png";
 
 export const Route = createFileRoute("/sistema")({
   head: () => ({
@@ -164,15 +164,15 @@ function SistemaPage() {
               </p>
             </div>
 
-            {/* Mockup hero: somente iMac */}
-            <div className="relative">
+            {/* Mockup hero: screenshot real do app dentro de uma moldura iMac */}
+            <ImacFrame>
               <img
-                src={mockupImacHome}
-                alt="RankMyMatch projetado em um iMac com ranking, evolução do Elo e rodadas"
+                src={screenshotDesktopHome}
+                alt="Painel do RankMyMatch no desktop"
                 className="block w-full"
                 loading="eager"
               />
-            </div>
+            </ImacFrame>
 
           </div>
         </div>
@@ -258,13 +258,15 @@ function SistemaPage() {
             </ul>
           </div>
 
-          <div className="mx-auto w-full max-w-[280px] lg:max-w-[340px]">
-            <img
-              src={mockupPhoneRanking}
-              alt="Tela de ranking do RankMyMatch com pódio e classificação geral"
-              className="block w-full"
-              loading="lazy"
-            />
+          <div className="mx-auto w-full max-w-[260px] lg:max-w-[300px]">
+            <PhoneFrame>
+              <img
+                src={screenshotMobileRanking}
+                alt="Tela de ranking do RankMyMatch no celular"
+                className="block w-full"
+                loading="lazy"
+              />
+            </PhoneFrame>
           </div>
         </div>
       </section>
@@ -272,13 +274,15 @@ function SistemaPage() {
       {/* MOBILE SHOWCASE */}
       <section className="mx-auto max-w-7xl px-5 py-10 lg:px-8 lg:py-14">
         <div className="grid gap-10 lg:grid-cols-2 lg:items-center">
-          <div className="order-2 mx-auto w-full max-w-[280px] lg:order-1 lg:max-w-[340px]">
-            <img
-              src={mockupPhoneHome}
-              alt="Tela inicial do RankMyMatch no celular com Elo e estatísticas"
-              className="block w-full"
-              loading="lazy"
-            />
+          <div className="order-2 mx-auto w-full max-w-[260px] lg:order-1 lg:max-w-[300px]">
+            <PhoneFrame>
+              <img
+                src={screenshotMobileHome}
+                alt="Tela inicial do RankMyMatch no celular"
+                className="block w-full"
+                loading="lazy"
+              />
+            </PhoneFrame>
           </div>
           <div className="order-1 lg:order-2">
             <div className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
@@ -639,6 +643,43 @@ function SistemaPage() {
           </div>
         </div>
       </section>
+    </div>
+  );
+}
+
+/* ----------------------------- DEVICE FRAMES ----------------------------- */
+
+function PhoneFrame({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="relative mx-auto rounded-[2.6rem] border-[10px] border-foreground/80 bg-foreground/90 p-0 shadow-[0_30px_80px_-20px_oklch(0_0_0/0.7)] ring-1 ring-foreground/40">
+      {/* Notch */}
+      <div className="pointer-events-none absolute left-1/2 top-0 z-10 h-5 w-24 -translate-x-1/2 rounded-b-2xl bg-foreground" />
+      {/* Side buttons */}
+      <div className="pointer-events-none absolute -left-[12px] top-20 h-10 w-[3px] rounded-l bg-foreground/70" />
+      <div className="pointer-events-none absolute -left-[12px] top-32 h-14 w-[3px] rounded-l bg-foreground/70" />
+      <div className="pointer-events-none absolute -right-[12px] top-28 h-16 w-[3px] rounded-r bg-foreground/70" />
+      <div className="overflow-hidden rounded-[2rem]">{children}</div>
+    </div>
+  );
+}
+
+function ImacFrame({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="relative mx-auto w-full">
+      {/* Screen bezel */}
+      <div className="relative rounded-[1.4rem] border-[12px] border-zinc-300 bg-zinc-300 shadow-[0_40px_100px_-30px_oklch(0_0_0/0.7)] dark:border-zinc-200 dark:bg-zinc-200">
+        {/* Camera */}
+        <div className="pointer-events-none absolute left-1/2 top-[3px] z-10 h-1.5 w-1.5 -translate-x-1/2 rounded-full bg-zinc-500/70" />
+        <div className="overflow-hidden rounded-[0.4rem] bg-black">{children}</div>
+      </div>
+      {/* Chin with Apple-like logo area */}
+      <div className="relative mx-auto h-6 w-[88%] rounded-b-md bg-gradient-to-b from-zinc-300 to-zinc-400 dark:from-zinc-200 dark:to-zinc-300">
+        <div className="absolute left-1/2 top-1/2 h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-zinc-500/40" />
+      </div>
+      {/* Stand neck */}
+      <div className="relative mx-auto h-10 w-28 bg-gradient-to-b from-zinc-300 to-zinc-400 dark:from-zinc-200 dark:to-zinc-300 [clip-path:polygon(15%_0,85%_0,100%_100%,0_100%)]" />
+      {/* Stand base */}
+      <div className="relative mx-auto h-2.5 w-56 rounded-full bg-zinc-400 shadow-[0_10px_30px_-10px_oklch(0_0_0/0.5)] dark:bg-zinc-300" />
     </div>
   );
 }
