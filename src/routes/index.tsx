@@ -61,6 +61,31 @@ function CardSpinner({ label = "Carregando..." }: { label?: string }) {
   );
 }
 
+function AnimatedElo({ value, storageKey }: { value: number; storageKey: string }) {
+  const display = useCountUp(value, storageKey, 300);
+  return (
+    <span className="font-display text-2xl font-extrabold leading-none text-foreground tabular-nums">
+      {Math.round(display)}
+    </span>
+  );
+}
+
+interface GroupFormatBadgeInfo {
+  label: string;
+  /** Tailwind classes for badge bg+text */
+  cls: string;
+}
+
+function getGroupFormatBadge(g: { match_format: string; singles_group_type: string | null }): GroupFormatBadgeInfo {
+  if (g.match_format === "singles") {
+    if (g.singles_group_type === "rivalry") return { label: "Duelo", cls: "bg-primary/15 text-primary ring-1 ring-primary/30" };
+    if (g.singles_group_type === "league") return { label: "Liga", cls: "bg-info/15 text-info ring-1 ring-info/30" };
+    if (g.singles_group_type === "casual") return { label: "Casual", cls: "bg-muted text-muted-foreground ring-1 ring-border" };
+    return { label: "1x1", cls: "bg-muted text-muted-foreground ring-1 ring-border" };
+  }
+  return { label: "2x2", cls: "bg-success/15 text-success ring-1 ring-success/30" };
+}
+
 export const Route = createFileRoute("/")({
   component: DashboardPage,
 });
