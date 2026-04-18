@@ -94,7 +94,7 @@ function SistemaPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background pb-32 lg:pb-16">
+    <div className="min-h-screen overflow-x-hidden bg-background pb-32 lg:pb-16">
       {/* HERO */}
       <section className="relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-primary/15 via-primary/5 to-transparent" />
