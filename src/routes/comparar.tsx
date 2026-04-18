@@ -389,9 +389,10 @@ function CompareLandingPage() {
     }
     const { data } = await supabase
       .from("compare_favorites" as any)
-      .select("id, label, group_id, player_ids")
+      .select("id, label, group_id, player_ids, sort_order")
       .eq("user_id", user.id)
       .eq("group_id", selectedGroupId)
+      .order("sort_order", { ascending: true })
       .order("created_at", { ascending: false });
     setFavorites((data as any[]) || []);
   }, [user, selectedGroupId]);
