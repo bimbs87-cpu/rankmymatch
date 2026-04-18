@@ -9,6 +9,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { TrophyLoadingBar } from "@/components/TrophyLoadingBar";
 import { useUserProfile } from "@/hooks/use-user-profile";
 import { useMyGroups } from "@/hooks/use-groups";
+import { useCountUp } from "@/hooks/use-count-up";
 import { useNotifications } from "@/hooks/use-notifications";
 import { usePendingMatch } from "@/hooks/use-pending-matches";
 import { PendingMatchCard } from "@/components/PendingMatchCard";
@@ -1063,9 +1064,10 @@ function DashboardPage() {
               <Link to="/ranking" className="flex flex-1 flex-col">
                 {/* Top: Elo + delta — main visual */}
                 <div className="mt-1 flex items-baseline gap-1.5">
-                  <span className="font-display text-2xl font-extrabold leading-none text-foreground tabular-nums">
-                    {Math.round(currentRanking.rating)}
-                  </span>
+                  <AnimatedElo
+                    value={currentRanking.rating}
+                    storageKey={`elo:${currentRanking.season_id}`}
+                  />
                   <span className="text-[10px] font-semibold text-muted-foreground">Elo</span>
                   {currentRanking.last_change !== null && Math.abs(currentRanking.last_change) >= 1 && (
                     <span
