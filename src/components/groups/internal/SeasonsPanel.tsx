@@ -240,6 +240,9 @@ function SeasonStatusActions({ season, onChanged }: { season: any; onChanged: ()
           <RotateCcw className="h-3.5 w-3.5" /> Reabrir temporada
         </button>
       )}
+    </div>
+  );
+}
 
 function SeasonRoundsInline({ groupId, seasonId, isAdmin }: { groupId: string; seasonId: string; isAdmin: boolean }) {
   const { rounds, isLoading, refresh } = useSeasonRounds(seasonId);
