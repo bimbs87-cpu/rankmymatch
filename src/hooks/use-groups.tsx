@@ -7,15 +7,19 @@ type Group = Tables<"groups">;
 type GroupMember = Tables<"group_members">;
 
 async function attachMemberCounts(groups: Group[]) {
-  return Promise.all(
-    groups.map(async (group) => {
-      const { data: count } = await supabase.rpc("get_group_member_count", {
-        _group_id: group.id,
-      });
+  if (!groups.length) return groups.map((g) => ({ ...g, member_count: 0 }));
+  const ids = groups.map((g) => g.id);
+  const { data: members } = await supabase
+    .from("group_members")
+    .select("group_id")
+    .in("group_id", ids)
+    .eq("status", "active");
 
-      return { ...group, member_count: count || 0 };
-    })
-  );
+  const countMap = new Map<string, number>();
+  for (const m of members || []) {
+    countMap.set(m.group_id, (countMap.get(m.group_id) || 0) + 1);
+  }
+  return groups.map((g) => ({ ...g, member_count: countMap.get(g.id) || 0 }));
 }
 
 export interface GroupStats {
