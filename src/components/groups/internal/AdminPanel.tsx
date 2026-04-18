@@ -146,6 +146,40 @@ function GeneralSection({ group, onSaved }: { group: any; onSaved: () => void })
     <div className="space-y-4">
       <h3 className="font-display text-base font-bold text-foreground">Geral</h3>
 
+      {premiumExpiringSoon && (
+        <div className={`rounded-2xl border p-3 ${premiumDaysLeft! <= 3 ? "border-destructive/40 bg-destructive/10" : "border-warning/40 bg-warning/10"}`}>
+          <div className="flex items-start gap-2">
+            <AlertTriangle className={`mt-0.5 h-4 w-4 shrink-0 ${premiumDaysLeft! <= 3 ? "text-destructive" : "text-warning"}`} />
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-bold text-foreground">
+                {premiumDaysLeft! <= 0
+                  ? "Sua assinatura PREMIUM expirou"
+                  : `Sua assinatura PREMIUM expira em ${premiumDaysLeft}d`}
+              </p>
+              <p className="mt-0.5 text-[11px] text-muted-foreground">
+                Renove para manter o badge PREMIUM e os recursos avançados ativos no grupo.
+              </p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                <a
+                  href="/sistema#planos"
+                  className="rounded-full bg-primary px-3 py-1 text-[11px] font-bold text-primary-foreground hover:opacity-90"
+                >
+                  Renovar assinatura
+                </a>
+                <a
+                  href={`https://wa.me/?text=${encodeURIComponent(`Olá! Quero renovar a assinatura PREMIUM do grupo "${group.name}".`)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="rounded-full border border-border bg-background px-3 py-1 text-[11px] font-bold text-foreground hover:bg-muted"
+                >
+                  Falar com vendas (WhatsApp)
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <GroupImageUpload
         groupId={group.id}
         currentUrl={group.image_url}
