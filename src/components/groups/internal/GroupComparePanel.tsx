@@ -52,7 +52,6 @@ interface PanelProps {
 
 export function GroupComparePanel({ groupId, initialPick, onConsumeInitial }: PanelProps) {
   const { user } = useAuth();
-  const navigate = useNavigate();
 
   const [activeSeasonId, setActiveSeasonId] = useState("");
   const [members, setMembers] = useState<MemberLite[]>([]);
