@@ -794,41 +794,22 @@ function CompareLandingPage() {
                     Comparações populares
                   </p>
                 </div>
-                <div className="grid gap-2 sm:grid-cols-3">
+                <div
+                  className="grid gap-2 grid-cols-2"
+                  style={{ gridTemplateColumns: `repeat(2, minmax(0, 1fr))` }}
+                >
+                  <div className="contents lg:hidden">
+                    {suggestions.map((s) => (
+                      <SuggestionCard key={s.key} s={s} memberMap={memberMap} onClick={() => goCompare(s.player_ids)} />
+                    ))}
+                  </div>
+                </div>
+                <div
+                  className="hidden lg:grid gap-2 mt-0"
+                  style={{ gridTemplateColumns: `repeat(${suggestions.length}, minmax(0, 1fr))` }}
+                >
                   {suggestions.map((s) => (
-                    <button
-                      key={s.key}
-                      onClick={() => goCompare(s.player_ids)}
-                      className="group flex flex-col gap-2 rounded-2xl border border-border bg-card/60 p-3 text-left hover:border-primary/40 hover:bg-card transition-all"
-                    >
-                      <div className="flex items-center gap-2">
-                        <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10">
-                          {s.icon}
-                        </div>
-                        <p className="text-xs font-bold text-foreground">{s.title}</p>
-                      </div>
-                      <p className="text-[11px] text-muted-foreground leading-snug truncate">
-                        {s.subtitle}
-                      </p>
-                      <div className="flex items-center justify-between mt-1">
-                        <div className="flex -space-x-1.5">
-                          {s.player_ids.slice(0, 2).map((id) => {
-                            const p = memberMap.get(id);
-                            if (!p) return null;
-                            return (
-                              <PlayerAvatar
-                                key={id}
-                                avatarUrl={p.avatar_url}
-                                name={p.nickname || p.name}
-                                size="sm"
-                                className="border-2 border-background !h-6 !w-6"
-                              />
-                            );
-                          })}
-                        </div>
-                        <ArrowRight className="h-3.5 w-3.5 text-muted-foreground/60 group-hover:text-primary transition-colors" />
-                      </div>
-                    </button>
+                    <SuggestionCard key={s.key} s={s} memberMap={memberMap} onClick={() => goCompare(s.player_ids)} />
                   ))}
                 </div>
               </section>
