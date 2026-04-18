@@ -313,11 +313,16 @@ function ComparePage() {
               cur = 0;
             }
           }
-          // Current streak = trailing positives
+          // Current streak = trailing same-sign run (positive=wins, negative=losses)
+          let streakSign: 1 | -1 | 0 = 0;
           for (let i = userEvents.length - 1; i >= 0; i--) {
-            if (Number(userEvents[i].rating_change) > 0) streakCurrent += 1;
+            const change = Number(userEvents[i].rating_change);
+            const sign: 1 | -1 = change >= 0 ? 1 : -1;
+            if (streakSign === 0) streakSign = sign;
+            if (sign === streakSign) streakCurrent += 1;
             else break;
           }
+          const streakCurrentSigned = streakCurrent * (streakSign || 1);
 
           // Frequency: a player is "present" in a completed round if they actually
           // played any match in that round (authoritative). Fall back to round_presence
