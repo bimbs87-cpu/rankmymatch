@@ -386,15 +386,6 @@ export function RivalryDuelPage({ groupId, groupName, seasonId, seasonName }: Pr
   const eloLeader = playerA.rating >= playerB.rating ? "A" : "B";
   const eloDiff = Math.abs(Math.round(playerA.rating) - Math.round(playerB.rating));
 
-  // Dominance indicator
-  const dominanceLabel = (() => {
-    if (totalMatches === 0) return null;
-    const diff = winsA - winsB;
-    if (Math.abs(diff) <= 1) return "Equilíbrio total";
-    if (Math.abs(diff) <= 3) return `${diff > 0 ? displayNameA : displayNameB} com leve vantagem`;
-    return `${diff > 0 ? displayNameA : displayNameB} domina`;
-  })();
-
   const completedMatches = matches.filter((m) => m.status === "completed");
   const filteredMatches = completedMatches.filter((m) => {
     if (matchFilter === "all") return true;
@@ -402,6 +393,105 @@ export function RivalryDuelPage({ groupId, groupName, seasonId, seasonName }: Pr
     return matchFilter === "official" ? isOfficial : !isOfficial;
   });
   const recentMatches = filteredMatches.slice(0, 10);
+
+  // ─── H2H Sets/Games totals (only counting matches between both players) ───
+  let h2hSetsA = 0;
+  let h2hSetsB = 0;
+  let h2hGamesA = 0;
+  let h2hGamesB = 0;
+  for (const m of completedMatches) {
+    // map team A/B to playerA/playerB based on team_a_user_id
+    const aIsTeamA = m.team_a_user_id === playerA.user_id;
+    for (const s of m.sets) {
+      const gA = aIsTeamA ? s.scoreA : s.scoreB;
+      const gB = aIsTeamA ? s.scoreB : s.scoreA;
+      h2hGamesA += gA;
+      h2hGamesB += gB;
+      if (gA > gB) h2hSetsA++;
+      else if (gB > gA) h2hSetsB++;
+    }
+  }
+
+  // ─── Dynamic insights (item 2) — up to 3 ranked phrases ───
+  const insights = (() => {
+    const list: { key: string; text: string; tone: "primary" | "info" | "muted" }[] = [];
+    const diff = winsA - winsB;
+    const leaderName = diff > 0 ? displayNameA : displayNameB;
+    const leaderTone: "primary" | "info" = diff > 0 ? "primary" : "info";
+
+    // Leadership / balance
+    if (totalMatches === 0) {
+      list.push({ key: "no-data", text: "Ainda sem confrontos diretos — joguem o primeiro!", tone: "muted" });
+    } else if (Math.abs(diff) === 0) {
+      list.push({ key: "tie", text: `Duelo empatado em ${winsA} a ${winsA}`, tone: "muted" });
+    } else if (Math.abs(diff) === 1) {
+      list.push({ key: "close", text: `Duelo equilibrado: apenas 1 vitória separa os dois`, tone: "muted" });
+    } else {
+      list.push({ key: "lead", text: `${leaderName} lidera a rivalidade por ${Math.max(winsA, winsB)} a ${Math.min(winsA, winsB)}`, tone: leaderTone });
+    }
+
+    // Last 4 matches
+    const last4 = completedMatches.slice(0, 4);
+    if (last4.length >= 3) {
+      const winsRecentA = last4.filter((m) => m.winner_user_id === playerA.user_id).length;
+      const winsRecentB = last4.length - winsRecentA;
+      if (winsRecentA >= 3) {
+        list.push({ key: "form-a", text: `${displayNameA} venceu ${winsRecentA} dos últimos ${last4.length} confrontos`, tone: "primary" });
+      } else if (winsRecentB >= 3) {
+        list.push({ key: "form-b", text: `${displayNameB} venceu ${winsRecentB} dos últimos ${last4.length} confrontos`, tone: "info" });
+      }
+    }
+
+    // Active streak
+    if (currentStreakA >= 2 && currentStreakA >= currentStreakB) {
+      list.push({ key: "streak-a", text: `${displayNameA} tem ${currentStreakA} vitórias seguidas em jogo`, tone: "primary" });
+    } else if (currentStreakB >= 2 && currentStreakB > currentStreakA) {
+      list.push({ key: "streak-b", text: `${displayNameB} tem ${currentStreakB} vitórias seguidas em jogo`, tone: "info" });
+    }
+
+    // Last winner if no streak insight added
+    if (list.length < 3 && completedMatches[0]) {
+      const lastWinner = completedMatches[0].winner_user_id;
+      if (lastWinner === playerA.user_id) {
+        list.push({ key: "last-a", text: `${displayNameA} venceu o último encontro`, tone: "primary" });
+      } else if (lastWinner === playerB.user_id) {
+        list.push({ key: "last-b", text: `${displayNameB} venceu o último encontro`, tone: "info" });
+      }
+    }
+
+    return list.slice(0, 3);
+  })();
+
+  // ─── Elo deltas vs start of season/duel ───
+  const eloDeltaA =
+    playerA.rating_start != null ? Math.round(playerA.rating - playerA.rating_start) : null;
+  const eloDeltaB =
+    playerB.rating_start != null ? Math.round(playerB.rating - playerB.rating_start) : null;
+
+  // ─── matchInfo for the chart tooltip ───
+  const matchInfoForChart: Record<
+    string,
+    {
+      setScores: string;
+      isOfficial: boolean;
+      date: string | null;
+      changeByUser: Record<string, number>;
+    }
+  > = {};
+  for (const m of completedMatches) {
+    const aIsTeamA = m.team_a_user_id === playerA.user_id;
+    const setScoresArr = m.sets.map((s) => {
+      const left = aIsTeamA ? s.scoreA : s.scoreB;
+      const right = aIsTeamA ? s.scoreB : s.scoreA;
+      return `${left}-${right}`;
+    });
+    matchInfoForChart[m.id] = {
+      setScores: setScoresArr.join(" • "),
+      isOfficial: !!m.round_number && m.counts_for_ranking,
+      date: m.date,
+      changeByUser: m.rating_change_by_user || {},
+    };
+  }
 
   // Real medal computation from H2H history
   const medals = computeDuelMedals(
