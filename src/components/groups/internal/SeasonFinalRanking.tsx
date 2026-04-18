@@ -143,6 +143,34 @@ export function SeasonFinalRanking({ seasonId }: { seasonId: string }) {
           ))}
         </div>
       </div>
+      </div>
+    </div>
+  );
+}
+
+function ExtraCard({ icon, label, rec, tone, prefix = "" }: {
+  icon: React.ReactNode; label: string; rec: RecordHolder | null; tone: "primary" | "success" | "info"; prefix?: string;
+}) {
+  const toneClass = { primary: "text-primary", success: "text-success", info: "text-info" }[tone];
+  if (!rec) {
+    return (
+      <div className="rounded-xl border border-dashed border-border bg-muted/10 p-2.5">
+        <div className={`flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider ${toneClass}`}>{icon}{label}</div>
+        <p className="mt-1 text-[10px] text-muted-foreground">—</p>
+      </div>
+    );
+  }
+  return (
+    <div className="rounded-xl border border-border bg-card/40 p-2.5">
+      <div className={`flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider ${toneClass}`}>{icon}{label}</div>
+      <div className="mt-1 flex items-center gap-1.5">
+        <PlayerAvatar avatarUrl={rec.avatar_url} name={rec.name} size="xs" />
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-[11px] font-semibold text-foreground">{rec.name}</p>
+          {rec.detail && <p className="truncate text-[9px] text-muted-foreground">{rec.detail}</p>}
+        </div>
+        <span className={`font-display text-sm font-black ${toneClass}`}>{prefix}{rec.value}</span>
+      </div>
     </div>
   );
 }
