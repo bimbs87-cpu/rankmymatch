@@ -1232,7 +1232,7 @@ function DashboardPage() {
       {/* PWA Install Banner */}
       <InstallBanner />
 
-      <div className="space-y-5 px-5 pt-5 lg:grid lg:grid-cols-12 lg:grid-rows-[auto_auto_1fr_auto] lg:gap-6 lg:space-y-0">
+      <div className="space-y-5 px-5 pt-5 lg:grid lg:grid-cols-12 lg:grid-rows-[auto_1fr_auto] lg:gap-6 lg:space-y-0">
         {/* Season switcher button — above the ranking card (mobile) / between Ranking and Evolução do Elo (desktop) */}
         {/* MOBILE-ONLY: Season switcher button (above ranking card) — desktop version is integrated into Evolução do Elo header */}
         {!dataLoading && currentRanking && rankings.length > 1 && (
