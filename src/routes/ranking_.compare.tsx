@@ -20,6 +20,7 @@ const searchSchema = z.object({
   groupId: fallback(z.string(), "").default(""),
   tab: fallback(z.enum(["career", "season"]), "career").default("career"),
   seasonId: fallback(z.string(), "").default(""),
+  embed: fallback(z.string(), "").default(""),
 });
 
 export const Route = createFileRoute("/ranking_/compare")({
@@ -105,7 +106,8 @@ function pct(num: number, den: number) {
 function ComparePage() {
   const search = Route.useSearch();
   const navigate = useNavigate();
-  const { a: userA, b: userB, c: userC, d: userD, groupId, tab } = search;
+  const { a: userA, b: userB, c: userC, d: userD, groupId, tab, embed } = search;
+  const isEmbed = embed === "1";
   const userIds = useMemo(
     () => [userA, userB, userC, userD].filter((id): id is string => !!id && id.length > 0),
     [userA, userB, userC, userD],
@@ -901,42 +903,44 @@ function ComparePage() {
   }, [heroH2H, opponentElos]);
 
   return (
-    <div className="min-h-screen bg-background pb-28 lg:pb-8">
-      <header className="sticky top-0 z-10 border-b border-border/50 bg-background/85 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-5xl items-center justify-between gap-2 px-4 py-3 lg:px-0">
-          <Link
-            to="/ranking"
-            className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card/60 px-3 py-1.5 text-xs font-semibold text-foreground transition hover:bg-accent"
-          >
-            <ArrowLeft className="h-3.5 w-3.5" />
-            Ranking
-          </Link>
-          <div className="min-w-0 flex-1 text-center">
-            <p className="truncate font-display text-sm font-bold text-foreground lg:text-base">Comparativo</p>
-            {groupName && <p className="truncate text-[10px] text-muted-foreground lg:text-xs">{groupName}</p>}
-          </div>
-          <div className="flex items-center gap-1.5">
-            <button
-              onClick={exportPng}
-              disabled={exporting || N >= 3}
-              className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card/60 px-3 py-1.5 text-xs font-semibold text-foreground transition hover:bg-accent disabled:opacity-50"
-              aria-label="Exportar como imagem"
-              title="Exportar como imagem PNG"
-            >
-              <ImageIcon className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">{exporting ? "Gerando..." : "Imagem"}</span>
-            </button>
-            <button
-              onClick={share}
+    <div className={`bg-background ${isEmbed ? "" : "min-h-screen pb-28 lg:pb-8"}`}>
+      {!isEmbed && (
+        <header className="sticky top-0 z-10 border-b border-border/50 bg-background/85 backdrop-blur-xl">
+          <div className="mx-auto flex max-w-5xl items-center justify-between gap-2 px-4 py-3 lg:px-0">
+            <Link
+              to="/ranking"
               className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card/60 px-3 py-1.5 text-xs font-semibold text-foreground transition hover:bg-accent"
-              aria-label="Compartilhar"
             >
-              <Share2 className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">Compartilhar</span>
-            </button>
+              <ArrowLeft className="h-3.5 w-3.5" />
+              Ranking
+            </Link>
+            <div className="min-w-0 flex-1 text-center">
+              <p className="truncate font-display text-sm font-bold text-foreground lg:text-base">Comparativo</p>
+              {groupName && <p className="truncate text-[10px] text-muted-foreground lg:text-xs">{groupName}</p>}
+            </div>
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={exportPng}
+                disabled={exporting || N >= 3}
+                className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card/60 px-3 py-1.5 text-xs font-semibold text-foreground transition hover:bg-accent disabled:opacity-50"
+                aria-label="Exportar como imagem"
+                title="Exportar como imagem PNG"
+              >
+                <ImageIcon className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">{exporting ? "Gerando..." : "Imagem"}</span>
+              </button>
+              <button
+                onClick={share}
+                className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card/60 px-3 py-1.5 text-xs font-semibold text-foreground transition hover:bg-accent"
+                aria-label="Compartilhar"
+              >
+                <Share2 className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Compartilhar</span>
+              </button>
+            </div>
           </div>
-        </div>
-      </header>
+        </header>
+      )}
 
       <div className="mx-auto max-w-5xl px-4 pt-4 lg:px-0">
         {loading ? (
