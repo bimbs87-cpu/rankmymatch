@@ -7,8 +7,6 @@ export function isRivalryGroup(
     match_format?: string;
     singles_group_type?: string | null;
   } | null | undefined,
-  // memberCount kept for backwards-compat with existing call sites; intentionally ignored.
-  _memberCount?: number,
 ): boolean {
   if (!group) return false;
   return group.match_format === "singles" && group.singles_group_type === "rivalry";
