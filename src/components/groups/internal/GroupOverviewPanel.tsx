@@ -78,124 +78,119 @@ export function GroupOverviewPanel({ groupId, groupName, groupImage, description
         </div>
       </div>
 
-      {/* KPIs globais */}
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+      {/* KPIs globais + Próxima rodada + Sua posição — todos na mesma linha em desktop */}
+      <div className="grid grid-cols-2 gap-2 lg:grid-cols-6">
         <KpiCard icon={<Trophy className="h-4 w-4" />} label="Temporadas" value={stats.total_seasons} sub={`${stats.finished_seasons} encerradas`} loading={statsLoading} />
         <KpiCard icon={<Calendar className="h-4 w-4" />} label="Rodadas" value={stats.total_rounds} loading={statsLoading} />
         <KpiCard icon={<Activity className="h-4 w-4" />} label="Partidas" value={stats.total_matches} loading={statsLoading} />
         <KpiCard icon={<Users className="h-4 w-4" />} label="Jogadores" value={stats.total_active_players} loading={statsLoading} />
-      </div>
 
-      {/* Grid principal: próxima rodada, sua posição, top 3, atividade */}
-      <div className="grid gap-4 lg:grid-cols-2">
-        {/* Próxima rodada */}
-        <div className="rounded-3xl border border-border bg-card p-5">
-          <div className="mb-3 flex items-center justify-between">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Próxima rodada</h3>
+        {/* Próxima rodada — em mobile ocupa metade da linha; em desktop 1 coluna */}
+        <div className="rounded-3xl border border-border bg-card p-3 lg:p-4">
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <h3 className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Próxima rodada</h3>
             {data.next_round && (
               <Link
                 to="/groups/$groupId/seasons/$seasonId/rounds/$roundId"
                 params={{ groupId, seasonId: data.current_season?.id || "", roundId: data.next_round.id }}
-                className="text-[11px] font-semibold text-primary"
+                className="text-[10px] font-semibold text-primary"
               >
                 Abrir →
               </Link>
             )}
           </div>
           {isLoading ? (
-            <div className="h-20 animate-pulse rounded-xl bg-muted/30" />
+            <div className="h-16 animate-pulse rounded-xl bg-muted/30" />
           ) : data.next_round ? (
             <>
-              <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
-                <Calendar className="h-4 w-4 text-primary" />
-                Rodada {data.next_round.round_number}
-                {data.next_round.scheduled_date && (
-                  <span className="text-muted-foreground font-normal">
-                    · {new Date(data.next_round.scheduled_date + "T00:00:00").toLocaleDateString("pt-BR", { weekday: "short", day: "2-digit", month: "short" })}
-                  </span>
-                )}
+              <div className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
+                <Calendar className="h-3 w-3 text-primary shrink-0" />
+                <span className="truncate">
+                  Rodada {data.next_round.round_number}
+                  {data.next_round.scheduled_date && (
+                    <span className="text-muted-foreground font-normal">
+                      {" "}· {new Date(data.next_round.scheduled_date + "T00:00:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "short" })}
+                    </span>
+                  )}
+                </span>
               </div>
-              <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+              <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] text-muted-foreground">
                 {data.next_round.scheduled_time && (
-                  <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{data.next_round.scheduled_time.slice(0, 5)}</span>
+                  <span className="flex items-center gap-0.5"><Clock className="h-2.5 w-2.5" />{data.next_round.scheduled_time.slice(0, 5)}</span>
                 )}
-                {data.next_round.location && (
-                  <span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{data.next_round.location}</span>
-                )}
-                <span className="flex items-center gap-1"><Users className="h-3 w-3" />{data.next_round.confirmed_count}/{data.next_round.max_players}</span>
+                <span className="flex items-center gap-0.5"><Users className="h-2.5 w-2.5" />{data.next_round.confirmed_count}/{data.next_round.max_players}</span>
               </div>
-              <div className="mt-3">
+              <div className="mt-2">
                 {data.next_round.presence_is_open ? (
-                  <div className="flex gap-2">
+                  <div className="flex gap-1">
                     <button
                       disabled={busy}
                       onClick={() => handlePresence("confirmed")}
-                      className={`flex flex-1 items-center justify-center gap-1.5 rounded-full px-3 py-2 text-xs font-semibold transition-colors ${
+                      className={`flex flex-1 items-center justify-center gap-1 rounded-full px-2 py-1.5 text-[10px] font-semibold transition-colors ${
                         data.next_round.presence_status === "confirmed"
                           ? "bg-success text-success-foreground"
                           : "border border-success/40 bg-success/10 text-success hover:bg-success/20"
                       }`}
                     >
-                      <CheckCircle2 className="h-3.5 w-3.5" />
-                      {data.next_round.presence_status === "confirmed" ? "Confirmado" : "Vou"}
+                      <CheckCircle2 className="h-3 w-3" />Vou
                     </button>
                     <button
                       disabled={busy}
                       onClick={() => handlePresence("declined")}
-                      className={`flex flex-1 items-center justify-center gap-1.5 rounded-full px-3 py-2 text-xs font-semibold transition-colors ${
+                      className={`flex flex-1 items-center justify-center gap-1 rounded-full px-2 py-1.5 text-[10px] font-semibold transition-colors ${
                         data.next_round.presence_status === "declined"
                           ? "bg-destructive text-destructive-foreground"
                           : "border border-destructive/40 bg-destructive/10 text-destructive hover:bg-destructive/20"
                       }`}
                     >
-                      <XCircle className="h-3.5 w-3.5" />
-                      {data.next_round.presence_status === "declined" ? "Não vou" : "Não vou"}
+                      <XCircle className="h-3 w-3" />Não
                     </button>
                   </div>
                 ) : (
-                  <div className="flex items-center justify-center gap-1.5 rounded-xl border border-dashed border-border bg-muted/20 py-2.5 text-xs text-muted-foreground">
-                    <Lock className="h-3 w-3" />
-                    {data.next_round.presence_opens_at
-                      ? `Lista abre ${new Date(data.next_round.presence_opens_at).toLocaleString("pt-BR", { weekday: "short", day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}`
-                      : "Lista ainda não aberta"}
+                  <div className="flex items-center justify-center gap-1 rounded-lg border border-dashed border-border bg-muted/20 py-1.5 text-[10px] text-muted-foreground">
+                    <Lock className="h-2.5 w-2.5 shrink-0" />
+                    <span className="truncate">
+                      {data.next_round.presence_opens_at
+                        ? `Abre ${new Date(data.next_round.presence_opens_at).toLocaleString("pt-BR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}`
+                        : "Não aberta"}
+                    </span>
                   </div>
                 )}
               </div>
             </>
           ) : (
-            <div className="rounded-xl border border-dashed border-border bg-muted/10 py-6 text-center text-xs text-muted-foreground">
-              Nenhuma rodada agendada
+            <div className="rounded-xl border border-dashed border-border bg-muted/10 py-4 text-center text-[10px] text-muted-foreground">
+              Sem rodada agendada
             </div>
           )}
         </div>
 
         {/* Sua posição */}
-        <div className="rounded-3xl border border-border bg-card p-5">
-          <h3 className="mb-3 text-xs font-bold uppercase tracking-wider text-muted-foreground">Sua posição</h3>
+        <div className="rounded-3xl border border-border bg-card p-3 lg:p-4">
+          <h3 className="mb-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Sua posição</h3>
           {isLoading ? (
-            <div className="h-20 animate-pulse rounded-xl bg-muted/30" />
+            <div className="h-16 animate-pulse rounded-xl bg-muted/30" />
           ) : data.my_position ? (
-            <div className="flex items-center gap-4">
-              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10">
-                <span className="font-display text-2xl font-black text-primary">#{data.my_position}</span>
+            <button onClick={onGotoMembers} className="flex w-full items-center gap-2 text-left">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10">
+                <span className="font-display text-base font-black text-primary">#{data.my_position}</span>
               </div>
-              <div className="flex-1">
-                <p className="font-display text-2xl font-bold text-foreground">{Math.round(data.my_rating || 0)}</p>
-                <p className="text-xs text-muted-foreground">de {data.total_ranked} jogadores ranqueados</p>
+              <div className="min-w-0 flex-1">
+                <p className="font-display text-xl font-bold text-foreground leading-tight">{Math.round(data.my_rating || 0)}</p>
+                <p className="text-[10px] text-muted-foreground truncate">de {data.total_ranked} ranqueados</p>
               </div>
-              <button
-                onClick={onGotoMembers}
-                className="rounded-full border border-border bg-card p-2 text-muted-foreground hover:text-foreground"
-              >
-                <ChevronRight className="h-4 w-4" />
-              </button>
-            </div>
+              <ChevronRight className="h-3 w-3 shrink-0 text-muted-foreground" />
+            </button>
           ) : (
-            <div className="rounded-xl border border-dashed border-border bg-muted/10 py-6 text-center text-xs text-muted-foreground">
-              Jogue partidas para entrar no ranking
+            <div className="rounded-xl border border-dashed border-border bg-muted/10 py-4 text-center text-[10px] text-muted-foreground">
+              Jogue para entrar no ranking
             </div>
           )}
         </div>
+      </div>
+
+      {/* Grid secundário: top 3 + atividade */}
+      <div className="grid gap-4 lg:grid-cols-2">
 
         {/* Pódio */}
         <div className="rounded-3xl border border-border bg-card p-5">
