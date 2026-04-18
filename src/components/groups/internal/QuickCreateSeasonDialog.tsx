@@ -1,18 +1,55 @@
-import { useState } from "react";
-import { X, Loader2, Trophy } from "lucide-react";
+import { useMemo, useState } from "react";
+import { X, Loader2, Trophy, Calendar as CalendarIcon, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { createSeason } from "@/lib/season-actions";
+import { createSeasonWithRounds } from "@/hooks/use-season-creation";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 
 interface Props {
   groupId: string;
-  defaultMatchFormat?: string; // group's match_format: doubles | singles
+  defaultMatchFormat?: string; // doubles | singles
+  fixedDay?: number | null; // 0..6 (Sun..Sat) from group
   onClose: () => void;
   onCreated: () => void;
 }
 
-export function QuickCreateSeasonDialog({ groupId, defaultMatchFormat, onClose, onCreated }: Props) {
+const WEEKDAYS = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
+
+function pad(n: number) {
+  return n.toString().padStart(2, "0");
+}
+function toISO(d: Date) {
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+function nextWeekday(from: Date, weekday: number) {
+  const d = new Date(from);
+  const diff = (weekday - d.getDay() + 7) % 7 || 7; // next occurrence (not today)
+  d.setDate(d.getDate() + diff);
+  return d;
+}
+function generateRoundDates(startISO: string, weekday: number, count: number, intervalWeeks = 1) {
+  const start = new Date(startISO + "T00:00:00");
+  // Anchor to the chosen weekday on/after start
+  const anchorDiff = (weekday - start.getDay() + 7) % 7;
+  const anchor = new Date(start);
+  anchor.setDate(anchor.getDate() + anchorDiff);
+  const out: string[] = [];
+  for (let i = 0; i < count; i++) {
+    const d = new Date(anchor);
+    d.setDate(anchor.getDate() + i * 7 * intervalWeeks);
+    out.push(toISO(d));
+  }
+  return out;
+}
+
+export function QuickCreateSeasonDialog({
+  groupId,
+  defaultMatchFormat,
+  fixedDay,
+  onClose,
+  onCreated,
+}: Props) {
   const { user } = useAuth();
   const [name, setName] = useState("");
   const [totalRounds, setTotalRounds] = useState<number>(8);
@@ -20,6 +57,22 @@ export function QuickCreateSeasonDialog({ groupId, defaultMatchFormat, onClose, 
     defaultMatchFormat === "singles" ? "singles" : "doubles"
   );
   const [saving, setSaving] = useState(false);
+
+  // Date generator (optional)
+  const [generateDates, setGenerateDates] = useState<boolean>(fixedDay != null);
+  const todayISO = useMemo(() => toISO(new Date()), []);
+  const initialWeekday = fixedDay ?? new Date().getDay();
+  const [weekday, setWeekday] = useState<number>(initialWeekday);
+  const [startDate, setStartDate] = useState<string>(() =>
+    toISO(nextWeekday(new Date(), initialWeekday))
+  );
+  const [intervalWeeks, setIntervalWeeks] = useState<number>(1);
+  const [scheduledTime, setScheduledTime] = useState<string>("19:00");
+
+  const previewDates = useMemo(() => {
+    if (!generateDates) return [];
+    return generateRoundDates(startDate, weekday, Math.min(totalRounds, 12), intervalWeeks);
+  }, [generateDates, startDate, weekday, totalRounds, intervalWeeks]);
 
   const submit = async () => {
     if (!user) return;
@@ -34,25 +87,42 @@ export function QuickCreateSeasonDialog({ groupId, defaultMatchFormat, onClose, 
     }
     setSaving(true);
     try {
-      const season = await createSeason({
-        groupId,
-        name: trimmed,
-        userId: user.id,
-        matchFormat,
-        totalRounds,
-      });
-      // Notify members (best-effort, non-blocking)
-      try {
-        await supabase.from("notifications").insert({
-          user_id: user.id,
-          group_id: groupId,
-          type: "season_created",
-          title: "Nova temporada! 🏆",
-          body: `${trimmed} foi criada com ${totalRounds} rodada${totalRounds === 1 ? "" : "s"}.`,
-          data: { seasonId: season.id },
+      let seasonId: string;
+      if (generateDates) {
+        const dates = generateRoundDates(startDate, weekday, totalRounds, intervalWeeks);
+        const season = await createSeasonWithRounds({
+          groupId,
+          name: trimmed,
+          userId: user.id,
+          durationType: "custom",
+          totalRounds,
+          roundDates: dates,
+          scheduledTime: scheduledTime ? `${scheduledTime}:00` : undefined,
+          matchFormat,
         });
-      } catch {
-        /* ignore */
+        seasonId = season.id;
+      } else {
+        const season = await createSeason({
+          groupId,
+          name: trimmed,
+          userId: user.id,
+          matchFormat,
+          totalRounds,
+        });
+        seasonId = season.id;
+        // Best-effort notify
+        try {
+          await supabase.from("notifications").insert({
+            user_id: user.id,
+            group_id: groupId,
+            type: "season_created",
+            title: "Nova temporada! 🏆",
+            body: `${trimmed} foi criada com ${totalRounds} rodada${totalRounds === 1 ? "" : "s"}.`,
+            data: { seasonId },
+          });
+        } catch {
+          /* ignore */
+        }
       }
       toast.success("Temporada criada!");
       onCreated();
@@ -70,7 +140,7 @@ export function QuickCreateSeasonDialog({ groupId, defaultMatchFormat, onClose, 
       onClick={onClose}
     >
       <div
-        className="w-full max-w-md rounded-3xl border border-border bg-card p-5 shadow-2xl"
+        className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-3xl border border-border bg-card p-5 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-4 flex items-center justify-between">
@@ -106,7 +176,7 @@ export function QuickCreateSeasonDialog({ groupId, defaultMatchFormat, onClose, 
               maxLength={60}
               placeholder="Ex.: Temporada Verão 2026"
               onKeyDown={(e) => {
-                if (e.key === "Enter" && !saving) submit();
+                if (e.key === "Enter" && !saving && !generateDates) submit();
               }}
               className="w-full rounded-2xl border border-border bg-background px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
             />
@@ -124,9 +194,6 @@ export function QuickCreateSeasonDialog({ groupId, defaultMatchFormat, onClose, 
               onChange={(e) => setTotalRounds(Number(e.target.value) || 0)}
               className="w-full rounded-2xl border border-border bg-background px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
             />
-            <p className="mt-1 text-[10px] text-muted-foreground">
-              Você poderá criar/cancelar rodadas individuais depois.
-            </p>
           </div>
 
           <div>
@@ -150,6 +217,124 @@ export function QuickCreateSeasonDialog({ groupId, defaultMatchFormat, onClose, 
                 </button>
               ))}
             </div>
+          </div>
+
+          {/* Date generator */}
+          <div className="rounded-2xl border border-border bg-background/40 p-3">
+            <label className="flex cursor-pointer items-start gap-2.5">
+              <input
+                type="checkbox"
+                checked={generateDates}
+                onChange={(e) => setGenerateDates(e.target.checked)}
+                className="mt-0.5 h-4 w-4 accent-primary"
+              />
+              <div className="flex-1">
+                <div className="flex items-center gap-1.5">
+                  <Sparkles className="h-3.5 w-3.5 text-primary" />
+                  <span className="text-xs font-bold text-foreground">
+                    Gerar datas das rodadas automaticamente
+                  </span>
+                </div>
+                <p className="mt-0.5 text-[10px] text-muted-foreground">
+                  Cria todas as rodadas já agendadas no dia da semana escolhido. Você pode editar
+                  cada uma depois.
+                </p>
+              </div>
+            </label>
+
+            {generateDates && (
+              <div className="mt-3 space-y-3">
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+                      Dia da semana
+                    </label>
+                    <select
+                      value={weekday}
+                      onChange={(e) => setWeekday(Number(e.target.value))}
+                      className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                    >
+                      {WEEKDAYS.map((w, i) => (
+                        <option key={i} value={i}>
+                          {w}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+                      A cada
+                    </label>
+                    <select
+                      value={intervalWeeks}
+                      onChange={(e) => setIntervalWeeks(Number(e.target.value))}
+                      className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                    >
+                      <option value={1}>Toda semana</option>
+                      <option value={2}>2 semanas</option>
+                      <option value={3}>3 semanas</option>
+                      <option value={4}>Mensal (4s)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+                      Data inicial
+                    </label>
+                    <input
+                      type="date"
+                      value={startDate}
+                      min={todayISO}
+                      onChange={(e) => setStartDate(e.target.value)}
+                      className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+                      Horário
+                    </label>
+                    <input
+                      type="time"
+                      value={scheduledTime}
+                      onChange={(e) => setScheduledTime(e.target.value)}
+                      className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                    />
+                  </div>
+                </div>
+
+                {previewDates.length > 0 && (
+                  <div className="rounded-xl border border-dashed border-border bg-card/40 p-2.5">
+                    <div className="mb-1.5 flex items-center gap-1.5">
+                      <CalendarIcon className="h-3 w-3 text-muted-foreground" />
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                        Prévia ({previewDates.length}
+                        {totalRounds > previewDates.length ? ` de ${totalRounds}` : ""})
+                      </span>
+                    </div>
+                    <div className="flex flex-wrap gap-1">
+                      {previewDates.map((d) => {
+                        const dt = new Date(d + "T00:00:00");
+                        return (
+                          <span
+                            key={d}
+                            className="rounded-lg bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary"
+                          >
+                            {dt.toLocaleDateString("pt-BR", { day: "2-digit", month: "short" })}
+                          </span>
+                        );
+                      })}
+                      {totalRounds > previewDates.length && (
+                        <span className="rounded-lg bg-muted/40 px-2 py-0.5 text-[10px] text-muted-foreground">
+                          +{totalRounds - previewDates.length}…
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
