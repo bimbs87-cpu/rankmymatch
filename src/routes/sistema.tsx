@@ -22,9 +22,9 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
-import mockupDesktopHome from "@/assets/mockup-desktop-home.png";
-import mockupMobileHome from "@/assets/mockup-mobile-home.png";
-import mockupMobileRanking from "@/assets/mockup-mobile-ranking.png";
+import mockupImacHome from "@/assets/mockup-imac-home.png";
+import mockupPhoneHome from "@/assets/mockup-phone-home.png";
+import mockupPhoneRanking from "@/assets/mockup-phone-ranking.png";
 
 export const Route = createFileRoute("/sistema")({
   head: () => ({
