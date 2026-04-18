@@ -893,6 +893,12 @@ function ComparePage() {
 
             {/* HERO: head to head */}
             <section ref={heroRef} className="rounded-3xl border border-border bg-card/40 p-4 lg:p-6">
+              <div className="mb-3 flex items-center justify-center gap-2">
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-primary">
+                  <Trophy className="h-3 w-3" />
+                  Carreira no grupo · todas as temporadas
+                </span>
+              </div>
               <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 lg:gap-6">
                 <PlayerHero player={playerA} side="left" />
                 <div className="flex flex-col items-center gap-2">
@@ -943,21 +949,22 @@ function ComparePage() {
               {/* H2H summary */}
               {h2h && (h2h.asOpponents.played > 0 || h2h.asPartners.played > 0) && (
                 <div className="mt-4 grid grid-cols-2 gap-2 lg:gap-3">
-                  {/* Como adversários */}
+                  {/* Adversários */}
                   <div className="rounded-2xl border border-border/60 bg-background/40 px-3 py-2.5">
                     <div className="flex items-center justify-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
                       <Swords className="h-3 w-3 text-destructive" />
-                      Como adversários
+                      Adversários
+                      {h2h.asOpponents.played > 0 && (
+                        <span className="ml-1 rounded-full bg-muted/40 px-1.5 py-0.5 text-[9px] font-bold text-foreground/80">
+                          {h2h.asOpponents.played}
+                        </span>
+                      )}
                     </div>
                     {h2h.asOpponents.played > 0 ? (
-                      <div className="mt-1.5 grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+                      <div className="mt-1.5 grid grid-cols-2 items-end gap-2">
                         <div className="text-center">
                           <p className="font-display text-2xl font-bold leading-none text-foreground">{h2h.asOpponents.aWon}</p>
                           <p className="mt-1 truncate text-[10px] text-muted-foreground">{abbreviateName(playerA.profile.name)}</p>
-                        </div>
-                        <div className="flex flex-col items-center px-1">
-                          <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">vs</span>
-                          <span className="mt-0.5 text-[10px] text-muted-foreground">{h2h.asOpponents.played} {h2h.asOpponents.played === 1 ? "jogo" : "jogos"}</span>
                         </div>
                         <div className="text-center">
                           <p className="font-display text-2xl font-bold leading-none text-foreground">{h2h.asOpponents.bWon}</p>
@@ -968,21 +975,22 @@ function ComparePage() {
                       <p className="mt-2 text-center text-[11px] text-muted-foreground">Nunca se enfrentaram</p>
                     )}
                   </div>
-                  {/* Como parceiros */}
+                  {/* Parceiros */}
                   <div className="rounded-2xl border border-border/60 bg-background/40 px-3 py-2.5">
                     <div className="flex items-center justify-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
                       <Users className="h-3 w-3 text-primary" />
-                      Como parceiros
+                      Parceiros
+                      {h2h.asPartners.played > 0 && (
+                        <span className="ml-1 rounded-full bg-muted/40 px-1.5 py-0.5 text-[9px] font-bold text-foreground/80">
+                          {h2h.asPartners.played}
+                        </span>
+                      )}
                     </div>
                     {h2h.asPartners.played > 0 ? (
-                      <div className="mt-1.5 grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+                      <div className="mt-1.5 grid grid-cols-2 items-end gap-2">
                         <div className="text-center">
                           <p className="font-display text-2xl font-bold leading-none text-success">{h2h.asPartners.won}<span className="ml-0.5 text-sm">V</span></p>
                           <p className="mt-1 text-[10px] text-muted-foreground">{h2h.asPartners.played - h2h.asPartners.won}D</p>
-                        </div>
-                        <div className="flex flex-col items-center px-1">
-                          <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">·</span>
-                          <span className="mt-0.5 text-[10px] text-muted-foreground">{h2h.asPartners.played} {h2h.asPartners.played === 1 ? "jogo" : "jogos"}</span>
                         </div>
                         <div className="text-center">
                           <p className="font-display text-2xl font-bold leading-none text-foreground">{pct(h2h.asPartners.won, h2h.asPartners.played)}<span className="ml-0.5 text-sm">%</span></p>
