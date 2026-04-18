@@ -230,14 +230,42 @@ export function GroupSidebar({
               <Clock className="h-2.5 w-2.5" /> Aguardando
             </p>
             <ul className="space-y-1">
-              {pendingGroups.map((p) => (
-                <li
-                  key={p.id}
-                  className="flex items-center gap-2 rounded-xl border border-warning/20 bg-warning/5 px-2.5 py-1.5"
-                >
-                  <Clock className="h-3 w-3 flex-shrink-0 text-warning" />
-                  <span className="truncate text-[11px] text-foreground">{p.name}</span>
-                </li>
+              {pendingGroups.map((p) => {
+                const isResolved = p.status === "approved" || p.status === "rejected";
+                const isApproved = p.status === "approved";
+                return (
+                  <li
+                    key={p.id}
+                    className={`flex items-center gap-2 rounded-xl border px-2.5 py-1.5 ${
+                      isApproved
+                        ? "border-success/30 bg-success/10"
+                        : p.status === "rejected"
+                        ? "border-destructive/30 bg-destructive/10"
+                        : "border-warning/20 bg-warning/5"
+                    }`}
+                  >
+                    {isApproved ? (
+                      <Bell className="h-3 w-3 flex-shrink-0 text-success" />
+                    ) : p.status === "rejected" ? (
+                      <Bell className="h-3 w-3 flex-shrink-0 text-destructive" />
+                    ) : (
+                      <Clock className="h-3 w-3 flex-shrink-0 text-warning" />
+                    )}
+                    <span className="min-w-0 flex-1 truncate text-[11px] text-foreground">{p.name}</span>
+                    {isResolved && (
+                      <span
+                        className={`flex-shrink-0 rounded-full px-1.5 py-0.5 text-[9px] font-bold ${
+                          isApproved
+                            ? "bg-success text-success-foreground"
+                            : "bg-destructive text-destructive-foreground"
+                        }`}
+                      >
+                        {isApproved ? "Aprovado" : "Recusado"}
+                      </span>
+                    )}
+                  </li>
+                );
+              })}
               ))}
             </ul>
           </div>
