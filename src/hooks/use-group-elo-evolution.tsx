@@ -9,17 +9,24 @@ export interface PlayerEloLine {
   points: { ts: number; rating: number }[];
 }
 
-export interface GroupEloEvolution {
-  /** Unified time axis (ms). */
-  series: PlayerEloLine[];
-  /** Min/max ts across all players for chart domain. */
-  minTs: number;
-  maxTs: number;
+export interface SeasonOption {
+  id: string;
+  name: string;
+  status: string;
 }
 
-const EMPTY: GroupEloEvolution = { series: [], minTs: 0, maxTs: 0 };
+export interface GroupEloEvolution {
+  series: PlayerEloLine[];
+  minTs: number;
+  maxTs: number;
+  seasons: SeasonOption[];
+}
 
-export function useGroupEloEvolution(groupId: string | null) {
+const EMPTY: GroupEloEvolution = { series: [], minTs: 0, maxTs: 0, seasons: [] };
+
+export type SeasonFilter = "all" | "active" | string; // string = season id
+
+export function useGroupEloEvolution(groupId: string | null, filter: SeasonFilter = "all") {
   const [data, setData] = useState<GroupEloEvolution>(EMPTY);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -33,14 +40,34 @@ export function useGroupEloEvolution(groupId: string | null) {
     (async () => {
       setIsLoading(true);
       try {
-        // Rounds in the group give us the date for matches.
-        const { data: rounds } = await supabase
+        // Load seasons (for filter UI + active resolution)
+        const { data: seasonsRaw } = await supabase
+          .from("seasons")
+          .select("id, name, status, created_at")
+          .eq("group_id", groupId)
+          .order("created_at", { ascending: false });
+        const seasons: SeasonOption[] = (seasonsRaw || []).map((s) => ({
+          id: s.id, name: s.name, status: s.status,
+        }));
+
+        // Resolve season filter
+        let seasonIdFilter: string | null = null;
+        if (filter === "active") {
+          seasonIdFilter = seasons.find((s) => s.status === "active")?.id || null;
+        } else if (filter !== "all") {
+          seasonIdFilter = filter;
+        }
+
+        // Rounds in the group (optionally restricted to a season)
+        let roundsQuery = supabase
           .from("rounds")
-          .select("id, scheduled_date, created_at")
+          .select("id, scheduled_date, created_at, season_id")
           .eq("group_id", groupId);
+        if (seasonIdFilter) roundsQuery = roundsQuery.eq("season_id", seasonIdFilter);
+        const { data: rounds } = await roundsQuery;
         const roundIds = (rounds || []).map((r) => r.id);
         if (!roundIds.length) {
-          if (!cancelled) { setData(EMPTY); setIsLoading(false); }
+          if (!cancelled) { setData({ ...EMPTY, seasons }); setIsLoading(false); }
           return;
         }
         const dateOf = new Map<string, number>();
@@ -55,7 +82,7 @@ export function useGroupEloEvolution(groupId: string | null) {
           .from("matches").select("id, round_id, created_at").in("round_id", roundIds);
         const matchIds = (matches || []).map((m) => m.id);
         if (!matchIds.length) {
-          if (!cancelled) { setData(EMPTY); setIsLoading(false); }
+          if (!cancelled) { setData({ ...EMPTY, seasons }); setIsLoading(false); }
           return;
         }
         const matchDate = new Map<string, number>();
@@ -96,7 +123,6 @@ export function useGroupEloEvolution(groupId: string | null) {
             points: byUser.get(uid) || [],
           };
         });
-        // Sort series by current rating descending so legend feels intuitive
         series.sort((a, b) => {
           const ra = a.points[a.points.length - 1]?.rating ?? 0;
           const rb = b.points[b.points.length - 1]?.rating ?? 0;
@@ -108,6 +134,7 @@ export function useGroupEloEvolution(groupId: string | null) {
             series,
             minTs: isFinite(minTs) ? minTs : 0,
             maxTs: isFinite(maxTs) ? maxTs : 0,
+            seasons,
           });
           setIsLoading(false);
         }
@@ -117,7 +144,7 @@ export function useGroupEloEvolution(groupId: string | null) {
       }
     })();
     return () => { cancelled = true; };
-  }, [groupId]);
+  }, [groupId, filter]);
 
   return { data, isLoading };
 }
