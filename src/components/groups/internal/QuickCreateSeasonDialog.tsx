@@ -412,23 +412,11 @@ export function QuickCreateSeasonDialog({
                       </p>
                       <button
                         type="button"
-                        onClick={() => {
-                          const found = brHolidaysInRange(generatedDates);
-                          if (found.length === 0) {
-                            toast.info("Nenhum feriado nacional BR no período");
-                            return;
-                          }
-                          setExcludedDates((prev) => {
-                            const next = new Set(prev);
-                            for (const d of found) next.add(d);
-                            return next;
-                          });
-                          toast.success(`${found.length} feriado${found.length === 1 ? "" : "s"} excluído${found.length === 1 ? "" : "s"}`);
-                        }}
+                        onClick={() => setShowHolidayPicker(true)}
                         className="shrink-0 rounded-full border border-border bg-background px-2 py-0.5 text-[10px] font-bold text-foreground hover:bg-muted"
-                        title="Excluir feriados nacionais BR (fixos + Páscoa, Carnaval, Corpus Christi)"
+                        title="Selecionar feriados a pular (BR + customizados)"
                       >
-                        🇧🇷 Pular feriados
+                        🇧🇷 Pular feriados…
                       </button>
                     </div>
                     <div className="flex flex-wrap gap-1">
