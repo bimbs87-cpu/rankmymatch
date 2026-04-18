@@ -594,46 +594,34 @@ function CompareLandingPage() {
           </div>
         </header>
 
-        {/* "Como funciona" — accordion compacto em linha única */}
+        {/* "Como funciona" — expansíveis em linha única */}
         <section className="mb-6">
-          <Accordion
-            type="single"
-            collapsible
-            value={infoOpen}
-            onValueChange={setInfoOpen}
-            className="rounded-2xl border border-border bg-card/60 overflow-hidden"
-          >
+          <div className="rounded-2xl border border-border bg-card/60 overflow-hidden">
             <div className="grid grid-cols-3 divide-x divide-border">
-              <AccordionItem value="what" className="border-b-0">
-                <AccordionTrigger className="px-3 py-3 hover:no-underline hover:bg-muted/30 [&>svg]:hidden">
-                  <div className="flex items-center gap-1.5 mx-auto">
-                    <Lightbulb className="h-3.5 w-3.5 text-primary shrink-0" />
+              {([
+                { id: "what", icon: Lightbulb, label: "O que é" },
+                { id: "how", icon: Target, label: "Como usar" },
+                { id: "why", icon: TrendingUp, label: "Por que usar" },
+              ] as const).map((tab) => {
+                const Icon = tab.icon;
+                const active = infoOpen === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setInfoOpen(active ? null : tab.id)}
+                    className={`flex items-center justify-center gap-1.5 px-2 py-3 transition-colors ${
+                      active ? "bg-primary/10" : "hover:bg-muted/30"
+                    }`}
+                    aria-expanded={active}
+                  >
+                    <Icon className="h-3.5 w-3.5 text-primary shrink-0" />
                     <span className="text-[10px] uppercase tracking-wider font-bold text-primary">
-                      O que é
+                      {tab.label}
                     </span>
-                  </div>
-                </AccordionTrigger>
-              </AccordionItem>
-              <AccordionItem value="how" className="border-b-0">
-                <AccordionTrigger className="px-3 py-3 hover:no-underline hover:bg-muted/30 [&>svg]:hidden">
-                  <div className="flex items-center gap-1.5 mx-auto">
-                    <Target className="h-3.5 w-3.5 text-primary shrink-0" />
-                    <span className="text-[10px] uppercase tracking-wider font-bold text-primary">
-                      Como usar
-                    </span>
-                  </div>
-                </AccordionTrigger>
-              </AccordionItem>
-              <AccordionItem value="why" className="border-b-0">
-                <AccordionTrigger className="px-3 py-3 hover:no-underline hover:bg-muted/30 [&>svg]:hidden">
-                  <div className="flex items-center gap-1.5 mx-auto">
-                    <TrendingUp className="h-3.5 w-3.5 text-primary shrink-0" />
-                    <span className="text-[10px] uppercase tracking-wider font-bold text-primary">
-                      Por que usar
-                    </span>
-                  </div>
-                </AccordionTrigger>
-              </AccordionItem>
+                  </button>
+                );
+              })}
             </div>
 
             {infoOpen === "what" && (
@@ -663,7 +651,7 @@ function CompareLandingPage() {
                 </p>
               </div>
             )}
-          </Accordion>
+          </div>
         </section>
 
         {!groups.length ? (
