@@ -973,6 +973,50 @@ function RankingPage() {
           </div>
         )}
       </div>
+
+      {/* Floating compare bar */}
+      {compareMode && selectedSeason && (
+        <div className="fixed bottom-20 left-1/2 z-30 w-[calc(100%-1.5rem)] max-w-md -translate-x-1/2 lg:bottom-6">
+          <div className="rounded-2xl border border-primary/40 bg-card/95 p-3 shadow-2xl backdrop-blur-xl">
+            <div className="flex items-center gap-3">
+              <div className="flex-1 min-w-0">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  {compareSelection.length}/2 selecionados
+                </p>
+                <p className="truncate text-xs text-foreground">
+                  {compareSelection.length === 0
+                    ? "Toque em 2 jogadores para comparar"
+                    : compareSelection.length === 1
+                    ? "Selecione mais 1 jogador"
+                    : "Pronto para comparar!"}
+                </p>
+              </div>
+              <Link
+                to="/ranking/compare"
+                search={{
+                  a: compareSelection[0] || "",
+                  b: compareSelection[1] || "",
+                  groupId: (selectedSeason as any).group_id,
+                  seasonId: selectedSeason.id,
+                  tab: "season" as const,
+                }}
+                disabled={compareSelection.length !== 2}
+                onClick={(e) => {
+                  if (compareSelection.length !== 2) e.preventDefault();
+                }}
+                className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-4 py-2 text-xs font-bold transition ${
+                  compareSelection.length === 2
+                    ? "bg-primary text-primary-foreground hover:opacity-90"
+                    : "cursor-not-allowed bg-muted text-muted-foreground"
+                }`}
+              >
+                <GitCompareArrows className="h-3.5 w-3.5" />
+                Comparar
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
