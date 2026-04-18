@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { zodValidator, fallback } from "@tanstack/zod-adapter";
 import { z } from "zod";
 import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, Trophy, Activity, Swords, Users, TrendingUp, TrendingDown, Minus, Share2, ArrowLeftRight } from "lucide-react";
+import { ArrowLeft, Trophy, Activity, Swords, Users, TrendingUp, Share2, ArrowLeftRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { TrophyLoadingBar } from "@/components/TrophyLoadingBar";
