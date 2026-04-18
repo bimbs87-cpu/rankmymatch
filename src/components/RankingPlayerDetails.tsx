@@ -314,12 +314,12 @@ export function RankingPlayerDetails(props: Props) {
       {/* Second row: streaks, attendance, swings */}
       <div className="mt-3 grid grid-cols-2 lg:grid-cols-4 gap-2">
         <MiniStat
-          icon={<Flame className="h-3.5 w-3.5 text-orange-400" />}
+          icon={<Flame className="h-3.5 w-3.5 text-warning" />}
           label="Sequência atual"
           value={stats ? `${stats.win_streak_current}V` : loading ? "…" : "0V"}
         />
         <MiniStat
-          icon={<Zap className="h-3.5 w-3.5 text-amber-400" />}
+          icon={<Zap className="h-3.5 w-3.5 text-warning" />}
           label="Maior sequência"
           value={stats ? `${stats.win_streak_max}V` : loading ? "…" : "0V"}
         />
