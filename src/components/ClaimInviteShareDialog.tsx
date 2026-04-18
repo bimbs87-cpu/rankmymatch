@@ -187,6 +187,19 @@ export function ClaimInviteShareDialog({
     return applyTemplate(template, sample.name, groupName || "RankMyMatch", link);
   }, [template, sample, groupName]);
 
+  // WhatsApp soft limit ~4096 chars per message; warn well before.
+  const charCount = previewMessage.length;
+  const WA_SOFT_LIMIT = 1000; // recomendado para evitar truncamento visual
+  const WA_HARD_LIMIT = 4096;
+  const charTone =
+    charCount > WA_HARD_LIMIT ? "text-destructive"
+    : charCount > WA_SOFT_LIMIT ? "text-warning"
+    : "text-muted-foreground";
+  const charLabel =
+    charCount > WA_HARD_LIMIT ? "Muito longa para WhatsApp"
+    : charCount > WA_SOFT_LIMIT ? "Longa — pode aparecer truncada"
+    : "OK";
+
   // Generate or reuse a claim invite for one placeholder. Returns the URL.
   const ensureInviteFor = async (placeholderUserId: string): Promise<string> => {
     if (!user) throw new Error("not authed");
