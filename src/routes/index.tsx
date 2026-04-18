@@ -1619,82 +1619,173 @@ function DashboardPage() {
         </section>
 
         {/* Seu próximo confronto — priority card (mobile + desktop) */}
-        {nextMatch && (
-          <section className="lg:col-span-12 lg:col-start-1 lg:row-start-3">
-            <div className="mb-3 flex items-center justify-between">
-              <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Seu próximo confronto
-              </h2>
-            </div>
-            <div className="rounded-3xl border border-primary/30 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent p-4">
-              <div className="flex items-start gap-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-primary/15">
-                  <Swords className="h-5 w-5 text-primary" />
+        {nextMatch && (() => {
+          // Determine state:
+          // 1 = paired (has_pairing)
+          // 2 = round confirmed but no pairing yet
+          // 3 = user not yet confirmed (placeholder/not-confirmed)
+          // 4 = rivalry mode override (singles + rivalry group)
+          const isConfirmed = nextMatch.my_presence_status === "confirmed";
+          let state: 1 | 2 | 3 | 4 = 2;
+          if (nextMatch.is_rivalry) state = 4;
+          else if (nextMatch.has_pairing) state = 1;
+          else if (!isConfirmed) state = 3;
+          else state = 2;
+
+          // Format badge label
+          const formatBadge = (() => {
+            if (nextMatch.match_format === "singles") {
+              if (nextMatch.singles_group_type === "rivalry") return "Duelo";
+              if (nextMatch.singles_group_type === "league") return "Liga";
+              if (nextMatch.singles_group_type === "casual") return "Casual";
+              return "1x1";
+            }
+            return "2x2";
+          })();
+
+          const headerLabel = state === 4 ? "Duelo" : "Seu próximo confronto";
+
+          // Title content
+          let titleNode: JSX.Element;
+          let subStatusNode: JSX.Element | null = null;
+
+          if (state === 1) {
+            titleNode = (
+              <p className="font-display text-base font-bold text-foreground leading-tight">
+                <span className="text-primary">Você</span>
+                {nextMatch.partner_name ? (
+                  <> <span className="text-muted-foreground text-xs font-medium">+ {nextMatch.partner_name}</span></>
+                ) : null}
+                <span className="text-muted-foreground"> vs </span>
+                <span className="text-foreground">
+                  {nextMatch.opponent_names.length > 0 ? nextMatch.opponent_names.join(" & ") : "Adversários"}
+                </span>
+              </p>
+            );
+          } else if (state === 4) {
+            // Rivalry: show "Duelo ativo" or "Primeiro confronto do duelo"
+            const rivalryHeadline = nextMatch.has_any_completed_match
+              ? "Duelo ativo"
+              : "Primeiro confronto do duelo";
+            titleNode = (
+              <>
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-primary">
+                  {rivalryHeadline}
+                </p>
+                {nextMatch.has_pairing ? (
+                  <p className="font-display text-base font-bold text-foreground leading-tight mt-0.5">
+                    <span className="text-primary">Você</span>
+                    <span className="text-muted-foreground"> vs </span>
+                    <span className="text-foreground">
+                      {nextMatch.opponent_names.length > 0 ? nextMatch.opponent_names.join(" & ") : "Adversário"}
+                    </span>
+                  </p>
+                ) : (
+                  <p className="font-display text-base font-bold text-foreground leading-tight mt-0.5">
+                    Rodada {nextMatch.round_number ?? "—"}
+                  </p>
+                )}
+              </>
+            );
+            if (!nextMatch.has_pairing) {
+              subStatusNode = (
+                <p className="mt-1 text-[11px] font-medium text-warning">
+                  Aguardando definição do confronto
+                </p>
+              );
+            }
+          } else {
+            // states 2 and 3
+            titleNode = (
+              <p className="font-display text-base font-bold text-foreground leading-tight">
+                Rodada {nextMatch.round_number ?? "—"}
+              </p>
+            );
+            if (state === 2) {
+              subStatusNode = (
+                <p className="mt-1 text-[11px] font-medium text-warning">
+                  Aguardando definição de confrontos
+                </p>
+              );
+            } else {
+              subStatusNode = (
+                <div className="mt-1 space-y-0.5">
+                  <p className="text-[11px] font-medium text-primary">Você confirmou presença</p>
+                  <p className="text-[11px] text-muted-foreground">Aguardando organização dos jogos</p>
                 </div>
-                <div className="min-w-0 flex-1">
-                  {nextMatch.has_pairing ? (
-                    <p className="font-display text-base font-bold text-foreground leading-tight">
-                      <span className="text-primary">Você</span>
-                      {nextMatch.partner_name ? (
-                        <> <span className="text-muted-foreground text-xs font-medium">+ {nextMatch.partner_name}</span></>
-                      ) : null}
-                      <span className="text-muted-foreground"> vs </span>
-                      <span className="text-foreground">
-                        {nextMatch.opponent_names.length > 0 ? nextMatch.opponent_names.join(" & ") : "Adversários"}
-                      </span>
-                    </p>
-                  ) : (
-                    <p className="font-display text-base font-bold text-foreground leading-tight">
-                      Rodada {nextMatch.round_number ?? "—"}
-                    </p>
-                  )}
-                  <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-muted-foreground">
-                    <span className="font-medium">{nextMatch.group_name}</span>
-                    {nextMatch.scheduled_date && (
-                      <span className="flex items-center gap-0.5">
-                        <Calendar className="h-3 w-3" />
-                        {formatDate(nextMatch.scheduled_date)}
-                      </span>
-                    )}
-                    {nextMatch.scheduled_time && (
-                      <span className="flex items-center gap-0.5">
-                        <Clock className="h-3 w-3" />
-                        {nextMatch.scheduled_time.slice(0, 5)}
-                      </span>
-                    )}
+              );
+            }
+          }
+
+          // CTA: state 1 with no winner yet → Registrar resultado, otherwise Ver rodada
+          const showRegister = state === 1;
+
+          return (
+            <section className="lg:col-span-12 lg:col-start-1 lg:row-start-3">
+              <div className="mb-3 flex items-center justify-between">
+                <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  {headerLabel}
+                </h2>
+                <span className="rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-primary">
+                  {formatBadge}
+                </span>
+              </div>
+              <div className="rounded-3xl border border-primary/30 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent p-4">
+                <div className="flex items-start gap-3">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-primary/15">
+                    <Swords className="h-5 w-5 text-primary" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    {titleNode}
+                    {subStatusNode}
+                    <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-muted-foreground">
+                      <span className="font-medium">{nextMatch.group_name}</span>
+                      {nextMatch.scheduled_date && (
+                        <span className="flex items-center gap-0.5">
+                          <Calendar className="h-3 w-3" />
+                          {formatDate(nextMatch.scheduled_date)}
+                        </span>
+                      )}
+                      {nextMatch.scheduled_time && (
+                        <span className="flex items-center gap-0.5">
+                          <Clock className="h-3 w-3" />
+                          {nextMatch.scheduled_time.slice(0, 5)}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
+                <div className="mt-3 flex gap-2">
+                  <Link
+                    to="/groups/$groupId/seasons/$seasonId/rounds/$roundId"
+                    params={{
+                      groupId: nextMatch.group_id,
+                      seasonId: nextMatch.season_id || "",
+                      roundId: nextMatch.round_id,
+                    }}
+                    className={`flex flex-1 items-center justify-center gap-1.5 rounded-2xl px-3 py-2 text-xs font-semibold transition-colors ${
+                      showRegister
+                        ? "bg-primary text-primary-foreground active:bg-primary/90"
+                        : "border border-primary/30 bg-primary/5 text-primary active:bg-primary/10"
+                    }`}
+                  >
+                    {showRegister ? (
+                      <>
+                        <Trophy className="h-3.5 w-3.5" />
+                        Registrar resultado
+                      </>
+                    ) : (
+                      <>
+                        <Calendar className="h-3.5 w-3.5" />
+                        Ver rodada
+                      </>
+                    )}
+                  </Link>
+                </div>
               </div>
-              <div className="mt-3 flex gap-2">
-                <Link
-                  to="/groups/$groupId/seasons/$seasonId/rounds/$roundId"
-                  params={{
-                    groupId: nextMatch.group_id,
-                    seasonId: nextMatch.season_id || "",
-                    roundId: nextMatch.round_id,
-                  }}
-                  className={`flex flex-1 items-center justify-center gap-1.5 rounded-2xl px-3 py-2 text-xs font-semibold transition-colors ${
-                    nextMatch.has_pairing
-                      ? "bg-primary text-primary-foreground active:bg-primary/90"
-                      : "border border-primary/30 bg-primary/5 text-primary active:bg-primary/10"
-                  }`}
-                >
-                  {nextMatch.has_pairing ? (
-                    <>
-                      <Trophy className="h-3.5 w-3.5" />
-                      Registrar resultado
-                    </>
-                  ) : (
-                    <>
-                      <Calendar className="h-3.5 w-3.5" />
-                      Ver rodada
-                    </>
-                  )}
-                </Link>
-              </div>
-            </div>
-          </section>
-        )}
+            </section>
+          );
+        })()}
 
         {/* Próximas Rodadas (mobile/tablet only — desktop version is inside the right column wrapper above) */}
         <section className="lg:hidden">
