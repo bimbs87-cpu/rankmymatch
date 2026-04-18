@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
-import { Crown, Medal, Trophy } from "lucide-react";
+import { Crown, Medal, Trophy, Zap, TrendingUp, Target } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
+import { useSeasonExtras, type RecordHolder } from "@/hooks/use-group-stats";
 
 interface RankingRow {
   user_id: string;
@@ -18,6 +19,7 @@ interface RankingRow {
 export function SeasonFinalRanking({ seasonId }: { seasonId: string }) {
   const [rows, setRows] = useState<RankingRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const { data: extras } = useSeasonExtras(seasonId);
 
   useEffect(() => {
     let cancelled = false;
@@ -68,7 +70,15 @@ export function SeasonFinalRanking({ seasonId }: { seasonId: string }) {
   const totalMatches = rows.reduce((s, r) => s + r.matches_played, 0) / 2; // each match counted per player; doubles=4, singles=2 — approx
 
   return (
-    <div className="grid gap-3 p-3 md:grid-cols-2">
+    <div className="space-y-3 p-3">
+      {(extras.longest_streak || extras.biggest_swing || extras.most_frequent) && (
+        <div className="grid gap-2 sm:grid-cols-3">
+          <ExtraCard icon={<Zap className="h-3.5 w-3.5" />} label="Maior sequência" rec={extras.longest_streak} tone="primary" />
+          <ExtraCard icon={<TrendingUp className="h-3.5 w-3.5" />} label="Maior virada de Elo" rec={extras.biggest_swing} tone="success" prefix="+" />
+          <ExtraCard icon={<Target className="h-3.5 w-3.5" />} label="Mais frequente" rec={extras.most_frequent} tone="info" />
+        </div>
+      )}
+      <div className="grid gap-3 md:grid-cols-2">
       {/* Pódio */}
       <div className="rounded-2xl border border-border bg-card/40 p-4">
         <div className="mb-3 text-center text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
@@ -132,6 +142,34 @@ export function SeasonFinalRanking({ seasonId }: { seasonId: string }) {
             </div>
           ))}
         </div>
+      </div>
+      </div>
+    </div>
+  );
+}
+
+function ExtraCard({ icon, label, rec, tone, prefix = "" }: {
+  icon: React.ReactNode; label: string; rec: RecordHolder | null; tone: "primary" | "success" | "info"; prefix?: string;
+}) {
+  const toneClass = { primary: "text-primary", success: "text-success", info: "text-info" }[tone];
+  if (!rec) {
+    return (
+      <div className="rounded-xl border border-dashed border-border bg-muted/10 p-2.5">
+        <div className={`flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider ${toneClass}`}>{icon}{label}</div>
+        <p className="mt-1 text-[10px] text-muted-foreground">—</p>
+      </div>
+    );
+  }
+  return (
+    <div className="rounded-xl border border-border bg-card/40 p-2.5">
+      <div className={`flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider ${toneClass}`}>{icon}{label}</div>
+      <div className="mt-1 flex items-center gap-1.5">
+        <PlayerAvatar avatarUrl={rec.avatar_url} name={rec.name} size="xs" />
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-[11px] font-semibold text-foreground">{rec.name}</p>
+          {rec.detail && <p className="truncate text-[9px] text-muted-foreground">{rec.detail}</p>}
+        </div>
+        <span className={`font-display text-sm font-black ${toneClass}`}>{prefix}{rec.value}</span>
       </div>
     </div>
   );
