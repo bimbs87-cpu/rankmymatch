@@ -190,6 +190,67 @@ function InvitePage() {
     const maxPlayers = invite.group?.max_players ?? 999;
     const currentCount = invite.group?.member_count ?? 0;
     const isFull = currentCount >= maxPlayers;
+    const isClaimInvite = !!invite.claim_placeholder_user_id;
+
+    try {
+      // CLAIM INVITE: auto-link account to placeholder, no admin approval needed
+      if (isClaimInvite && invite.claim_placeholder_user_id) {
+        const { data: ph } = await supabase
+          .from("user_profiles")
+          .select("user_id, is_placeholder")
+          .eq("user_id", invite.claim_placeholder_user_id)
+          .maybeSingle();
+
+        if (!ph || !ph.is_placeholder) {
+          toast.error("Este convite já foi usado ou o jogador já tem conta vinculada.");
+          setJoining(false);
+          return;
+        }
+
+        const { error: mergeErr } = await supabase.rpc("merge_placeholder_player", {
+          _placeholder_user_id: invite.claim_placeholder_user_id,
+          _real_user_id: user.id,
+          _group_id: invite.group_id,
+        });
+
+        if (mergeErr) {
+          console.error("[invite] merge error:", mergeErr);
+          toast.error("Erro ao vincular conta. Tente novamente.");
+          setJoining(false);
+          return;
+        }
+
+        await supabase
+          .from("invite_links")
+          .update({ use_count: invite.use_count + 1, is_active: false })
+          .eq("id", invite.id);
+
+        const { data: admins } = await supabase
+          .from("group_members")
+          .select("user_id")
+          .eq("group_id", invite.group_id)
+          .in("role", ["creator", "admin"])
+          .eq("status", "active");
+
+        if (admins?.length) {
+          const notifications = admins
+            .filter((a) => a.user_id !== user.id)
+            .map((a) => ({
+              user_id: a.user_id,
+              group_id: invite.group_id,
+              type: "member_joined",
+              title: "Conta vinculada via convite",
+              body: `${userName} vinculou sua conta ao histórico de ${invite.claim_placeholder_name || "um jogador sem conta"}.`,
+              data: { invite_code: invite.code },
+            }));
+          if (notifications.length) await supabase.from("notifications").insert(notifications);
+        }
+
+        setJoined(true);
+        toast.success(`Conta vinculada ao histórico de ${invite.claim_placeholder_name || "jogador"}!`);
+        setJoining(false);
+        return;
+      }
 
     try {
       if (isFull) {
