@@ -1646,8 +1646,8 @@ function DashboardPage() {
           const headerLabel = state === 4 ? "Duelo" : "Seu próximo confronto";
 
           // Title content
-          let titleNode: JSX.Element;
-          let subStatusNode: JSX.Element | null = null;
+          let titleNode: React.ReactNode;
+          let subStatusNode: React.ReactNode = null;
 
           if (state === 1) {
             titleNode = (
