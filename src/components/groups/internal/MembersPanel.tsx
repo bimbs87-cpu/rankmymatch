@@ -412,6 +412,21 @@ export function MembersPanel({ groupId }: Props) {
                     </>
                   )
                 )}
+                {isAdmin && !isFormer && placeholderUserIds.has(m.user_id) && (
+                  <button
+                    onClick={() => handleShareClaimInvite(m.user_id, m.profile?.name || "Jogador")}
+                    disabled={generatingInviteFor === m.user_id}
+                    className="flex items-center gap-1 rounded-lg bg-success/10 px-2 py-1.5 text-[10px] font-semibold text-success hover:bg-success/20 disabled:opacity-50"
+                    title="Convidar pelo WhatsApp para vincular conta"
+                  >
+                    {generatingInviteFor === m.user_id ? (
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                    ) : (
+                      <MessageCircle className="h-3 w-3" />
+                    )}
+                    <span className="hidden sm:inline">Convidar</span>
+                  </button>
+                )}
                 {isAdmin && !isFormer && !isMe && m.role !== "creator" && (
                   <>
                     {m.role === "member" ? (
