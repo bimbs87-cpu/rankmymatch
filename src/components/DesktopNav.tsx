@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { Home, User, Crown, Users, Bell, Sparkles } from "lucide-react";
+import { Home, User, Crown, Users, Bell, BarChart3 } from "lucide-react";
 import { useNotifications } from "@/hooks/use-notifications";
 import { useUserProfile } from "@/hooks/use-user-profile";
 import { useTheme } from "@/lib/theme";
@@ -12,7 +12,7 @@ const NAV_ITEMS = [
   { to: "/profile" as const, icon: User, label: "Perfil" },
   { to: "/ranking" as const, icon: Crown, label: "Ranking" },
   { to: "/groups" as const, icon: Users, label: "Grupos" },
-  { to: "/sistema" as const, icon: Sparkles, label: "Sistema" },
+  { to: "/comparar" as const, icon: BarChart3, label: "Comparar" },
 ];
 
 export function DesktopNav() {

@@ -1,12 +1,12 @@
 import { Link, useLocation } from "@tanstack/react-router";
-import { Home, Users, User, Sparkles, Crown } from "lucide-react";
+import { Home, Users, User, Crown, BarChart3 } from "lucide-react";
 
 const NAV_ITEMS = [
   { to: "/", icon: Home, label: "Início" },
   { to: "/profile", icon: User, label: "Perfil" },
   { to: "/ranking", icon: Crown, label: "Ranking" },
   { to: "/groups", icon: Users, label: "Grupos" },
-  { to: "/sistema", icon: Sparkles, label: "Sistema" },
+  { to: "/comparar", icon: BarChart3, label: "Comparar" },
 ] as const;
 
 export function BottomNav() {
