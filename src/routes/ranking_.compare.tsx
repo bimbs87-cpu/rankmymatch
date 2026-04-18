@@ -874,7 +874,13 @@ function CareerTab({ a, b }: { a: PlayerAggregate; b: PlayerAggregate }) {
 
       <SectionCard title="Sequências e frequência" icon={<TrendingUp className="h-4 w-4 text-success" />}>
         <StatRow label="Maior sequência V" a={a.streakMax} b={b.streakMax} />
-        <StatRow label="Sequência atual" a={a.streakCurrent} b={b.streakCurrent} />
+        <StatRow
+          label="Sequência atual"
+          a={a.streakCurrent}
+          b={b.streakCurrent}
+          format={(v) => (v === 0 ? "—" : v > 0 ? `${v}V` : `${Math.abs(v)}D`)}
+          higherIsBetter={true}
+        />
         <StatRow
           label="Presença"
           a={pct(a.roundsPresent, a.roundsTotal)}
