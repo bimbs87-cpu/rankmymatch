@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { notifyGroupMembers } from "@/hooks/use-notifications";
+import { revertMatchElo } from "@/lib/elo-engine";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Season = Tables<"seasons">;
