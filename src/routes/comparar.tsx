@@ -690,22 +690,45 @@ function CompareLandingPage() {
             {/* Favorites */}
             {favorites.length > 0 && (
               <section className="mb-5">
-                <div className="flex items-center gap-2 mb-2">
-                  <Heart className="h-3.5 w-3.5 text-primary fill-primary" />
-                  <p className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground">
-                    Seus favoritos
-                  </p>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <Heart className="h-3.5 w-3.5 text-primary fill-primary" />
+                    <p className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground">
+                      Seus favoritos
+                    </p>
+                  </div>
+                  <Badge variant="secondary" className="text-[10px] tabular-nums">
+                    {favorites.length}/{MAX_FAVORITES}
+                  </Badge>
                 </div>
+                <p className="text-[10px] text-muted-foreground mb-2">
+                  Arraste para reordenar · clique no lápis para renomear
+                </p>
                 <div className="grid gap-2 sm:grid-cols-2">
                   {favorites.map((f) => {
                     const players = f.player_ids
                       .map((id) => memberMap.get(id))
                       .filter(Boolean) as MemberLite[];
+                    const isDragging = dragId === f.id;
                     return (
                       <div
                         key={f.id}
-                        className="group flex items-center gap-3 rounded-2xl border border-border bg-card/60 p-3 hover:border-primary/40 transition-colors"
+                        draggable
+                        onDragStart={() => handleDragStart(f.id)}
+                        onDragOver={(e) => handleDragOver(e, f.id)}
+                        onDragEnd={handleDragEnd}
+                        className={`group flex items-center gap-2 rounded-2xl border bg-card/60 p-3 transition-all ${
+                          isDragging
+                            ? "border-primary opacity-50"
+                            : "border-border hover:border-primary/40"
+                        }`}
                       >
+                        <span
+                          className="cursor-grab active:cursor-grabbing text-muted-foreground/60 hover:text-foreground"
+                          title="Arraste para reordenar"
+                        >
+                          <GripVertical className="h-4 w-4" />
+                        </span>
                         <button
                           onClick={() => goCompare(f.player_ids)}
                           className="flex flex-1 items-center gap-3 min-w-0 text-left"
@@ -732,8 +755,15 @@ function CompareLandingPage() {
                           <ArrowRight className="h-4 w-4 text-muted-foreground/60 shrink-0" />
                         </button>
                         <button
+                          onClick={() => openRename(f)}
+                          className="p-1 text-muted-foreground hover:text-primary transition-colors"
+                          title="Renomear"
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </button>
+                        <button
                           onClick={() => removeFavorite(f.id)}
-                          className="opacity-0 group-hover:opacity-100 transition-opacity p-1 text-muted-foreground hover:text-destructive"
+                          className="p-1 text-muted-foreground hover:text-destructive transition-colors"
                           title="Remover"
                         >
                           <X className="h-3.5 w-3.5" />
