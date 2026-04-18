@@ -106,6 +106,7 @@ function GroupSeasonsPage() {
   const rivalry = isRivalryGroup(group, memberCount);
   // Singles-specific
   const [setsPerMatch, setSetsPerMatch] = useState(3);
+  const [setsMode, setSetsMode] = useState<"fixed" | "flexible" | "unlimited">("fixed");
   const [singlesPairingMode, setSinglesPairingMode] = useState("manual");
   const [oddPlayerRule, setOddPlayerRule] = useState("admin_decides");
 
@@ -131,6 +132,7 @@ function GroupSeasonsPage() {
       setDurationType((last.duration_type as "weekly" | "monthly") || "weekly");
       setTotalRounds(last.total_rounds ?? 10);
       setSetsPerMatch(last.sets_per_match ?? (rivalry ? 1 : 3));
+      setSetsMode((((last as any).sets_mode as "fixed" | "flexible" | "unlimited") || (rivalry ? "unlimited" : "fixed")));
       setSinglesPairingMode(last.singles_pairing_mode || "manual");
       setOddPlayerRule(last.odd_player_rule || "admin_decides");
 
@@ -158,6 +160,7 @@ function GroupSeasonsPage() {
       setSelectedDay(null);
       setTime("19:00");
       setSetsPerMatch(rivalry ? 1 : 3);
+      setSetsMode(rivalry ? "unlimited" : "fixed");
       setSinglesPairingMode("manual");
       setOddPlayerRule("admin_decides");
     }
@@ -226,6 +229,7 @@ function GroupSeasonsPage() {
         scheduledTime: time,
         matchFormat: group?.match_format || "doubles",
         setsPerMatch: isSingles ? setsPerMatch : undefined,
+        setsMode: isSingles ? (rivalry ? "unlimited" : setsMode) : undefined,
         singlesPairingMode: isSingles ? singlesPairingMode : undefined,
         oddPlayerRule: isSingles ? oddPlayerRule : undefined,
       });
@@ -604,25 +608,40 @@ function GroupSeasonsPage() {
                     {/* Hide sets config for rivalry — defaults to 1 set, user adds more in score dialog */}
                     {!rivalry && (
                     <div>
-                      <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Sets por confronto</label>
-                      <div className="flex gap-2">
-                        {[1, 3].map((n) => (
-                          <button
-                            key={n}
-                            onClick={() => setSetsPerMatch(n)}
-                            className={`flex-1 rounded-xl py-2.5 text-sm font-semibold transition-colors ${
-                              setsPerMatch === n
-                                ? "bg-primary text-primary-foreground"
-                                : "border border-border bg-background text-foreground"
-                            }`}
-                          >
-                            {n} set{n !== 1 ? "s" : ""}
-                          </button>
-                        ))}
+                      <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Formato de sets</label>
+                      <div className="space-y-1.5">
+                        {[
+                          { mode: "fixed" as const, sets: 1, label: "1 set", desc: "Apenas 1 set por confronto" },
+                          { mode: "fixed" as const, sets: 3, label: "Melhor de 3 sets", desc: "Até 3 sets — vence quem fizer 2 primeiro" },
+                          { mode: "unlimited" as const, sets: 1, label: "Sets livres", desc: "Sem limite — adicione sets conforme jogarem" },
+                        ].map((opt) => {
+                          const isSelected =
+                            (opt.mode === "unlimited" && setsMode === "unlimited") ||
+                            (opt.mode === "fixed" && setsMode !== "unlimited" && setsPerMatch === opt.sets);
+                          return (
+                            <button
+                              key={`${opt.mode}-${opt.sets}`}
+                              onClick={() => {
+                                setSetsMode(opt.mode);
+                                setSetsPerMatch(opt.sets);
+                              }}
+                              className={`flex w-full items-start gap-3 rounded-xl border p-3 text-left transition-colors ${
+                                isSelected ? "border-primary bg-primary/5" : "border-border bg-background"
+                              }`}
+                            >
+                              <div className={`mt-0.5 h-4 w-4 shrink-0 rounded-full border-2 flex items-center justify-center ${
+                                isSelected ? "border-primary" : "border-muted-foreground"
+                              }`}>
+                                {isSelected && <div className="h-2 w-2 rounded-full bg-primary" />}
+                              </div>
+                              <div className="min-w-0">
+                                <p className="text-sm font-semibold text-foreground">{opt.label}</p>
+                                <p className="text-[10px] text-muted-foreground">{opt.desc}</p>
+                              </div>
+                            </button>
+                          );
+                        })}
                       </div>
-                      <p className="mt-1 text-[10px] text-muted-foreground">
-                        {setsPerMatch === 3 ? "Melhor de 3 sets por confronto" : "1 set por confronto"}
-                      </p>
                     </div>
                     )}
                     {/* Hide pairing mode and odd player rule for rivalry */}
