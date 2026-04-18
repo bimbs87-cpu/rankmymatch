@@ -1183,40 +1183,42 @@ function SeasonTab({ a, b, latestSeasonId }: { a: PlayerAggregate; b: PlayerAggr
         </div>
       )}
 
-      <SectionCard title={`Posição — ${seasonName}`} icon={<Trophy className="h-4 w-4 text-primary" />}>
-        <StatRow
-          label="Posição"
-          a={A.position ?? 999}
-          b={B.position ?? 999}
-          format={(v) => (v === 999 ? "—" : `${v}º`)}
-          higherIsBetter={false}
-        />
-        <StatRow label="Elo da temporada" a={A.rating} b={B.rating} format={(v) => Math.round(v).toString()} />
-      </SectionCard>
+      <div className="mt-3 grid grid-cols-1 gap-3 xl:grid-cols-2">
+        <SectionCard title={`Posição — ${seasonName}`} icon={<Trophy className="h-4 w-4 text-primary" />} className="mt-0 h-full">
+          <StatRow
+            label="Posição"
+            a={A.position ?? 999}
+            b={B.position ?? 999}
+            format={(v) => (v === 999 ? "—" : `${v}º`)}
+            higherIsBetter={false}
+          />
+          <StatRow label="Elo da temporada" a={A.rating} b={B.rating} format={(v) => Math.round(v).toString()} />
+        </SectionCard>
 
-      <SectionCard title={`Aproveitamento — ${seasonName}`} icon={<Activity className="h-4 w-4 text-primary" />}>
-        <StatRow label="Partidas" a={A.matches_played} b={B.matches_played} />
-        <StatRow label="Vitórias" a={A.matches_won} b={B.matches_won} />
-        <StatRow
-          label="Aproveitamento"
-          a={pct(A.matches_won, A.matches_played)}
-          b={pct(B.matches_won, B.matches_played)}
-          format={(v) => `${v}%`}
-        />
-        <StatRow label="Sets ganhos" a={A.sets_won} b={B.sets_won} />
-        <StatRow
-          label="Saldo de sets"
-          a={A.sets_won - A.sets_lost}
-          b={B.sets_won - B.sets_lost}
-          format={(v) => (v > 0 ? `+${v}` : `${v}`)}
-        />
-        <StatRow
-          label="Saldo de games"
-          a={A.games_won - A.games_lost}
-          b={B.games_won - B.games_lost}
-          format={(v) => (v > 0 ? `+${v}` : `${v}`)}
-        />
-      </SectionCard>
+        <SectionCard title={`Aproveitamento — ${seasonName}`} icon={<Activity className="h-4 w-4 text-primary" />} className="mt-0 h-full">
+          <StatRow label="Partidas" a={A.matches_played} b={B.matches_played} />
+          <StatRow label="Vitórias" a={A.matches_won} b={B.matches_won} />
+          <StatRow
+            label="Aproveitamento"
+            a={pct(A.matches_won, A.matches_played)}
+            b={pct(B.matches_won, B.matches_played)}
+            format={(v) => `${v}%`}
+          />
+          <StatRow label="Sets ganhos" a={A.sets_won} b={B.sets_won} />
+          <StatRow
+            label="Saldo de sets"
+            a={A.sets_won - A.sets_lost}
+            b={B.sets_won - B.sets_lost}
+            format={(v) => (v > 0 ? `+${v}` : `${v}`)}
+          />
+          <StatRow
+            label="Saldo de games"
+            a={A.games_won - A.games_lost}
+            b={B.games_won - B.games_lost}
+            format={(v) => (v > 0 ? `+${v}` : `${v}`)}
+          />
+        </SectionCard>
+      </div>
     </>
   );
 }
