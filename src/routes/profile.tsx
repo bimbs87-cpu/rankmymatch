@@ -430,7 +430,7 @@ function ProfilePage() {
             <span className="flex-1 text-sm font-medium text-foreground">Editar Perfil</span>
             <ChevronRight className="h-4 w-4 text-muted-foreground/50" />
           </button>
-          <button className="flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left transition-colors hover:bg-accent">
+          <button onClick={() => toast.info('Em breve!')} className="flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left transition-colors hover:bg-accent">
             <Award className="h-4 w-4 text-muted-foreground" />
             <span className="flex-1 text-sm font-medium text-foreground">Conquistas</span>
             <ChevronRight className="h-4 w-4 text-muted-foreground/50" />
@@ -462,7 +462,7 @@ function ProfilePage() {
             </span>
             <ChevronRight className="h-4 w-4 text-muted-foreground/50" />
           </button>
-          <button className="flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left transition-colors hover:bg-accent">
+          <button onClick={() => toast.info('Em breve!')} className="flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left transition-colors hover:bg-accent">
             <Shield className="h-4 w-4 text-muted-foreground" />
             <span className="flex-1 text-sm font-medium text-foreground">Privacidade</span>
             <ChevronRight className="h-4 w-4 text-muted-foreground/50" />
