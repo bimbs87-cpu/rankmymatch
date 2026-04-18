@@ -32,14 +32,17 @@ function useSeasonProgress(seasonId: string, totalRounds: number | null) {
   return { completed, cancelled: cancelledCount, total };
 }
 
-function RoundsProgress({ seasonId, totalRounds }: { seasonId: string; totalRounds: number | null }) {
+function RoundsProgress({ seasonId, totalRounds, seasonStatus }: { seasonId: string; totalRounds: number | null; seasonStatus?: string }) {
   const { completed, cancelled, total } = useSeasonProgress(seasonId, totalRounds);
   if (!total) return null;
   const consumed = completed + cancelled;
   const remaining = Math.max(0, total - consumed);
-  const donePct = Math.min(100, (completed / total) * 100);
-  const cancPct = Math.min(100 - donePct, (cancelled / total) * 100);
-  const tooltip = `${completed} concluída${completed === 1 ? "" : "s"}, ${cancelled} cancelada${cancelled === 1 ? "" : "s"}, ${remaining} restante${remaining === 1 ? "" : "s"}`;
+  const isFinished = seasonStatus === "finished" || seasonStatus === "completed" || seasonStatus === "closed";
+  const donePct = isFinished ? 100 : Math.min(100, (completed / total) * 100);
+  const cancPct = isFinished ? 0 : Math.min(100 - donePct, (cancelled / total) * 100);
+  const tooltip = isFinished
+    ? `Temporada encerrada — ${completed} concluída${completed === 1 ? "" : "s"}, ${cancelled} cancelada${cancelled === 1 ? "" : "s"}`
+    : `${completed} concluída${completed === 1 ? "" : "s"}, ${cancelled} cancelada${cancelled === 1 ? "" : "s"}, ${remaining} restante${remaining === 1 ? "" : "s"}`;
   return (
     <span className="flex items-center gap-1.5" title={tooltip}>
       <span className="tabular-nums">{consumed} de {total} rodadas</span>
@@ -203,7 +206,7 @@ function SeasonAccordion({
               <span>·</span>
               <span>{season.match_format === "1v1" ? "Singles" : "Duplas"}</span>
               <span>·</span>
-              <RoundsProgress seasonId={season.id} totalRounds={season.total_rounds} />
+              <RoundsProgress seasonId={season.id} totalRounds={season.total_rounds} seasonStatus={season.status} />
             </div>
           </div>
         </button>
