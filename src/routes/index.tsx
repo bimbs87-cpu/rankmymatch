@@ -105,7 +105,8 @@ interface NextMatchInfo {
   /** Match status when paired */
   match_status: string | null;
 }
-  id: string;
+
+interface RecentMatch {
   match_number: number | null;
   winner_team: string | null;
   my_team: string;
