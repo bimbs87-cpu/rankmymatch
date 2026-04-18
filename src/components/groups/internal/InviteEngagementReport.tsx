@@ -178,12 +178,15 @@ export function InviteEngagementReport({ groupId }: Props) {
   }, [stats.list, period, granularity]);
 
   const exportCsv = () => {
-    if (stats.list.length === 0) {
-      toast.info("Nada para exportar nesse período");
+    const filtered = exportFilter === "all"
+      ? stats.list
+      : stats.list.filter((i) => statusOf(i) === exportFilter);
+    if (filtered.length === 0) {
+      toast.info("Nada para exportar com esse filtro");
       return;
     }
     const header = ["codigo", "jogador_alvo", "criado_por", "criado_em", "expira_em", "usos", "status"];
-    const rows = stats.list.map((i) => [
+    const rows = filtered.map((i) => [
       i.code,
       i.claim_placeholder_user_id ? (profileMap.get(i.claim_placeholder_user_id) || "") : "",
       i.created_by ? (profileMap.get(i.created_by) || "") : "",
@@ -199,12 +202,12 @@ export function InviteEngagementReport({ groupId }: Props) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `convites-engajamento-${period}-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.download = `convites-${exportFilter}-${period}-${new Date().toISOString().slice(0, 10)}.csv`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    toast.success("CSV exportado");
+    toast.success(`CSV exportado (${filtered.length})`);
   };
 
   return (
