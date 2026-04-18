@@ -106,7 +106,7 @@ export function RivalryDuelPage({ groupId, groupName, seasonId, seasonName }: Pr
       // Load profiles, ranking snapshots, stats, recent matches in parallel
       const activeSeasonId = seasonId || await getActiveSeasonId(groupId);
 
-      const [profilesRes, snapshotsRes, statsRes, matchesRes, eventsRes] = await Promise.all([
+      const [profilesRes, snapshotsRes, statsRes, matchesRes, eventsRes, allEventsRes] = await Promise.all([
         supabase.from("user_profiles").select("user_id, name, nickname, avatar_url").in("user_id", userIds),
         activeSeasonId
           ? supabase.from("ranking_snapshots").select("*").eq("season_id", activeSeasonId).in("user_id", userIds)
@@ -124,6 +124,20 @@ export function RivalryDuelPage({ groupId, groupName, seasonId, seasonName }: Pr
               .order("created_at", { ascending: false })
               .limit(4)
           : Promise.resolve({ data: [] }),
+        // Full event timeline (scoped to season when available) — used for
+        // per-player initial Elo, peak Elo, and per-match Δ for the chart tooltip.
+        activeSeasonId
+          ? supabase
+              .from("rating_events")
+              .select("user_id, rating_before, rating_after, rating_change, match_id, created_at")
+              .eq("season_id", activeSeasonId)
+              .in("user_id", userIds)
+              .order("created_at", { ascending: true })
+          : supabase
+              .from("rating_events")
+              .select("user_id, rating_before, rating_after, rating_change, match_id, created_at")
+              .in("user_id", userIds)
+              .order("created_at", { ascending: true }),
       ]);
 
       const profileMap = new Map((profilesRes.data || []).map((p) => [p.user_id, p]));
@@ -136,6 +150,23 @@ export function RivalryDuelPage({ groupId, groupName, seasonId, seasonName }: Pr
         if (!lastChangeMap.has(ev.user_id)) {
           lastChangeMap.set(ev.user_id, Number(ev.rating_change));
         }
+      }
+
+      // Per-user starting Elo (rating_before of first event) and peak Elo (max rating_after).
+      const startMap = new Map<string, number>();
+      const peakMap = new Map<string, number>();
+      // Per-match Δ Elo per user, used by the chart tooltip and the recent matches list.
+      const changeByMatchUser = new Map<string, Map<string, number>>();
+      for (const ev of (allEventsRes.data || [])) {
+        const uid = ev.user_id as string;
+        if (!startMap.has(uid)) startMap.set(uid, Number(ev.rating_before));
+        const after = Number(ev.rating_after);
+        const prevPeak = peakMap.get(uid);
+        if (prevPeak == null || after > prevPeak) peakMap.set(uid, after);
+        const mid = ev.match_id as string;
+        const inner = changeByMatchUser.get(mid) || new Map<string, number>();
+        inner.set(uid, Number(ev.rating_change));
+        changeByMatchUser.set(mid, inner);
       }
 
       const buildPlayer = (userId: string): DuelPlayer => {
@@ -157,6 +188,8 @@ export function RivalryDuelPage({ groupId, groupName, seasonId, seasonName }: Pr
           last_change: lastChangeMap.get(userId) ?? null,
           win_streak_current: stats?.win_streak_current || 0,
           win_streak_max: stats?.win_streak_max || 0,
+          rating_start: startMap.get(userId) ?? null,
+          rating_peak: peakMap.get(userId) ?? null,
         };
       };
 
@@ -167,7 +200,13 @@ export function RivalryDuelPage({ groupId, groupName, seasonId, seasonName }: Pr
 
       setPlayerA(buildPlayer(sorted[0]));
       setPlayerB(buildPlayer(sorted[1]));
-      setMatches(matchesRes);
+      // Inject per-match Δ Elo into matches before storing.
+      setMatches(
+        matchesRes.map((m) => ({
+          ...m,
+          rating_change_by_user: Object.fromEntries(changeByMatchUser.get(m.id) || []),
+        })),
+      );
     } catch (err) {
       console.error("Error loading duel data:", err);
     } finally {
