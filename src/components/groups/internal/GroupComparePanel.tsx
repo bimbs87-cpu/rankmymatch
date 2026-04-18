@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
-import { useNavigate } from "@tanstack/react-router";
 import {
   BarChart3, Search, ArrowRight, Sparkles, Crown, Flame, Snowflake,
-  Swords, X, Heart, GripVertical, Pencil, Medal, Rocket, ArrowLeft, ExternalLink,
+  Swords, X, Heart, GripVertical, Pencil, Medal, Rocket,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
@@ -53,7 +52,6 @@ interface PanelProps {
 
 export function GroupComparePanel({ groupId, initialPick, onConsumeInitial }: PanelProps) {
   const { user } = useAuth();
-  const navigate = useNavigate();
 
   const [activeSeasonId, setActiveSeasonId] = useState("");
   const [members, setMembers] = useState<MemberLite[]>([]);
@@ -69,8 +67,8 @@ export function GroupComparePanel({ groupId, initialPick, onConsumeInitial }: Pa
   const [renameLabel, setRenameLabel] = useState("");
   const [dragId, setDragId] = useState<string | null>(null);
 
-  // Embedded compare result (keeps the group sidebar visible)
-  const [activeCompare, setActiveCompare] = useState<{ ids: string[]; label: string } | null>(null);
+  // (No more embedded iframe — clicking compare navigates to the full-screen
+  // compare page with a backTo param so the user can return to this panel.)
 
   useEffect(() => {
     let cancelled = false;
@@ -238,18 +236,33 @@ export function GroupComparePanel({ groupId, initialPick, onConsumeInitial }: Pa
 
   useEffect(() => { loadFavorites(); }, [loadFavorites]);
 
-  // Auto-open the embedded compare when a parent passes initialPick
-  // (e.g. user clicks a rivalry/partnership/untapped card on the Overview).
+  const buildCompareUrl = useCallback((ids: string[], opts: { withBack?: boolean } = {}) => {
+    const [a, b, c, d] = ids;
+    const params = new URLSearchParams({
+      a: a || "", b: b || "", c: c || "", d: d || "",
+      groupId, seasonId: activeSeasonId || "", tab: "career",
+    });
+    if (opts.withBack) {
+      params.set("backTo", `/groups/${groupId}?view=compare`);
+    }
+    return `/ranking/compare?${params.toString()}`;
+  }, [groupId, activeSeasonId]);
+
+  const openCompare = useCallback((ids: string[]) => {
+    if (ids.length < 2) return;
+    // Full-page navigation so the heavy compare route mounts cleanly with auth
+    // intact. The compare page renders a "Voltar" button that returns here.
+    window.location.assign(buildCompareUrl(ids, { withBack: true }));
+  }, [buildCompareUrl]);
+
+  // Auto-open the compare page when a parent passes initialPick (e.g. user
+  // clicks a rivalry/partnership/untapped card on the Overview).
   useEffect(() => {
     if (!initialPick || initialPick.length < 2) return;
     if (loadingMembers) return;
     const ids = initialPick.slice(0, 4);
-    const label = ids.map((id) => {
-      const m = members.find((x) => x.user_id === id);
-      return m ? (m.nickname || m.name) : "Jogador";
-    }).join(" vs ");
-    setActiveCompare({ ids, label });
     onConsumeInitial?.();
+    openCompare(ids);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialPick, loadingMembers, members]);
 
@@ -275,32 +288,10 @@ export function GroupComparePanel({ groupId, initialPick, onConsumeInitial }: Pa
 
   const canCompare = picked.length >= 2;
 
-  const labelFor = (ids: string[]) => {
-    const names = ids.map((id) => {
-      if (id === "__group_avg__") return "Média do grupo";
-      const m = memberMap.get(id);
-      return m ? (m.nickname || m.name) : "Jogador";
-    });
-    return names.join(" vs ");
-  };
-
-  const goCompare = (ids: string[]) => {
-    if (ids.length < 2) return;
-    setActiveCompare({ ids, label: labelFor(ids) });
-  };
+  const goCompare = (ids: string[]) => openCompare(ids);
 
   const compareWithGroupAvg = (userId: string) => {
-    setActiveCompare({ ids: [userId, "__group_avg__"], label: labelFor([userId, "__group_avg__"]) });
-  };
-
-  const buildCompareUrl = (ids: string[], opts: { embed?: boolean } = {}) => {
-    const [a, b, c, d] = ids;
-    const params = new URLSearchParams({
-      a: a || "", b: b || "", c: c || "", d: d || "",
-      groupId, seasonId: activeSeasonId || "", tab: "career",
-    });
-    if (opts.embed) params.set("embed", "1");
-    return `/ranking/compare?${params.toString()}`;
+    openCompare([userId, "__group_avg__"]);
   };
 
   const openSaveFavorite = () => {
@@ -379,38 +370,7 @@ export function GroupComparePanel({ groupId, initialPick, onConsumeInitial }: Pa
     void persistOrder(favorites);
   };
 
-  if (activeCompare) {
-    return (
-      <div className="space-y-3">
-        <div className="flex items-center justify-between gap-2">
-          <button
-            onClick={() => setActiveCompare(null)}
-            className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card/60 px-3 py-1.5 text-xs font-semibold text-foreground transition hover:bg-accent"
-          >
-            <ArrowLeft className="h-3.5 w-3.5" /> Voltar para comparar
-          </button>
-          <a
-            href={buildCompareUrl(activeCompare.ids)}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card/60 px-3 py-1.5 text-xs font-semibold text-muted-foreground transition hover:text-foreground hover:bg-accent"
-            title="Abrir em nova aba"
-          >
-            <ExternalLink className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Nova aba</span>
-          </a>
-        </div>
-        <p className="px-1 text-[11px] text-muted-foreground truncate">{activeCompare.label}</p>
-        <iframe
-          key={activeCompare.ids.join(",")}
-          src={buildCompareUrl(activeCompare.ids, { embed: true })}
-          title="Comparativo"
-          className="w-full rounded-3xl border border-border bg-background"
-          style={{ height: "calc(100vh - 180px)", minHeight: 600 }}
-        />
-      </div>
-    );
-  }
-
+  // (No more inline iframe view — openCompare() does a full-page navigation.)
   return (
     <div className="space-y-5">
       <div className="flex items-center gap-3">
