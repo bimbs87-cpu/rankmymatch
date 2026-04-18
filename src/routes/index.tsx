@@ -308,6 +308,104 @@ function DashboardPage() {
       setUpcomingRounds([]);
     }
 
+    // 1.5 Next match — find soonest upcoming round and check for paired match
+    {
+      const orderedRounds = (rounds || []).slice().sort((a: any, b: any) => {
+        const dA = a.scheduled_date || "9999-12-31";
+        const dB = b.scheduled_date || "9999-12-31";
+        if (dA !== dB) return dA < dB ? -1 : 1;
+        const tA = a.scheduled_time || "23:59:59";
+        const tB = b.scheduled_time || "23:59:59";
+        return tA < tB ? -1 : tA > tB ? 1 : 0;
+      });
+      // Pick the first round where the user has confirmed presence
+      const myConfirmedRound = orderedRounds.find((r: any) => {
+        return (
+          (presences || []).some(
+            (p: any) => p.round_id === r.id && p.user_id === user.id && p.status === "confirmed",
+          )
+        );
+      }) || orderedRounds[0];
+
+      if (myConfirmedRound) {
+        // Check if there's a match with the user paired in this round
+        const { data: myMatchPlayers } = await supabase
+          .from("match_players")
+          .select("match_id, team")
+          .eq("user_id", user.id);
+        const matchIdsForUser = new Set((myMatchPlayers || []).map((mp: any) => mp.match_id));
+
+        const { data: roundMatches } = await supabase
+          .from("matches")
+          .select("id, status, winner_team")
+          .eq("round_id", myConfirmedRound.id)
+          .neq("status", "completed");
+
+        const myMatchInRound = (roundMatches || []).find((m: any) => matchIdsForUser.has(m.id));
+
+        if (myMatchInRound) {
+          // Found pairing — fetch teammates and opponents
+          const myTeam = (myMatchPlayers || []).find((mp: any) => mp.match_id === myMatchInRound.id)?.team;
+          const { data: allPlayers } = await supabase
+            .from("match_players")
+            .select("user_id, team")
+            .eq("match_id", myMatchInRound.id);
+          const otherIds = (allPlayers || [])
+            .filter((p: any) => p.user_id !== user.id)
+            .map((p: any) => p.user_id);
+          const { data: profs } = await supabase
+            .from("user_profiles")
+            .select("user_id, name, nickname")
+            .in("user_id", otherIds.length ? otherIds : ["00000000-0000-0000-0000-000000000000"]);
+          const nameOf = (uid: string) => {
+            const p = (profs || []).find((x: any) => x.user_id === uid);
+            return p?.nickname?.trim() || p?.name || "Jogador";
+          };
+          const partnerId = (allPlayers || []).find(
+            (p: any) => p.user_id !== user.id && p.team === myTeam,
+          )?.user_id;
+          const opponentIds = (allPlayers || [])
+            .filter((p: any) => p.team !== myTeam)
+            .map((p: any) => p.user_id);
+
+          setNextMatch({
+            round_id: myConfirmedRound.id,
+            group_id: myConfirmedRound.group_id,
+            group_name: myConfirmedRound.groups?.name || "Grupo",
+            season_id: myConfirmedRound.season_id,
+            season_name: (myConfirmedRound.seasons as any)?.name || null,
+            round_number: myConfirmedRound.round_number,
+            scheduled_date: myConfirmedRound.scheduled_date,
+            scheduled_time: myConfirmedRound.scheduled_time,
+            has_pairing: true,
+            partner_name: partnerId ? nameOf(partnerId) : null,
+            opponent_names: opponentIds.map(nameOf),
+            match_id: myMatchInRound.id,
+            match_status: myMatchInRound.status,
+          });
+        } else {
+          // No pairing yet — show round-only card
+          setNextMatch({
+            round_id: myConfirmedRound.id,
+            group_id: myConfirmedRound.group_id,
+            group_name: myConfirmedRound.groups?.name || "Grupo",
+            season_id: myConfirmedRound.season_id,
+            season_name: (myConfirmedRound.seasons as any)?.name || null,
+            round_number: myConfirmedRound.round_number,
+            scheduled_date: myConfirmedRound.scheduled_date,
+            scheduled_time: myConfirmedRound.scheduled_time,
+            has_pairing: false,
+            partner_name: null,
+            opponent_names: [],
+            match_id: null,
+            match_status: null,
+          });
+        }
+      } else {
+        setNextMatch(null);
+      }
+    }
+
     // 2. Recent matches (via rating_events)
     const { data: events } = await supabase
       .from("rating_events")
