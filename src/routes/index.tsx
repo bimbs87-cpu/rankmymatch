@@ -1371,7 +1371,7 @@ function DashboardPage() {
         )}
 
         {/* DESKTOP-ONLY: Right column = Últimos Resultados + Próximas Rodadas stacked */}
-        <section className="hidden lg:flex lg:flex-col lg:gap-6 lg:col-span-6 lg:col-start-5 lg:row-start-1 lg:row-span-3">
+        <section className="hidden lg:flex lg:flex-col lg:gap-6 lg:col-span-8 lg:col-start-5 lg:row-start-1 lg:row-span-3">
           {/* Últimos Resultados card */}
           <div className="flex flex-col rounded-3xl border border-border bg-card overflow-hidden">
             {/* Header */}
@@ -1794,70 +1794,7 @@ function DashboardPage() {
           </div>
         </section>
 
-        {/* DESKTOP-ONLY: Atalhos rápidos (sidebar à direita) */}
-        <section className="hidden lg:flex lg:flex-col lg:gap-2 lg:col-span-2 lg:col-start-11 lg:row-start-1 lg:row-span-3">
-          <div className="rounded-3xl border border-border bg-card p-4">
-            <h2 className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-              Atalhos rápidos
-            </h2>
-            <div className="flex flex-col gap-2">
-              {/* Confirmar presença — quando há próximo confronto e o usuário ainda não confirmou */}
-              {nextMatch && nextMatch.my_presence_status !== "confirmed" && nextMatch.presence_is_open && (
-                <Link
-                  to="/groups/$groupId/seasons/$seasonId/rounds/$roundId"
-                  params={{
-                    groupId: nextMatch.group_id,
-                    seasonId: nextMatch.season_id || "",
-                    roundId: nextMatch.round_id,
-                  }}
-                  className="flex items-center gap-2 rounded-2xl border border-warning/30 bg-warning/5 px-3 py-2.5 text-xs font-semibold text-warning transition-colors hover:bg-warning/10"
-                >
-                  <Calendar className="h-4 w-4 shrink-0" />
-                  <span className="truncate">Confirmar presença</span>
-                </Link>
-              )}
-
-              {/* Registrar resultado — quando há partida pareada ou pendente */}
-              {(nextMatch?.has_pairing || pendingMatch) && (
-                <Link
-                  to="/groups/$groupId/seasons/$seasonId/rounds/$roundId"
-                  params={{
-                    groupId: pendingMatch?.group_id || nextMatch!.group_id,
-                    seasonId: pendingMatch?.season_id || nextMatch?.season_id || "",
-                    roundId: pendingMatch?.round_id || nextMatch!.round_id,
-                  }}
-                  className="flex items-center gap-2 rounded-2xl bg-primary px-3 py-2.5 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
-                >
-                  <Trophy className="h-4 w-4 shrink-0" />
-                  <span className="truncate">Registrar resultado</span>
-                </Link>
-              )}
-
-              {/* Ver duelo — quando o usuário está em algum grupo de rivalidade */}
-              {(() => {
-                const rivalryGroup = myGroups.find((g: any) => g.singles_group_type === "rivalry");
-                if (!rivalryGroup) return null;
-                return (
-                  <Link
-                    to="/groups/$groupId/duel"
-                    params={{ groupId: rivalryGroup.id }}
-                    className="flex items-center gap-2 rounded-2xl border border-primary/30 bg-primary/5 px-3 py-2.5 text-xs font-semibold text-primary transition-colors hover:bg-primary/10"
-                  >
-                    <Swords className="h-4 w-4 shrink-0" />
-                    <span className="truncate">Ver duelo</span>
-                  </Link>
-                );
-              })()}
-
-              {/* Estado vazio — nenhum atalho disponível */}
-              {!nextMatch && !pendingMatch && !myGroups.find((g: any) => g.singles_group_type === "rivalry") && (
-                <p className="text-[11px] text-muted-foreground/70 text-center py-2">
-                  Sem ações pendentes
-                </p>
-              )}
-            </div>
-          </div>
-        </section>
+        {/* Atalhos rápidos foi movido para a mesma linha do "Seu próximo confronto" acima */}
 
         {/* DESKTOP-ONLY: Card de Evolução do Elo (col esquerda, abaixo do seletor de ranking) */}
         <section className="hidden lg:block lg:col-span-4 lg:col-start-1 lg:row-start-3">
