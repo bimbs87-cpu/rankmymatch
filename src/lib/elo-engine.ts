@@ -217,6 +217,108 @@ export async function processMatchElo(result: MatchResult) {
   }
 }
 
+/**
+ * Reverts the Elo/ranking impact of a single match. Call BEFORE deleting the
+ * match row. Uses simple reversal (subtract rating_change, decrement counters).
+ * Note: if matches were played AFTER this one, their ratings were calculated
+ * on top of this match's effect — those won't be retroactively recalculated.
+ */
+export async function revertMatchElo(matchId: string) {
+  // 1. Load rating events for this match
+  const { data: events } = await supabase
+    .from("rating_events")
+    .select("user_id, season_id, rating_change")
+    .eq("match_id", matchId);
+
+  if (!events?.length) return;
+
+  // 2. Load match context: winner team, players (team), sets
+  const [matchRes, playersRes, setsRes] = await Promise.all([
+    supabase.from("matches").select("winner_team").eq("id", matchId).maybeSingle(),
+    supabase.from("match_players").select("user_id, team").eq("match_id", matchId),
+    supabase.from("match_sets").select("score_team_a, score_team_b").eq("match_id", matchId),
+  ]);
+
+  const winnerTeam = matchRes.data?.winner_team as "A" | "B" | null;
+  const teamByUser = new Map<string, string>();
+  for (const p of playersRes.data || []) teamByUser.set(p.user_id, p.team);
+
+  let setsA = 0, setsB = 0, gamesA = 0, gamesB = 0;
+  for (const s of setsRes.data || []) {
+    gamesA += s.score_team_a;
+    gamesB += s.score_team_b;
+    if (s.score_team_a > s.score_team_b) setsA++;
+    else if (s.score_team_b > s.score_team_a) setsB++;
+  }
+
+  // 3. For each event, reverse-update the snapshot
+  const seasonIds = new Set<string>();
+  await Promise.all(
+    events.map(async (ev) => {
+      if (!ev.season_id) return;
+      seasonIds.add(ev.season_id);
+
+      const team = teamByUser.get(ev.user_id);
+      const playerWon = !!winnerTeam && team === winnerTeam;
+      const playerSetsWon = team === "A" ? setsA : setsB;
+      const playerSetsLost = team === "A" ? setsB : setsA;
+      const playerGamesWon = team === "A" ? gamesA : gamesB;
+      const playerGamesLost = team === "A" ? gamesB : gamesA;
+
+      const { data: snap } = await supabase
+        .from("ranking_snapshots")
+        .select("*")
+        .eq("season_id", ev.season_id)
+        .eq("user_id", ev.user_id)
+        .maybeSingle();
+
+      if (!snap) return;
+
+      const newMatchesPlayed = Math.max(0, snap.matches_played - 1);
+
+      if (newMatchesPlayed === 0) {
+        await supabase.from("ranking_snapshots").delete().eq("id", snap.id);
+        return;
+      }
+
+      await supabase
+        .from("ranking_snapshots")
+        .update({
+          rating: Number(snap.rating) - Number(ev.rating_change),
+          matches_played: newMatchesPlayed,
+          matches_won: Math.max(0, snap.matches_won - (playerWon ? 1 : 0)),
+          sets_won: Math.max(0, snap.sets_won - playerSetsWon),
+          sets_lost: Math.max(0, snap.sets_lost - playerSetsLost),
+          games_won: Math.max(0, snap.games_won - playerGamesWon),
+          games_lost: Math.max(0, snap.games_lost - playerGamesLost),
+          is_eligible: newMatchesPlayed >= 3,
+        })
+        .eq("id", snap.id);
+    }),
+  );
+
+  // 4. Delete rating events for this match
+  await supabase.from("rating_events").delete().eq("match_id", matchId);
+
+  // 5. Recalculate positions for each affected season
+  await Promise.all(
+    [...seasonIds].map(async (seasonId) => {
+      const { data: snaps } = await supabase
+        .from("ranking_snapshots")
+        .select("id, rating")
+        .eq("season_id", seasonId)
+        .eq("is_eligible", true)
+        .order("rating", { ascending: false });
+      if (!snaps) return;
+      await Promise.all(
+        snaps.map((s, i) =>
+          supabase.from("ranking_snapshots").update({ position: i + 1 }).eq("id", s.id),
+        ),
+      );
+    }),
+  );
+}
+
 export async function submitMatchScore(
   matchId: string,
   seasonId: string,
