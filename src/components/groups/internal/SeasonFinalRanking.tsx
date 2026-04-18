@@ -19,6 +19,7 @@ interface RankingRow {
 export function SeasonFinalRanking({ seasonId }: { seasonId: string }) {
   const [rows, setRows] = useState<RankingRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const { data: extras } = useSeasonExtras(seasonId);
 
   useEffect(() => {
     let cancelled = false;
