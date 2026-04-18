@@ -29,6 +29,7 @@ const SECTIONS: { id: Section; label: string; icon: typeof Settings2 }[] = [
   { id: "presence", label: "Presença", icon: Bell },
   { id: "members", label: "Membros & vínculos", icon: Users },
   { id: "invites", label: "Convites", icon: Link2 },
+  { id: "engagement", label: "Engajamento", icon: BarChart3 },
   { id: "advanced", label: "Avançado", icon: AlertTriangle },
 ];
 
