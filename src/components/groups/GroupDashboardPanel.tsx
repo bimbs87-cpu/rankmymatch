@@ -18,7 +18,6 @@ import {
   Globe,
   Lock,
   LogOut,
-  UserPlus,
   Check,
   X as XIcon,
   Inbox,
