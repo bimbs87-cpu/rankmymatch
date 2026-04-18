@@ -67,6 +67,7 @@ function RankingPage() {
   const [totalRounds, setTotalRounds] = useState(0);
   const [completedRounds, setCompletedRounds] = useState(0);
   const [totalSets, setTotalSets] = useState(0);
+  const [expandedUserId, setExpandedUserId] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
