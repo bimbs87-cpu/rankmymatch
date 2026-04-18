@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Zap, Users, BarChart3, Trophy, Download } from "lucide-react";
 import logoHorizontalDark from "@/assets/logo-horizontal-dark.png";
 import logoHorizontalLight from "@/assets/logo-horizontal-light.png";
+import logoSquareNeon from "@/assets/logo-square-neon.png";
 import { useTheme } from "@/lib/theme";
 import { useInstallFlow } from "@/components/InstallFlowProvider";
 
@@ -101,8 +102,6 @@ function LoginPage() {
     }
   };
 
-  const logoSrc = resolvedTheme === "light" ? logoHorizontalLight : logoHorizontalDark;
-
   const sports = ["Padel", "Tênis", "Beach Tennis", "Squash", "Pickleball"];
   const stats = [
     { label: "Ranking", value: "Elo" },
@@ -114,7 +113,7 @@ function LoginPage() {
     <button
       onClick={handleGoogleLogin}
       disabled={loading}
-      className="flex w-full items-center justify-center gap-3 rounded-full bg-primary px-6 py-4 text-sm font-semibold text-primary-foreground transition-all hover:bg-primary/90 active:scale-[0.98] disabled:opacity-60"
+      className="flex w-full items-center justify-center gap-3 rounded-full bg-primary px-6 py-4 text-sm font-semibold text-primary-foreground transition-all hover:bg-primary/90 active:scale-[0.98] disabled:opacity-60 shadow-lg shadow-primary/20"
     >
       <svg className="h-5 w-5" viewBox="0 0 24 24">
         <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4" />
@@ -137,68 +136,85 @@ function LoginPage() {
   );
 
   return (
-    <div className="min-h-screen bg-background lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center lg:max-w-5xl lg:mx-auto lg:min-h-screen lg:px-12 lg:py-16">
-      {/* MOBILE: top zone (~55%) with gradient + DESKTOP: left column */}
-      <div className="flex flex-col bg-gradient-to-b from-primary/10 to-background lg:bg-none min-h-[55vh] lg:min-h-0 pt-12 lg:pt-0">
-        <div className="px-6 lg:px-0">
-          <img
-            src={logoSrc}
-            alt="RankMyMatch"
-            className="h-10 w-auto object-contain"
-          />
+    <div className="relative min-h-screen overflow-hidden bg-background">
+      {/* Ambient glows */}
+      <div className="pointer-events-none absolute -top-40 -left-40 h-[420px] w-[420px] rounded-full bg-primary/20 blur-3xl" />
+      <div className="pointer-events-none absolute -bottom-40 -right-40 h-[480px] w-[480px] rounded-full bg-primary/10 blur-3xl" />
+
+      <div className="relative mx-auto flex min-h-screen w-full max-w-6xl flex-col px-6 py-8 lg:grid lg:grid-cols-[1.05fr_1fr] lg:items-center lg:gap-16 lg:px-12 lg:py-12">
+        {/* LEFT / TOP — Logo + headline */}
+        <div className="flex flex-1 flex-col lg:flex-none">
+          {/* Hero logo block */}
+          <div className="relative flex items-center justify-center lg:justify-start">
+            {/* radial glow behind logo */}
+            <div className="pointer-events-none absolute inset-0 -z-0 mx-auto h-full w-full max-w-md bg-[radial-gradient(circle_at_center,theme(colors.primary/25%),transparent_60%)]" />
+            <img
+              src={logoSquareNeon}
+              alt="RankMyMatch"
+              className="relative z-10 h-44 w-auto object-contain drop-shadow-[0_0_40px_rgba(190,255,40,0.35)] sm:h-52 lg:h-72"
+            />
+          </div>
+
+          {/* Headline */}
+          <div className="mt-6 lg:mt-10">
+            <h1 className="font-black leading-[1.05] tracking-tight text-3xl sm:text-4xl lg:text-5xl xl:text-6xl">
+              <span className="block text-foreground">Pare de anotar resultado</span>
+              <span className="block text-primary">na planilha do WhatsApp.</span>
+            </h1>
+            <p className="mt-4 text-sm text-muted-foreground sm:text-base lg:text-lg lg:max-w-md">
+              Rankings, temporadas e estatísticas para padel, tênis, beach tennis e mais.
+            </p>
+          </div>
+
+          {/* Stat cards */}
+          <div className="mt-6 grid grid-cols-3 gap-2 lg:mt-8 lg:gap-3">
+            {stats.map((s) => (
+              <div
+                key={s.label}
+                className="rounded-2xl border border-border bg-card/80 backdrop-blur px-2 py-3 text-center lg:py-4"
+              >
+                <span className="block text-[9px] uppercase tracking-wider text-muted-foreground lg:text-[10px]">
+                  {s.label}
+                </span>
+                <span className="mt-1 block text-sm font-bold text-primary lg:text-base">
+                  {s.value}
+                </span>
+              </div>
+            ))}
+          </div>
         </div>
 
-        <div className="px-6 lg:px-0 mt-6 lg:mt-8">
-          <h1 className="font-black text-3xl lg:text-5xl leading-tight">
-            <span className="block text-foreground">Pare de anotar resultado</span>
-            <span className="block text-primary">na planilha do WhatsApp.</span>
-          </h1>
-        </div>
-
-        <div className="flex gap-2 px-6 lg:px-0 mt-4 lg:mt-8">
-          {stats.map((s) => (
-            <div
-              key={s.label}
-              className="flex-1 bg-card border border-border rounded-xl px-2 py-2 text-center"
-            >
-              <span className="text-[9px] text-muted-foreground block uppercase tracking-wide">
-                {s.label}
-              </span>
-              <span className="text-xs font-bold text-primary block mt-0.5">
-                {s.value}
-              </span>
+        {/* RIGHT / BOTTOM — CTA */}
+        <div className="mt-8 flex flex-col lg:mt-0">
+          <div className="rounded-3xl border border-border bg-card/60 p-5 backdrop-blur-md sm:p-6 lg:p-8">
+            <div className="mb-5 flex flex-wrap gap-2">
+              {sports.map((sport) => (
+                <span
+                  key={sport}
+                  className="rounded-full border border-border bg-background/60 px-3 py-1 text-[11px] font-medium text-muted-foreground"
+                >
+                  {sport}
+                </span>
+              ))}
             </div>
-          ))}
-        </div>
-      </div>
 
-      {/* MOBILE: bottom zone (rest) + DESKTOP: right column */}
-      <div className="flex flex-col justify-end pb-10 px-6 lg:px-0 lg:justify-center flex-1 lg:flex-none">
-        <div className="flex flex-wrap gap-2 mb-6">
-          {sports.map((sport) => (
-            <span
-              key={sport}
-              className="rounded-full border border-border px-3 py-1 text-[11px] text-muted-foreground"
-            >
-              {sport}
-            </span>
-          ))}
-        </div>
+            <div className="space-y-3">
+              {GoogleButton}
 
-        <div className="space-y-3">
-          {GoogleButton}
+              {error && (
+                <p className="text-center text-sm text-destructive">{error}</p>
+              )}
 
-          {error && (
-            <p className="text-center text-sm text-destructive">{error}</p>
-          )}
+              {InstallButton}
 
-          {InstallButton}
-
-          <p className="text-[11px] text-muted-foreground text-center mt-3">
-            Ao entrar, você concorda com nossos Termos de Uso e Política de Privacidade.
-          </p>
+              <p className="mt-2 text-center text-[11px] text-muted-foreground">
+                Ao entrar, você concorda com nossos Termos de Uso e Política de Privacidade.
+              </p>
+            </div>
+          </div>
         </div>
       </div>
     </div>
   );
 }
+
