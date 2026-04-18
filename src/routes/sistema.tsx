@@ -164,37 +164,30 @@ function SistemaPage() {
               </p>
             </div>
 
-            {/* Mockup desktop + mobile (hero) */}
+            {/* Mockup hero: iMac (desktop) + iPhone flutuante */}
             <div className="relative hidden lg:block">
-              <BrowserFrame>
-                <img
-                  src={mockupDesktopHome}
-                  alt="Painel do RankMyMatch no desktop com ranking, evolução do Elo, próximas rodadas e últimos resultados"
-                  className="block w-full"
-                  loading="eager"
-                />
-              </BrowserFrame>
-              <div className="absolute -bottom-10 -left-10 w-44 xl:w-52">
-                <PhoneFrame>
-                  <img
-                    src={mockupMobileHome}
-                    alt="Tela inicial do RankMyMatch no celular"
-                    className="block w-full"
-                    loading="eager"
-                  />
-                </PhoneFrame>
-              </div>
+              <img
+                src={mockupImacHome}
+                alt="RankMyMatch projetado em um iMac com ranking, evolução do Elo e rodadas"
+                className="block w-full"
+                loading="eager"
+              />
+              <img
+                src={mockupPhoneHome}
+                alt="Tela inicial do RankMyMatch em um iPhone"
+                className="pointer-events-none absolute -bottom-6 -left-4 w-32 xl:-bottom-10 xl:-left-6 xl:w-40 drop-shadow-[0_30px_40px_rgba(0,0,0,0.6)]"
+                loading="eager"
+              />
             </div>
             <div className="lg:hidden">
-              <PhoneFrame className="mx-auto max-w-[280px]">
-                <img
-                  src={mockupMobileHome}
-                  alt="Tela inicial do RankMyMatch no celular"
-                  className="block w-full"
-                  loading="eager"
-                />
-              </PhoneFrame>
+              <img
+                src={mockupPhoneHome}
+                alt="Tela inicial do RankMyMatch em um iPhone"
+                className="mx-auto block w-full max-w-[260px]"
+                loading="eager"
+              />
             </div>
+
           </div>
         </div>
       </section>
@@ -279,15 +272,13 @@ function SistemaPage() {
             </ul>
           </div>
 
-          <div className="mx-auto w-full max-w-[300px] lg:max-w-[340px]">
-            <PhoneFrame>
-              <img
-                src={mockupMobileRanking}
-                alt="Tela de ranking do RankMyMatch com pódio, posição do jogador e classificação geral"
-                className="block w-full"
-                loading="lazy"
-              />
-            </PhoneFrame>
+          <div className="mx-auto w-full max-w-[300px] lg:max-w-[360px]">
+            <img
+              src={mockupPhoneRanking}
+              alt="Tela de ranking do RankMyMatch com pódio e classificação geral"
+              className="block w-full"
+              loading="lazy"
+            />
           </div>
         </div>
       </section>
@@ -309,14 +300,12 @@ function SistemaPage() {
         </div>
 
         <div className="mt-10 lg:mt-14">
-          <BrowserFrame className="mx-auto max-w-5xl">
-            <img
-              src={mockupDesktopHome}
-              alt="RankMyMatch no desktop: ranking, evolução do Elo e rodadas em uma única tela"
-              className="block w-full"
-              loading="lazy"
-            />
-          </BrowserFrame>
+          <img
+            src={mockupImacHome}
+            alt="RankMyMatch no desktop: ranking, evolução do Elo e rodadas em uma única tela"
+            className="mx-auto block w-full max-w-5xl"
+            loading="lazy"
+          />
         </div>
       </section>
 
