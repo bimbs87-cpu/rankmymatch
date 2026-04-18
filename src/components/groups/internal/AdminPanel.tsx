@@ -82,6 +82,7 @@ export function AdminPanel({ group, isCreator, onSaved, pendingRequestsCount }: 
               setInviteOpen={setInviteOpen}
             />
           )}
+          {section === "engagement" && <InviteEngagementReport groupId={group.id} />}
           {section === "advanced" && (
             <AdvancedSection group={group} isCreator={isCreator} onSaved={onSaved} />
           )}
