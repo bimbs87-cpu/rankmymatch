@@ -419,6 +419,37 @@ function GroupDetailPage() {
         </div>
       )}
 
+      {/* Premium "Ver Duelo" CTA — visible only for rivalry groups */}
+      {isMember && rivalry && playerA && playerB && (
+        <div className="mx-5 mb-4">
+          <Link
+            to="/groups/$groupId/duel"
+            params={{ groupId }}
+            className="group relative block overflow-hidden rounded-3xl border border-primary/40 bg-gradient-to-br from-primary/15 via-primary/5 to-info/10 p-4 transition-all active:scale-[0.99]"
+          >
+            <div className="pointer-events-none absolute -right-6 -top-6 h-28 w-28 rounded-full bg-primary/15 blur-2xl" />
+            <div className="pointer-events-none absolute -bottom-8 -left-6 h-24 w-24 rounded-full bg-info/15 blur-2xl" />
+            <div className="relative flex items-center gap-3">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary/15 ring-1 ring-primary/30">
+                <Swords className="h-6 w-6 text-primary" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-primary">Página do Duelo</span>
+                </div>
+                <p className="truncate font-display text-sm font-bold text-foreground">
+                  {(playerA.profile?.nickname || playerA.profile?.name || "Jogador 1").split(" ")[0]}
+                  <span className="mx-1.5 text-muted-foreground">vs</span>
+                  {(playerB.profile?.nickname || playerB.profile?.name || "Jogador 2").split(" ")[0]}
+                </p>
+                <p className="text-[10px] text-muted-foreground">Retrospecto, Elo comparativo, gráfico e estatísticas</p>
+              </div>
+              <ChevronRight className="h-5 w-5 shrink-0 text-primary transition-transform group-active:translate-x-0.5" />
+            </div>
+          </Link>
+        </div>
+      )}
+
       {/* Próximo confronto pendente */}
       {isMember && pendingMatch && (
         <div className="mx-5 mb-4">
