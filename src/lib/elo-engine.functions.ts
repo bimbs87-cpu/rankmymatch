@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { recomputeRoundStatusInternal } from "@/lib/round-status.functions";
 
 // ============================================================================
 // Elo math (duplicated server-side; keep in sync with src/lib/elo-engine.ts)
@@ -144,7 +145,7 @@ export const submitMatchScoreServerFn = createServerFn({ method: "POST" })
       })
       .eq("id", matchId);
 
-    // ---- 7. Auto-confirm presence + maybe close round ----
+    // ---- 7. Auto-confirm presence + recompute round status ----
     if (match.round_id) {
       const allPlayerIds = [...teamA, ...teamB];
       const nowIso = new Date().toISOString();
@@ -162,21 +163,8 @@ export const submitMatchScoreServerFn = createServerFn({ method: "POST" })
         ),
       );
 
-      const { data: otherMatches } = await supabaseAdmin
-        .from("matches")
-        .select("id, status")
-        .eq("round_id", match.round_id)
-        .neq("id", matchId);
-
-      const allOthersCompleted =
-        !otherMatches?.length || otherMatches.every((m) => m.status === "completed");
-
-      if (allOthersCompleted) {
-        await supabaseAdmin
-          .from("rounds")
-          .update({ status: "completed" })
-          .eq("id", match.round_id);
-      }
+      // Single source of truth for round status (Parte 2 / Parte 5)
+      await recomputeRoundStatusInternal(match.round_id);
     }
 
     // ---- 8. Process Elo ----

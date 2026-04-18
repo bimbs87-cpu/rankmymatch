@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { notifyGroupMembers } from "@/hooks/use-notifications";
 import { revertMatchElo } from "@/lib/elo-engine";
+import { recomputeRoundStatus } from "@/lib/round-status";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Season = Tables<"seasons">;
@@ -283,8 +284,8 @@ export async function drawTeams(roundId: string, confirmedPlayerIds: string[], a
     createdMatches.push(match);
   }
 
-  // Update round status
-  await supabase.from("rounds").update({ status: "in_progress" }).eq("id", roundId);
+  // Recompute round status (will become "in_progress" if matches exist)
+  await recomputeRoundStatus(roundId);
 
   // Notify group members about the draw
   if (roundData && actorId) {
@@ -317,25 +318,9 @@ export async function deleteMatch(matchId: string) {
   const { error } = await supabase.from("matches").delete().eq("id", matchId);
   if (error) throw new Error(error.message);
 
-  // Recalculate round status based on remaining matches
+  // Recompute round status based on remaining matches (single source of truth)
   if (matchData?.round_id) {
-    const { data: remaining } = await supabase
-      .from("matches")
-      .select("id, status")
-      .eq("round_id", matchData.round_id);
-
-    if (!remaining?.length) {
-      // No matches left → reset to scheduled
-      await supabase.from("rounds").update({ status: "scheduled" }).eq("id", matchData.round_id);
-    } else {
-      const allCompleted = remaining.every((m) => m.status === "completed");
-      const anyInProgress = remaining.some((m) => m.status === "in_progress" || m.status === "scheduled");
-      if (allCompleted) {
-        await supabase.from("rounds").update({ status: "completed" }).eq("id", matchData.round_id);
-      } else if (anyInProgress) {
-        await supabase.from("rounds").update({ status: "in_progress" }).eq("id", matchData.round_id);
-      }
-    }
+    await recomputeRoundStatus(matchData.round_id);
   }
 }
 
