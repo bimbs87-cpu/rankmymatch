@@ -1234,16 +1234,17 @@ function DashboardPage() {
 
       <div className="space-y-5 px-5 pt-5 lg:grid lg:grid-cols-12 lg:grid-rows-[auto_auto_1fr_auto] lg:gap-6 lg:space-y-0">
         {/* Season switcher button — above the ranking card (mobile) / between Ranking and Evolução do Elo (desktop) */}
+        {/* MOBILE-ONLY: Season switcher button (above ranking card) — desktop version is integrated into Evolução do Elo header */}
         {!dataLoading && currentRanking && rankings.length > 1 && (
-          <div className="relative flex animate-fade-in lg:col-span-4 lg:col-start-1 lg:row-start-2 lg:self-center lg:justify-start">
+          <div className="relative flex animate-fade-in lg:hidden">
             <button
               onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowRankingPicker((v) => !v); }}
-              className="group flex items-center gap-1.5 rounded-full border border-border bg-card px-2.5 py-1 text-[11px] font-medium text-foreground/80 transition-all hover:border-primary/40 hover:bg-primary/5 hover:text-foreground lg:gap-1 lg:px-2 lg:py-0.5 lg:text-[10px]"
+              className="flex items-center gap-1.5 rounded-full border border-border bg-card px-2.5 py-1 text-[11px] font-medium text-foreground/80 transition-all hover:border-primary/40 hover:bg-primary/5"
               aria-label="Trocar ranking de grupo/temporada"
             >
-              <BarChart3 className="h-3 w-3 text-primary lg:h-2.5 lg:w-2.5" />
-              <span className="truncate max-w-[200px] lg:max-w-[180px]">
-                <span className="text-muted-foreground lg:hidden">Ranking: </span>
+              <BarChart3 className="h-3 w-3 text-primary" />
+              <span className="truncate max-w-[200px]">
+                <span className="text-muted-foreground">Ranking: </span>
                 <span className="font-semibold">{currentRanking.season_name}</span>
                 {currentRanking.group_name ? <span className="text-muted-foreground"> · {currentRanking.group_name}</span> : null}
               </span>
