@@ -25,6 +25,7 @@ import {
   Users,
   Calendar,
   ChevronRight,
+  ChevronDown,
   Bell,
   BarChart3,
   Plus,
@@ -2004,63 +2005,89 @@ function DashboardPage() {
             return (
               <div className="flex h-full flex-col rounded-3xl border border-border bg-card p-5">
                 {/* Header */}
-                <div className="mb-4 flex items-start justify-between gap-3">
-                  <div className="min-w-0 flex-1">
-                    <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                      Evolução do Elo
-                    </h2>
-                    {currentRanking && (
-                      rankings.length > 1 ? (
-                        <div className="relative mt-1 inline-block">
-                          <button
-                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowRankingPicker((v) => !v); }}
-                            className="group flex max-w-full items-center gap-1 rounded-md px-1 -mx-1 py-0.5 text-[11px] text-muted-foreground/80 transition-colors hover:bg-muted/40 hover:text-foreground"
-                            aria-label="Trocar grupo/temporada"
-                            aria-expanded={showRankingPicker}
-                          >
-                            <span className="truncate">
-                              <span className="font-medium text-foreground/90">{currentRanking.group_name}</span>
-                              <span className="mx-1 text-muted-foreground/50">·</span>
-                              <span>{currentRanking.season_name}</span>
-                            </span>
-                            <ChevronRight className={`h-3 w-3 shrink-0 text-muted-foreground/60 transition-transform ${showRankingPicker ? "rotate-90" : "rotate-90 opacity-60 group-hover:opacity-100"}`} />
-                          </button>
-                          {showRankingPicker && (
-                            <div className="absolute left-0 top-full z-30 mt-1 max-h-56 min-w-[260px] max-w-[340px] overflow-y-auto rounded-2xl border border-border bg-card p-1 shadow-lg">
-                              {rankings.map((r) => (
-                                <button
-                                  key={r.season_id}
-                                  onClick={(e) => {
-                                    e.preventDefault();
-                                    e.stopPropagation();
-                                    setSelectedSeasonId(r.season_id);
-                                    setShowRankingPicker(false);
-                                  }}
-                                  className={`flex w-full items-center justify-between gap-2 rounded-xl px-2.5 py-2 text-left text-[11px] ${
-                                    r.season_id === currentRanking.season_id ? "bg-primary/15 text-primary" : "hover:bg-accent/50 text-foreground"
-                                  }`}
-                                >
-                                  <span className="truncate">
-                                    {r.season_name}
-                                    {r.group_name ? ` · ${r.group_name}` : ""}
-                                  </span>
-                                  <span className="shrink-0 font-semibold">{ordinalSuffix(r.position)}</span>
-                                </button>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      ) : (
-                        <p className="mt-0.5 truncate text-[11px] text-muted-foreground/70">
-                          {currentRanking.group_name} · {currentRanking.season_name}
-                        </p>
-                      )
-                    )}
-                  </div>
-                  <Link to="/ranking" className="flex items-center gap-0.5 text-xs font-medium text-primary shrink-0">
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    Evolução do Elo
+                  </h2>
+                  <Link to="/ranking" className="flex items-center gap-0.5 text-xs font-medium text-primary shrink-0 hover:text-primary/80">
                     Detalhes <ChevronRight className="h-3.5 w-3.5" />
                   </Link>
                 </div>
+
+                {/* Season/Group selector — prominent, clearly interactive */}
+                {currentRanking && (
+                  <div className="mb-4">
+                    <label className="mb-1.5 block text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/80">
+                      Temporada exibida
+                    </label>
+                    {rankings.length > 1 ? (
+                      <div className="relative">
+                        <button
+                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowRankingPicker((v) => !v); }}
+                          className="flex w-full items-center justify-between gap-2 rounded-xl border border-border bg-muted/30 px-3 py-2 text-left text-xs font-medium text-foreground transition-colors hover:border-primary/40 hover:bg-muted/50"
+                          aria-label="Trocar grupo/temporada"
+                          aria-expanded={showRankingPicker}
+                          aria-haspopup="listbox"
+                        >
+                          <span className="min-w-0 flex-1 truncate">
+                            <span className="font-semibold">{currentRanking.group_name}</span>
+                            <span className="mx-1.5 text-muted-foreground/50">·</span>
+                            <span className="text-muted-foreground">{currentRanking.season_name}</span>
+                          </span>
+                          <ChevronDown className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${showRankingPicker ? "rotate-180" : ""}`} />
+                        </button>
+                        {showRankingPicker && (
+                          <>
+                            <div
+                              className="fixed inset-0 z-20"
+                              onClick={() => setShowRankingPicker(false)}
+                              aria-hidden
+                            />
+                            <div
+                              role="listbox"
+                              className="absolute left-0 right-0 top-full z-30 mt-1.5 max-h-64 overflow-y-auto rounded-xl border border-border bg-card p-1 shadow-xl"
+                            >
+                              {rankings.map((r) => {
+                                const isActive = r.season_id === currentRanking.season_id;
+                                return (
+                                  <button
+                                    key={r.season_id}
+                                    role="option"
+                                    aria-selected={isActive}
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                      setSelectedSeasonId(r.season_id);
+                                      setShowRankingPicker(false);
+                                    }}
+                                    className={`flex w-full items-center justify-between gap-2 rounded-lg px-2.5 py-2 text-left text-xs transition-colors ${
+                                      isActive ? "bg-primary/15 text-primary font-semibold" : "text-foreground hover:bg-accent/50"
+                                    }`}
+                                  >
+                                    <span className="min-w-0 flex-1 truncate">
+                                      <span className="font-medium">{r.group_name}</span>
+                                      <span className="mx-1 text-muted-foreground/60">·</span>
+                                      <span className={isActive ? "" : "text-muted-foreground"}>{r.season_name}</span>
+                                    </span>
+                                    <span className="shrink-0 text-[10px] font-semibold tabular-nums">{ordinalSuffix(r.position)}</span>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2 rounded-xl border border-border/60 bg-muted/20 px-3 py-2 text-xs">
+                        <span className="min-w-0 flex-1 truncate">
+                          <span className="font-semibold text-foreground">{currentRanking.group_name}</span>
+                          <span className="mx-1.5 text-muted-foreground/50">·</span>
+                          <span className="text-muted-foreground">{currentRanking.season_name}</span>
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {/* KPIs */}
                 <div className="mb-4 grid grid-cols-3 gap-2">
