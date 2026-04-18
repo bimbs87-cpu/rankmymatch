@@ -594,55 +594,76 @@ function CompareLandingPage() {
           </div>
         </header>
 
-        {/* "Como funciona" */}
-        <section className="mb-6 grid gap-3 md:grid-cols-3">
-          <Card className="rounded-2xl border-border bg-card/60">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <Lightbulb className="h-4 w-4 text-primary" />
-                <span className="text-[10px] uppercase tracking-widest font-bold text-primary">
-                  O que é
-                </span>
-              </div>
-              <p className="text-xs leading-relaxed text-muted-foreground">
-                Uma ferramenta para colocar <strong className="text-foreground">2 a 4 jogadores</strong>{" "}
-                lado a lado e ver, em números, quem está melhor em Elo, vitórias,
-                conquistas, sequências e nos confrontos diretos.
-              </p>
-            </CardContent>
-          </Card>
+        {/* "Como funciona" — accordion compacto em linha única */}
+        <section className="mb-6">
+          <Accordion
+            type="single"
+            collapsible
+            value={infoOpen}
+            onValueChange={setInfoOpen}
+            className="rounded-2xl border border-border bg-card/60 overflow-hidden"
+          >
+            <div className="grid grid-cols-3 divide-x divide-border">
+              <AccordionItem value="what" className="border-b-0">
+                <AccordionTrigger className="px-3 py-3 hover:no-underline hover:bg-muted/30 [&>svg]:hidden">
+                  <div className="flex items-center gap-1.5 mx-auto">
+                    <Lightbulb className="h-3.5 w-3.5 text-primary shrink-0" />
+                    <span className="text-[10px] uppercase tracking-wider font-bold text-primary">
+                      O que é
+                    </span>
+                  </div>
+                </AccordionTrigger>
+              </AccordionItem>
+              <AccordionItem value="how" className="border-b-0">
+                <AccordionTrigger className="px-3 py-3 hover:no-underline hover:bg-muted/30 [&>svg]:hidden">
+                  <div className="flex items-center gap-1.5 mx-auto">
+                    <Target className="h-3.5 w-3.5 text-primary shrink-0" />
+                    <span className="text-[10px] uppercase tracking-wider font-bold text-primary">
+                      Como usar
+                    </span>
+                  </div>
+                </AccordionTrigger>
+              </AccordionItem>
+              <AccordionItem value="why" className="border-b-0">
+                <AccordionTrigger className="px-3 py-3 hover:no-underline hover:bg-muted/30 [&>svg]:hidden">
+                  <div className="flex items-center gap-1.5 mx-auto">
+                    <TrendingUp className="h-3.5 w-3.5 text-primary shrink-0" />
+                    <span className="text-[10px] uppercase tracking-wider font-bold text-primary">
+                      Por que usar
+                    </span>
+                  </div>
+                </AccordionTrigger>
+              </AccordionItem>
+            </div>
 
-          <Card className="rounded-2xl border-border bg-card/60">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <Target className="h-4 w-4 text-primary" />
-                <span className="text-[10px] uppercase tracking-widest font-bold text-primary">
-                  Como usar
-                </span>
+            {infoOpen === "what" && (
+              <div className="px-4 py-3 border-t border-border bg-muted/20">
+                <p className="text-xs leading-relaxed text-muted-foreground">
+                  Uma ferramenta para colocar <strong className="text-foreground">2 a 4 jogadores</strong>{" "}
+                  lado a lado e ver, em números, quem está melhor em Elo, vitórias,
+                  conquistas, sequências e nos confrontos diretos.
+                </p>
               </div>
-              <ol className="text-xs leading-relaxed text-muted-foreground space-y-1 list-decimal list-inside">
-                <li>Escolha o grupo</li>
-                <li>Selecione de 2 a 4 jogadores</li>
-                <li>Toque em <strong className="text-foreground">Comparar</strong></li>
-              </ol>
-            </CardContent>
-          </Card>
-
-          <Card className="rounded-2xl border-border bg-card/60">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <TrendingUp className="h-4 w-4 text-primary" />
-                <span className="text-[10px] uppercase tracking-widest font-bold text-primary">
-                  Por que usar
-                </span>
+            )}
+            {infoOpen === "how" && (
+              <div className="px-4 py-3 border-t border-border bg-muted/20">
+                <ol className="text-xs leading-relaxed text-muted-foreground space-y-1 list-decimal list-inside">
+                  <li>Escolha o grupo</li>
+                  <li>Selecione de 2 a 4 jogadores</li>
+                  <li>Toque em <strong className="text-foreground">Comparar</strong></li>
+                </ol>
               </div>
-              <p className="text-xs leading-relaxed text-muted-foreground">
-                Resolva discussões com dados: descubra quem joga melhor com você,
-                quem é seu maior rival e identifique pontos fortes e fracos para
-                evoluir.
-              </p>
-            </CardContent>
-          </Card>
+            )}
+            {infoOpen === "why" && (
+              <div className="px-4 py-3 border-t border-border bg-muted/20">
+                <p className="text-xs leading-relaxed text-muted-foreground">
+                  Resolva discussões com dados: descubra quem joga melhor com você,
+                  quem é seu maior rival e identifique pontos fortes e fracos para
+                  evoluir.
+                </p>
+              </div>
+            )}
+          </Accordion>
         </section>
 
         {!groups.length ? (
