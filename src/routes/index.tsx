@@ -2168,6 +2168,102 @@ function DashboardPage() {
           </section>
         )}
 
+        {/* Últimos Resultados (mobile/tablet only — denso, vem antes de Próximas Rodadas) */}
+        <section className="lg:hidden">
+          <div className="mb-2 flex items-center justify-between">
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Últimos Resultados
+            </h2>
+            <Link to="/history" className="flex items-center gap-0.5 text-xs font-medium text-primary">
+              Histórico <ChevronRight className="h-3.5 w-3.5" />
+            </Link>
+          </div>
+
+          {dataLoading ? (
+            <div className="flex flex-col items-center justify-center rounded-2xl border border-border bg-card p-4 min-h-[100px]">
+              <CardSpinner label="Carregando resultados" />
+            </div>
+          ) : recentMatches.length === 0 ? (
+            <div className="rounded-2xl border border-border bg-card p-4">
+              <div className="flex flex-col items-center gap-1.5 text-center">
+                <Swords className="h-6 w-6 text-muted-foreground/40" />
+                <p className="text-xs text-muted-foreground">Nenhuma partida ainda</p>
+              </div>
+            </div>
+          ) : (
+            <div className="overflow-hidden rounded-2xl border border-border bg-card divide-y divide-border/60">
+              {recentMatches.slice(0, 3).map((m) => {
+                const won = m.winner_team === m.my_team;
+                const winnerLabel = won
+                  ? m.partner_name
+                    ? `Você e ${m.partner_name} venceram`
+                    : "Você venceu"
+                  : m.opponent_names.length >= 2
+                    ? `${m.opponent_names[0]} e ${m.opponent_names[1]} venceram`
+                    : `${m.opponent_names[0] || "Adversário"} venceu`;
+                const canLink = !!(m.round_id && m.group_id && m.season_id);
+                const RowTag: any = canLink ? Link : "div";
+                const rowProps: any = canLink
+                  ? {
+                      to: "/groups/$groupId/seasons/$seasonId/rounds/$roundId",
+                      params: { groupId: m.group_id!, seasonId: m.season_id!, roundId: m.round_id! },
+                    }
+                  : {};
+                return (
+                  <RowTag
+                    key={m.id}
+                    {...rowProps}
+                    className={`flex items-center gap-2 px-2.5 py-1.5 ${canLink ? "active:bg-accent/40 transition-colors" : ""}`}
+                  >
+                    <div
+                      className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-[10px] font-bold ${
+                        won ? "bg-success/15 text-success" : "bg-destructive/15 text-destructive"
+                      }`}
+                    >
+                      {won ? "V" : "D"}
+                    </div>
+
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-baseline gap-1.5">
+                        <p className="font-display text-[13px] font-bold text-foreground tabular-nums leading-tight">
+                          {m.score_display}
+                        </p>
+                        <p className={`truncate text-[10px] font-semibold leading-tight ${won ? "text-success" : "text-foreground"}`}>
+                          {winnerLabel}
+                        </p>
+                      </div>
+                      <p className="truncate text-[9.5px] leading-tight text-muted-foreground">
+                        {m.group_name ? `${m.group_name} · ` : ""}Set {m.match_number}
+                      </p>
+                    </div>
+
+                    {m.rating_change !== null && (
+                      <span
+                        className={`shrink-0 inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-bold tabular-nums ${
+                          m.rating_change > 0
+                            ? "bg-success/15 text-success"
+                            : m.rating_change < 0
+                              ? "bg-destructive/15 text-destructive"
+                              : "bg-muted text-muted-foreground"
+                        }`}
+                      >
+                        {m.rating_change > 0 ? (
+                          <TrendingUp className="h-2.5 w-2.5" />
+                        ) : m.rating_change < 0 ? (
+                          <TrendingDown className="h-2.5 w-2.5" />
+                        ) : (
+                          <Minus className="h-2.5 w-2.5" />
+                        )}
+                        {m.rating_change > 0 ? "+" : ""}{Math.round(m.rating_change)}
+                      </span>
+                    )}
+                  </RowTag>
+                );
+              })}
+            </div>
+          )}
+        </section>
+
         {/* Próximas Rodadas (mobile/tablet only — desktop version is inside the right column wrapper above) */}
         <section className="lg:hidden">
           {/* Mobile/tablet header */}
@@ -2194,7 +2290,6 @@ function DashboardPage() {
             </div>
           ) : (
             <>
-              {/* Mobile/tablet: lista solta sem container */}
               <div className="space-y-1.5 lg:hidden">
                 {upcomingRounds.slice(0, 3).map((r) => (
                   <Link
@@ -2257,107 +2352,6 @@ function DashboardPage() {
                 ))}
               </div>
             </>
-          )}
-        </section>
-
-        {/* Últimos Resultados (mobile/tablet only — 3 cards horizontais) */}
-        <section className="lg:hidden">
-          <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Últimos Resultados
-            </h2>
-            <Link to="/history" className="flex items-center gap-0.5 text-xs font-medium text-primary">
-              Histórico <ChevronRight className="h-3.5 w-3.5" />
-            </Link>
-          </div>
-
-          {dataLoading ? (
-            <div className="flex flex-col items-center justify-center rounded-3xl border border-border bg-card p-6 min-h-[120px]">
-              <CardSpinner label="Carregando resultados" />
-            </div>
-          ) : recentMatches.length === 0 ? (
-            <div className="rounded-3xl border border-border bg-card p-5">
-              <div className="flex flex-col items-center gap-2 text-center">
-                <Swords className="h-7 w-7 text-muted-foreground/40" />
-                <p className="text-sm text-muted-foreground">Nenhuma partida ainda</p>
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-1.5">
-              {recentMatches.slice(0, 3).map((m) => {
-                const won = m.winner_team === m.my_team;
-                const winnerLabel = won
-                  ? "Você venceu"
-                  : m.partner_name
-                    ? `${m.opponent_names[0] || "Adversário"} venceu`
-                    : `${m.opponent_names[0] || "Adversário"} venceu`;
-                const canLink = !!(m.round_id && m.group_id && m.season_id);
-                const RowTag: any = canLink ? Link : "div";
-                const rowProps: any = canLink
-                  ? {
-                      to: "/groups/$groupId/seasons/$seasonId/rounds/$roundId",
-                      params: { groupId: m.group_id!, seasonId: m.season_id!, roundId: m.round_id! },
-                    }
-                  : {};
-                return (
-                  <RowTag
-                    key={m.id}
-                    {...rowProps}
-                    className={`flex items-center gap-2.5 rounded-xl border border-border bg-card px-3 py-2 ${canLink ? "active:bg-accent/40 transition-colors" : ""}`}
-                  >
-                    {/* Winner badge */}
-                    <div
-                      className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[11px] font-bold ${
-                        won ? "bg-success/15 text-success" : "bg-destructive/15 text-destructive"
-                      }`}
-                    >
-                      {won ? "V" : "D"}
-                    </div>
-
-                    <div className="min-w-0 flex-1">
-                      {/* Score + winner */}
-                      <div className="flex items-baseline gap-2">
-                        <p className="font-display text-sm font-bold text-foreground tabular-nums leading-tight">
-                          {m.score_display}
-                        </p>
-                        <p className={`truncate text-[10px] font-semibold ${won ? "text-success" : "text-foreground"}`}>
-                          {winnerLabel}
-                        </p>
-                      </div>
-                      {/* Meta */}
-                      <p className="mt-0.5 truncate text-[10px] text-muted-foreground">
-                        {m.group_name ? `${m.group_name} · ` : ""}Set {m.match_number}
-                        {m.opponent_names.length > 0 && !won && (
-                          <> · vs {m.opponent_names.join(" & ")}</>
-                        )}
-                      </p>
-                    </div>
-
-                    {/* Elo delta — main visual on the right */}
-                    {m.rating_change !== null && (
-                      <span
-                        className={`shrink-0 inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-[11px] font-bold tabular-nums ${
-                          m.rating_change > 0
-                            ? "bg-success/15 text-success"
-                            : m.rating_change < 0
-                              ? "bg-destructive/15 text-destructive"
-                              : "bg-muted text-muted-foreground"
-                        }`}
-                      >
-                        {m.rating_change > 0 ? (
-                          <TrendingUp className="h-3 w-3" />
-                        ) : m.rating_change < 0 ? (
-                          <TrendingDown className="h-3 w-3" />
-                        ) : (
-                          <Minus className="h-3 w-3" />
-                        )}
-                        {m.rating_change > 0 ? "+" : ""}{Math.round(m.rating_change)}
-                      </span>
-                    )}
-                  </RowTag>
-                );
-              })}
-            </div>
           )}
         </section>
 
