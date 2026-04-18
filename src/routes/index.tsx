@@ -147,6 +147,7 @@ interface RecentMatch {
 interface RankingOption {
   season_id: string;
   season_name: string;
+  group_id: string;
   group_name: string;
   rounds_completed: number;
   rounds_total: number;
@@ -645,6 +646,7 @@ function DashboardPage() {
           return {
             season_id: snap.season_id,
             season_name: season?.name || "Temporada",
+            group_id: season?.group_id || "",
             group_name: groupNameMap.get(season?.group_id) || "",
             rounds_completed: roundCounts.completed,
             rounds_total: Math.max(roundCounts.completed, plannedTotal),
