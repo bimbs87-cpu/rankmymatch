@@ -899,7 +899,9 @@ export function RivalryDuelPage({ groupId, groupName, seasonId, seasonName }: Pr
         seasonId={seasonId}
         matchInfo={matchInfoForChart}
       />
+      </div>
 
+      <div className="mt-4 space-y-4 lg:col-span-5 lg:mt-0 lg:space-y-5">
       {/* Comparativo Resumido */}
       <div className="rounded-3xl border border-border bg-card/50 p-5">
         <div className="flex items-center gap-1.5 mb-3">
