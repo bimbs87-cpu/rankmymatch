@@ -221,14 +221,29 @@ export function InviteEngagementReport({ groupId }: Props) {
             Convites de vinculação enviados a jogadores sem conta e quantos viraram contas reais.
           </p>
         </div>
-        <button
-          onClick={exportCsv}
-          disabled={loading || stats.sent === 0}
-          className="flex shrink-0 items-center gap-1 rounded-full border border-border bg-background px-3 py-1 text-[10px] font-bold text-foreground transition-colors hover:bg-muted disabled:opacity-50"
-          title="Exportar CSV"
-        >
-          <Download className="h-3 w-3" /> CSV
-        </button>
+        <div className="flex shrink-0 items-center gap-1.5">
+          <select
+            value={exportFilter}
+            onChange={(e) => setExportFilter(e.target.value as StatusFilter)}
+            disabled={loading}
+            className="rounded-full border border-border bg-background px-2 py-1 text-[10px] font-semibold text-foreground focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-50"
+            title="Filtrar exportação por status"
+          >
+            <option value="all">Todos</option>
+            <option value="Pendente">Só pendentes</option>
+            <option value="Vinculado">Só vinculados</option>
+            <option value="Expirado">Só expirados</option>
+            <option value="Revogado">Só revogados</option>
+          </select>
+          <button
+            onClick={exportCsv}
+            disabled={loading || stats.sent === 0}
+            className="flex items-center gap-1 rounded-full border border-border bg-background px-3 py-1 text-[10px] font-bold text-foreground transition-colors hover:bg-muted disabled:opacity-50"
+            title="Exportar CSV"
+          >
+            <Download className="h-3 w-3" /> CSV
+          </button>
+        </div>
       </div>
 
       {/* Period selector */}
@@ -284,17 +299,37 @@ export function InviteEngagementReport({ groupId }: Props) {
             </div>
           </div>
 
-          {/* Weekly trend chart */}
-          {weekly.length > 1 && (
+          {/* Trend chart with granularity toggle */}
+          {trend.length > 1 && (
             <div className="rounded-2xl border border-border bg-card/40 p-3">
-              <div className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold text-foreground">
-                <LineIcon className="h-3 w-3" /> Tendência semanal
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <div className="flex items-center gap-1.5 text-[11px] font-semibold text-foreground">
+                  <LineIcon className="h-3 w-3" /> Tendência {granularity === "week" ? "semanal" : "mensal"}
+                </div>
+                <div className="flex items-center gap-0.5 rounded-full bg-muted/40 p-0.5">
+                  <button
+                    onClick={() => setGranularity("week")}
+                    className={`rounded-full px-2 py-0.5 text-[10px] font-bold transition-colors ${
+                      granularity === "week" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    Semanal
+                  </button>
+                  <button
+                    onClick={() => setGranularity("month")}
+                    className={`rounded-full px-2 py-0.5 text-[10px] font-bold transition-colors ${
+                      granularity === "month" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    Mensal
+                  </button>
+                </div>
               </div>
               <div className="h-44 w-full">
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={weekly} margin={{ top: 6, right: 4, left: -20, bottom: 0 }}>
+                  <LineChart data={trend} margin={{ top: 6, right: 4, left: -20, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
-                    <XAxis dataKey="week" tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} />
+                    <XAxis dataKey="bucket" tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} />
                     <YAxis yAxisId="left" allowDecimals={false} tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} />
                     <YAxis yAxisId="right" orientation="right" domain={[0, 100]} tick={{ fontSize: 10, fill: "hsl(var(--info))" }} unit="%" width={34} />
                     <Tooltip
