@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useAuth } from "@/hooks/use-auth";
 import { TrophyLoadingBar } from "@/components/TrophyLoadingBar";
 import { useMyGroups } from "@/hooks/use-groups";
@@ -50,6 +50,12 @@ function LoadingBar({ progress, label }: { progress: number; label: string }) {
 
 function RankingPage() {
   const { user, isAuthenticated, isLoading: authLoading } = useAuth();
+  const navigate = useNavigate();
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) {
+      navigate({ to: "/login" });
+    }
+  }, [authLoading, isAuthenticated, navigate]);
   const { groups, isLoading: groupsLoading } = useMyGroups();
   const [selectedSeasonId, setSelectedSeasonId] = useState<string | null>(null);
   const [seasons, setSeasons] = useState<any[]>([]);

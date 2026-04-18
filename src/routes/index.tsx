@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { abbreviateName } from "@/lib/utils";
 import logoSymbolNeon from "@/assets/logo-symbol-neon.png";
 import logoSymbolBlack from "@/assets/logo-symbol-black.png";
@@ -126,6 +126,13 @@ function DashboardPage() {
     throw e;
   }
   const { user, isAuthenticated, isLoading } = authData;
+
+  const navigate = useNavigate();
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      navigate({ to: "/login" });
+    }
+  }, [isLoading, isAuthenticated, navigate]);
 
   let groupsData: ReturnType<typeof useMyGroups>;
   try {
