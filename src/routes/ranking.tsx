@@ -504,6 +504,33 @@ function RankingPage() {
               )}
             </div>
           )}
+          {selectedSeason && rankings.length >= 2 && (
+            <button
+              onClick={() => {
+                setCompareMode((m) => {
+                  const next = !m;
+                  if (next) {
+                    setExpandedUserId(null);
+                    // Pre-select the current user if they are in the ranking
+                    setCompareSelection(user?.id && rankings.some((r) => r.user_id === user.id) ? [user.id] : []);
+                  } else {
+                    setCompareSelection([]);
+                  }
+                  return next;
+                });
+              }}
+              className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
+                compareMode
+                  ? "border-primary bg-primary/15 text-primary"
+                  : "border-border bg-card text-foreground hover:bg-accent"
+              }`}
+              aria-pressed={compareMode}
+              title="Comparar jogadores"
+            >
+              {compareMode ? <X className="h-3.5 w-3.5" /> : <GitCompareArrows className="h-3.5 w-3.5" />}
+              {compareMode ? "Cancelar" : "Comparar"}
+            </button>
+          )}
           <Link to="/ranking-info" className="rounded-full border border-border bg-card p-2 transition-colors hover:bg-accent" aria-label="Entenda a pontuação" title="Entenda a pontuação">
             <Info className="h-4 w-4 text-muted-foreground" />
           </Link>
