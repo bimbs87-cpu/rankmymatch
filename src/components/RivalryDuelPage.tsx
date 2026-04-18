@@ -6,6 +6,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { DualEloChart } from "@/components/DualEloChart";
 import { computeDuelMedals } from "@/lib/duel-medals";
+import { buildMedalsTimeline } from "@/lib/duel-medals-timeline";
 import { promoteMatchToRankingServerFn, revertMatchPromotionServerFn } from "@/lib/promote-match.functions";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "sonner";
@@ -72,6 +73,7 @@ export function RivalryDuelPage({ groupId, groupName, seasonId, seasonName }: Pr
   const [isAdmin, setIsAdmin] = useState(false);
   const [promotingId, setPromotingId] = useState<string | null>(null);
   const [revertingId, setRevertingId] = useState<string | null>(null);
+  const [matchFilter, setMatchFilter] = useState<"all" | "official" | "casual">("all");
 
   useEffect(() => {
     loadDuelData();
@@ -349,7 +351,12 @@ export function RivalryDuelPage({ groupId, groupName, seasonId, seasonName }: Pr
   })();
 
   const completedMatches = matches.filter((m) => m.status === "completed");
-  const recentMatches = completedMatches.slice(0, 10);
+  const filteredMatches = completedMatches.filter((m) => {
+    if (matchFilter === "all") return true;
+    const isOfficial = !!m.round_number && m.counts_for_ranking;
+    return matchFilter === "official" ? isOfficial : !isOfficial;
+  });
+  const recentMatches = filteredMatches.slice(0, 10);
 
   // Real medal computation from H2H history
   const medals = computeDuelMedals(
@@ -358,6 +365,19 @@ export function RivalryDuelPage({ groupId, groupName, seasonId, seasonName }: Pr
       status: m.status,
       sets: m.sets,
       team_a_user_id: m.team_a_user_id,
+    })),
+    playerA.user_id,
+    playerB.user_id,
+  );
+
+  // Timeline of medal holder changes (for the "Conquistas do duelo" section)
+  const medalsTimeline = buildMedalsTimeline(
+    completedMatches.map((m) => ({
+      winner_user_id: m.winner_user_id,
+      status: m.status,
+      sets: m.sets,
+      team_a_user_id: m.team_a_user_id,
+      date: m.date,
     })),
     playerA.user_id,
     playerB.user_id,
@@ -546,7 +566,29 @@ export function RivalryDuelPage({ groupId, groupName, seasonId, seasonName }: Pr
               Últimos Confrontos
             </h3>
           </div>
-          <span className="text-[10px] text-muted-foreground">{completedMatches.length} total</span>
+          <span className="text-[10px] text-muted-foreground">{filteredMatches.length} de {completedMatches.length}</span>
+        </div>
+
+        {/* Filter pills */}
+        <div className="mb-3 flex items-center gap-1.5">
+          {[
+            { key: "all" as const, label: "Todos" },
+            { key: "official" as const, label: "Oficiais" },
+            { key: "casual" as const, label: "Avulsos" },
+          ].map((f) => (
+            <button
+              key={f.key}
+              type="button"
+              onClick={() => setMatchFilter(f.key)}
+              className={`rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider transition-colors ${
+                matchFilter === f.key
+                  ? "bg-primary text-primary-foreground"
+                  : "border border-border bg-background/50 text-muted-foreground hover:bg-accent/30"
+              }`}
+            >
+              {f.label}
+            </button>
+          ))}
         </div>
 
         {recentMatches.length === 0 ? (
@@ -807,6 +849,72 @@ export function RivalryDuelPage({ groupId, groupName, seasonId, seasonName }: Pr
             })}
           </div>
         </TooltipProvider>
+      </div>
+
+      {/* Block 9: Conquistas do Duelo — timeline of medal holder changes */}
+      <div className="rounded-3xl border border-border bg-card/50 p-5">
+        <div className="mb-3 flex items-center gap-1.5">
+          <Trophy className="h-3.5 w-3.5 text-primary" />
+          <h3 className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            Conquistas do Duelo
+          </h3>
+        </div>
+        {medalsTimeline.events.length === 0 ? (
+          <p className="py-4 text-center text-xs text-muted-foreground">
+            Sem trocas de medalhas ainda — joguem mais confrontos para escrever a história!
+          </p>
+        ) : (
+          <ol className="relative space-y-3 pl-4">
+            <span className="absolute left-1.5 top-1 bottom-1 w-px bg-border" aria-hidden />
+            {medalsTimeline.events.slice(0, 30).map((ev, idx) => {
+              const newName = ev.newHolder === "A" ? displayNameA : displayNameB;
+              const prevName =
+                ev.previousHolder === "A"
+                  ? displayNameA
+                  : ev.previousHolder === "B"
+                    ? displayNameB
+                    : null;
+              const colorCls =
+                ev.newHolder === "A" ? "text-primary" : "text-info";
+              const dotCls =
+                ev.newHolder === "A" ? "bg-primary" : "bg-info";
+              const dateStr = ev.date
+                ? new Date(ev.date + "T00:00:00").toLocaleDateString("pt-BR", {
+                    day: "2-digit",
+                    month: "short",
+                    year: "numeric",
+                  })
+                : `Confronto #${ev.matchIndex}`;
+              return (
+                <li key={`${ev.medal}-${idx}`} className="relative">
+                  <span
+                    className={`absolute -left-[11px] top-1 h-2 w-2 rounded-full ring-2 ring-card ${dotCls}`}
+                    aria-hidden
+                  />
+                  <div className="flex items-start gap-2">
+                    <span className="text-base leading-none" aria-hidden>{ev.medalEmoji}</span>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs">
+                        <span className={`font-bold ${colorCls}`}>{newName}</span>
+                        <span className="text-muted-foreground"> conquistou </span>
+                        <span className="font-semibold text-foreground">{ev.medalLabel}</span>
+                        {prevName && (
+                          <>
+                            <span className="text-muted-foreground"> tirando de </span>
+                            <span className="font-semibold text-foreground">{prevName}</span>
+                          </>
+                        )}
+                      </p>
+                      <p className="mt-0.5 text-[10px] text-muted-foreground">
+                        {dateStr} · valor: {ev.value}
+                      </p>
+                    </div>
+                  </div>
+                </li>
+              );
+            })}
+          </ol>
+        )}
       </div>
     </div>
   );
