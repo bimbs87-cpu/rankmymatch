@@ -9,6 +9,7 @@ import { computeDuelMedals } from "@/lib/duel-medals";
 import { buildMedalsTimeline } from "@/lib/duel-medals-timeline";
 import { promoteMatchToRankingServerFn, revertMatchPromotionServerFn } from "@/lib/promote-match.functions";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { EloDelta } from "@/components/ui/elo-delta";
 import { toast } from "sonner";
 import {
   Swords,
@@ -869,20 +870,14 @@ export function RivalryDuelPage({ groupId, groupName, seasonId, seasonName }: Pr
                           const dA = m.rating_change_by_user?.[playerA.user_id];
                           const dB = m.rating_change_by_user?.[playerB.user_id];
                           if (dA == null && dB == null) return null;
-                          const fmt = (v: number | undefined) =>
-                            v == null ? "—" : `${v > 0 ? "+" : ""}${Math.round(v)}`;
                           return (
                             <span
-                              className="rounded-full border border-border/60 bg-background/60 px-1.5 py-0.5 text-[9px] font-semibold tabular-nums text-muted-foreground"
+                              className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-background/60 px-1.5 py-0.5"
                               title="Variação de Elo desta partida"
                             >
-                              <span className={dA != null && dA > 0 ? "text-primary" : dA != null && dA < 0 ? "text-destructive" : ""}>
-                                {fmt(dA)}
-                              </span>
-                              <span className="mx-0.5 text-muted-foreground/60">/</span>
-                              <span className={dB != null && dB > 0 ? "text-info" : dB != null && dB < 0 ? "text-destructive" : ""}>
-                                {fmt(dB)}
-                              </span>
+                              <EloDelta value={dA} size="xs" />
+                              <span className="text-muted-foreground/60">/</span>
+                              <EloDelta value={dB} size="xs" />
                             </span>
                           );
                         })()}

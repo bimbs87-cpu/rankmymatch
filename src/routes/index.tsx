@@ -10,6 +10,8 @@ import { TrophyLoadingBar } from "@/components/TrophyLoadingBar";
 import { useUserProfile } from "@/hooks/use-user-profile";
 import { useMyGroups } from "@/hooks/use-groups";
 import { useCountUp } from "@/hooks/use-count-up";
+import { FormatBadge, resolveFormatBadge } from "@/components/ui/format-badge";
+import { EloDelta } from "@/components/ui/elo-delta";
 import { useNotifications } from "@/hooks/use-notifications";
 import { usePendingMatch } from "@/hooks/use-pending-matches";
 import { PendingMatchCard } from "@/components/PendingMatchCard";
@@ -70,21 +72,8 @@ function AnimatedElo({ value, storageKey }: { value: number; storageKey: string 
   );
 }
 
-interface GroupFormatBadgeInfo {
-  label: string;
-  /** Tailwind classes for badge bg+text */
-  cls: string;
-}
-
-function getGroupFormatBadge(g: { match_format: string; singles_group_type: string | null }): GroupFormatBadgeInfo {
-  if (g.match_format === "singles") {
-    if (g.singles_group_type === "rivalry") return { label: "Duelo", cls: "bg-primary/15 text-primary ring-1 ring-primary/30" };
-    if (g.singles_group_type === "league") return { label: "Liga", cls: "bg-info/15 text-info ring-1 ring-info/30" };
-    if (g.singles_group_type === "casual") return { label: "Casual", cls: "bg-muted text-muted-foreground ring-1 ring-border" };
-    return { label: "1x1", cls: "bg-muted text-muted-foreground ring-1 ring-border" };
-  }
-  return { label: "2x2", cls: "bg-success/15 text-success ring-1 ring-success/30" };
-}
+// Group format badge rendering goes through <FormatBadge match_format={...} singles_group_type={...} />
+// Use resolveFormatBadge() if you need just the resolved label/kind without rendering.
 
 export const Route = createFileRoute("/")({
   component: DashboardPage,
@@ -1329,11 +1318,7 @@ function DashboardPage() {
                       {/* Elo delta */}
                       {m.rating_change !== null && (
                         <div className="shrink-0 text-right min-w-[52px]">
-                          <p className={`font-display text-base font-bold tabular-nums leading-none ${
-                            m.rating_change > 0 ? "text-success" : m.rating_change < 0 ? "text-destructive" : "text-muted-foreground"
-                          }`}>
-                            {m.rating_change > 0 ? "+" : ""}{Math.round(m.rating_change)}
-                          </p>
+                          <EloDelta value={m.rating_change} size="md" className="font-display text-base font-bold leading-none" />
                           <p className="mt-0.5 text-[9px] uppercase tracking-wider text-muted-foreground/70 leading-none">Elo</p>
                         </div>
                       )}
@@ -1659,16 +1644,11 @@ function DashboardPage() {
           else if (!isConfirmed) state = 3;
           else state = 2;
 
-          // Format badge label
-          const formatBadge = (() => {
-            if (nextMatch.match_format === "singles") {
-              if (nextMatch.singles_group_type === "rivalry") return "Duelo";
-              if (nextMatch.singles_group_type === "league") return "Liga";
-              if (nextMatch.singles_group_type === "casual") return "Casual";
-              return "1x1";
-            }
-            return "2x2";
-          })();
+          // Format badge — shared resolver
+          const fmtInfo = resolveFormatBadge({
+            match_format: nextMatch.match_format,
+            singles_group_type: nextMatch.singles_group_type,
+          });
 
           const headerLabel = state === 4 ? "Duelo" : "Seu próximo confronto";
 
@@ -1754,7 +1734,7 @@ function DashboardPage() {
                   {headerLabel}
                 </h2>
                 <span className="rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-primary">
-                  {formatBadge}
+                  {fmtInfo.label}
                 </span>
               </div>
               <div className="rounded-3xl border border-primary/30 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent p-4">
@@ -1972,23 +1952,15 @@ function DashboardPage() {
 
                     {/* Elo delta — main visual on the right */}
                     {m.rating_change !== null && (
-                      <span
-                        className={`shrink-0 inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-[11px] font-bold tabular-nums ${
-                          m.rating_change > 0
-                            ? "bg-success/15 text-success"
-                            : m.rating_change < 0
-                              ? "bg-destructive/15 text-destructive"
-                              : "bg-muted text-muted-foreground"
-                        }`}
-                      >
+                      <span className="shrink-0 inline-flex items-center gap-1">
                         {m.rating_change > 0 ? (
-                          <TrendingUp className="h-3 w-3" />
+                          <TrendingUp className="h-3 w-3 text-success" />
                         ) : m.rating_change < 0 ? (
-                          <TrendingDown className="h-3 w-3" />
+                          <TrendingDown className="h-3 w-3 text-destructive" />
                         ) : (
-                          <Minus className="h-3 w-3" />
+                          <Minus className="h-3 w-3 text-muted-foreground" />
                         )}
-                        {m.rating_change > 0 ? "+" : ""}{Math.round(m.rating_change)}
+                        <EloDelta value={m.rating_change} variant="pill" size="sm" />
                       </span>
                     )}
                   </div>
@@ -2017,14 +1989,13 @@ function DashboardPage() {
               {myGroups.slice(0, 4).map((g) => {
                 const stats = groupStats.get(g.id) || { seasons: 0, rounds_completed: 0, rounds_total: 0 };
                 const remaining = Math.max(0, stats.rounds_total - stats.rounds_completed);
-                const fmtBadge = getGroupFormatBadge(g);
                 const currentSeason = g.current_season_name;
                 return (
                   <Link
                     key={g.id}
                     to="/groups/$groupId"
                     params={{ groupId: g.id }}
-                    className="group relative h-32 overflow-hidden rounded-2xl border border-border bg-card transition-transform active:scale-[0.98] sm:h-36 lg:aspect-square lg:h-auto"
+                    className="card-hover group relative h-32 overflow-hidden rounded-2xl border border-border bg-card transition-transform active:scale-[0.98] sm:h-36 lg:aspect-square lg:h-auto"
                   >
                     {/* Background image */}
                     {g.image_url ? (
@@ -2042,11 +2013,10 @@ function DashboardPage() {
 
                     {/* Top: format badge (left) + privacy badge (right) */}
                     <div className="absolute inset-x-2 top-2 flex items-start justify-between gap-1.5">
-                      <span
-                        className={`rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider backdrop-blur-sm ${fmtBadge.cls}`}
-                      >
-                        {fmtBadge.label}
-                      </span>
+                      <FormatBadge
+                        info={resolveFormatBadge({ match_format: g.match_format, singles_group_type: g.singles_group_type })}
+                        className="backdrop-blur-sm"
+                      />
                       <span className="flex h-5 w-5 items-center justify-center rounded-full bg-black/40 backdrop-blur-sm">
                         {g.is_public ? (
                           <Globe className="h-2.5 w-2.5 text-white" />
