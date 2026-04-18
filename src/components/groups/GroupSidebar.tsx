@@ -16,6 +16,11 @@ interface PendingItem {
   name: string;
 }
 
+export interface GroupAlertInfo {
+  pendingPresence: boolean;
+  pendingAdminRequests: number;
+}
+
 interface Props {
   groups: GroupSidebarItem[];
   pendingGroups: PendingItem[];
@@ -25,6 +30,7 @@ interface Props {
   onCreate: () => void;
   view: "group" | "explore";
   isLoading: boolean;
+  alerts?: Record<string, GroupAlertInfo>;
 }
 
 export function GroupSidebar({
