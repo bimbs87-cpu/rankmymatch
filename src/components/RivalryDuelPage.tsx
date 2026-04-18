@@ -3,7 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
-import { EloChart } from "@/components/EloChart";
+import { DualEloChart } from "@/components/DualEloChart";
 import {
   Swords,
   Trophy,
@@ -63,7 +63,6 @@ export function RivalryDuelPage({ groupId, groupName, seasonId, seasonName }: Pr
   const [playerB, setPlayerB] = useState<DuelPlayer | null>(null);
   const [matches, setMatches] = useState<DuelMatch[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showChart, setShowChart] = useState<string | null>(null);
 
   useEffect(() => {
     loadDuelData();
@@ -526,28 +525,14 @@ export function RivalryDuelPage({ groupId, groupName, seasonId, seasonName }: Pr
         )}
       </div>
 
-      {/* Block 6: Elo Chart */}
-      <div>
-        <div className="flex gap-2 mb-3">
-          <button
-            onClick={() => setShowChart(showChart === playerA.user_id ? null : playerA.user_id)}
-            className={`flex-1 rounded-2xl border py-2 text-xs font-semibold transition-colors ${
-              showChart === playerA.user_id ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground"
-            }`}
-          >
-            Elo de {displayNameA}
-          </button>
-          <button
-            onClick={() => setShowChart(showChart === playerB.user_id ? null : playerB.user_id)}
-            className={`flex-1 rounded-2xl border py-2 text-xs font-semibold transition-colors ${
-              showChart === playerB.user_id ? "border-info bg-info/10 text-info" : "border-border text-muted-foreground"
-            }`}
-          >
-            Elo de {displayNameB}
-          </button>
-        </div>
-        {showChart && <EloChart userId={showChart} />}
-      </div>
+      {/* Block 6: Dual Elo Chart */}
+      <DualEloChart
+        playerAId={playerA.user_id}
+        playerBId={playerB.user_id}
+        playerALabel={displayNameA}
+        playerBLabel={displayNameB}
+        seasonId={seasonId}
+      />
 
       {/* Comparativo Resumido */}
       <div className="rounded-3xl border border-border bg-card/50 p-5">
