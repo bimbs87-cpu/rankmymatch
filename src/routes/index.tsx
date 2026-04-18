@@ -25,6 +25,7 @@ import {
   Users,
   Calendar,
   ChevronRight,
+  ChevronDown,
   Bell,
   BarChart3,
   Plus,
