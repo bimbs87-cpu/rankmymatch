@@ -591,6 +591,104 @@ function ComparePage() {
   );
 }
 
+function formatMeetingDate(iso: string) {
+  try {
+    const d = new Date(iso);
+    return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "2-digit" });
+  } catch { return ""; }
+}
+
+function RecentMeetings({
+  h2h, groupId, a, b,
+}: {
+  h2h: H2HData;
+  groupId: string;
+  a: PlayerAggregate;
+  b: PlayerAggregate;
+}) {
+  const nameA = displayName(a);
+  const nameB = displayName(b);
+  return (
+    <section className="mt-3 rounded-3xl border border-border bg-card/40 p-4 lg:p-5">
+      <div className="mb-2 flex items-center gap-2">
+        <Swords className="h-4 w-4 text-destructive" />
+        <h2 className="font-display text-sm font-bold text-foreground">Últimos confrontos</h2>
+        <span className="ml-auto text-[10px] text-muted-foreground">{h2h.recentMeetings.length} jogo{h2h.recentMeetings.length === 1 ? "" : "s"}</span>
+      </div>
+      <ul className="divide-y divide-border/40">
+        {h2h.recentMeetings.map((m) => {
+          const aWonMatch = m.winner === m.aTeam;
+          const bWonMatch = m.winner === m.bTeam;
+          const sameTeam = m.asPartners;
+          const scoreLine = m.sets.length
+            ? m.sets
+                .map((s) => {
+                  if (sameTeam) {
+                    const own = m.aTeam === "A" ? s.score_team_a : s.score_team_b;
+                    const opp = m.aTeam === "A" ? s.score_team_b : s.score_team_a;
+                    return `${own}-${opp}`;
+                  }
+                  const aScore = m.aTeam === "A" ? s.score_team_a : s.score_team_b;
+                  const bScore = m.bTeam === "A" ? s.score_team_a : s.score_team_b;
+                  return `${aScore}-${bScore}`;
+                })
+                .join(" · ")
+            : "—";
+          const canLink = !!m.season_id;
+          const inner = (
+            <>
+              <span
+                className={`shrink-0 rounded-md px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider ring-1 ${
+                  sameTeam
+                    ? "bg-primary/15 text-primary ring-primary/30"
+                    : "bg-destructive/10 text-destructive ring-destructive/25"
+                }`}
+              >
+                {sameTeam ? "Parceiros" : "vs"}
+              </span>
+              <div className="min-w-0 flex-1">
+                {sameTeam ? (
+                  <p className="truncate text-[12px] font-semibold text-foreground">
+                    {nameA} & {nameB}
+                    <span className={`ml-1.5 text-[10px] font-bold ${m.winner ? (m.winner === m.aTeam ? "text-success" : "text-destructive") : "text-muted-foreground"}`}>
+                      {m.winner ? (m.winner === m.aTeam ? "venceram" : "perderam") : "—"}
+                    </span>
+                  </p>
+                ) : (
+                  <p className="truncate text-[12px] font-semibold">
+                    <span className={aWonMatch ? "text-success" : "text-foreground"}>{nameA}</span>
+                    <span className="mx-1 text-muted-foreground">vs</span>
+                    <span className={bWonMatch ? "text-success" : "text-foreground"}>{nameB}</span>
+                  </p>
+                )}
+                <p className="truncate text-[10px] text-muted-foreground">
+                  {formatMeetingDate(m.created_at)} · {m.season_name}
+                </p>
+              </div>
+              <span className="shrink-0 font-display text-[11px] font-bold tabular-nums text-foreground">{scoreLine}</span>
+            </>
+          );
+          return (
+            <li key={m.match_id}>
+              {canLink ? (
+                <Link
+                  to="/groups/$groupId/seasons/$seasonId/rounds/$roundId"
+                  params={{ groupId, seasonId: m.season_id, roundId: m.round_id }}
+                  className="flex items-center gap-2 py-2 transition active:bg-accent/40 hover:bg-accent/20 rounded-lg px-1"
+                >
+                  {inner}
+                </Link>
+              ) : (
+                <div className="flex items-center gap-2 py-2 px-1">{inner}</div>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+    </section>
+  );
+}
+
 function displayName(p: PlayerAggregate) {
   return p.profile.nickname?.trim() || abbreviateName(p.profile.name);
 }
