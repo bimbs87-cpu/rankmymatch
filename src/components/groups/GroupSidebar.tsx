@@ -1,5 +1,5 @@
-import { Users, Compass, Plus, Search, Shield, Globe, Lock, Clock } from "lucide-react";
-import { useState } from "react";
+import { Users, Compass, Plus, Search, Shield, Globe, Lock, Clock, Filter, Bell } from "lucide-react";
+import { useState, useMemo } from "react";
 
 interface GroupSidebarItem {
   id: string;
@@ -14,6 +14,7 @@ interface GroupSidebarItem {
 interface PendingItem {
   id: string;
   name: string;
+  status?: "pending" | "approved" | "rejected";
 }
 
 export interface GroupAlertInfo {
@@ -45,9 +46,32 @@ export function GroupSidebar({
   alerts = {},
 }: Props) {
   const [search, setSearch] = useState("");
-  const filtered = search.trim()
-    ? groups.filter((g) => g.name.toLowerCase().includes(search.trim().toLowerCase()))
-    : groups;
+  const [onlyWithAlerts, setOnlyWithAlerts] = useState(false);
+
+  const totalAlertCount = useMemo(
+    () =>
+      groups.reduce((acc, g) => {
+        const a = alerts[g.id];
+        if (!a) return acc;
+        return acc + (a.pendingPresence ? 1 : 0) + (a.pendingAdminRequests > 0 ? 1 : 0);
+      }, 0),
+    [groups, alerts],
+  );
+
+  const filtered = useMemo(() => {
+    let list = groups;
+    if (onlyWithAlerts) {
+      list = list.filter((g) => {
+        const a = alerts[g.id];
+        return a && (a.pendingPresence || a.pendingAdminRequests > 0);
+      });
+    }
+    if (search.trim()) {
+      const q = search.trim().toLowerCase();
+      list = list.filter((g) => g.name.toLowerCase().includes(q));
+    }
+    return list;
+  }, [groups, alerts, onlyWithAlerts, search]);
 
   return (
     <aside className="flex h-full w-full flex-col bg-card/40 lg:bg-transparent">
@@ -78,6 +102,29 @@ export function GroupSidebar({
             className="w-full rounded-full border border-border bg-background/60 py-1.5 pl-8 pr-3 text-xs text-foreground placeholder:text-muted-foreground focus:border-primary/40 focus:outline-none"
           />
         </div>
+
+        {/* Pending-only toggle */}
+        {totalAlertCount > 0 && (
+          <button
+            onClick={() => setOnlyWithAlerts((v) => !v)}
+            className={`flex w-full items-center justify-between gap-2 rounded-full border px-2.5 py-1.5 text-[10px] font-bold transition-colors ${
+              onlyWithAlerts
+                ? "border-warning/40 bg-warning/10 text-warning"
+                : "border-border bg-background/40 text-muted-foreground hover:border-warning/30 hover:text-warning"
+            }`}
+            title="Mostrar apenas grupos com pendências"
+          >
+            <span className="flex items-center gap-1.5">
+              <Filter className="h-3 w-3" />
+              Apenas com pendências
+            </span>
+            <span className={`flex h-4 min-w-[16px] items-center justify-center rounded-full px-1 text-[9px] font-bold ${
+              onlyWithAlerts ? "bg-warning text-warning-foreground" : "bg-warning/20 text-warning"
+            }`}>
+              {totalAlertCount}
+            </span>
+          </button>
+        )}
       </div>
 
       {/* Groups list */}
@@ -183,15 +230,42 @@ export function GroupSidebar({
               <Clock className="h-2.5 w-2.5" /> Aguardando
             </p>
             <ul className="space-y-1">
-              {pendingGroups.map((p) => (
-                <li
-                  key={p.id}
-                  className="flex items-center gap-2 rounded-xl border border-warning/20 bg-warning/5 px-2.5 py-1.5"
-                >
-                  <Clock className="h-3 w-3 flex-shrink-0 text-warning" />
-                  <span className="truncate text-[11px] text-foreground">{p.name}</span>
-                </li>
-              ))}
+              {pendingGroups.map((p) => {
+                const isResolved = p.status === "approved" || p.status === "rejected";
+                const isApproved = p.status === "approved";
+                return (
+                  <li
+                    key={p.id}
+                    className={`flex items-center gap-2 rounded-xl border px-2.5 py-1.5 ${
+                      isApproved
+                        ? "border-success/30 bg-success/10"
+                        : p.status === "rejected"
+                        ? "border-destructive/30 bg-destructive/10"
+                        : "border-warning/20 bg-warning/5"
+                    }`}
+                  >
+                    {isApproved ? (
+                      <Bell className="h-3 w-3 flex-shrink-0 text-success" />
+                    ) : p.status === "rejected" ? (
+                      <Bell className="h-3 w-3 flex-shrink-0 text-destructive" />
+                    ) : (
+                      <Clock className="h-3 w-3 flex-shrink-0 text-warning" />
+                    )}
+                    <span className="min-w-0 flex-1 truncate text-[11px] text-foreground">{p.name}</span>
+                    {isResolved && (
+                      <span
+                        className={`flex-shrink-0 rounded-full px-1.5 py-0.5 text-[9px] font-bold ${
+                          isApproved
+                            ? "bg-success text-success-foreground"
+                            : "bg-destructive text-destructive-foreground"
+                        }`}
+                      >
+                        {isApproved ? "Aprovado" : "Recusado"}
+                      </span>
+                    )}
+                  </li>
+                );
+              })}
             </ul>
           </div>
         )}

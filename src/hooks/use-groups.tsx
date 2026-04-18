@@ -132,11 +132,14 @@ interface PendingGroupCard extends Group {
   member_count: number;
   claimed_player_name?: string | null;
   pending_kind: "join_request" | "claim";
+  request_status?: "pending" | "approved" | "rejected";
 }
 
 /**
  * Pending approvals tied to the current user.
  * Includes both group join requests and player-link claims.
+ * Also surfaces recently resolved (approved/rejected) items for 24h
+ * so the user sees the outcome.
  */
 export function useMyPendingJoinRequests() {
   const { user } = useAuth();
@@ -152,17 +155,18 @@ export function useMyPendingJoinRequests() {
 
     setIsLoading(true);
     try {
+      const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
       const [joinReqsRes, claimReqsRes] = await Promise.all([
         supabase
           .from("group_join_requests")
-          .select("group_id, claimed_player_id")
+          .select("group_id, claimed_player_id, status, resolved_at, created_at")
           .eq("user_id", user.id)
-          .eq("status", "pending"),
+          .or(`status.eq.pending,and(status.in.(approved,rejected),resolved_at.gte.${since})`),
         supabase
           .from("player_claims")
-          .select("group_id, placeholder_user_id")
+          .select("group_id, placeholder_user_id, status, resolved_at, created_at")
           .eq("claimer_user_id", user.id)
-          .eq("status", "pending"),
+          .or(`status.eq.pending,and(status.in.(approved,rejected),resolved_at.gte.${since})`),
       ]);
 
       if (joinReqsRes.error) throw joinReqsRes.error;
@@ -209,11 +213,16 @@ export function useMyPendingJoinRequests() {
           const joinReq = joinReqByGroup.get(group.id);
           const claimReq = claimReqByGroup.get(group.id);
           const claimedPlayerId = joinReq?.claimed_player_id || claimReq?.placeholder_user_id || null;
+          const requestStatus = (claimReq?.status || joinReq?.status || "pending") as
+            | "pending"
+            | "approved"
+            | "rejected";
 
           return {
             ...group,
             claimed_player_name: claimedPlayerId ? claimNames[claimedPlayerId] || null : null,
             pending_kind: claimReq ? "claim" : "join_request",
+            request_status: requestStatus,
           };
         }),
       );
@@ -228,6 +237,27 @@ export function useMyPendingJoinRequests() {
   useEffect(() => {
     refresh();
   }, [refresh]);
+
+  // Realtime: refresh on changes to user's join requests / claims
+  useEffect(() => {
+    if (!user) return;
+    const channel = supabase
+      .channel(`my-pending-${user.id}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "group_join_requests", filter: `user_id=eq.${user.id}` },
+        () => refresh(),
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "player_claims", filter: `claimer_user_id=eq.${user.id}` },
+        () => refresh(),
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, refresh]);
 
   return { groups, isLoading, refresh };
 }

@@ -18,6 +18,9 @@ import {
   Globe,
   Lock,
   LogOut,
+  Check,
+  X as XIcon,
+  Inbox,
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -26,7 +29,7 @@ import { useGroupDashboard } from "@/hooks/use-group-dashboard";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import { confirmPresence, cancelPresence } from "@/lib/round-actions";
-import { leaveGroup } from "@/hooks/use-groups";
+import { leaveGroup, approveJoinRequest, rejectJoinRequest } from "@/hooks/use-groups";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -76,6 +79,19 @@ function timeAgo(iso: string) {
   return `${d}d`;
 }
 
+function formatOpensAt(iso: string): string {
+  const d = new Date(iso);
+  const today = new Date();
+  const sameDay = d.toDateString() === today.toDateString();
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const isTomorrow = d.toDateString() === tomorrow.toDateString();
+  const time = d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+  if (sameDay) return `hoje ${time}`;
+  if (isTomorrow) return `amanhã ${time}`;
+  return `${d.toLocaleDateString("pt-BR", { day: "2-digit", month: "short" })} ${time}`;
+}
+
 export function GroupDashboardPanel({ group, onLeft, onPresenceChanged }: Props) {
   const { user } = useAuth();
   const { data, isLoading, refresh } = useGroupDashboard(group.id);
@@ -83,6 +99,35 @@ export function GroupDashboardPanel({ group, onLeft, onPresenceChanged }: Props)
   const [presenceLoading, setPresenceLoading] = useState(false);
   const [showLeave, setShowLeave] = useState(false);
   const [leaving, setLeaving] = useState(false);
+  const [resolvingReq, setResolvingReq] = useState<string | null>(null);
+
+  async function handleApprove(req: typeof data.pending_join_requests[number]) {
+    if (!user) return;
+    setResolvingReq(req.id);
+    try {
+      await approveJoinRequest(req.id, group.id, req.user_id, user.id);
+      toast.success(`${req.user_name} entrou no grupo`);
+      await refresh();
+    } catch (e: any) {
+      toast.error(e?.message || "Não foi possível aprovar");
+    } finally {
+      setResolvingReq(null);
+    }
+  }
+
+  async function handleReject(req: typeof data.pending_join_requests[number]) {
+    if (!user) return;
+    setResolvingReq(req.id);
+    try {
+      await rejectJoinRequest(req.id, user.id);
+      toast.success("Solicitação recusada");
+      await refresh();
+    } catch (e: any) {
+      toast.error(e?.message || "Não foi possível recusar");
+    } finally {
+      setResolvingReq(null);
+    }
+  }
 
   async function handleConfirm() {
     if (!user || !data.next_round) return;
@@ -236,6 +281,73 @@ export function GroupDashboardPanel({ group, onLeft, onPresenceChanged }: Props)
         )}
       </div>
 
+      {/* Pending join requests (admin only) */}
+      {isAdmin && data.pending_join_requests.length > 0 && (
+        <div className="rounded-2xl border border-warning/30 bg-warning/5 p-4">
+          <div className="mb-3 flex items-center justify-between">
+            <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-warning">
+              <Inbox className="h-3 w-3" /> Solicitações pendentes
+              <span className="rounded-full bg-warning px-1.5 py-0.5 text-[9px] font-bold text-warning-foreground">
+                {data.pending_join_requests.length}
+              </span>
+            </p>
+            <Link
+              to="/groups/$groupId"
+              params={{ groupId: group.id }}
+              className="text-[10px] font-bold text-warning hover:underline"
+            >
+              Gerenciar →
+            </Link>
+          </div>
+          <ul className="space-y-2">
+            {data.pending_join_requests.slice(0, 5).map((req) => (
+              <li
+                key={req.id}
+                className="flex items-center gap-3 rounded-xl border border-border/60 bg-background/40 p-2.5"
+              >
+                <PlayerAvatar avatarUrl={req.user_avatar} name={req.user_name} size="md" />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-xs font-bold text-foreground">{req.user_name}</p>
+                  <p className="truncate text-[10px] text-muted-foreground">
+                    {req.claimed_player_name ? (
+                      <>Quer assumir <span className="text-foreground">{req.claimed_player_name}</span></>
+                    ) : req.message ? (
+                      req.message
+                    ) : (
+                      <>há {timeAgo(req.created_at)}</>
+                    )}
+                  </p>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    onClick={() => handleApprove(req)}
+                    disabled={resolvingReq === req.id}
+                    className="flex h-7 items-center gap-1 rounded-full border border-success/40 bg-success/10 px-2 text-[10px] font-bold text-success hover:bg-success/20 disabled:opacity-50"
+                    title="Aprovar"
+                  >
+                    <Check className="h-3 w-3" />
+                    Aceitar
+                  </button>
+                  <button
+                    onClick={() => handleReject(req)}
+                    disabled={resolvingReq === req.id}
+                    className="flex h-7 w-7 items-center justify-center rounded-full border border-border bg-background/40 text-muted-foreground hover:border-destructive/40 hover:text-destructive disabled:opacity-50"
+                    title="Recusar"
+                  >
+                    <XIcon className="h-3 w-3" />
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+          {data.pending_join_requests.length > 5 && (
+            <p className="mt-2 text-center text-[10px] text-muted-foreground">
+              +{data.pending_join_requests.length - 5} mais
+            </p>
+          )}
+        </div>
+      )}
+
       {/* Top row: Next round + My position */}
       <div className="grid gap-3 lg:grid-cols-2">
         {/* Next round */}
@@ -284,33 +396,49 @@ export function GroupDashboardPanel({ group, onLeft, onPresenceChanged }: Props)
                   </span>
                   /{data.next_round.max_players} confirmados
                 </div>
-                <div className="flex items-center gap-1.5">
-                  <button
-                    onClick={handleConfirm}
-                    disabled={presenceLoading}
-                    className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold transition-colors disabled:opacity-50 ${
-                      data.next_round.presence_status === "confirmed"
-                        ? "bg-success text-success-foreground"
-                        : "border border-success/40 bg-success/10 text-success hover:bg-success/20"
-                    }`}
+                {data.next_round.presence_is_open ? (
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      onClick={handleConfirm}
+                      disabled={presenceLoading}
+                      className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold transition-colors disabled:opacity-50 ${
+                        data.next_round.presence_status === "confirmed"
+                          ? "bg-success text-success-foreground"
+                          : "border border-success/40 bg-success/10 text-success hover:bg-success/20"
+                      }`}
+                    >
+                      <CheckCircle2 className="h-3 w-3" />
+                      {data.next_round.presence_status === "confirmed" ? "Confirmado" : "Vou"}
+                    </button>
+                    <button
+                      onClick={handleDecline}
+                      disabled={presenceLoading}
+                      className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold transition-colors disabled:opacity-50 ${
+                        data.next_round.presence_status === "declined" ||
+                        (data.next_round.presence_status as string) === "absent"
+                          ? "bg-destructive text-destructive-foreground"
+                          : "border border-border bg-background/40 text-muted-foreground hover:border-destructive/40 hover:text-destructive"
+                      }`}
+                    >
+                      <XCircle className="h-3 w-3" />
+                      Não vou
+                    </button>
+                  </div>
+                ) : (
+                  <span
+                    className="flex items-center gap-1 rounded-full border border-border bg-background/40 px-2.5 py-1 text-[10px] font-semibold text-muted-foreground"
+                    title={
+                      data.next_round.presence_opens_at
+                        ? `Abre em ${new Date(data.next_round.presence_opens_at).toLocaleString("pt-BR")}`
+                        : "Lista ainda não aberta"
+                    }
                   >
-                    <CheckCircle2 className="h-3 w-3" />
-                    {data.next_round.presence_status === "confirmed" ? "Confirmado" : "Vou"}
-                  </button>
-                  <button
-                    onClick={handleDecline}
-                    disabled={presenceLoading}
-                    className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold transition-colors disabled:opacity-50 ${
-                      data.next_round.presence_status === "declined" ||
-                      (data.next_round.presence_status as string) === "absent"
-                        ? "bg-destructive text-destructive-foreground"
-                        : "border border-border bg-background/40 text-muted-foreground hover:border-destructive/40 hover:text-destructive"
-                    }`}
-                  >
-                    <XCircle className="h-3 w-3" />
-                    Não vou
-                  </button>
-                </div>
+                    <Lock className="h-3 w-3" />
+                    {data.next_round.presence_opens_at
+                      ? `Abre ${formatOpensAt(data.next_round.presence_opens_at)}`
+                      : "Lista fechada"}
+                  </span>
+                )}
               </div>
             </div>
           ) : (

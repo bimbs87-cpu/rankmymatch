@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
+import { isPresenceOpen, getPresenceOpenDate } from "@/lib/presence-schedule";
 
 export interface NextRoundInfo {
   id: string;
@@ -12,6 +13,19 @@ export interface NextRoundInfo {
   presence_status: "confirmed" | "declined" | "pending" | null;
   confirmed_count: number;
   max_players: number;
+  presence_is_open: boolean;
+  presence_opens_at: string | null;
+}
+
+export interface PendingJoinReq {
+  id: string;
+  user_id: string;
+  user_name: string;
+  user_avatar: string | null;
+  message: string | null;
+  created_at: string;
+  claimed_player_id: string | null;
+  claimed_player_name: string | null;
 }
 
 export interface PodiumPlayer {
@@ -47,6 +61,7 @@ export interface GroupDashboardData {
   recent_activity: ActivityItem[];
   current_season: SeasonInfo | null;
   member_count: number;
+  pending_join_requests: PendingJoinReq[];
 }
 
 const EMPTY: GroupDashboardData = {
@@ -58,6 +73,7 @@ const EMPTY: GroupDashboardData = {
   recent_activity: [],
   current_season: null,
   member_count: 0,
+  pending_join_requests: [],
 };
 
 export function useGroupDashboard(groupId: string | null) {
@@ -99,6 +115,17 @@ export function useGroupDashboard(groupId: string | null) {
         if (roundsTotal == null) roundsTotal = rs?.length ?? 0;
       }
 
+      // Group presence config
+      const { data: groupCfg } = await supabase
+        .from("groups")
+        .select("presence_open_mode, presence_open_time")
+        .eq("id", groupId)
+        .maybeSingle();
+      const presenceCfg = {
+        presence_open_mode: groupCfg?.presence_open_mode || "always",
+        presence_open_time: groupCfg?.presence_open_time || "10:00:00",
+      };
+
       // Next round (scheduled / open / in_progress) for the group
       const { data: nextRounds } = await supabase
         .from("rounds")
@@ -116,6 +143,8 @@ export function useGroupDashboard(groupId: string | null) {
           .eq("round_id", r.id);
         const confirmed = (presences || []).filter((p) => p.status === "confirmed").length;
         const mine = user ? (presences || []).find((p) => p.user_id === user.id) : null;
+        const open = isPresenceOpen(presenceCfg, r.scheduled_date, r.scheduled_time, r.id);
+        const opensAt = open ? null : getPresenceOpenDate(presenceCfg, r.scheduled_date, r.scheduled_time, r.id);
         nextRound = {
           id: r.id,
           scheduled_date: r.scheduled_date,
@@ -126,6 +155,8 @@ export function useGroupDashboard(groupId: string | null) {
           presence_status: (mine?.status as NextRoundInfo["presence_status"]) ?? null,
           confirmed_count: confirmed,
           max_players: r.max_players,
+          presence_is_open: open,
+          presence_opens_at: opensAt ? opensAt.toISOString() : null,
         };
       }
 
@@ -222,6 +253,39 @@ export function useGroupDashboard(groupId: string | null) {
       }
       activity.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
+      // Pending join requests (admin-only; RLS will return [] for non-admins)
+      let pendingJoinRequests: PendingJoinReq[] = [];
+      const { data: reqs } = await supabase
+        .from("group_join_requests")
+        .select("id, user_id, message, created_at, claimed_player_id")
+        .eq("group_id", groupId)
+        .eq("status", "pending")
+        .order("created_at", { ascending: false });
+      if (reqs && reqs.length) {
+        const reqUserIds = [...new Set(reqs.map((r) => r.user_id))];
+        const claimedIds = [...new Set(reqs.map((r) => r.claimed_player_id).filter(Boolean) as string[])];
+        const allIds = [...new Set([...reqUserIds, ...claimedIds])];
+        const { data: profs } = await supabase
+          .from("user_profiles")
+          .select("user_id, name, nickname, avatar_url")
+          .in("user_id", allIds);
+        const profMap = new Map((profs || []).map((p) => [p.user_id, p]));
+        pendingJoinRequests = reqs.map((r) => {
+          const p = profMap.get(r.user_id);
+          const cp = r.claimed_player_id ? profMap.get(r.claimed_player_id) : null;
+          return {
+            id: r.id,
+            user_id: r.user_id,
+            user_name: p?.nickname || p?.name || "Jogador",
+            user_avatar: p?.avatar_url ?? null,
+            message: r.message,
+            created_at: r.created_at,
+            claimed_player_id: r.claimed_player_id,
+            claimed_player_name: cp ? (cp.nickname || cp.name || null) : null,
+          };
+        });
+      }
+
       setData({
         next_round: nextRound,
         my_position: myPos,
@@ -240,6 +304,7 @@ export function useGroupDashboard(groupId: string | null) {
             }
           : null,
         member_count: memberCount,
+        pending_join_requests: pendingJoinRequests,
       });
     } catch (err) {
       console.error("Erro ao carregar dashboard do grupo:", err);
