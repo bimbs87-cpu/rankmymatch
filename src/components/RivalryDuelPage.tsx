@@ -1007,6 +1007,9 @@ export function RivalryDuelPage({ groupId, groupName, seasonId, seasonName }: Pr
                         <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
                           {m.label}
                         </p>
+                        <p className="text-[9px] text-muted-foreground/70 italic mt-0.5">
+                          {m.subtitle}
+                        </p>
                         {holderName ? (
                           <>
                             <p className={`truncate text-xs font-bold ${holderColor}`}>{holderName}</p>
