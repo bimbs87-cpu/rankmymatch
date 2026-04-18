@@ -1083,14 +1083,14 @@ function CareerTab({ a, b }: { a: PlayerAggregate; b: PlayerAggregate }) {
     <>
       {/* Row 1: Elo + Aproveitamento */}
       <div className="mt-3 grid grid-cols-1 gap-3 xl:grid-cols-2">
-        <SectionCard title="Elo (carreira no grupo)" icon={<Activity className="h-4 w-4 text-primary" />} className="mt-0 h-full">
+        <SectionCard title="Elo (carreira no grupo)" icon={<Activity className="h-4 w-4 text-primary" />} className="mt-0 h-full" a={a} b={b}>
           <StatRow label="Elo atual" a={a.eloCurrent} b={b.eloCurrent} format={(v) => Math.round(v).toString()} />
           <StatRow label="Pico histórico" a={a.eloPeak} b={b.eloPeak} format={(v) => Math.round(v).toString()} />
-          <StatRow label="Vale histórico" a={a.eloLow} b={b.eloLow} format={(v) => Math.round(v).toString()} higherIsBetter={false} />
+          <StatRow label="Pior histórico" a={a.eloLow} b={b.eloLow} format={(v) => Math.round(v).toString()} higherIsBetter={true} />
           <EloSparkline a={a} b={b} />
         </SectionCard>
 
-        <SectionCard title="Aproveitamento total" icon={<Trophy className="h-4 w-4 text-primary" />} className="mt-0 h-full">
+        <SectionCard title="Aproveitamento total" icon={<Trophy className="h-4 w-4 text-primary" />} className="mt-0 h-full" a={a} b={b}>
           <StatRow label="Partidas" a={a.career.matches_played} b={b.career.matches_played} />
           <StatRow label="Vitórias" a={a.career.matches_won} b={b.career.matches_won} />
           <StatRow
