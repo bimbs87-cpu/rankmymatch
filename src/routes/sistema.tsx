@@ -297,7 +297,7 @@ function SistemaPage() {
       </section>
 
       {/* PRICING */}
-      <section id="planos" className="relative mx-auto max-w-7xl px-5 py-16 lg:px-8 lg:py-24">
+      <section id="planos" className="relative mx-auto max-w-7xl px-5 py-12 lg:px-8 lg:py-16">
         <div className="mx-auto max-w-2xl text-center">
           <div className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-[11px] font-bold uppercase tracking-widest text-primary">
             <Rocket className="h-3.5 w-3.5" />
@@ -311,7 +311,7 @@ function SistemaPage() {
           </p>
         </div>
 
-        <div className="mt-12 grid gap-6 lg:grid-cols-2 lg:gap-8">
+        <div className="mt-8 grid gap-6 lg:grid-cols-2 lg:gap-8">
           {/* Grupo Avulso */}
           <div className="relative flex flex-col rounded-3xl border border-border bg-card p-7 lg:p-9">
             <h3 className="font-display text-xl font-bold text-foreground">Grupo Avulso</h3>
