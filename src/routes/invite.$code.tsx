@@ -20,6 +20,8 @@ interface InviteData {
   max_uses: number | null;
   use_count: number;
   expires_at: string | null;
+  claim_placeholder_user_id: string | null;
+  claim_placeholder_name?: string | null;
   group: {
     name: string;
     description: string | null;
@@ -106,7 +108,7 @@ function InvitePage() {
       setLoading(true);
       const { data: inviteData, error: inviteErr } = await supabase
         .from("invite_links")
-        .select("id, group_id, code, is_active, max_uses, use_count, expires_at")
+        .select("id, group_id, code, is_active, max_uses, use_count, expires_at, claim_placeholder_user_id")
         .eq("code", code)
         .eq("is_active", true)
         .maybeSingle();
@@ -143,6 +145,18 @@ function InvitePage() {
       });
       const count = countData ?? 0;
 
+      // Load placeholder name if this is a claim invite
+      let placeholderName: string | null = null;
+      const claimPlaceholderId = (inviteData as any).claim_placeholder_user_id as string | null;
+      if (claimPlaceholderId) {
+        const { data: ph } = await supabase
+          .from("user_profiles")
+          .select("name")
+          .eq("user_id", claimPlaceholderId)
+          .maybeSingle();
+        placeholderName = ph?.name ?? null;
+      }
+
       // Check if already member
       if (user) {
         const { data: membership } = await supabase
@@ -158,6 +172,8 @@ function InvitePage() {
 
       setInvite({
         ...inviteData,
+        claim_placeholder_user_id: claimPlaceholderId,
+        claim_placeholder_name: placeholderName,
         group: groupData ? { ...groupData, member_count: count } : null,
       });
       setLoading(false);
