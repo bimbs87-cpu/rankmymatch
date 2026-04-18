@@ -311,8 +311,21 @@ function ComparePage() {
             else break;
           }
 
-          const userPresence = presence.filter((p: any) => p.user_id === uid && completedRoundIds.has(p.round_id));
-          const roundsPresent = userPresence.filter((p: any) => p.status === "confirmed" || p.status === "present").length;
+          // Frequency: a player is "present" in a completed round if they actually
+          // played any match in that round (authoritative). Fall back to round_presence
+          // (confirmed/present) for rounds where the user didn't play but signaled presence.
+          const playedRoundIds = new Set<string>();
+          for (const mp of matchPlayers) {
+            if (mp.user_id !== uid) continue;
+            const meta = matchMetaMap.get(mp.match_id);
+            if (!meta) continue;
+            if (completedRoundIds.has(meta.round_id)) playedRoundIds.add(meta.round_id);
+          }
+          const signaledPresent = presence
+            .filter((p: any) => p.user_id === uid && completedRoundIds.has(p.round_id) && (p.status === "confirmed" || p.status === "present"))
+            .map((p: any) => p.round_id);
+          for (const rid of signaledPresent) playedRoundIds.add(rid);
+          const roundsPresent = playedRoundIds.size;
           const roundsTotal = completedRoundIds.size;
 
           return {
