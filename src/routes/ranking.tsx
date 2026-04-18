@@ -1044,7 +1044,7 @@ function RankingPage() {
                   d: compareSelection[3] || "",
                   groupId: (selectedSeason as any).group_id,
                   seasonId: selectedSeason.id,
-                  tab: "season" as const,
+                  tab: "career" as const,
                 }}
                 disabled={compareSelection.length < 2}
                 onClick={(e) => {
