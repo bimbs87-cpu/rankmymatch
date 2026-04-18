@@ -115,6 +115,13 @@ interface NextMatchInfo {
   is_rivalry: boolean;
   /** True if there's at least one completed match in this rivalry group */
   has_any_completed_match: boolean;
+  /** Group's presence-window opening config */
+  presence_open_mode: string;
+  presence_open_time: string;
+  /** Computed: true if presence list is currently open for confirmation */
+  presence_is_open: boolean;
+  /** Computed: ISO date string for when presence opens (only when not open yet) */
+  presence_opens_at: string | null;
 }
 
 interface RecentMatch {
@@ -382,6 +389,19 @@ function DashboardPage() {
           }
         }
 
+        const presenceMode = groupMeta.presence_open_mode || "always";
+        const presenceTime = groupMeta.presence_open_time || "10:00:00";
+        const presenceCfg = { presence_open_mode: presenceMode, presence_open_time: presenceTime };
+        const presenceIsOpen = isPresenceOpen(
+          presenceCfg,
+          myConfirmedRound.scheduled_date,
+          myConfirmedRound.scheduled_time,
+          myConfirmedRound.id,
+        );
+        const presenceOpensAtRaw = !presenceIsOpen
+          ? getPresenceOpenDate(presenceCfg, myConfirmedRound.scheduled_date, myConfirmedRound.scheduled_time, myConfirmedRound.id)
+          : null;
+
         const baseInfo = {
           round_id: myConfirmedRound.id,
           group_id: myConfirmedRound.group_id,
@@ -396,6 +416,10 @@ function DashboardPage() {
           singles_group_type: singlesGroupType,
           is_rivalry: isRivalry,
           has_any_completed_match: hasAnyCompletedMatch,
+          presence_open_mode: presenceMode,
+          presence_open_time: presenceTime,
+          presence_is_open: presenceIsOpen,
+          presence_opens_at: presenceOpensAtRaw ? presenceOpensAtRaw.toISOString() : null,
         };
 
         if (myMatchInRound) {
@@ -1623,13 +1647,15 @@ function DashboardPage() {
         {nextMatch && (() => {
           // Determine state:
           // 1 = paired (has_pairing)
-          // 2 = round confirmed but no pairing yet
-          // 3 = user not yet confirmed (placeholder/not-confirmed)
+          // 2 = round confirmed by user but no pairing yet
+          // 3 = presence list open, user has NOT confirmed yet
           // 4 = rivalry mode override (singles + rivalry group)
+          // 5 = presence list not yet open (waiting for the confirmation window)
           const isConfirmed = nextMatch.my_presence_status === "confirmed";
-          let state: 1 | 2 | 3 | 4 = 2;
+          let state: 1 | 2 | 3 | 4 | 5 = 2;
           if (nextMatch.is_rivalry) state = 4;
           else if (nextMatch.has_pairing) state = 1;
+          else if (!isConfirmed && !nextMatch.presence_is_open) state = 5;
           else if (!isConfirmed) state = 3;
           else state = 2;
 
@@ -1696,7 +1722,7 @@ function DashboardPage() {
               );
             }
           } else {
-            // states 2 and 3
+            // states 2, 3 and 5
             titleNode = (
               <p className="font-display text-base font-bold text-foreground leading-tight">
                 Rodada {nextMatch.round_number ?? "—"}
@@ -1704,15 +1730,29 @@ function DashboardPage() {
             );
             if (state === 2) {
               subStatusNode = (
-                <p className="mt-1 text-[11px] font-medium text-warning">
-                  Aguardando definição de confrontos
-                </p>
-              );
-            } else {
-              subStatusNode = (
                 <div className="mt-1 space-y-0.5">
                   <p className="text-[11px] font-medium text-primary">Você confirmou presença</p>
                   <p className="text-[11px] text-muted-foreground">Aguardando organização dos jogos</p>
+                </div>
+              );
+            } else if (state === 3) {
+              subStatusNode = (
+                <div className="mt-1 space-y-0.5">
+                  <p className="text-[11px] font-medium text-warning">Confirmação aberta</p>
+                  <p className="text-[11px] text-muted-foreground">Confirme sua presença para participar</p>
+                </div>
+              );
+            } else {
+              // state === 5: presence window not yet open
+              const opensLabel = nextMatch.presence_opens_at
+                ? formatPresenceOpenDate(new Date(nextMatch.presence_opens_at))
+                : null;
+              subStatusNode = (
+                <div className="mt-1 space-y-0.5">
+                  <p className="text-[11px] font-medium text-muted-foreground">Confirmação ainda não aberta</p>
+                  {opensLabel && (
+                    <p className="text-[11px] text-muted-foreground">Abre {opensLabel}</p>
+                  )}
                 </div>
               );
             }
