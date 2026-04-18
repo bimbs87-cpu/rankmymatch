@@ -579,50 +579,93 @@ export function RivalryDuelPage({ groupId, groupName, seasonId, seasonName }: Pr
         </div>
       </div>
 
-      {/* Block 2: Overall Score */}
+      {/* Block 2: Overall Score (Vitórias / Sets / Games) + dynamic insights */}
       <div className="rounded-3xl border border-border bg-card/50 p-5">
-        <h3 className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-3 text-center">
+        <h3 className="mb-4 text-center text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
           Placar Geral do Duelo
         </h3>
-        <div className="flex items-center justify-center gap-4">
-          <div className="text-center">
-            <span className={`font-display text-4xl font-black ${winsA > winsB ? "text-primary" : winsA === winsB ? "text-foreground" : "text-muted-foreground"}`}>
-              {winsA}
-            </span>
-          </div>
-          <div className="flex flex-col items-center">
-            <span className="text-xs font-bold text-muted-foreground">×</span>
-            <span className="text-[10px] text-muted-foreground mt-1">{totalMatches} jogos</span>
-          </div>
-          <div className="text-center">
-            <span className={`font-display text-4xl font-black ${winsB > winsA ? "text-info" : winsB === winsA ? "text-foreground" : "text-muted-foreground"}`}>
-              {winsB}
-            </span>
-          </div>
+
+        {/* Names line above the scores */}
+        <div className="mb-1 grid grid-cols-[1fr_auto_1fr] items-center gap-3 text-[11px] font-semibold">
+          <span className="truncate text-right text-primary">{displayNameA}</span>
+          <span className="text-[9px] uppercase tracking-wider text-muted-foreground">vs</span>
+          <span className="truncate text-left text-info">{displayNameB}</span>
         </div>
 
-        {/* Win rates */}
-        <div className="mt-3 flex items-center gap-2">
-          <div className="flex-1 text-right">
-            <span className="text-xs font-semibold text-primary">{winRateA}%</span>
-          </div>
-          <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden flex">
-            <div
-              className="h-full bg-primary transition-all duration-500"
-              style={{ width: totalMatches > 0 ? `${winRateA}%` : "50%" }}
-            />
-            <div
-              className="h-full bg-info transition-all duration-500"
-              style={{ width: totalMatches > 0 ? `${winRateB}%` : "50%" }}
-            />
-          </div>
-          <div className="flex-1">
-            <span className="text-xs font-semibold text-info">{winRateB}%</span>
-          </div>
+        {/* Wins — primary big score */}
+        <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
+          <span
+            className={`text-right font-display text-5xl font-black tabular-nums ${
+              winsA > winsB
+                ? "text-primary"
+                : winsA === winsB
+                  ? "text-foreground"
+                  : "text-muted-foreground"
+            }`}
+          >
+            {winsA}
+          </span>
+          <span className="text-xl font-bold text-muted-foreground">×</span>
+          <span
+            className={`text-left font-display text-5xl font-black tabular-nums ${
+              winsB > winsA
+                ? "text-info"
+                : winsB === winsA
+                  ? "text-foreground"
+                  : "text-muted-foreground"
+            }`}
+          >
+            {winsB}
+          </span>
+        </div>
+        <p className="mt-1 text-center text-[10px] uppercase tracking-wider text-muted-foreground">
+          Vitórias · {totalMatches} {totalMatches === 1 ? "jogo" : "jogos"}
+        </p>
+
+        {/* Win rate bar */}
+        <div className="mt-3 flex h-1.5 overflow-hidden rounded-full bg-muted/40">
+          <div
+            className="h-full bg-primary transition-all duration-500"
+            style={{ width: totalMatches > 0 ? `${winRateA}%` : "50%" }}
+          />
+          <div
+            className="h-full bg-info transition-all duration-500"
+            style={{ width: totalMatches > 0 ? `${winRateB}%` : "50%" }}
+          />
+        </div>
+        <div className="mt-1 flex items-center justify-between text-[10px] font-semibold">
+          <span className="text-primary">{winRateA}%</span>
+          <span className="text-info">{winRateB}%</span>
         </div>
 
-        {dominanceLabel && (
-          <p className="mt-2 text-center text-[10px] text-muted-foreground italic">{dominanceLabel}</p>
+        {/* Sets + Games — secondary lines */}
+        <div className="mt-4 grid grid-cols-2 gap-2">
+          <ScoreLine label="Sets" valueA={h2hSetsA} valueB={h2hSetsB} />
+          <ScoreLine label="Games" valueA={h2hGamesA} valueB={h2hGamesB} />
+        </div>
+
+        {/* Dynamic insights — up to 3 stacked phrases */}
+        {insights.length > 0 && (
+          <div className="mt-4 space-y-1.5 border-t border-border/40 pt-3">
+            {insights.map((it) => (
+              <div
+                key={it.key}
+                className="flex items-start gap-2 text-[11px] leading-snug text-foreground"
+              >
+                <span
+                  className={`mt-1 inline-block h-1.5 w-1.5 shrink-0 rounded-full ${
+                    it.tone === "primary"
+                      ? "bg-primary"
+                      : it.tone === "info"
+                        ? "bg-info"
+                        : "bg-muted-foreground/60"
+                  }`}
+                  aria-hidden
+                />
+                <span>{it.text}</span>
+              </div>
+            ))}
+          </div>
         )}
       </div>
 
