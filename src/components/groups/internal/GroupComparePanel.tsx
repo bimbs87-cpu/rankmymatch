@@ -43,7 +43,15 @@ const MAX_FAVORITES = 10;
 
 const displayOf = (m: MemberLite) => m.nickname || m.name;
 
-export function GroupComparePanel({ groupId }: { groupId: string }) {
+interface PanelProps {
+  groupId: string;
+  /** Pre-selected pair to open the embedded compare automatically. */
+  initialPick?: string[] | null;
+  /** Called once the parent-provided initialPick has been consumed. */
+  onConsumeInitial?: () => void;
+}
+
+export function GroupComparePanel({ groupId, initialPick, onConsumeInitial }: PanelProps) {
   const { user } = useAuth();
   const navigate = useNavigate();
 
