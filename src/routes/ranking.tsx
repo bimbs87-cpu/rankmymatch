@@ -7,7 +7,6 @@ import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { isRivalryGroup } from "@/lib/rivalry";
-import { RivalryDuelPage } from "@/components/RivalryDuelPage";
 import { buildDisplayNames, getCollidingFirstNames } from "@/lib/name-disambiguation";
 import { abbreviateName } from "@/lib/utils";
 
@@ -440,86 +439,19 @@ function RankingPage() {
     displayNameMap.get(entry.user_id) || entry.profile?.nickname || abbreviateName(entry.profile?.name || "Jogador");
 
   const rivalryGroup = groups.find((g: any) => isRivalryGroup(g));
-  const [rivalrySeasonInfo, setRivalrySeasonInfo] = useState<{ id: string; name: string } | null>(null);
+  const onlyRivalryGroups = groups.length > 0 && groups.every((g: any) => isRivalryGroup(g));
 
+  // When a rivalry group is selected (or it's the user's only group type),
+  // redirect the central "Ranking" tab to its dedicated premium /duel page.
   useEffect(() => {
-    if (!rivalryGroup) { setRivalrySeasonInfo(null); return; }
-    supabase
-      .from("seasons")
-      .select("id, name")
-      .eq("group_id", rivalryGroup.id)
-      .eq("status", "active")
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle()
-      .then(({ data }) => { setRivalrySeasonInfo(data || null); });
-  }, [rivalryGroup?.id]);
-
-  const showRivalryDuel = rivalryGroup && (
-    !selectedSeasonId ||
-    seasons.find((s: any) => s.id === selectedSeasonId)?.group_id === rivalryGroup.id ||
-    groups.every((g: any) => isRivalryGroup(g))
-  );
-
-  if (showRivalryDuel && rivalryGroup && !isPageLoading) {
-    const rivalrySeason = seasons.find((s: any) => s.group_id === rivalryGroup.id);
-    return (
-      <div className="min-h-screen bg-background pb-28">
-        <header className="flex items-center justify-between px-5 pt-6 pb-2">
-          <div>
-            <h1 className="font-display text-xl font-bold text-foreground">Duelo</h1>
-          </div>
-          <Link to="/ranking-info" className="rounded-full border border-border bg-card p-2 transition-colors hover:bg-accent">
-            <Info className="h-4 w-4 text-muted-foreground" />
-          </Link>
-        </header>
-
-        {seasons.length > 1 && (
-          <div className="px-5 mt-1 mb-3">
-            <button
-              onClick={() => setShowSwitcher(!showSwitcher)}
-              className="flex w-full items-center justify-center gap-2 rounded-2xl border border-border bg-card/80 backdrop-blur-sm px-4 py-2.5 transition-colors hover:bg-accent"
-            >
-              <Layers className="h-3.5 w-3.5 text-primary" />
-              <span className="text-sm font-semibold text-foreground">{rivalryGroup.name} • Rivalidade</span>
-              <ChevronDown className={`h-3.5 w-3.5 text-muted-foreground transition-transform ${showSwitcher ? "rotate-180" : ""}`} />
-            </button>
-          </div>
-        )}
-
-        {showSwitcher && seasons.length > 1 && (
-          <div className="mx-5 mt-2 mb-3 rounded-2xl border border-border bg-card/95 backdrop-blur-xl overflow-hidden shadow-lg">
-            {seasons.map((s: any) => {
-              const isRivalrySeason = groups.find((g: any) => g.id === s.group_id && isRivalryGroup(g));
-              return (
-                <button
-                  key={s.id}
-                  onClick={() => { setSelectedSeasonId(s.id); setShowSwitcher(false); }}
-                  className={`flex w-full items-center justify-between px-4 py-3 text-left text-sm transition-colors border-b border-border/50 last:border-b-0 ${
-                    (rivalrySeason ? s.group_id === rivalryGroup.id : selectedSeasonId === s.id) ? "bg-primary/10 text-primary font-semibold" : "text-foreground hover:bg-accent/50"
-                  }`}
-                >
-                  <div>
-                    <p className="font-medium">{s.groups?.name}</p>
-                    <p className="text-[11px] text-muted-foreground">
-                      {s.name} {isRivalrySeason ? "• Rivalidade" : ""}
-                    </p>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        )}
-
-        <RivalryDuelPage
-          groupId={rivalryGroup.id}
-          groupName={rivalryGroup.name}
-          seasonId={rivalrySeason?.id || rivalrySeasonInfo?.id || null}
-          seasonName={rivalrySeason?.name || rivalrySeasonInfo?.name || null}
-        />
-      </div>
-    );
-  }
+    if (!rivalryGroup || isPageLoading) return;
+    const selected = seasons.find((s: any) => s.id === selectedSeasonId);
+    const selectedIsRivalry = selected ? selected.group_id === rivalryGroup.id : false;
+    if (onlyRivalryGroups || selectedIsRivalry || !selectedSeasonId) {
+      navigate({ to: "/groups/$groupId/duel", params: { groupId: rivalryGroup.id }, replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rivalryGroup?.id, onlyRivalryGroups, selectedSeasonId, seasons, isPageLoading]);
 
   return (
     <div className="min-h-screen bg-background pb-28 lg:pb-8">
