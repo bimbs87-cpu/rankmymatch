@@ -266,9 +266,10 @@ function DashboardPage() {
       .order("scheduled_date", { ascending: true })
       .limit(8);
 
+    let presences: { round_id: string; status: string; user_id: string }[] = [];
     if (rounds?.length) {
       const roundIds = rounds.map((r) => r.id);
-      const [{ data: presences }, { data: waiters }] = await Promise.all([
+      const [{ data: presencesData }, { data: waiters }] = await Promise.all([
         supabase
           .from("round_presence")
           .select("round_id, status, user_id")
@@ -278,10 +279,11 @@ function DashboardPage() {
           .select("round_id")
           .in("round_id", roundIds),
       ]);
+      presences = presencesData || [];
 
       setUpcomingRounds(
         rounds.map((r: any) => {
-          const roundPresences = (presences || []).filter((p) => p.round_id === r.id);
+          const roundPresences = presences.filter((p) => p.round_id === r.id);
           return {
             id: r.id,
             round_number: r.round_number,
