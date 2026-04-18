@@ -19,6 +19,17 @@ const PERIOD_LABELS: { id: Period; label: string }[] = [
   { id: "all", label: "Todos" },
 ];
 
+interface MatchInfoEntry {
+  /** Pre-formatted set scores (e.g. "6-3 • 4-6 • 7-5"). */
+  setScores: string;
+  /** True if the match counted for the season ranking. */
+  isOfficial: boolean;
+  /** ISO date string of the round (or created_at fallback). */
+  date: string | null;
+  /** Per-player Elo change for this match keyed by user_id. */
+  changeByUser: Record<string, number>;
+}
+
 interface Props {
   playerAId: string;
   playerBId: string;
@@ -26,6 +37,11 @@ interface Props {
   playerBLabel: string;
   /** Optional season to scope; null = all time. */
   seasonId?: string | null;
+  /**
+   * Optional metadata about each match (keyed by match_id) so the tooltip can
+   * show set scores, Δ Elo, and the Oficial/Avulso badge.
+   */
+  matchInfo?: Record<string, MatchInfoEntry>;
 }
 
 interface RawEvent {
@@ -41,6 +57,7 @@ interface ChartPoint {
   label: string;
   ts: number;
   idx: number;
+  matchId?: string;
   ratingA?: number;
   ratingB?: number;
 }
