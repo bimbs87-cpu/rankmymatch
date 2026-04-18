@@ -101,16 +101,23 @@ function pct(num: number, den: number) {
 function ComparePage() {
   const search = Route.useSearch();
   const navigate = useNavigate();
-  const { a: userA, b: userB, groupId, tab } = search;
+  const { a: userA, b: userB, c: userC, d: userD, groupId, tab } = search;
+  const userIds = useMemo(
+    () => [userA, userB, userC, userD].filter((id): id is string => !!id && id.length > 0),
+    [userA, userB, userC, userD],
+  );
+  const N = userIds.length;
 
   const [loading, setLoading] = useState(true);
   const [progress, setProgress] = useState(0);
   const [label, setLabel] = useState("Carregando comparativo...");
   const [groupName, setGroupName] = useState<string>("");
-  const [playerA, setPlayerA] = useState<PlayerAggregate | null>(null);
-  const [playerB, setPlayerB] = useState<PlayerAggregate | null>(null);
+  const [players, setPlayers] = useState<PlayerAggregate[]>([]);
   const [h2h, setH2H] = useState<H2HData | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Backwards-compat aliases for the rich 2-player view
+  const playerA = players[0] ?? null;
+  const playerB = players[1] ?? null;
 
   useEffect(() => {
     let cancelled = false;
