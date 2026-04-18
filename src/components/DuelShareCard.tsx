@@ -21,6 +21,8 @@ export interface ShareMedal {
   value: number;
 }
 
+export type DuelShareFormat = "feed" | "story";
+
 export interface DuelShareCardProps {
   groupName: string;
   seasonName?: string | null;
@@ -31,7 +33,14 @@ export interface DuelShareCardProps {
   totalMatches: number;
   /** Up to 3 medals shown */
   medals: ShareMedal[];
+  /** Output format — "feed" = 1080×1350 (4:5 IG), "story" = 1080×1920 (9:16 IG/WA). */
+  format?: DuelShareFormat;
 }
+
+export const FORMAT_DIMENSIONS: Record<DuelShareFormat, { width: number; height: number; padding: number }> = {
+  feed: { width: 1080, height: 1350, padding: 60 },
+  story: { width: 1080, height: 1920, padding: 80 },
+};
 
 const COLORS = {
   bg: "#0a0a0d",
@@ -105,21 +114,22 @@ const Avatar = ({
 
 export const DuelShareCard = forwardRef<HTMLDivElement, DuelShareCardProps>(
   function DuelShareCard(props, ref) {
-    const { groupName, seasonName, playerA, playerB, winsA, winsB, totalMatches, medals } = props;
+    const { groupName, seasonName, playerA, playerB, winsA, winsB, totalMatches, medals, format = "feed" } = props;
     const winRateA = totalMatches > 0 ? Math.round((winsA / totalMatches) * 100) : 0;
     const winRateB = totalMatches > 0 ? Math.round((winsB / totalMatches) * 100) : 0;
     const leader: "A" | "B" | "tie" = winsA > winsB ? "A" : winsB > winsA ? "B" : "tie";
+    const dims = FORMAT_DIMENSIONS[format];
 
     return (
       <div
         ref={ref}
         style={{
-          width: 1080,
-          height: 1350,
+          width: dims.width,
+          height: dims.height,
           background: `radial-gradient(1200px 800px at 20% 10%, rgba(184,242,76,0.12), transparent 60%), radial-gradient(900px 700px at 90% 90%, rgba(95,180,255,0.08), transparent 60%), ${COLORS.bg}`,
           color: COLORS.text,
           fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif",
-          padding: 60,
+          padding: dims.padding,
           boxSizing: "border-box",
           display: "flex",
           flexDirection: "column",
