@@ -191,7 +191,7 @@ export function GroupDashboardPanel({ group, onLeft, onPresenceChanged }: Props)
                 Abrir grupo
                 <ArrowRight className="h-3 w-3" />
               </Link>
-              {isAdmin && (
+              {isAdmin ? (
                 <Link
                   to="/groups/$groupId"
                   params={{ groupId: group.id }}
@@ -200,6 +200,15 @@ export function GroupDashboardPanel({ group, onLeft, onPresenceChanged }: Props)
                 >
                   <Settings className="h-3.5 w-3.5" />
                 </Link>
+              ) : (
+                <button
+                  onClick={() => setShowLeave(true)}
+                  className="flex h-8 items-center gap-1.5 rounded-full border border-border bg-card px-3 text-xs font-semibold text-muted-foreground hover:border-destructive/40 hover:text-destructive"
+                  title="Sair do grupo"
+                >
+                  <LogOut className="h-3.5 w-3.5" />
+                  Sair
+                </button>
               )}
             </div>
           </div>
