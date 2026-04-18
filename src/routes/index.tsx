@@ -2327,7 +2327,7 @@ function DashboardPage() {
                         {m.rating_change > 0 ? "+" : ""}{Math.round(m.rating_change)}
                       </span>
                     )}
-                  </div>
+                  </RowTag>
                 );
               })}
             </div>
