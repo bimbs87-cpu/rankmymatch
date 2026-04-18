@@ -203,12 +203,13 @@ function ComparePage() {
         setProgress(55);
         setLabel("Calculando confrontos...");
 
-        // Match player rows for both users to compute H2H
+        // Match player rows for both users to compute H2H + sets for scores
         const matchIdsFromEvents: string[] = Array.from(new Set(events.map((e: any) => e.match_id as string)));
         let matchPlayers: any[] = [];
         let matchesMeta: any[] = [];
+        let matchSets: any[] = [];
         if (matchIdsFromEvents.length) {
-          const [mpRes, mRes] = await Promise.all([
+          const [mpRes, mRes, setsRes] = await Promise.all([
             supabase
               .from("match_players")
               .select("match_id, user_id, team")
@@ -217,11 +218,18 @@ function ComparePage() {
               .from("matches")
               .select("id, round_id, winner_team, status, created_at")
               .in("id", matchIdsFromEvents),
+            supabase
+              .from("match_sets")
+              .select("match_id, set_number, score_team_a, score_team_b")
+              .in("match_id", matchIdsFromEvents)
+              .order("set_number", { ascending: true }),
           ]);
           if (mpRes.error) throw mpRes.error;
           if (mRes.error) throw mRes.error;
+          if (setsRes.error) throw setsRes.error;
           matchPlayers = mpRes.data || [];
           matchesMeta = mRes.data || [];
+          matchSets = setsRes.data || [];
         }
 
         setProgress(80);
