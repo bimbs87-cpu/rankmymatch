@@ -482,33 +482,49 @@ export function MembersPanel({ groupId }: Props) {
                   )
                 )}
                 {isAdmin && isPlaceholder && (
-                  pendingInvite ? (
+                  renamingUserId === m.user_id ? (
                     <>
-                      <button
-                        onClick={() => handleInviteSingle(m.user_id, m.profile?.name || "Jogador")}
-                        className="flex items-center gap-1 rounded-lg bg-warning/10 px-2 py-1.5 text-[10px] font-semibold text-warning hover:bg-warning/20"
-                        title="Reenviar convite"
-                      >
-                        <RotateCcw className="h-3 w-3" />
-                        <span className="hidden sm:inline">Reenviar</span>
-                      </button>
-                      <button
-                        onClick={() => handleRevokeInvite(m.user_id, m.profile?.name || "Jogador")}
-                        className="rounded-lg bg-destructive/10 p-1.5 text-destructive hover:bg-destructive/20"
-                        title="Revogar convite"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
+                      <button onClick={handleSaveRename} disabled={renameSaving} className="rounded-lg bg-success/10 p-1.5 text-success" title="Salvar"><Check className="h-3 w-3" /></button>
+                      <button onClick={() => setRenamingUserId(null)} className="rounded-lg bg-muted p-1.5 text-muted-foreground" title="Cancelar"><X className="h-3 w-3" /></button>
                     </>
                   ) : (
-                    <button
-                      onClick={() => handleInviteSingle(m.user_id, m.profile?.name || "Jogador")}
-                      className="flex items-center gap-1 rounded-lg bg-success/10 px-2 py-1.5 text-[10px] font-semibold text-success hover:bg-success/20"
-                      title="Convidar pelo WhatsApp"
-                    >
-                      <MessageCircle className="h-3 w-3" />
-                      <span className="hidden sm:inline">Convidar</span>
-                    </button>
+                    <>
+                      <button
+                        onClick={() => handleStartRename(m.user_id, m.profile?.name || "")}
+                        className="rounded-lg bg-muted p-1.5 text-muted-foreground hover:bg-muted/70"
+                        title="Renomear jogador"
+                      >
+                        <Pencil className="h-3 w-3" />
+                      </button>
+                      {pendingInvite ? (
+                        <>
+                          <button
+                            onClick={() => handleInviteSingle(m.user_id, m.profile?.name || "Jogador")}
+                            className="flex items-center gap-1 rounded-lg bg-warning/10 px-2 py-1.5 text-[10px] font-semibold text-warning hover:bg-warning/20"
+                            title="Reenviar convite"
+                          >
+                            <RotateCcw className="h-3 w-3" />
+                            <span className="hidden sm:inline">Reenviar</span>
+                          </button>
+                          <button
+                            onClick={() => handleRevokeInvite(m.user_id, m.profile?.name || "Jogador")}
+                            className="rounded-lg bg-destructive/10 p-1.5 text-destructive hover:bg-destructive/20"
+                            title="Revogar convite"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </>
+                      ) : (
+                        <button
+                          onClick={() => handleInviteSingle(m.user_id, m.profile?.name || "Jogador")}
+                          className="flex items-center gap-1 rounded-lg bg-success/10 px-2 py-1.5 text-[10px] font-semibold text-success hover:bg-success/20"
+                          title="Convidar pelo WhatsApp"
+                        >
+                          <MessageCircle className="h-3 w-3" />
+                          <span className="hidden sm:inline">Convidar</span>
+                        </button>
+                      )}
+                    </>
                   )
                 )}
                 {isAdmin && !isFormer && !isMe && m.role !== "creator" && (
