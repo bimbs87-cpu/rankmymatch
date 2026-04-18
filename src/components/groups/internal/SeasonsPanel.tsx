@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import {
   Trophy, Calendar, Plus, ChevronRight, ChevronDown, CircleDot, CheckCircle2,
-  Clock, MapPin, Pencil, Ban, X, Settings, Check, Flag, RotateCcw,
+  Clock, MapPin, Pencil, Ban, X, Settings, Check, Flag, RotateCcw, Trash2,
 } from "lucide-react";
 import { useGroupSeasons } from "@/hooks/use-seasons";
 import { useSeasonRounds } from "@/hooks/use-rounds";
