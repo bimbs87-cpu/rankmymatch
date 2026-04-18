@@ -42,6 +42,11 @@ import {
   User as UserIcon,
   Crown,
   HelpCircle,
+  History,
+  Settings,
+  CalendarPlus,
+  ListChecks,
+  Medal,
 } from "lucide-react";
 
 const DESKTOP_NAV = [
