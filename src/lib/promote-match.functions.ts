@@ -128,6 +128,44 @@ export const promoteMatchToRankingServerFn = createServerFn({ method: "POST" })
     }));
     await supabaseAdmin.from("notifications").insert(notifRows);
 
+    // 8. Audit log — capture per-player Elo deltas if recomputed
+    let eloDeltas: Record<string, { before: number; after: number; change: number }> = {};
+    if (recomputedElo && seasonId) {
+      const { data: evs } = await supabaseAdmin
+        .from("rating_events")
+        .select("user_id, rating_before, rating_after, rating_change")
+        .eq("match_id", matchId);
+      for (const ev of evs || []) {
+        eloDeltas[ev.user_id] = {
+          before: Number(ev.rating_before),
+          after: Number(ev.rating_after),
+          change: Number(ev.rating_change),
+        };
+      }
+    }
+    await supabaseAdmin.from("audit_logs").insert({
+      user_id: userId,
+      group_id: groupId,
+      action: "match_promoted",
+      entity_type: "match",
+      entity_id: matchId,
+      reason: recomputedElo ? "Promoção com recálculo de Elo" : "Promoção sem recálculo (sem temporada)",
+      new_data: {
+        counts_for_ranking: true,
+        season_id: seasonId,
+        winner_team: winnerTeam,
+        team_a: teamA,
+        team_b: teamB,
+        sets_a: setsA,
+        sets_b: setsB,
+        games_a: gamesA,
+        games_b: gamesB,
+        recomputed_elo: recomputedElo,
+        elo_deltas: eloDeltas,
+      },
+      old_data: { counts_for_ranking: false },
+    });
+
     return { success: true, recomputedElo };
   });
 
@@ -308,6 +346,38 @@ export const revertMatchPromotionServerFn = createServerFn({ method: "POST" })
       }));
       await supabaseAdmin.from("notifications").insert(notifRows);
     }
+
+    // 8. Audit log — capture per-player Elo deltas that were reverted
+    const eloDeltas: Record<string, { before: number; after: number; change: number }> = {};
+    for (const ev of events) {
+      eloDeltas[ev.user_id] = {
+        before: Number(ev.rating_before),
+        after: Number(ev.rating_after),
+        change: Number(ev.rating_after) - Number(ev.rating_before),
+      };
+    }
+    await supabaseAdmin.from("audit_logs").insert({
+      user_id: userId,
+      group_id: groupId,
+      action: "match_promotion_reverted",
+      entity_type: "match",
+      entity_id: matchId,
+      reason: revertedElo ? "Reversão com desfazimento de Elo" : "Reversão sem desfazimento (sem eventos prévios)",
+      new_data: {
+        counts_for_ranking: false,
+        season_id: seasonId,
+        winner_team: winnerTeam,
+        team_a: teamA,
+        team_b: teamB,
+        sets_a: setsA,
+        sets_b: setsB,
+        games_a: gamesA,
+        games_b: gamesB,
+        reverted_elo: revertedElo,
+        elo_deltas_reverted: eloDeltas,
+      },
+      old_data: { counts_for_ranking: true },
+    });
 
     return { success: true, revertedElo };
   });
