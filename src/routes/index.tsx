@@ -495,7 +495,7 @@ function DashboardPage() {
       const [playersRes, roundsRes, setsRes] = await Promise.all([
         supabase.from("match_players").select("match_id, team, user_id").in("match_id", matchIds),
         roundIds.length
-          ? supabase.from("rounds").select("id, round_number, scheduled_date, group_id, groups(name)").in("id", [...new Set(roundIds)])
+          ? supabase.from("rounds").select("id, round_number, scheduled_date, group_id, season_id, groups(name)").in("id", [...new Set(roundIds)])
           : Promise.resolve({ data: [] }),
         supabase.from("match_sets").select("match_id, score_team_a, score_team_b, set_number").in("match_id", matchIds).order("set_number"),
       ]);
