@@ -1580,6 +1580,84 @@ function DashboardPage() {
           })()}
         </section>
 
+        {/* Seu próximo confronto — priority card (mobile + desktop) */}
+        {nextMatch && (
+          <section className="lg:col-span-12 lg:col-start-1 lg:row-start-3">
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Seu próximo confronto
+              </h2>
+            </div>
+            <div className="rounded-3xl border border-primary/30 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent p-4">
+              <div className="flex items-start gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-primary/15">
+                  <Swords className="h-5 w-5 text-primary" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  {nextMatch.has_pairing ? (
+                    <p className="font-display text-base font-bold text-foreground leading-tight">
+                      <span className="text-primary">Você</span>
+                      {nextMatch.partner_name ? (
+                        <> <span className="text-muted-foreground text-xs font-medium">+ {nextMatch.partner_name}</span></>
+                      ) : null}
+                      <span className="text-muted-foreground"> vs </span>
+                      <span className="text-foreground">
+                        {nextMatch.opponent_names.length > 0 ? nextMatch.opponent_names.join(" & ") : "Adversários"}
+                      </span>
+                    </p>
+                  ) : (
+                    <p className="font-display text-base font-bold text-foreground leading-tight">
+                      Rodada {nextMatch.round_number ?? "—"}
+                    </p>
+                  )}
+                  <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-muted-foreground">
+                    <span className="font-medium">{nextMatch.group_name}</span>
+                    {nextMatch.scheduled_date && (
+                      <span className="flex items-center gap-0.5">
+                        <Calendar className="h-3 w-3" />
+                        {formatDate(nextMatch.scheduled_date)}
+                      </span>
+                    )}
+                    {nextMatch.scheduled_time && (
+                      <span className="flex items-center gap-0.5">
+                        <Clock className="h-3 w-3" />
+                        {nextMatch.scheduled_time.slice(0, 5)}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+              <div className="mt-3 flex gap-2">
+                <Link
+                  to="/groups/$groupId/seasons/$seasonId/rounds/$roundId"
+                  params={{
+                    groupId: nextMatch.group_id,
+                    seasonId: nextMatch.season_id || "",
+                    roundId: nextMatch.round_id,
+                  }}
+                  className={`flex flex-1 items-center justify-center gap-1.5 rounded-2xl px-3 py-2 text-xs font-semibold transition-colors ${
+                    nextMatch.has_pairing
+                      ? "bg-primary text-primary-foreground active:bg-primary/90"
+                      : "border border-primary/30 bg-primary/5 text-primary active:bg-primary/10"
+                  }`}
+                >
+                  {nextMatch.has_pairing ? (
+                    <>
+                      <Trophy className="h-3.5 w-3.5" />
+                      Registrar resultado
+                    </>
+                  ) : (
+                    <>
+                      <Calendar className="h-3.5 w-3.5" />
+                      Ver rodada
+                    </>
+                  )}
+                </Link>
+              </div>
+            </div>
+          </section>
+        )}
+
         {/* Próximas Rodadas (mobile/tablet only — desktop version is inside the right column wrapper above) */}
         <section className="lg:hidden">
           {/* Mobile/tablet header */}
