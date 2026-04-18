@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
+import { isPresenceOpen, getPresenceOpenDate } from "@/lib/presence-schedule";
 
 export interface NextRoundInfo {
   id: string;
@@ -12,6 +13,19 @@ export interface NextRoundInfo {
   presence_status: "confirmed" | "declined" | "pending" | null;
   confirmed_count: number;
   max_players: number;
+  presence_is_open: boolean;
+  presence_opens_at: string | null;
+}
+
+export interface PendingJoinReq {
+  id: string;
+  user_id: string;
+  user_name: string;
+  user_avatar: string | null;
+  message: string | null;
+  created_at: string;
+  claimed_player_id: string | null;
+  claimed_player_name: string | null;
 }
 
 export interface PodiumPlayer {
