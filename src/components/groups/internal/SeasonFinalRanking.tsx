@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
-import { Crown, Medal, Trophy } from "lucide-react";
+import { Crown, Medal, Trophy, Zap, TrendingUp, Target } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
+import { useSeasonExtras, type RecordHolder } from "@/hooks/use-group-stats";
 
 interface RankingRow {
   user_id: string;
