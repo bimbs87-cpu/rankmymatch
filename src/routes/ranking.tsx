@@ -795,7 +795,7 @@ function RankingPage() {
                     if (!canSelect) return;
                     setCompareSelection((sel) => {
                       if (sel.includes(entry.user_id)) return sel.filter((id) => id !== entry.user_id);
-                      if (sel.length >= 2) return [sel[1], entry.user_id]; // keep last + new
+                      if (sel.length >= 4) return [...sel.slice(1), entry.user_id]; // keep last 3 + new
                       return [...sel, entry.user_id];
                     });
                   } else if (canExpand) {
@@ -1025,14 +1025,14 @@ function RankingPage() {
             <div className="flex items-center gap-3">
               <div className="flex-1 min-w-0">
                 <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                  {compareSelection.length}/2 selecionados
+                  {compareSelection.length}/4 selecionados
                 </p>
                 <p className="truncate text-xs text-foreground">
                   {compareSelection.length === 0
-                    ? "Toque em 2 jogadores para comparar"
+                    ? "Toque em até 4 jogadores"
                     : compareSelection.length === 1
-                    ? "Selecione mais 1 jogador"
-                    : "Pronto para comparar!"}
+                    ? "Selecione mais 1 (até 4)"
+                    : `Pronto para comparar ${compareSelection.length}!`}
                 </p>
               </div>
               <Link
@@ -1040,16 +1040,18 @@ function RankingPage() {
                 search={{
                   a: compareSelection[0] || "",
                   b: compareSelection[1] || "",
+                  c: compareSelection[2] || "",
+                  d: compareSelection[3] || "",
                   groupId: (selectedSeason as any).group_id,
                   seasonId: selectedSeason.id,
                   tab: "season" as const,
                 }}
-                disabled={compareSelection.length !== 2}
+                disabled={compareSelection.length < 2}
                 onClick={(e) => {
-                  if (compareSelection.length !== 2) e.preventDefault();
+                  if (compareSelection.length < 2) e.preventDefault();
                 }}
                 className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-4 py-2 text-xs font-bold transition ${
-                  compareSelection.length === 2
+                  compareSelection.length >= 2
                     ? "bg-primary text-primary-foreground hover:opacity-90"
                     : "cursor-not-allowed bg-muted text-muted-foreground"
                 }`}

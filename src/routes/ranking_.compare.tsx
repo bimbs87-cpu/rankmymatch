@@ -11,6 +11,8 @@ import { abbreviateName } from "@/lib/utils";
 const searchSchema = z.object({
   a: fallback(z.string(), "").default(""),
   b: fallback(z.string(), "").default(""),
+  c: fallback(z.string(), "").default(""),
+  d: fallback(z.string(), "").default(""),
   groupId: fallback(z.string(), "").default(""),
   tab: fallback(z.enum(["career", "season"]), "season").default("season"),
   seasonId: fallback(z.string(), "").default(""),
@@ -99,27 +101,35 @@ function pct(num: number, den: number) {
 function ComparePage() {
   const search = Route.useSearch();
   const navigate = useNavigate();
-  const { a: userA, b: userB, groupId, tab } = search;
+  const { a: userA, b: userB, c: userC, d: userD, groupId, tab } = search;
+  const userIds = useMemo(
+    () => [userA, userB, userC, userD].filter((id): id is string => !!id && id.length > 0),
+    [userA, userB, userC, userD],
+  );
+  const N = userIds.length;
 
   const [loading, setLoading] = useState(true);
   const [progress, setProgress] = useState(0);
   const [label, setLabel] = useState("Carregando comparativo...");
   const [groupName, setGroupName] = useState<string>("");
-  const [playerA, setPlayerA] = useState<PlayerAggregate | null>(null);
-  const [playerB, setPlayerB] = useState<PlayerAggregate | null>(null);
+  const [players, setPlayers] = useState<PlayerAggregate[]>([]);
   const [h2h, setH2H] = useState<H2HData | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Backwards-compat aliases for the rich 2-player view
+  const playerA = players[0] ?? null;
+  const playerB = players[1] ?? null;
 
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
-      if (!userA || !userB || !groupId) {
-        setError("Parâmetros inválidos");
+      if (userIds.length < 2 || !groupId) {
+        setError("Selecione pelo menos 2 jogadores");
         setLoading(false);
         return;
       }
-      if (userA === userB) {
-        setError("Selecione dois jogadores diferentes");
+      const uniqueIds = Array.from(new Set(userIds));
+      if (uniqueIds.length !== userIds.length) {
+        setError("Jogadores duplicados na comparação");
         setLoading(false);
         return;
       }
@@ -128,7 +138,7 @@ function ComparePage() {
       setLabel("Buscando jogadores...");
 
       try {
-        // Group + seasons
+        // Group + seasons + profiles
         const [groupRes, seasonsRes, profilesRes] = await Promise.all([
           supabase.from("groups").select("name").eq("id", groupId).single(),
           supabase
@@ -140,7 +150,7 @@ function ComparePage() {
           supabase
             .from("user_profiles")
             .select("user_id, name, nickname, avatar_url")
-            .in("user_id", [userA, userB]),
+            .in("user_id", userIds),
         ]);
         if (cancelled) return;
         if (groupRes.error) throw groupRes.error;
@@ -152,32 +162,36 @@ function ComparePage() {
         const seasonIds = seasons.map((s: any) => s.id);
         const seasonNameMap = new Map(seasons.map((s: any) => [s.id, s.name]));
 
-        const profileA = profilesRes.data?.find((p: any) => p.user_id === userA);
-        const profileB = profilesRes.data?.find((p: any) => p.user_id === userB);
-        if (!profileA || !profileB) {
-          setError("Jogador não encontrado");
-          setLoading(false);
-          return;
+        const profilesMap = new Map<string, Profile>();
+        for (const p of profilesRes.data || []) {
+          profilesMap.set(p.user_id, p as Profile);
+        }
+        for (const id of userIds) {
+          if (!profilesMap.has(id)) {
+            setError("Jogador não encontrado");
+            setLoading(false);
+            return;
+          }
         }
 
         setProgress(30);
         setLabel("Carregando estatísticas...");
 
-        // Snapshots, rating events, rounds, presence — all scoped to this group
+        // Snapshots, rating events, rounds, presence — scoped to this group
         const [snapsRes, eventsRes, roundsRes, presenceRes] = await Promise.all([
           seasonIds.length
             ? supabase
                 .from("ranking_snapshots")
                 .select("*")
                 .in("season_id", seasonIds)
-                .in("user_id", [userA, userB])
+                .in("user_id", userIds)
             : Promise.resolve({ data: [], error: null } as any),
           seasonIds.length
             ? supabase
                 .from("rating_events")
                 .select("user_id, rating_after, rating_before, rating_change, created_at, match_id, season_id")
                 .in("season_id", seasonIds)
-                .in("user_id", [userA, userB])
+                .in("user_id", userIds)
                 .order("created_at", { ascending: true })
             : Promise.resolve({ data: [], error: null } as any),
           supabase
@@ -187,7 +201,7 @@ function ComparePage() {
           supabase
             .from("round_presence")
             .select("round_id, user_id, status")
-            .in("user_id", [userA, userB]),
+            .in("user_id", userIds),
         ]);
         if (cancelled) return;
         if (snapsRes.error) throw snapsRes.error;
@@ -205,7 +219,7 @@ function ComparePage() {
         setProgress(55);
         setLabel("Calculando confrontos...");
 
-        // Match player rows for both users to compute H2H + sets for scores
+        // Match player rows for ALL involved users
         const matchIdsFromEvents: string[] = Array.from(new Set(events.map((e: any) => e.match_id as string)));
         let matchPlayers: any[] = [];
         let matchesMeta: any[] = [];
@@ -305,7 +319,6 @@ function ComparePage() {
 
           // Streaks based on rating_change sign
           let streakMax = 0;
-          let streakCurrent = 0;
           let cur = 0;
           for (const e of userEvents) {
             if (Number(e.rating_change) > 0) {
@@ -316,6 +329,7 @@ function ComparePage() {
             }
           }
           // Current streak = trailing same-sign run (positive=wins, negative=losses)
+          let streakCurrent = 0;
           let streakSign: 1 | -1 | 0 = 0;
           for (let i = userEvents.length - 1; i >= 0; i--) {
             const change = Number(userEvents[i].rating_change);
@@ -326,9 +340,7 @@ function ComparePage() {
           }
           const streakCurrentSigned = streakCurrent * (streakSign || 1);
 
-          // Frequency: a player is "present" in a completed round if they actually
-          // played any match in that round (authoritative). Fall back to round_presence
-          // (confirmed/present) for rounds where the user didn't play but signaled presence.
+          // Frequency
           const playedRoundIds = new Set<string>();
           for (const mp of matchPlayers) {
             if (mp.user_id !== uid) continue;
@@ -358,113 +370,114 @@ function ComparePage() {
           };
         };
 
-        const aggA = buildAggregate(userA, profileA);
-        const aggB = buildAggregate(userB, profileB);
+        const aggregates: PlayerAggregate[] = userIds.map((uid) => buildAggregate(uid, profilesMap.get(uid)!));
 
-        // H2H computation: for each match, both must be present
-        const matchToPlayers = new Map<string, any[]>();
-        for (const mp of matchPlayers) {
-          const arr = matchToPlayers.get(mp.match_id) || [];
-          arr.push(mp);
-          matchToPlayers.set(mp.match_id, arr);
-        }
-
-        // We need to also fetch the OTHER players in each shared match (partners/opponents)
-        // to display contextual names in the meetings list.
-        const sharedMatchIds: string[] = [];
-        for (const [mid, players] of matchToPlayers.entries()) {
-          const hasA = players.some((p) => p.user_id === userA);
-          const hasB = players.some((p) => p.user_id === userB);
-          if (hasA && hasB) sharedMatchIds.push(mid);
-        }
-
-        let othersByMatch = new Map<string, { user_id: string; team: "A" | "B" }[]>();
-        let extraProfileMap = new Map<string, string>();
-        if (sharedMatchIds.length) {
-          const { data: allPlayers, error: apErr } = await supabase
-            .from("match_players")
-            .select("match_id, user_id, team")
-            .in("match_id", sharedMatchIds);
-          if (apErr) throw apErr;
-          const otherUserIds = new Set<string>();
-          for (const mp of allPlayers || []) {
-            if (mp.user_id === userA || mp.user_id === userB) continue;
-            const arr = othersByMatch.get(mp.match_id) || [];
-            arr.push({ user_id: mp.user_id, team: mp.team as "A" | "B" });
-            othersByMatch.set(mp.match_id, arr);
-            otherUserIds.add(mp.user_id);
+        // H2H computation only makes sense for exactly 2 players
+        let h2hData: H2HData | null = null;
+        if (userIds.length === 2) {
+          const [uA, uB] = userIds;
+          const matchToPlayers = new Map<string, any[]>();
+          for (const mp of matchPlayers) {
+            const arr = matchToPlayers.get(mp.match_id) || [];
+            arr.push(mp);
+            matchToPlayers.set(mp.match_id, arr);
           }
-          if (otherUserIds.size) {
-            const { data: extraProfs, error: epErr } = await supabase
-              .from("user_profiles")
-              .select("user_id, name, nickname")
-              .in("user_id", Array.from(otherUserIds));
-            if (epErr) throw epErr;
-            for (const p of extraProfs || []) {
-              const display = (p.nickname?.trim() as string) || abbreviateName(p.name);
-              extraProfileMap.set(p.user_id, display);
+
+          const sharedMatchIds: string[] = [];
+          for (const [mid, ps] of matchToPlayers.entries()) {
+            const hasA = ps.some((p) => p.user_id === uA);
+            const hasB = ps.some((p) => p.user_id === uB);
+            if (hasA && hasB) sharedMatchIds.push(mid);
+          }
+
+          const othersByMatch = new Map<string, { user_id: string; team: "A" | "B" }[]>();
+          const extraProfileMap = new Map<string, string>();
+          if (sharedMatchIds.length) {
+            const { data: allPlayers, error: apErr } = await supabase
+              .from("match_players")
+              .select("match_id, user_id, team")
+              .in("match_id", sharedMatchIds);
+            if (apErr) throw apErr;
+            const otherUserIds = new Set<string>();
+            for (const mp of allPlayers || []) {
+              if (mp.user_id === uA || mp.user_id === uB) continue;
+              const arr = othersByMatch.get(mp.match_id) || [];
+              arr.push({ user_id: mp.user_id, team: mp.team as "A" | "B" });
+              othersByMatch.set(mp.match_id, arr);
+              otherUserIds.add(mp.user_id);
+            }
+            if (otherUserIds.size) {
+              const { data: extraProfs, error: epErr } = await supabase
+                .from("user_profiles")
+                .select("user_id, name, nickname")
+                .in("user_id", Array.from(otherUserIds));
+              if (epErr) throw epErr;
+              for (const p of extraProfs || []) {
+                const display = (p.nickname?.trim() as string) || abbreviateName(p.name);
+                extraProfileMap.set(p.user_id, display);
+              }
             }
           }
-        }
 
-        const meetings: H2HData["recentMeetings"] = [];
-        let asPartnersPlayed = 0;
-        let asPartnersWon = 0;
-        let asOppPlayed = 0;
-        let aWon = 0;
-        let bWon = 0;
+          const meetings: H2HData["recentMeetings"] = [];
+          let asPartnersPlayed = 0;
+          let asPartnersWon = 0;
+          let asOppPlayed = 0;
+          let aWon = 0;
+          let bWon = 0;
 
-        for (const [matchId, players] of matchToPlayers.entries()) {
-          const a = players.find((p) => p.user_id === userA);
-          const b = players.find((p) => p.user_id === userB);
-          if (!a || !b) continue;
-          const meta = matchMetaMap.get(matchId);
-          if (!meta || meta.status !== "completed") continue;
+          for (const [matchId, ps] of matchToPlayers.entries()) {
+            const a = ps.find((p) => p.user_id === uA);
+            const b = ps.find((p) => p.user_id === uB);
+            if (!a || !b) continue;
+            const meta = matchMetaMap.get(matchId);
+            if (!meta || meta.status !== "completed") continue;
 
-          const sameTeam = a.team === b.team;
-          const winner = (meta.winner_team as "A" | "B" | null) || null;
+            const sameTeam = a.team === b.team;
+            const winner = (meta.winner_team as "A" | "B" | null) || null;
 
-          if (sameTeam) {
-            asPartnersPlayed += 1;
-            if (winner && winner === a.team) asPartnersWon += 1;
-          } else {
-            asOppPlayed += 1;
-            if (winner === a.team) aWon += 1;
-            else if (winner === b.team) bWon += 1;
+            if (sameTeam) {
+              asPartnersPlayed += 1;
+              if (winner && winner === a.team) asPartnersWon += 1;
+            } else {
+              asOppPlayed += 1;
+              if (winner === a.team) aWon += 1;
+              else if (winner === b.team) bWon += 1;
+            }
+
+            const evt = events.find((e: any) => e.match_id === matchId);
+            const others = (othersByMatch.get(matchId) || []).map((o) => ({
+              user_id: o.user_id,
+              team: o.team,
+              name: extraProfileMap.get(o.user_id) || "Jogador",
+            }));
+            meetings.push({
+              match_id: matchId,
+              round_id: meta.round_id,
+              season_id: evt?.season_id || "",
+              season_name: evt?.season_id ? (seasonNameMap.get(evt.season_id) || "—") : "—",
+              asPartners: sameTeam,
+              aTeam: a.team,
+              bTeam: b.team,
+              winner,
+              created_at: meta.created_at,
+              sets: setsByMatch.get(matchId) || [],
+              others,
+            });
           }
 
-          // Get season name from any event for this match
-          const evt = events.find((e: any) => e.match_id === matchId);
-          const others = (othersByMatch.get(matchId) || []).map((o) => ({
-            user_id: o.user_id,
-            team: o.team,
-            name: extraProfileMap.get(o.user_id) || "Jogador",
-          }));
-          meetings.push({
-            match_id: matchId,
-            round_id: meta.round_id,
-            season_id: evt?.season_id || "",
-            season_name: evt?.season_id ? (seasonNameMap.get(evt.season_id) || "—") : "—",
-            asPartners: sameTeam,
-            aTeam: a.team,
-            bTeam: b.team,
-            winner,
-            created_at: meta.created_at,
-            sets: setsByMatch.get(matchId) || [],
-            others,
-          });
-        }
+          meetings.sort((x, y) => y.created_at.localeCompare(x.created_at));
 
-        meetings.sort((x, y) => y.created_at.localeCompare(x.created_at));
-
-        if (!cancelled) {
-          setPlayerA(aggA);
-          setPlayerB(aggB);
-          setH2H({
+          h2hData = {
             asPartners: { played: asPartnersPlayed, won: asPartnersWon },
             asOpponents: { played: asOppPlayed, aWon, bWon },
             recentMeetings: meetings.slice(0, 10),
-          });
+          };
+        }
+
+        if (!cancelled) {
+          setPlayers(aggregates);
+          setH2H(h2hData);
           setProgress(100);
           setLoading(false);
         }
@@ -481,7 +494,7 @@ function ComparePage() {
     return () => {
       cancelled = true;
     };
-  }, [userA, userB, groupId]);
+  }, [userIds, groupId]);
 
   const swap = () => {
     navigate({
@@ -496,7 +509,10 @@ function ComparePage() {
 
   const share = async () => {
     const url = window.location.href;
-    const title = playerA && playerB ? `Comparativo: ${displayName(playerA)} vs ${displayName(playerB)}` : "Comparativo";
+    const title =
+      players.length >= 2
+        ? `Comparativo: ${players.map((p) => displayName(p)).join(" vs ")}`
+        : "Comparativo";
     if (navigator.share) {
       try { await navigator.share({ title, url }); } catch { /* ignore */ }
     } else {
@@ -508,13 +524,18 @@ function ComparePage() {
 
   // Latest season (by snapshots) shown in "Temporada" tab
   const latestSeasonId = useMemo(() => {
-    if (!playerA || !playerB) return null;
-    const ids = new Set<string>();
-    playerA.seasons.forEach((s) => ids.add(s.season_id));
-    playerB.seasons.forEach((s) => ids.add(s.season_id));
-    // Use first id from either player's seasons array (they came ordered by created_at desc from query)
-    return playerA.seasons[0]?.season_id || playerB.seasons[0]?.season_id || null;
-  }, [playerA, playerB]);
+    if (players.length === 0) return null;
+    for (const p of players) {
+      if (p.seasons[0]) return p.seasons[0].season_id;
+    }
+    return null;
+  }, [players]);
+
+  // Compute "advantage" indicator (only for 2-player view)
+  const advantage = useMemo(() => {
+    if (players.length !== 2 || !h2h) return null;
+    return computeAdvantage(players[0], players[1], h2h);
+  }, [players, h2h]);
 
   return (
     <div className="min-h-screen bg-background pb-28 lg:pb-8">
@@ -554,6 +575,8 @@ function ComparePage() {
               Voltar ao ranking
             </Link>
           </div>
+        ) : players.length < 2 ? null : N >= 3 ? (
+          <MultiCompareTable players={players} latestSeasonId={latestSeasonId} groupId={groupId} />
         ) : !playerA || !playerB ? null : (
           <>
             {/* HERO: head to head */}
@@ -575,6 +598,33 @@ function ComparePage() {
                 </div>
                 <PlayerHero player={playerB} side="right" />
               </div>
+
+              {/* Advantage indicator */}
+              {advantage && advantage.leader !== "tie" && (
+                <div className="mt-4 flex items-center justify-center">
+                  <div
+                    className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-[11px] font-bold ${
+                      advantage.leader === "A"
+                        ? "border-primary/40 bg-primary/10 text-primary"
+                        : "border-rank-silver/40 bg-rank-silver/10 text-foreground"
+                    }`}
+                    title={`H2H ${advantage.h2hScoreA.toFixed(0)}–${advantage.h2hScoreB.toFixed(0)} · Elo ${Math.round(playerA.eloCurrent)}–${Math.round(playerB.eloCurrent)} · Forma ${advantage.formA}V${5 - advantage.formA}D vs ${advantage.formB}V${5 - advantage.formB}D`}
+                  >
+                    <Trophy className="h-3 w-3" />
+                    Vantagem: {displayName(advantage.leader === "A" ? playerA : playerB)}
+                    <span className="rounded-full bg-background/50 px-1.5 py-0.5 text-[9px] font-semibold">
+                      {advantage.confidence}%
+                    </span>
+                  </div>
+                </div>
+              )}
+              {advantage && advantage.leader === "tie" && (
+                <div className="mt-4 flex items-center justify-center">
+                  <div className="inline-flex items-center gap-2 rounded-full border border-border bg-background/40 px-3 py-1.5 text-[11px] font-semibold text-muted-foreground">
+                    Equilibrado — sem favorito claro
+                  </div>
+                </div>
+              )}
 
               {/* H2H summary */}
               {h2h && (h2h.asOpponents.played > 0 || h2h.asPartners.played > 0) && (
@@ -1132,6 +1182,244 @@ function SeasonTab({ a, b, latestSeasonId }: { a: PlayerAggregate; b: PlayerAggr
           format={(v) => (v > 0 ? `+${v}` : `${v}`)}
         />
       </SectionCard>
+    </>
+  );
+}
+
+// ===== Advantage indicator (H2H direto + Elo atual + forma recente) =====
+function computeAdvantage(
+  a: PlayerAggregate,
+  b: PlayerAggregate,
+  h2h: H2HData,
+): {
+  leader: "A" | "B" | "tie";
+  confidence: number;
+  h2hScoreA: number;
+  h2hScoreB: number;
+  formA: number;
+  formB: number;
+} {
+  const totalH2H = h2h.asOpponents.played;
+  let h2hA = 50;
+  let h2hB = 50;
+  if (totalH2H > 0) {
+    h2hA = (h2h.asOpponents.aWon / totalH2H) * 100;
+    h2hB = (h2h.asOpponents.bWon / totalH2H) * 100;
+  }
+  const eloDiff = a.eloCurrent - b.eloCurrent;
+  const expA = 1 / (1 + Math.pow(10, -eloDiff / 400));
+  const eloA = expA * 100;
+  const eloB = (1 - expA) * 100;
+  const lastN = (p: PlayerAggregate, n: number) => {
+    const events = p.eloSeries.slice(-n - 1);
+    let wins = 0;
+    let total = 0;
+    for (let i = 1; i < events.length; i++) {
+      total += 1;
+      if (events[i].rating > events[i - 1].rating) wins += 1;
+    }
+    if (events.length === 1) {
+      total = 0;
+    }
+    return { wins, total };
+  };
+  const fA = lastN(a, 5);
+  const fB = lastN(b, 5);
+  const formA = fA.total > 0 ? (fA.wins / fA.total) * 100 : 50;
+  const formB = fB.total > 0 ? (fB.wins / fB.total) * 100 : 50;
+  const scoreA = h2hA * 0.5 + eloA * 0.3 + formA * 0.2;
+  const scoreB = h2hB * 0.5 + eloB * 0.3 + formB * 0.2;
+  const diff = scoreA - scoreB;
+  const leader: "A" | "B" | "tie" = Math.abs(diff) < 4 ? "tie" : diff > 0 ? "A" : "B";
+  const confidence = Math.min(99, Math.max(50, Math.round(50 + Math.abs(diff))));
+  return { leader, confidence, h2hScoreA: h2hA, h2hScoreB: h2hB, formA: fA.wins, formB: fB.wins };
+}
+
+// ===== Multi-player comparison table (3-4 players) =====
+function MultiCompareTable({
+  players,
+  latestSeasonId,
+}: {
+  players: PlayerAggregate[];
+  latestSeasonId: string | null;
+  groupId: string;
+}) {
+  const [scope, setScope] = useState<"career" | "season">("season");
+  const allSeasonIds: string[] = [];
+  const seenIds = new Set<string>();
+  for (const p of players) {
+    for (const s of p.seasons) {
+      if (!seenIds.has(s.season_id)) {
+        seenIds.add(s.season_id);
+        allSeasonIds.push(s.season_id);
+      }
+    }
+  }
+  const initial = latestSeasonId && allSeasonIds.includes(latestSeasonId) ? latestSeasonId : allSeasonIds[0] || "";
+  const [seasonId, setSeasonId] = useState<string>(initial);
+  useEffect(() => {
+    if (initial && !seasonId) setSeasonId(initial);
+  }, [initial, seasonId]);
+
+  const seasonName =
+    players.flatMap((p) => p.seasons).find((s) => s.season_id === seasonId)?.season_name || "—";
+
+  const seasonStats = (p: PlayerAggregate) =>
+    p.seasons.find((s) => s.season_id === seasonId) || {
+      rating: 1000,
+      matches_played: 0,
+      matches_won: 0,
+      sets_won: 0,
+      sets_lost: 0,
+      games_won: 0,
+      games_lost: 0,
+      position: null as number | null,
+      is_eligible: false,
+    };
+
+  type Cell = { value: number; format?: (v: number) => string };
+  type Row = { label: string; cells: Cell[]; higherIsBetter?: boolean };
+
+  const careerRows: Row[] = [
+    { label: "Elo atual", cells: players.map((p) => ({ value: p.eloCurrent, format: (v) => Math.round(v).toString() })) },
+    { label: "Pico Elo", cells: players.map((p) => ({ value: p.eloPeak, format: (v) => Math.round(v).toString() })) },
+    { label: "Partidas", cells: players.map((p) => ({ value: p.career.matches_played })) },
+    { label: "Vitórias", cells: players.map((p) => ({ value: p.career.matches_won })) },
+    { label: "Aproveitamento", cells: players.map((p) => ({ value: pct(p.career.matches_won, p.career.matches_played), format: (v) => `${v}%` })) },
+    { label: "Saldo sets", cells: players.map((p) => ({ value: p.career.sets_won - p.career.sets_lost, format: (v) => (v > 0 ? `+${v}` : `${v}`) })) },
+    { label: "Saldo games", cells: players.map((p) => ({ value: p.career.games_won - p.career.games_lost, format: (v) => (v > 0 ? `+${v}` : `${v}`) })) },
+    { label: "Títulos", cells: players.map((p) => ({ value: p.career.titles })) },
+    { label: "Pódios", cells: players.map((p) => ({ value: p.career.podiums })) },
+    { label: "Melhor pos.", cells: players.map((p) => ({ value: p.career.best_position ?? 999, format: (v) => (v === 999 ? "—" : `${v}º`) })), higherIsBetter: false },
+    { label: "Maior seq. V", cells: players.map((p) => ({ value: p.streakMax })) },
+    { label: "Sequência atual", cells: players.map((p) => ({ value: p.streakCurrent, format: (v) => (v === 0 ? "—" : v > 0 ? `${v}V` : `${Math.abs(v)}D`) })) },
+    { label: "Presença", cells: players.map((p) => ({ value: pct(p.roundsPresent, p.roundsTotal), format: (v) => `${v}%` })) },
+  ];
+
+  const seasonRows: Row[] = [
+    { label: "Posição", cells: players.map((p) => ({ value: seasonStats(p).position ?? 999, format: (v) => (v === 999 ? "—" : `${v}º`) })), higherIsBetter: false },
+    { label: "Elo temporada", cells: players.map((p) => ({ value: seasonStats(p).rating, format: (v) => Math.round(v).toString() })) },
+    { label: "Partidas", cells: players.map((p) => ({ value: seasonStats(p).matches_played })) },
+    { label: "Vitórias", cells: players.map((p) => ({ value: seasonStats(p).matches_won })) },
+    { label: "Aproveitamento", cells: players.map((p) => ({ value: pct(seasonStats(p).matches_won, seasonStats(p).matches_played), format: (v) => `${v}%` })) },
+    { label: "Sets ganhos", cells: players.map((p) => ({ value: seasonStats(p).sets_won })) },
+    { label: "Saldo sets", cells: players.map((p) => ({ value: seasonStats(p).sets_won - seasonStats(p).sets_lost, format: (v) => (v > 0 ? `+${v}` : `${v}`) })) },
+    { label: "Saldo games", cells: players.map((p) => ({ value: seasonStats(p).games_won - seasonStats(p).games_lost, format: (v) => (v > 0 ? `+${v}` : `${v}`) })) },
+  ];
+
+  const rows = scope === "career" ? careerRows : seasonRows;
+
+  return (
+    <>
+      <section className="rounded-3xl border border-border bg-card/40 p-4 lg:p-5">
+        <div className="mb-3 flex items-center gap-2">
+          <Users className="h-4 w-4 text-primary" />
+          <h2 className="font-display text-sm font-bold text-foreground">
+            Comparando {players.length} jogadores
+          </h2>
+        </div>
+        <div className={`grid gap-2 ${players.length === 3 ? "grid-cols-3" : "grid-cols-2 sm:grid-cols-4"}`}>
+          {players.map((p) => (
+            <div
+              key={p.profile.user_id}
+              className="flex flex-col items-center gap-1.5 rounded-2xl border border-border/60 bg-background/40 p-3"
+            >
+              <PlayerAvatar
+                avatarUrl={p.profile.avatar_url}
+                name={p.profile.name}
+                size="md"
+                className="!h-12 !w-12 border-2 border-primary/30"
+              />
+              <p className="text-center font-display text-xs font-bold text-foreground truncate max-w-full">
+                {displayName(p)}
+              </p>
+              <p className="font-display text-lg font-bold text-primary">{Math.round(p.eloCurrent)}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <div className="mt-4 inline-flex rounded-full border border-border bg-card/60 p-1">
+        <TabBtn active={scope === "season"} onClick={() => setScope("season")}>Temporada</TabBtn>
+        <TabBtn active={scope === "career"} onClick={() => setScope("career")}>Carreira no grupo</TabBtn>
+      </div>
+
+      {scope === "season" && allSeasonIds.length > 1 && (
+        <div className="mt-3 flex flex-wrap gap-2">
+          {allSeasonIds.map((id) => {
+            const name = players.flatMap((p) => p.seasons).find((s) => s.season_id === id)?.season_name || "—";
+            const active = id === seasonId;
+            return (
+              <button
+                key={id}
+                onClick={() => setSeasonId(id)}
+                className={`rounded-full border px-3 py-1 text-[11px] font-semibold transition ${
+                  active ? "border-primary bg-primary/15 text-primary" : "border-border bg-card/40 text-muted-foreground hover:bg-accent"
+                }`}
+              >
+                {name}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      <section className="mt-3 overflow-hidden rounded-3xl border border-border bg-card/40">
+        {scope === "season" && (
+          <div className="border-b border-border/40 bg-background/30 px-4 py-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            {seasonName}
+          </div>
+        )}
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs">
+            <thead className="bg-background/40 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+              <tr>
+                <th className="px-3 py-2 text-left">Métrica</th>
+                {players.map((p) => (
+                  <th key={p.profile.user_id} className="px-2 py-2 text-center min-w-[80px]">
+                    <span className="block truncate max-w-[100px] mx-auto" title={displayName(p)}>
+                      {displayName(p)}
+                    </span>
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row, ri) => {
+                const higherIsBetter = row.higherIsBetter !== false;
+                const values = row.cells.map((c) => c.value);
+                const best = higherIsBetter ? Math.max(...values) : Math.min(...values);
+                const worst = higherIsBetter ? Math.min(...values) : Math.max(...values);
+                const allSame = best === worst;
+                return (
+                  <tr key={row.label} className={ri % 2 === 0 ? "bg-background/20" : ""}>
+                    <td className="px-3 py-2 font-semibold text-muted-foreground">{row.label}</td>
+                    {row.cells.map((c, ci) => {
+                      const isBest = !allSame && c.value === best;
+                      const isWorst = !allSame && c.value === worst && players.length > 2;
+                      return (
+                        <td
+                          key={ci}
+                          className={`px-2 py-2 text-center font-display tabular-nums ${
+                            isBest ? "font-bold text-success" : isWorst ? "text-muted-foreground" : "text-foreground"
+                          }`}
+                        >
+                          {(c.format || ((v: number) => `${v}`))(c.value)}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <p className="mt-3 px-1 text-center text-[10px] text-muted-foreground">
+        <span className="text-success font-bold">Verde</span> = melhor da métrica.
+        Use a página com 2 jogadores para ver confrontos diretos detalhados.
+      </p>
     </>
   );
 }
