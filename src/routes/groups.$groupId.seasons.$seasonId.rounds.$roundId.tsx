@@ -53,11 +53,11 @@ function RoundDetailPage() {
 
   const rivalry = isRivalryGroup(group, memberCount);
 
-  // Load season config for sets_per_match
+  // Load season config for sets_per_match + sets_mode
   useEffect(() => {
     supabase
       .from("seasons")
-      .select("sets_per_match, match_format, singles_pairing_mode")
+      .select("sets_per_match, sets_mode, match_format, singles_pairing_mode")
       .eq("id", seasonId)
       .single()
       .then(({ data }) => { if (data) setSeasonData(data); });
@@ -936,6 +936,7 @@ function RoundDetailPage() {
             scoreB: s.score_team_b,
           }))}
           setsPerMatch={rivalry ? 99 : isSingles ? (seasonData?.sets_per_match || 3) : 3}
+          setsMode={rivalry ? "unlimited" : ((seasonData?.sets_mode as any) || "fixed")}
           isSingles={isSingles || rivalry}
           onClose={() => setScoringMatch(null)}
           onSaved={refresh}

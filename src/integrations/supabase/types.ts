@@ -1172,6 +1172,7 @@ export type Database = {
           odd_player_rule: string | null
           rounds_per_week: number | null
           scoring_format: Json | null
+          sets_mode: string
           sets_per_match: number | null
           singles_pairing_mode: string | null
           start_date: string | null
@@ -1192,6 +1193,7 @@ export type Database = {
           odd_player_rule?: string | null
           rounds_per_week?: number | null
           scoring_format?: Json | null
+          sets_mode?: string
           sets_per_match?: number | null
           singles_pairing_mode?: string | null
           start_date?: string | null
@@ -1212,6 +1214,7 @@ export type Database = {
           odd_player_rule?: string | null
           rounds_per_week?: number | null
           scoring_format?: Json | null
+          sets_mode?: string
           sets_per_match?: number | null
           singles_pairing_mode?: string | null
           start_date?: string | null

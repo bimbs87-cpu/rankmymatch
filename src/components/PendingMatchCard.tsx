@@ -107,6 +107,7 @@ export function PendingMatchCard({ match, onScoreSaved, showGroupName = true, is
           teamB={match.teamB.map((p) => ({ name: p.nickname || p.name, avatarUrl: p.avatar_url || undefined, userId: (p as any).user_id }))}
           existingSets={match.existingSets}
           setsPerMatch={match.sets_per_match}
+          setsMode={(match as any).sets_mode || "fixed"}
           isSingles={match.group_match_format === "singles"}
           onClose={() => setScoring(false)}
           onSaved={() => { setScoring(false); onScoreSaved(); }}
