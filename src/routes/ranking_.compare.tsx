@@ -854,6 +854,52 @@ function ComparePage() {
     return computeAdvantage(players[0], players[1], h2h);
   }, [players, h2h]);
 
+  // Season-scoped versions of playerA/B and h2h for the hero card
+  const heroPlayerA = useMemo(
+    () => (heroScope === "season" && playerA && latestSeasonId ? scopePlayerToSeason(playerA, latestSeasonId) : playerA),
+    [playerA, heroScope, latestSeasonId],
+  );
+  const heroPlayerB = useMemo(
+    () => (heroScope === "season" && playerB && latestSeasonId ? scopePlayerToSeason(playerB, latestSeasonId) : playerB),
+    [playerB, heroScope, latestSeasonId],
+  );
+  const heroH2H = useMemo(
+    () => (heroScope === "season" && h2h && latestSeasonId ? scopeH2HToSeason(h2h, latestSeasonId) : h2h),
+    [h2h, heroScope, latestSeasonId],
+  );
+  const heroSeasonName = useMemo(() => {
+    if (heroScope !== "season" || !latestSeasonId) return "";
+    return (
+      playerA?.seasons.find((s) => s.season_id === latestSeasonId)?.season_name ||
+      playerB?.seasons.find((s) => s.season_id === latestSeasonId)?.season_name ||
+      ""
+    );
+  }, [heroScope, latestSeasonId, playerA, playerB]);
+
+  // Best partner stat: average Elo of opponents the duo defeated together
+  const bestPartnerStat = useMemo(() => {
+    if (!heroH2H) return null;
+    const wins = heroH2H.recentMeetings.filter(
+      (m) => m.asPartners && m.winner !== null && m.others.length > 0 && (
+        // partners are on the same team; opponents are on the OPPOSITE team
+        m.aTeam === m.winner
+      ),
+    );
+    if (wins.length === 0) return null;
+    const ratings: number[] = [];
+    for (const m of wins) {
+      for (const o of m.others) {
+        if (o.team !== m.aTeam) {
+          const r = opponentElos.get(o.user_id);
+          if (typeof r === "number") ratings.push(r);
+        }
+      }
+    }
+    if (ratings.length === 0) return null;
+    const avg = ratings.reduce((s, r) => s + r, 0) / ratings.length;
+    return { avg: Math.round(avg), defeatedCount: ratings.length, winCount: wins.length };
+  }, [heroH2H, opponentElos]);
+
   return (
     <div className="min-h-screen bg-background pb-28 lg:pb-8">
       <header className="sticky top-0 z-10 border-b border-border/50 bg-background/85 backdrop-blur-xl">
