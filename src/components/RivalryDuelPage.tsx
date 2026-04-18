@@ -16,6 +16,10 @@ import {
   Target,
   BarChart3,
   Calendar,
+  PlusCircle,
+  History,
+  Medal,
+  Lock,
 } from "lucide-react";
 
 interface DuelPlayer {
@@ -468,32 +472,52 @@ export function RivalryDuelPage({ groupId, groupName, seasonId, seasonName }: Pr
             {recentMatches.map((m) => {
               const winnerName = m.winner_user_id === playerA.user_id ? displayNameA : displayNameB;
               const isWinnerA = m.winner_user_id === playerA.user_id;
-              const setScores = m.sets.map((s) => `${s.scoreA}-${s.scoreB}`).join(" ");
+              const setScores = m.sets.map((s) => `${s.scoreA}-${s.scoreB}`).join(" • ");
               const dateStr = m.date
-                ? new Date(m.date + "T00:00:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "short" })
+                ? new Date(m.date + "T00:00:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" })
                 : "";
+              const isOfficial = !!m.round_number && m.counts_for_ranking;
+              const isCasual = !m.round_number;
 
               return (
-                <div key={m.id} className="flex items-center gap-2 rounded-xl border border-border/50 bg-background/50 px-3 py-2">
-                  <div className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${
-                    isWinnerA ? "bg-primary/10 text-primary" : "bg-info/10 text-info"
-                  }`}>
-                    🏆
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <p className="text-xs font-semibold text-foreground">{winnerName} venceu</p>
-                      {m.round_number && (
-                        <span className="text-[9px] text-muted-foreground">R{m.round_number}</span>
-                      )}
+                <div key={m.id} className="rounded-xl border border-border/50 bg-background/50 px-3 py-2.5">
+                  <div className="flex items-start gap-2">
+                    <div className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${
+                      isWinnerA ? "bg-primary/15 text-primary" : "bg-info/15 text-info"
+                    }`}>
+                      🏆
                     </div>
-                    <p className="text-[10px] text-muted-foreground">{setScores}</p>
-                  </div>
-                  <div className="shrink-0 text-right">
-                    <p className="text-[10px] text-muted-foreground">{dateStr}</p>
-                    <span className={`text-[9px] font-semibold ${m.counts_for_ranking ? "text-primary" : "text-muted-foreground"}`}>
-                      {m.counts_for_ranking ? "Oficial" : "Avulso"}
-                    </span>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <p className="text-xs font-semibold text-foreground">{winnerName} venceu</p>
+                        {m.round_number && (
+                          <span className="rounded-full bg-muted px-1.5 py-0.5 text-[9px] font-semibold text-muted-foreground">
+                            R{m.round_number}
+                          </span>
+                        )}
+                      </div>
+                      <p className="mt-0.5 font-display text-[11px] font-semibold text-muted-foreground tabular-nums">{setScores}</p>
+                      <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                        {dateStr && (
+                          <span className="text-[10px] text-muted-foreground">{dateStr}</span>
+                        )}
+                        {isOfficial && (
+                          <span className="rounded-full bg-primary/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-primary">
+                            Oficial
+                          </span>
+                        )}
+                        {isCasual && (
+                          <span className="rounded-full bg-muted px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-muted-foreground">
+                            Avulso
+                          </span>
+                        )}
+                        {!m.counts_for_ranking && (
+                          <span className="rounded-full bg-warning/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-warning">
+                            Não contou
+                          </span>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
               );
@@ -552,15 +576,92 @@ export function RivalryDuelPage({ groupId, groupName, seasonId, seasonName }: Pr
         </div>
       </div>
 
-      {/* Navigate to group */}
-      <Link
-        to="/groups/$groupId"
-        params={{ groupId }}
-        className="flex items-center justify-between rounded-2xl border border-border bg-card px-4 py-3 transition-colors active:bg-accent/30"
-      >
-        <span className="text-sm font-semibold text-foreground">Ver grupo</span>
-        <ChevronRight className="h-4 w-4 text-muted-foreground" />
-      </Link>
+      {/* Block 7: Quick Actions */}
+      <div className="rounded-3xl border border-border bg-card/50 p-5">
+        <h3 className="mb-3 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+          Ações Rápidas
+        </h3>
+        <div className="grid grid-cols-2 gap-2">
+          <Link
+            to="/groups/$groupId"
+            params={{ groupId }}
+            className="flex items-center gap-2 rounded-2xl border border-primary/30 bg-primary/5 px-3 py-3 transition-colors active:bg-primary/10"
+          >
+            <PlusCircle className="h-4 w-4 text-primary" />
+            <span className="text-xs font-semibold text-foreground">Registrar confronto</span>
+          </Link>
+          <Link
+            to="/history"
+            className="flex items-center gap-2 rounded-2xl border border-border bg-background/50 px-3 py-3 transition-colors active:bg-accent/30"
+          >
+            <History className="h-4 w-4 text-muted-foreground" />
+            <span className="text-xs font-semibold text-foreground">Histórico</span>
+          </Link>
+          <Link
+            to="/groups/$groupId/seasons"
+            params={{ groupId }}
+            className="flex items-center gap-2 rounded-2xl border border-border bg-background/50 px-3 py-3 transition-colors active:bg-accent/30"
+          >
+            <Trophy className="h-4 w-4 text-muted-foreground" />
+            <span className="text-xs font-semibold text-foreground">Temporadas</span>
+          </Link>
+          <button
+            onClick={() => {
+              if (navigator.share) {
+                navigator.share({
+                  title: `Duelo: ${displayNameA} vs ${displayNameB}`,
+                  text: `${displayNameA} ${winsA} x ${winsB} ${displayNameB} | RankMyMatch`,
+                  url: window.location.href,
+                });
+              }
+            }}
+            className="flex items-center gap-2 rounded-2xl border border-border bg-background/50 px-3 py-3 transition-colors active:bg-accent/30"
+          >
+            <Share2 className="h-4 w-4 text-muted-foreground" />
+            <span className="text-xs font-semibold text-foreground">Compartilhar</span>
+          </button>
+        </div>
+      </div>
+
+      {/*
+        Block 8: Medalhas (placeholder estrutural).
+        Estrutura preparada para futura implementação:
+          - Carrasco: jogador com mais vitórias contra o adversário
+          - Invicto: maior sequência sem perder
+          - Rei da virada: vitórias após estar perdendo em sets
+          - Freguês: jogador com mais derrotas no confronto direto
+        Aqui apenas um teaser elegante e bloqueado para manter o layout completo.
+      */}
+      <div className="rounded-3xl border border-dashed border-border/60 bg-card/30 p-5">
+        <div className="mb-3 flex items-center justify-between">
+          <div className="flex items-center gap-1.5">
+            <Medal className="h-3.5 w-3.5 text-muted-foreground" />
+            <h3 className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+              Medalhas do Duelo
+            </h3>
+          </div>
+          <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[9px] font-semibold text-muted-foreground">
+            <Lock className="h-2.5 w-2.5" />
+            Em breve
+          </span>
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          {[
+            { emoji: "🗡️", label: "Carrasco" },
+            { emoji: "🛡️", label: "Invicto" },
+            { emoji: "👑", label: "Rei da virada" },
+            { emoji: "🎯", label: "Freguês" },
+          ].map((m) => (
+            <div
+              key={m.label}
+              className="flex items-center gap-2 rounded-2xl border border-border/50 bg-background/30 px-3 py-2.5 opacity-60"
+            >
+              <span className="text-lg" aria-hidden>{m.emoji}</span>
+              <span className="text-[11px] font-semibold text-muted-foreground">{m.label}</span>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
