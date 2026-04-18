@@ -606,7 +606,7 @@ function RoundDetailPage() {
       )}
 
       {/* Manual match creation - hidden for rivalry */}
-      {isAdmin && matches.length === 0 && !rivalry && (
+      {canLaunchManual && (
         <div className="mx-5 mb-5">
           <button
             onClick={() => setShowManualMatch(true)}
