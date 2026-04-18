@@ -757,16 +757,16 @@ function RecentMeetings({
                   {sameTeam ? "PC" : "vs"}
                 </span>
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-baseline gap-2">
+                  <div className="inline-flex max-w-full items-baseline gap-1.5">
                     {sameTeam ? (
-                      <p className="min-w-0 flex-1 truncate text-[11px] font-semibold text-foreground leading-tight">
+                      <p className="min-w-0 truncate text-[11px] font-semibold text-foreground leading-tight">
                         {nameA} & {nameB}
                         <span className={`ml-1 text-[10px] font-bold ${m.winner ? (m.winner === m.aTeam ? "text-success" : "text-destructive") : "text-muted-foreground"}`}>
                           {m.winner ? (m.winner === m.aTeam ? "V" : "D") : "—"}
                         </span>
                       </p>
                     ) : (
-                      <p className="min-w-0 flex-1 truncate text-[11px] font-semibold leading-tight">
+                      <p className="min-w-0 truncate text-[11px] font-semibold leading-tight">
                         <span className={aWonMatch ? "text-success" : "text-foreground"}>{nameA}</span>
                         <span className="mx-0.5 text-muted-foreground">vs</span>
                         <span className={bWonMatch ? "text-success" : "text-foreground"}>{nameB}</span>
@@ -906,9 +906,9 @@ function StatRow({
   );
 }
 
-function SectionCard({ title, icon, children }: { title: string; icon: React.ReactNode; children: React.ReactNode }) {
+function SectionCard({ title, icon, children, className = "" }: { title: string; icon: React.ReactNode; children: React.ReactNode; className?: string }) {
   return (
-    <section className="mt-3 rounded-3xl border border-border bg-card/40 p-4 lg:p-5">
+    <section className={`mt-3 rounded-3xl border border-border bg-card/40 p-4 lg:p-5 ${className}`}>
       <div className="mb-2 flex items-center gap-2">
         {icon}
         <h2 className="font-display text-sm font-bold text-foreground">{title}</h2>
@@ -964,42 +964,44 @@ function CareerTab({ a, b }: { a: PlayerAggregate; b: PlayerAggregate }) {
         <EloSparkline a={a} b={b} />
       </SectionCard>
 
-      <SectionCard title="Aproveitamento total" icon={<Trophy className="h-4 w-4 text-primary" />}>
-        <StatRow label="Partidas" a={a.career.matches_played} b={b.career.matches_played} />
-        <StatRow label="Vitórias" a={a.career.matches_won} b={b.career.matches_won} />
-        <StatRow
-          label="Aproveitamento"
-          a={pct(a.career.matches_won, a.career.matches_played)}
-          b={pct(b.career.matches_won, b.career.matches_played)}
-          format={(v) => `${v}%`}
-        />
-        <StatRow label="Sets ganhos" a={a.career.sets_won} b={b.career.sets_won} />
-        <StatRow
-          label="Saldo de sets"
-          a={a.career.sets_won - a.career.sets_lost}
-          b={b.career.sets_won - b.career.sets_lost}
-          format={(v) => (v > 0 ? `+${v}` : `${v}`)}
-        />
-        <StatRow
-          label="Saldo de games"
-          a={a.career.games_won - a.career.games_lost}
-          b={b.career.games_won - b.career.games_lost}
-          format={(v) => (v > 0 ? `+${v}` : `${v}`)}
-        />
-      </SectionCard>
+      <div className="mt-3 grid grid-cols-1 gap-3 xl:grid-cols-2">
+        <SectionCard title="Aproveitamento total" icon={<Trophy className="h-4 w-4 text-primary" />} className="mt-0 h-full">
+          <StatRow label="Partidas" a={a.career.matches_played} b={b.career.matches_played} />
+          <StatRow label="Vitórias" a={a.career.matches_won} b={b.career.matches_won} />
+          <StatRow
+            label="Aproveitamento"
+            a={pct(a.career.matches_won, a.career.matches_played)}
+            b={pct(b.career.matches_won, b.career.matches_played)}
+            format={(v) => `${v}%`}
+          />
+          <StatRow label="Sets ganhos" a={a.career.sets_won} b={b.career.sets_won} />
+          <StatRow
+            label="Saldo de sets"
+            a={a.career.sets_won - a.career.sets_lost}
+            b={b.career.sets_won - b.career.sets_lost}
+            format={(v) => (v > 0 ? `+${v}` : `${v}`)}
+          />
+          <StatRow
+            label="Saldo de games"
+            a={a.career.games_won - a.career.games_lost}
+            b={b.career.games_won - b.career.games_lost}
+            format={(v) => (v > 0 ? `+${v}` : `${v}`)}
+          />
+        </SectionCard>
 
-      <SectionCard title="Conquistas" icon={<Trophy className="h-4 w-4 text-warning" />}>
-        <StatRow label="Temporadas" a={a.career.seasons_played} b={b.career.seasons_played} />
-        <StatRow label="Títulos (1º)" a={a.career.titles} b={b.career.titles} />
-        <StatRow label="Pódios" a={a.career.podiums} b={b.career.podiums} />
-        <StatRow
-          label="Melhor posição"
-          a={a.career.best_position ?? 999}
-          b={b.career.best_position ?? 999}
-          format={(v) => (v === 999 ? "—" : `${v}º`)}
-          higherIsBetter={false}
-        />
-      </SectionCard>
+        <SectionCard title="Conquistas" icon={<Trophy className="h-4 w-4 text-warning" />} className="mt-0 h-full">
+          <StatRow label="Temporadas" a={a.career.seasons_played} b={b.career.seasons_played} />
+          <StatRow label="Títulos (1º)" a={a.career.titles} b={b.career.titles} />
+          <StatRow label="Pódios" a={a.career.podiums} b={b.career.podiums} />
+          <StatRow
+            label="Melhor posição"
+            a={a.career.best_position ?? 999}
+            b={b.career.best_position ?? 999}
+            format={(v) => (v === 999 ? "—" : `${v}º`)}
+            higherIsBetter={false}
+          />
+        </SectionCard>
+      </div>
 
       <SectionCard title="Sequências e frequência" icon={<TrendingUp className="h-4 w-4 text-success" />}>
         <StatRow label="Maior sequência V" a={a.streakMax} b={b.streakMax} />
