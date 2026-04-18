@@ -585,6 +585,7 @@ function NonMemberView({
   memberCount,
   rivalry,
   hasPlaceholders,
+  isPremium,
   onJoin,
   onClaim,
   joinDialog,
@@ -595,6 +596,7 @@ function NonMemberView({
   memberCount: number;
   rivalry: boolean;
   hasPlaceholders: boolean;
+  isPremium: boolean;
   onJoin: () => void;
   onClaim: () => void;
   joinDialog: React.ReactNode;
@@ -627,6 +629,12 @@ function NonMemberView({
                 <Globe className="h-3.5 w-3.5 text-muted-foreground" />
               ) : (
                 <Lock className="h-3.5 w-3.5 text-muted-foreground" />
+              )}
+              {isPremium && (
+                <span className="inline-flex items-center gap-0.5 rounded-full bg-[var(--rank-gold)]/15 px-2 py-0.5 text-[10px] font-bold text-[var(--rank-gold)] ring-1 ring-[var(--rank-gold)]/40">
+                  <Crown className="h-3 w-3" />
+                  PREMIUM
+                </span>
               )}
               {rivalry && (
                 <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary">
