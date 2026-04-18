@@ -741,12 +741,15 @@ function RecentMeetings({
   const nameA = displayName(a);
   const nameB = displayName(b);
   const [filter, setFilter] = useState<MeetingFilter>("all");
+  const [showAll, setShowAll] = useState(false);
 
   const filtered = useMemo(() => {
     if (filter === "opponents") return h2h.recentMeetings.filter((m) => !m.asPartners);
     if (filter === "partners") return h2h.recentMeetings.filter((m) => m.asPartners);
     return h2h.recentMeetings;
   }, [filter, h2h.recentMeetings]);
+
+  const visible = showAll ? filtered : filtered.slice(0, 5);
 
   const counts = useMemo(() => ({
     all: h2h.recentMeetings.length,
@@ -758,19 +761,19 @@ function RecentMeetings({
     <section className="mt-3 rounded-3xl border border-border bg-card/40 p-4 lg:p-5">
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <Swords className="h-4 w-4 text-destructive" />
-        <h2 className="font-display text-sm font-bold text-foreground">Últimos confrontos</h2>
-        <span className="ml-auto text-[10px] text-muted-foreground">{filtered.length} de {counts.all}</span>
+        <h2 className="font-display text-sm font-bold text-foreground">Confrontos</h2>
+        <span className="ml-auto text-[10px] text-muted-foreground">{visible.length} de {filtered.length}</span>
       </div>
 
       {/* Filter pills */}
       <div className="mb-3 inline-flex flex-wrap gap-1 rounded-full border border-border bg-background/40 p-1">
-        <FilterPill active={filter === "all"} onClick={() => setFilter("all")}>
+        <FilterPill active={filter === "all"} onClick={() => { setFilter("all"); setShowAll(false); }}>
           Todos <span className="ml-1 opacity-70">{counts.all}</span>
         </FilterPill>
-        <FilterPill active={filter === "opponents"} onClick={() => setFilter("opponents")}>
+        <FilterPill active={filter === "opponents"} onClick={() => { setFilter("opponents"); setShowAll(false); }}>
           Adversários <span className="ml-1 opacity-70">{counts.opponents}</span>
         </FilterPill>
-        <FilterPill active={filter === "partners"} onClick={() => setFilter("partners")}>
+        <FilterPill active={filter === "partners"} onClick={() => { setFilter("partners"); setShowAll(false); }}>
           Parceiros <span className="ml-1 opacity-70">{counts.partners}</span>
         </FilterPill>
       </div>
@@ -778,8 +781,8 @@ function RecentMeetings({
       {filtered.length === 0 ? (
         <p className="py-6 text-center text-xs text-muted-foreground">Nenhum confronto neste filtro.</p>
       ) : (
-        <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-3 lg:grid-cols-3">
-          {filtered.map((m) => {
+        <ul className="flex flex-col divide-y divide-border/30 overflow-hidden rounded-xl border border-border/40 bg-background/30">
+          {visible.map((m) => {
             const aWonMatch = m.winner === m.aTeam;
             const bWonMatch = m.winner === m.bTeam;
             const sameTeam = m.asPartners;
@@ -803,14 +806,12 @@ function RecentMeetings({
             let othersLine: React.ReactNode = null;
             if (m.others.length > 0) {
               if (sameTeam) {
-                // A & B on same team — others on opposing team are opponents
                 const oppTeam = m.aTeam === "A" ? "B" : "A";
                 const opponents = m.others.filter((o) => o.team === oppTeam).map((o) => o.name);
                 if (opponents.length) {
                   othersLine = <>vs <span className="text-foreground/80">{opponents.join(" & ")}</span></>;
                 }
               } else {
-                // A and B on opposing teams — each may have a partner
                 const aPartner = m.others.find((o) => o.team === m.aTeam);
                 const bPartner = m.others.find((o) => o.team === m.bTeam);
                 if (aPartner || bPartner) {
@@ -833,62 +834,62 @@ function RecentMeetings({
               : "";
 
             const inner = (
-              <div className="flex flex-col items-center gap-1.5 py-2.5 px-2 text-center">
+              <div className="flex items-center gap-2.5 px-3 py-2">
                 {/* Badge */}
                 <span
-                  className={`rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider ring-1 ${
+                  className={`shrink-0 rounded-full px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider ring-1 ${
                     sameTeam
                       ? "bg-primary/15 text-primary ring-primary/30"
                       : "bg-destructive/10 text-destructive ring-destructive/25"
                   }`}
                   title={sameTeam ? "Parceiros" : "Adversários"}
                 >
-                  {sameTeam ? "Parceiros" : "Adversários"}
+                  {sameTeam ? "DUPLA" : "VS"}
                 </span>
 
-                {/* Names */}
-                {sameTeam ? (
-                  <p className="max-w-full truncate text-[12px] font-semibold leading-tight text-foreground">
-                    {nameA} & {nameB}
-                  </p>
-                ) : (
-                  <p className="max-w-full truncate text-[12px] font-semibold leading-tight">
-                    <span className={aWonMatch ? "text-success" : "text-foreground"}>{nameA}</span>
-                    <span className="mx-1 text-muted-foreground">vs</span>
-                    <span className={bWonMatch ? "text-success" : "text-foreground"}>{nameB}</span>
-                  </p>
-                )}
-
-                {/* Score — prominent and centered */}
-                <div className="inline-flex items-center gap-2 rounded-lg bg-muted/40 px-2.5 py-1">
-                  {winLabel && (
-                    <span className={`font-display text-[11px] font-bold ${winLabelClass}`}>{winLabel}</span>
+                {/* Names + others (compact) */}
+                <div className="min-w-0 flex-1">
+                  {sameTeam ? (
+                    <p className="truncate text-[12px] font-semibold leading-tight text-foreground">
+                      {nameA} & {nameB}
+                    </p>
+                  ) : (
+                    <p className="truncate text-[12px] font-semibold leading-tight">
+                      <span className={aWonMatch ? "text-success" : "text-foreground"}>{nameA}</span>
+                      <span className="mx-1 text-muted-foreground">vs</span>
+                      <span className={bWonMatch ? "text-success" : "text-foreground"}>{nameB}</span>
+                    </p>
                   )}
-                  <span className="font-display text-[13px] font-bold tabular-nums text-foreground">
+                  {othersLine && (
+                    <p className="truncate text-[10px] text-muted-foreground leading-tight">
+                      {othersLine}
+                    </p>
+                  )}
+                </div>
+
+                {/* Score */}
+                <div className="shrink-0 inline-flex items-center gap-1.5 rounded-md bg-muted/50 px-2 py-1">
+                  {winLabel && (
+                    <span className={`font-display text-[10px] font-bold ${winLabelClass}`}>{winLabel}</span>
+                  )}
+                  <span className="font-display text-[12px] font-bold tabular-nums text-foreground">
                     {scoreLine}
                   </span>
                 </div>
 
-                {/* Others context */}
-                {othersLine && (
-                  <p className="max-w-full truncate text-[10px] text-muted-foreground leading-tight">
-                    {othersLine}
-                  </p>
-                )}
-
                 {/* Date */}
-                <p className="text-[9px] uppercase tracking-wider text-muted-foreground/80 leading-tight">
+                <p className="shrink-0 text-[9px] uppercase tracking-wider text-muted-foreground/80 leading-tight tabular-nums w-[68px] text-right">
                   {formatMeetingDate(m.created_at)}
                 </p>
               </div>
             );
             return (
-              <li key={m.match_id} className="rounded-lg border border-border/40 bg-background/30 transition hover:bg-background/50">
+              <li key={m.match_id} className="bg-background/0 transition hover:bg-background/40">
                 {canLink ? (
                   <Link
                     to="/groups/$groupId/seasons/$seasonId/rounds/$roundId"
                     params={{ groupId, seasonId: m.season_id, roundId: m.round_id }}
-                    className="block rounded-lg transition active:bg-accent/40 hover:bg-accent/20"
+                    className="block transition active:bg-accent/40 hover:bg-accent/20"
                   >
                     {inner}
                   </Link>
@@ -899,6 +900,18 @@ function RecentMeetings({
             );
           })}
         </ul>
+      )}
+
+      {filtered.length > 5 && (
+        <div className="mt-3 flex justify-center">
+          <button
+            type="button"
+            onClick={() => setShowAll((v) => !v)}
+            className="rounded-full border border-border bg-background/60 px-3 py-1.5 text-[11px] font-semibold text-foreground transition hover:bg-accent"
+          >
+            {showAll ? "Mostrar menos" : `Ver histórico completo (${filtered.length})`}
+          </button>
+        </div>
       )}
     </section>
   );
@@ -1003,13 +1016,40 @@ function StatRow({
   );
 }
 
-function SectionCard({ title, icon, children, className = "" }: { title: string; icon: React.ReactNode; children: React.ReactNode; className?: string }) {
+function SectionCard({
+  title,
+  icon,
+  children,
+  className = "",
+  a,
+  b,
+}: {
+  title: string;
+  icon: React.ReactNode;
+  children: React.ReactNode;
+  className?: string;
+  a?: PlayerAggregate;
+  b?: PlayerAggregate;
+}) {
   return (
     <section className={`mt-3 rounded-3xl border border-border bg-card/40 p-4 lg:p-5 ${className}`}>
       <div className="mb-2 flex items-center gap-2">
         {icon}
         <h2 className="font-display text-sm font-bold text-foreground">{title}</h2>
       </div>
+      {a && b && (
+        <div className="sticky top-0 z-[1] -mx-4 mb-1 grid grid-cols-[1fr_auto_1fr] items-center gap-3 border-b border-border/40 bg-card/80 px-4 py-1.5 backdrop-blur lg:-mx-5 lg:px-5">
+          <div className="flex items-center justify-end gap-1.5">
+            <span className="truncate text-[10px] font-bold uppercase tracking-wider text-primary">{displayName(a)}</span>
+            <PlayerAvatar avatarUrl={a.profile.avatar_url} name={a.profile.name} size="sm" className="!h-5 !w-5 ring-1 ring-primary/40" />
+          </div>
+          <span className="text-[9px] font-semibold text-muted-foreground">vs</span>
+          <div className="flex items-center justify-start gap-1.5">
+            <PlayerAvatar avatarUrl={b.profile.avatar_url} name={b.profile.name} size="sm" className="!h-5 !w-5 ring-1 ring-rank-silver/40" />
+            <span className="truncate text-[10px] font-bold uppercase tracking-wider text-foreground">{displayName(b)}</span>
+          </div>
+        </div>
+      )}
       <div className="divide-y divide-border/40">{children}</div>
     </section>
   );
@@ -1056,14 +1096,14 @@ function CareerTab({ a, b }: { a: PlayerAggregate; b: PlayerAggregate }) {
     <>
       {/* Row 1: Elo + Aproveitamento */}
       <div className="mt-3 grid grid-cols-1 gap-3 xl:grid-cols-2">
-        <SectionCard title="Elo (carreira no grupo)" icon={<Activity className="h-4 w-4 text-primary" />} className="mt-0 h-full">
+        <SectionCard title="Elo (carreira no grupo)" icon={<Activity className="h-4 w-4 text-primary" />} className="mt-0 h-full" a={a} b={b}>
           <StatRow label="Elo atual" a={a.eloCurrent} b={b.eloCurrent} format={(v) => Math.round(v).toString()} />
           <StatRow label="Pico histórico" a={a.eloPeak} b={b.eloPeak} format={(v) => Math.round(v).toString()} />
-          <StatRow label="Vale histórico" a={a.eloLow} b={b.eloLow} format={(v) => Math.round(v).toString()} higherIsBetter={false} />
+          <StatRow label="Pior histórico" a={a.eloLow} b={b.eloLow} format={(v) => Math.round(v).toString()} higherIsBetter={true} />
           <EloSparkline a={a} b={b} />
         </SectionCard>
 
-        <SectionCard title="Aproveitamento total" icon={<Trophy className="h-4 w-4 text-primary" />} className="mt-0 h-full">
+        <SectionCard title="Aproveitamento total" icon={<Trophy className="h-4 w-4 text-primary" />} className="mt-0 h-full" a={a} b={b}>
           <StatRow label="Partidas" a={a.career.matches_played} b={b.career.matches_played} />
           <StatRow label="Vitórias" a={a.career.matches_won} b={b.career.matches_won} />
           <StatRow
@@ -1090,7 +1130,7 @@ function CareerTab({ a, b }: { a: PlayerAggregate; b: PlayerAggregate }) {
 
       {/* Row 2: Conquistas + Sequências/Frequência */}
       <div className="mt-3 grid grid-cols-1 gap-3 xl:grid-cols-2">
-        <SectionCard title="Conquistas" icon={<Trophy className="h-4 w-4 text-warning" />} className="mt-0 h-full">
+        <SectionCard title="Conquistas" icon={<Trophy className="h-4 w-4 text-warning" />} className="mt-0 h-full" a={a} b={b}>
           <StatRow label="Temporadas" a={a.career.seasons_played} b={b.career.seasons_played} />
           <StatRow label="Títulos (1º)" a={a.career.titles} b={b.career.titles} />
           <StatRow label="Pódios" a={a.career.podiums} b={b.career.podiums} />
@@ -1103,7 +1143,7 @@ function CareerTab({ a, b }: { a: PlayerAggregate; b: PlayerAggregate }) {
           />
         </SectionCard>
 
-        <SectionCard title="Sequências e frequência" icon={<TrendingUp className="h-4 w-4 text-success" />} className="mt-0 h-full">
+        <SectionCard title="Sequências e frequência" icon={<TrendingUp className="h-4 w-4 text-success" />} className="mt-0 h-full" a={a} b={b}>
           <StatRow label="Maior sequência V" a={a.streakMax} b={b.streakMax} />
           <StatRow
             label="Sequência atual"
@@ -1200,7 +1240,7 @@ function SeasonTab({ a, b, latestSeasonId }: { a: PlayerAggregate; b: PlayerAggr
       )}
 
       <div className="mt-3 grid grid-cols-1 gap-3 xl:grid-cols-2">
-        <SectionCard title={`Posição — ${seasonName}`} icon={<Trophy className="h-4 w-4 text-primary" />} className="mt-0 h-full">
+        <SectionCard title={`Posição — ${seasonName}`} icon={<Trophy className="h-4 w-4 text-primary" />} className="mt-0 h-full" a={a} b={b}>
           <StatRow
             label="Posição"
             a={A.position ?? 999}
@@ -1211,7 +1251,7 @@ function SeasonTab({ a, b, latestSeasonId }: { a: PlayerAggregate; b: PlayerAggr
           <StatRow label="Elo da temporada" a={A.rating} b={B.rating} format={(v) => Math.round(v).toString()} />
         </SectionCard>
 
-        <SectionCard title={`Aproveitamento — ${seasonName}`} icon={<Activity className="h-4 w-4 text-primary" />} className="mt-0 h-full">
+        <SectionCard title={`Aproveitamento — ${seasonName}`} icon={<Activity className="h-4 w-4 text-primary" />} className="mt-0 h-full" a={a} b={b}>
           <StatRow label="Partidas" a={A.matches_played} b={B.matches_played} />
           <StatRow label="Vitórias" a={A.matches_won} b={B.matches_won} />
           <StatRow
