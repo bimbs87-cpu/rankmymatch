@@ -284,12 +284,12 @@ export function RankingPlayerDetails(props: Props) {
             <svg viewBox={`0 0 ${sparkPath.W} ${sparkPath.H}`} className="w-full h-14" preserveAspectRatio="none">
               <defs>
                 <linearGradient id={`spark-${userId}`} x1="0" x2="0" y1="0" y2="1">
-                  <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity="0.3" />
-                  <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity="0" />
+                  <stop offset="0%" stopColor="var(--primary)" stopOpacity="0.3" />
+                  <stop offset="100%" stopColor="var(--primary)" stopOpacity="0" />
                 </linearGradient>
               </defs>
               <path d={sparkPath.area} fill={`url(#spark-${userId})`} />
-              <path d={sparkPath.d} stroke="hsl(var(--primary))" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+              <path d={sparkPath.d} stroke="var(--primary)" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           ) : (
             <div className="h-14 flex items-center justify-center text-[10px] text-muted-foreground">
