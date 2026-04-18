@@ -950,7 +950,7 @@ function RankingPage() {
                       </div>
                     </div>
 
-                    {isExpanded && canExpand && selectedSeason && (
+                    {!compareMode && isExpanded && canExpand && selectedSeason && (
                       <RankingPlayerDetails
                         userId={entry.user_id}
                         seasonId={selectedSeason.id}
