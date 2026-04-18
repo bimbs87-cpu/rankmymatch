@@ -958,8 +958,13 @@ function CompareLandingPage() {
                 onClick={openSaveFavorite}
                 size="lg"
                 variant="outline"
+                disabled={favorites.length >= MAX_FAVORITES}
                 className="rounded-full shadow-lg shrink-0 px-4"
-                title="Salvar como favorito"
+                title={
+                  favorites.length >= MAX_FAVORITES
+                    ? `Limite de ${MAX_FAVORITES} favoritos atingido`
+                    : "Salvar como favorito"
+                }
               >
                 <Star className="h-4 w-4" />
               </Button>
