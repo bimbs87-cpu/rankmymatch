@@ -667,11 +667,13 @@ function RecentMeetings({
                     <span className={bWonMatch ? "text-success" : "text-foreground"}>{nameB}</span>
                   </p>
                 )}
-                <p className="truncate text-[9px] text-muted-foreground leading-tight">
-                  {formatMeetingDate(m.created_at)}
-                </p>
+                <div className="flex items-center justify-between gap-2">
+                  <p className="truncate text-[9px] text-muted-foreground leading-tight">
+                    {formatMeetingDate(m.created_at)}
+                  </p>
+                  <span className="shrink-0 font-display text-[10px] font-bold tabular-nums text-foreground">{scoreLine}</span>
+                </div>
               </div>
-              <span className="shrink-0 font-display text-[10px] font-bold tabular-nums text-foreground">{scoreLine}</span>
             </>
           );
           return (
