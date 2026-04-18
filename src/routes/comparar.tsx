@@ -180,6 +180,17 @@ function CompareLandingPage() {
           ratingMap.set(r.user_id, Number(r.rating));
         }
 
+        const gamesMap = new Map<string, number>();
+        for (const r of (statsRes.data as any[]) || []) {
+          gamesMap.set(r.user_id, Number(r.matches_played) || 0);
+        }
+        // Fallback: ranking_snapshots also has matches_played
+        for (const r of (snapsRes.data as any[]) || []) {
+          if (!gamesMap.has(r.user_id) && r.matches_played != null) {
+            gamesMap.set(r.user_id, Number(r.matches_played));
+          }
+        }
+
         // Recent trend: sum of last 5 rating_changes per user in current season
         const trendMap = new Map<string, number>();
         if (sId) {
