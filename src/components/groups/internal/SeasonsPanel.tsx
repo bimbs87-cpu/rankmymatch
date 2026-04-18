@@ -221,8 +221,61 @@ function SeasonStatusActions({ season, onChanged }: { season: any; onChanged: ()
     setBusy(false);
   };
 
+  const remove = async () => {
+    const confirmText = `EXCLUIR ${season.name}`;
+    const typed = window.prompt(
+      `⚠️ Excluir permanentemente a temporada "${season.name}"?\n\nIsso vai apagar:\n• Todas as rodadas, partidas e sets\n• Todos os pontos de Elo e snapshots de ranking\n• Estatísticas dos jogadores nesta temporada\n\nEsta ação NÃO pode ser desfeita.\n\nDigite "${confirmText}" para confirmar:`
+    );
+    if (typed !== confirmText) {
+      if (typed !== null) toast.error("Texto de confirmação não confere");
+      return;
+    }
+    setBusy(true);
+    try {
+      // Fetch rounds belonging to this season
+      const { data: rounds, error: rErr } = await supabase
+        .from("rounds").select("id").eq("season_id", season.id);
+      if (rErr) throw rErr;
+      const roundIds = (rounds ?? []).map((r) => r.id);
+
+      if (roundIds.length) {
+        const { data: matches, error: mErr } = await supabase
+          .from("matches").select("id").in("round_id", roundIds);
+        if (mErr) throw mErr;
+        const matchIds = (matches ?? []).map((m) => m.id);
+
+        if (matchIds.length) {
+          // delete in dependency order
+          await supabase.from("match_sets").delete().in("match_id", matchIds);
+          await supabase.from("match_players").delete().in("match_id", matchIds);
+          await supabase.from("match_confirmations").delete().in("match_id", matchIds);
+          await supabase.from("rating_events").delete().in("match_id", matchIds);
+          await supabase.from("matches").delete().in("id", matchIds);
+        }
+        await supabase.from("courts").delete().in("round_id", roundIds);
+        await supabase.from("round_presence").delete().in("round_id", roundIds);
+        await supabase.from("waiting_list").delete().in("round_id", roundIds);
+        await supabase.from("rounds").delete().in("id", roundIds);
+      }
+
+      await supabase.from("ranking_snapshots").delete().eq("season_id", season.id);
+      await supabase.from("player_stats_by_season").delete().eq("season_id", season.id);
+
+      const { error: sErr } = await supabase.from("seasons").delete().eq("id", season.id);
+      if (sErr) throw sErr;
+
+      toast.success(`Temporada "${season.name}" excluída`);
+      onChanged();
+    } catch (err: any) {
+      console.error("Erro ao excluir temporada", err);
+      toast.error(err?.message || "Erro ao excluir temporada");
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
-    <div className="border-t border-border bg-muted/10 p-3">
+    <div className="border-t border-border bg-muted/10 p-3 space-y-2">
       {isActive ? (
         <button
           onClick={finish}
@@ -240,6 +293,13 @@ function SeasonStatusActions({ season, onChanged }: { season: any; onChanged: ()
           <RotateCcw className="h-3.5 w-3.5" /> Reabrir temporada
         </button>
       )}
+      <button
+        onClick={remove}
+        disabled={busy}
+        className="flex w-full items-center justify-center gap-2 rounded-xl border border-destructive/30 bg-destructive/5 py-2.5 text-xs font-bold text-destructive hover:bg-destructive/15 disabled:opacity-50"
+      >
+        <Trash2 className="h-3.5 w-3.5" /> Excluir temporada
+      </button>
     </div>
   );
 }
