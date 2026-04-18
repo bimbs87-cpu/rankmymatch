@@ -154,7 +154,7 @@ function CompareLandingPage() {
           return;
         }
 
-        const [profilesRes, snapsRes] = await Promise.all([
+        const [profilesRes, snapsRes, statsRes] = await Promise.all([
           supabase
             .from("user_profiles")
             .select("user_id, name, nickname, avatar_url")
@@ -162,7 +162,14 @@ function CompareLandingPage() {
           sId
             ? supabase
                 .from("ranking_snapshots")
-                .select("user_id, rating")
+                .select("user_id, rating, position, matches_played")
+                .eq("season_id", sId)
+                .in("user_id", userIds)
+            : Promise.resolve({ data: [] as any[] }),
+          sId
+            ? supabase
+                .from("player_stats_by_season")
+                .select("user_id, matches_played")
                 .eq("season_id", sId)
                 .in("user_id", userIds)
             : Promise.resolve({ data: [] as any[] }),
