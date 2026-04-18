@@ -253,6 +253,39 @@ export function useGroupDashboard(groupId: string | null) {
       }
       activity.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
+      // Pending join requests (admin-only; RLS will return [] for non-admins)
+      let pendingJoinRequests: PendingJoinReq[] = [];
+      const { data: reqs } = await supabase
+        .from("group_join_requests")
+        .select("id, user_id, message, created_at, claimed_player_id")
+        .eq("group_id", groupId)
+        .eq("status", "pending")
+        .order("created_at", { ascending: false });
+      if (reqs && reqs.length) {
+        const reqUserIds = [...new Set(reqs.map((r) => r.user_id))];
+        const claimedIds = [...new Set(reqs.map((r) => r.claimed_player_id).filter(Boolean) as string[])];
+        const allIds = [...new Set([...reqUserIds, ...claimedIds])];
+        const { data: profs } = await supabase
+          .from("user_profiles")
+          .select("user_id, name, nickname, avatar_url")
+          .in("user_id", allIds);
+        const profMap = new Map((profs || []).map((p) => [p.user_id, p]));
+        pendingJoinRequests = reqs.map((r) => {
+          const p = profMap.get(r.user_id);
+          const cp = r.claimed_player_id ? profMap.get(r.claimed_player_id) : null;
+          return {
+            id: r.id,
+            user_id: r.user_id,
+            user_name: p?.nickname || p?.name || "Jogador",
+            user_avatar: p?.avatar_url ?? null,
+            message: r.message,
+            created_at: r.created_at,
+            claimed_player_id: r.claimed_player_id,
+            claimed_player_name: cp ? (cp.nickname || cp.name || null) : null,
+          };
+        });
+      }
+
       setData({
         next_round: nextRound,
         my_position: myPos,
@@ -271,6 +304,7 @@ export function useGroupDashboard(groupId: string | null) {
             }
           : null,
         member_count: memberCount,
+        pending_join_requests: pendingJoinRequests,
       });
     } catch (err) {
       console.error("Erro ao carregar dashboard do grupo:", err);
