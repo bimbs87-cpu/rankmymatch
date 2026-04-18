@@ -2264,10 +2264,19 @@ function DashboardPage() {
                   : m.partner_name
                     ? `${m.opponent_names[0] || "Adversário"} venceu`
                     : `${m.opponent_names[0] || "Adversário"} venceu`;
+                const canLink = !!(m.round_id && m.group_id && m.season_id);
+                const RowTag: any = canLink ? Link : "div";
+                const rowProps: any = canLink
+                  ? {
+                      to: "/groups/$groupId/seasons/$seasonId/rounds/$roundId",
+                      params: { groupId: m.group_id!, seasonId: m.season_id!, roundId: m.round_id! },
+                    }
+                  : {};
                 return (
-                  <div
+                  <RowTag
                     key={m.id}
-                    className="flex items-center gap-2.5 rounded-xl border border-border bg-card px-3 py-2"
+                    {...rowProps}
+                    className={`flex items-center gap-2.5 rounded-xl border border-border bg-card px-3 py-2 ${canLink ? "active:bg-accent/40 transition-colors" : ""}`}
                   >
                     {/* Winner badge */}
                     <div
