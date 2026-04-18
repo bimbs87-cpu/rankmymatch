@@ -68,11 +68,26 @@ export function QuickCreateSeasonDialog({
   );
   const [intervalWeeks, setIntervalWeeks] = useState<number>(1);
   const [scheduledTime, setScheduledTime] = useState<string>("19:00");
+  const [excludedDates, setExcludedDates] = useState<Set<string>>(new Set());
+
+  const generatedDates = useMemo(() => {
+    if (!generateDates) return [];
+    // Generate enough dates so that, after excluding skipped ones, we still hit totalRounds
+    return generateRoundDates(startDate, weekday, totalRounds + excludedDates.size, intervalWeeks);
+  }, [generateDates, startDate, weekday, totalRounds, intervalWeeks, excludedDates.size]);
 
   const previewDates = useMemo(() => {
-    if (!generateDates) return [];
-    return generateRoundDates(startDate, weekday, Math.min(totalRounds, 12), intervalWeeks);
-  }, [generateDates, startDate, weekday, totalRounds, intervalWeeks]);
+    return generatedDates.filter((d) => !excludedDates.has(d)).slice(0, totalRounds);
+  }, [generatedDates, excludedDates, totalRounds]);
+
+  const toggleExclude = (d: string) => {
+    setExcludedDates((prev) => {
+      const next = new Set(prev);
+      if (next.has(d)) next.delete(d);
+      else next.add(d);
+      return next;
+    });
+  };
 
   const submit = async () => {
     if (!user) return;
@@ -89,7 +104,9 @@ export function QuickCreateSeasonDialog({
     try {
       let seasonId: string;
       if (generateDates) {
-        const dates = generateRoundDates(startDate, weekday, totalRounds, intervalWeeks);
+        // Generate enough then drop excluded ones, keeping totalRounds
+        const all = generateRoundDates(startDate, weekday, totalRounds + excludedDates.size, intervalWeeks);
+        const dates = all.filter((d) => !excludedDates.has(d)).slice(0, totalRounds);
         const season = await createSeasonWithRounds({
           groupId,
           name: trimmed,
