@@ -151,7 +151,12 @@ function SeasonAccordion({
             <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-muted-foreground">
               <span className="flex items-center gap-1">
                 <Calendar className="h-3 w-3" />
-                {new Date(season.created_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "2-digit" })}
+                {(() => {
+                  const fmt = (d: string) => new Date(d + "T00:00:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "2-digit" });
+                  if (season.start_date && season.end_date) return `${fmt(season.start_date)} – ${fmt(season.end_date)}`;
+                  if (season.start_date) return `desde ${fmt(season.start_date)}`;
+                  return new Date(season.created_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "2-digit" });
+                })()}
               </span>
               <span>·</span>
               <span>{season.match_format === "1v1" ? "Singles" : "Duplas"}</span>
