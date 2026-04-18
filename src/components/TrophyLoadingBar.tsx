@@ -159,7 +159,7 @@ export function TrophyLoadingBar({
 
   if (fullScreen) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background px-8">
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-background px-8">
         {content}
       </div>
     );
