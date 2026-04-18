@@ -1060,6 +1060,14 @@ function RankingPage() {
                 Comparar
               </Link>
             </div>
+            {compareSelection.length >= 3 && (
+              <div className="mt-2 flex items-start gap-1.5 rounded-lg border border-warning/30 bg-warning/10 px-2.5 py-1.5">
+                <Info className="mt-0.5 h-3 w-3 shrink-0 text-warning" />
+                <p className="text-[10px] leading-tight text-foreground">
+                  Comparativos entre <span className="font-bold">2 jogadores</span> são mais completos (H2H, gráfico de Elo, vantagem). Com {compareSelection.length} verá uma tabela compacta lado a lado.
+                </p>
+              </div>
+            )}
           </div>
         </div>
       )}
