@@ -68,6 +68,7 @@ export function SeasonsPanel({ groupId, isAdmin }: Props) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [quickCreateOpen, setQuickCreateOpen] = useState(false);
   const [groupFormat, setGroupFormat] = useState<string>("doubles");
+  const [groupFixedDay, setGroupFixedDay] = useState<number | null>(null);
 
   // Realtime: refresh when any round in this group changes (status flips, etc.)
   useEffect(() => {
@@ -93,11 +94,12 @@ export function SeasonsPanel({ groupId, isAdmin }: Props) {
   useEffect(() => {
     supabase
       .from("groups")
-      .select("match_format")
+      .select("match_format, fixed_day")
       .eq("id", groupId)
       .single()
       .then(({ data }) => {
         if (data?.match_format) setGroupFormat(data.match_format);
+        if (data && "fixed_day" in data) setGroupFixedDay((data as any).fixed_day ?? null);
       });
   }, [groupId]);
 
@@ -128,6 +130,7 @@ export function SeasonsPanel({ groupId, isAdmin }: Props) {
         <QuickCreateSeasonDialog
           groupId={groupId}
           defaultMatchFormat={groupFormat}
+          fixedDay={groupFixedDay}
           onClose={() => setQuickCreateOpen(false)}
           onCreated={refresh}
         />
