@@ -399,9 +399,31 @@ export function QuickCreateSeasonDialog({
                         </button>
                       )}
                     </div>
-                    <p className="mb-1.5 text-[10px] text-muted-foreground">
-                      Clique em uma data para excluí-la (ex.: feriados).
-                    </p>
+                    <div className="mb-1.5 flex items-center justify-between gap-2">
+                      <p className="text-[10px] text-muted-foreground">
+                        Clique em uma data para excluí-la (ex.: feriados).
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const found = brHolidaysInRange(generatedDates);
+                          if (found.length === 0) {
+                            toast.info("Nenhum feriado nacional BR no período");
+                            return;
+                          }
+                          setExcludedDates((prev) => {
+                            const next = new Set(prev);
+                            for (const d of found) next.add(d);
+                            return next;
+                          });
+                          toast.success(`${found.length} feriado${found.length === 1 ? "" : "s"} excluído${found.length === 1 ? "" : "s"}`);
+                        }}
+                        className="shrink-0 rounded-full border border-border bg-background px-2 py-0.5 text-[10px] font-bold text-foreground hover:bg-muted"
+                        title="Excluir feriados nacionais BR (fixos + Páscoa, Carnaval, Corpus Christi)"
+                      >
+                        🇧🇷 Pular feriados
+                      </button>
+                    </div>
                     <div className="flex flex-wrap gap-1">
                       {generatedDates.slice(0, Math.min(generatedDates.length, totalRounds + 6)).map((d) => {
                         const dt = new Date(d + "T00:00:00");
