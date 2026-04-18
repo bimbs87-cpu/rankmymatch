@@ -199,6 +199,36 @@ export type Database = {
           },
         ]
       }
+      compare_favorites: {
+        Row: {
+          created_at: string
+          group_id: string
+          id: string
+          label: string
+          player_ids: string[]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          group_id: string
+          id?: string
+          label: string
+          player_ids: string[]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          group_id?: string
+          id?: string
+          label?: string
+          player_ids?: string[]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       courts: {
         Row: {
           court_number: number
