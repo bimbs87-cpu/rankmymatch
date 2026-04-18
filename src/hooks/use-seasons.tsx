@@ -230,37 +230,85 @@ export async function cancelPresence(roundId: string, userId: string) {
     .eq("user_id", userId);
 }
 
-// Shuffle and draw teams for 2v2 padel matches
-export async function drawTeams(roundId: string, confirmedPlayerIds: string[], actorId?: string) {
-  // Shuffle players
-  const shuffled = [...confirmedPlayerIds];
-  for (let i = shuffled.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+// Build singles pairings ordered by Elo.
+// 4 players: round 1 = 1v4/2v3, round 2 = 1v3/2v4, round 3 = 1v2/3v4 (King of the Court).
+// 6+ players (even): classic round-robin (circle method) ordered by Elo, returns round 1 only.
+function buildSinglesPairs(orderedIds: string[]): Array<[string, string]> {
+  const n = orderedIds.length;
+  if (n < 2 || n % 2 !== 0) return [];
+
+  if (n === 4) {
+    const [p1, p2, p3, p4] = orderedIds;
+    return [[p1, p4], [p2, p3]];
   }
 
+  // Round-robin circle method, first round (anchor + reversed tail vs head)
+  const pairs: Array<[string, string]> = [];
+  const half = n / 2;
+  const left = orderedIds.slice(0, half);
+  const right = orderedIds.slice(half).reverse();
+  for (let i = 0; i < half; i++) {
+    pairs.push([left[i], right[i]]);
+  }
+  return pairs;
+}
+
+// Shuffle and draw teams for 2v2 padel matches; for singles, pair by Elo (King of the Court).
+export async function drawTeams(roundId: string, confirmedPlayerIds: string[], actorId?: string) {
   // Get round info for notification and format
   const { data: roundData } = await supabase
     .from("rounds")
-    .select("round_number, group_id, match_format")
+    .select("round_number, group_id, match_format, season_id")
     .eq("id", roundId)
     .single();
 
   const isSingles = roundData?.match_format === "singles";
   const playersPerMatch = isSingles ? 2 : 4;
 
-  // Create matches
-  const matchCount = Math.floor(shuffled.length / playersPerMatch);
+  let pairings: Array<string[]> = [];
+
+  if (isSingles && roundData?.season_id && confirmedPlayerIds.length >= 2 && confirmedPlayerIds.length % 2 === 0) {
+    // Fetch latest ratings for these players in this season
+    const { data: snapshots } = await supabase
+      .from("ranking_snapshots")
+      .select("user_id, rating, snapshot_date")
+      .eq("season_id", roundData.season_id)
+      .in("user_id", confirmedPlayerIds)
+      .order("snapshot_date", { ascending: false });
+
+    const ratingMap = new Map<string, number>();
+    (snapshots || []).forEach((s) => {
+      if (!ratingMap.has(s.user_id)) ratingMap.set(s.user_id, Number(s.rating));
+    });
+
+    // Order players by rating desc (default 1000); tie-break random
+    const ordered = [...confirmedPlayerIds]
+      .map((id) => ({ id, rating: ratingMap.get(id) ?? 1000, r: Math.random() }))
+      .sort((a, b) => (b.rating - a.rating) || (a.r - b.r))
+      .map((x) => x.id);
+
+    const pairs = buildSinglesPairs(ordered);
+    pairings = pairs.map(([a, b]) => [a, b]);
+  } else {
+    // Default: shuffle and chunk
+    const shuffled = [...confirmedPlayerIds];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    const matchCount = Math.floor(shuffled.length / playersPerMatch);
+    for (let i = 0; i < matchCount; i++) {
+      pairings.push(shuffled.slice(i * playersPerMatch, (i + 1) * playersPerMatch));
+    }
+  }
+
+  const matchCount = pairings.length;
   const createdMatches = [];
 
   for (let i = 0; i < matchCount; i++) {
-    const start = i * playersPerMatch;
-    const teamA = isSingles
-      ? [shuffled[start]]
-      : shuffled.slice(start, start + 2);
-    const teamB = isSingles
-      ? [shuffled[start + 1]]
-      : shuffled.slice(start + 2, start + 4);
+    const group = pairings[i];
+    const teamA = isSingles ? [group[0]] : group.slice(0, 2);
+    const teamB = isSingles ? [group[1]] : group.slice(2, 4);
 
     const { data: match, error } = await supabase
       .from("matches")
