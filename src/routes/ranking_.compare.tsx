@@ -836,14 +836,26 @@ function ComparePage() {
             <p className="truncate font-display text-sm font-bold text-foreground lg:text-base">Comparativo</p>
             {groupName && <p className="truncate text-[10px] text-muted-foreground lg:text-xs">{groupName}</p>}
           </div>
-          <button
-            onClick={share}
-            className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card/60 px-3 py-1.5 text-xs font-semibold text-foreground transition hover:bg-accent"
-            aria-label="Compartilhar"
-          >
-            <Share2 className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">Compartilhar</span>
-          </button>
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={exportPng}
+              disabled={exporting || N >= 3}
+              className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card/60 px-3 py-1.5 text-xs font-semibold text-foreground transition hover:bg-accent disabled:opacity-50"
+              aria-label="Exportar como imagem"
+              title="Exportar como imagem PNG"
+            >
+              <ImageIcon className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">{exporting ? "Gerando..." : "Imagem"}</span>
+            </button>
+            <button
+              onClick={share}
+              className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card/60 px-3 py-1.5 text-xs font-semibold text-foreground transition hover:bg-accent"
+              aria-label="Compartilhar"
+            >
+              <Share2 className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Compartilhar</span>
+            </button>
+          </div>
         </div>
       </header>
 
