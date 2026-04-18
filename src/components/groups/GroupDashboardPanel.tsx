@@ -328,6 +328,7 @@ export function GroupDashboardPanel({ group, onLeft, onPresenceChanged }: Props)
                   </span>
                 )}
               </div>
+            </div>
           ) : (
             <div className="py-4 text-center">
               <CalendarDays className="mx-auto mb-1.5 h-6 w-6 text-muted-foreground/30" />
