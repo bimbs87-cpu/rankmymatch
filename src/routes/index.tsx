@@ -1022,49 +1022,68 @@ function DashboardPage() {
             <div className="relative flex flex-col rounded-3xl border border-primary/20 bg-primary/5 p-3 min-h-[140px] lg:min-h-0">
               <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Seu Ranking</p>
 
-              <Link
-                to="/ranking"
-                className="flex flex-1 flex-col"
-              >
-                {/* Top row: stats on the left, bar chart on the right */}
-                <div className="mt-1 flex flex-1 items-start gap-2">
-                  <div className="flex min-w-0 flex-1 flex-col">
-                    {/* Position */}
-                    <span className="font-display text-3xl font-bold leading-none text-primary">
-                      {ordinalSuffix(currentRanking.position)}
-                    </span>
-
-                    {/* Elo */}
-                    <p className="mt-1.5 font-display text-sm font-bold text-foreground leading-none">{Math.round(currentRanking.rating)} Elo</p>
-
-                    {/* V-D % ELO */}
-                    <div className="mt-1.5 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[10px] text-muted-foreground">
-                      <span className="font-semibold whitespace-nowrap">{currentRanking.matches_won}V {currentRanking.matches_played - currentRanking.matches_won}D</span>
-                      <span className="whitespace-nowrap">{winRate}%</span>
-                      {currentRanking.last_change !== null && (
-                        <span className={`flex items-center gap-0.5 font-semibold whitespace-nowrap ${currentRanking.last_change > 0 ? "text-success" : currentRanking.last_change < 0 ? "text-destructive" : ""}`}>
-                          {currentRanking.last_change > 0 ? <TrendingUp className="h-3 w-3" /> : currentRanking.last_change < 0 ? <TrendingDown className="h-3 w-3" /> : <Minus className="h-3 w-3" />}
-                          {currentRanking.last_change > 0 ? "+" : ""}{Math.round(currentRanking.last_change)}
-                        </span>
+              <Link to="/ranking" className="flex flex-1 flex-col">
+                {/* Top: Elo + delta — main visual */}
+                <div className="mt-1 flex items-baseline gap-1.5">
+                  <span className="font-display text-2xl font-extrabold leading-none text-foreground tabular-nums">
+                    {Math.round(currentRanking.rating)}
+                  </span>
+                  <span className="text-[10px] font-semibold text-muted-foreground">Elo</span>
+                  {currentRanking.last_change !== null && Math.abs(currentRanking.last_change) >= 1 && (
+                    <span
+                      className={`ml-auto inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-bold tabular-nums ${
+                        currentRanking.last_change > 0
+                          ? "bg-success/15 text-success"
+                          : "bg-destructive/15 text-destructive"
+                      }`}
+                      title="Variação na última partida"
+                    >
+                      {currentRanking.last_change > 0 ? (
+                        <TrendingUp className="h-2.5 w-2.5" />
+                      ) : (
+                        <TrendingDown className="h-2.5 w-2.5" />
                       )}
-                    </div>
-                  </div>
-
-                  {/* Games bar chart — fixed width column */}
-                  {currentRanking.last_set_games.length > 0 && (
-                    <div className="flex shrink-0 flex-col items-end pointer-events-none">
-                      <span className="mb-1 text-[8px] uppercase tracking-wider text-muted-foreground/70 leading-none text-right">
-                        Últ. {currentRanking.last_set_games.length} set{currentRanking.last_set_games.length > 1 ? "s" : ""}
-                      </span>
-                      {renderGamesBars(currentRanking.last_set_games, 70)}
-                    </div>
+                      {currentRanking.last_change > 0 ? "+" : ""}
+                      {Math.round(currentRanking.last_change)}
+                    </span>
                   )}
                 </div>
 
-                <p className="mt-2 text-[9px] text-muted-foreground/60 truncate">
+                {/* Position + win rate inline */}
+                <div className="mt-2 flex items-center gap-2 text-[11px]">
+                  <span className="font-display text-base font-bold leading-none text-primary">
+                    {ordinalSuffix(currentRanking.position)}
+                  </span>
+                  <span className="text-muted-foreground">
+                    · <span className="font-semibold text-foreground">{winRate}%</span> aprov.
+                  </span>
+                </div>
+
+                {/* Last 3 results — V/D pills */}
+                {currentRanking.last_events.length > 0 && (
+                  <div className="mt-2 flex items-center gap-1">
+                    <span className="text-[8px] uppercase tracking-wider text-muted-foreground/70">Últ. 3</span>
+                    {currentRanking.last_events.slice(0, 3).map((delta, i) => (
+                      <span
+                        key={i}
+                        className={`flex h-4 w-4 items-center justify-center rounded text-[9px] font-bold ${
+                          delta > 0
+                            ? "bg-success/15 text-success"
+                            : delta < 0
+                              ? "bg-destructive/15 text-destructive"
+                              : "bg-muted text-muted-foreground"
+                        }`}
+                        title={`${delta > 0 ? "+" : ""}${Math.round(delta)} Elo`}
+                      >
+                        {delta > 0 ? "V" : delta < 0 ? "D" : "·"}
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                <p className="mt-auto pt-2 text-[9px] text-muted-foreground/60 truncate">
                   {currentRanking.group_name || ""}
-                  {currentRanking.rounds_total > 0 ? `, ${currentRanking.rounds_completed}/${currentRanking.rounds_total}` : ""}
-                  {currentRanking.season_name ? ` · ${currentRanking.season_name}` : ""}
+                  {currentRanking.rounds_total > 0 ? ` · ${currentRanking.rounds_completed}/${currentRanking.rounds_total}` : ""}
                 </p>
               </Link>
             </div>
