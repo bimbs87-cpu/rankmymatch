@@ -857,6 +857,7 @@ export function RivalryDuelPage({ groupId, groupName, seasonId, seasonName }: Pr
         playerALabel={displayNameA}
         playerBLabel={displayNameB}
         seasonId={seasonId}
+        matchInfo={matchInfoForChart}
       />
 
       {/* Comparativo Resumido */}
