@@ -86,6 +86,8 @@ interface H2HData {
     winner: "A" | "B" | null;
     created_at: string;
     sets: { set_number: number; score_team_a: number; score_team_b: number }[];
+    /** Other players in the match besides A and B, with their team. */
+    others: { user_id: string; team: "A" | "B"; name: string }[];
   }[];
 }
 
