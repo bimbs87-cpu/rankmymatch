@@ -68,6 +68,7 @@ function RoundDetailPage() {
   const [expandedMatch, setExpandedMatch] = useState<string | null>(null);
   const [matchRatings, setMatchRatings] = useState<Record<string, any[]>>({});
   const [previousPositions, setPreviousPositions] = useState<Record<string, number> | null>(null);
+  // Local optimistic flag in case the round refresh hasn't fired yet
   const [forcePresenceOpen, setForcePresenceOpen] = useState(false);
 
   // Auto-load ratings for all completed matches
@@ -415,15 +416,31 @@ function RoundDetailPage() {
   const minPlayersForDraw = isSingles ? 2 : 4;
   const canDraw = isAdmin && presenceConfirmed.length >= minPlayersForDraw && matches.length === 0 && !rivalry;
 
+  const persistedForceOpenAt = (round as any)?.presence_force_open_at
+    ? new Date((round as any).presence_force_open_at)
+    : null;
+  const persistedForceOpen = !!(persistedForceOpenAt && persistedForceOpenAt <= new Date());
+
   const presenceListOpen =
     forcePresenceOpen ||
+    persistedForceOpen ||
     isPresenceOpen(presenceConfig, round.scheduled_date, round.scheduled_time, roundId);
   const presenceOpenDate = getPresenceOpenDate(presenceConfig, round.scheduled_date, round.scheduled_time, roundId);
 
-  const handleForceOpenPresence = () => {
+  const handleForceOpenPresence = async () => {
     if (!confirm("Reabrir a lista de presenças agora? Os membros poderão confirmar presença imediatamente.")) return;
     setForcePresenceOpen(true);
-    toast.success("Lista de presenças reaberta para esta sessão");
+    try {
+      const { error } = await supabase
+        .from("rounds")
+        .update({ presence_force_open_at: new Date().toISOString() } as any)
+        .eq("id", roundId);
+      if (error) throw error;
+      toast.success("Lista de presenças reaberta para todos");
+      refresh();
+    } catch (e: any) {
+      toast.error(e?.message || "Reaberta apenas localmente — erro ao salvar");
+    }
   };
 
   const handleConfirm = async () => {
