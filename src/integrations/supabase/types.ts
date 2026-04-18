@@ -1104,6 +1104,7 @@ export type Database = {
           match_format: string
           max_players: number
           notes: string | null
+          presence_force_open_at: string | null
           round_number: number | null
           scheduled_date: string | null
           scheduled_time: string | null
@@ -1119,6 +1120,7 @@ export type Database = {
           match_format?: string
           max_players?: number
           notes?: string | null
+          presence_force_open_at?: string | null
           round_number?: number | null
           scheduled_date?: string | null
           scheduled_time?: string | null
@@ -1134,6 +1136,7 @@ export type Database = {
           match_format?: string
           max_players?: number
           notes?: string | null
+          presence_force_open_at?: string | null
           round_number?: number | null
           scheduled_date?: string | null
           scheduled_time?: string | null
