@@ -99,44 +99,86 @@ export function SeasonsPanel({ groupId, isAdmin }: Props) {
 }
 
 function SeasonAccordion({
-  season, groupId, isAdmin, expanded, onToggle,
+  season, groupId, isAdmin, expanded, onToggle, onChanged,
 }: {
-  season: any; groupId: string; isAdmin: boolean; expanded: boolean; onToggle: () => void;
+  season: any; groupId: string; isAdmin: boolean; expanded: boolean; onToggle: () => void; onChanged: () => void;
 }) {
   const isActive = season.status === "active";
+  const [editingName, setEditingName] = useState(false);
+  const [nameDraft, setNameDraft] = useState(season.name);
+  const [savingName, setSavingName] = useState(false);
+
+  const saveName = async () => {
+    const trimmed = nameDraft.trim();
+    if (!trimmed || trimmed === season.name) { setEditingName(false); return; }
+    setSavingName(true);
+    const { error } = await supabase.from("seasons").update({ name: trimmed }).eq("id", season.id);
+    if (error) toast.error("Erro ao renomear temporada");
+    else { toast.success("Nome atualizado"); onChanged(); }
+    setSavingName(false);
+    setEditingName(false);
+  };
 
   return (
     <div className="overflow-hidden rounded-2xl border border-border bg-card/60">
-      <button
-        onClick={onToggle}
-        className="flex w-full items-center gap-3 p-4 text-left transition-colors hover:bg-card"
-      >
-        <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ${
-          isActive ? "bg-primary/15 text-primary" : "bg-muted/40 text-muted-foreground"
-        }`}>
-          <Trophy className="h-5 w-5" />
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <h4 className="truncate font-display text-sm font-bold text-foreground">{season.name}</h4>
-            {isActive && (
-              <span className="rounded-full bg-success/15 px-1.5 py-0.5 text-[9px] font-bold uppercase text-success">
-                Ativa
+      <div className="flex w-full items-center gap-3 p-4 text-left">
+        <button onClick={onToggle} className="flex items-center gap-3 flex-1 min-w-0 text-left">
+          <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ${
+            isActive ? "bg-primary/15 text-primary" : "bg-muted/40 text-muted-foreground"
+          }`}>
+            <Trophy className="h-5 w-5" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2">
+              {editingName ? (
+                <input
+                  autoFocus
+                  value={nameDraft}
+                  onChange={(e) => setNameDraft(e.target.value)}
+                  onClick={(e) => e.stopPropagation()}
+                  onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); saveName(); } if (e.key === "Escape") { setEditingName(false); setNameDraft(season.name); } }}
+                  className="min-w-0 flex-1 rounded-md border border-border bg-background px-2 py-1 font-display text-sm font-bold text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                />
+              ) : (
+                <h4 className="truncate font-display text-sm font-bold text-foreground">{season.name}</h4>
+              )}
+              {isActive && !editingName && (
+                <span className="rounded-full bg-success/15 px-1.5 py-0.5 text-[9px] font-bold uppercase text-success">
+                  Ativa
+                </span>
+              )}
+            </div>
+            <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-muted-foreground">
+              <span className="flex items-center gap-1">
+                <Calendar className="h-3 w-3" />
+                {new Date(season.created_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "2-digit" })}
               </span>
-            )}
+              <span>·</span>
+              <span>{season.match_format === "1v1" ? "Singles" : "Duplas"}</span>
+              {season.total_rounds && (<><span>·</span><span>{season.total_rounds} rodadas</span></>)}
+            </div>
           </div>
-          <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-muted-foreground">
-            <span className="flex items-center gap-1">
-              <Calendar className="h-3 w-3" />
-              {new Date(season.created_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "2-digit" })}
-            </span>
-            <span>·</span>
-            <span>{season.match_format === "1v1" ? "Singles" : "Duplas"}</span>
-            {season.total_rounds && (<><span>·</span><span>{season.total_rounds} rodadas</span></>)}
-          </div>
-        </div>
-        <ChevronDown className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${expanded ? "rotate-180" : ""}`} />
-      </button>
+        </button>
+        {isAdmin && (
+          editingName ? (
+            <div className="flex items-center gap-1 shrink-0">
+              <button onClick={saveName} disabled={savingName} className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground disabled:opacity-50" title="Salvar">
+                <Check className="h-4 w-4" />
+              </button>
+              <button onClick={() => { setEditingName(false); setNameDraft(season.name); }} className="flex h-8 w-8 items-center justify-center rounded-lg bg-muted text-muted-foreground" title="Cancelar">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          ) : (
+            <button onClick={() => setEditingName(true)} className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground shrink-0" title="Renomear temporada">
+              <Pencil className="h-3.5 w-3.5" />
+            </button>
+          )
+        )}
+        <button onClick={onToggle} className="flex h-8 w-8 items-center justify-center shrink-0 text-muted-foreground" aria-label={expanded ? "Recolher" : "Expandir"}>
+          <ChevronDown className={`h-4 w-4 transition-transform ${expanded ? "rotate-180" : ""}`} />
+        </button>
+      </div>
       {expanded && (
         <div className="border-t border-border bg-background/40">
           <SeasonRoundsInline groupId={groupId} seasonId={season.id} isAdmin={isAdmin} />
