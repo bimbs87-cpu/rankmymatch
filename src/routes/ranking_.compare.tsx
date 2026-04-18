@@ -702,6 +702,70 @@ function ComparePage() {
     navigate({ to: "/ranking/compare", search: (prev: any) => ({ ...prev, tab: next }) });
   };
 
+  const heroRef = useRef<HTMLDivElement | null>(null);
+  const [exporting, setExporting] = useState(false);
+
+  const toggleGroupAvg = () => {
+    const isOn = userIds.includes(GROUP_AVG_ID);
+    if (isOn) {
+      // remove the avg slot, keep first real id as A and pick next real as B if present
+      navigate({
+        to: "/ranking/compare",
+        search: (prev: any) => {
+          const real = [prev.a, prev.b, prev.c, prev.d].filter((x: string) => x && x !== GROUP_AVG_ID);
+          return { ...prev, a: real[0] || "", b: real[1] || "", c: "", d: "" };
+        },
+      });
+    } else {
+      // require at least 1 real player; replace B with avg
+      navigate({
+        to: "/ranking/compare",
+        search: (prev: any) => ({ ...prev, b: GROUP_AVG_ID, c: "", d: "" }),
+      });
+    }
+  };
+
+  const exportPng = async () => {
+    if (!heroRef.current) return;
+    setExporting(true);
+    try {
+      const dataUrl = await toPng(heroRef.current, {
+        cacheBust: true,
+        pixelRatio: 2,
+        backgroundColor: getComputedStyle(document.documentElement).getPropertyValue("--background")
+          ? `oklch(${getComputedStyle(document.documentElement).getPropertyValue("--background").trim()})`
+          : "#0a0a0a",
+      });
+      // Try to share as file (mobile)
+      const blob = await (await fetch(dataUrl)).blob();
+      const file = new File([blob], `comparativo-${Date.now()}.png`, { type: "image/png" });
+      const nav = navigator as Navigator & {
+        canShare?: (data: { files: File[] }) => boolean;
+        share?: (data: { files?: File[]; title?: string; text?: string }) => Promise<void>;
+      };
+      if (nav.canShare && nav.canShare({ files: [file] }) && nav.share) {
+        try {
+          await nav.share({ files: [file], title: "Comparativo", text: "Comparativo de jogadores" });
+          return;
+        } catch (err: any) {
+          if (err?.name === "AbortError") return;
+          // fall through to download
+        }
+      }
+      // Fallback: download
+      const link = document.createElement("a");
+      link.download = file.name;
+      link.href = dataUrl;
+      link.click();
+      toast.success("Imagem baixada");
+    } catch (e) {
+      console.error("Export PNG failed:", e);
+      toast.error("Não foi possível gerar a imagem");
+    } finally {
+      setExporting(false);
+    }
+  };
+
   const share = async () => {
     const url = window.location.href;
     const title =
@@ -709,7 +773,6 @@ function ComparePage() {
         ? `Comparativo: ${players.map((p) => displayName(p)).join(" vs ")}`
         : "Comparativo";
     const text = title;
-    // Try Web Share API first (mobile / supported browsers)
     const nav = navigator as Navigator & {
       share?: (data: { title?: string; text?: string; url?: string }) => Promise<void>;
     };
@@ -718,12 +781,9 @@ function ComparePage() {
         await nav.share({ title, text, url });
         return;
       } catch (err: any) {
-        // User cancelled — don't fall through to clipboard
         if (err?.name === "AbortError") return;
-        // Other errors fall through to clipboard fallback
       }
     }
-    // Clipboard fallback
     try {
       if (navigator.clipboard?.writeText) {
         await navigator.clipboard.writeText(url);
@@ -731,7 +791,6 @@ function ComparePage() {
         return;
       }
     } catch { /* ignore */ }
-    // Last-resort fallback
     try {
       const ta = document.createElement("textarea");
       ta.value = url;
