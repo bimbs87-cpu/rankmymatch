@@ -178,18 +178,19 @@ export const revertMatchPromotionServerFn = createServerFn({ method: "POST" })
     if (!isAdmin) throw new Error("Apenas administradores podem reverter promoções");
 
     // 3. Load match players & sets to compute the stat deltas to subtract
-    const [playersRes, setsRes, eventsRes] = await Promise.all([
+    const [playersRes, setsRes] = await Promise.all([
       supabaseAdmin.from("match_players").select("user_id, team").eq("match_id", matchId),
       supabaseAdmin.from("match_sets").select("score_team_a, score_team_b").eq("match_id", matchId),
-      seasonId
-        ? supabaseAdmin
-            .from("rating_events")
-            .select("user_id, rating_before, rating_after")
-            .eq("match_id", matchId)
-        : Promise.resolve({ data: [], error: null }),
     ]);
     if (playersRes.error) throw new Error(playersRes.error.message);
     if (setsRes.error) throw new Error(setsRes.error.message);
+
+    const eventsRes = seasonId
+      ? await supabaseAdmin
+          .from("rating_events")
+          .select("user_id, rating_before, rating_after")
+          .eq("match_id", matchId)
+      : { data: [] as Array<{ user_id: string; rating_before: number; rating_after: number }>, error: null };
 
     const players = playersRes.data || [];
     const sets = setsRes.data || [];
