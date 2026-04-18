@@ -2,16 +2,9 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { deriveRoundStatusFromMatches } from "@/lib/round-status.server";
 
 const Input = z.object({ roundId: z.string().uuid() });
-
-export type RoundStatus = "scheduled" | "in_progress" | "completed";
-
-function derive(statuses: string[]): RoundStatus {
-  if (!statuses.length) return "scheduled";
-  if (statuses.every((s) => s === "completed")) return "completed";
-  return "in_progress";
-}
 
 /**
  * Recomputes a round's status server-side and persists it.
@@ -25,7 +18,6 @@ export const recomputeRoundStatusServerFn = createServerFn({ method: "POST" })
     const { roundId } = data;
     const { userId } = context;
 
-    // Verify the user is a member of the round's group (any role).
     const { data: round, error: rErr } = await supabaseAdmin
       .from("rounds")
       .select("id, group_id, status")
@@ -46,7 +38,7 @@ export const recomputeRoundStatusServerFn = createServerFn({ method: "POST" })
       .eq("round_id", roundId);
     if (mErr) throw new Error(mErr.message);
 
-    const status = derive((matches || []).map((m) => m.status));
+    const status = deriveRoundStatusFromMatches((matches || []).map((m) => m.status));
 
     if (status !== round.status) {
       await supabaseAdmin.from("rounds").update({ status }).eq("id", roundId);
@@ -54,17 +46,3 @@ export const recomputeRoundStatusServerFn = createServerFn({ method: "POST" })
 
     return { status, previousStatus: round.status };
   });
-
-/**
- * Server-internal helper (no auth check) — call this from other server
- * functions that have already validated authorization.
- */
-export async function recomputeRoundStatusInternal(roundId: string): Promise<RoundStatus> {
-  const { data: matches } = await supabaseAdmin
-    .from("matches")
-    .select("status")
-    .eq("round_id", roundId);
-  const status = derive((matches || []).map((m) => m.status));
-  await supabaseAdmin.from("rounds").update({ status }).eq("id", roundId);
-  return status;
-}
