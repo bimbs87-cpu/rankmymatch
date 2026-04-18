@@ -620,7 +620,7 @@ function RecentMeetings({
         <h2 className="font-display text-sm font-bold text-foreground">Últimos confrontos</h2>
         <span className="ml-auto text-[10px] text-muted-foreground">{h2h.recentMeetings.length} jogo{h2h.recentMeetings.length === 1 ? "" : "s"}</span>
       </div>
-      <ul className="divide-y divide-border/40">
+      <ul className="grid grid-cols-1 gap-1 sm:grid-cols-2 sm:gap-x-3 sm:gap-y-1">
         {h2h.recentMeetings.map((m) => {
           const aWonMatch = m.winner === m.aTeam;
           const bWonMatch = m.winner === m.bTeam;
@@ -637,54 +637,55 @@ function RecentMeetings({
                   const bScore = m.bTeam === "A" ? s.score_team_a : s.score_team_b;
                   return `${aScore}-${bScore}`;
                 })
-                .join(" · ")
+                .join(" ")
             : "—";
           const canLink = !!m.season_id;
           const inner = (
             <>
               <span
-                className={`shrink-0 rounded-md px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider ring-1 ${
+                className={`shrink-0 rounded px-1 py-0.5 text-[9px] font-bold uppercase tracking-wider ring-1 ${
                   sameTeam
                     ? "bg-primary/15 text-primary ring-primary/30"
                     : "bg-destructive/10 text-destructive ring-destructive/25"
                 }`}
+                title={sameTeam ? "Parceiros" : "Adversários"}
               >
-                {sameTeam ? "Parceiros" : "vs"}
+                {sameTeam ? "PC" : "vs"}
               </span>
               <div className="min-w-0 flex-1">
                 {sameTeam ? (
-                  <p className="truncate text-[12px] font-semibold text-foreground">
+                  <p className="truncate text-[11px] font-semibold text-foreground leading-tight">
                     {nameA} & {nameB}
-                    <span className={`ml-1.5 text-[10px] font-bold ${m.winner ? (m.winner === m.aTeam ? "text-success" : "text-destructive") : "text-muted-foreground"}`}>
-                      {m.winner ? (m.winner === m.aTeam ? "venceram" : "perderam") : "—"}
+                    <span className={`ml-1 text-[10px] font-bold ${m.winner ? (m.winner === m.aTeam ? "text-success" : "text-destructive") : "text-muted-foreground"}`}>
+                      {m.winner ? (m.winner === m.aTeam ? "V" : "D") : "—"}
                     </span>
                   </p>
                 ) : (
-                  <p className="truncate text-[12px] font-semibold">
+                  <p className="truncate text-[11px] font-semibold leading-tight">
                     <span className={aWonMatch ? "text-success" : "text-foreground"}>{nameA}</span>
-                    <span className="mx-1 text-muted-foreground">vs</span>
+                    <span className="mx-0.5 text-muted-foreground">vs</span>
                     <span className={bWonMatch ? "text-success" : "text-foreground"}>{nameB}</span>
                   </p>
                 )}
-                <p className="truncate text-[10px] text-muted-foreground">
-                  {formatMeetingDate(m.created_at)} · {m.season_name}
+                <p className="truncate text-[9px] text-muted-foreground leading-tight">
+                  {formatMeetingDate(m.created_at)}
                 </p>
               </div>
-              <span className="shrink-0 font-display text-[11px] font-bold tabular-nums text-foreground">{scoreLine}</span>
+              <span className="shrink-0 font-display text-[10px] font-bold tabular-nums text-foreground">{scoreLine}</span>
             </>
           );
           return (
-            <li key={m.match_id}>
+            <li key={m.match_id} className="border-b border-border/30 sm:border-b-0 sm:rounded-md sm:border sm:border-border/40 sm:bg-background/30">
               {canLink ? (
                 <Link
                   to="/groups/$groupId/seasons/$seasonId/rounds/$roundId"
                   params={{ groupId, seasonId: m.season_id, roundId: m.round_id }}
-                  className="flex items-center gap-2 py-2 transition active:bg-accent/40 hover:bg-accent/20 rounded-lg px-1"
+                  className="flex items-center gap-1.5 py-1.5 px-1.5 transition active:bg-accent/40 hover:bg-accent/20 rounded-md"
                 >
                   {inner}
                 </Link>
               ) : (
-                <div className="flex items-center gap-2 py-2 px-1">{inner}</div>
+                <div className="flex items-center gap-1.5 py-1.5 px-1.5">{inner}</div>
               )}
             </li>
           );
