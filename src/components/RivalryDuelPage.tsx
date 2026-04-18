@@ -9,6 +9,7 @@ import { computeDuelMedals } from "@/lib/duel-medals";
 import { buildMedalsTimeline } from "@/lib/duel-medals-timeline";
 import { promoteMatchToRankingServerFn, revertMatchPromotionServerFn } from "@/lib/promote-match.functions";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { EloDelta } from "@/components/ui/elo-delta";
 import { toast } from "sonner";
 import {
   Swords,
