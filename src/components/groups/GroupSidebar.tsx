@@ -102,6 +102,29 @@ export function GroupSidebar({
             className="w-full rounded-full border border-border bg-background/60 py-1.5 pl-8 pr-3 text-xs text-foreground placeholder:text-muted-foreground focus:border-primary/40 focus:outline-none"
           />
         </div>
+
+        {/* Pending-only toggle */}
+        {totalAlertCount > 0 && (
+          <button
+            onClick={() => setOnlyWithAlerts((v) => !v)}
+            className={`flex w-full items-center justify-between gap-2 rounded-full border px-2.5 py-1.5 text-[10px] font-bold transition-colors ${
+              onlyWithAlerts
+                ? "border-warning/40 bg-warning/10 text-warning"
+                : "border-border bg-background/40 text-muted-foreground hover:border-warning/30 hover:text-warning"
+            }`}
+            title="Mostrar apenas grupos com pendências"
+          >
+            <span className="flex items-center gap-1.5">
+              <Filter className="h-3 w-3" />
+              Apenas com pendências
+            </span>
+            <span className={`flex h-4 min-w-[16px] items-center justify-center rounded-full px-1 text-[9px] font-bold ${
+              onlyWithAlerts ? "bg-warning text-warning-foreground" : "bg-warning/20 text-warning"
+            }`}>
+              {totalAlertCount}
+            </span>
+          </button>
+        )}
       </div>
 
       {/* Groups list */}
