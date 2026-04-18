@@ -566,7 +566,29 @@ export function RivalryDuelPage({ groupId, groupName, seasonId, seasonName }: Pr
               Últimos Confrontos
             </h3>
           </div>
-          <span className="text-[10px] text-muted-foreground">{completedMatches.length} total</span>
+          <span className="text-[10px] text-muted-foreground">{filteredMatches.length} de {completedMatches.length}</span>
+        </div>
+
+        {/* Filter pills */}
+        <div className="mb-3 flex items-center gap-1.5">
+          {[
+            { key: "all" as const, label: "Todos" },
+            { key: "official" as const, label: "Oficiais" },
+            { key: "casual" as const, label: "Avulsos" },
+          ].map((f) => (
+            <button
+              key={f.key}
+              type="button"
+              onClick={() => setMatchFilter(f.key)}
+              className={`rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider transition-colors ${
+                matchFilter === f.key
+                  ? "bg-primary text-primary-foreground"
+                  : "border border-border bg-background/50 text-muted-foreground hover:bg-accent/30"
+              }`}
+            >
+              {f.label}
+            </button>
+          ))}
         </div>
 
         {recentMatches.length === 0 ? (
