@@ -235,6 +235,14 @@ function ComparePage() {
         setProgress(80);
         setLabel("Montando comparativo...");
 
+        const matchMetaMap = new Map(matchesMeta.map((m: any) => [m.id, m]));
+        const setsByMatch = new Map<string, { set_number: number; score_team_a: number; score_team_b: number }[]>();
+        for (const s of matchSets) {
+          const arr = setsByMatch.get(s.match_id) || [];
+          arr.push({ set_number: s.set_number, score_team_a: s.score_team_a, score_team_b: s.score_team_b });
+          setsByMatch.set(s.match_id, arr);
+        }
+
         const buildAggregate = (uid: string, profile: Profile): PlayerAggregate => {
           const userSnaps = snaps.filter((s: any) => s.user_id === uid);
           const seasonStats: SeasonStat[] = userSnaps.map((s: any) => ({
