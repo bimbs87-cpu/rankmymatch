@@ -11,6 +11,8 @@ import { abbreviateName } from "@/lib/utils";
 const searchSchema = z.object({
   a: fallback(z.string(), "").default(""),
   b: fallback(z.string(), "").default(""),
+  c: fallback(z.string(), "").default(""),
+  d: fallback(z.string(), "").default(""),
   groupId: fallback(z.string(), "").default(""),
   tab: fallback(z.enum(["career", "season"]), "season").default("season"),
   seasonId: fallback(z.string(), "").default(""),
