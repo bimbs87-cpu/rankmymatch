@@ -26,7 +26,7 @@ import { useGroupDashboard } from "@/hooks/use-group-dashboard";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import { confirmPresence, cancelPresence } from "@/lib/round-actions";
-import { leaveGroup } from "@/hooks/use-groups";
+import { leaveGroup, approveJoinRequest, rejectJoinRequest } from "@/hooks/use-groups";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -74,6 +74,19 @@ function timeAgo(iso: string) {
   if (h < 24) return `${h}h`;
   const d = Math.floor(h / 24);
   return `${d}d`;
+}
+
+function formatOpensAt(iso: string): string {
+  const d = new Date(iso);
+  const today = new Date();
+  const sameDay = d.toDateString() === today.toDateString();
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const isTomorrow = d.toDateString() === tomorrow.toDateString();
+  const time = d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+  if (sameDay) return `hoje ${time}`;
+  if (isTomorrow) return `amanhã ${time}`;
+  return `${d.toLocaleDateString("pt-BR", { day: "2-digit", month: "short" })} ${time}`;
 }
 
 export function GroupDashboardPanel({ group, onLeft, onPresenceChanged }: Props) {
