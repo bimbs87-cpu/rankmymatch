@@ -292,6 +292,34 @@ function SistemaPage() {
         </div>
       </section>
 
+      {/* DESKTOP SHOWCASE */}
+      <section className="mx-auto max-w-7xl px-5 py-12 lg:px-8 lg:py-20">
+        <div className="mx-auto max-w-3xl text-center">
+          <div className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+            <BarChart3 className="h-3.5 w-3.5" />
+            Tela cheia, dados ricos
+          </div>
+          <h2 className="mt-4 font-display text-3xl font-black tracking-tight text-foreground lg:text-4xl">
+            No desktop, vira <span className="text-primary">central de comando</span>.
+          </h2>
+          <p className="mt-3 text-muted-foreground">
+            Tudo que importa em uma tela: ranking, evolução do Elo, próximas rodadas e os últimos
+            resultados — sem precisar abrir 5 abas no WhatsApp.
+          </p>
+        </div>
+
+        <div className="mt-10 lg:mt-14">
+          <BrowserFrame className="mx-auto max-w-5xl">
+            <img
+              src={mockupDesktopHome}
+              alt="RankMyMatch no desktop: ranking, evolução do Elo e rodadas em uma única tela"
+              className="block w-full"
+              loading="lazy"
+            />
+          </BrowserFrame>
+        </div>
+      </section>
+
       {/* PRICING */}
       <section id="planos" className="relative mx-auto max-w-7xl px-5 py-16 lg:px-8 lg:py-24">
         <div className="mx-auto max-w-2xl text-center">
