@@ -2017,12 +2017,14 @@ function DashboardPage() {
               {myGroups.slice(0, 4).map((g) => {
                 const stats = groupStats.get(g.id) || { seasons: 0, rounds_completed: 0, rounds_total: 0 };
                 const remaining = Math.max(0, stats.rounds_total - stats.rounds_completed);
+                const fmtBadge = getGroupFormatBadge(g);
+                const currentSeason = g.current_season_name;
                 return (
                   <Link
                     key={g.id}
                     to="/groups/$groupId"
                     params={{ groupId: g.id }}
-                    className="group relative aspect-square overflow-hidden rounded-2xl border border-border bg-card transition-transform active:scale-[0.98]"
+                    className="group relative h-32 overflow-hidden rounded-2xl border border-border bg-card transition-transform active:scale-[0.98] sm:h-36 lg:aspect-square lg:h-auto"
                   >
                     {/* Background image */}
                     {g.image_url ? (
@@ -2038,13 +2040,18 @@ function DashboardPage() {
                     {/* Contrast overlay */}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/45 to-black/20" />
 
-                    {/* Top: privacy badge */}
-                    <div className="absolute right-2 top-2">
-                      <span className="flex h-6 w-6 items-center justify-center rounded-full bg-black/40 backdrop-blur-sm">
+                    {/* Top: format badge (left) + privacy badge (right) */}
+                    <div className="absolute inset-x-2 top-2 flex items-start justify-between gap-1.5">
+                      <span
+                        className={`rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider backdrop-blur-sm ${fmtBadge.cls}`}
+                      >
+                        {fmtBadge.label}
+                      </span>
+                      <span className="flex h-5 w-5 items-center justify-center rounded-full bg-black/40 backdrop-blur-sm">
                         {g.is_public ? (
-                          <Globe className="h-3 w-3 text-white" />
+                          <Globe className="h-2.5 w-2.5 text-white" />
                         ) : (
-                          <Lock className="h-3 w-3 text-white" />
+                          <Lock className="h-2.5 w-2.5 text-white" />
                         )}
                       </span>
                     </div>
@@ -2054,24 +2061,27 @@ function DashboardPage() {
                       <h3 className="font-display text-sm font-bold leading-tight drop-shadow-md line-clamp-2">
                         {g.name}
                       </h3>
-                      <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] font-medium text-white/90">
+                      <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] font-medium text-white/90">
                         <span className="flex items-center gap-0.5">
                           <Users className="h-2.5 w-2.5" />
                           {g.member_count}
                         </span>
                         <span className="flex items-center gap-0.5">
-                          <Trophy className="h-2.5 w-2.5" />
-                          {stats.seasons}
-                        </span>
-                        <span className="flex items-center gap-0.5">
                           <Calendar className="h-2.5 w-2.5" />
-                          {stats.rounds_completed}/{stats.rounds_total}
+                          {remaining > 0 ? `${remaining} rest.` : `${stats.rounds_completed}/${stats.rounds_total || 0}`}
                         </span>
                       </div>
-                      {remaining > 0 && (
-                        <p className="mt-0.5 text-[9px] text-white/70">
-                          {remaining} rodada{remaining > 1 ? "s" : ""} restante{remaining > 1 ? "s" : ""}
+                      {currentSeason ? (
+                        <p className="mt-0.5 flex items-center gap-1 text-[9px] font-semibold text-success/95 truncate">
+                          <span className="inline-block h-1.5 w-1.5 shrink-0 animate-pulse rounded-full bg-success" />
+                          <span className="truncate">{currentSeason}</span>
                         </p>
+                      ) : stats.seasons > 0 ? (
+                        <p className="mt-0.5 text-[9px] text-white/60 truncate">
+                          {stats.seasons} temp. concluída{stats.seasons > 1 ? "s" : ""}
+                        </p>
+                      ) : (
+                        <p className="mt-0.5 text-[9px] text-white/50 truncate">Sem temporada ativa</p>
                       )}
                     </div>
                   </Link>
