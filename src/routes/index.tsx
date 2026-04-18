@@ -1752,6 +1752,26 @@ function DashboardPage() {
                           {nextMatch.scheduled_time.slice(0, 5)}
                         </span>
                       )}
+                      {(() => {
+                        const cd = formatCountdown(nextMatch.scheduled_date, nextMatch.scheduled_time);
+                        if (!cd) return null;
+                        const tone = countdownTone(nextMatch.scheduled_date, nextMatch.scheduled_time);
+                        const toneCls =
+                          tone === "now"
+                            ? "bg-destructive/15 text-destructive ring-1 ring-destructive/30"
+                            : tone === "soon"
+                              ? "bg-primary/15 text-primary ring-1 ring-primary/30"
+                              : tone === "near"
+                                ? "bg-warning/15 text-warning ring-1 ring-warning/30"
+                                : "bg-muted text-muted-foreground ring-1 ring-border";
+                        return (
+                          <span
+                            className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${toneCls}`}
+                          >
+                            {cd}
+                          </span>
+                        );
+                      })()}
                     </div>
                   </div>
                 </div>
