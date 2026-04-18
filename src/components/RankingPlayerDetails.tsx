@@ -332,7 +332,7 @@ export function RankingPlayerDetails(props: Props) {
             : undefined}
         />
         <MiniStat
-          icon={<Activity className="h-3.5 w-3.5 text-cyan-400" />}
+          icon={<Activity className="h-3.5 w-3.5 text-primary" />}
           label="Maior virada"
           value={bestGain > 0 ? `+${Math.round(bestGain)}` : "—"}
           sub={worstLoss < 0 ? `Pior: ${Math.round(worstLoss)}` : undefined}
