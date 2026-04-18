@@ -319,108 +319,18 @@ export async function revertMatchElo(matchId: string) {
   );
 }
 
+import { submitMatchScoreServerFn } from "./elo-engine.functions";
+
+/**
+ * Submits a match score. All scoring + Elo logic runs server-side via
+ * `submitMatchScoreServerFn` (TanStack Start server function with admin
+ * validation), so the client cannot bypass authorization or tamper with
+ * rating updates via DevTools.
+ */
 export async function submitMatchScore(
   matchId: string,
   seasonId: string,
-  sets: { setNumber: number; scoreA: number; scoreB: number }[]
+  sets: { setNumber: number; scoreA: number; scoreB: number }[],
 ) {
-  // Get match players
-  const { data: players } = await supabase
-    .from("match_players")
-    .select("user_id, team")
-    .eq("match_id", matchId);
-
-  if (!players?.length) throw new Error("Nenhum jogador encontrado");
-
-  const teamA = players.filter((p) => p.team === "A").map((p) => p.user_id);
-  const teamB = players.filter((p) => p.team === "B").map((p) => p.user_id);
-
-  // Delete existing sets
-  await supabase.from("match_sets").delete().eq("match_id", matchId);
-
-  // Insert new sets
-  await supabase.from("match_sets").insert(
-    sets.map((s) => ({
-      match_id: matchId,
-      set_number: s.setNumber,
-      score_team_a: s.scoreA,
-      score_team_b: s.scoreB,
-      is_tiebreak: s.setNumber === sets.length && sets.length >= 3,
-    }))
-  );
-
-  // Calculate winner
-  let setsA = 0, setsB = 0, gamesA = 0, gamesB = 0;
-  for (const s of sets) {
-    gamesA += s.scoreA;
-    gamesB += s.scoreB;
-    if (s.scoreA > s.scoreB) setsA++;
-    else if (s.scoreB > s.scoreA) setsB++;
-  }
-
-  const winnerTeam = setsA > setsB ? "A" : setsB > setsA ? "B" : null;
-
-  if (!winnerTeam) throw new Error("Empate em sets — adicione o tiebreak");
-
-  // Get round info for auto-confirming presence
-  const { data: matchData } = await supabase
-    .from("matches")
-    .select("round_id")
-    .eq("id", matchId)
-    .single();
-
-  // Update match
-  await supabase
-    .from("matches")
-    .update({
-      status: "completed",
-      winner_team: winnerTeam,
-      result_type: sets.length === 1 ? "single_set" : sets.length === 2 ? "straight" : "tiebreak",
-    })
-    .eq("id", matchId);
-
-  // Auto-confirm presence for match players and update round status
-  if (matchData?.round_id) {
-    const allPlayerIds = [...teamA, ...teamB];
-    for (const uid of allPlayerIds) {
-      await supabase.from("round_presence").upsert(
-        {
-          round_id: matchData.round_id,
-          user_id: uid,
-          status: "confirmed",
-          confirmed_at: new Date().toISOString(),
-        },
-        { onConflict: "round_id,user_id" }
-      );
-    }
-
-    // Check if all OTHER matches in the round are completed — current one just was
-    const { data: otherMatches } = await supabase
-      .from("matches")
-      .select("id, status")
-      .eq("round_id", matchData.round_id)
-      .neq("id", matchId);
-
-    const allOthersCompleted =
-      !otherMatches?.length || otherMatches.every((m) => m.status === "completed");
-
-    if (allOthersCompleted) {
-      await supabase.from("rounds").update({ status: "completed" }).eq("id", matchData.round_id);
-    }
-  }
-
-  // Process Elo
-  await processMatchElo({
-    matchId,
-    seasonId,
-    teamA,
-    teamB,
-    winnerTeam,
-    setsTeamA: setsA,
-    setsTeamB: setsB,
-    gamesTeamA: gamesA,
-    gamesTeamB: gamesB,
-  });
-
-  return { winnerTeam, setsA, setsB };
+  return submitMatchScoreServerFn({ data: { matchId, seasonId, sets } });
 }
