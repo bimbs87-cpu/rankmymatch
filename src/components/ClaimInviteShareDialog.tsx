@@ -427,6 +427,16 @@ export function ClaimInviteShareDialog({
                 {previewMessage}
               </pre>
             )}
+
+            {/* Char counter */}
+            <div className="mt-2 flex items-center justify-between text-[10px]">
+              <span className={`font-semibold ${charTone}`}>
+                {charCount} caracteres · {charLabel}
+              </span>
+              <span className="text-muted-foreground">
+                limite WhatsApp ~{WA_HARD_LIMIT}
+              </span>
+            </div>
           </div>
 
           {/* Actions */}
