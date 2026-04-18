@@ -1227,7 +1227,7 @@ function SeasonTab({ a, b, latestSeasonId }: { a: PlayerAggregate; b: PlayerAggr
       )}
 
       <div className="mt-3 grid grid-cols-1 gap-3 xl:grid-cols-2">
-        <SectionCard title={`Posição — ${seasonName}`} icon={<Trophy className="h-4 w-4 text-primary" />} className="mt-0 h-full">
+        <SectionCard title={`Posição — ${seasonName}`} icon={<Trophy className="h-4 w-4 text-primary" />} className="mt-0 h-full" a={a} b={b}>
           <StatRow
             label="Posição"
             a={A.position ?? 999}
@@ -1238,7 +1238,7 @@ function SeasonTab({ a, b, latestSeasonId }: { a: PlayerAggregate; b: PlayerAggr
           <StatRow label="Elo da temporada" a={A.rating} b={B.rating} format={(v) => Math.round(v).toString()} />
         </SectionCard>
 
-        <SectionCard title={`Aproveitamento — ${seasonName}`} icon={<Activity className="h-4 w-4 text-primary" />} className="mt-0 h-full">
+        <SectionCard title={`Aproveitamento — ${seasonName}`} icon={<Activity className="h-4 w-4 text-primary" />} className="mt-0 h-full" a={a} b={b}>
           <StatRow label="Partidas" a={A.matches_played} b={B.matches_played} />
           <StatRow label="Vitórias" a={A.matches_won} b={B.matches_won} />
           <StatRow
