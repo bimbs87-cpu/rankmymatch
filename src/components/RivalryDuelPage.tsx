@@ -1120,6 +1120,7 @@ export function RivalryDuelPage({ groupId, groupName, seasonId, seasonName }: Pr
           </ol>
         )}
       </div>
+      </div>
     </div>
   );
 }
