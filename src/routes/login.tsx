@@ -175,13 +175,12 @@ function LoginPage() {
         }}
       />
 
-      <div className="relative z-10 mx-auto flex w-full max-w-6xl flex-col px-5 py-5 sm:px-6 sm:py-6 lg:grid lg:h-full lg:grid-cols-[1.1fr_1fr] lg:items-center lg:gap-16 lg:px-12 lg:py-10">
+      <div className="relative z-10 mx-auto flex w-full max-w-6xl flex-col px-5 py-4 sm:px-6 sm:py-6 lg:grid lg:h-full lg:grid-cols-[1.1fr_1fr] lg:items-center lg:gap-16 lg:px-12 lg:py-10">
         {/* === LEFT / TOP === */}
         <div className="flex flex-col lg:flex-none">
           {/* Hero logo — floating with soft outer aura */}
           <div className="relative flex items-center justify-center lg:justify-start">
             <div className="relative">
-              {/* soft, contained aura behind the logo (much subtler) */}
               <div
                 aria-hidden
                 className="pointer-events-none absolute inset-0 -z-10 blur-2xl"
@@ -194,7 +193,7 @@ function LoginPage() {
               <img
                 src={logoSquareNeon}
                 alt="RankMyMatch"
-                className="relative h-32 w-auto object-contain sm:h-40 lg:h-60 animate-float"
+                className="relative h-24 w-auto object-contain sm:h-32 lg:h-60 animate-float"
                 style={{
                   filter:
                     "drop-shadow(0 8px 24px color-mix(in oklab, var(--primary) 25%, transparent))",
@@ -204,72 +203,69 @@ function LoginPage() {
           </div>
 
           {/* Headline */}
-          <div className="mt-3 lg:mt-10">
+          <div className="mt-2 lg:mt-10">
             <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-border/60 bg-card/40 px-2.5 py-0.5 backdrop-blur-sm lg:mb-3 lg:px-3 lg:py-1">
               <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
               <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground lg:text-[11px]">
                 Para feirinos, clubes e amigos
               </span>
             </div>
-            <h1 className="font-black leading-[1.05] tracking-tight text-[26px] sm:text-4xl lg:text-6xl xl:text-[4rem]">
+            <h1 className="font-black leading-[1.05] tracking-tight text-[22px] sm:text-4xl lg:text-6xl xl:text-[4rem]">
               <span className="block text-foreground">Pare de anotar resultado</span>
               <span className="block bg-gradient-to-r from-primary via-primary to-primary/70 bg-clip-text text-transparent">
                 na planilha do WhatsApp.
               </span>
             </h1>
-            <p className="mt-2.5 max-w-md text-xs leading-relaxed text-muted-foreground sm:text-sm lg:mt-5 lg:text-[17px]">
+            <p className="mt-2 max-w-md text-[11px] leading-relaxed text-muted-foreground sm:text-sm lg:mt-5 lg:text-[17px]">
               Rankings Elo, temporadas e estatísticas automáticas para padel,
               tênis, beach tennis e mais.
             </p>
           </div>
 
-          {/* Stat cards */}
-          <div className="mt-3 grid grid-cols-3 gap-2 lg:mt-10 lg:gap-3">
-            {stats.map((s) => (
+          {/* Feature mini-grid — compact on mobile, hidden on desktop */}
+          <div className="mt-3 grid grid-cols-3 gap-1.5 lg:hidden">
+            {features.map((f) => (
               <div
-                key={s.label}
-                className="group relative overflow-hidden rounded-2xl border border-border/70 bg-card/60 px-2 py-2.5 text-center backdrop-blur-md transition-all hover:border-primary/40 hover:bg-card/80 lg:py-4"
+                key={f.title}
+                className="relative overflow-hidden rounded-2xl border border-border/70 bg-card/60 px-2 py-2 text-center backdrop-blur-md"
               >
                 <div
                   aria-hidden
                   className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/50 to-transparent opacity-60"
                 />
-                <span className="block text-[9px] uppercase tracking-[0.12em] text-muted-foreground lg:text-[10px]">
-                  {s.label}
-                </span>
-                <span className="mt-1 block text-sm font-bold text-primary lg:text-base">
-                  {s.value}
-                </span>
+                <f.icon className="mx-auto h-3.5 w-3.5 text-primary" />
+                <p className="mt-1 text-[10px] font-semibold leading-tight text-foreground">
+                  {f.title}
+                </p>
               </div>
             ))}
           </div>
 
-          {/* Feature list — visible on mobile to fill space, hidden on desktop */}
-          <div className="mt-4 space-y-2 lg:hidden">
-            {features.map((f) => (
+          {/* Stat cards — desktop only (replaced by features on mobile) */}
+          <div className="hidden lg:mt-10 lg:grid lg:grid-cols-3 lg:gap-3">
+            {stats.map((s) => (
               <div
-                key={f.title}
-                className="flex items-center gap-3 rounded-2xl border border-border/60 bg-card/40 px-3 py-2.5 backdrop-blur-sm"
+                key={s.label}
+                className="group relative overflow-hidden rounded-2xl border border-border/70 bg-card/60 px-2 py-4 text-center backdrop-blur-md transition-all hover:border-primary/40 hover:bg-card/80"
               >
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                  <f.icon className="h-4 w-4" />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-[13px] font-semibold leading-tight text-foreground">
-                    {f.title}
-                  </p>
-                  <p className="text-[11px] leading-tight text-muted-foreground">
-                    {f.desc}
-                  </p>
-                </div>
+                <div
+                  aria-hidden
+                  className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/50 to-transparent opacity-60"
+                />
+                <span className="block text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
+                  {s.label}
+                </span>
+                <span className="mt-1 block text-base font-bold text-primary">
+                  {s.value}
+                </span>
               </div>
             ))}
           </div>
         </div>
 
         {/* === RIGHT / BOTTOM — CTA === */}
-        <div className="mt-5 flex flex-col lg:mt-0">
-          <div className="relative rounded-3xl border border-border/70 bg-card/50 p-4 backdrop-blur-xl shadow-[0_8px_40px_-12px_rgba(0,0,0,0.5)] sm:p-6 lg:p-8">
+        <div className="mt-3 flex flex-col lg:mt-0">
+          <div className="relative rounded-3xl border border-border/70 bg-card/50 p-3.5 backdrop-blur-xl shadow-[0_8px_40px_-12px_rgba(0,0,0,0.5)] sm:p-6 lg:p-8">
             {/* top accent line */}
             <div
               aria-hidden
