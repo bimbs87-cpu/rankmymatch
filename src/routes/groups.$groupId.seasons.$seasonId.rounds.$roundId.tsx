@@ -615,6 +615,31 @@ function RoundDetailPage() {
         </div>
       </div>
 
+      {/* Force-open banner — visible to everyone */}
+      {persistedForceOpenAt && (
+        <div className="mx-5 mb-3 rounded-2xl border border-primary/30 bg-primary/10 px-3 py-2.5">
+          <div className="flex items-start gap-2">
+            <UserCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
+            <div className="flex-1 text-[11px] leading-snug text-foreground">
+              <span className="font-bold text-primary">Lista reaberta antecipadamente</span>{" "}
+              <span className="text-muted-foreground">pelo admin em </span>
+              <span className="font-semibold text-foreground">
+                {persistedForceOpenAt.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })}{" "}
+                {persistedForceOpenAt.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+              </span>
+            </div>
+            {isAdmin && (
+              <button
+                onClick={handleUndoForceOpen}
+                className="shrink-0 rounded-full border border-border bg-background px-2 py-0.5 text-[10px] font-bold text-foreground hover:bg-muted"
+              >
+                Desfazer
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Presence buttons - hide for rivalry (auto-managed) */}
       {!rivalry && round.status === "scheduled" && (
         <div className="mx-5 mb-5">
