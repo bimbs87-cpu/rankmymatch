@@ -134,8 +134,11 @@ interface RecentMatch {
   match_number: number | null;
   winner_team: string | null;
   my_team: string;
+  round_id: string | null;
   round_number: number | null;
+  group_id: string | null;
   group_name: string;
+  season_id: string | null;
   score_display: string;
   rating_change: number | null;
   created_at: string;
