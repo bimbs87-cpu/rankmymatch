@@ -188,15 +188,17 @@ export async function processMatchElo(result: MatchResult) {
   await supabase.from("rating_events").insert(ratingEvents);
 
   // Upsert ranking snapshots
-  for (const snap of snapshotUpserts) {
-    if (snap.id) {
-      const { id, ...updateData } = snap;
-      await supabase.from("ranking_snapshots").update(updateData).eq("id", id);
-    } else {
-      const { id, ...insertData } = snap;
-      await supabase.from("ranking_snapshots").insert(insertData);
-    }
-  }
+  await Promise.all(
+    snapshotUpserts.map((snap) => {
+      if (snap.id) {
+        const { id, ...updateData } = snap;
+        return supabase.from("ranking_snapshots").update(updateData).eq("id", id);
+      } else {
+        const { id, ...insertData } = snap;
+        return supabase.from("ranking_snapshots").insert(insertData);
+      }
+    }),
+  );
 
   // Update positions
   const { data: allSnapshots } = await supabase
@@ -207,12 +209,11 @@ export async function processMatchElo(result: MatchResult) {
     .order("rating", { ascending: false });
 
   if (allSnapshots) {
-    for (let i = 0; i < allSnapshots.length; i++) {
-      await supabase
-        .from("ranking_snapshots")
-        .update({ position: i + 1 })
-        .eq("id", allSnapshots[i].id);
-    }
+    await Promise.all(
+      allSnapshots.map((snap, i) =>
+        supabase.from("ranking_snapshots").update({ position: i + 1 }).eq("id", snap.id),
+      ),
+    );
   }
 }
 
