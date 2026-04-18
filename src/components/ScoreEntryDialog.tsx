@@ -184,9 +184,9 @@ export function ScoreEntryDialog({
     let matchWinner: "A" | "B" | null = null;
     let canSubmit = false;
 
-    if (isUnlimitedSets) {
-      // Rivalry: any valid set count, whoever has more sets wins
-      if (allValid && setsA !== setsB && setResults.some(r => r.valid)) {
+    if (isUnlimitedSets || isFlexibleSets) {
+      // Flexible/Unlimited: whoever has more sets wins; canSubmit when there is a leader
+      if (allValid && setsA !== setsB && setResults.some((r) => r.valid)) {
         matchWinner = setsA > setsB ? "A" : "B";
         canSubmit = true;
       }
@@ -196,13 +196,14 @@ export function ScoreEntryDialog({
       canSubmit = matchWinner !== null && allValid;
     }
 
-    // Check if we need more sets
-    const needsMoreSets = isUnlimitedSets
-      ? allValid && setResults.some(r => r.valid)
-      : !matchWinner && sets.length < maxSets && allValid && setResults.some(r => r.valid);
+    // Whether to allow adding another set
+    const needsMoreSets =
+      isUnlimitedSets || isFlexibleSets
+        ? allValid && setResults.some((r) => r.valid) && sets.length < maxSets
+        : !matchWinner && sets.length < maxSets && allValid && setResults.some((r) => r.valid);
 
     return { setsA, setsB, gamesA, gamesB, setResults, matchWinner, canSubmit, needsMoreSets };
-  }, [sets, maxSets]);
+  }, [sets, maxSets, isUnlimitedSets, isFlexibleSets]);
 
   // Preview Elo deltas for the current scoreboard (only when there is a winner)
   const eloDeltas = useMemo(() => {
