@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { Link } from "@tanstack/react-router";
 import {
   Trophy, Calendar, Plus, ChevronRight, ChevronDown, CircleDot, CheckCircle2,
   Clock, MapPin, Pencil, Ban, X, Settings, Check, Flag, RotateCcw, Trash2,
@@ -9,6 +8,7 @@ import { useSeasonRounds } from "@/hooks/use-rounds";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { SeasonFinalRanking } from "./SeasonFinalRanking";
+import { QuickCreateSeasonDialog } from "./QuickCreateSeasonDialog";
 
 function useSeasonProgress(seasonId: string, totalRounds: number | null) {
   const [completed, setCompleted] = useState(0);
@@ -65,6 +65,40 @@ interface Props {
 export function SeasonsPanel({ groupId, isAdmin }: Props) {
   const { seasons, isLoading, refresh } = useGroupSeasons(groupId);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [quickCreateOpen, setQuickCreateOpen] = useState(false);
+  const [groupFormat, setGroupFormat] = useState<string>("doubles");
+
+  // Realtime: refresh when any round in this group changes (status flips, etc.)
+  useEffect(() => {
+    const channel = supabase
+      .channel(`seasons-panel-${groupId}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "rounds", filter: `group_id=eq.${groupId}` },
+        () => refresh()
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "seasons", filter: `group_id=eq.${groupId}` },
+        () => refresh()
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [groupId, refresh]);
+
+  // Load group's default match format for the quick-create dialog
+  useEffect(() => {
+    supabase
+      .from("groups")
+      .select("match_format")
+      .eq("id", groupId)
+      .single()
+      .then(({ data }) => {
+        if (data?.match_format) setGroupFormat(data.match_format);
+      });
+  }, [groupId]);
 
   const active = seasons.filter((s) => s.status === "active");
   const finished = seasons.filter((s) => s.status !== "active");
@@ -79,15 +113,24 @@ export function SeasonsPanel({ groupId, isAdmin }: Props) {
           </p>
         </div>
         {isAdmin && (
-          <Link
-            to="/groups/$groupId/seasons"
-            params={{ groupId }}
-            className="flex items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground"
+          <button
+            type="button"
+            onClick={() => setQuickCreateOpen(true)}
+            className="flex items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground hover:opacity-90"
           >
             <Plus className="h-3.5 w-3.5" /> Nova
-          </Link>
+          </button>
         )}
       </div>
+
+      {quickCreateOpen && (
+        <QuickCreateSeasonDialog
+          groupId={groupId}
+          defaultMatchFormat={groupFormat}
+          onClose={() => setQuickCreateOpen(false)}
+          onCreated={refresh}
+        />
+      )}
 
       {isLoading ? (
         <div className="space-y-3">
