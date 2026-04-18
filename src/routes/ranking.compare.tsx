@@ -204,7 +204,7 @@ function ComparePage() {
         setLabel("Calculando confrontos...");
 
         // Match player rows for both users to compute H2H
-        const matchIdsFromEvents = Array.from(new Set(events.map((e: any) => e.match_id)));
+        const matchIdsFromEvents: string[] = Array.from(new Set(events.map((e: any) => e.match_id as string)));
         let matchPlayers: any[] = [];
         let matchesMeta: any[] = [];
         if (matchIdsFromEvents.length) {
