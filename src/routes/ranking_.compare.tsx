@@ -369,7 +369,43 @@ function ComparePage() {
           matchToPlayers.set(mp.match_id, arr);
         }
 
+        // We need to also fetch the OTHER players in each shared match (partners/opponents)
+        // to display contextual names in the meetings list.
+        const sharedMatchIds: string[] = [];
+        for (const [mid, players] of matchToPlayers.entries()) {
+          const hasA = players.some((p) => p.user_id === userA);
+          const hasB = players.some((p) => p.user_id === userB);
+          if (hasA && hasB) sharedMatchIds.push(mid);
+        }
 
+        let othersByMatch = new Map<string, { user_id: string; team: "A" | "B" }[]>();
+        let extraProfileMap = new Map<string, string>();
+        if (sharedMatchIds.length) {
+          const { data: allPlayers, error: apErr } = await supabase
+            .from("match_players")
+            .select("match_id, user_id, team")
+            .in("match_id", sharedMatchIds);
+          if (apErr) throw apErr;
+          const otherUserIds = new Set<string>();
+          for (const mp of allPlayers || []) {
+            if (mp.user_id === userA || mp.user_id === userB) continue;
+            const arr = othersByMatch.get(mp.match_id) || [];
+            arr.push({ user_id: mp.user_id, team: mp.team });
+            othersByMatch.set(mp.match_id, arr);
+            otherUserIds.add(mp.user_id);
+          }
+          if (otherUserIds.size) {
+            const { data: extraProfs, error: epErr } = await supabase
+              .from("user_profiles")
+              .select("user_id, name, nickname")
+              .in("user_id", Array.from(otherUserIds));
+            if (epErr) throw epErr;
+            for (const p of extraProfs || []) {
+              const display = (p.nickname?.trim() as string) || abbreviateName(p.name);
+              extraProfileMap.set(p.user_id, display);
+            }
+          }
+        }
 
         const meetings: H2HData["recentMeetings"] = [];
         let asPartnersPlayed = 0;
@@ -399,6 +435,11 @@ function ComparePage() {
 
           // Get season name from any event for this match
           const evt = events.find((e: any) => e.match_id === matchId);
+          const others = (othersByMatch.get(matchId) || []).map((o) => ({
+            user_id: o.user_id,
+            team: o.team,
+            name: extraProfileMap.get(o.user_id) || "Jogador",
+          }));
           meetings.push({
             match_id: matchId,
             round_id: meta.round_id,
@@ -410,6 +451,7 @@ function ComparePage() {
             winner,
             created_at: meta.created_at,
             sets: setsByMatch.get(matchId) || [],
+            others,
           });
         }
 
