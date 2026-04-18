@@ -70,7 +70,15 @@ export function SeasonFinalRanking({ seasonId }: { seasonId: string }) {
   const totalMatches = rows.reduce((s, r) => s + r.matches_played, 0) / 2; // each match counted per player; doubles=4, singles=2 — approx
 
   return (
-    <div className="grid gap-3 p-3 md:grid-cols-2">
+    <div className="space-y-3 p-3">
+      {(extras.longest_streak || extras.biggest_swing || extras.most_frequent) && (
+        <div className="grid gap-2 sm:grid-cols-3">
+          <ExtraCard icon={<Zap className="h-3.5 w-3.5" />} label="Maior sequência" rec={extras.longest_streak} tone="primary" />
+          <ExtraCard icon={<TrendingUp className="h-3.5 w-3.5" />} label="Maior virada de Elo" rec={extras.biggest_swing} tone="success" prefix="+" />
+          <ExtraCard icon={<Target className="h-3.5 w-3.5" />} label="Mais frequente" rec={extras.most_frequent} tone="info" />
+        </div>
+      )}
+      <div className="grid gap-3 md:grid-cols-2">
       {/* Pódio */}
       <div className="rounded-2xl border border-border bg-card/40 p-4">
         <div className="mb-3 text-center text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
