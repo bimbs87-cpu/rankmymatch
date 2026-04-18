@@ -292,16 +292,17 @@ export async function submitMatchScore(
       );
     }
 
-    // Check if all matches in the round are completed — if so, mark round as completed
-    const { data: roundMatches } = await supabase
+    // Check if all OTHER matches in the round are completed — current one just was
+    const { data: otherMatches } = await supabase
       .from("matches")
       .select("id, status")
-      .eq("round_id", matchData.round_id);
+      .eq("round_id", matchData.round_id)
+      .neq("id", matchId);
 
-    const allCompleted = roundMatches && roundMatches.length > 0 &&
-      roundMatches.every((m) => m.id === matchId ? true : m.status === "completed");
+    const allOthersCompleted =
+      !otherMatches?.length || otherMatches.every((m) => m.status === "completed");
 
-    if (allCompleted) {
+    if (allOthersCompleted) {
       await supabase.from("rounds").update({ status: "completed" }).eq("id", matchData.round_id);
     }
   }
