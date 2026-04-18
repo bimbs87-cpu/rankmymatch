@@ -425,38 +425,8 @@ function GroupDetailPage() {
               />
             )}
 
-            {/* Pending requests inline section (admin sees in admin panel, but quick approval here too) */}
-            {view === "admin" && isAdmin && pendingRequests.length > 0 && (
-              <div className="mt-6 rounded-2xl border border-warning/40 bg-warning/5 p-4">
-                <h3 className="mb-3 text-xs font-bold uppercase tracking-wider text-warning">
-                  Solicitações pendentes ({pendingRequests.length})
-                </h3>
-                <ul className="space-y-2">
-                  {pendingRequests.map((req: any) => (
-                    <li
-                      key={req.id}
-                      className="flex items-center justify-between rounded-xl border border-border bg-card p-3"
-                    >
-                      <p className="text-xs text-foreground">{req.message || "Sem mensagem"}</p>
-                      <div className="flex gap-1.5">
-                        <button
-                          onClick={() => handleApprove(req)}
-                          className="rounded-lg bg-success/10 px-2.5 py-1 text-xs font-semibold text-success"
-                        >
-                          Aceitar
-                        </button>
-                        <button
-                          onClick={() => handleReject(req)}
-                          className="rounded-lg bg-destructive/10 px-2.5 py-1 text-xs font-semibold text-destructive"
-                        >
-                          Recusar
-                        </button>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
+            {/* Pending requests are now handled inside AdminPanel > Membros section */}
+
 
             {/* Leave group (non-creator) */}
             {isMember && !isCreator && view === "overview" && (
