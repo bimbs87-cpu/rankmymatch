@@ -231,7 +231,11 @@ export async function cancelPresence(roundId: string, userId: string) {
 // Shuffle and draw teams for 2v2 padel matches
 export async function drawTeams(roundId: string, confirmedPlayerIds: string[], actorId?: string) {
   // Shuffle players
-  const shuffled = [...confirmedPlayerIds].sort(() => Math.random() - 0.5);
+  const shuffled = [...confirmedPlayerIds];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
 
   // Get round info for notification and format
   const { data: roundData } = await supabase
