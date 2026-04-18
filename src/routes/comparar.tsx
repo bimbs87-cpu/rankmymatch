@@ -71,7 +71,10 @@ interface FavoriteRow {
   label: string;
   group_id: string;
   player_ids: string[];
+  sort_order: number;
 }
+
+const MAX_FAVORITES = 10;
 
 interface Suggestion {
   key: string;
