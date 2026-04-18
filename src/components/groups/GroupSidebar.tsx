@@ -1,5 +1,5 @@
-import { Users, Compass, Plus, Search, Shield, Globe, Lock, Clock } from "lucide-react";
-import { useState } from "react";
+import { Users, Compass, Plus, Search, Shield, Globe, Lock, Clock, Filter, Bell } from "lucide-react";
+import { useState, useMemo } from "react";
 
 interface GroupSidebarItem {
   id: string;
@@ -14,6 +14,7 @@ interface GroupSidebarItem {
 interface PendingItem {
   id: string;
   name: string;
+  status?: "pending" | "approved" | "rejected";
 }
 
 export interface GroupAlertInfo {
