@@ -893,6 +893,12 @@ function ComparePage() {
 
             {/* HERO: head to head */}
             <section ref={heroRef} className="rounded-3xl border border-border bg-card/40 p-4 lg:p-6">
+              <div className="mb-3 flex items-center justify-center gap-2">
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-primary">
+                  <Trophy className="h-3 w-3" />
+                  Carreira no grupo · todas as temporadas
+                </span>
+              </div>
               <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 lg:gap-6">
                 <PlayerHero player={playerA} side="left" />
                 <div className="flex flex-col items-center gap-2">
