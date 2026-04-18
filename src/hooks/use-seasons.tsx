@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { notifyGroupMembers } from "@/hooks/use-notifications";
+import { revertMatchElo } from "@/lib/elo-engine";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Season = Tables<"seasons">;
@@ -310,6 +311,9 @@ export async function deleteMatch(matchId: string) {
     .eq("id", matchId)
     .single();
 
+  // Revert Elo/ranking impact before deleting the match
+  await revertMatchElo(matchId);
+
   const { error } = await supabase.from("matches").delete().eq("id", matchId);
   if (error) throw new Error(error.message);
 
@@ -336,6 +340,14 @@ export async function deleteMatch(matchId: string) {
 }
 
 export async function deleteRound(roundId: string) {
+  // Revert Elo for every match in this round before deletion
+  const { data: matches } = await supabase
+    .from("matches")
+    .select("id")
+    .eq("round_id", roundId);
+  if (matches?.length) {
+    await Promise.all(matches.map((m) => revertMatchElo(m.id)));
+  }
   // Delete all matches of this round first (cascade will handle match_players, match_sets, etc.)
   await supabase.from("matches").delete().eq("round_id", roundId);
   // Delete presences
