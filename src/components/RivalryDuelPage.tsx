@@ -6,7 +6,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { DualEloChart } from "@/components/DualEloChart";
 import { computeDuelMedals } from "@/lib/duel-medals";
-import { promoteMatchToRankingServerFn } from "@/lib/promote-match.functions";
+import { promoteMatchToRankingServerFn, revertMatchPromotionServerFn } from "@/lib/promote-match.functions";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "sonner";
 import {
@@ -23,6 +23,7 @@ import {
   History,
   Medal,
   ArrowUpCircle,
+  Undo2,
   Loader2,
 } from "lucide-react";
 
@@ -70,6 +71,7 @@ export function RivalryDuelPage({ groupId, groupName, seasonId, seasonName }: Pr
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
   const [promotingId, setPromotingId] = useState<string | null>(null);
+  const [revertingId, setRevertingId] = useState<string | null>(null);
 
   useEffect(() => {
     loadDuelData();
@@ -250,6 +252,7 @@ export function RivalryDuelPage({ groupId, groupName, seasonId, seasonName }: Pr
   }, [user, groupId]);
 
   const promoteFn = useServerFn(promoteMatchToRankingServerFn);
+  const revertFn = useServerFn(revertMatchPromotionServerFn);
 
   async function handlePromoteMatch(matchId: string) {
     setPromotingId(matchId);
@@ -269,6 +272,27 @@ export function RivalryDuelPage({ groupId, groupName, seasonId, seasonName }: Pr
       toast.error(err?.message || "Erro ao promover confronto");
     } finally {
       setPromotingId(null);
+    }
+  }
+
+  async function handleRevertMatch(matchId: string) {
+    if (!confirm("Reverter promoção? Isso desfaz o Elo e tira a partida do ranking.")) return;
+    setRevertingId(matchId);
+    try {
+      const res = await revertFn({ data: { matchId } });
+      toast.success(
+        res?.revertedElo
+          ? "Promoção revertida — Elo desfeito"
+          : "Partida marcada como avulsa novamente",
+      );
+      setMatches((prev) =>
+        prev.map((m) => (m.id === matchId ? { ...m, counts_for_ranking: false } : m)),
+      );
+      void loadDuelData();
+    } catch (err: any) {
+      toast.error(err?.message || "Erro ao reverter promoção");
+    } finally {
+      setRevertingId(null);
     }
   }
 
