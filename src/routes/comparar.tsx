@@ -87,6 +87,7 @@ interface Suggestion {
 function CompareLandingPage() {
   const { groups, isLoading: loadingGroups } = useMyGroups();
   const { user } = useAuth();
+  const [infoOpen, setInfoOpen] = useState<"what" | "how" | "why" | null>(null);
   const navigate = useNavigate();
 
   const [selectedGroupId, setSelectedGroupId] = useState<string>("");
