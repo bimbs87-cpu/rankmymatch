@@ -13,6 +13,7 @@ import {
   AlertTriangle,
   LogOut,
   Menu,
+  Crown,
 } from "lucide-react";
 
 import { useAuth } from "@/hooks/use-auth";
@@ -96,6 +97,24 @@ function GroupDetailPage() {
     Record<string, { rating: number; position: number | null; matches_played: number; matches_won: number }>
   >({});
   const [commentCount, setCommentCount] = useState(0);
+  const [isPremium, setIsPremium] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    supabase
+      .from("group_subscriptions")
+      .select("status, expires_at")
+      .eq("group_id", groupId)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (cancelled) return;
+        if (!data) { setIsPremium(false); return; }
+        const active = data.status && data.status !== "free" && data.status !== "cancelled";
+        const notExpired = !data.expires_at || new Date(data.expires_at) > new Date();
+        setIsPremium(Boolean(active && notExpired));
+      });
+    return () => { cancelled = true; };
+  }, [groupId]);
 
   const rivalry = isRivalryGroup(group);
   const isMember = !!myRole;
@@ -250,6 +269,7 @@ function GroupDetailPage() {
         memberCount={memberCount}
         rivalry={rivalry}
         hasPlaceholders={hasPlaceholders}
+        isPremium={isPremium}
         onJoin={() => setJoinDialogOpen(true)}
         onClaim={() => setClaimOpen(true)}
         joinDialog={
@@ -335,6 +355,12 @@ function GroupDetailPage() {
                   <Globe className="h-3 w-3 shrink-0 text-muted-foreground" />
                 ) : (
                   <Lock className="h-3 w-3 shrink-0 text-muted-foreground" />
+                )}
+                {isPremium && (
+                  <span className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-[var(--rank-gold)]/15 px-1.5 py-0.5 text-[9px] font-bold text-[var(--rank-gold)] ring-1 ring-[var(--rank-gold)]/40">
+                    <Crown className="h-2.5 w-2.5" />
+                    PREMIUM
+                  </span>
                 )}
               </div>
               <p className="text-[10px] text-muted-foreground">{memberCount} membros</p>
@@ -560,6 +586,7 @@ function NonMemberView({
   memberCount,
   rivalry,
   hasPlaceholders,
+  isPremium,
   onJoin,
   onClaim,
   joinDialog,
@@ -570,6 +597,7 @@ function NonMemberView({
   memberCount: number;
   rivalry: boolean;
   hasPlaceholders: boolean;
+  isPremium: boolean;
   onJoin: () => void;
   onClaim: () => void;
   joinDialog: React.ReactNode;
@@ -602,6 +630,12 @@ function NonMemberView({
                 <Globe className="h-3.5 w-3.5 text-muted-foreground" />
               ) : (
                 <Lock className="h-3.5 w-3.5 text-muted-foreground" />
+              )}
+              {isPremium && (
+                <span className="inline-flex items-center gap-0.5 rounded-full bg-[var(--rank-gold)]/15 px-2 py-0.5 text-[10px] font-bold text-[var(--rank-gold)] ring-1 ring-[var(--rank-gold)]/40">
+                  <Crown className="h-3 w-3" />
+                  PREMIUM
+                </span>
               )}
               {rivalry && (
                 <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary">

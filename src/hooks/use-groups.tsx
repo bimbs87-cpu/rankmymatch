@@ -7,19 +7,28 @@ type Group = Tables<"groups">;
 type GroupMember = Tables<"group_members">;
 
 async function attachMemberCounts(groups: Group[]) {
-  if (!groups.length) return groups.map((g) => ({ ...g, member_count: 0 }));
+  if (!groups.length) return groups.map((g) => ({ ...g, member_count: 0, is_premium: false }));
   const ids = groups.map((g) => g.id);
-  const { data: members } = await supabase
-    .from("group_members")
-    .select("group_id")
-    .in("group_id", ids)
-    .eq("status", "active");
+  const [{ data: members }, { data: subs }] = await Promise.all([
+    supabase.from("group_members").select("group_id").in("group_id", ids).eq("status", "active"),
+    supabase.from("group_subscriptions").select("group_id, status, expires_at").in("group_id", ids),
+  ]);
 
   const countMap = new Map<string, number>();
   for (const m of members || []) {
     countMap.set(m.group_id, (countMap.get(m.group_id) || 0) + 1);
   }
-  return groups.map((g) => ({ ...g, member_count: countMap.get(g.id) || 0 }));
+  const premiumMap = new Map<string, boolean>();
+  for (const s of subs || []) {
+    const active = s.status && s.status !== "free" && s.status !== "cancelled";
+    const notExpired = !s.expires_at || new Date(s.expires_at) > new Date();
+    if (active && notExpired) premiumMap.set(s.group_id, true);
+  }
+  return groups.map((g) => ({
+    ...g,
+    member_count: countMap.get(g.id) || 0,
+    is_premium: premiumMap.get(g.id) || false,
+  }));
 }
 
 export interface GroupStats {
@@ -263,7 +272,7 @@ export function useMyPendingJoinRequests() {
 }
 
 export function usePublicGroups(search: string) {
-  const [groups, setGroups] = useState<(Group & { member_count: number })[]>([]);
+  const [groups, setGroups] = useState<(Group & { member_count: number; is_premium?: boolean })[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
