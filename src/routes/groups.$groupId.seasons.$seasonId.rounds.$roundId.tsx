@@ -31,6 +31,7 @@ import {
 } from "lucide-react";
 import { useState, useMemo, useEffect } from "react";
 import { toast } from "sonner";
+import { abbreviateName } from "@/lib/utils";
 import { isPresenceOpen, getPresenceOpenDate, formatPresenceOpenDate } from "@/lib/presence-schedule";
 
 export const Route = createFileRoute(
@@ -66,13 +67,6 @@ function RoundDetailPage() {
   const [expandedMatch, setExpandedMatch] = useState<string | null>(null);
   const [matchRatings, setMatchRatings] = useState<Record<string, any[]>>({});
   const [previousPositions, setPreviousPositions] = useState<Record<string, number> | null>(null);
-
-  const formatCompactName = (name?: string | null) => {
-    const safeName = (name || "Jogador").trim();
-    const parts = safeName.split(/\s+/).filter(Boolean);
-    if (parts.length <= 1) return safeName;
-    return `${parts[0]} ${parts[parts.length - 1][0]}.`;
-  };
 
   // Auto-load ratings for all completed matches
   useEffect(() => {
