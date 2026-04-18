@@ -1166,6 +1166,22 @@ export function RivalryDuelPage({ groupId, groupName, seasonId, seasonName }: Pr
         )}
       </div>
       </div>
+
+      <DuelShareDialog
+        open={shareOpen}
+        onOpenChange={setShareOpen}
+        filenameBase={`duelo-${displayNameA}-vs-${displayNameB}`.toLowerCase().replace(/[^a-z0-9]+/g, "-")}
+        card={{
+          groupName,
+          seasonName,
+          playerA: { name: displayNameA, rating: playerA.rating_current, avatarUrl: playerA.avatar_url },
+          playerB: { name: displayNameB, rating: playerB.rating_current, avatarUrl: playerB.avatar_url },
+          winsA,
+          winsB,
+          totalMatches,
+          medals: shareMedals,
+        }}
+      />
     </div>
   );
 }
