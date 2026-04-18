@@ -85,6 +85,27 @@ interface UpcomingRound {
   presence_open_time: string;
 }
 
+interface NextMatchInfo {
+  round_id: string;
+  group_id: string;
+  group_name: string;
+  season_id: string | null;
+  season_name: string | null;
+  round_number: number | null;
+  scheduled_date: string | null;
+  scheduled_time: string | null;
+  /** Match record exists & user is paired */
+  has_pairing: boolean;
+  /** When has_pairing: the partner display name (doubles only) */
+  partner_name: string | null;
+  /** When has_pairing: the opponent display names */
+  opponent_names: string[];
+  /** When has_pairing: the user's match id (for "Registrar resultado") */
+  match_id: string | null;
+  /** Match status when paired */
+  match_status: string | null;
+}
+
 interface RecentMatch {
   id: string;
   match_number: number | null;
@@ -161,6 +182,7 @@ function DashboardPage() {
   }
   const { resolved: resolvedTheme } = themeData;
   const [upcomingRounds, setUpcomingRounds] = useState<UpcomingRound[]>([]);
+  const [nextMatch, setNextMatch] = useState<NextMatchInfo | null>(null);
   const [recentMatches, setRecentMatches] = useState<RecentMatch[]>([]);
   const [rankings, setRankings] = useState<RankingOption[]>([]);
   const [selectedSeasonId, setSelectedSeasonId] = useState<string | null>(null);
@@ -244,9 +266,10 @@ function DashboardPage() {
       .order("scheduled_date", { ascending: true })
       .limit(8);
 
+    let presences: { round_id: string; status: string; user_id: string }[] = [];
     if (rounds?.length) {
       const roundIds = rounds.map((r) => r.id);
-      const [{ data: presences }, { data: waiters }] = await Promise.all([
+      const [{ data: presencesData }, { data: waiters }] = await Promise.all([
         supabase
           .from("round_presence")
           .select("round_id, status, user_id")
@@ -256,10 +279,11 @@ function DashboardPage() {
           .select("round_id")
           .in("round_id", roundIds),
       ]);
+      presences = presencesData || [];
 
       setUpcomingRounds(
         rounds.map((r: any) => {
-          const roundPresences = (presences || []).filter((p) => p.round_id === r.id);
+          const roundPresences = presences.filter((p) => p.round_id === r.id);
           return {
             id: r.id,
             round_number: r.round_number,
@@ -284,6 +308,104 @@ function DashboardPage() {
       );
     } else {
       setUpcomingRounds([]);
+    }
+
+    // 1.5 Next match — find soonest upcoming round and check for paired match
+    {
+      const orderedRounds = (rounds || []).slice().sort((a: any, b: any) => {
+        const dA = a.scheduled_date || "9999-12-31";
+        const dB = b.scheduled_date || "9999-12-31";
+        if (dA !== dB) return dA < dB ? -1 : 1;
+        const tA = a.scheduled_time || "23:59:59";
+        const tB = b.scheduled_time || "23:59:59";
+        return tA < tB ? -1 : tA > tB ? 1 : 0;
+      });
+      // Pick the first round where the user has confirmed presence
+      const myConfirmedRound = orderedRounds.find((r: any) => {
+        return (
+          (presences || []).some(
+            (p: any) => p.round_id === r.id && p.user_id === user.id && p.status === "confirmed",
+          )
+        );
+      }) || orderedRounds[0];
+
+      if (myConfirmedRound) {
+        // Check if there's a match with the user paired in this round
+        const { data: myMatchPlayers } = await supabase
+          .from("match_players")
+          .select("match_id, team")
+          .eq("user_id", user.id);
+        const matchIdsForUser = new Set((myMatchPlayers || []).map((mp: any) => mp.match_id));
+
+        const { data: roundMatches } = await supabase
+          .from("matches")
+          .select("id, status, winner_team")
+          .eq("round_id", myConfirmedRound.id)
+          .neq("status", "completed");
+
+        const myMatchInRound = (roundMatches || []).find((m: any) => matchIdsForUser.has(m.id));
+
+        if (myMatchInRound) {
+          // Found pairing — fetch teammates and opponents
+          const myTeam = (myMatchPlayers || []).find((mp: any) => mp.match_id === myMatchInRound.id)?.team;
+          const { data: allPlayers } = await supabase
+            .from("match_players")
+            .select("user_id, team")
+            .eq("match_id", myMatchInRound.id);
+          const otherIds = (allPlayers || [])
+            .filter((p: any) => p.user_id !== user.id)
+            .map((p: any) => p.user_id);
+          const { data: profs } = await supabase
+            .from("user_profiles")
+            .select("user_id, name, nickname")
+            .in("user_id", otherIds.length ? otherIds : ["00000000-0000-0000-0000-000000000000"]);
+          const nameOf = (uid: string) => {
+            const p = (profs || []).find((x: any) => x.user_id === uid);
+            return p?.nickname?.trim() || p?.name || "Jogador";
+          };
+          const partnerId = (allPlayers || []).find(
+            (p: any) => p.user_id !== user.id && p.team === myTeam,
+          )?.user_id;
+          const opponentIds = (allPlayers || [])
+            .filter((p: any) => p.team !== myTeam)
+            .map((p: any) => p.user_id);
+
+          setNextMatch({
+            round_id: myConfirmedRound.id,
+            group_id: myConfirmedRound.group_id,
+            group_name: myConfirmedRound.groups?.name || "Grupo",
+            season_id: myConfirmedRound.season_id,
+            season_name: (myConfirmedRound.seasons as any)?.name || null,
+            round_number: myConfirmedRound.round_number,
+            scheduled_date: myConfirmedRound.scheduled_date,
+            scheduled_time: myConfirmedRound.scheduled_time,
+            has_pairing: true,
+            partner_name: partnerId ? nameOf(partnerId) : null,
+            opponent_names: opponentIds.map(nameOf),
+            match_id: myMatchInRound.id,
+            match_status: myMatchInRound.status,
+          });
+        } else {
+          // No pairing yet — show round-only card
+          setNextMatch({
+            round_id: myConfirmedRound.id,
+            group_id: myConfirmedRound.group_id,
+            group_name: myConfirmedRound.groups?.name || "Grupo",
+            season_id: myConfirmedRound.season_id,
+            season_name: (myConfirmedRound.seasons as any)?.name || null,
+            round_number: myConfirmedRound.round_number,
+            scheduled_date: myConfirmedRound.scheduled_date,
+            scheduled_time: myConfirmedRound.scheduled_time,
+            has_pairing: false,
+            partner_name: null,
+            opponent_names: [],
+            match_id: null,
+            match_status: null,
+          });
+        }
+      } else {
+        setNextMatch(null);
+      }
     }
 
     // 2. Recent matches (via rating_events)
@@ -900,49 +1022,68 @@ function DashboardPage() {
             <div className="relative flex flex-col rounded-3xl border border-primary/20 bg-primary/5 p-3 min-h-[140px] lg:min-h-0">
               <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Seu Ranking</p>
 
-              <Link
-                to="/ranking"
-                className="flex flex-1 flex-col"
-              >
-                {/* Top row: stats on the left, bar chart on the right */}
-                <div className="mt-1 flex flex-1 items-start gap-2">
-                  <div className="flex min-w-0 flex-1 flex-col">
-                    {/* Position */}
-                    <span className="font-display text-3xl font-bold leading-none text-primary">
-                      {ordinalSuffix(currentRanking.position)}
-                    </span>
-
-                    {/* Elo */}
-                    <p className="mt-1.5 font-display text-sm font-bold text-foreground leading-none">{Math.round(currentRanking.rating)} Elo</p>
-
-                    {/* V-D % ELO */}
-                    <div className="mt-1.5 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[10px] text-muted-foreground">
-                      <span className="font-semibold whitespace-nowrap">{currentRanking.matches_won}V {currentRanking.matches_played - currentRanking.matches_won}D</span>
-                      <span className="whitespace-nowrap">{winRate}%</span>
-                      {currentRanking.last_change !== null && (
-                        <span className={`flex items-center gap-0.5 font-semibold whitespace-nowrap ${currentRanking.last_change > 0 ? "text-success" : currentRanking.last_change < 0 ? "text-destructive" : ""}`}>
-                          {currentRanking.last_change > 0 ? <TrendingUp className="h-3 w-3" /> : currentRanking.last_change < 0 ? <TrendingDown className="h-3 w-3" /> : <Minus className="h-3 w-3" />}
-                          {currentRanking.last_change > 0 ? "+" : ""}{Math.round(currentRanking.last_change)}
-                        </span>
+              <Link to="/ranking" className="flex flex-1 flex-col">
+                {/* Top: Elo + delta — main visual */}
+                <div className="mt-1 flex items-baseline gap-1.5">
+                  <span className="font-display text-2xl font-extrabold leading-none text-foreground tabular-nums">
+                    {Math.round(currentRanking.rating)}
+                  </span>
+                  <span className="text-[10px] font-semibold text-muted-foreground">Elo</span>
+                  {currentRanking.last_change !== null && Math.abs(currentRanking.last_change) >= 1 && (
+                    <span
+                      className={`ml-auto inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-bold tabular-nums ${
+                        currentRanking.last_change > 0
+                          ? "bg-success/15 text-success"
+                          : "bg-destructive/15 text-destructive"
+                      }`}
+                      title="Variação na última partida"
+                    >
+                      {currentRanking.last_change > 0 ? (
+                        <TrendingUp className="h-2.5 w-2.5" />
+                      ) : (
+                        <TrendingDown className="h-2.5 w-2.5" />
                       )}
-                    </div>
-                  </div>
-
-                  {/* Games bar chart — fixed width column */}
-                  {currentRanking.last_set_games.length > 0 && (
-                    <div className="flex shrink-0 flex-col items-end pointer-events-none">
-                      <span className="mb-1 text-[8px] uppercase tracking-wider text-muted-foreground/70 leading-none text-right">
-                        Últ. {currentRanking.last_set_games.length} set{currentRanking.last_set_games.length > 1 ? "s" : ""}
-                      </span>
-                      {renderGamesBars(currentRanking.last_set_games, 70)}
-                    </div>
+                      {currentRanking.last_change > 0 ? "+" : ""}
+                      {Math.round(currentRanking.last_change)}
+                    </span>
                   )}
                 </div>
 
-                <p className="mt-2 text-[9px] text-muted-foreground/60 truncate">
+                {/* Position + win rate inline */}
+                <div className="mt-2 flex items-center gap-2 text-[11px]">
+                  <span className="font-display text-base font-bold leading-none text-primary">
+                    {ordinalSuffix(currentRanking.position)}
+                  </span>
+                  <span className="text-muted-foreground">
+                    · <span className="font-semibold text-foreground">{winRate}%</span> aprov.
+                  </span>
+                </div>
+
+                {/* Last 3 results — V/D pills */}
+                {currentRanking.last_events.length > 0 && (
+                  <div className="mt-2 flex items-center gap-1">
+                    <span className="text-[8px] uppercase tracking-wider text-muted-foreground/70">Últ. 3</span>
+                    {currentRanking.last_events.slice(0, 3).map((delta, i) => (
+                      <span
+                        key={i}
+                        className={`flex h-4 w-4 items-center justify-center rounded text-[9px] font-bold ${
+                          delta > 0
+                            ? "bg-success/15 text-success"
+                            : delta < 0
+                              ? "bg-destructive/15 text-destructive"
+                              : "bg-muted text-muted-foreground"
+                        }`}
+                        title={`${delta > 0 ? "+" : ""}${Math.round(delta)} Elo`}
+                      >
+                        {delta > 0 ? "V" : delta < 0 ? "D" : "·"}
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                <p className="mt-auto pt-2 text-[9px] text-muted-foreground/60 truncate">
                   {currentRanking.group_name || ""}
-                  {currentRanking.rounds_total > 0 ? `, ${currentRanking.rounds_completed}/${currentRanking.rounds_total}` : ""}
-                  {currentRanking.season_name ? ` · ${currentRanking.season_name}` : ""}
+                  {currentRanking.rounds_total > 0 ? ` · ${currentRanking.rounds_completed}/${currentRanking.rounds_total}` : ""}
                 </p>
               </Link>
             </div>
@@ -1439,6 +1580,84 @@ function DashboardPage() {
           })()}
         </section>
 
+        {/* Seu próximo confronto — priority card (mobile + desktop) */}
+        {nextMatch && (
+          <section className="lg:col-span-12 lg:col-start-1 lg:row-start-3">
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Seu próximo confronto
+              </h2>
+            </div>
+            <div className="rounded-3xl border border-primary/30 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent p-4">
+              <div className="flex items-start gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-primary/15">
+                  <Swords className="h-5 w-5 text-primary" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  {nextMatch.has_pairing ? (
+                    <p className="font-display text-base font-bold text-foreground leading-tight">
+                      <span className="text-primary">Você</span>
+                      {nextMatch.partner_name ? (
+                        <> <span className="text-muted-foreground text-xs font-medium">+ {nextMatch.partner_name}</span></>
+                      ) : null}
+                      <span className="text-muted-foreground"> vs </span>
+                      <span className="text-foreground">
+                        {nextMatch.opponent_names.length > 0 ? nextMatch.opponent_names.join(" & ") : "Adversários"}
+                      </span>
+                    </p>
+                  ) : (
+                    <p className="font-display text-base font-bold text-foreground leading-tight">
+                      Rodada {nextMatch.round_number ?? "—"}
+                    </p>
+                  )}
+                  <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-muted-foreground">
+                    <span className="font-medium">{nextMatch.group_name}</span>
+                    {nextMatch.scheduled_date && (
+                      <span className="flex items-center gap-0.5">
+                        <Calendar className="h-3 w-3" />
+                        {formatDate(nextMatch.scheduled_date)}
+                      </span>
+                    )}
+                    {nextMatch.scheduled_time && (
+                      <span className="flex items-center gap-0.5">
+                        <Clock className="h-3 w-3" />
+                        {nextMatch.scheduled_time.slice(0, 5)}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+              <div className="mt-3 flex gap-2">
+                <Link
+                  to="/groups/$groupId/seasons/$seasonId/rounds/$roundId"
+                  params={{
+                    groupId: nextMatch.group_id,
+                    seasonId: nextMatch.season_id || "",
+                    roundId: nextMatch.round_id,
+                  }}
+                  className={`flex flex-1 items-center justify-center gap-1.5 rounded-2xl px-3 py-2 text-xs font-semibold transition-colors ${
+                    nextMatch.has_pairing
+                      ? "bg-primary text-primary-foreground active:bg-primary/90"
+                      : "border border-primary/30 bg-primary/5 text-primary active:bg-primary/10"
+                  }`}
+                >
+                  {nextMatch.has_pairing ? (
+                    <>
+                      <Trophy className="h-3.5 w-3.5" />
+                      Registrar resultado
+                    </>
+                  ) : (
+                    <>
+                      <Calendar className="h-3.5 w-3.5" />
+                      Ver rodada
+                    </>
+                  )}
+                </Link>
+              </div>
+            </div>
+          </section>
+        )}
+
         {/* Próximas Rodadas (mobile/tablet only — desktop version is inside the right column wrapper above) */}
         <section className="lg:hidden">
           {/* Mobile/tablet header */}
@@ -1554,43 +1773,67 @@ function DashboardPage() {
               </div>
             </div>
           ) : (
-            <div className="grid grid-cols-3 gap-2">
+            <div className="space-y-1.5">
               {recentMatches.slice(0, 3).map((m) => {
                 const won = m.winner_team === m.my_team;
+                const winnerLabel = won
+                  ? "Você venceu"
+                  : m.partner_name
+                    ? `${m.opponent_names[0] || "Adversário"} venceu`
+                    : `${m.opponent_names[0] || "Adversário"} venceu`;
                 return (
                   <div
                     key={m.id}
-                    className="flex flex-col gap-1 rounded-xl border border-border bg-card p-2.5"
+                    className="flex items-center gap-2.5 rounded-xl border border-border bg-card px-3 py-2"
                   >
-                    <div className="flex items-center justify-between gap-1">
-                      <div className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-[10px] font-bold ${
-                        won ? "bg-success/10 text-success" : "bg-destructive/10 text-destructive"
-                      }`}>
-                        {won ? "V" : "D"}
-                      </div>
-                      {m.rating_change !== null && (
-                        <span className={`text-[11px] font-bold ${
-                          m.rating_change > 0 ? "text-success" : m.rating_change < 0 ? "text-destructive" : "text-muted-foreground"
-                        }`}>
-                          {m.rating_change > 0 ? "+" : ""}{Math.round(m.rating_change)}
-                        </span>
-                      )}
+                    {/* Winner badge */}
+                    <div
+                      className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[11px] font-bold ${
+                        won ? "bg-success/15 text-success" : "bg-destructive/15 text-destructive"
+                      }`}
+                    >
+                      {won ? "V" : "D"}
                     </div>
-                    <p className="text-[11px] font-semibold text-foreground truncate leading-tight">
-                      {m.score_display}
-                    </p>
-                    <p className="text-[9px] text-muted-foreground truncate leading-tight">
-                      {m.group_name ? `${m.group_name} · ` : ""}Set {m.match_number}
-                    </p>
-                    {m.partner_name && (
-                      <p className="text-[9px] text-muted-foreground/80 truncate leading-tight">
-                        c/ {m.partner_name}
+
+                    <div className="min-w-0 flex-1">
+                      {/* Score + winner */}
+                      <div className="flex items-baseline gap-2">
+                        <p className="font-display text-sm font-bold text-foreground tabular-nums leading-tight">
+                          {m.score_display}
+                        </p>
+                        <p className={`truncate text-[10px] font-semibold ${won ? "text-success" : "text-foreground"}`}>
+                          {winnerLabel}
+                        </p>
+                      </div>
+                      {/* Meta */}
+                      <p className="mt-0.5 truncate text-[10px] text-muted-foreground">
+                        {m.group_name ? `${m.group_name} · ` : ""}Set {m.match_number}
+                        {m.opponent_names.length > 0 && !won && (
+                          <> · vs {m.opponent_names.join(" & ")}</>
+                        )}
                       </p>
-                    )}
-                    {m.opponent_names.length > 0 && (
-                      <p className="text-[9px] text-muted-foreground/80 truncate leading-tight">
-                        vs {m.opponent_names.join(" & ")}
-                      </p>
+                    </div>
+
+                    {/* Elo delta — main visual on the right */}
+                    {m.rating_change !== null && (
+                      <span
+                        className={`shrink-0 inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-[11px] font-bold tabular-nums ${
+                          m.rating_change > 0
+                            ? "bg-success/15 text-success"
+                            : m.rating_change < 0
+                              ? "bg-destructive/15 text-destructive"
+                              : "bg-muted text-muted-foreground"
+                        }`}
+                      >
+                        {m.rating_change > 0 ? (
+                          <TrendingUp className="h-3 w-3" />
+                        ) : m.rating_change < 0 ? (
+                          <TrendingDown className="h-3 w-3" />
+                        ) : (
+                          <Minus className="h-3 w-3" />
+                        )}
+                        {m.rating_change > 0 ? "+" : ""}{Math.round(m.rating_change)}
+                      </span>
                     )}
                   </div>
                 );
