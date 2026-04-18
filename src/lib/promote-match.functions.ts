@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import { processMatchEloServer } from "@/lib/elo-engine.functions";
+import { processMatchEloServer } from "@/lib/elo-engine.server";
 
 const Input = z.object({
   matchId: z.string().uuid(),
