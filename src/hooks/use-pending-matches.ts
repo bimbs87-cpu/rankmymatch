@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/use-auth";
 
 export interface PendingMatch {
   id: string;
@@ -22,14 +23,13 @@ export interface PendingMatch {
  * or for a specific group if groupId is provided.
  */
 export function usePendingMatch(groupId?: string) {
+  const { user } = useAuth();
   const [pendingMatch, setPendingMatch] = useState<PendingMatch | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   const refresh = useCallback(async () => {
     setIsLoading(true);
     try {
-      // Get user's groups
-      const { data: { user } } = await supabase.auth.getUser();
       if (!user) { setPendingMatch(null); setIsLoading(false); return; }
 
       const { data: memberships } = await supabase
@@ -125,7 +125,7 @@ export function usePendingMatch(groupId?: string) {
     } finally {
       setIsLoading(false);
     }
-  }, [groupId]);
+  }, [groupId, user]);
 
   useEffect(() => { refresh(); }, [refresh]);
 
