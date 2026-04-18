@@ -778,7 +778,7 @@ function RecentMeetings({
       {filtered.length === 0 ? (
         <p className="py-6 text-center text-xs text-muted-foreground">Nenhum confronto neste filtro.</p>
       ) : (
-        <ul className="grid grid-cols-1 gap-1 sm:grid-cols-2 sm:gap-x-6 sm:gap-y-1.5">
+        <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-3 lg:grid-cols-3">
           {filtered.map((m) => {
             const aWonMatch = m.winner === m.aTeam;
             const bWonMatch = m.winner === m.bTeam;
