@@ -49,6 +49,7 @@ interface DuelMatch {
   sets: { scoreA: number; scoreB: number }[];
   counts_for_ranking: boolean;
   round_number: number | null;
+  team_a_user_id: string | null;
 }
 
 interface Props {
@@ -64,6 +65,8 @@ export function RivalryDuelPage({ groupId, groupName, seasonId, seasonName }: Pr
   const [playerB, setPlayerB] = useState<DuelPlayer | null>(null);
   const [matches, setMatches] = useState<DuelMatch[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [promotingId, setPromotingId] = useState<string | null>(null);
 
   useEffect(() => {
     loadDuelData();
