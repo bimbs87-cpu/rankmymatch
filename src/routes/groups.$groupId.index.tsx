@@ -365,9 +365,17 @@ function GroupDetailPage() {
                   <Lock className="h-3 w-3 shrink-0 text-muted-foreground" />
                 )}
                 {isPremium && (
-                  <span className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-[var(--rank-gold)]/15 px-1.5 py-0.5 text-[9px] font-bold text-[var(--rank-gold)] ring-1 ring-[var(--rank-gold)]/40">
+                  <span
+                    className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-[var(--rank-gold)]/15 px-1.5 py-0.5 text-[9px] font-bold text-[var(--rank-gold)] ring-1 ring-[var(--rank-gold)]/40"
+                    title={premiumDaysLeft != null ? `Assinatura expira em ${premiumDaysLeft} dia${premiumDaysLeft === 1 ? "" : "s"}` : undefined}
+                  >
                     <Crown className="h-2.5 w-2.5" />
                     PREMIUM
+                    {premiumDaysLeft != null && (
+                      <span className="ml-0.5 rounded-full bg-[var(--rank-gold)]/25 px-1 text-[8px] font-bold">
+                        {premiumDaysLeft}d
+                      </span>
+                    )}
                   </span>
                 )}
               </div>
