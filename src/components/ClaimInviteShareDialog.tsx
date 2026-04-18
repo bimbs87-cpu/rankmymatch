@@ -339,19 +339,51 @@ export function ClaimInviteShareDialog({
             </div>
           )}
 
+          {/* Template selector */}
+          <div className="flex items-center gap-2">
+            <select
+              value={selectedId}
+              onChange={(e) => {
+                setSelectedId(e.target.value);
+                try { localStorage.setItem(STORAGE_SELECTED_KEY, e.target.value); } catch { /* ignore */ }
+              }}
+              className="flex-1 rounded-full border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+            >
+              {templates.map((t) => (
+                <option key={t.id} value={t.id}>{t.name}</option>
+              ))}
+            </select>
+            <button
+              onClick={addTemplate}
+              className="flex items-center gap-1 rounded-full bg-muted px-2 py-1.5 text-[10px] font-semibold text-foreground hover:bg-muted/70"
+              title="Novo modelo"
+            >
+              <Plus className="h-3 w-3" />
+            </button>
+            {templates.length > 1 && (
+              <button
+                onClick={deleteCurrent}
+                className="rounded-full bg-destructive/10 px-2 py-1.5 text-destructive hover:bg-destructive/20"
+                title="Excluir modelo"
+              >
+                <Trash2 className="h-3 w-3" />
+              </button>
+            )}
+          </div>
+
           {/* Template editor / preview */}
           <div className="rounded-2xl border border-border bg-background p-3">
             <div className="mb-2 flex items-center justify-between">
               <span className="flex items-center gap-1.5 text-[11px] font-semibold text-muted-foreground">
                 {editing ? <Pencil className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
-                {editing ? "Editando modelo" : "Pré-visualização"}
+                {editing ? `Editando: ${selected?.name}` : `Pré-visualização: ${selected?.name}`}
               </span>
               {editing ? (
                 <div className="flex gap-1">
-                  <button onClick={resetTemplate} className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+                  <button onClick={resetCurrentToDefault} className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
                     Padrão
                   </button>
-                  <button onClick={saveTemplate} className="flex items-center gap-1 rounded-full bg-primary px-2 py-0.5 text-[10px] font-bold text-primary-foreground">
+                  <button onClick={persist} className="flex items-center gap-1 rounded-full bg-primary px-2 py-0.5 text-[10px] font-bold text-primary-foreground">
                     <Check className="h-2.5 w-2.5" />Salvar
                   </button>
                 </div>
@@ -366,7 +398,7 @@ export function ClaimInviteShareDialog({
               <>
                 <Textarea
                   value={template}
-                  onChange={(e) => setTemplate(e.target.value)}
+                  onChange={(e) => updateBody(e.target.value)}
                   rows={9}
                   className="resize-none border-border bg-card text-xs"
                   placeholder="Mensagem..."
