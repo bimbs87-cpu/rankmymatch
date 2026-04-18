@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, useCallback } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import {
   BarChart3, Search, ArrowRight, Sparkles, Crown, Flame, Snowflake,
-  Swords, X, Heart, GripVertical, Pencil, Medal, Rocket, ArrowLeft, ExternalLink,
+  Swords, X, Heart, GripVertical, Pencil, Medal, Rocket,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
