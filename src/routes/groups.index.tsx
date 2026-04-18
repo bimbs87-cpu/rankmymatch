@@ -169,7 +169,15 @@ function GroupsIndexPage() {
           {view === "explore" ? (
             <ExplorePanel />
           ) : selectedGroup ? (
-            <GroupDashboardPanel group={selectedGroup} />
+            <GroupDashboardPanel
+              group={selectedGroup}
+              onPresenceChanged={refreshAlerts}
+              onLeft={() => {
+                setSelectedId(null);
+                refresh();
+                refreshAlerts();
+              }}
+            />
           ) : (
             <EmptyState onCreate={() => setShowCreate(true)} onExplore={() => setView("explore")} />
           )}
