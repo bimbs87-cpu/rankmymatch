@@ -179,7 +179,7 @@ function SistemaPage() {
       </section>
 
       {/* PAIN → SOLUTION */}
-      <section className="mx-auto max-w-7xl px-5 py-16 lg:px-8 lg:py-24">
+      <section className="mx-auto max-w-7xl px-5 py-10 lg:px-8 lg:py-14">
         <div className="mx-auto max-w-3xl text-center">
           <h2 className="font-display text-3xl font-black tracking-tight text-foreground lg:text-4xl">
             Você já viveu isso?
@@ -189,7 +189,7 @@ function SistemaPage() {
           </p>
         </div>
 
-        <div className="mt-12 grid gap-4 lg:grid-cols-3">
+        <div className="mt-8 grid gap-4 lg:grid-cols-3">
           {[
             {
               before: "“Quem foi mesmo o vencedor da Rodada 4?”",
