@@ -223,7 +223,7 @@ function LoginPage() {
             {stats.map((s) => (
               <div
                 key={s.label}
-                className="group relative overflow-hidden rounded-2xl border border-border/70 bg-card/60 px-3 py-3.5 text-center backdrop-blur-md transition-all hover:border-primary/40 hover:bg-card/80 lg:py-4"
+                className="group relative overflow-hidden rounded-2xl border border-border/70 bg-card/60 px-2 py-2.5 text-center backdrop-blur-md transition-all hover:border-primary/40 hover:bg-card/80 lg:py-4"
               >
                 <div
                   aria-hidden
