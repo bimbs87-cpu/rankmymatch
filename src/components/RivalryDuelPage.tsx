@@ -1131,3 +1131,73 @@ function StatRow({
     </div>
   );
 }
+
+function ScoreLine({ label, valueA, valueB }: { label: string; valueA: number; valueB: number }) {
+  const aWins = valueA > valueB;
+  const bWins = valueB > valueA;
+  return (
+    <div className="rounded-xl border border-border/40 bg-background/40 px-3 py-2">
+      <div className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">
+        {label}
+      </div>
+      <div className="mt-1 flex items-baseline justify-between font-display text-sm font-bold tabular-nums">
+        <span className={aWins ? "text-primary" : "text-foreground"}>{valueA}</span>
+        <span className="text-muted-foreground/50">×</span>
+        <span className={bWins ? "text-info" : "text-foreground"}>{valueB}</span>
+      </div>
+    </div>
+  );
+}
+
+function EloCard({
+  name,
+  rating,
+  delta,
+  peak,
+  isLeader,
+  tone,
+}: {
+  name: string;
+  rating: number;
+  delta: number | null;
+  peak: number | null;
+  isLeader: boolean;
+  tone: "primary" | "info";
+}) {
+  const toneColor = tone === "primary" ? "text-primary" : "text-info";
+  const ringColor = tone === "primary" ? "ring-primary/30" : "ring-info/30";
+  return (
+    <div
+      className={`rounded-2xl border border-border/40 bg-background/40 p-3 ${
+        isLeader ? `ring-1 ${ringColor}` : ""
+      }`}
+    >
+      <div className="truncate text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+        {name}
+      </div>
+      <div className={`mt-1 font-display text-2xl font-extrabold tabular-nums ${toneColor}`}>
+        {rating}
+      </div>
+      <div className="mt-1 flex items-center justify-between text-[10px]">
+        {delta != null ? (
+          <span
+            className={`font-semibold tabular-nums ${
+              delta > 0 ? "text-primary" : delta < 0 ? "text-destructive" : "text-muted-foreground"
+            }`}
+            title="Variação desde o início da temporada"
+          >
+            {delta > 0 ? "+" : ""}
+            {delta}
+          </span>
+        ) : (
+          <span className="text-muted-foreground/60">—</span>
+        )}
+        {peak != null && (
+          <span className="text-muted-foreground" title="Pico histórico de Elo">
+            ↑ {peak}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
