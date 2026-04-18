@@ -911,7 +911,7 @@ export function RivalryDuelPage({ groupId, groupName, seasonId, seasonName }: Pr
         </div>
       </div>
 
-      {/* Block 7: Quick Actions */}
+      {/* Block 7: Quick Actions — order: Registrar, Histórico, Compartilhar, Temporadas */}
       <div className="rounded-3xl border border-border bg-card/50 p-5">
         <h3 className="mb-3 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
           Ações Rápidas
@@ -932,6 +932,13 @@ export function RivalryDuelPage({ groupId, groupName, seasonId, seasonName }: Pr
             <History className="h-4 w-4 text-muted-foreground" />
             <span className="text-xs font-semibold text-foreground">Histórico</span>
           </Link>
+          <button
+            onClick={handleShare}
+            className="flex items-center gap-2 rounded-2xl border border-border bg-background/50 px-3 py-3 transition-colors active:bg-accent/30"
+          >
+            <Share2 className="h-4 w-4 text-muted-foreground" />
+            <span className="text-xs font-semibold text-foreground">Compartilhar</span>
+          </button>
           <Link
             to="/groups/$groupId/seasons"
             params={{ groupId }}
@@ -940,21 +947,6 @@ export function RivalryDuelPage({ groupId, groupName, seasonId, seasonName }: Pr
             <Trophy className="h-4 w-4 text-muted-foreground" />
             <span className="text-xs font-semibold text-foreground">Temporadas</span>
           </Link>
-          <button
-            onClick={() => {
-              if (navigator.share) {
-                navigator.share({
-                  title: `Duelo: ${displayNameA} vs ${displayNameB}`,
-                  text: `${displayNameA} ${winsA} x ${winsB} ${displayNameB} | RankMyMatch`,
-                  url: window.location.href,
-                });
-              }
-            }}
-            className="flex items-center gap-2 rounded-2xl border border-border bg-background/50 px-3 py-3 transition-colors active:bg-accent/30"
-          >
-            <Share2 className="h-4 w-4 text-muted-foreground" />
-            <span className="text-xs font-semibold text-foreground">Compartilhar</span>
-          </button>
         </div>
       </div>
 
