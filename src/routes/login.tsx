@@ -177,9 +177,9 @@ function LoginPage() {
 
       <div className="relative z-10 mx-auto flex min-h-[100dvh] w-full max-w-6xl flex-col px-5 py-4 sm:px-6 sm:py-6 lg:grid lg:h-full lg:min-h-0 lg:grid-cols-[1.1fr_1fr] lg:items-center lg:gap-16 lg:px-12 lg:py-10">
         {/* === LEFT / TOP === */}
-        <div className="flex flex-col lg:flex-none">
+        <div className="flex flex-col lg:flex-none lg:items-center lg:text-center">
           {/* Hero logo */}
-          <div className="relative flex items-center justify-center lg:justify-start">
+          <div className="relative flex items-center justify-center">
             <div className="relative">
               <div
                 aria-hidden
@@ -193,7 +193,7 @@ function LoginPage() {
               <img
                 src={logoSquareNeon}
                 alt="RankMyMatch"
-                className="relative h-28 w-auto object-contain sm:h-36 lg:h-60 animate-float"
+                className="relative h-28 w-auto object-contain sm:h-36 lg:h-56 animate-float"
                 style={{
                   filter:
                     "drop-shadow(0 8px 24px color-mix(in oklab, var(--primary) 25%, transparent))",
@@ -203,20 +203,20 @@ function LoginPage() {
           </div>
 
           {/* Headline */}
-          <div className="mt-3 lg:mt-10">
+          <div className="mt-3 lg:mt-6">
             <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-border/60 bg-card/40 px-2.5 py-0.5 backdrop-blur-sm lg:mb-3 lg:px-3 lg:py-1">
               <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
               <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground lg:text-[11px]">
                 Para feirinos, clubes e amigos
               </span>
             </div>
-            <h1 className="font-black leading-[1.05] tracking-tight text-2xl sm:text-4xl lg:text-6xl xl:text-[4rem]">
+            <h1 className="font-black leading-[1.05] tracking-tight text-2xl sm:text-4xl lg:text-5xl xl:text-[3.5rem]">
               <span className="block text-foreground">Pare de anotar resultado</span>
               <span className="block bg-gradient-to-r from-primary via-primary to-primary/70 bg-clip-text text-transparent">
                 na planilha do WhatsApp.
               </span>
             </h1>
-            <p className="mt-2.5 max-w-md text-xs leading-relaxed text-muted-foreground sm:text-sm lg:mt-5 lg:text-[17px]">
+            <p className="mt-2.5 max-w-md text-xs leading-relaxed text-muted-foreground sm:text-sm lg:mx-auto lg:mt-4 lg:text-[15px]">
               Rankings Elo, temporadas e estatísticas automáticas para padel,
               tênis, beach tennis e mais.
             </p>
