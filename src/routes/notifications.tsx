@@ -1,5 +1,7 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { ArrowLeft, Bell, CheckCheck, Calendar, Shuffle, MessageSquare } from "lucide-react";
+import { useEffect } from "react";
+import { useAuth } from "@/hooks/use-auth";
 import { useNotifications } from "@/hooks/use-notifications";
 import { TrophyLoadingBar } from "@/components/TrophyLoadingBar";
 
@@ -25,6 +27,13 @@ function timeAgo(dateStr: string) {
 }
 
 function NotificationsPage() {
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const navigate = useNavigate();
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) {
+      navigate({ to: "/login" });
+    }
+  }, [authLoading, isAuthenticated, navigate]);
   const { notifications, unreadCount, isLoading, markAllRead, markRead } = useNotifications();
 
   return (

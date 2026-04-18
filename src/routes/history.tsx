@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useAuth } from "@/hooks/use-auth";
 import { TrophyLoadingBar } from "@/components/TrophyLoadingBar";
 import { supabase } from "@/integrations/supabase/client";
@@ -39,6 +39,12 @@ export const Route = createFileRoute("/history")({
 
 function HistoryPage() {
   const { user, isAuthenticated, isLoading: authLoading } = useAuth();
+  const navigate = useNavigate();
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) {
+      navigate({ to: "/login" });
+    }
+  }, [authLoading, isAuthenticated, navigate]);
   const [matches, setMatches] = useState<MatchHistory[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [groupFilter, setGroupFilter] = useState<string>("all");

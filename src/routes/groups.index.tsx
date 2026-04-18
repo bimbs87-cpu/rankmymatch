@@ -1,10 +1,10 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useAuth } from "@/hooks/use-auth";
 import { useMyGroups, useMyPendingJoinRequests, usePublicGroups } from "@/hooks/use-groups";
 import { CreateGroupDialog } from "@/components/CreateGroupDialog";
 import { TrophyLoadingBar } from "@/components/TrophyLoadingBar";
 import { Plus, Search, Users, Lock, Globe, Trophy, CalendarDays, Sparkles, Clock, Link2, Shield } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 export const Route = createFileRoute("/groups/")({
   component: GroupsIndexPage,
@@ -12,6 +12,12 @@ export const Route = createFileRoute("/groups/")({
 
 function GroupsIndexPage() {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const navigate = useNavigate();
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) {
+      navigate({ to: "/login" });
+    }
+  }, [authLoading, isAuthenticated, navigate]);
   const [tab, setTab] = useState<"my" | "explore">("my");
   const [search, setSearch] = useState("");
   const [showCreate, setShowCreate] = useState(false);
