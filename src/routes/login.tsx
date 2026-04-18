@@ -136,12 +136,12 @@ function LoginPage() {
   );
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-background text-foreground">
-      {/* === Premium continuous background === */}
-      {/* Soft mesh gradient — uses vw units so it scales at every breakpoint */}
+    <div className="relative h-screen w-full overflow-hidden bg-background text-foreground">
+      {/* === Premium continuous background — fixed to viewport so it never cuts === */}
+      <div aria-hidden className="pointer-events-none fixed inset-0 z-0 bg-background" />
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0"
+        className="pointer-events-none fixed inset-0 z-0"
         style={{
           backgroundImage: `
             radial-gradient(60vw 60vw at 12% 8%, color-mix(in oklab, var(--primary) 14%, transparent), transparent 65%),
@@ -150,27 +150,27 @@ function LoginPage() {
           `,
         }}
       />
-      {/* Fine grid overlay for depth */}
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0 opacity-[0.05]"
+        className="pointer-events-none fixed inset-0 z-0 opacity-[0.05]"
         style={{
           backgroundImage:
             "linear-gradient(to right, currentColor 1px, transparent 1px), linear-gradient(to bottom, currentColor 1px, transparent 1px)",
           backgroundSize: "56px 56px",
-          maskImage:
-            "radial-gradient(ellipse at center, black 30%, transparent 75%)",
+          maskImage: "radial-gradient(ellipse at center, black 30%, transparent 75%)",
+          WebkitMaskImage: "radial-gradient(ellipse at center, black 30%, transparent 75%)",
         }}
       />
-      {/* Vignette to anchor edges, prevents harsh cut at large viewports */}
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0"
+        className="pointer-events-none fixed inset-0 z-0"
         style={{
           background:
-            "radial-gradient(ellipse at center, transparent 55%, color-mix(in oklab, var(--background) 80%, transparent) 100%)",
+            "radial-gradient(ellipse at center, transparent 60%, color-mix(in oklab, var(--background) 70%, transparent) 100%)",
         }}
       />
+
+      <div className="relative z-10 mx-auto flex h-full w-full max-w-6xl flex-col px-5 py-4 sm:px-6 sm:py-6 lg:grid lg:grid-cols-[1.1fr_1fr] lg:items-center lg:gap-16 lg:px-12 lg:py-10">
 
       <div className="relative mx-auto flex min-h-screen w-full max-w-6xl flex-col px-6 py-10 lg:grid lg:grid-cols-[1.1fr_1fr] lg:items-center lg:gap-20 lg:px-12 lg:py-16">
         {/* === LEFT / TOP === */}
