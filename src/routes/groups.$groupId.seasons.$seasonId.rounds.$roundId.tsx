@@ -438,8 +438,9 @@ function RoundDetailPage() {
   // For rivalry: check if there's already a completed match
   const hasCompletedMatch = matches.some(m => m.status === "completed");
   const hasAnyMatch = matches.length > 0;
-  const rivalryShowLaunch = rivalry && isAdmin && !hasAnyMatch && round.status !== "cancelled";
+  const rivalryShowLaunch = rivalry && isAdmin && !hasAnyMatch && round.status !== "cancelled" && presenceListOpen;
   const rivalryShowEdit = rivalry && isAdmin && hasCompletedMatch;
+  const canLaunchManual = isAdmin && matches.length === 0 && !rivalry && presenceListOpen && presenceConfirmed.length >= minPlayersForDraw;
 
   return (
     <div className="min-h-screen bg-background pb-28">
@@ -605,7 +606,7 @@ function RoundDetailPage() {
       )}
 
       {/* Manual match creation - hidden for rivalry */}
-      {isAdmin && matches.length === 0 && !rivalry && (
+      {canLaunchManual && (
         <div className="mx-5 mb-5">
           <button
             onClick={() => setShowManualMatch(true)}
