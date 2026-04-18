@@ -61,6 +61,7 @@ export interface GroupDashboardData {
   recent_activity: ActivityItem[];
   current_season: SeasonInfo | null;
   member_count: number;
+  pending_join_requests: PendingJoinReq[];
 }
 
 const EMPTY: GroupDashboardData = {
@@ -72,6 +73,7 @@ const EMPTY: GroupDashboardData = {
   recent_activity: [],
   current_season: null,
   member_count: 0,
+  pending_join_requests: [],
 };
 
 export function useGroupDashboard(groupId: string | null) {
@@ -113,6 +115,17 @@ export function useGroupDashboard(groupId: string | null) {
         if (roundsTotal == null) roundsTotal = rs?.length ?? 0;
       }
 
+      // Group presence config
+      const { data: groupCfg } = await supabase
+        .from("groups")
+        .select("presence_open_mode, presence_open_time")
+        .eq("id", groupId)
+        .maybeSingle();
+      const presenceCfg = {
+        presence_open_mode: groupCfg?.presence_open_mode || "always",
+        presence_open_time: groupCfg?.presence_open_time || "10:00:00",
+      };
+
       // Next round (scheduled / open / in_progress) for the group
       const { data: nextRounds } = await supabase
         .from("rounds")
@@ -130,6 +143,8 @@ export function useGroupDashboard(groupId: string | null) {
           .eq("round_id", r.id);
         const confirmed = (presences || []).filter((p) => p.status === "confirmed").length;
         const mine = user ? (presences || []).find((p) => p.user_id === user.id) : null;
+        const open = isPresenceOpen(presenceCfg, r.scheduled_date, r.scheduled_time, r.id);
+        const opensAt = open ? null : getPresenceOpenDate(presenceCfg, r.scheduled_date, r.scheduled_time, r.id);
         nextRound = {
           id: r.id,
           scheduled_date: r.scheduled_date,
@@ -140,6 +155,8 @@ export function useGroupDashboard(groupId: string | null) {
           presence_status: (mine?.status as NextRoundInfo["presence_status"]) ?? null,
           confirmed_count: confirmed,
           max_players: r.max_players,
+          presence_is_open: open,
+          presence_opens_at: opensAt ? opensAt.toISOString() : null,
         };
       }
 
