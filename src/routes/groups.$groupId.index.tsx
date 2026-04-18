@@ -269,6 +269,7 @@ function GroupDetailPage() {
         memberCount={memberCount}
         rivalry={rivalry}
         hasPlaceholders={hasPlaceholders}
+        isPremium={isPremium}
         onJoin={() => setJoinDialogOpen(true)}
         onClaim={() => setClaimOpen(true)}
         joinDialog={
