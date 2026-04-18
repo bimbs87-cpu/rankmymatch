@@ -1371,7 +1371,7 @@ function DashboardPage() {
         )}
 
         {/* DESKTOP-ONLY: Right column = Últimos Resultados + Próximas Rodadas stacked */}
-        <section className="hidden lg:flex lg:flex-col lg:gap-6 lg:col-span-8 lg:col-start-5 lg:row-start-1 lg:row-span-3">
+        <section className="hidden lg:flex lg:flex-col lg:gap-6 lg:col-span-6 lg:col-start-5 lg:row-start-1 lg:row-span-3">
           {/* Últimos Resultados card */}
           <div className="flex flex-col rounded-3xl border border-border bg-card overflow-hidden">
             {/* Header */}
@@ -1535,6 +1535,9 @@ function DashboardPage() {
               </div>
             )}
           </div>
+
+          {/* Seu próximo confronto — desktop, between Últimos Resultados and Próximas Rodadas */}
+          {nextMatchCardJSX && <div>{nextMatchCardJSX}</div>}
 
           {/* Próximas Rodadas card (desktop) */}
           <div className="flex flex-1 flex-col rounded-3xl border border-border bg-card overflow-hidden">
