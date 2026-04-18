@@ -1122,6 +1122,42 @@ export type Database = {
           },
         ]
       }
+      sales_leads: {
+        Row: {
+          contact: string
+          contact_type: string
+          created_at: string
+          id: string
+          message: string | null
+          name: string
+          plan_interest: string
+          source: string | null
+          user_id: string | null
+        }
+        Insert: {
+          contact: string
+          contact_type?: string
+          created_at?: string
+          id?: string
+          message?: string | null
+          name: string
+          plan_interest?: string
+          source?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          contact?: string
+          contact_type?: string
+          created_at?: string
+          id?: string
+          message?: string | null
+          name?: string
+          plan_interest?: string
+          source?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       seasons: {
         Row: {
           created_at: string
