@@ -198,7 +198,7 @@ interface MatchResultServer {
   gamesTeamB: number;
 }
 
-async function processMatchEloServer(result: MatchResultServer) {
+export async function processMatchEloServer(result: MatchResultServer) {
   const allPlayerIds = [...result.teamA, ...result.teamB];
 
   const { data: snapshots } = await supabaseAdmin
