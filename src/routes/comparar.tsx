@@ -449,17 +449,17 @@ function CompareLandingPage() {
   const SuggestionCard = ({ s }: { s: Suggestion }) => (
     <button
       onClick={() => goCompare(s.player_ids)}
-      className="group aspect-square flex flex-col justify-between rounded-2xl border border-border bg-card/60 p-3 text-left hover:border-primary/40 hover:bg-card transition-all"
+      className="group flex flex-col gap-1.5 rounded-2xl border border-border bg-card/60 p-2.5 text-left hover:border-primary/40 hover:bg-card transition-all"
     >
       <div className="flex items-center gap-1.5">
-        <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-primary/10">
+        <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-primary/10">
           {s.icon}
         </div>
-        <p className="text-[11px] font-bold text-foreground leading-tight line-clamp-2">
+        <p className="text-[11px] font-bold text-foreground leading-tight line-clamp-1 flex-1">
           {s.title}
         </p>
       </div>
-      <p className="text-[10px] text-muted-foreground leading-snug line-clamp-2">
+      <p className="text-[10px] text-muted-foreground leading-snug line-clamp-2 min-h-[2.2em]">
         {s.subtitle}
       </p>
       <div className="flex items-center justify-between">
@@ -473,12 +473,12 @@ function CompareLandingPage() {
                 avatarUrl={p.avatar_url}
                 name={p.nickname || p.name}
                 size="sm"
-                className="border-2 border-background !h-6 !w-6"
+                className="border-2 border-background !h-5 !w-5"
               />
             );
           })}
         </div>
-        <ArrowRight className="h-3.5 w-3.5 text-muted-foreground/60 group-hover:text-primary transition-colors" />
+        <ArrowRight className="h-3 w-3 text-muted-foreground/60 group-hover:text-primary transition-colors" />
       </div>
     </button>
   );
