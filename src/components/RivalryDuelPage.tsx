@@ -213,6 +213,7 @@ export function RivalryDuelPage({ groupId, groupName, seasonId, seasonName }: Pr
           const winner = (m.match_players || []).find((mp: any) => mp.team === m.winner_team);
           winnerUserId = winner?.user_id || null;
         }
+        const teamAPlayer = (m.match_players || []).find((mp: any) => mp.team === "A");
 
         return {
           id: m.id,
@@ -223,8 +224,46 @@ export function RivalryDuelPage({ groupId, groupName, seasonId, seasonName }: Pr
           sets,
           counts_for_ranking: m.counts_for_ranking !== false,
           round_number: round?.round_number || null,
+          team_a_user_id: teamAPlayer?.user_id || null,
         };
       });
+  }
+
+  // Check admin status when user/group changes
+  useEffect(() => {
+    if (!user) {
+      setIsAdmin(false);
+      return;
+    }
+    let alive = true;
+    (async () => {
+      const { data } = await supabase.rpc("is_group_admin", {
+        _user_id: user.id,
+        _group_id: groupId,
+      });
+      if (alive) setIsAdmin(!!data);
+    })();
+    return () => { alive = false; };
+  }, [user, groupId]);
+
+  async function handlePromoteMatch(matchId: string) {
+    setPromotingId(matchId);
+    try {
+      const { error } = await supabase
+        .from("matches")
+        .update({ counts_for_ranking: true })
+        .eq("id", matchId);
+      if (error) throw error;
+      toast.success("Confronto promovido para o ranking");
+      // Optimistic local update
+      setMatches((prev) =>
+        prev.map((m) => (m.id === matchId ? { ...m, counts_for_ranking: true } : m)),
+      );
+    } catch (err: any) {
+      toast.error(err?.message || "Erro ao promover confronto");
+    } finally {
+      setPromotingId(null);
+    }
   }
 
   if (loading) {
