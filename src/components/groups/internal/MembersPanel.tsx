@@ -408,7 +408,7 @@ export function MembersPanel({ groupId }: Props) {
               />
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-1.5">
-                  {isFormer && isAdmin && renamingUserId === m.user_id ? (
+                  {(isFormer || isPlaceholder) && isAdmin && renamingUserId === m.user_id ? (
                     <input
                       value={renameValue}
                       onChange={(e) => setRenameValue(e.target.value)}
