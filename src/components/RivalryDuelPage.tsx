@@ -669,47 +669,39 @@ export function RivalryDuelPage({ groupId, groupName, seasonId, seasonName }: Pr
         )}
       </div>
 
-      {/* Block 3: Elo Comparison */}
+      {/* Block 3: Elo Comparison — current, delta vs start, peak */}
       <div className="rounded-3xl border border-border bg-card/50 p-5">
-        <h3 className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-3 text-center">
-          Elo Atual
-        </h3>
-        <div className="flex items-center justify-between">
-          <div className="flex-1 text-center">
-            <p className={`font-display text-2xl font-black ${eloLeader === "A" ? "text-primary" : "text-foreground"}`}>
-              {Math.round(playerA.rating)}
-            </p>
-            {playerA.last_change !== null && (
-              <span className={`inline-flex items-center gap-0.5 text-[10px] font-semibold ${
-                playerA.last_change > 0 ? "text-success" : playerA.last_change < 0 ? "text-destructive" : "text-muted-foreground"
-              }`}>
-                {playerA.last_change > 0 ? <TrendingUp className="h-3 w-3" /> : playerA.last_change < 0 ? <TrendingDown className="h-3 w-3" /> : <Minus className="h-3 w-3" />}
-                {playerA.last_change > 0 ? "+" : ""}{Math.round(playerA.last_change)}
-              </span>
-            )}
-          </div>
-
-          <div className="px-4 text-center">
-            <div className={`rounded-full px-3 py-1 text-[10px] font-bold ${
+        <div className="mb-3 flex items-center justify-between">
+          <h3 className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            Elo Atual
+          </h3>
+          <span
+            className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
               eloDiff > 0 ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
-            }`}>
-              {eloDiff > 0 ? `Δ ${eloDiff}` : "="}
-            </div>
-          </div>
+            }`}
+            title="Diferença atual entre os dois jogadores"
+          >
+            {eloDiff > 0 ? `Δ ${eloDiff}` : "="}
+          </span>
+        </div>
 
-          <div className="flex-1 text-center">
-            <p className={`font-display text-2xl font-black ${eloLeader === "B" ? "text-info" : "text-foreground"}`}>
-              {Math.round(playerB.rating)}
-            </p>
-            {playerB.last_change !== null && (
-              <span className={`inline-flex items-center gap-0.5 text-[10px] font-semibold ${
-                playerB.last_change > 0 ? "text-success" : playerB.last_change < 0 ? "text-destructive" : "text-muted-foreground"
-              }`}>
-                {playerB.last_change > 0 ? <TrendingUp className="h-3 w-3" /> : playerB.last_change < 0 ? <TrendingDown className="h-3 w-3" /> : <Minus className="h-3 w-3" />}
-                {playerB.last_change > 0 ? "+" : ""}{Math.round(playerB.last_change)}
-              </span>
-            )}
-          </div>
+        <div className="grid grid-cols-2 gap-3">
+          <EloCard
+            name={displayNameA}
+            rating={Math.round(playerA.rating)}
+            delta={eloDeltaA}
+            peak={playerA.rating_peak != null ? Math.round(playerA.rating_peak) : null}
+            isLeader={eloLeader === "A"}
+            tone="primary"
+          />
+          <EloCard
+            name={displayNameB}
+            rating={Math.round(playerB.rating)}
+            delta={eloDeltaB}
+            peak={playerB.rating_peak != null ? Math.round(playerB.rating_peak) : null}
+            isLeader={eloLeader === "B"}
+            tone="info"
+          />
         </div>
       </div>
 
