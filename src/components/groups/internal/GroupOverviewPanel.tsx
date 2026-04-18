@@ -6,6 +6,8 @@ import {
 import { useGroupDashboard } from "@/hooks/use-group-dashboard";
 import { useGroupGlobalStats, type RecordHolder } from "@/hooks/use-group-stats";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
+import { GroupRivalriesPanel } from "./GroupRivalriesPanel";
+import { GroupEloEvolutionChart } from "./GroupEloEvolutionChart";
 import { confirmPresence, cancelPresence } from "@/lib/round-actions";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
@@ -283,7 +285,13 @@ export function GroupOverviewPanel({ groupId, groupName, groupImage, description
         </div>
       </div>
 
-      {/* Top duplas */}
+      {/* Confrontos clássicos & duplas frequentes */}
+      <GroupRivalriesPanel groupId={groupId} />
+
+      {/* Evolução de Elo */}
+      <GroupEloEvolutionChart groupId={groupId} />
+
+      {/* Top duplas (melhor aproveitamento) */}
       {stats.top_pairs.length > 0 && (
         <div className="rounded-3xl border border-border bg-card p-5">
           <h3 className="mb-3 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-muted-foreground">
