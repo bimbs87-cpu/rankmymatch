@@ -9,9 +9,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { TrophyLoadingBar } from "@/components/TrophyLoadingBar";
 import { useUserProfile } from "@/hooks/use-user-profile";
 import { useMyGroups } from "@/hooks/use-groups";
-import { useCountUp } from "@/hooks/use-count-up";
-import { FormatBadge, resolveFormatBadge } from "@/components/ui/format-badge";
-import { EloDelta } from "@/components/ui/elo-delta";
+import { formatCountdown, countdownTone } from "@/lib/countdown";
 import { useNotifications } from "@/hooks/use-notifications";
 import { usePendingMatch } from "@/hooks/use-pending-matches";
 import { PendingMatchCard } from "@/components/PendingMatchCard";
@@ -62,18 +60,6 @@ function CardSpinner({ label = "Carregando..." }: { label?: string }) {
     </div>
   );
 }
-
-function AnimatedElo({ value, storageKey }: { value: number; storageKey: string }) {
-  const display = useCountUp(value, storageKey, 300);
-  return (
-    <span className="font-display text-2xl font-extrabold leading-none text-foreground tabular-nums">
-      {Math.round(display)}
-    </span>
-  );
-}
-
-// Group format badge rendering goes through <FormatBadge match_format={...} singles_group_type={...} />
-// Use resolveFormatBadge() if you need just the resolved label/kind without rendering.
 
 export const Route = createFileRoute("/")({
   component: DashboardPage,
@@ -1078,10 +1064,9 @@ function DashboardPage() {
               <Link to="/ranking" className="flex flex-1 flex-col">
                 {/* Top: Elo + delta — main visual */}
                 <div className="mt-1 flex items-baseline gap-1.5">
-                  <AnimatedElo
-                    value={currentRanking.rating}
-                    storageKey={`elo:${currentRanking.season_id}`}
-                  />
+                  <span className="font-display text-2xl font-extrabold leading-none text-foreground tabular-nums">
+                    {Math.round(currentRanking.rating)}
+                  </span>
                   <span className="text-[10px] font-semibold text-muted-foreground">Elo</span>
                   {currentRanking.last_change !== null && Math.abs(currentRanking.last_change) >= 1 && (
                     <span
@@ -1318,7 +1303,11 @@ function DashboardPage() {
                       {/* Elo delta */}
                       {m.rating_change !== null && (
                         <div className="shrink-0 text-right min-w-[52px]">
-                          <EloDelta value={m.rating_change} size="md" className="font-display text-base font-bold leading-none" />
+                          <p className={`font-display text-base font-bold tabular-nums leading-none ${
+                            m.rating_change > 0 ? "text-success" : m.rating_change < 0 ? "text-destructive" : "text-muted-foreground"
+                          }`}>
+                            {m.rating_change > 0 ? "+" : ""}{Math.round(m.rating_change)}
+                          </p>
                           <p className="mt-0.5 text-[9px] uppercase tracking-wider text-muted-foreground/70 leading-none">Elo</p>
                         </div>
                       )}
@@ -1644,11 +1633,16 @@ function DashboardPage() {
           else if (!isConfirmed) state = 3;
           else state = 2;
 
-          // Format badge — shared resolver
-          const fmtInfo = resolveFormatBadge({
-            match_format: nextMatch.match_format,
-            singles_group_type: nextMatch.singles_group_type,
-          });
+          // Format badge label
+          const formatBadge = (() => {
+            if (nextMatch.match_format === "singles") {
+              if (nextMatch.singles_group_type === "rivalry") return "Duelo";
+              if (nextMatch.singles_group_type === "league") return "Liga";
+              if (nextMatch.singles_group_type === "casual") return "Casual";
+              return "1x1";
+            }
+            return "2x2";
+          })();
 
           const headerLabel = state === 4 ? "Duelo" : "Seu próximo confronto";
 
@@ -1734,7 +1728,7 @@ function DashboardPage() {
                   {headerLabel}
                 </h2>
                 <span className="rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-primary">
-                  {fmtInfo.label}
+                  {formatBadge}
                 </span>
               </div>
               <div className="rounded-3xl border border-primary/30 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent p-4">
@@ -1759,6 +1753,26 @@ function DashboardPage() {
                           {nextMatch.scheduled_time.slice(0, 5)}
                         </span>
                       )}
+                      {(() => {
+                        const cd = formatCountdown(nextMatch.scheduled_date, nextMatch.scheduled_time);
+                        if (!cd) return null;
+                        const tone = countdownTone(nextMatch.scheduled_date, nextMatch.scheduled_time);
+                        const toneCls =
+                          tone === "now"
+                            ? "bg-destructive/15 text-destructive ring-1 ring-destructive/30"
+                            : tone === "soon"
+                              ? "bg-primary/15 text-primary ring-1 ring-primary/30"
+                              : tone === "near"
+                                ? "bg-warning/15 text-warning ring-1 ring-warning/30"
+                                : "bg-muted text-muted-foreground ring-1 ring-border";
+                        return (
+                          <span
+                            className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${toneCls}`}
+                          >
+                            {cd}
+                          </span>
+                        );
+                      })()}
                     </div>
                   </div>
                 </div>
@@ -1952,15 +1966,23 @@ function DashboardPage() {
 
                     {/* Elo delta — main visual on the right */}
                     {m.rating_change !== null && (
-                      <span className="shrink-0 inline-flex items-center gap-1">
+                      <span
+                        className={`shrink-0 inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-[11px] font-bold tabular-nums ${
+                          m.rating_change > 0
+                            ? "bg-success/15 text-success"
+                            : m.rating_change < 0
+                              ? "bg-destructive/15 text-destructive"
+                              : "bg-muted text-muted-foreground"
+                        }`}
+                      >
                         {m.rating_change > 0 ? (
-                          <TrendingUp className="h-3 w-3 text-success" />
+                          <TrendingUp className="h-3 w-3" />
                         ) : m.rating_change < 0 ? (
-                          <TrendingDown className="h-3 w-3 text-destructive" />
+                          <TrendingDown className="h-3 w-3" />
                         ) : (
-                          <Minus className="h-3 w-3 text-muted-foreground" />
+                          <Minus className="h-3 w-3" />
                         )}
-                        <EloDelta value={m.rating_change} variant="pill" size="sm" />
+                        {m.rating_change > 0 ? "+" : ""}{Math.round(m.rating_change)}
                       </span>
                     )}
                   </div>
@@ -1986,77 +2008,103 @@ function DashboardPage() {
             </div>
           ) : myGroups.length > 0 ? (
             <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-4">
-              {myGroups.slice(0, 4).map((g) => {
-                const stats = groupStats.get(g.id) || { seasons: 0, rounds_completed: 0, rounds_total: 0 };
-                const remaining = Math.max(0, stats.rounds_total - stats.rounds_completed);
-                const currentSeason = g.current_season_name;
-                return (
-                  <Link
-                    key={g.id}
-                    to="/groups/$groupId"
-                    params={{ groupId: g.id }}
-                    className="card-hover group relative h-32 overflow-hidden rounded-2xl border border-border bg-card transition-transform active:scale-[0.98] sm:h-36 lg:aspect-square lg:h-auto"
-                  >
-                    {/* Background image */}
-                    {g.image_url ? (
-                      <img
-                        src={g.image_url}
-                        alt=""
-                        className="absolute inset-0 h-full w-full object-cover"
-                        loading="lazy"
-                      />
-                    ) : (
-                      <div className="absolute inset-0 bg-gradient-to-br from-primary/30 via-primary/10 to-muted" />
-                    )}
-                    {/* Contrast overlay */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/45 to-black/20" />
+              {(() => {
+                // Build map: group_id → earliest future scheduled round (date+time)
+                const nextRoundByGroup = new Map<string, { date: string | null; time: string | null }>();
+                for (const r of upcomingRounds) {
+                  if (!r.scheduled_date) continue;
+                  const cd = formatCountdown(r.scheduled_date, r.scheduled_time);
+                  if (!cd) continue; // skip past
+                  const existing = nextRoundByGroup.get(r.group_id);
+                  if (!existing) {
+                    nextRoundByGroup.set(r.group_id, { date: r.scheduled_date, time: r.scheduled_time });
+                  }
+                }
+                return myGroups.slice(0, 4).map((g) => {
+                  const stats = groupStats.get(g.id) || { seasons: 0, rounds_completed: 0, rounds_total: 0 };
+                  const remaining = Math.max(0, stats.rounds_total - stats.rounds_completed);
+                  const nextRound = nextRoundByGroup.get(g.id);
+                  const cd = nextRound ? formatCountdown(nextRound.date, nextRound.time) : null;
+                  const tone = nextRound ? countdownTone(nextRound.date, nextRound.time) : null;
+                  const cdCls =
+                    tone === "now"
+                      ? "bg-destructive/85 text-destructive-foreground"
+                      : tone === "soon"
+                        ? "bg-primary/85 text-primary-foreground"
+                        : tone === "near"
+                          ? "bg-warning/80 text-warning-foreground"
+                          : "bg-black/55 text-white/95";
+                  return (
+                    <Link
+                      key={g.id}
+                      to="/groups/$groupId"
+                      params={{ groupId: g.id }}
+                      className="group relative aspect-square overflow-hidden rounded-2xl border border-border bg-card transition-transform active:scale-[0.98]"
+                    >
+                      {/* Background image */}
+                      {g.image_url ? (
+                        <img
+                          src={g.image_url}
+                          alt=""
+                          className="absolute inset-0 h-full w-full object-cover"
+                          loading="lazy"
+                        />
+                      ) : (
+                        <div className="absolute inset-0 bg-gradient-to-br from-primary/30 via-primary/10 to-muted" />
+                      )}
+                      {/* Contrast overlay */}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/45 to-black/20" />
 
-                    {/* Top: format badge (left) + privacy badge (right) */}
-                    <div className="absolute inset-x-2 top-2 flex items-start justify-between gap-1.5">
-                      <FormatBadge
-                        info={resolveFormatBadge({ match_format: g.match_format, singles_group_type: g.singles_group_type })}
-                        className="backdrop-blur-sm"
-                      />
-                      <span className="flex h-5 w-5 items-center justify-center rounded-full bg-black/40 backdrop-blur-sm">
-                        {g.is_public ? (
-                          <Globe className="h-2.5 w-2.5 text-white" />
+                      {/* Top: countdown badge (left) + privacy badge (right) */}
+                      <div className="absolute inset-x-2 top-2 flex items-start justify-between gap-1.5">
+                        {cd ? (
+                          <span
+                            className={`inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider backdrop-blur-sm ${cdCls}`}
+                          >
+                            <Clock className="h-2.5 w-2.5" />
+                            {cd}
+                          </span>
                         ) : (
-                          <Lock className="h-2.5 w-2.5 text-white" />
+                          <span />
                         )}
-                      </span>
-                    </div>
-
-                    {/* Bottom: info */}
-                    <div className="absolute inset-x-0 bottom-0 p-2.5 text-white">
-                      <h3 className="font-display text-sm font-bold leading-tight drop-shadow-md line-clamp-2">
-                        {g.name}
-                      </h3>
-                      <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] font-medium text-white/90">
-                        <span className="flex items-center gap-0.5">
-                          <Users className="h-2.5 w-2.5" />
-                          {g.member_count}
-                        </span>
-                        <span className="flex items-center gap-0.5">
-                          <Calendar className="h-2.5 w-2.5" />
-                          {remaining > 0 ? `${remaining} rest.` : `${stats.rounds_completed}/${stats.rounds_total || 0}`}
+                        <span className="flex h-6 w-6 items-center justify-center rounded-full bg-black/40 backdrop-blur-sm">
+                          {g.is_public ? (
+                            <Globe className="h-3 w-3 text-white" />
+                          ) : (
+                            <Lock className="h-3 w-3 text-white" />
+                          )}
                         </span>
                       </div>
-                      {currentSeason ? (
-                        <p className="mt-0.5 flex items-center gap-1 text-[9px] font-semibold text-success/95 truncate">
-                          <span className="inline-block h-1.5 w-1.5 shrink-0 animate-pulse rounded-full bg-success" />
-                          <span className="truncate">{currentSeason}</span>
-                        </p>
-                      ) : stats.seasons > 0 ? (
-                        <p className="mt-0.5 text-[9px] text-white/60 truncate">
-                          {stats.seasons} temp. concluída{stats.seasons > 1 ? "s" : ""}
-                        </p>
-                      ) : (
-                        <p className="mt-0.5 text-[9px] text-white/50 truncate">Sem temporada ativa</p>
-                      )}
-                    </div>
-                  </Link>
-                );
-              })}
+
+                      {/* Bottom: info */}
+                      <div className="absolute inset-x-0 bottom-0 p-2.5 text-white">
+                        <h3 className="font-display text-sm font-bold leading-tight drop-shadow-md line-clamp-2">
+                          {g.name}
+                        </h3>
+                        <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] font-medium text-white/90">
+                          <span className="flex items-center gap-0.5">
+                            <Users className="h-2.5 w-2.5" />
+                            {g.member_count}
+                          </span>
+                          <span className="flex items-center gap-0.5">
+                            <Trophy className="h-2.5 w-2.5" />
+                            {stats.seasons}
+                          </span>
+                          <span className="flex items-center gap-0.5">
+                            <Calendar className="h-2.5 w-2.5" />
+                            {stats.rounds_completed}/{stats.rounds_total}
+                          </span>
+                        </div>
+                        {remaining > 0 && (
+                          <p className="mt-0.5 text-[9px] text-white/70">
+                            {remaining} rodada{remaining > 1 ? "s" : ""} restante{remaining > 1 ? "s" : ""}
+                          </p>
+                        )}
+                      </div>
+                    </Link>
+                  );
+                });
+              })()}
             </div>
           ) : (
             <div className="rounded-3xl border border-border bg-card p-5">
