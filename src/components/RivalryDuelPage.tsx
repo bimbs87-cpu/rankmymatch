@@ -543,7 +543,7 @@ export function RivalryDuelPage({ groupId, groupName, seasonId, seasonName }: Pr
 
   return (
     <div className="px-5 pb-28 animate-fade-in lg:grid lg:grid-cols-12 lg:gap-6 lg:px-6">
-      <div className="space-y-4 lg:col-span-7 lg:space-y-5">
+      <div className="space-y-3 lg:col-span-7 lg:space-y-5">
       {/* Block 1: Duel Header — compact on mobile, denser top */}
       <div className="rounded-3xl border border-border bg-card/50 p-4 lg:p-5">
         <div className="flex items-center justify-between mb-3">
