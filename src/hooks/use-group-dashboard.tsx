@@ -15,6 +15,7 @@ export interface NextRoundInfo {
   max_players: number;
   presence_is_open: boolean;
   presence_opens_at: string | null;
+  confirmed_avatars: { user_id: string; name: string; avatar_url: string | null }[];
 }
 
 export interface PendingJoinReq {
@@ -139,12 +140,36 @@ export function useGroupDashboard(groupId: string | null) {
         const r = nextRounds[0];
         const { data: presences } = await supabase
           .from("round_presence")
-          .select("user_id, status")
+          .select("user_id, status, confirmed_at")
           .eq("round_id", r.id);
-        const confirmed = (presences || []).filter((p) => p.status === "confirmed").length;
+        const confirmedList = (presences || []).filter((p) => p.status === "confirmed");
+        const confirmed = confirmedList.length;
         const mine = user ? (presences || []).find((p) => p.user_id === user.id) : null;
         const open = isPresenceOpen(presenceCfg, r.scheduled_date, r.scheduled_time, r.id);
         const opensAt = open ? null : getPresenceOpenDate(presenceCfg, r.scheduled_date, r.scheduled_time, r.id);
+
+        // Fetch up to 3 avatars of confirmed players (most recent confirmations first)
+        const sortedConfirmed = [...confirmedList]
+          .sort((a, b) => new Date(b.confirmed_at || 0).getTime() - new Date(a.confirmed_at || 0).getTime())
+          .slice(0, 3);
+        let confirmedAvatars: NextRoundInfo["confirmed_avatars"] = [];
+        if (sortedConfirmed.length) {
+          const ids = sortedConfirmed.map((p) => p.user_id);
+          const { data: profs } = await supabase
+            .from("user_profiles")
+            .select("user_id, name, nickname, avatar_url")
+            .in("user_id", ids);
+          const profMap = new Map((profs || []).map((p) => [p.user_id, p]));
+          confirmedAvatars = sortedConfirmed.map((p) => {
+            const prof = profMap.get(p.user_id);
+            return {
+              user_id: p.user_id,
+              name: prof?.nickname || prof?.name || "Jogador",
+              avatar_url: prof?.avatar_url ?? null,
+            };
+          });
+        }
+
         nextRound = {
           id: r.id,
           scheduled_date: r.scheduled_date,
@@ -157,6 +182,7 @@ export function useGroupDashboard(groupId: string | null) {
           max_players: r.max_players,
           presence_is_open: open,
           presence_opens_at: opensAt ? opensAt.toISOString() : null,
+          confirmed_avatars: confirmedAvatars,
         };
       }
 
