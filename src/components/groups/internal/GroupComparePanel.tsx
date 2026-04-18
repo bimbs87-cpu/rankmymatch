@@ -238,6 +238,21 @@ export function GroupComparePanel({ groupId, initialPick, onConsumeInitial }: Pa
 
   useEffect(() => { loadFavorites(); }, [loadFavorites]);
 
+  // Auto-open the embedded compare when a parent passes initialPick
+  // (e.g. user clicks a rivalry/partnership/untapped card on the Overview).
+  useEffect(() => {
+    if (!initialPick || initialPick.length < 2) return;
+    if (loadingMembers) return;
+    const ids = initialPick.slice(0, 4);
+    const label = ids.map((id) => {
+      const m = members.find((x) => x.user_id === id);
+      return m ? (m.nickname || m.name) : "Jogador";
+    }).join(" vs ");
+    setActiveCompare({ ids, label });
+    onConsumeInitial?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialPick, loadingMembers, members]);
+
   const filteredMembers = useMemo(() => {
     const q = search.trim().toLowerCase();
     if (!q) return members;
