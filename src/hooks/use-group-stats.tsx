@@ -85,14 +85,28 @@ export function useGroupGlobalStats(groupId: string | null) {
       const roundIds = (rounds || []).map((r) => r.id);
       const totalRounds = roundIds.length;
 
-      // Matches
+      // Matches + map round->scheduled_date
       let totalMatches = 0;
       let matchIds: string[] = [];
+      const matchDateMap = new Map<string, number>(); // match_id -> ms
       if (roundIds.length) {
+        const { data: roundsFull } = await supabase
+          .from("rounds").select("id, scheduled_date, created_at").in("id", roundIds);
+        const roundDateMap = new Map<string, number>();
+        for (const r of roundsFull || []) {
+          const ts = r.scheduled_date
+            ? new Date(r.scheduled_date + "T12:00:00").getTime()
+            : new Date(r.created_at).getTime();
+          roundDateMap.set(r.id, ts);
+        }
         const { data: matches } = await supabase
-          .from("matches").select("id, winner_team").in("round_id", roundIds);
+          .from("matches").select("id, winner_team, round_id, created_at").in("round_id", roundIds);
         totalMatches = matches?.length || 0;
         matchIds = (matches || []).map((m) => m.id);
+        for (const m of matches || []) {
+          const ts = roundDateMap.get(m.round_id) ?? new Date(m.created_at).getTime();
+          matchDateMap.set(m.id, ts);
+        }
       }
 
       // Active players
@@ -129,7 +143,7 @@ export function useGroupGlobalStats(groupId: string | null) {
       if (matchIds.length) {
         const { data: events } = await supabase
           .from("rating_events")
-          .select("user_id, rating_after, rating_before, rating_change, created_at")
+          .select("user_id, rating_after, rating_before, rating_change, match_id, created_at")
           .in("match_id", matchIds)
           .order("created_at", { ascending: true });
 
@@ -143,7 +157,7 @@ export function useGroupGlobalStats(groupId: string | null) {
         let maxSwing = -Infinity;
         let maxSwingUser = "";
 
-        // Hot player last 30d (sum of rating_change)
+        // Hot player last 30d (sum of rating_change), based on match scheduled date
         const since = Date.now() - 30 * 24 * 60 * 60 * 1000;
         const swing30d = new Map<string, { delta: number; matches: number }>();
 
@@ -152,7 +166,8 @@ export function useGroupGlobalStats(groupId: string | null) {
           const change = Number(e.rating_change);
           if (after > maxElo) { maxElo = after; maxEloUser = e.user_id; }
           if (change > maxSwing) { maxSwing = change; maxSwingUser = e.user_id; }
-          if (new Date(e.created_at).getTime() >= since) {
+          const matchTs = matchDateMap.get(e.match_id) ?? new Date(e.created_at).getTime();
+          if (matchTs >= since) {
             const cur = swing30d.get(e.user_id) || { delta: 0, matches: 0 };
             cur.delta += change;
             cur.matches += 1;

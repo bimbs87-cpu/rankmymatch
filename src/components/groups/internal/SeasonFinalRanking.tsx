@@ -16,7 +16,7 @@ interface RankingRow {
   avatar_type: string | null;
 }
 
-export function SeasonFinalRanking({ seasonId }: { seasonId: string }) {
+export function SeasonFinalRanking({ seasonId, isActive = false }: { seasonId: string; isActive?: boolean }) {
   const [rows, setRows] = useState<RankingRow[]>([]);
   const [loading, setLoading] = useState(true);
   const { data: extras } = useSeasonExtras(seasonId);
@@ -82,7 +82,7 @@ export function SeasonFinalRanking({ seasonId }: { seasonId: string }) {
       {/* Pódio */}
       <div className="rounded-2xl border border-border bg-card/40 p-4">
         <div className="mb-3 text-center text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-          Pódio Final
+          {isActive ? "Pódio atual" : "Pódio Final"}
         </div>
         <div className="flex items-end justify-center gap-2">
           {/* 2º */}
