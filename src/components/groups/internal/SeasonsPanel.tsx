@@ -187,7 +187,7 @@ function SeasonAccordion({
       </div>
       {expanded && (
         <div className="border-t border-border bg-background/40">
-          <SeasonFinalRanking seasonId={season.id} />
+          <SeasonFinalRanking seasonId={season.id} isActive={isActive} />
           <SeasonRoundsInline groupId={groupId} seasonId={season.id} isAdmin={isAdmin} />
           {isAdmin && <SeasonStatusActions season={season} onChanged={onChanged} />}
         </div>
