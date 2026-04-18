@@ -18,6 +18,10 @@ import {
   Globe,
   Lock,
   LogOut,
+  UserPlus,
+  Check,
+  X as XIcon,
+  Inbox,
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
