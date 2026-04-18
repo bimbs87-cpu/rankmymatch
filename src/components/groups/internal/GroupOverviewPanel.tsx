@@ -20,9 +20,11 @@ interface Props {
   description: string | null;
   onGotoMembers: () => void;
   onGotoResults: () => void;
+  /** Open the embedded compare with these two player ids pre-selected. */
+  onCompare?: (userIdA: string, userIdB: string) => void;
 }
 
-export function GroupOverviewPanel({ groupId, groupName, groupImage, description, onGotoMembers, onGotoResults }: Props) {
+export function GroupOverviewPanel({ groupId, groupName, groupImage, description, onGotoMembers, onGotoResults, onCompare }: Props) {
   const { user } = useAuth();
   const { data, isLoading, refresh } = useGroupDashboard(groupId);
   const { data: stats, isLoading: statsLoading } = useGroupGlobalStats(groupId);
@@ -285,8 +287,8 @@ export function GroupOverviewPanel({ groupId, groupName, groupImage, description
         </div>
       </div>
 
-      {/* Confrontos clássicos & duplas frequentes */}
-      <GroupRivalriesPanel groupId={groupId} />
+      {/* Confrontos clássicos, duplas frequentes e próximos confrontos */}
+      <GroupRivalriesPanel groupId={groupId} onPickPair={onCompare} />
 
       {/* Evolução de Elo */}
       <GroupEloEvolutionChart groupId={groupId} />
