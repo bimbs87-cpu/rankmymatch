@@ -69,8 +69,8 @@ export function GroupComparePanel({ groupId, initialPick, onConsumeInitial }: Pa
   const [renameLabel, setRenameLabel] = useState("");
   const [dragId, setDragId] = useState<string | null>(null);
 
-  // Embedded compare result (keeps the group sidebar visible)
-  const [activeCompare, setActiveCompare] = useState<{ ids: string[]; label: string } | null>(null);
+  // (No more embedded iframe — clicking compare navigates to the full-screen
+  // compare page with a backTo param so the user can return to this panel.)
 
   useEffect(() => {
     let cancelled = false;
