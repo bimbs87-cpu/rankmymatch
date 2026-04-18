@@ -226,7 +226,7 @@ export function RivalryDuelPage({ groupId, groupName, seasonId, seasonName }: Pr
     return data?.id || null;
   }
 
-  async function loadDuelMatches(gid: string, userIds: string[]): Promise<DuelMatch[]> {
+  async function loadDuelMatches(gid: string, userIds: string[]): Promise<Omit<DuelMatch, "rating_change_by_user">[]> {
     // Get all rounds for this group
     const { data: rounds } = await supabase
       .from("rounds")
