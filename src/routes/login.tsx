@@ -136,12 +136,12 @@ function LoginPage() {
   );
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-background text-foreground">
-      {/* === Premium continuous background === */}
-      {/* Soft mesh gradient — uses vw units so it scales at every breakpoint */}
+    <div className="relative h-screen w-full overflow-hidden bg-background text-foreground">
+      {/* === Premium continuous background — fixed to viewport so it never cuts === */}
+      <div aria-hidden className="pointer-events-none fixed inset-0 z-0 bg-background" />
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0"
+        className="pointer-events-none fixed inset-0 z-0"
         style={{
           backgroundImage: `
             radial-gradient(60vw 60vw at 12% 8%, color-mix(in oklab, var(--primary) 14%, transparent), transparent 65%),
@@ -150,29 +150,27 @@ function LoginPage() {
           `,
         }}
       />
-      {/* Fine grid overlay for depth */}
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0 opacity-[0.05]"
+        className="pointer-events-none fixed inset-0 z-0 opacity-[0.05]"
         style={{
           backgroundImage:
             "linear-gradient(to right, currentColor 1px, transparent 1px), linear-gradient(to bottom, currentColor 1px, transparent 1px)",
           backgroundSize: "56px 56px",
-          maskImage:
-            "radial-gradient(ellipse at center, black 30%, transparent 75%)",
+          maskImage: "radial-gradient(ellipse at center, black 30%, transparent 75%)",
+          WebkitMaskImage: "radial-gradient(ellipse at center, black 30%, transparent 75%)",
         }}
       />
-      {/* Vignette to anchor edges, prevents harsh cut at large viewports */}
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0"
+        className="pointer-events-none fixed inset-0 z-0"
         style={{
           background:
-            "radial-gradient(ellipse at center, transparent 55%, color-mix(in oklab, var(--background) 80%, transparent) 100%)",
+            "radial-gradient(ellipse at center, transparent 60%, color-mix(in oklab, var(--background) 70%, transparent) 100%)",
         }}
       />
 
-      <div className="relative mx-auto flex min-h-screen w-full max-w-6xl flex-col px-6 py-10 lg:grid lg:grid-cols-[1.1fr_1fr] lg:items-center lg:gap-20 lg:px-12 lg:py-16">
+      <div className="relative z-10 mx-auto flex h-full w-full max-w-6xl flex-col px-5 py-4 sm:px-6 sm:py-6 lg:grid lg:grid-cols-[1.1fr_1fr] lg:items-center lg:gap-16 lg:px-12 lg:py-10">
         {/* === LEFT / TOP === */}
         <div className="flex flex-1 flex-col lg:flex-none">
           {/* Hero logo — floating with soft outer aura */}
@@ -191,7 +189,7 @@ function LoginPage() {
               <img
                 src={logoSquareNeon}
                 alt="RankMyMatch"
-                className="relative h-40 w-auto object-contain sm:h-48 lg:h-64 animate-float"
+                className="relative h-28 w-auto object-contain sm:h-36 lg:h-60 animate-float"
                 style={{
                   filter:
                     "drop-shadow(0 8px 24px color-mix(in oklab, var(--primary) 25%, transparent))",
@@ -201,31 +199,31 @@ function LoginPage() {
           </div>
 
           {/* Headline */}
-          <div className="mt-8 lg:mt-12">
-            <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-border/60 bg-card/40 px-3 py-1 backdrop-blur-sm">
+          <div className="mt-4 lg:mt-10">
+            <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-border/60 bg-card/40 px-2.5 py-0.5 backdrop-blur-sm lg:mb-3 lg:px-3 lg:py-1">
               <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
-              <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+              <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground lg:text-[11px]">
                 Para feirinos, clubes e amigos
               </span>
             </div>
-            <h1 className="font-black leading-[1.05] tracking-tight text-[2rem] sm:text-5xl lg:text-6xl xl:text-[4rem]">
+            <h1 className="font-black leading-[1.05] tracking-tight text-2xl sm:text-4xl lg:text-6xl xl:text-[4rem]">
               <span className="block text-foreground">Pare de anotar resultado</span>
               <span className="block bg-gradient-to-r from-primary via-primary to-primary/70 bg-clip-text text-transparent">
                 na planilha do WhatsApp.
               </span>
             </h1>
-            <p className="mt-5 max-w-md text-sm leading-relaxed text-muted-foreground sm:text-base lg:text-[17px]">
+            <p className="mt-3 max-w-md text-xs leading-relaxed text-muted-foreground sm:text-sm lg:mt-5 lg:text-[17px]">
               Rankings Elo, temporadas e estatísticas automáticas para padel,
-              tênis, beach tennis e mais. Sem mais planilhas.
+              tênis, beach tennis e mais.
             </p>
           </div>
 
           {/* Stat cards */}
-          <div className="mt-8 grid grid-cols-3 gap-2.5 lg:mt-10 lg:gap-3">
+          <div className="mt-3 grid grid-cols-3 gap-2 lg:mt-10 lg:gap-3">
             {stats.map((s) => (
               <div
                 key={s.label}
-                className="group relative overflow-hidden rounded-2xl border border-border/70 bg-card/60 px-3 py-3.5 text-center backdrop-blur-md transition-all hover:border-primary/40 hover:bg-card/80 lg:py-4"
+                className="group relative overflow-hidden rounded-2xl border border-border/70 bg-card/60 px-2 py-2.5 text-center backdrop-blur-md transition-all hover:border-primary/40 hover:bg-card/80 lg:py-4"
               >
                 <div
                   aria-hidden
@@ -243,8 +241,8 @@ function LoginPage() {
         </div>
 
         {/* === RIGHT / BOTTOM — CTA === */}
-        <div className="mt-10 flex flex-col lg:mt-0">
-          <div className="relative rounded-3xl border border-border/70 bg-card/50 p-6 backdrop-blur-xl shadow-[0_8px_40px_-12px_rgba(0,0,0,0.5)] sm:p-7 lg:p-8">
+        <div className="mt-4 flex flex-col lg:mt-0">
+          <div className="relative rounded-3xl border border-border/70 bg-card/50 p-4 backdrop-blur-xl shadow-[0_8px_40px_-12px_rgba(0,0,0,0.5)] sm:p-6 lg:p-8">
             {/* top accent line */}
             <div
               aria-hidden
