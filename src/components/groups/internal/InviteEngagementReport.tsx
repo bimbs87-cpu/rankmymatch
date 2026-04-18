@@ -271,7 +271,7 @@ export function InviteEngagementReport({ groupId }: Props) {
                         borderRadius: 12,
                         fontSize: 11,
                       }}
-                      formatter={(value: number, name: string) => name === "Conversao" ? [`${value}%`, "Conversão"] : [value, name]}
+                      formatter={(value: any, name: any) => name === "Conversão %" ? [`${value}%`, "Conversão"] : [value, name]}
                     />
                     <Legend wrapperStyle={{ fontSize: 10 }} />
                     <Line yAxisId="left" type="monotone" dataKey="Enviados" stroke="hsl(var(--muted-foreground))" strokeWidth={2} dot={{ r: 2 }} />
