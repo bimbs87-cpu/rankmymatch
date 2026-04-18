@@ -38,8 +38,11 @@ function RoundsProgress({ seasonId, totalRounds, seasonStatus }: { seasonId: str
   const consumed = completed + cancelled;
   const remaining = Math.max(0, total - consumed);
   const isFinished = seasonStatus === "finished" || seasonStatus === "completed" || seasonStatus === "closed";
-  const donePct = isFinished ? 100 : Math.min(100, (completed / total) * 100);
-  const cancPct = isFinished ? 0 : Math.min(100 - donePct, (cancelled / total) * 100);
+  // When finished, the bar represents the actual outcome: cancelled stays red at its
+  // proportional slot, the rest fills green (completed). When active, remaining stays grey.
+  const base = isFinished ? Math.max(1, completed + cancelled) : total;
+  const cancPct = Math.min(100, (cancelled / base) * 100);
+  const donePct = Math.min(100 - cancPct, (completed / base) * 100);
   const tooltip = isFinished
     ? `Temporada encerrada — ${completed} concluída${completed === 1 ? "" : "s"}, ${cancelled} cancelada${cancelled === 1 ? "" : "s"}`
     : `${completed} concluída${completed === 1 ? "" : "s"}, ${cancelled} cancelada${cancelled === 1 ? "" : "s"}, ${remaining} restante${remaining === 1 ? "" : "s"}`;
