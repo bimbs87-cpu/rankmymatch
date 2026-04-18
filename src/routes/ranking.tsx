@@ -9,6 +9,7 @@ import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { isRivalryGroup } from "@/lib/rivalry";
 import { buildDisplayNames, getCollidingFirstNames } from "@/lib/name-disambiguation";
 import { abbreviateName } from "@/lib/utils";
+import { EloDelta } from "@/components/ui/elo-delta";
 
 export const Route = createFileRoute("/ranking")({
   component: RankingPage,
@@ -597,11 +598,7 @@ function RankingPage() {
                         <span>{myRanking.matches_won}V {myRanking.matches_played - myRanking.matches_won}D</span>
                         <span>🏆 {winRate(myRanking.matches_won, myRanking.matches_played)}%</span>
                         {myRanking.lastChange !== undefined && (
-                          <span className={`flex items-center gap-0.5 font-bold ${
-                            myRanking.lastChange > 0 ? "text-success" : myRanking.lastChange < 0 ? "text-destructive" : "text-muted-foreground"
-                          }`}>
-                            {myRanking.lastChange > 0 ? "+" : ""}{Math.round(myRanking.lastChange)} pts
-                          </span>
+                          <EloDelta value={myRanking.lastChange} suffix="pts" size="sm" />
                         )}
                       </div>
                     </div>
@@ -780,9 +777,7 @@ function RankingPage() {
                     <div className="w-11 lg:w-auto text-center">
                       <p className="font-display text-[11px] lg:text-base font-bold text-foreground leading-tight">{Math.round(entry.rating)}</p>
                       {entry.lastChange !== undefined && (
-                        <p className={`text-[8px] lg:text-[10px] font-semibold leading-none ${entry.lastChange > 0 ? "text-success" : entry.lastChange < 0 ? "text-destructive" : "text-muted-foreground"}`}>
-                          {entry.lastChange > 0 ? "+" : ""}{Math.round(entry.lastChange)}
-                        </p>
+                        <EloDelta value={entry.lastChange} size="xs" className="block leading-none lg:text-[10px]" />
                       )}
                     </div>
 

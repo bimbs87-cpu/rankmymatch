@@ -1318,11 +1318,7 @@ function DashboardPage() {
                       {/* Elo delta */}
                       {m.rating_change !== null && (
                         <div className="shrink-0 text-right min-w-[52px]">
-                          <p className={`font-display text-base font-bold tabular-nums leading-none ${
-                            m.rating_change > 0 ? "text-success" : m.rating_change < 0 ? "text-destructive" : "text-muted-foreground"
-                          }`}>
-                            {m.rating_change > 0 ? "+" : ""}{Math.round(m.rating_change)}
-                          </p>
+                          <EloDelta value={m.rating_change} size="md" className="font-display text-base font-bold leading-none" />
                           <p className="mt-0.5 text-[9px] uppercase tracking-wider text-muted-foreground/70 leading-none">Elo</p>
                         </div>
                       )}
@@ -1648,16 +1644,11 @@ function DashboardPage() {
           else if (!isConfirmed) state = 3;
           else state = 2;
 
-          // Format badge label
-          const formatBadge = (() => {
-            if (nextMatch.match_format === "singles") {
-              if (nextMatch.singles_group_type === "rivalry") return "Duelo";
-              if (nextMatch.singles_group_type === "league") return "Liga";
-              if (nextMatch.singles_group_type === "casual") return "Casual";
-              return "1x1";
-            }
-            return "2x2";
-          })();
+          // Format badge — shared resolver
+          const fmtInfo = resolveFormatBadge({
+            match_format: nextMatch.match_format,
+            singles_group_type: nextMatch.singles_group_type,
+          });
 
           const headerLabel = state === 4 ? "Duelo" : "Seu próximo confronto";
 
@@ -1743,7 +1734,7 @@ function DashboardPage() {
                   {headerLabel}
                 </h2>
                 <span className="rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-primary">
-                  {formatBadge}
+                  {fmtInfo.label}
                 </span>
               </div>
               <div className="rounded-3xl border border-primary/30 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent p-4">
@@ -1961,23 +1952,15 @@ function DashboardPage() {
 
                     {/* Elo delta — main visual on the right */}
                     {m.rating_change !== null && (
-                      <span
-                        className={`shrink-0 inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-[11px] font-bold tabular-nums ${
-                          m.rating_change > 0
-                            ? "bg-success/15 text-success"
-                            : m.rating_change < 0
-                              ? "bg-destructive/15 text-destructive"
-                              : "bg-muted text-muted-foreground"
-                        }`}
-                      >
+                      <span className="shrink-0 inline-flex items-center gap-1">
                         {m.rating_change > 0 ? (
-                          <TrendingUp className="h-3 w-3" />
+                          <TrendingUp className="h-3 w-3 text-success" />
                         ) : m.rating_change < 0 ? (
-                          <TrendingDown className="h-3 w-3" />
+                          <TrendingDown className="h-3 w-3 text-destructive" />
                         ) : (
-                          <Minus className="h-3 w-3" />
+                          <Minus className="h-3 w-3 text-muted-foreground" />
                         )}
-                        {m.rating_change > 0 ? "+" : ""}{Math.round(m.rating_change)}
+                        <EloDelta value={m.rating_change} variant="pill" size="sm" />
                       </span>
                     )}
                   </div>
