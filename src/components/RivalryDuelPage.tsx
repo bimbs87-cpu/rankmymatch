@@ -633,7 +633,7 @@ export function RivalryDuelPage({ groupId, groupName, seasonId, seasonName }: Pr
       </div>
 
       {/* Block 2: Overall Score (Vitórias / Sets / Games) + dynamic insights */}
-      <div className="rounded-3xl border border-border bg-card/50 p-5">
+      <div className="rounded-3xl border border-border bg-card/50 p-4 sm:p-5">
         <h3 className="mb-4 text-center text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
           Placar Geral do Duelo
         </h3>
@@ -686,9 +686,9 @@ export function RivalryDuelPage({ groupId, groupName, seasonId, seasonName }: Pr
             style={{ width: totalMatches > 0 ? `${winRateB}%` : "50%" }}
           />
         </div>
-        <div className="mt-1 flex items-center justify-between text-[10px] font-semibold">
-          <span className="text-primary">{winRateA}%</span>
-          <span className="text-info">{winRateB}%</span>
+        <div className="mt-1 flex items-center justify-between text-[10px] font-semibold tabular-nums">
+          <span className="text-primary">{winsA} vit. · {winRateA}%</span>
+          <span className="text-info">{winsB} vit. · {winRateB}%</span>
         </div>
 
         {/* Sets + Games — secondary lines */}
@@ -723,7 +723,7 @@ export function RivalryDuelPage({ groupId, groupName, seasonId, seasonName }: Pr
       </div>
 
       {/* Block 3: Elo Comparison — current, delta vs start, peak */}
-      <div className="rounded-3xl border border-border bg-card/50 p-5">
+      <div className="rounded-3xl border border-border bg-card/50 p-4 sm:p-5">
         <div className="mb-3 flex items-center justify-between">
           <h3 className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
             Elo Atual
@@ -759,7 +759,7 @@ export function RivalryDuelPage({ groupId, groupName, seasonId, seasonName }: Pr
       </div>
 
       {/* Block 4: Head-to-Head Stats */}
-      <div className="rounded-3xl border border-border bg-card/50 p-5">
+      <div className="rounded-3xl border border-border bg-card/50 p-4 sm:p-5">
         <div className="flex items-center gap-1.5 mb-3">
           <Target className="h-3.5 w-3.5 text-primary" />
           <h3 className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
@@ -932,6 +932,7 @@ export function RivalryDuelPage({ groupId, groupName, seasonId, seasonName }: Pr
         playerBLabel={displayNameB}
         seasonId={seasonId}
         matchInfo={matchInfoForChart}
+        compact={completedMatches.length < 6}
       />
       </div>
 
@@ -949,16 +950,22 @@ export function RivalryDuelPage({ groupId, groupName, seasonId, seasonName }: Pr
             <p className="font-display text-sm font-bold text-primary">{Math.round(playerA.rating)}</p>
             <p className="font-display text-sm font-bold text-foreground">{playerA.matches_played}</p>
             <p className="font-display text-sm font-bold text-foreground">{winRateA}%</p>
+            <p className="font-display text-sm font-bold text-foreground tabular-nums">{playerA.sets_won}</p>
+            <p className="font-display text-sm font-bold text-foreground tabular-nums">{playerA.games_won}</p>
           </div>
           <div className="text-muted-foreground space-y-2">
             <p>Elo</p>
             <p>Jogos</p>
             <p>Aproveitamento</p>
+            <p>Sets</p>
+            <p>Games</p>
           </div>
           <div className="text-muted-foreground font-semibold text-left pl-2 space-y-2">
             <p className="font-display text-sm font-bold text-info">{Math.round(playerB.rating)}</p>
             <p className="font-display text-sm font-bold text-foreground">{playerB.matches_played}</p>
             <p className="font-display text-sm font-bold text-foreground">{winRateB}%</p>
+            <p className="font-display text-sm font-bold text-foreground tabular-nums">{playerB.sets_won}</p>
+            <p className="font-display text-sm font-bold text-foreground tabular-nums">{playerB.games_won}</p>
           </div>
         </div>
       </div>
@@ -972,10 +979,10 @@ export function RivalryDuelPage({ groupId, groupName, seasonId, seasonName }: Pr
           <Link
             to="/groups/$groupId"
             params={{ groupId }}
-            className="flex items-center gap-2 rounded-2xl border border-primary/30 bg-primary/5 px-3 py-3 transition-colors active:bg-primary/10"
+            className="col-span-2 flex items-center justify-center gap-2 rounded-2xl bg-primary px-3 py-3.5 shadow-sm transition-colors active:bg-primary/90"
           >
-            <PlusCircle className="h-4 w-4 text-primary" />
-            <span className="text-xs font-semibold text-foreground">Registrar confronto</span>
+            <PlusCircle className="h-4 w-4 text-primary-foreground" />
+            <span className="text-xs font-bold uppercase tracking-wider text-primary-foreground">Registrar confronto</span>
           </Link>
           <Link
             to="/history"
