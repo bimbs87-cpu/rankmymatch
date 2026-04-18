@@ -393,25 +393,9 @@ function GroupDetailPage() {
               />
             )}
 
-            {view === "members" && (
-              <MembersPanel
-                members={members as any}
-                rankingData={rankingData}
-                placeholderUserIds={placeholderUserIds}
-                isAdmin={isAdmin}
-                currentUserId={user?.id}
-                onPromote={handlePromote}
-                onDemote={handleDemote}
-                onRemove={handleRemove}
-                onMergeFormer={(m) => setMergeFormerMember(m)}
-                onAddPlaceholder={() => setAddPlaceholderOpen(true)}
-                onSearchUser={() => setSearchUserOpen(true)}
-                onShareInvite={() => setInviteOpen(true)}
-                onRefresh={refresh}
-              />
-            )}
+            {view === "members" && <MembersPanel groupId={groupId} />}
 
-            {view === "results" && <ResultsPanel groupId={groupId} />}
+            {view === "results" && <ResultsPanel groupId={groupId} isAdmin={isAdmin} />}
 
             {view === "seasons" && <SeasonsPanel groupId={groupId} isAdmin={isAdmin} />}
 
