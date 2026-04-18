@@ -135,10 +135,10 @@ export function QuickCreateSeasonDialog({
   const [intervalWeeks, setIntervalWeeks] = useState<number>(1);
   const [scheduledTime, setScheduledTime] = useState<string>("19:00");
   const [excludedDates, setExcludedDates] = useState<Set<string>>(new Set());
+  const [showHolidayPicker, setShowHolidayPicker] = useState(false);
 
   const generatedDates = useMemo(() => {
     if (!generateDates) return [];
-    // Generate enough dates so that, after excluding skipped ones, we still hit totalRounds
     return generateRoundDates(startDate, weekday, totalRounds + excludedDates.size, intervalWeeks);
   }, [generateDates, startDate, weekday, totalRounds, intervalWeeks, excludedDates.size]);
 
