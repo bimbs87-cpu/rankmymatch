@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import {
   Trophy, Calendar, Plus, ChevronRight, ChevronDown, CircleDot, CheckCircle2,
@@ -9,6 +9,39 @@ import { useSeasonRounds } from "@/hooks/use-rounds";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { SeasonFinalRanking } from "./SeasonFinalRanking";
+
+function useSeasonProgress(seasonId: string, totalRounds: number | null) {
+  const [done, setDone] = useState(0);
+  const [total, setTotal] = useState(0);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { data: rounds } = await supabase
+        .from("rounds").select("status").eq("season_id", seasonId);
+      if (cancelled) return;
+      const created = rounds?.length || 0;
+      const completed = (rounds || []).filter((r) => r.status === "completed").length;
+      setDone(completed);
+      setTotal(totalRounds ?? created);
+    })();
+    return () => { cancelled = true; };
+  }, [seasonId, totalRounds]);
+  return { done, total };
+}
+
+function RoundsProgress({ seasonId, totalRounds }: { seasonId: string; totalRounds: number | null }) {
+  const { done, total } = useSeasonProgress(seasonId, totalRounds);
+  if (!total) return null;
+  const pct = Math.min(100, Math.round((done / total) * 100));
+  return (
+    <span className="flex items-center gap-1.5">
+      <span className="tabular-nums">{done} de {total} rodadas</span>
+      <span className="relative h-1 w-12 rounded-full bg-muted overflow-hidden">
+        <span className="absolute inset-y-0 left-0 rounded-full bg-primary transition-all" style={{ width: `${pct}%` }} />
+      </span>
+    </span>
+  );
+}
 
 interface Props {
   groupId: string;
