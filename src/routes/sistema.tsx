@@ -94,13 +94,13 @@ function SistemaPage() {
   };
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-background pb-32 lg:pb-16">
+    <div className="min-h-screen overflow-x-hidden bg-background pb-24 lg:pb-12">
       {/* HERO */}
       <section className="relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-primary/15 via-primary/5 to-transparent" />
         <div className="absolute inset-0 opacity-30 [background-image:radial-gradient(circle_at_20%_10%,oklch(0.85_0.18_135/0.25),transparent_40%),radial-gradient(circle_at_80%_30%,oklch(0.85_0.18_135/0.15),transparent_45%)]" />
 
-        <div className="relative mx-auto max-w-7xl px-5 pt-10 pb-16 lg:px-8 lg:pt-20 lg:pb-24">
+        <div className="relative mx-auto max-w-7xl px-5 pt-8 pb-10 lg:px-8 lg:pt-14 lg:pb-14">
           <div className="grid gap-10 lg:grid-cols-2 lg:items-center lg:gap-16">
             {/* Pitch */}
             <div>
@@ -164,26 +164,12 @@ function SistemaPage() {
               </p>
             </div>
 
-            {/* Mockup hero: iMac (desktop) + iPhone flutuante */}
-            <div className="relative hidden lg:block">
+            {/* Mockup hero: somente iMac */}
+            <div className="relative">
               <img
                 src={mockupImacHome}
                 alt="RankMyMatch projetado em um iMac com ranking, evolução do Elo e rodadas"
                 className="block w-full"
-                loading="eager"
-              />
-              <img
-                src={mockupPhoneHome}
-                alt="Tela inicial do RankMyMatch em um iPhone"
-                className="pointer-events-none absolute -bottom-6 -left-4 w-32 xl:-bottom-10 xl:-left-6 xl:w-40 drop-shadow-[0_30px_40px_rgba(0,0,0,0.6)]"
-                loading="eager"
-              />
-            </div>
-            <div className="lg:hidden">
-              <img
-                src={mockupPhoneHome}
-                alt="Tela inicial do RankMyMatch em um iPhone"
-                className="mx-auto block w-full max-w-[260px]"
                 loading="eager"
               />
             </div>
@@ -193,7 +179,7 @@ function SistemaPage() {
       </section>
 
       {/* PAIN → SOLUTION */}
-      <section className="mx-auto max-w-7xl px-5 py-16 lg:px-8 lg:py-24">
+      <section className="mx-auto max-w-7xl px-5 py-10 lg:px-8 lg:py-14">
         <div className="mx-auto max-w-3xl text-center">
           <h2 className="font-display text-3xl font-black tracking-tight text-foreground lg:text-4xl">
             Você já viveu isso?
@@ -203,7 +189,7 @@ function SistemaPage() {
           </p>
         </div>
 
-        <div className="mt-12 grid gap-4 lg:grid-cols-3">
+        <div className="mt-8 grid gap-4 lg:grid-cols-3">
           {[
             {
               before: "“Quem foi mesmo o vencedor da Rodada 4?”",
@@ -236,7 +222,7 @@ function SistemaPage() {
       </section>
 
       {/* FEATURES */}
-      <section className="mx-auto max-w-7xl px-5 py-12 lg:px-8 lg:py-20">
+      <section className="mx-auto max-w-7xl px-5 py-10 lg:px-8 lg:py-14">
         <div className="grid gap-10 lg:grid-cols-2 lg:items-center">
           <div>
             <div className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
@@ -272,7 +258,7 @@ function SistemaPage() {
             </ul>
           </div>
 
-          <div className="mx-auto w-full max-w-[300px] lg:max-w-[360px]">
+          <div className="mx-auto w-full max-w-[280px] lg:max-w-[340px]">
             <img
               src={mockupPhoneRanking}
               alt="Tela de ranking do RankMyMatch com pódio e classificação geral"
@@ -283,34 +269,35 @@ function SistemaPage() {
         </div>
       </section>
 
-      {/* DESKTOP SHOWCASE */}
-      <section className="mx-auto max-w-7xl px-5 py-12 lg:px-8 lg:py-20">
-        <div className="mx-auto max-w-3xl text-center">
-          <div className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
-            <BarChart3 className="h-3.5 w-3.5" />
-            Tela cheia, dados ricos
+      {/* MOBILE SHOWCASE */}
+      <section className="mx-auto max-w-7xl px-5 py-10 lg:px-8 lg:py-14">
+        <div className="grid gap-10 lg:grid-cols-2 lg:items-center">
+          <div className="order-2 mx-auto w-full max-w-[280px] lg:order-1 lg:max-w-[340px]">
+            <img
+              src={mockupPhoneHome}
+              alt="Tela inicial do RankMyMatch no celular com Elo e estatísticas"
+              className="block w-full"
+              loading="lazy"
+            />
           </div>
-          <h2 className="mt-4 font-display text-3xl font-black tracking-tight text-foreground lg:text-4xl">
-            No desktop, vira <span className="text-primary">central de comando</span>.
-          </h2>
-          <p className="mt-3 text-muted-foreground">
-            Tudo que importa em uma tela: ranking, evolução do Elo, próximas rodadas e os últimos
-            resultados — sem precisar abrir 5 abas no WhatsApp.
-          </p>
-        </div>
-
-        <div className="mt-10 lg:mt-14">
-          <img
-            src={mockupImacHome}
-            alt="RankMyMatch no desktop: ranking, evolução do Elo e rodadas em uma única tela"
-            className="mx-auto block w-full max-w-5xl"
-            loading="lazy"
-          />
+          <div className="order-1 lg:order-2">
+            <div className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+              <Sparkles className="h-3.5 w-3.5" />
+              Cabe no bolso
+            </div>
+            <h2 className="mt-4 font-display text-3xl font-black tracking-tight text-foreground lg:text-4xl">
+              No celular, <span className="text-primary">tudo na palma da mão</span>.
+            </h2>
+            <p className="mt-4 text-muted-foreground">
+              Confirme presença, registre placar, acompanhe seu Elo e converse com o grupo — direto do
+              app, em segundos. Pensado mobile-first para a beira da quadra.
+            </p>
+          </div>
         </div>
       </section>
 
       {/* PRICING */}
-      <section id="planos" className="relative mx-auto max-w-7xl px-5 py-16 lg:px-8 lg:py-24">
+      <section id="planos" className="relative mx-auto max-w-7xl px-5 py-12 lg:px-8 lg:py-16">
         <div className="mx-auto max-w-2xl text-center">
           <div className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-[11px] font-bold uppercase tracking-widest text-primary">
             <Rocket className="h-3.5 w-3.5" />
@@ -324,7 +311,7 @@ function SistemaPage() {
           </p>
         </div>
 
-        <div className="mt-12 grid gap-6 lg:grid-cols-2 lg:gap-8">
+        <div className="mt-8 grid gap-6 lg:grid-cols-2 lg:gap-8">
           {/* Grupo Avulso */}
           <div className="relative flex flex-col rounded-3xl border border-border bg-card p-7 lg:p-9">
             <h3 className="font-display text-xl font-bold text-foreground">Grupo Avulso</h3>
@@ -534,14 +521,14 @@ function SistemaPage() {
       )}
 
       {/* SOCIAL PROOF */}
-      <section className="mx-auto max-w-7xl px-5 py-16 lg:px-8 lg:py-24">
+      <section className="mx-auto max-w-7xl px-5 py-12 lg:px-8 lg:py-16">
         <div className="mx-auto max-w-2xl text-center">
           <h2 className="font-display text-3xl font-black tracking-tight text-foreground lg:text-4xl">
             Quem já joga não larga mais.
           </h2>
         </div>
 
-        <div className="mt-12 grid gap-4 lg:grid-cols-3">
+        <div className="mt-8 grid gap-4 lg:grid-cols-3">
           {[
             {
               quote:
@@ -575,11 +562,11 @@ function SistemaPage() {
       </section>
 
       {/* FAQ */}
-      <section className="mx-auto max-w-3xl px-5 py-16 lg:px-8">
+      <section className="mx-auto max-w-3xl px-5 py-12 lg:px-8 lg:py-16">
         <h2 className="text-center font-display text-3xl font-black tracking-tight text-foreground lg:text-4xl">
           Perguntas que todo mundo faz.
         </h2>
-        <div className="mt-10 space-y-3">
+        <div className="mt-8 space-y-3">
           {[
             {
               q: "Posso cancelar quando quiser?",
@@ -656,45 +643,3 @@ function SistemaPage() {
   );
 }
 
-/* ----------------------------- MOCKUPS ----------------------------- */
-
-function PhoneFrame({
-  children,
-  className = "",
-}: {
-  children: React.ReactNode;
-  className?: string;
-}) {
-  return (
-    <div
-      className={`relative rounded-[2.4rem] border-[10px] border-foreground/15 bg-foreground/5 p-0 shadow-[0_30px_80px_-20px_oklch(0_0_0/0.65)] ${className}`}
-    >
-      <div className="pointer-events-none absolute left-1/2 top-0 z-10 h-4 w-20 -translate-x-1/2 rounded-b-2xl bg-foreground/40" />
-      <div className="overflow-hidden rounded-[1.8rem]">{children}</div>
-    </div>
-  );
-}
-
-function BrowserFrame({
-  children,
-  className = "",
-}: {
-  children: React.ReactNode;
-  className?: string;
-}) {
-  return (
-    <div
-      className={`overflow-hidden rounded-2xl border border-border bg-card shadow-[0_40px_100px_-30px_oklch(0_0_0/0.6)] ${className}`}
-    >
-      <div className="flex items-center gap-1.5 border-b border-border bg-background/80 px-3 py-2.5">
-        <span className="h-2.5 w-2.5 rounded-full bg-[#ff5f57]" />
-        <span className="h-2.5 w-2.5 rounded-full bg-[#febc2e]" />
-        <span className="h-2.5 w-2.5 rounded-full bg-[#28c840]" />
-        <div className="ml-3 flex-1 truncate rounded-md bg-muted/50 px-2.5 py-1 text-[10px] font-medium text-muted-foreground">
-          rankmymatch.app
-        </div>
-      </div>
-      <div>{children}</div>
-    </div>
-  );
-}
