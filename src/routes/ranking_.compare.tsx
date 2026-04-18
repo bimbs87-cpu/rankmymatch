@@ -137,6 +137,9 @@ function ComparePage() {
         setLoading(false);
         return;
       }
+      // Real player ids (exclude the sentinel "group avg")
+      const realIds = userIds.filter((id) => id !== GROUP_AVG_ID);
+      const hasGroupAvg = userIds.includes(GROUP_AVG_ID);
       setLoading(true);
       setProgress(10);
       setLabel("Buscando jogadores...");
@@ -151,10 +154,12 @@ function ComparePage() {
             .eq("group_id", groupId)
             .in("status", ["active", "finished"])
             .order("created_at", { ascending: false }),
-          supabase
-            .from("user_profiles")
-            .select("user_id, name, nickname, avatar_url")
-            .in("user_id", userIds),
+          realIds.length
+            ? supabase
+                .from("user_profiles")
+                .select("user_id, name, nickname, avatar_url")
+                .in("user_id", realIds)
+            : Promise.resolve({ data: [], error: null } as any),
         ]);
         if (cancelled) return;
         if (groupRes.error) throw groupRes.error;
@@ -170,7 +175,7 @@ function ComparePage() {
         for (const p of profilesRes.data || []) {
           profilesMap.set(p.user_id, p as Profile);
         }
-        for (const id of userIds) {
+        for (const id of realIds) {
           if (!profilesMap.has(id)) {
             setError("Jogador não encontrado");
             setLoading(false);
@@ -182,30 +187,46 @@ function ComparePage() {
         setLabel("Carregando estatísticas...");
 
         // Snapshots, rating events, rounds, presence — scoped to this group
+        const snapshotFilterIds = hasGroupAvg ? null : realIds;
         const [snapsRes, eventsRes, roundsRes, presenceRes] = await Promise.all([
           seasonIds.length
-            ? supabase
-                .from("ranking_snapshots")
-                .select("*")
-                .in("season_id", seasonIds)
-                .in("user_id", userIds)
+            ? (snapshotFilterIds
+                ? supabase
+                    .from("ranking_snapshots")
+                    .select("*")
+                    .in("season_id", seasonIds)
+                    .in("user_id", snapshotFilterIds)
+                : supabase
+                    .from("ranking_snapshots")
+                    .select("*")
+                    .in("season_id", seasonIds))
             : Promise.resolve({ data: [], error: null } as any),
           seasonIds.length
-            ? supabase
-                .from("rating_events")
-                .select("user_id, rating_after, rating_before, rating_change, created_at, match_id, season_id")
-                .in("season_id", seasonIds)
-                .in("user_id", userIds)
-                .order("created_at", { ascending: true })
+            ? (snapshotFilterIds
+                ? supabase
+                    .from("rating_events")
+                    .select("user_id, rating_after, rating_before, rating_change, created_at, match_id, season_id")
+                    .in("season_id", seasonIds)
+                    .in("user_id", snapshotFilterIds)
+                    .order("created_at", { ascending: true })
+                : supabase
+                    .from("rating_events")
+                    .select("user_id, rating_after, rating_before, rating_change, created_at, match_id, season_id")
+                    .in("season_id", seasonIds)
+                    .order("created_at", { ascending: true }))
             : Promise.resolve({ data: [], error: null } as any),
           supabase
             .from("rounds")
             .select("id, status")
             .eq("group_id", groupId),
-          supabase
-            .from("round_presence")
-            .select("round_id, user_id, status")
-            .in("user_id", userIds),
+          (snapshotFilterIds
+            ? supabase
+                .from("round_presence")
+                .select("round_id, user_id, status")
+                .in("user_id", snapshotFilterIds)
+            : supabase
+                .from("round_presence")
+                .select("round_id, user_id, status")),
         ]);
         if (cancelled) return;
         if (snapsRes.error) throw snapsRes.error;
@@ -223,7 +244,7 @@ function ComparePage() {
         setProgress(55);
         setLabel("Calculando confrontos...");
 
-        // Match player rows for ALL involved users
+        // Match player rows (rating-driven — used for player aggregates)
         const matchIdsFromEvents: string[] = Array.from(new Set(events.map((e: any) => e.match_id as string)));
         let matchPlayers: any[] = [];
         let matchesMeta: any[] = [];
@@ -250,6 +271,55 @@ function ComparePage() {
           matchPlayers = mpRes.data || [];
           matchesMeta = mRes.data || [];
           matchSets = setsRes.data || [];
+        }
+
+        // Full H2H pool (all completed group matches involving both players)
+        let h2hMatchPlayers: any[] = matchPlayers;
+        let h2hMatchesMeta: any[] = matchesMeta;
+        let h2hSetsByMatch = new Map<string, { set_number: number; score_team_a: number; score_team_b: number }[]>();
+        if (realIds.length === 2 && !hasGroupAvg && groupRoundIds.size > 0) {
+          const groupRoundIdsArr = Array.from(groupRoundIds) as string[];
+          const { data: allGroupMatches, error: gmErr } = await supabase
+            .from("matches")
+            .select("id, round_id, winner_team, status, created_at")
+            .in("round_id", groupRoundIdsArr)
+            .eq("status", "completed");
+          if (gmErr) throw gmErr;
+          const groupMatchIds = (allGroupMatches || []).map((m: any) => m.id);
+          if (groupMatchIds.length) {
+            const { data: gmpData, error: gmpErr } = await supabase
+              .from("match_players")
+              .select("match_id, user_id, team")
+              .in("match_id", groupMatchIds);
+            if (gmpErr) throw gmpErr;
+            const byMatch = new Map<string, any[]>();
+            for (const mp of gmpData || []) {
+              const arr = byMatch.get(mp.match_id) || [];
+              arr.push(mp);
+              byMatch.set(mp.match_id, arr);
+            }
+            const sharedIds: string[] = [];
+            for (const [mid, ps] of byMatch.entries()) {
+              const hasA = ps.some((p) => p.user_id === realIds[0]);
+              const hasB = ps.some((p) => p.user_id === realIds[1]);
+              if (hasA && hasB) sharedIds.push(mid);
+            }
+            h2hMatchPlayers = (gmpData || []).filter((mp: any) => sharedIds.includes(mp.match_id));
+            h2hMatchesMeta = (allGroupMatches || []).filter((m: any) => sharedIds.includes(m.id));
+            if (sharedIds.length) {
+              const { data: setsData, error: setsErr } = await supabase
+                .from("match_sets")
+                .select("match_id, set_number, score_team_a, score_team_b")
+                .in("match_id", sharedIds)
+                .order("set_number", { ascending: true });
+              if (setsErr) throw setsErr;
+              for (const s of setsData || []) {
+                const arr = h2hSetsByMatch.get(s.match_id) || [];
+                arr.push({ set_number: s.set_number, score_team_a: s.score_team_a, score_team_b: s.score_team_b });
+                h2hSetsByMatch.set(s.match_id, arr);
+              }
+            }
+          }
         }
 
         setProgress(80);
