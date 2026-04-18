@@ -544,46 +544,41 @@ export function RivalryDuelPage({ groupId, groupName, seasonId, seasonName }: Pr
   return (
     <div className="px-5 pb-28 animate-fade-in lg:grid lg:grid-cols-12 lg:gap-6 lg:px-6">
       <div className="space-y-4 lg:col-span-7 lg:space-y-5">
-      {/* Block 1: Duel Header */}
-      <div className="rounded-3xl border border-border bg-card/50 p-5">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-primary">
+      {/* Block 1: Duel Header — compact on mobile, denser top */}
+      <div className="rounded-3xl border border-border bg-card/50 p-4 lg:p-5">
+        <div className="flex items-center justify-between mb-3">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 mb-0.5">
+              <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-primary">
                 Rivalidade
               </span>
+              {seasonName && (
+                <span className="truncate text-[10px] text-muted-foreground">{seasonName}</span>
+              )}
             </div>
-            <h2 className="font-display text-base font-bold text-foreground">{groupName}</h2>
-            {seasonName && (
-              <p className="text-[10px] text-muted-foreground">{seasonName}</p>
-            )}
+            <h2 className="font-display text-sm font-bold text-foreground truncate lg:text-base">
+              {groupName}
+            </h2>
           </div>
           <button
-            onClick={() => {
-              if (navigator.share) {
-                navigator.share({
-                  title: `Duelo: ${displayNameA} vs ${displayNameB}`,
-                  text: `${displayNameA} ${winsA} x ${winsB} ${displayNameB} | RankMyMatch`,
-                  url: window.location.href,
-                });
-              }
-            }}
-            className="flex h-9 w-9 items-center justify-center rounded-full border border-border bg-card"
+            onClick={handleShare}
+            aria-label="Compartilhar duelo"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-border bg-card lg:h-9 lg:w-9"
           >
             <Share2 className="h-4 w-4 text-muted-foreground" />
           </button>
         </div>
 
-        {/* Face-off avatars */}
+        {/* Face-off avatars — denser on mobile */}
         <div className="flex items-center justify-between">
-          <div className="flex flex-col items-center gap-2 flex-1">
+          <div className="flex flex-col items-center gap-1.5 flex-1 lg:gap-2">
             <PlayerAvatar
               avatarUrl={playerA.avatar_url}
               name={playerA.name}
-              size="xl"
+              size="lg"
               className="ring-2 ring-primary/40"
             />
-            <p className="text-sm font-bold text-foreground truncate max-w-[100px]">{displayNameA}</p>
+            <p className="text-xs font-bold text-foreground truncate max-w-[110px] lg:text-sm">{displayNameA}</p>
           </div>
 
           <div className="flex flex-col items-center gap-1 px-2">
@@ -591,14 +586,14 @@ export function RivalryDuelPage({ groupId, groupName, seasonId, seasonName }: Pr
             <span className="text-[10px] text-muted-foreground font-semibold">VS</span>
           </div>
 
-          <div className="flex flex-col items-center gap-2 flex-1">
+          <div className="flex flex-col items-center gap-1.5 flex-1 lg:gap-2">
             <PlayerAvatar
               avatarUrl={playerB.avatar_url}
               name={playerB.name}
-              size="xl"
+              size="lg"
               className="ring-2 ring-info/40"
             />
-            <p className="text-sm font-bold text-foreground truncate max-w-[100px]">{displayNameB}</p>
+            <p className="text-xs font-bold text-foreground truncate max-w-[110px] lg:text-sm">{displayNameB}</p>
           </div>
         </div>
       </div>
