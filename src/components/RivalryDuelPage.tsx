@@ -16,6 +16,10 @@ import {
   Target,
   BarChart3,
   Calendar,
+  PlusCircle,
+  History,
+  Medal,
+  Lock,
 } from "lucide-react";
 
 interface DuelPlayer {
@@ -468,32 +472,52 @@ export function RivalryDuelPage({ groupId, groupName, seasonId, seasonName }: Pr
             {recentMatches.map((m) => {
               const winnerName = m.winner_user_id === playerA.user_id ? displayNameA : displayNameB;
               const isWinnerA = m.winner_user_id === playerA.user_id;
-              const setScores = m.sets.map((s) => `${s.scoreA}-${s.scoreB}`).join(" ");
+              const setScores = m.sets.map((s) => `${s.scoreA}-${s.scoreB}`).join(" • ");
               const dateStr = m.date
-                ? new Date(m.date + "T00:00:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "short" })
+                ? new Date(m.date + "T00:00:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" })
                 : "";
+              const isOfficial = !!m.round_number && m.counts_for_ranking;
+              const isCasual = !m.round_number;
 
               return (
-                <div key={m.id} className="flex items-center gap-2 rounded-xl border border-border/50 bg-background/50 px-3 py-2">
-                  <div className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${
-                    isWinnerA ? "bg-primary/10 text-primary" : "bg-info/10 text-info"
-                  }`}>
-                    🏆
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <p className="text-xs font-semibold text-foreground">{winnerName} venceu</p>
-                      {m.round_number && (
-                        <span className="text-[9px] text-muted-foreground">R{m.round_number}</span>
-                      )}
+                <div key={m.id} className="rounded-xl border border-border/50 bg-background/50 px-3 py-2.5">
+                  <div className="flex items-start gap-2">
+                    <div className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${
+                      isWinnerA ? "bg-primary/15 text-primary" : "bg-info/15 text-info"
+                    }`}>
+                      🏆
                     </div>
-                    <p className="text-[10px] text-muted-foreground">{setScores}</p>
-                  </div>
-                  <div className="shrink-0 text-right">
-                    <p className="text-[10px] text-muted-foreground">{dateStr}</p>
-                    <span className={`text-[9px] font-semibold ${m.counts_for_ranking ? "text-primary" : "text-muted-foreground"}`}>
-                      {m.counts_for_ranking ? "Oficial" : "Avulso"}
-                    </span>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <p className="text-xs font-semibold text-foreground">{winnerName} venceu</p>
+                        {m.round_number && (
+                          <span className="rounded-full bg-muted px-1.5 py-0.5 text-[9px] font-semibold text-muted-foreground">
+                            R{m.round_number}
+                          </span>
+                        )}
+                      </div>
+                      <p className="mt-0.5 font-display text-[11px] font-semibold text-muted-foreground tabular-nums">{setScores}</p>
+                      <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                        {dateStr && (
+                          <span className="text-[10px] text-muted-foreground">{dateStr}</span>
+                        )}
+                        {isOfficial && (
+                          <span className="rounded-full bg-primary/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-primary">
+                            Oficial
+                          </span>
+                        )}
+                        {isCasual && (
+                          <span className="rounded-full bg-muted px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-muted-foreground">
+                            Avulso
+                          </span>
+                        )}
+                        {!m.counts_for_ranking && (
+                          <span className="rounded-full bg-warning/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-warning">
+                            Não contou
+                          </span>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
               );

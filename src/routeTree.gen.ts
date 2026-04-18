@@ -25,6 +25,7 @@ import { Route as GroupsGroupIdRouteImport } from './routes/groups.$groupId'
 import { Route as GroupsGroupIdIndexRouteImport } from './routes/groups.$groupId.index'
 import { Route as GroupsGroupIdSeasonsRouteImport } from './routes/groups.$groupId.seasons'
 import { Route as GroupsGroupIdFeedRouteImport } from './routes/groups.$groupId.feed'
+import { Route as GroupsGroupIdDuelRouteImport } from './routes/groups.$groupId.duel'
 import { Route as GroupsGroupIdSeasonsIndexRouteImport } from './routes/groups.$groupId.seasons.index'
 import { Route as GroupsGroupIdSeasonsSeasonIdRouteImport } from './routes/groups.$groupId.seasons.$seasonId'
 import { Route as GroupsGroupIdSeasonsSeasonIdIndexRouteImport } from './routes/groups.$groupId.seasons.$seasonId.index'
@@ -110,6 +111,11 @@ const GroupsGroupIdFeedRoute = GroupsGroupIdFeedRouteImport.update({
   path: '/feed',
   getParentRoute: () => GroupsGroupIdRoute,
 } as any)
+const GroupsGroupIdDuelRoute = GroupsGroupIdDuelRouteImport.update({
+  id: '/duel',
+  path: '/duel',
+  getParentRoute: () => GroupsGroupIdRoute,
+} as any)
 const GroupsGroupIdSeasonsIndexRoute =
   GroupsGroupIdSeasonsIndexRouteImport.update({
     id: '/',
@@ -149,6 +155,7 @@ export interface FileRoutesByFullPath {
   '/groups/$groupId': typeof GroupsGroupIdRouteWithChildren
   '/invite/$code': typeof InviteCodeRoute
   '/groups/': typeof GroupsIndexRoute
+  '/groups/$groupId/duel': typeof GroupsGroupIdDuelRoute
   '/groups/$groupId/feed': typeof GroupsGroupIdFeedRoute
   '/groups/$groupId/seasons': typeof GroupsGroupIdSeasonsRouteWithChildren
   '/groups/$groupId/': typeof GroupsGroupIdIndexRoute
@@ -169,6 +176,7 @@ export interface FileRoutesByTo {
   '/sistema': typeof SistemaRoute
   '/invite/$code': typeof InviteCodeRoute
   '/groups': typeof GroupsIndexRoute
+  '/groups/$groupId/duel': typeof GroupsGroupIdDuelRoute
   '/groups/$groupId/feed': typeof GroupsGroupIdFeedRoute
   '/groups/$groupId': typeof GroupsGroupIdIndexRoute
   '/groups/$groupId/seasons': typeof GroupsGroupIdSeasonsIndexRoute
@@ -190,6 +198,7 @@ export interface FileRoutesById {
   '/groups/$groupId': typeof GroupsGroupIdRouteWithChildren
   '/invite/$code': typeof InviteCodeRoute
   '/groups/': typeof GroupsIndexRoute
+  '/groups/$groupId/duel': typeof GroupsGroupIdDuelRoute
   '/groups/$groupId/feed': typeof GroupsGroupIdFeedRoute
   '/groups/$groupId/seasons': typeof GroupsGroupIdSeasonsRouteWithChildren
   '/groups/$groupId/': typeof GroupsGroupIdIndexRoute
@@ -214,6 +223,7 @@ export interface FileRouteTypes {
     | '/groups/$groupId'
     | '/invite/$code'
     | '/groups/'
+    | '/groups/$groupId/duel'
     | '/groups/$groupId/feed'
     | '/groups/$groupId/seasons'
     | '/groups/$groupId/'
@@ -234,6 +244,7 @@ export interface FileRouteTypes {
     | '/sistema'
     | '/invite/$code'
     | '/groups'
+    | '/groups/$groupId/duel'
     | '/groups/$groupId/feed'
     | '/groups/$groupId'
     | '/groups/$groupId/seasons'
@@ -254,6 +265,7 @@ export interface FileRouteTypes {
     | '/groups/$groupId'
     | '/invite/$code'
     | '/groups/'
+    | '/groups/$groupId/duel'
     | '/groups/$groupId/feed'
     | '/groups/$groupId/seasons'
     | '/groups/$groupId/'
@@ -391,6 +403,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof GroupsGroupIdFeedRouteImport
       parentRoute: typeof GroupsGroupIdRoute
     }
+    '/groups/$groupId/duel': {
+      id: '/groups/$groupId/duel'
+      path: '/duel'
+      fullPath: '/groups/$groupId/duel'
+      preLoaderRoute: typeof GroupsGroupIdDuelRouteImport
+      parentRoute: typeof GroupsGroupIdRoute
+    }
     '/groups/$groupId/seasons/': {
       id: '/groups/$groupId/seasons/'
       path: '/'
@@ -455,12 +474,14 @@ const GroupsGroupIdSeasonsRouteWithChildren =
   GroupsGroupIdSeasonsRoute._addFileChildren(GroupsGroupIdSeasonsRouteChildren)
 
 interface GroupsGroupIdRouteChildren {
+  GroupsGroupIdDuelRoute: typeof GroupsGroupIdDuelRoute
   GroupsGroupIdFeedRoute: typeof GroupsGroupIdFeedRoute
   GroupsGroupIdSeasonsRoute: typeof GroupsGroupIdSeasonsRouteWithChildren
   GroupsGroupIdIndexRoute: typeof GroupsGroupIdIndexRoute
 }
 
 const GroupsGroupIdRouteChildren: GroupsGroupIdRouteChildren = {
+  GroupsGroupIdDuelRoute: GroupsGroupIdDuelRoute,
   GroupsGroupIdFeedRoute: GroupsGroupIdFeedRoute,
   GroupsGroupIdSeasonsRoute: GroupsGroupIdSeasonsRouteWithChildren,
   GroupsGroupIdIndexRoute: GroupsGroupIdIndexRoute,
