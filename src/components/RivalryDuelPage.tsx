@@ -6,6 +6,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { DualEloChart } from "@/components/DualEloChart";
 import { computeDuelMedals } from "@/lib/duel-medals";
+import { buildMedalsTimeline } from "@/lib/duel-medals-timeline";
 import { promoteMatchToRankingServerFn, revertMatchPromotionServerFn } from "@/lib/promote-match.functions";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "sonner";
@@ -72,6 +73,7 @@ export function RivalryDuelPage({ groupId, groupName, seasonId, seasonName }: Pr
   const [isAdmin, setIsAdmin] = useState(false);
   const [promotingId, setPromotingId] = useState<string | null>(null);
   const [revertingId, setRevertingId] = useState<string | null>(null);
+  const [matchFilter, setMatchFilter] = useState<"all" | "official" | "casual">("all");
 
   useEffect(() => {
     loadDuelData();
@@ -349,7 +351,12 @@ export function RivalryDuelPage({ groupId, groupName, seasonId, seasonName }: Pr
   })();
 
   const completedMatches = matches.filter((m) => m.status === "completed");
-  const recentMatches = completedMatches.slice(0, 10);
+  const filteredMatches = completedMatches.filter((m) => {
+    if (matchFilter === "all") return true;
+    const isOfficial = !!m.round_number && m.counts_for_ranking;
+    return matchFilter === "official" ? isOfficial : !isOfficial;
+  });
+  const recentMatches = filteredMatches.slice(0, 10);
 
   // Real medal computation from H2H history
   const medals = computeDuelMedals(
@@ -358,6 +365,19 @@ export function RivalryDuelPage({ groupId, groupName, seasonId, seasonName }: Pr
       status: m.status,
       sets: m.sets,
       team_a_user_id: m.team_a_user_id,
+    })),
+    playerA.user_id,
+    playerB.user_id,
+  );
+
+  // Timeline of medal holder changes (for the "Conquistas do duelo" section)
+  const medalsTimeline = buildMedalsTimeline(
+    completedMatches.map((m) => ({
+      winner_user_id: m.winner_user_id,
+      status: m.status,
+      sets: m.sets,
+      team_a_user_id: m.team_a_user_id,
+      date: m.date,
     })),
     playerA.user_id,
     playerB.user_id,
