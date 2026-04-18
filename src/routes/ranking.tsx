@@ -406,6 +406,10 @@ function RankingPage() {
     };
   }, [authLoading, groupsLoading, isAuthenticated, user?.id, groups, selectedSeasonId]);
 
+  useEffect(() => {
+    setExpandedUserId(null);
+  }, [selectedSeasonId]);
+
   const isPageLoading = authLoading || groupsLoading || (loading && isAuthenticated);
 
   const myRanking = rankings.find((r) => r.user_id === user?.id);
