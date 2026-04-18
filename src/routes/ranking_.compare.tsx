@@ -671,9 +671,33 @@ function ComparePage() {
           };
         }
 
+        // Fetch current Elo for opponents seen in H2H meetings (used in "best partner" stat)
+        const oppElosMap = new Map<string, number>();
+        if (h2hData && h2hData.recentMeetings.length > 0) {
+          const oppIds = new Set<string>();
+          for (const m of h2hData.recentMeetings) {
+            for (const o of m.others) oppIds.add(o.user_id);
+          }
+          if (oppIds.size > 0 && seasonIds.length > 0) {
+            const { data: oppEvts } = await supabase
+              .from("rating_events")
+              .select("user_id, rating_after, created_at")
+              .in("season_id", seasonIds)
+              .in("user_id", Array.from(oppIds))
+              .order("created_at", { ascending: false });
+            const seen = new Set<string>();
+            for (const e of oppEvts || []) {
+              if (seen.has(e.user_id)) continue;
+              seen.add(e.user_id);
+              oppElosMap.set(e.user_id, e.rating_after);
+            }
+          }
+        }
+
         if (!cancelled) {
           setPlayers(aggregates);
           setH2H(h2hData);
+          setOpponentElos(oppElosMap);
           setProgress(100);
           setLoading(false);
         }
