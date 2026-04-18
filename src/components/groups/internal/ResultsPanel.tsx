@@ -305,7 +305,7 @@ function RoundRow({ r, matches, formatDate, groupId, seasonId, defaultOpen }: an
 
   return (
     <div className={`rounded-2xl border border-border bg-card/50 ${isCancelled ? "opacity-50" : ""}`}>
-      <button onClick={() => !isCancelled && setOpen((v) => !v)} disabled={isCancelled} className="flex w-full items-center justify-between p-4 text-left">
+      <button onClick={() => !isCancelled && setOpen((v: boolean) => !v)} disabled={isCancelled} className="flex w-full items-center justify-between p-4 text-left">
         <div className="flex items-center gap-3 min-w-0">
           <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${isCancelled ? "bg-muted" : "bg-primary/10"}`}>
             <span className={`font-display text-sm font-bold ${isCancelled ? "text-muted-foreground" : "text-primary"}`}>R{r.round_number || "?"}</span>
