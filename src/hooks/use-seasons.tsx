@@ -311,6 +311,9 @@ export async function deleteMatch(matchId: string) {
     .eq("id", matchId)
     .single();
 
+  // Revert Elo/ranking impact before deleting the match
+  await revertMatchElo(matchId);
+
   const { error } = await supabase.from("matches").delete().eq("id", matchId);
   if (error) throw new Error(error.message);
 
