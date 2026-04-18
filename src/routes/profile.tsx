@@ -26,6 +26,7 @@ import {
   Monitor,
   Download,
   Share,
+  Bell,
 } from "lucide-react";
 import { useTheme } from "@/lib/theme";
 
