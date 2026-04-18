@@ -221,6 +221,17 @@
   .animate-step-back {
     animation: step-slide-in-left 0.25s ease-out both;
   }
+  /* Subtle desktop hover lift+glow for cards. No-op on touch devices. */
+  @media (hover: hover) and (pointer: fine) {
+    .card-hover {
+      transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease, background-color 180ms ease;
+    }
+    .card-hover:hover {
+      transform: translateY(-2px);
+      border-color: color-mix(in oklab, var(--color-primary) 25%, var(--color-border));
+      box-shadow: 0 6px 24px -12px color-mix(in oklab, var(--color-primary) 35%, transparent);
+    }
+  }
 }
 
 @keyframes indeterminate {
