@@ -1038,14 +1038,15 @@ function EloSparkline({ a, b }: { a: PlayerAggregate; b: PlayerAggregate }) {
 function CareerTab({ a, b }: { a: PlayerAggregate; b: PlayerAggregate }) {
   return (
     <>
-      <SectionCard title="Elo (carreira no grupo)" icon={<Activity className="h-4 w-4 text-primary" />}>
-        <StatRow label="Elo atual" a={a.eloCurrent} b={b.eloCurrent} format={(v) => Math.round(v).toString()} />
-        <StatRow label="Pico histórico" a={a.eloPeak} b={b.eloPeak} format={(v) => Math.round(v).toString()} />
-        <StatRow label="Vale histórico" a={a.eloLow} b={b.eloLow} format={(v) => Math.round(v).toString()} higherIsBetter={false} />
-        <EloSparkline a={a} b={b} />
-      </SectionCard>
-
+      {/* Row 1: Elo + Aproveitamento */}
       <div className="mt-3 grid grid-cols-1 gap-3 xl:grid-cols-2">
+        <SectionCard title="Elo (carreira no grupo)" icon={<Activity className="h-4 w-4 text-primary" />} className="mt-0 h-full">
+          <StatRow label="Elo atual" a={a.eloCurrent} b={b.eloCurrent} format={(v) => Math.round(v).toString()} />
+          <StatRow label="Pico histórico" a={a.eloPeak} b={b.eloPeak} format={(v) => Math.round(v).toString()} />
+          <StatRow label="Vale histórico" a={a.eloLow} b={b.eloLow} format={(v) => Math.round(v).toString()} higherIsBetter={false} />
+          <EloSparkline a={a} b={b} />
+        </SectionCard>
+
         <SectionCard title="Aproveitamento total" icon={<Trophy className="h-4 w-4 text-primary" />} className="mt-0 h-full">
           <StatRow label="Partidas" a={a.career.matches_played} b={b.career.matches_played} />
           <StatRow label="Vitórias" a={a.career.matches_won} b={b.career.matches_won} />
@@ -1069,7 +1070,10 @@ function CareerTab({ a, b }: { a: PlayerAggregate; b: PlayerAggregate }) {
             format={(v) => (v > 0 ? `+${v}` : `${v}`)}
           />
         </SectionCard>
+      </div>
 
+      {/* Row 2: Conquistas + Sequências/Frequência */}
+      <div className="mt-3 grid grid-cols-1 gap-3 xl:grid-cols-2">
         <SectionCard title="Conquistas" icon={<Trophy className="h-4 w-4 text-warning" />} className="mt-0 h-full">
           <StatRow label="Temporadas" a={a.career.seasons_played} b={b.career.seasons_played} />
           <StatRow label="Títulos (1º)" a={a.career.titles} b={b.career.titles} />
@@ -1082,25 +1086,25 @@ function CareerTab({ a, b }: { a: PlayerAggregate; b: PlayerAggregate }) {
             higherIsBetter={false}
           />
         </SectionCard>
-      </div>
 
-      <SectionCard title="Sequências e frequência" icon={<TrendingUp className="h-4 w-4 text-success" />}>
-        <StatRow label="Maior sequência V" a={a.streakMax} b={b.streakMax} />
-        <StatRow
-          label="Sequência atual"
-          a={a.streakCurrent}
-          b={b.streakCurrent}
-          format={(v) => (v === 0 ? "—" : v > 0 ? `${v}V` : `${Math.abs(v)}D`)}
-          higherIsBetter={true}
-        />
-        <StatRow
-          label="Presença"
-          a={pct(a.roundsPresent, a.roundsTotal)}
-          b={pct(b.roundsPresent, b.roundsTotal)}
-          format={(v) => `${v}%`}
-        />
-        <StatRow label="Rodadas presentes" a={a.roundsPresent} b={b.roundsPresent} />
-      </SectionCard>
+        <SectionCard title="Sequências e frequência" icon={<TrendingUp className="h-4 w-4 text-success" />} className="mt-0 h-full">
+          <StatRow label="Maior sequência V" a={a.streakMax} b={b.streakMax} />
+          <StatRow
+            label="Sequência atual"
+            a={a.streakCurrent}
+            b={b.streakCurrent}
+            format={(v) => (v === 0 ? "—" : v > 0 ? `${v}V` : `${Math.abs(v)}D`)}
+            higherIsBetter={true}
+          />
+          <StatRow
+            label="Presença"
+            a={pct(a.roundsPresent, a.roundsTotal)}
+            b={pct(b.roundsPresent, b.roundsTotal)}
+            format={(v) => `${v}%`}
+          />
+          <StatRow label="Rodadas presentes" a={a.roundsPresent} b={b.roundsPresent} />
+        </SectionCard>
+      </div>
     </>
   );
 }
