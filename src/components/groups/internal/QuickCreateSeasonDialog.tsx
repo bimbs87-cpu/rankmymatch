@@ -69,37 +69,44 @@ function addDays(base: Date, days: number): Date {
 }
 
 // Brazilian national holidays (fixed + Easter-derived) for a given year.
-function brHolidaysForYear(year: number): Set<string> {
-  const out = new Set<string>();
-  // Fixed-date national holidays
-  const fixed: [number, number][] = [
-    [1, 1],   // Confraternização Universal
-    [4, 21],  // Tiradentes
-    [5, 1],   // Dia do Trabalho
-    [9, 7],   // Independência
-    [10, 12], // Nossa Sra. Aparecida
-    [11, 2],  // Finados
-    [11, 15], // Proclamação da República
-    [11, 20], // Consciência Negra (feriado nacional desde 2024)
-    [12, 25], // Natal
+// Returns a list of { iso, name } entries.
+function brHolidaysForYear(year: number): { iso: string; name: string }[] {
+  const out: { iso: string; name: string }[] = [];
+  const fixed: [number, number, string][] = [
+    [1, 1, "Confraternização Universal"],
+    [4, 21, "Tiradentes"],
+    [5, 1, "Dia do Trabalho"],
+    [9, 7, "Independência"],
+    [10, 12, "Nossa Sra. Aparecida"],
+    [11, 2, "Finados"],
+    [11, 15, "Proclamação da República"],
+    [11, 20, "Consciência Negra"],
+    [12, 25, "Natal"],
   ];
-  for (const [m, d] of fixed) out.add(toISO(new Date(year, m - 1, d)));
-  // Movable
+  for (const [m, d, name] of fixed) out.push({ iso: toISO(new Date(year, m - 1, d)), name });
   const easter = easterSunday(year);
-  out.add(toISO(addDays(easter, -48))); // Carnaval seg
-  out.add(toISO(addDays(easter, -47))); // Carnaval ter
-  out.add(toISO(addDays(easter, -2)));  // Sexta-feira Santa
-  out.add(toISO(easter));               // Páscoa
-  out.add(toISO(addDays(easter, 60)));  // Corpus Christi
+  out.push({ iso: toISO(addDays(easter, -48)), name: "Carnaval (segunda)" });
+  out.push({ iso: toISO(addDays(easter, -47)), name: "Carnaval (terça)" });
+  out.push({ iso: toISO(addDays(easter, -2)), name: "Sexta-feira Santa" });
+  out.push({ iso: toISO(easter), name: "Páscoa" });
+  out.push({ iso: toISO(addDays(easter, 60)), name: "Corpus Christi" });
   return out;
 }
 
-function brHolidaysInRange(dates: string[]): string[] {
+// Returns holidays (with names) that fall on any of the given generated dates.
+function brHolidaysMatchingDates(dates: string[]): { iso: string; name: string }[] {
   if (!dates.length) return [];
+  const dateSet = new Set(dates);
   const years = new Set(dates.map((d) => Number(d.slice(0, 4))));
-  const holidays = new Set<string>();
-  for (const y of years) for (const h of brHolidaysForYear(y)) holidays.add(h);
-  return dates.filter((d) => holidays.has(d));
+  const matches: { iso: string; name: string }[] = [];
+  for (const y of years) {
+    for (const h of brHolidaysForYear(y)) {
+      if (dateSet.has(h.iso)) matches.push(h);
+    }
+  }
+  // sort by date
+  matches.sort((a, b) => a.iso.localeCompare(b.iso));
+  return matches;
 }
 
 export function QuickCreateSeasonDialog({
