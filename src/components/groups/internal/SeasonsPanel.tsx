@@ -15,16 +15,8 @@ interface Props {
 }
 
 export function SeasonsPanel({ groupId, isAdmin }: Props) {
-  const { seasons, isLoading } = useGroupSeasons(groupId);
+  const { seasons, isLoading, refresh } = useGroupSeasons(groupId);
   const [expandedId, setExpandedId] = useState<string | null>(null);
-
-  // Auto-expand active season on first load
-  useEffect(() => {
-    if (!expandedId && seasons.length) {
-      const active = seasons.find((s) => s.status === "active");
-      if (active) setExpandedId(active.id);
-    }
-  }, [seasons, expandedId]);
 
   const active = seasons.filter((s) => s.status === "active");
   const finished = seasons.filter((s) => s.status !== "active");
