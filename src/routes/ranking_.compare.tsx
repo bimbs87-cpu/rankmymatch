@@ -972,14 +972,36 @@ function ComparePage() {
 
             {/* HERO: head to head */}
             <section ref={heroRef} className="rounded-3xl border border-border bg-card/40 p-4 lg:p-6">
-              <div className="mb-3 flex items-center justify-center gap-2">
+              <div className="mb-3 flex flex-wrap items-center justify-center gap-2">
                 <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-primary">
                   <Trophy className="h-3 w-3" />
-                  Carreira no grupo · todas as temporadas
+                  {heroScope === "season" && heroSeasonName
+                    ? `Temporada ${heroSeasonName}`
+                    : "Carreira no grupo · todas as temporadas"}
                 </span>
+                {latestSeasonId && (
+                  <div className="inline-flex rounded-full border border-border bg-background/50 p-0.5">
+                    <button
+                      onClick={() => setHeroScope("career")}
+                      className={`rounded-full px-2.5 py-0.5 text-[10px] font-semibold transition ${
+                        heroScope === "career" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      Carreira
+                    </button>
+                    <button
+                      onClick={() => setHeroScope("season")}
+                      className={`rounded-full px-2.5 py-0.5 text-[10px] font-semibold transition ${
+                        heroScope === "season" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      Temporada atual
+                    </button>
+                  </div>
+                )}
               </div>
               <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 lg:gap-6">
-                <PlayerHero player={playerA} side="left" />
+                <PlayerHero player={heroPlayerA!} side="left" />
                 <div className="flex flex-col items-center gap-2">
                   <div className="rounded-full bg-primary/15 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-primary">
                     VS
@@ -995,7 +1017,7 @@ function ComparePage() {
                     </button>
                   )}
                 </div>
-                <PlayerHero player={playerB} side="right" />
+                <PlayerHero player={heroPlayerB!} side="right" />
               </div>
 
               {/* Advantage indicator */}
@@ -1026,27 +1048,27 @@ function ComparePage() {
               )}
 
               {/* H2H summary */}
-              {h2h && (h2h.asOpponents.played > 0 || h2h.asPartners.played > 0) && (
+              {heroH2H && (heroH2H.asOpponents.played > 0 || heroH2H.asPartners.played > 0) && (
                 <div className="mt-4 grid grid-cols-2 gap-2 lg:gap-3">
                   {/* Adversários */}
                   <div className="rounded-2xl border border-border/60 bg-background/40 px-3 py-2.5">
                     <div className="flex items-center justify-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
                       <Swords className="h-3 w-3 text-destructive" />
                       Adversários
-                      {h2h.asOpponents.played > 0 && (
+                      {heroH2H.asOpponents.played > 0 && (
                         <span className="ml-1 rounded-full bg-muted/40 px-1.5 py-0.5 text-[9px] font-bold text-foreground/80">
-                          {h2h.asOpponents.played}
+                          {heroH2H.asOpponents.played}
                         </span>
                       )}
                     </div>
-                    {h2h.asOpponents.played > 0 ? (
+                    {heroH2H.asOpponents.played > 0 ? (
                       <div className="mt-1.5 grid grid-cols-2 items-end gap-2">
                         <div className="text-center">
-                          <p className="font-display text-2xl font-bold leading-none text-foreground">{h2h.asOpponents.aWon}</p>
+                          <p className="font-display text-2xl font-bold leading-none text-foreground">{heroH2H.asOpponents.aWon}</p>
                           <p className="mt-1 truncate text-[10px] text-muted-foreground">{abbreviateName(playerA.profile.name)}</p>
                         </div>
                         <div className="text-center">
-                          <p className="font-display text-2xl font-bold leading-none text-foreground">{h2h.asOpponents.bWon}</p>
+                          <p className="font-display text-2xl font-bold leading-none text-foreground">{heroH2H.asOpponents.bWon}</p>
                           <p className="mt-1 truncate text-[10px] text-muted-foreground">{abbreviateName(playerB.profile.name)}</p>
                         </div>
                       </div>
@@ -1059,23 +1081,35 @@ function ComparePage() {
                     <div className="flex items-center justify-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
                       <Users className="h-3 w-3 text-primary" />
                       Parceiros
-                      {h2h.asPartners.played > 0 && (
+                      {heroH2H.asPartners.played > 0 && (
                         <span className="ml-1 rounded-full bg-muted/40 px-1.5 py-0.5 text-[9px] font-bold text-foreground/80">
-                          {h2h.asPartners.played}
+                          {heroH2H.asPartners.played}
                         </span>
                       )}
                     </div>
-                    {h2h.asPartners.played > 0 ? (
-                      <div className="mt-1.5 grid grid-cols-2 items-end gap-2">
-                        <div className="text-center">
-                          <p className="font-display text-2xl font-bold leading-none text-success">{h2h.asPartners.won}<span className="ml-0.5 text-sm">V</span></p>
-                          <p className="mt-1 text-[10px] text-muted-foreground">{h2h.asPartners.played - h2h.asPartners.won}D</p>
+                    {heroH2H.asPartners.played > 0 ? (
+                      <>
+                        <div className="mt-1.5 grid grid-cols-2 items-end gap-2">
+                          <div className="text-center">
+                            <p className="font-display text-2xl font-bold leading-none text-success">{heroH2H.asPartners.won}<span className="ml-0.5 text-sm">V</span></p>
+                            <p className="mt-1 text-[10px] text-muted-foreground">{heroH2H.asPartners.played - heroH2H.asPartners.won}D</p>
+                          </div>
+                          <div className="text-center">
+                            <p className="font-display text-2xl font-bold leading-none text-foreground">{pct(heroH2H.asPartners.won, heroH2H.asPartners.played)}<span className="ml-0.5 text-sm">%</span></p>
+                            <p className="mt-1 text-[10px] text-muted-foreground">aproveitamento</p>
+                          </div>
                         </div>
-                        <div className="text-center">
-                          <p className="font-display text-2xl font-bold leading-none text-foreground">{pct(h2h.asPartners.won, h2h.asPartners.played)}<span className="ml-0.5 text-sm">%</span></p>
-                          <p className="mt-1 text-[10px] text-muted-foreground">aproveitamento</p>
-                        </div>
-                      </div>
+                        {bestPartnerStat && (
+                          <div
+                            className="mt-2 flex items-center justify-center gap-1.5 rounded-lg border border-border/40 bg-background/40 px-2 py-1 text-[10px] text-muted-foreground"
+                            title={`Elo médio dos adversários derrotados em ${bestPartnerStat.winCount} vitórias juntos`}
+                          >
+                            <Trophy className="h-3 w-3 text-warning" />
+                            <span>Elo médio dos vencidos:</span>
+                            <span className="font-display text-[11px] font-bold text-foreground">{bestPartnerStat.avg}</span>
+                          </div>
+                        )}
+                      </>
                     ) : (
                       <p className="mt-2 text-center text-[11px] text-muted-foreground">Nunca jogaram juntos</p>
                     )}
