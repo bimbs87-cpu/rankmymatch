@@ -242,7 +242,7 @@ export async function submitMatchScore(
       set_number: s.setNumber,
       score_team_a: s.scoreA,
       score_team_b: s.scoreB,
-      is_tiebreak: s.setNumber === 3,
+      is_tiebreak: s.setNumber === sets.length && sets.length >= 3,
     }))
   );
 
