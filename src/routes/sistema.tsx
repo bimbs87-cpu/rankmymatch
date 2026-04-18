@@ -647,3 +647,40 @@ function SistemaPage() {
   );
 }
 
+/* ----------------------------- DEVICE FRAMES ----------------------------- */
+
+function PhoneFrame({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="relative mx-auto rounded-[2.6rem] border-[10px] border-foreground/80 bg-foreground/90 p-0 shadow-[0_30px_80px_-20px_oklch(0_0_0/0.7)] ring-1 ring-foreground/40">
+      {/* Notch */}
+      <div className="pointer-events-none absolute left-1/2 top-0 z-10 h-5 w-24 -translate-x-1/2 rounded-b-2xl bg-foreground" />
+      {/* Side buttons */}
+      <div className="pointer-events-none absolute -left-[12px] top-20 h-10 w-[3px] rounded-l bg-foreground/70" />
+      <div className="pointer-events-none absolute -left-[12px] top-32 h-14 w-[3px] rounded-l bg-foreground/70" />
+      <div className="pointer-events-none absolute -right-[12px] top-28 h-16 w-[3px] rounded-r bg-foreground/70" />
+      <div className="overflow-hidden rounded-[2rem]">{children}</div>
+    </div>
+  );
+}
+
+function ImacFrame({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="relative mx-auto w-full">
+      {/* Screen bezel */}
+      <div className="relative rounded-[1.4rem] border-[12px] border-zinc-300 bg-zinc-300 shadow-[0_40px_100px_-30px_oklch(0_0_0/0.7)] dark:border-zinc-200 dark:bg-zinc-200">
+        {/* Camera */}
+        <div className="pointer-events-none absolute left-1/2 top-[3px] z-10 h-1.5 w-1.5 -translate-x-1/2 rounded-full bg-zinc-500/70" />
+        <div className="overflow-hidden rounded-[0.4rem] bg-black">{children}</div>
+      </div>
+      {/* Chin with Apple-like logo area */}
+      <div className="relative mx-auto h-6 w-[88%] rounded-b-md bg-gradient-to-b from-zinc-300 to-zinc-400 dark:from-zinc-200 dark:to-zinc-300">
+        <div className="absolute left-1/2 top-1/2 h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-zinc-500/40" />
+      </div>
+      {/* Stand neck */}
+      <div className="relative mx-auto h-10 w-28 bg-gradient-to-b from-zinc-300 to-zinc-400 dark:from-zinc-200 dark:to-zinc-300 [clip-path:polygon(15%_0,85%_0,100%_100%,0_100%)]" />
+      {/* Stand base */}
+      <div className="relative mx-auto h-2.5 w-56 rounded-full bg-zinc-400 shadow-[0_10px_30px_-10px_oklch(0_0_0/0.5)] dark:bg-zinc-300" />
+    </div>
+  );
+}
+
