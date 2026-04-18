@@ -63,7 +63,7 @@ function GroupsIndexPage() {
   );
 
   const sidebarPending = useMemo(
-    () => pendingGroups.map((p) => ({ id: p.id, name: p.name })),
+    () => pendingGroups.map((p) => ({ id: p.id, name: p.name, status: p.request_status })),
     [pendingGroups],
   );
 
