@@ -13,6 +13,7 @@ import {
   AlertTriangle,
   LogOut,
   Menu,
+  Crown,
 } from "lucide-react";
 
 import { useAuth } from "@/hooks/use-auth";
@@ -96,6 +97,24 @@ function GroupDetailPage() {
     Record<string, { rating: number; position: number | null; matches_played: number; matches_won: number }>
   >({});
   const [commentCount, setCommentCount] = useState(0);
+  const [isPremium, setIsPremium] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    supabase
+      .from("group_subscriptions")
+      .select("status, expires_at")
+      .eq("group_id", groupId)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (cancelled) return;
+        if (!data) { setIsPremium(false); return; }
+        const active = data.status && data.status !== "free" && data.status !== "cancelled";
+        const notExpired = !data.expires_at || new Date(data.expires_at) > new Date();
+        setIsPremium(Boolean(active && notExpired));
+      });
+    return () => { cancelled = true; };
+  }, [groupId]);
 
   const rivalry = isRivalryGroup(group);
   const isMember = !!myRole;
