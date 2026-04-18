@@ -21,6 +21,7 @@ const searchSchema = z.object({
   tab: fallback(z.enum(["career", "season"]), "career").default("career"),
   seasonId: fallback(z.string(), "").default(""),
   embed: fallback(z.string(), "").default(""),
+  backTo: fallback(z.string(), "").default(""),
 });
 
 export const Route = createFileRoute("/ranking_/compare")({
