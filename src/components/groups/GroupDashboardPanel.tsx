@@ -216,15 +216,24 @@ export function GroupDashboardPanel({ group, onLeft, onPresenceChanged }: Props)
       </div>
 
       {/* Quick action mobile */}
-      <div className="sm:hidden">
+      <div className="flex gap-2 sm:hidden">
         <Link
           to="/groups/$groupId"
           params={{ groupId: group.id }}
-          className="flex items-center justify-center gap-2 rounded-full bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground"
+          className="flex flex-1 items-center justify-center gap-2 rounded-full bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground"
         >
           Abrir grupo
           <ArrowRight className="h-4 w-4" />
         </Link>
+        {!isAdmin && (
+          <button
+            onClick={() => setShowLeave(true)}
+            className="flex items-center justify-center gap-1.5 rounded-full border border-border bg-card px-4 py-2.5 text-sm font-semibold text-muted-foreground"
+          >
+            <LogOut className="h-4 w-4" />
+            Sair
+          </button>
+        )}
       </div>
 
       {/* Top row: Next round + My position */}
