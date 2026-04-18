@@ -68,6 +68,7 @@ export function SeasonsPanel({ groupId, isAdmin }: Props) {
                   isAdmin={isAdmin}
                   expanded={expandedId === s.id}
                   onToggle={() => setExpandedId(expandedId === s.id ? null : s.id)}
+                  onChanged={refresh}
                 />
               ))}
             </section>
@@ -86,6 +87,7 @@ export function SeasonsPanel({ groupId, isAdmin }: Props) {
                   isAdmin={isAdmin}
                   expanded={expandedId === s.id}
                   onToggle={() => setExpandedId(expandedId === s.id ? null : s.id)}
+                  onChanged={refresh}
                 />
               ))}
             </section>
