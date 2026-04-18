@@ -918,6 +918,31 @@ function CompareLandingPage() {
               )}
             </section>
 
+            {/* Suggestions */}
+            {suggestions.length > 0 && (
+              <section className="mb-5">
+                <div className="flex items-center gap-2 mb-2">
+                  <Sparkles className="h-3.5 w-3.5 text-primary" />
+                  <p className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground">
+                    Comparações populares
+                  </p>
+                </div>
+                <div className="grid gap-2 grid-cols-2 lg:hidden">
+                  {suggestions.map((s) => (
+                    <SuggestionCard key={s.key} s={s} />
+                  ))}
+                </div>
+                <div
+                  className="hidden lg:grid gap-2"
+                  style={{ gridTemplateColumns: `repeat(${suggestions.length}, minmax(0, 1fr))` }}
+                >
+                  {suggestions.map((s) => (
+                    <SuggestionCard key={s.key} s={s} />
+                  ))}
+                </div>
+              </section>
+            )}
+
             {/* How to analyse */}
             <section className="mb-6">
               <p className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground mb-2">
