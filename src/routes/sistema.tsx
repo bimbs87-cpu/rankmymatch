@@ -641,187 +641,43 @@ function SistemaPage() {
 
 /* ----------------------------- MOCKUPS ----------------------------- */
 
-function PhoneMockup() {
+function PhoneFrame({
+  children,
+  className = "",
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
   return (
-    <div className="relative mx-auto w-full max-w-[280px]">
-      <div className="rounded-[2.2rem] border-[10px] border-foreground/10 bg-background p-3 shadow-[0_30px_80px_-20px_oklch(0_0_0/0.6)]">
-        <div className="space-y-3">
-          <div className="rounded-2xl border border-border bg-card p-3">
-            <div className="flex items-center gap-2">
-              <div className="h-7 w-7 rounded-full bg-primary/30" />
-              <div>
-                <p className="text-[8px] uppercase tracking-widest text-muted-foreground">Olá,</p>
-                <p className="text-xs font-bold text-foreground">Bimba</p>
-              </div>
-            </div>
-          </div>
-          <div className="rounded-2xl border border-border bg-card p-3">
-            <p className="text-[8px] font-bold uppercase tracking-widest text-muted-foreground">Seu Ranking</p>
-            <div className="mt-1 flex items-end justify-between">
-              <div>
-                <p className="font-display text-2xl font-black text-primary">1º</p>
-                <p className="text-[9px] font-bold text-foreground">1050 Elo</p>
-              </div>
-              <div className="flex h-10 items-end gap-1">
-                <div className="h-6 w-2 rounded-sm bg-primary/60" />
-                <div className="h-9 w-2 rounded-sm bg-primary" />
-                <div className="h-5 w-2 rounded-sm bg-primary/40" />
-              </div>
-            </div>
-          </div>
-          <div className="rounded-2xl bg-primary p-3 text-center">
-            <p className="text-[10px] font-black text-primary-foreground">+ Criar / Entrar</p>
-            <p className="text-[8px] text-primary-foreground/80">em um grupo</p>
-          </div>
-          <div className="space-y-1.5">
-            {[
-              { d: "17", l: "5-7", r: "Tansos R7", c: "text-destructive", v: "-19" },
-              { d: "17", l: "6-4", r: "Tansos R7", c: "text-primary", v: "+18" },
-              { d: "27", l: "7-6", r: "Tansos R4", c: "text-primary", v: "+19" },
-            ].map((m, i) => (
-              <div key={i} className="flex items-center gap-2 rounded-xl border border-border bg-card p-2">
-                <div className="rounded-md bg-muted px-1.5 py-0.5 text-[8px] font-bold text-foreground">{m.d}</div>
-                <div className="flex-1">
-                  <p className="text-[10px] font-bold text-foreground">{m.l}</p>
-                  <p className="text-[8px] text-muted-foreground">{m.r}</p>
-                </div>
-                <p className={`text-[10px] font-black ${m.c}`}>{m.v}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
+    <div
+      className={`relative rounded-[2.4rem] border-[10px] border-foreground/15 bg-foreground/5 p-0 shadow-[0_30px_80px_-20px_oklch(0_0_0/0.65)] ${className}`}
+    >
+      <div className="pointer-events-none absolute left-1/2 top-0 z-10 h-4 w-20 -translate-x-1/2 rounded-b-2xl bg-foreground/40" />
+      <div className="overflow-hidden rounded-[1.8rem]">{children}</div>
     </div>
   );
 }
 
-function DashboardMockup() {
+function BrowserFrame({
+  children,
+  className = "",
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
   return (
-    <div className="relative">
-      <div className="rounded-2xl border border-border bg-card p-4 shadow-[0_40px_100px_-30px_oklch(0_0_0/0.6)]">
-        <div className="flex items-center gap-3 border-b border-border pb-3">
-          <div className="h-7 w-7 rounded-full bg-primary/30" />
-          <div className="flex-1">
-            <p className="text-[9px] uppercase tracking-widest text-muted-foreground">Olá,</p>
-            <p className="text-xs font-bold text-foreground">Bimba</p>
-          </div>
-          <div className="flex gap-1 rounded-full border border-border bg-background px-1 py-0.5">
-            {["Início", "Perfil", "Ranking", "Grupos", "Sistema"].map((t, i) => (
-              <span
-                key={t}
-                className={`rounded-full px-2 py-0.5 text-[9px] font-bold ${
-                  i === 0 ? "bg-primary/15 text-primary" : "text-muted-foreground"
-                }`}
-              >
-                {t}
-              </span>
-            ))}
-          </div>
-        </div>
-
-        <div className="mt-3 grid grid-cols-3 gap-3">
-          <div className="rounded-xl border border-border bg-background p-3">
-            <p className="text-[8px] font-bold uppercase tracking-widest text-muted-foreground">Seu Ranking</p>
-            <p className="mt-1 font-display text-xl font-black text-primary">1º</p>
-            <p className="text-[10px] font-bold text-foreground">1050 Elo</p>
-          </div>
-          <div className="col-span-2 rounded-xl border border-border bg-background p-3">
-            <p className="text-[8px] font-bold uppercase tracking-widest text-muted-foreground">Evolução do Elo</p>
-            <svg viewBox="0 0 200 60" className="mt-1 h-12 w-full">
-              <defs>
-                <linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0" stopColor="oklch(0.85 0.18 135)" stopOpacity="0.5" />
-                  <stop offset="1" stopColor="oklch(0.85 0.18 135)" stopOpacity="0" />
-                </linearGradient>
-              </defs>
-              <path
-                d="M0,40 L25,30 L50,35 L75,15 L100,22 L125,8 L150,18 L175,5 L200,12 L200,60 L0,60 Z"
-                fill="url(#g)"
-              />
-              <path
-                d="M0,40 L25,30 L50,35 L75,15 L100,22 L125,8 L150,18 L175,5 L200,12"
-                fill="none"
-                stroke="oklch(0.85 0.18 135)"
-                strokeWidth="1.5"
-              />
-            </svg>
-          </div>
-        </div>
-
-        <div className="mt-3 rounded-xl border border-border bg-background p-3">
-          <p className="text-[8px] font-bold uppercase tracking-widest text-muted-foreground">Últimos Resultados</p>
-          <div className="mt-2 space-y-1.5">
-            {[
-              { d: "17 ABR", s: "5-7", t: "Bimba & Gabriel vs Diego & Joao", c: "text-destructive", v: "-19" },
-              { d: "17 ABR", s: "6-4", t: "Bimba & Joao vs Diego & Gabriel", c: "text-primary", v: "+18" },
-              { d: "27 MAR", s: "7-6", t: "Bimba & Gabriel vs Diego & Joao", c: "text-primary", v: "+19" },
-            ].map((m, i) => (
-              <div key={i} className="flex items-center gap-2 text-[10px]">
-                <span className="rounded bg-muted px-1.5 py-0.5 font-bold text-foreground">{m.d}</span>
-                <span className="font-bold text-foreground">{m.s}</span>
-                <span className="flex-1 truncate text-muted-foreground">{m.t}</span>
-                <span className={`font-black ${m.c}`}>{m.v}</span>
-              </div>
-            ))}
-          </div>
+    <div
+      className={`overflow-hidden rounded-2xl border border-border bg-card shadow-[0_40px_100px_-30px_oklch(0_0_0/0.6)] ${className}`}
+    >
+      <div className="flex items-center gap-1.5 border-b border-border bg-background/80 px-3 py-2.5">
+        <span className="h-2.5 w-2.5 rounded-full bg-[#ff5f57]" />
+        <span className="h-2.5 w-2.5 rounded-full bg-[#febc2e]" />
+        <span className="h-2.5 w-2.5 rounded-full bg-[#28c840]" />
+        <div className="ml-3 flex-1 truncate rounded-md bg-muted/50 px-2.5 py-1 text-[10px] font-medium text-muted-foreground">
+          rankmymatch.app
         </div>
       </div>
-    </div>
-  );
-}
-
-function RankingMockup() {
-  const rows = [
-    { p: 1, n: "Bimba", elo: 1050, wr: "9/6 (60%)", you: true },
-    { p: 2, n: "Diego", elo: 1045, wr: "9/6 (60%)" },
-    { p: 3, n: "Joao", elo: 983, wr: "7/8 (47%)" },
-    { p: 4, n: "Gabriel", elo: 922, wr: "5/10 (33%)" },
-  ];
-  return (
-    <div className="rounded-3xl border border-border bg-card p-5 shadow-[0_30px_80px_-30px_oklch(0_0_0/0.5)]">
-      <div className="flex items-center justify-between border-b border-border pb-3">
-        <p className="font-display text-sm font-bold text-foreground">Ranking · Temp. 2/26</p>
-        <span className="rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-bold text-primary">Tansos</span>
-      </div>
-      <div className="mt-3 grid grid-cols-[24px_1fr_60px_80px] items-center gap-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-        <span>#</span>
-        <span>Jogador</span>
-        <span className="text-right">Elo</span>
-        <span className="text-right">V/D (WR%)</span>
-      </div>
-      <div className="mt-2 space-y-1.5">
-        {rows.map((r) => (
-          <div
-            key={r.p}
-            className={`grid grid-cols-[24px_1fr_60px_80px] items-center gap-3 rounded-xl border px-3 py-2.5 text-xs ${
-              r.you
-                ? "border-primary/40 bg-primary/5"
-                : "border-border/50 bg-background"
-            }`}
-          >
-            <span
-              className={`flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-black ${
-                r.p === 1
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-muted text-foreground"
-              }`}
-            >
-              {r.p}
-            </span>
-            <div className="flex items-center gap-2">
-              <div className="h-6 w-6 rounded-full bg-muted" />
-              <span className="font-bold text-foreground">{r.n}</span>
-              {r.you && (
-                <span className="rounded bg-primary/20 px-1.5 py-0.5 text-[9px] font-bold text-primary">
-                  você
-                </span>
-              )}
-            </div>
-            <span className="text-right font-black text-foreground">{r.elo}</span>
-            <span className="text-right text-muted-foreground">{r.wr}</span>
-          </div>
-        ))}
-      </div>
+      <div>{children}</div>
     </div>
   );
 }
