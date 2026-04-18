@@ -94,13 +94,13 @@ function SistemaPage() {
   };
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-background pb-32 lg:pb-16">
+    <div className="min-h-screen overflow-x-hidden bg-background pb-24 lg:pb-12">
       {/* HERO */}
       <section className="relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-primary/15 via-primary/5 to-transparent" />
         <div className="absolute inset-0 opacity-30 [background-image:radial-gradient(circle_at_20%_10%,oklch(0.85_0.18_135/0.25),transparent_40%),radial-gradient(circle_at_80%_30%,oklch(0.85_0.18_135/0.15),transparent_45%)]" />
 
-        <div className="relative mx-auto max-w-7xl px-5 pt-10 pb-16 lg:px-8 lg:pt-20 lg:pb-24">
+        <div className="relative mx-auto max-w-7xl px-5 pt-8 pb-10 lg:px-8 lg:pt-14 lg:pb-14">
           <div className="grid gap-10 lg:grid-cols-2 lg:items-center lg:gap-16">
             {/* Pitch */}
             <div>
