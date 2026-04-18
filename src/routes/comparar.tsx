@@ -19,6 +19,10 @@ import {
   Swords,
   X,
   Check,
+  GripVertical,
+  Pencil,
+  Medal,
+  Rocket,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useMyGroups } from "@/hooks/use-groups";
