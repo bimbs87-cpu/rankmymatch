@@ -1,9 +1,11 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { DualEloChart } from "@/components/DualEloChart";
+import { computeDuelMedals } from "@/lib/duel-medals";
+import { toast } from "sonner";
 import {
   Swords,
   Trophy,
@@ -11,15 +13,14 @@ import {
   TrendingDown,
   Minus,
   Share2,
-  ChevronRight,
-  Flame,
   Target,
   BarChart3,
   Calendar,
   PlusCircle,
   History,
   Medal,
-  Lock,
+  ArrowUpCircle,
+  Loader2,
 } from "lucide-react";
 
 interface DuelPlayer {
@@ -48,6 +49,7 @@ interface DuelMatch {
   sets: { scoreA: number; scoreB: number }[];
   counts_for_ranking: boolean;
   round_number: number | null;
+  team_a_user_id: string | null;
 }
 
 interface Props {
@@ -63,6 +65,8 @@ export function RivalryDuelPage({ groupId, groupName, seasonId, seasonName }: Pr
   const [playerB, setPlayerB] = useState<DuelPlayer | null>(null);
   const [matches, setMatches] = useState<DuelMatch[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [promotingId, setPromotingId] = useState<string | null>(null);
 
   useEffect(() => {
     loadDuelData();
@@ -209,6 +213,7 @@ export function RivalryDuelPage({ groupId, groupName, seasonId, seasonName }: Pr
           const winner = (m.match_players || []).find((mp: any) => mp.team === m.winner_team);
           winnerUserId = winner?.user_id || null;
         }
+        const teamAPlayer = (m.match_players || []).find((mp: any) => mp.team === "A");
 
         return {
           id: m.id,
@@ -219,8 +224,46 @@ export function RivalryDuelPage({ groupId, groupName, seasonId, seasonName }: Pr
           sets,
           counts_for_ranking: m.counts_for_ranking !== false,
           round_number: round?.round_number || null,
+          team_a_user_id: teamAPlayer?.user_id || null,
         };
       });
+  }
+
+  // Check admin status when user/group changes
+  useEffect(() => {
+    if (!user) {
+      setIsAdmin(false);
+      return;
+    }
+    let alive = true;
+    (async () => {
+      const { data } = await supabase.rpc("is_group_admin", {
+        _user_id: user.id,
+        _group_id: groupId,
+      });
+      if (alive) setIsAdmin(!!data);
+    })();
+    return () => { alive = false; };
+  }, [user, groupId]);
+
+  async function handlePromoteMatch(matchId: string) {
+    setPromotingId(matchId);
+    try {
+      const { error } = await supabase
+        .from("matches")
+        .update({ counts_for_ranking: true })
+        .eq("id", matchId);
+      if (error) throw error;
+      toast.success("Confronto promovido para o ranking");
+      // Optimistic local update
+      setMatches((prev) =>
+        prev.map((m) => (m.id === matchId ? { ...m, counts_for_ranking: true } : m)),
+      );
+    } catch (err: any) {
+      toast.error(err?.message || "Erro ao promover confronto");
+    } finally {
+      setPromotingId(null);
+    }
   }
 
   if (loading) {
@@ -277,6 +320,18 @@ export function RivalryDuelPage({ groupId, groupName, seasonId, seasonName }: Pr
 
   const completedMatches = matches.filter((m) => m.status === "completed");
   const recentMatches = completedMatches.slice(0, 10);
+
+  // Real medal computation from H2H history
+  const medals = computeDuelMedals(
+    completedMatches.map((m) => ({
+      winner_user_id: m.winner_user_id,
+      status: m.status,
+      sets: m.sets,
+      team_a_user_id: m.team_a_user_id,
+    })),
+    playerA.user_id,
+    playerB.user_id,
+  );
 
   return (
     <div className="space-y-4 px-5 pb-28 animate-fade-in">
@@ -516,6 +571,20 @@ export function RivalryDuelPage({ groupId, groupName, seasonId, seasonName }: Pr
                           </span>
                         )}
                       </div>
+                      {isAdmin && !m.counts_for_ranking && (
+                        <button
+                          onClick={() => handlePromoteMatch(m.id)}
+                          disabled={promotingId === m.id}
+                          className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/5 px-2.5 py-1 text-[10px] font-semibold text-primary transition-colors hover:bg-primary/10 disabled:opacity-50"
+                        >
+                          {promotingId === m.id ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : (
+                            <ArrowUpCircle className="h-3 w-3" />
+                          )}
+                          Promover para ranking
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -608,43 +677,50 @@ export function RivalryDuelPage({ groupId, groupName, seasonId, seasonName }: Pr
         </div>
       </div>
 
-      {/*
-        Block 8: Medalhas (placeholder estrutural).
-        Estrutura preparada para futura implementação:
-          - Carrasco: jogador com mais vitórias contra o adversário
-          - Invicto: maior sequência sem perder
-          - Rei da virada: vitórias após estar perdendo em sets
-          - Freguês: jogador com mais derrotas no confronto direto
-        Aqui apenas um teaser elegante e bloqueado para manter o layout completo.
-      */}
-      <div className="rounded-3xl border border-dashed border-border/60 bg-card/30 p-5">
-        <div className="mb-3 flex items-center justify-between">
-          <div className="flex items-center gap-1.5">
-            <Medal className="h-3.5 w-3.5 text-muted-foreground" />
-            <h3 className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-              Medalhas do Duelo
-            </h3>
-          </div>
-          <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[9px] font-semibold text-muted-foreground">
-            <Lock className="h-2.5 w-2.5" />
-            Em breve
-          </span>
+      {/* Block 8: Real Duel Medals */}
+      <div className="rounded-3xl border border-border bg-card/50 p-5">
+        <div className="mb-3 flex items-center gap-1.5">
+          <Medal className="h-3.5 w-3.5 text-primary" />
+          <h3 className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            Medalhas do Duelo
+          </h3>
         </div>
         <div className="grid grid-cols-2 gap-2">
           {[
-            { emoji: "🗡️", label: "Carrasco" },
-            { emoji: "🛡️", label: "Invicto" },
-            { emoji: "👑", label: "Rei da virada" },
-            { emoji: "🎯", label: "Freguês" },
-          ].map((m) => (
-            <div
-              key={m.label}
-              className="flex items-center gap-2 rounded-2xl border border-border/50 bg-background/30 px-3 py-2.5 opacity-60"
-            >
-              <span className="text-lg" aria-hidden>{m.emoji}</span>
-              <span className="text-[11px] font-semibold text-muted-foreground">{m.label}</span>
-            </div>
-          ))}
+            { emoji: "🗡️", label: "Carrasco", data: medals.carrasco },
+            { emoji: "🛡️", label: "Invicto", data: medals.invicto },
+            { emoji: "👑", label: "Rei da virada", data: medals.reiDaVirada },
+            { emoji: "🎯", label: "Freguês", data: medals.fregues },
+          ].map((m) => {
+            const holderName =
+              m.data.holder === "A" ? displayNameA : m.data.holder === "B" ? displayNameB : null;
+            const holderColor =
+              m.data.holder === "A" ? "text-primary" : m.data.holder === "B" ? "text-info" : "text-muted-foreground";
+            const cardCls = holderName
+              ? "border-border bg-background/50"
+              : "border-border/50 bg-background/30 opacity-60";
+            return (
+              <div
+                key={m.label}
+                className={`flex items-start gap-2 rounded-2xl border px-3 py-2.5 ${cardCls}`}
+              >
+                <span className="text-lg leading-none mt-0.5" aria-hidden>{m.emoji}</span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    {m.label}
+                  </p>
+                  {holderName ? (
+                    <>
+                      <p className={`truncate text-xs font-bold ${holderColor}`}>{holderName}</p>
+                      <p className="text-[10px] text-muted-foreground">{m.data.hint}</p>
+                    </>
+                  ) : (
+                    <p className="text-[10px] text-muted-foreground">{m.data.hint}</p>
+                  )}
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
     </div>
