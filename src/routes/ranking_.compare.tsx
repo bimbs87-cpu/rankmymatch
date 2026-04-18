@@ -569,6 +569,10 @@ function ComparePage() {
               )}
             </section>
 
+            {h2h && h2h.recentMeetings.length > 0 && (
+              <RecentMeetings h2h={h2h} groupId={groupId} a={playerA} b={playerB} />
+            )}
+
             {/* Tabs */}
             <div className="mt-4 inline-flex rounded-full border border-border bg-card/60 p-1">
               <TabBtn active={tab === "season"} onClick={() => setTab("season")}>Temporada atual</TabBtn>
