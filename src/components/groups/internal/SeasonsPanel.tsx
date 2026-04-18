@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import {
   Trophy, Calendar, Plus, ChevronRight, ChevronDown, CircleDot, CheckCircle2,
-  Clock, MapPin, Pencil, Ban, X, Settings, Check,
+  Clock, MapPin, Pencil, Ban, X, Settings, Check, Flag, RotateCcw,
 } from "lucide-react";
 import { useGroupSeasons } from "@/hooks/use-seasons";
 import { useSeasonRounds } from "@/hooks/use-rounds";
@@ -189,11 +189,57 @@ function SeasonAccordion({
         <div className="border-t border-border bg-background/40">
           {!isActive && <SeasonFinalRanking seasonId={season.id} />}
           <SeasonRoundsInline groupId={groupId} seasonId={season.id} isAdmin={isAdmin} />
+          {isAdmin && <SeasonStatusActions season={season} onChanged={onChanged} />}
         </div>
       )}
     </div>
   );
 }
+
+function SeasonStatusActions({ season, onChanged }: { season: any; onChanged: () => void }) {
+  const [busy, setBusy] = useState(false);
+  const isActive = season.status === "active";
+
+  const finish = async () => {
+    if (!window.confirm(`Encerrar a temporada "${season.name}"?\n\nO ranking final será congelado e novas rodadas não poderão ser criadas nela.`)) return;
+    setBusy(true);
+    const today = new Date().toISOString().slice(0, 10);
+    const patch: any = { status: "finished", updated_at: new Date().toISOString() };
+    if (!season.end_date) patch.end_date = today;
+    const { error } = await supabase.from("seasons").update(patch).eq("id", season.id);
+    if (error) toast.error("Erro ao encerrar temporada");
+    else { toast.success("Temporada encerrada"); onChanged(); }
+    setBusy(false);
+  };
+
+  const reopen = async () => {
+    if (!window.confirm(`Reabrir "${season.name}"? A temporada voltará a ficar ativa.`)) return;
+    setBusy(true);
+    const { error } = await supabase.from("seasons").update({ status: "active", updated_at: new Date().toISOString() }).eq("id", season.id);
+    if (error) toast.error("Erro ao reabrir");
+    else { toast.success("Temporada reaberta"); onChanged(); }
+    setBusy(false);
+  };
+
+  return (
+    <div className="border-t border-border bg-muted/10 p-3">
+      {isActive ? (
+        <button
+          onClick={finish}
+          disabled={busy}
+          className="flex w-full items-center justify-center gap-2 rounded-xl border border-warning/30 bg-warning/10 py-2.5 text-xs font-bold text-warning hover:bg-warning/20 disabled:opacity-50"
+        >
+          <Flag className="h-3.5 w-3.5" /> Encerrar temporada
+        </button>
+      ) : (
+        <button
+          onClick={reopen}
+          disabled={busy}
+          className="flex w-full items-center justify-center gap-2 rounded-xl border border-border py-2.5 text-xs font-bold text-muted-foreground hover:bg-accent/30 disabled:opacity-50"
+        >
+          <RotateCcw className="h-3.5 w-3.5" /> Reabrir temporada
+        </button>
+      )}
 
 function SeasonRoundsInline({ groupId, seasonId, isAdmin }: { groupId: string; seasonId: string; isAdmin: boolean }) {
   const { rounds, isLoading, refresh } = useSeasonRounds(seasonId);
