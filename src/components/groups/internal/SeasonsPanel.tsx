@@ -11,7 +11,8 @@ import { toast } from "sonner";
 import { SeasonFinalRanking } from "./SeasonFinalRanking";
 
 function useSeasonProgress(seasonId: string, totalRounds: number | null) {
-  const [done, setDone] = useState(0);
+  const [completed, setCompleted] = useState(0);
+  const [cancelledCount, setCancelledCount] = useState(0);
   const [total, setTotal] = useState(0);
   useEffect(() => {
     let cancelled = false;
@@ -20,24 +21,29 @@ function useSeasonProgress(seasonId: string, totalRounds: number | null) {
         .from("rounds").select("status").eq("season_id", seasonId);
       if (cancelled) return;
       const created = rounds?.length || 0;
-      const completed = (rounds || []).filter((r) => r.status === "completed").length;
-      setDone(completed);
+      const done = (rounds || []).filter((r) => r.status === "completed").length;
+      const canc = (rounds || []).filter((r) => r.status === "cancelled").length;
+      setCompleted(done);
+      setCancelledCount(canc);
       setTotal(totalRounds ?? created);
     })();
     return () => { cancelled = true; };
   }, [seasonId, totalRounds]);
-  return { done, total };
+  return { completed, cancelled: cancelledCount, total };
 }
 
 function RoundsProgress({ seasonId, totalRounds }: { seasonId: string; totalRounds: number | null }) {
-  const { done, total } = useSeasonProgress(seasonId, totalRounds);
+  const { completed, cancelled, total } = useSeasonProgress(seasonId, totalRounds);
   if (!total) return null;
-  const pct = Math.min(100, Math.round((done / total) * 100));
+  const consumed = completed + cancelled;
+  const donePct = Math.min(100, (completed / total) * 100);
+  const cancPct = Math.min(100 - donePct, (cancelled / total) * 100);
   return (
     <span className="flex items-center gap-1.5">
-      <span className="tabular-nums">{done} de {total} rodadas</span>
-      <span className="relative h-1 w-12 rounded-full bg-muted overflow-hidden">
-        <span className="absolute inset-y-0 left-0 rounded-full bg-primary transition-all" style={{ width: `${pct}%` }} />
+      <span className="tabular-nums">{consumed} de {total} rodadas</span>
+      <span className="relative h-1 w-16 rounded-full bg-muted overflow-hidden flex">
+        <span className="h-full bg-primary transition-all" style={{ width: `${donePct}%` }} />
+        <span className="h-full bg-destructive transition-all" style={{ width: `${cancPct}%` }} title={`${cancelled} cancelada(s)`} />
       </span>
     </span>
   );
