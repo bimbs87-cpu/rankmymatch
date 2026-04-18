@@ -756,6 +756,18 @@ export function RivalryDuelPage({ groupId, groupName, seasonId, seasonName }: Pr
                 data: medals.fregues,
                 tip: "Quem mais perdeu nos confrontos diretos — espelho do Carrasco.",
               },
+              {
+                emoji: "🎾",
+                label: "Mestre dos sets",
+                data: medals.mestreDosSets,
+                tip: "Quem venceu mais sets ao longo do duelo — mesmo nas partidas perdidas.",
+              },
+              {
+                emoji: "🔥",
+                label: "Pé quente",
+                data: medals.peQuente,
+                tip: "Quem ganhou mais nos últimos 5 confrontos diretos.",
+              },
             ].map((m) => {
               const holderName =
                 m.data.holder === "A" ? displayNameA : m.data.holder === "B" ? displayNameB : null;
