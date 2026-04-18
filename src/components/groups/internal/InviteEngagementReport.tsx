@@ -129,41 +129,53 @@ export function InviteEngagementReport({ groupId }: Props) {
     return { sent, converted, expired, pending, revoked, rate, list };
   }, [invites, period]);
 
-  // Weekly trend: aggregate by ISO week (Mon-Sun) within selected period
-  const weekly = useMemo(() => {
+  // Trend by selected granularity (week or month)
+  const trend = useMemo(() => {
     if (stats.list.length === 0) return [];
     const days = PERIOD_OPTS.find((p) => p.id === period)?.days;
-    // Determine range: from earliest to now (or cutoff)
     const now = new Date();
     const startBound = days != null ? new Date(Date.now() - days * 86400000) : new Date(Math.min(...stats.list.map((i) => new Date(i.created_at).getTime())));
 
-    // Build buckets per week
-    const buckets = new Map<string, { weekStart: Date; sent: number; converted: number }>();
-    let cursor = startOfWeek(startBound);
-    const endCursor = startOfWeek(now);
-    while (cursor.getTime() <= endCursor.getTime()) {
-      buckets.set(fmtWeekKey(cursor), { weekStart: new Date(cursor), sent: 0, converted: 0 });
-      cursor = new Date(cursor.getTime() + 7 * 86400000);
-    }
-
-    for (const i of stats.list) {
-      const w = startOfWeek(new Date(i.created_at));
-      const key = fmtWeekKey(w);
-      const b = buckets.get(key);
-      if (!b) continue;
-      b.sent += 1;
-      if (i.use_count > 0) b.converted += 1;
+    const buckets = new Map<string, { start: Date; sent: number; converted: number }>();
+    if (granularity === "week") {
+      let cursor = startOfWeek(startBound);
+      const end = startOfWeek(now);
+      while (cursor.getTime() <= end.getTime()) {
+        buckets.set(fmtWeekKey(cursor), { start: new Date(cursor), sent: 0, converted: 0 });
+        cursor = new Date(cursor.getTime() + 7 * 86400000);
+      }
+      for (const i of stats.list) {
+        const k = fmtWeekKey(startOfWeek(new Date(i.created_at)));
+        const b = buckets.get(k);
+        if (!b) continue;
+        b.sent += 1;
+        if (i.use_count > 0) b.converted += 1;
+      }
+    } else {
+      let cursor = startOfMonth(startBound);
+      const end = startOfMonth(now);
+      while (cursor.getTime() <= end.getTime()) {
+        buckets.set(fmtMonthKey(cursor), { start: new Date(cursor), sent: 0, converted: 0 });
+        cursor = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1);
+      }
+      for (const i of stats.list) {
+        const k = fmtMonthKey(startOfMonth(new Date(i.created_at)));
+        const b = buckets.get(k);
+        if (!b) continue;
+        b.sent += 1;
+        if (i.use_count > 0) b.converted += 1;
+      }
     }
 
     return Array.from(buckets.values())
-      .sort((a, b) => a.weekStart.getTime() - b.weekStart.getTime())
+      .sort((a, b) => a.start.getTime() - b.start.getTime())
       .map((b) => ({
-        week: fmtWeekLabel(b.weekStart),
+        bucket: granularity === "week" ? fmtWeekLabel(b.start) : fmtMonthLabel(b.start),
         Enviados: b.sent,
         Vinculados: b.converted,
         Conversao: b.sent > 0 ? Math.round((b.converted / b.sent) * 100) : 0,
       }));
-  }, [stats.list, period]);
+  }, [stats.list, period, granularity]);
 
   const exportCsv = () => {
     if (stats.list.length === 0) {
