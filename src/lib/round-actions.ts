@@ -230,17 +230,62 @@ export async function drawTeams(roundId: string, confirmedPlayerIds: string[], a
 
   await recomputeRoundStatus(roundId);
 
-  if (roundData && actorId) {
-    notifyGroupMembers({
-      groupId: roundData.group_id,
-      actorId,
-      type: "draw_completed",
-      title: isSingles ? "Confrontos definidos! 🎲" : "Times sorteados! 🎲",
-      body: isSingles
-        ? `Os confrontos da Rodada ${roundData.round_number} foram definidos. ${matchCount} confronto${matchCount !== 1 ? "s" : ""} criado${matchCount !== 1 ? "s" : ""}!`
-        : `Os times da Rodada ${roundData.round_number} foram sorteados. ${matchCount} partida${matchCount !== 1 ? "s" : ""} criada${matchCount !== 1 ? "s" : ""}!`,
-      data: { roundId },
-    });
+  if (roundData) {
+    // Per-player notification: each player sees their own matchup (partner + opponents)
+    const allPlayerIds = Array.from(new Set(pairings.flat()));
+    const { data: profiles } = await supabase
+      .from("user_profiles")
+      .select("user_id, name, nickname")
+      .in("user_id", allPlayerIds);
+
+    const nameOf = (uid: string) => {
+      const p = profiles?.find((x) => x.user_id === uid);
+      return p?.nickname || p?.name || "Jogador";
+    };
+
+    const notifRows: Array<{
+      user_id: string;
+      group_id: string;
+      type: string;
+      title: string;
+      body: string;
+      data: Record<string, string | number | boolean | null>;
+    }> = [];
+
+    for (let i = 0; i < pairings.length; i++) {
+      const group = pairings[i];
+      const teamA = isSingles ? [group[0]] : group.slice(0, 2);
+      const teamB = isSingles ? [group[1]] : group.slice(2, 4);
+      const matchId = createdMatches[i]?.id ?? null;
+      const matchNumber = i + 1;
+
+      for (const uid of group) {
+        const inA = teamA.includes(uid);
+        const myTeam = inA ? teamA : teamB;
+        const oppTeam = inA ? teamB : teamA;
+        const partner = isSingles ? null : myTeam.find((id) => id !== uid) ?? null;
+        const opponentsLabel = oppTeam.map(nameOf).join(" e ");
+
+        const body = isSingles
+          ? `Partida ${matchNumber}: você joga contra ${opponentsLabel}.`
+          : `Partida ${matchNumber}: você joga com ${partner ? nameOf(partner) : "—"} contra ${opponentsLabel}.`;
+
+        notifRows.push({
+          user_id: uid,
+          group_id: roundData.group_id,
+          type: "draw_completed",
+          title: isSingles
+            ? `Seu confronto da Rodada ${roundData.round_number} 🎲`
+            : `Seu jogo da Rodada ${roundData.round_number} 🎲`,
+          body,
+          data: { roundId, matchId, seasonId: roundData.season_id ?? null },
+        });
+      }
+    }
+
+    if (notifRows.length > 0) {
+      await supabase.from("notifications").insert(notifRows);
+    }
   }
 
   return createdMatches;
