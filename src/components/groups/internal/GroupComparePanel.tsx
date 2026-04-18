@@ -356,6 +356,38 @@ export function GroupComparePanel({ groupId }: { groupId: string }) {
     void persistOrder(favorites);
   };
 
+  if (activeCompare) {
+    return (
+      <div className="space-y-3">
+        <div className="flex items-center justify-between gap-2">
+          <button
+            onClick={() => setActiveCompare(null)}
+            className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card/60 px-3 py-1.5 text-xs font-semibold text-foreground transition hover:bg-accent"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" /> Voltar para comparar
+          </button>
+          <a
+            href={buildCompareUrl(activeCompare.ids)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card/60 px-3 py-1.5 text-xs font-semibold text-muted-foreground transition hover:text-foreground hover:bg-accent"
+            title="Abrir em nova aba"
+          >
+            <ExternalLink className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Nova aba</span>
+          </a>
+        </div>
+        <p className="px-1 text-[11px] text-muted-foreground truncate">{activeCompare.label}</p>
+        <iframe
+          key={activeCompare.ids.join(",")}
+          src={buildCompareUrl(activeCompare.ids, { embed: true })}
+          title="Comparativo"
+          className="w-full rounded-3xl border border-border bg-background"
+          style={{ height: "calc(100vh - 180px)", minHeight: 600 }}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-5">
       <div className="flex items-center gap-3">
