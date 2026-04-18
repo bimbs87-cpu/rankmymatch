@@ -465,6 +465,209 @@ export function QuickCreateSeasonDialog({
           </button>
         </div>
       </div>
+
+      {showHolidayPicker && (
+        <HolidayPickerDialog
+          generatedDates={generatedDates}
+          excludedDates={excludedDates}
+          onClose={() => setShowHolidayPicker(false)}
+          onApply={(toExclude) => {
+            setExcludedDates((prev) => {
+              const next = new Set(prev);
+              for (const d of toExclude) next.add(d);
+              return next;
+            });
+            setShowHolidayPicker(false);
+            if (toExclude.length > 0) {
+              toast.success(
+                `${toExclude.length} data${toExclude.length === 1 ? "" : "s"} excluída${toExclude.length === 1 ? "" : "s"}`,
+              );
+            }
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+/* ============= Holiday picker sub-dialog ============= */
+interface HolidayPickerProps {
+  generatedDates: string[];
+  excludedDates: Set<string>;
+  onClose: () => void;
+  onApply: (datesToExclude: string[]) => void;
+}
+
+function HolidayPickerDialog({ generatedDates, excludedDates, onClose, onApply }: HolidayPickerProps) {
+  const matches = useMemo(() => brHolidaysMatchingDates(generatedDates), [generatedDates]);
+  // Pre-select matches that aren't already excluded; show as checked by default.
+  const [selected, setSelected] = useState<Set<string>>(() => new Set(matches.map((m) => m.iso)));
+  const [customDate, setCustomDate] = useState<string>("");
+  const [customLabel, setCustomLabel] = useState<string>("");
+  const [customs, setCustoms] = useState<{ iso: string; name: string }[]>([]);
+
+  const toggle = (iso: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(iso)) next.delete(iso);
+      else next.add(iso);
+      return next;
+    });
+  };
+
+  const addCustom = () => {
+    if (!customDate) {
+      toast.error("Escolha uma data");
+      return;
+    }
+    if (!generatedDates.includes(customDate)) {
+      toast.error("Esta data não está na prévia gerada");
+      return;
+    }
+    if (customs.some((c) => c.iso === customDate) || matches.some((m) => m.iso === customDate)) {
+      toast.info("Data já listada");
+      return;
+    }
+    const label = customLabel.trim() || "Feriado customizado";
+    setCustoms((prev) => [...prev, { iso: customDate, name: label }]);
+    setSelected((prev) => new Set(prev).add(customDate));
+    setCustomDate("");
+    setCustomLabel("");
+  };
+
+  const allItems = [...matches, ...customs];
+
+  return (
+    <div
+      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 p-4"
+      onClick={onClose}
+    >
+      <div
+        className="max-h-[85vh] w-full max-w-md overflow-y-auto rounded-3xl border border-border bg-card p-5 shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="mb-3 flex items-center justify-between">
+          <div>
+            <h3 className="font-display text-base font-bold text-foreground">Pular feriados</h3>
+            <p className="text-[11px] text-muted-foreground">
+              Selecione quais datas excluir. Inclua feriados estaduais/municipais customizados.
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-accent"
+            aria-label="Fechar"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="space-y-3">
+          <div>
+            <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+              Feriados encontrados na prévia
+            </p>
+            {allItems.length === 0 ? (
+              <p className="rounded-xl border border-dashed border-border bg-muted/10 p-3 text-xs text-muted-foreground">
+                Nenhum feriado nacional BR coincide com as datas geradas.
+              </p>
+            ) : (
+              <ul className="space-y-1">
+                {allItems.map((h) => {
+                  const dt = new Date(h.iso + "T00:00:00");
+                  const isSel = selected.has(h.iso);
+                  const alreadyExcluded = excludedDates.has(h.iso);
+                  return (
+                    <li key={h.iso}>
+                      <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-border bg-background/40 p-2.5 hover:bg-background/70">
+                        <input
+                          type="checkbox"
+                          checked={isSel}
+                          onChange={() => toggle(h.iso)}
+                          className="h-4 w-4 accent-primary"
+                        />
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-xs font-semibold text-foreground">{h.name}</p>
+                          <p className="text-[10px] text-muted-foreground">
+                            {dt.toLocaleDateString("pt-BR", {
+                              weekday: "short",
+                              day: "2-digit",
+                              month: "long",
+                              year: "numeric",
+                            })}
+                            {alreadyExcluded && " · já excluída"}
+                          </p>
+                        </div>
+                      </label>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
+
+          <div className="rounded-xl border border-dashed border-border bg-background/30 p-3">
+            <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+              Adicionar feriado customizado
+            </p>
+            <div className="flex flex-col gap-2">
+              <select
+                value={customDate}
+                onChange={(e) => setCustomDate(e.target.value)}
+                className="w-full rounded-lg border border-border bg-background px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-primary"
+              >
+                <option value="">Escolha uma data da prévia…</option>
+                {generatedDates
+                  .filter((d) => !matches.some((m) => m.iso === d) && !customs.some((c) => c.iso === d))
+                  .map((d) => {
+                    const dt = new Date(d + "T00:00:00");
+                    return (
+                      <option key={d} value={d}>
+                        {dt.toLocaleDateString("pt-BR", {
+                          weekday: "short",
+                          day: "2-digit",
+                          month: "short",
+                          year: "numeric",
+                        })}
+                      </option>
+                    );
+                  })}
+              </select>
+              <input
+                type="text"
+                value={customLabel}
+                onChange={(e) => setCustomLabel(e.target.value)}
+                maxLength={40}
+                placeholder="Nome (ex.: Aniversário da cidade)"
+                className="w-full rounded-lg border border-border bg-background px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-primary"
+              />
+              <button
+                type="button"
+                onClick={addCustom}
+                className="self-start rounded-full border border-primary/40 bg-primary/10 px-3 py-1 text-[11px] font-bold text-primary hover:bg-primary/20"
+              >
+                + Adicionar
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-4 flex items-center justify-end gap-2">
+          <button
+            onClick={onClose}
+            className="rounded-xl px-3 py-2 text-xs font-semibold text-muted-foreground hover:bg-accent"
+          >
+            Cancelar
+          </button>
+          <button
+            onClick={() => onApply(Array.from(selected))}
+            disabled={selected.size === 0}
+            className="rounded-xl bg-primary px-3 py-2 text-xs font-bold text-primary-foreground disabled:opacity-50"
+          >
+            Aplicar ({selected.size})
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
