@@ -252,23 +252,32 @@ export function GroupComparePanel({ groupId }: { groupId: string }) {
 
   const canCompare = picked.length >= 2;
 
+  const labelFor = (ids: string[]) => {
+    const names = ids.map((id) => {
+      if (id === "__group_avg__") return "Média do grupo";
+      const m = memberMap.get(id);
+      return m ? (m.nickname || m.name) : "Jogador";
+    });
+    return names.join(" vs ");
+  };
+
   const goCompare = (ids: string[]) => {
     if (ids.length < 2) return;
-    const [a, b, c, d] = ids;
-    // Open in new tab so the group sidebar stays intact in the original tab.
-    const url = `/ranking/compare?` + new URLSearchParams({
-      a: a || "", b: b || "", c: c || "", d: d || "",
-      groupId, seasonId: activeSeasonId || "", tab: "career",
-    }).toString();
-    window.open(url, "_blank", "noopener");
+    setActiveCompare({ ids, label: labelFor(ids) });
   };
 
   const compareWithGroupAvg = (userId: string) => {
-    const url = `/ranking/compare?` + new URLSearchParams({
-      a: userId, b: "__group_avg__", c: "", d: "",
+    setActiveCompare({ ids: [userId, "__group_avg__"], label: labelFor([userId, "__group_avg__"]) });
+  };
+
+  const buildCompareUrl = (ids: string[], opts: { embed?: boolean } = {}) => {
+    const [a, b, c, d] = ids;
+    const params = new URLSearchParams({
+      a: a || "", b: b || "", c: c || "", d: d || "",
       groupId, seasonId: activeSeasonId || "", tab: "career",
-    }).toString();
-    window.open(url, "_blank", "noopener");
+    });
+    if (opts.embed) params.set("embed", "1");
+    return `/ranking/compare?${params.toString()}`;
   };
 
   const openSaveFavorite = () => {
