@@ -4,8 +4,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import {
   useGroupDetail,
-  approveJoinRequest,
-  rejectJoinRequest,
   removeMember,
   updateMemberRole,
 } from "@/hooks/use-groups";
@@ -15,9 +13,11 @@ import { MergeMembersDialog } from "@/components/MergeMembersDialog";
 import { AddPlaceholderPlayerDialog } from "@/components/AddPlaceholderPlayerDialog";
 import { SearchUserDialog } from "@/components/SearchUserDialog";
 import { InviteLinkDialog } from "@/components/InviteLinkDialog";
+import { ClaimInviteShareDialog } from "@/components/ClaimInviteShareDialog";
 import {
   Search, Filter, ArrowUpDown, KeyRound, Shield, Ghost, UserMinus, Pencil, GitMerge,
-  Check, X, Trophy, ChevronRight, UserPlus, Share2, MoreHorizontal, Crown, Flame, MessageCircle, Loader2,
+  Check, X, Trophy, ChevronRight, UserPlus, Share2, Crown, Flame, MessageCircle,
+  MailCheck, RotateCcw, Send,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -28,12 +28,20 @@ interface Props {
   groupId: string;
 }
 
+interface PendingInvite {
+  id: string;
+  code: string;
+  expires_at: string | null;
+}
+
 export function MembersPanel({ groupId }: Props) {
   const { user } = useAuth();
   const { members, isAdmin, refresh } = useGroupDetail(groupId);
   const [rankingData, setRankingData] = useState<Record<string, { rating: number; position: number | null; matches_played: number; matches_won: number }>>({});
   const [presenceData, setPresenceData] = useState<Record<string, number>>({});
   const [placeholderUserIds, setPlaceholderUserIds] = useState<Set<string>>(new Set());
+  // Map placeholder user_id -> active claim invite (if any)
+  const [pendingInvites, setPendingInvites] = useState<Record<string, PendingInvite>>({});
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
   const [sortBy, setSortBy] = useState<SortBy>("elo");
@@ -45,86 +53,42 @@ export function MembersPanel({ groupId }: Props) {
   const [addPlaceholderOpen, setAddPlaceholderOpen] = useState(false);
   const [searchUserOpen, setSearchUserOpen] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
-  const [generatingInviteFor, setGeneratingInviteFor] = useState<string | null>(null);
   const [groupName, setGroupName] = useState<string>("");
+  const [shareDialogTargets, setShareDialogTargets] = useState<{ user_id: string; name: string }[]>([]);
 
-  // Load group name for WhatsApp message
+  // Load group name
   useEffect(() => {
     supabase.from("groups").select("name").eq("id", groupId).maybeSingle()
       .then(({ data }) => { if (data?.name) setGroupName(data.name); });
   }, [groupId]);
 
-  const generateClaimCode = (): string => {
-    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
-    let code = "";
-    for (let i = 0; i < 10; i++) code += chars.charAt(Math.floor(Math.random() * chars.length));
-    return code;
+  // Load active claim invites for this group
+  const refreshPendingInvites = async () => {
+    const { data } = await supabase
+      .from("invite_links")
+      .select("id, code, expires_at, claim_placeholder_user_id, max_uses, use_count, is_active")
+      .eq("group_id", groupId)
+      .eq("is_active", true)
+      .not("claim_placeholder_user_id", "is", null);
+    const map: Record<string, PendingInvite> = {};
+    (data || []).forEach((row) => {
+      const usable = row.use_count < (row.max_uses ?? 1)
+        && (!row.expires_at || new Date(row.expires_at) > new Date());
+      if (usable && row.claim_placeholder_user_id) {
+        map[row.claim_placeholder_user_id] = {
+          id: row.id,
+          code: row.code,
+          expires_at: row.expires_at,
+        };
+      }
+    });
+    setPendingInvites(map);
   };
 
-  const handleShareClaimInvite = async (placeholderUserId: string, placeholderName: string) => {
-    if (!user) return;
-    setGeneratingInviteFor(placeholderUserId);
-    try {
-      // Reuse an existing unused claim invite for this placeholder if it exists
-      const { data: existing } = await supabase
-        .from("invite_links")
-        .select("code, use_count, max_uses, expires_at, is_active")
-        .eq("group_id", groupId)
-        .eq("claim_placeholder_user_id", placeholderUserId)
-        .eq("is_active", true)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      let code: string;
-      const isUsable = existing && existing.use_count < (existing.max_uses ?? 1)
-        && (!existing.expires_at || new Date(existing.expires_at) > new Date());
-
-      if (isUsable && existing) {
-        code = existing.code;
-      } else {
-        code = generateClaimCode();
-        const expiresAt = new Date();
-        expiresAt.setDate(expiresAt.getDate() + 30);
-        const { error: insertErr } = await supabase.from("invite_links").insert({
-          group_id: groupId,
-          code,
-          created_by: user.id,
-          max_uses: 1,
-          expires_at: expiresAt.toISOString(),
-          claim_placeholder_user_id: placeholderUserId,
-        } as any);
-        if (insertErr) throw insertErr;
-      }
-
-      const url = `${window.location.origin}/invite/${code}`;
-      const message =
-        `Olá ${placeholderName}! 👋\n\n` +
-        `Você já está jogando no grupo *${groupName || "RankMyMatch"}* no RankMyMatch, ` +
-        `mas ainda sem conta vinculada. Clique no link abaixo, faça login e seu histórico ` +
-        `será automaticamente vinculado à sua conta:\n\n${url}\n\n` +
-        `🏆 Veja seu ranking, estatísticas e próximas partidas!`;
-
-      const waUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
-
-      // Try Web Share API first (better on mobile), fall back to WhatsApp web
-      if (navigator.share) {
-        try {
-          await navigator.share({ title: `Convite para ${placeholderName}`, text: message, url });
-        } catch {
-          window.open(waUrl, "_blank");
-        }
-      } else {
-        window.open(waUrl, "_blank");
-      }
-      toast.success("Convite pronto para envio!");
-    } catch (e: any) {
-      console.error(e);
-      toast.error("Erro ao gerar convite");
-    } finally {
-      setGeneratingInviteFor(null);
-    }
-  };
+  useEffect(() => {
+    refreshPendingInvites();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [groupId]);
 
   // Load ranking data
   useEffect(() => {
@@ -138,11 +102,10 @@ export function MembersPanel({ groupId }: Props) {
           .from("ranking_snapshots")
           .select("user_id, rating, position, matches_played, matches_won")
           .eq("season_id", season.id);
-        const map: Record<string, any> = {};
+        const map: Record<string, { rating: number; position: number | null; matches_played: number; matches_won: number }> = {};
         (snaps || []).forEach((s) => { map[s.user_id] = s; });
         setRankingData(map);
 
-        // presence count for current season
         const { data: rounds } = await supabase
           .from("rounds").select("id").eq("group_id", groupId);
         if (rounds && rounds.length) {
@@ -168,12 +131,10 @@ export function MembersPanel({ groupId }: Props) {
 
   const filtered = useMemo(() => {
     let list = members.slice();
-    // filter
-    if (filter === "active") list = list.filter((m) => (m as any).status === "active");
-    else if (filter === "former") list = list.filter((m) => (m as any).status !== "active");
+    if (filter === "active") list = list.filter((m) => (m as { status?: string }).status === "active");
+    else if (filter === "former") list = list.filter((m) => (m as { status?: string }).status !== "active");
     else if (filter === "admins") list = list.filter((m) => m.role === "admin" || m.role === "creator");
     else if (filter === "no_account") list = list.filter((m) => placeholderUserIds.has(m.user_id));
-    // search
     if (search.trim()) {
       const q = search.toLowerCase();
       list = list.filter((m) =>
@@ -181,25 +142,29 @@ export function MembersPanel({ groupId }: Props) {
         (m.profile?.nickname || "").toLowerCase().includes(q),
       );
     }
-    // sort
-    const isFormer = (m: any) => m.status !== "active";
+    const isFormer = (m: { status?: string }) => m.status !== "active";
     list.sort((a, b) => {
-      // formers always at the bottom
       if (isFormer(a) !== isFormer(b)) return isFormer(a) ? 1 : -1;
-      if (sortBy === "alpha") {
-        return (a.profile?.name || "").localeCompare(b.profile?.name || "");
-      }
-      if (sortBy === "wins") {
-        return (rankingData[b.user_id]?.matches_won || 0) - (rankingData[a.user_id]?.matches_won || 0);
-      }
-      if (sortBy === "presence") {
-        return (presenceData[b.user_id] || 0) - (presenceData[a.user_id] || 0);
-      }
-      // elo
+      if (sortBy === "alpha") return (a.profile?.name || "").localeCompare(b.profile?.name || "");
+      if (sortBy === "wins") return (rankingData[b.user_id]?.matches_won || 0) - (rankingData[a.user_id]?.matches_won || 0);
+      if (sortBy === "presence") return (presenceData[b.user_id] || 0) - (presenceData[a.user_id] || 0);
       return (rankingData[b.user_id]?.rating || 0) - (rankingData[a.user_id]?.rating || 0);
     });
     return list;
   }, [members, filter, search, sortBy, rankingData, presenceData, placeholderUserIds]);
+
+  // Placeholders visible in current filtered view (for bulk invite)
+  const visiblePlaceholders = useMemo(
+    () => filtered.filter((m) => placeholderUserIds.has(m.user_id) && (m as { status?: string }).status === "active"),
+    [filtered, placeholderUserIds],
+  );
+
+  // Of the selected, how many are placeholders (active)?
+  const selectedPlaceholders = useMemo(() => {
+    return filtered.filter((m) =>
+      selectedIds.has(m.id) && placeholderUserIds.has(m.user_id) && (m as { status?: string }).status === "active",
+    );
+  }, [filtered, selectedIds, placeholderUserIds]);
 
   const toggleSelect = (id: string) => {
     setSelectedIds((prev) => {
@@ -230,6 +195,40 @@ export function MembersPanel({ groupId }: Props) {
     refresh();
   };
 
+  const handleBulkInviteSelected = () => {
+    if (!selectedPlaceholders.length) return;
+    setShareDialogTargets(
+      selectedPlaceholders.map((m) => ({ user_id: m.user_id, name: m.profile?.name || "Jogador" })),
+    );
+  };
+
+  const handleInviteAllPlaceholders = () => {
+    // Only those WITHOUT an active invite already (avoid spamming the same person)
+    const list = visiblePlaceholders.filter((m) => !pendingInvites[m.user_id]);
+    if (!list.length) {
+      toast.info("Todos os jogadores sem conta já têm convite ativo");
+      return;
+    }
+    setShareDialogTargets(list.map((m) => ({ user_id: m.user_id, name: m.profile?.name || "Jogador" })));
+  };
+
+  const handleInviteSingle = (placeholderUserId: string, name: string) => {
+    setShareDialogTargets([{ user_id: placeholderUserId, name }]);
+  };
+
+  const handleRevokeInvite = async (placeholderUserId: string, name: string) => {
+    const invite = pendingInvites[placeholderUserId];
+    if (!invite) return;
+    if (!confirm(`Revogar convite de ${name}? O link enviado deixará de funcionar.`)) return;
+    const { error } = await supabase
+      .from("invite_links")
+      .update({ is_active: false })
+      .eq("id", invite.id);
+    if (error) { toast.error("Erro ao revogar"); return; }
+    toast.success("Convite revogado");
+    refreshPendingInvites();
+  };
+
   const handleStartRename = (uid: string, name: string) => {
     setRenamingUserId(uid); setRenameValue(name);
   };
@@ -252,9 +251,9 @@ export function MembersPanel({ groupId }: Props) {
 
   const FILTER_OPTS: { id: Filter; label: string; count?: number }[] = [
     { id: "all", label: "Todos", count: members.length },
-    { id: "active", label: "Ativos", count: members.filter((m) => (m as any).status === "active").length },
+    { id: "active", label: "Ativos", count: members.filter((m) => (m as { status?: string }).status === "active").length },
     { id: "no_account", label: "Sem conta", count: placeholderUserIds.size },
-    { id: "former", label: "Ex-membros", count: members.filter((m) => (m as any).status !== "active").length },
+    { id: "former", label: "Ex-membros", count: members.filter((m) => (m as { status?: string }).status !== "active").length },
     { id: "admins", label: "Admins", count: members.filter((m) => m.role === "admin" || m.role === "creator").length },
   ];
 
@@ -265,7 +264,10 @@ export function MembersPanel({ groupId }: Props) {
     { id: "alpha", label: "A-Z" },
   ];
 
-  const activeMembers = members.filter((m) => (m as any).status === "active");
+  const activeMembers = members.filter((m) => (m as { status?: string }).status === "active");
+
+  const pendingCount = Object.keys(pendingInvites).length;
+  const placeholdersWithoutInvite = visiblePlaceholders.filter((m) => !pendingInvites[m.user_id]).length;
 
   return (
     <div className="space-y-4">
@@ -306,18 +308,53 @@ export function MembersPanel({ groupId }: Props) {
             </button>
           ))}
         </div>
+
+        {/* Bulk invite all placeholders helper */}
+        {isAdmin && filter === "no_account" && placeholdersWithoutInvite > 0 && (
+          <button
+            onClick={handleInviteAllPlaceholders}
+            className="flex w-full items-center justify-center gap-2 rounded-2xl bg-success/10 px-3 py-2 text-xs font-bold text-success hover:bg-success/15"
+          >
+            <Send className="h-3.5 w-3.5" />
+            Convidar todos os {placeholdersWithoutInvite} sem convite
+          </button>
+        )}
       </div>
 
       {/* Bulk actions bar */}
       {isAdmin && selectedIds.size > 0 && (
-        <div className="flex items-center justify-between rounded-2xl border border-primary/40 bg-primary/10 px-4 py-2.5">
-          <span className="text-xs font-semibold text-primary">{selectedIds.size} selecionado{selectedIds.size > 1 ? "s" : ""}</span>
-          <div className="flex gap-2">
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-primary/40 bg-primary/10 px-4 py-2.5">
+          <span className="text-xs font-semibold text-primary">
+            {selectedIds.size} selecionado{selectedIds.size > 1 ? "s" : ""}
+            {selectedPlaceholders.length > 0 && (
+              <span className="ml-1 opacity-70">({selectedPlaceholders.length} sem conta)</span>
+            )}
+          </span>
+          <div className="flex flex-wrap gap-2">
+            {selectedPlaceholders.length > 0 && (
+              <button
+                onClick={handleBulkInviteSelected}
+                className="flex items-center gap-1 rounded-full bg-success px-3 py-1 text-[11px] font-bold text-success-foreground"
+              >
+                <MessageCircle className="h-3 w-3" />
+                Convidar {selectedPlaceholders.length}
+              </button>
+            )}
             <button onClick={() => handleBulkPromote("admin")} className="rounded-full bg-info/15 px-3 py-1 text-[11px] font-semibold text-info">Promover</button>
             <button onClick={() => handleBulkPromote("member")} className="rounded-full bg-muted px-3 py-1 text-[11px] font-semibold text-muted-foreground">Rebaixar</button>
             <button onClick={handleBulkRemove} className="rounded-full bg-destructive/15 px-3 py-1 text-[11px] font-semibold text-destructive">Desvincular</button>
             <button onClick={() => setSelectedIds(new Set())} className="rounded-full bg-muted px-2 py-1 text-muted-foreground"><X className="h-3 w-3" /></button>
           </div>
+        </div>
+      )}
+
+      {/* Pending invites summary */}
+      {isAdmin && pendingCount > 0 && (
+        <div className="flex items-center gap-2 rounded-2xl border border-warning/30 bg-warning/5 px-3 py-2">
+          <MailCheck className="h-3.5 w-3.5 text-warning flex-shrink-0" />
+          <span className="text-[11px] text-foreground">
+            <strong className="text-warning">{pendingCount}</strong> convite{pendingCount > 1 ? "s" : ""} de vinculação aguardando uso
+          </span>
         </div>
       )}
 
@@ -328,10 +365,12 @@ export function MembersPanel({ groupId }: Props) {
         ) : filtered.map((m) => {
           const rank = rankingData[m.user_id];
           const presence = presenceData[m.user_id] || 0;
-          const isFormer = (m as any).status !== "active";
+          const isFormer = (m as { status?: string }).status !== "active";
           const isMe = user?.id === m.user_id;
           const selected = selectedIds.has(m.id);
           const winRate = rank && rank.matches_played > 0 ? Math.round((rank.matches_won / rank.matches_played) * 100) : null;
+          const isPlaceholder = !isFormer && placeholderUserIds.has(m.user_id);
+          const pendingInvite = isPlaceholder ? pendingInvites[m.user_id] : undefined;
           return (
             <div
               key={m.id}
@@ -357,7 +396,7 @@ export function MembersPanel({ groupId }: Props) {
                 dimmed={isFormer}
               />
               <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-1.5">
+                <div className="flex flex-wrap items-center gap-1.5">
                   {isFormer && isAdmin && renamingUserId === m.user_id ? (
                     <input
                       value={renameValue}
@@ -374,9 +413,17 @@ export function MembersPanel({ groupId }: Props) {
                   {!isFormer && m.role === "creator" && <KeyRound className="h-3 w-3 text-rank-gold flex-shrink-0" />}
                   {!isFormer && m.role === "admin" && <Shield className="h-3 w-3 text-info flex-shrink-0" />}
                   {isMe && <span className="rounded-full bg-primary/15 px-1.5 py-0.5 text-[9px] font-bold text-primary">Você</span>}
-                  {!isFormer && placeholderUserIds.has(m.user_id) && (
+                  {isPlaceholder && (
                     <span className="flex items-center gap-0.5 rounded-full bg-muted px-1.5 py-0.5 text-[9px] font-medium text-muted-foreground flex-shrink-0">
                       <Ghost className="h-2.5 w-2.5" />Sem conta
+                    </span>
+                  )}
+                  {isPlaceholder && pendingInvite && (
+                    <span
+                      className="flex items-center gap-0.5 rounded-full bg-warning/15 px-1.5 py-0.5 text-[9px] font-bold text-warning flex-shrink-0"
+                      title={pendingInvite.expires_at ? `Expira em ${new Date(pendingInvite.expires_at).toLocaleDateString("pt-BR")}` : "Sem expiração"}
+                    >
+                      <MailCheck className="h-2.5 w-2.5" />Convite enviado
                     </span>
                   )}
                   {isFormer && (
@@ -412,20 +459,35 @@ export function MembersPanel({ groupId }: Props) {
                     </>
                   )
                 )}
-                {isAdmin && !isFormer && placeholderUserIds.has(m.user_id) && (
-                  <button
-                    onClick={() => handleShareClaimInvite(m.user_id, m.profile?.name || "Jogador")}
-                    disabled={generatingInviteFor === m.user_id}
-                    className="flex items-center gap-1 rounded-lg bg-success/10 px-2 py-1.5 text-[10px] font-semibold text-success hover:bg-success/20 disabled:opacity-50"
-                    title="Convidar pelo WhatsApp para vincular conta"
-                  >
-                    {generatingInviteFor === m.user_id ? (
-                      <Loader2 className="h-3 w-3 animate-spin" />
-                    ) : (
+                {isAdmin && isPlaceholder && (
+                  pendingInvite ? (
+                    <>
+                      <button
+                        onClick={() => handleInviteSingle(m.user_id, m.profile?.name || "Jogador")}
+                        className="flex items-center gap-1 rounded-lg bg-warning/10 px-2 py-1.5 text-[10px] font-semibold text-warning hover:bg-warning/20"
+                        title="Reenviar convite"
+                      >
+                        <RotateCcw className="h-3 w-3" />
+                        <span className="hidden sm:inline">Reenviar</span>
+                      </button>
+                      <button
+                        onClick={() => handleRevokeInvite(m.user_id, m.profile?.name || "Jogador")}
+                        className="rounded-lg bg-destructive/10 p-1.5 text-destructive hover:bg-destructive/20"
+                        title="Revogar convite"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      onClick={() => handleInviteSingle(m.user_id, m.profile?.name || "Jogador")}
+                      className="flex items-center gap-1 rounded-lg bg-success/10 px-2 py-1.5 text-[10px] font-semibold text-success hover:bg-success/20"
+                      title="Convidar pelo WhatsApp"
+                    >
                       <MessageCircle className="h-3 w-3" />
-                    )}
-                    <span className="hidden sm:inline">Convidar</span>
-                  </button>
+                      <span className="hidden sm:inline">Convidar</span>
+                    </button>
+                  )
                 )}
                 {isAdmin && !isFormer && !isMe && m.role !== "creator" && (
                   <>
@@ -497,8 +559,8 @@ export function MembersPanel({ groupId }: Props) {
         open={!!mergeFormerMember}
         onOpenChange={(o) => { if (!o) setMergeFormerMember(null); }}
         groupId={groupId}
-        formerMember={mergeFormerMember as any}
-        activeMembers={activeMembers as any}
+        formerMember={mergeFormerMember as never}
+        activeMembers={activeMembers as never}
         onMerged={() => { setMergeFormerMember(null); refresh(); }}
       />
       {isAdmin && user && (
@@ -524,6 +586,14 @@ export function MembersPanel({ groupId }: Props) {
         onOpenChange={setInviteOpen}
         groupId={groupId}
         isAdmin={isAdmin}
+      />
+      <ClaimInviteShareDialog
+        open={shareDialogTargets.length > 0}
+        onOpenChange={(o) => { if (!o) setShareDialogTargets([]); }}
+        groupId={groupId}
+        groupName={groupName}
+        targets={shareDialogTargets}
+        onSent={() => { refreshPendingInvites(); setSelectedIds(new Set()); }}
       />
     </div>
   );
