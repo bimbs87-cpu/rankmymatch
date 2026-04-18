@@ -98,6 +98,7 @@ function GroupDetailPage() {
   >({});
   const [commentCount, setCommentCount] = useState(0);
   const [isPremium, setIsPremium] = useState(false);
+  const [premiumDaysLeft, setPremiumDaysLeft] = useState<number | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -108,10 +109,17 @@ function GroupDetailPage() {
       .maybeSingle()
       .then(({ data }) => {
         if (cancelled) return;
-        if (!data) { setIsPremium(false); return; }
+        if (!data) { setIsPremium(false); setPremiumDaysLeft(null); return; }
         const active = data.status && data.status !== "free" && data.status !== "cancelled";
         const notExpired = !data.expires_at || new Date(data.expires_at) > new Date();
-        setIsPremium(Boolean(active && notExpired));
+        const premium = Boolean(active && notExpired);
+        setIsPremium(premium);
+        if (premium && data.expires_at) {
+          const days = Math.ceil((new Date(data.expires_at).getTime() - Date.now()) / 86400000);
+          setPremiumDaysLeft(days <= 14 ? days : null);
+        } else {
+          setPremiumDaysLeft(null);
+        }
       });
     return () => { cancelled = true; };
   }, [groupId]);
