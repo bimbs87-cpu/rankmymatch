@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react";
+import { DuelShareDialog } from "@/components/DuelShareDialog";
+import type { ShareMedal } from "@/components/DuelShareCard";
 import { Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
@@ -80,6 +82,7 @@ export function RivalryDuelPage({ groupId, groupName, seasonId, seasonName }: Pr
   const [promotingId, setPromotingId] = useState<string | null>(null);
   const [revertingId, setRevertingId] = useState<string | null>(null);
   const [matchFilter, setMatchFilter] = useState<"all" | "official" | "casual">("all");
+  const [shareOpen, setShareOpen] = useState(false);
 
   useEffect(() => {
     loadDuelData();
@@ -518,28 +521,19 @@ export function RivalryDuelPage({ groupId, groupName, seasonId, seasonName }: Pr
     playerB.user_id,
   );
 
-  // ─── Share (Web Share API + clipboard fallback) ───
-  const handleShare = async () => {
-    const shareData = {
-      title: `Duelo: ${displayNameA} vs ${displayNameB}`,
-      text: `${displayNameA} ${winsA} x ${winsB} ${displayNameB} | RankMyMatch`,
-      url: typeof window !== "undefined" ? window.location.href : "",
-    };
-    try {
-      if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
-        await navigator.share(shareData);
-        return;
-      }
-    } catch {
-      // user cancelled or share failed — fall through to clipboard
-    }
-    try {
-      await navigator.clipboard.writeText(`${shareData.text}\n${shareData.url}`);
-      toast.success("Link do duelo copiado!");
-    } catch {
-      toast.error("Não foi possível compartilhar");
-    }
-  };
+  // ─── Share — opens visual share dialog (downloads/shares an image) ───
+  const handleShare = () => setShareOpen(true);
+
+  // Build share medals — top 3 with a holder
+  const shareMedals: ShareMedal[] = (() => {
+    const all: ShareMedal[] = [
+      { label: "Carrasco", subtitle: "Mais vitórias diretas", holder: medals.carrasco.holder, holderName: medals.carrasco.holder === "A" ? displayNameA : medals.carrasco.holder === "B" ? displayNameB : null, value: medals.carrasco.value },
+      { label: "Invicto", subtitle: "Maior sequência sem perder", holder: medals.invicto.holder, holderName: medals.invicto.holder === "A" ? displayNameA : medals.invicto.holder === "B" ? displayNameB : null, value: medals.invicto.value },
+      { label: "Mestre dos sets", subtitle: "Mais sets vencidos", holder: medals.mestreDosSets.holder, holderName: medals.mestreDosSets.holder === "A" ? displayNameA : medals.mestreDosSets.holder === "B" ? displayNameB : null, value: medals.mestreDosSets.value },
+      { label: "Pé quente", subtitle: "Melhor fase recente", holder: medals.peQuente.holder, holderName: medals.peQuente.holder === "A" ? displayNameA : medals.peQuente.holder === "B" ? displayNameB : null, value: medals.peQuente.value },
+    ];
+    return all.filter((m) => m.holder !== null).slice(0, 3);
+  })();
 
   return (
     <div className="px-5 pb-28 animate-fade-in lg:grid lg:grid-cols-12 lg:gap-6 lg:px-6">
