@@ -1232,18 +1232,19 @@ function DashboardPage() {
       {/* PWA Install Banner */}
       <InstallBanner />
 
-      <div className="space-y-5 px-5 pt-5 lg:grid lg:grid-cols-12 lg:grid-rows-[auto_auto_1fr_auto] lg:gap-6 lg:space-y-0">
+      <div className="space-y-5 px-5 pt-5 lg:grid lg:grid-cols-12 lg:grid-rows-[auto_1fr_auto] lg:gap-6 lg:space-y-0">
         {/* Season switcher button — above the ranking card (mobile) / between Ranking and Evolução do Elo (desktop) */}
+        {/* MOBILE-ONLY: Season switcher button (above ranking card) — desktop version is integrated into Evolução do Elo header */}
         {!dataLoading && currentRanking && rankings.length > 1 && (
-          <div className="relative flex animate-fade-in lg:col-span-4 lg:col-start-1 lg:row-start-2 lg:self-center lg:justify-start">
+          <div className="relative flex animate-fade-in lg:hidden">
             <button
               onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowRankingPicker((v) => !v); }}
-              className="group flex items-center gap-1.5 rounded-full border border-border bg-card px-2.5 py-1 text-[11px] font-medium text-foreground/80 transition-all hover:border-primary/40 hover:bg-primary/5 hover:text-foreground lg:gap-1 lg:px-2 lg:py-0.5 lg:text-[10px]"
+              className="flex items-center gap-1.5 rounded-full border border-border bg-card px-2.5 py-1 text-[11px] font-medium text-foreground/80 transition-all hover:border-primary/40 hover:bg-primary/5"
               aria-label="Trocar ranking de grupo/temporada"
             >
-              <BarChart3 className="h-3 w-3 text-primary lg:h-2.5 lg:w-2.5" />
-              <span className="truncate max-w-[200px] lg:max-w-[180px]">
-                <span className="text-muted-foreground lg:hidden">Ranking: </span>
+              <BarChart3 className="h-3 w-3 text-primary" />
+              <span className="truncate max-w-[200px]">
+                <span className="text-muted-foreground">Ranking: </span>
                 <span className="font-semibold">{currentRanking.season_name}</span>
                 {currentRanking.group_name ? <span className="text-muted-foreground"> · {currentRanking.group_name}</span> : null}
               </span>
@@ -1379,7 +1380,7 @@ function DashboardPage() {
         )}
 
         {/* DESKTOP-ONLY: Right column = Últimos Resultados + Próximas Rodadas stacked */}
-        <section className="hidden lg:flex lg:flex-col lg:gap-6 lg:col-span-8 lg:col-start-5 lg:row-start-1 lg:row-span-3">
+        <section className="hidden lg:flex lg:flex-col lg:gap-6 lg:col-span-8 lg:col-start-5 lg:row-start-1 lg:row-span-2">
           {/* Últimos Resultados card */}
           <div className="flex flex-col rounded-3xl border border-border bg-card overflow-hidden">
             {/* Header */}
@@ -1944,7 +1945,7 @@ function DashboardPage() {
         {/* Atalhos rápidos foi movido para a mesma linha do "Seu próximo confronto" acima */}
 
         {/* DESKTOP-ONLY: Card de Evolução do Elo (col esquerda, abaixo do seletor de ranking) */}
-        <section className="hidden lg:block lg:col-span-4 lg:col-start-1 lg:row-start-3">
+        <section className="hidden lg:block lg:col-span-4 lg:col-start-1 lg:row-start-2">
           {(() => {
             const history = currentRanking ? historyBySeason.get(currentRanking.season_id) || [] : [];
             const ratingPoints = history.map((h) => ({ label: h.date, value: h.rating }));
@@ -1961,18 +1962,60 @@ function DashboardPage() {
             return (
               <div className="flex h-full flex-col rounded-3xl border border-border bg-card p-5">
                 {/* Header */}
-                <div className="mb-4 flex items-start justify-between">
-                  <div className="min-w-0">
+                <div className="mb-4 flex items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1">
                     <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                       Evolução do Elo
                     </h2>
                     {currentRanking && (
-                      <p className="mt-0.5 truncate text-[11px] text-muted-foreground/70">
-                        {currentRanking.group_name} · {currentRanking.season_name}
-                      </p>
+                      rankings.length > 1 ? (
+                        <div className="relative mt-1 inline-block">
+                          <button
+                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowRankingPicker((v) => !v); }}
+                            className="group flex max-w-full items-center gap-1 rounded-md px-1 -mx-1 py-0.5 text-[11px] text-muted-foreground/80 transition-colors hover:bg-muted/40 hover:text-foreground"
+                            aria-label="Trocar grupo/temporada"
+                            aria-expanded={showRankingPicker}
+                          >
+                            <span className="truncate">
+                              <span className="font-medium text-foreground/90">{currentRanking.group_name}</span>
+                              <span className="mx-1 text-muted-foreground/50">·</span>
+                              <span>{currentRanking.season_name}</span>
+                            </span>
+                            <ChevronRight className={`h-3 w-3 shrink-0 text-muted-foreground/60 transition-transform ${showRankingPicker ? "rotate-90" : "rotate-90 opacity-60 group-hover:opacity-100"}`} />
+                          </button>
+                          {showRankingPicker && (
+                            <div className="absolute left-0 top-full z-30 mt-1 max-h-56 min-w-[260px] max-w-[340px] overflow-y-auto rounded-2xl border border-border bg-card p-1 shadow-lg">
+                              {rankings.map((r) => (
+                                <button
+                                  key={r.season_id}
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    setSelectedSeasonId(r.season_id);
+                                    setShowRankingPicker(false);
+                                  }}
+                                  className={`flex w-full items-center justify-between gap-2 rounded-xl px-2.5 py-2 text-left text-[11px] ${
+                                    r.season_id === currentRanking.season_id ? "bg-primary/15 text-primary" : "hover:bg-accent/50 text-foreground"
+                                  }`}
+                                >
+                                  <span className="truncate">
+                                    {r.season_name}
+                                    {r.group_name ? ` · ${r.group_name}` : ""}
+                                  </span>
+                                  <span className="shrink-0 font-semibold">{ordinalSuffix(r.position)}</span>
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <p className="mt-0.5 truncate text-[11px] text-muted-foreground/70">
+                          {currentRanking.group_name} · {currentRanking.season_name}
+                        </p>
+                      )
                     )}
                   </div>
-                  <Link to="/ranking" className="flex items-center gap-0.5 text-xs font-medium text-primary">
+                  <Link to="/ranking" className="flex items-center gap-0.5 text-xs font-medium text-primary shrink-0">
                     Detalhes <ChevronRight className="h-3.5 w-3.5" />
                   </Link>
                 </div>
@@ -2241,7 +2284,7 @@ function DashboardPage() {
         </section>
 
         {/* Meus Grupos */}
-        <section className="lg:col-span-12 lg:col-start-1 lg:row-start-4">
+        <section className="lg:col-span-12 lg:col-start-1 lg:row-start-3">
           <div className="mb-3 flex items-center justify-between">
             <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Seus Grupos
