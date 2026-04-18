@@ -67,6 +67,13 @@ function GroupsIndexPage() {
     [pendingGroups],
   );
 
+  const allGroupIds = useMemo(() => myGroups.map((g) => g.id), [myGroups]);
+  const adminGroupIds = useMemo(
+    () => myGroups.filter((g) => g.my_role === "admin" || g.my_role === "creator").map((g) => g.id),
+    [myGroups],
+  );
+  const { alerts, refresh: refreshAlerts } = useGroupAlerts(allGroupIds, adminGroupIds);
+
   if (authLoading) return <TrophyLoadingBar />;
 
   if (!isAuthenticated) {
