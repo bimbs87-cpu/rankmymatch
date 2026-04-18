@@ -143,7 +143,7 @@ export function useGroupGlobalStats(groupId: string | null) {
       if (matchIds.length) {
         const { data: events } = await supabase
           .from("rating_events")
-          .select("user_id, rating_after, rating_before, rating_change, created_at")
+          .select("user_id, rating_after, rating_before, rating_change, match_id, created_at")
           .in("match_id", matchIds)
           .order("created_at", { ascending: true });
 
@@ -157,7 +157,7 @@ export function useGroupGlobalStats(groupId: string | null) {
         let maxSwing = -Infinity;
         let maxSwingUser = "";
 
-        // Hot player last 30d (sum of rating_change)
+        // Hot player last 30d (sum of rating_change), based on match scheduled date
         const since = Date.now() - 30 * 24 * 60 * 60 * 1000;
         const swing30d = new Map<string, { delta: number; matches: number }>();
 
@@ -166,7 +166,8 @@ export function useGroupGlobalStats(groupId: string | null) {
           const change = Number(e.rating_change);
           if (after > maxElo) { maxElo = after; maxEloUser = e.user_id; }
           if (change > maxSwing) { maxSwing = change; maxSwingUser = e.user_id; }
-          if (new Date(e.created_at).getTime() >= since) {
+          const matchTs = matchDateMap.get(e.match_id) ?? new Date(e.created_at).getTime();
+          if (matchTs >= since) {
             const cur = swing30d.get(e.user_id) || { delta: 0, matches: 0 };
             cur.delta += change;
             cur.matches += 1;
