@@ -2006,14 +2006,13 @@ function DashboardPage() {
               {myGroups.slice(0, 4).map((g) => {
                 const stats = groupStats.get(g.id) || { seasons: 0, rounds_completed: 0, rounds_total: 0 };
                 const remaining = Math.max(0, stats.rounds_total - stats.rounds_completed);
-                const fmtBadge = getGroupFormatBadge(g);
                 const currentSeason = g.current_season_name;
                 return (
                   <Link
                     key={g.id}
                     to="/groups/$groupId"
                     params={{ groupId: g.id }}
-                    className="group relative h-32 overflow-hidden rounded-2xl border border-border bg-card transition-transform active:scale-[0.98] sm:h-36 lg:aspect-square lg:h-auto"
+                    className="card-hover group relative h-32 overflow-hidden rounded-2xl border border-border bg-card transition-transform active:scale-[0.98] sm:h-36 lg:aspect-square lg:h-auto"
                   >
                     {/* Background image */}
                     {g.image_url ? (
@@ -2031,11 +2030,10 @@ function DashboardPage() {
 
                     {/* Top: format badge (left) + privacy badge (right) */}
                     <div className="absolute inset-x-2 top-2 flex items-start justify-between gap-1.5">
-                      <span
-                        className={`rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider backdrop-blur-sm ${fmtBadge.cls}`}
-                      >
-                        {fmtBadge.label}
-                      </span>
+                      <FormatBadge
+                        info={resolveFormatBadge({ match_format: g.match_format, singles_group_type: g.singles_group_type })}
+                        className="backdrop-blur-sm"
+                      />
                       <span className="flex h-5 w-5 items-center justify-center rounded-full bg-black/40 backdrop-blur-sm">
                         {g.is_public ? (
                           <Globe className="h-2.5 w-2.5 text-white" />
