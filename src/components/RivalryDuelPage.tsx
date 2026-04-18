@@ -1,10 +1,13 @@
 import { useState, useEffect } from "react";
 import { Link } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { DualEloChart } from "@/components/DualEloChart";
 import { computeDuelMedals } from "@/lib/duel-medals";
+import { promoteMatchToRankingServerFn } from "@/lib/promote-match.functions";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "sonner";
 import {
   Swords,
@@ -246,19 +249,22 @@ export function RivalryDuelPage({ groupId, groupName, seasonId, seasonName }: Pr
     return () => { alive = false; };
   }, [user, groupId]);
 
+  const promoteFn = useServerFn(promoteMatchToRankingServerFn);
+
   async function handlePromoteMatch(matchId: string) {
     setPromotingId(matchId);
     try {
-      const { error } = await supabase
-        .from("matches")
-        .update({ counts_for_ranking: true })
-        .eq("id", matchId);
-      if (error) throw error;
-      toast.success("Confronto promovido para o ranking");
-      // Optimistic local update
+      const res = await promoteFn({ data: { matchId } });
+      toast.success(
+        res?.recomputedElo
+          ? "Confronto promovido — Elo recalculado"
+          : "Confronto promovido para o ranking",
+      );
       setMatches((prev) =>
         prev.map((m) => (m.id === matchId ? { ...m, counts_for_ranking: true } : m)),
       );
+      // Refresh duel data so updated Elo / stats appear
+      void loadDuelData();
     } catch (err: any) {
       toast.error(err?.message || "Erro ao promover confronto");
     } finally {
