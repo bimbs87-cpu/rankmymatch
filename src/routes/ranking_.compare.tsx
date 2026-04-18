@@ -86,6 +86,8 @@ interface H2HData {
     winner: "A" | "B" | null;
     created_at: string;
     sets: { set_number: number; score_team_a: number; score_team_b: number }[];
+    /** Other players in the match besides A and B, with their team. */
+    others: { user_id: string; team: "A" | "B"; name: string }[];
   }[];
 }
 
@@ -367,7 +369,43 @@ function ComparePage() {
           matchToPlayers.set(mp.match_id, arr);
         }
 
+        // We need to also fetch the OTHER players in each shared match (partners/opponents)
+        // to display contextual names in the meetings list.
+        const sharedMatchIds: string[] = [];
+        for (const [mid, players] of matchToPlayers.entries()) {
+          const hasA = players.some((p) => p.user_id === userA);
+          const hasB = players.some((p) => p.user_id === userB);
+          if (hasA && hasB) sharedMatchIds.push(mid);
+        }
 
+        let othersByMatch = new Map<string, { user_id: string; team: "A" | "B" }[]>();
+        let extraProfileMap = new Map<string, string>();
+        if (sharedMatchIds.length) {
+          const { data: allPlayers, error: apErr } = await supabase
+            .from("match_players")
+            .select("match_id, user_id, team")
+            .in("match_id", sharedMatchIds);
+          if (apErr) throw apErr;
+          const otherUserIds = new Set<string>();
+          for (const mp of allPlayers || []) {
+            if (mp.user_id === userA || mp.user_id === userB) continue;
+            const arr = othersByMatch.get(mp.match_id) || [];
+            arr.push({ user_id: mp.user_id, team: mp.team as "A" | "B" });
+            othersByMatch.set(mp.match_id, arr);
+            otherUserIds.add(mp.user_id);
+          }
+          if (otherUserIds.size) {
+            const { data: extraProfs, error: epErr } = await supabase
+              .from("user_profiles")
+              .select("user_id, name, nickname")
+              .in("user_id", Array.from(otherUserIds));
+            if (epErr) throw epErr;
+            for (const p of extraProfs || []) {
+              const display = (p.nickname?.trim() as string) || abbreviateName(p.name);
+              extraProfileMap.set(p.user_id, display);
+            }
+          }
+        }
 
         const meetings: H2HData["recentMeetings"] = [];
         let asPartnersPlayed = 0;
@@ -397,6 +435,11 @@ function ComparePage() {
 
           // Get season name from any event for this match
           const evt = events.find((e: any) => e.match_id === matchId);
+          const others = (othersByMatch.get(matchId) || []).map((o) => ({
+            user_id: o.user_id,
+            team: o.team,
+            name: extraProfileMap.get(o.user_id) || "Jogador",
+          }));
           meetings.push({
             match_id: matchId,
             round_id: meta.round_id,
@@ -408,6 +451,7 @@ function ComparePage() {
             winner,
             created_at: meta.created_at,
             sets: setsByMatch.get(matchId) || [],
+            others,
           });
         }
 
@@ -603,6 +647,8 @@ function formatMeetingDate(iso: string) {
   } catch { return ""; }
 }
 
+type MeetingFilter = "all" | "opponents" | "partners";
+
 function RecentMeetings({
   h2h, groupId, a, b,
 }: {
@@ -613,87 +659,167 @@ function RecentMeetings({
 }) {
   const nameA = displayName(a);
   const nameB = displayName(b);
+  const [filter, setFilter] = useState<MeetingFilter>("all");
+
+  const filtered = useMemo(() => {
+    if (filter === "opponents") return h2h.recentMeetings.filter((m) => !m.asPartners);
+    if (filter === "partners") return h2h.recentMeetings.filter((m) => m.asPartners);
+    return h2h.recentMeetings;
+  }, [filter, h2h.recentMeetings]);
+
+  const counts = useMemo(() => ({
+    all: h2h.recentMeetings.length,
+    opponents: h2h.recentMeetings.filter((m) => !m.asPartners).length,
+    partners: h2h.recentMeetings.filter((m) => m.asPartners).length,
+  }), [h2h.recentMeetings]);
+
   return (
     <section className="mt-3 rounded-3xl border border-border bg-card/40 p-4 lg:p-5">
-      <div className="mb-2 flex items-center gap-2">
+      <div className="mb-3 flex flex-wrap items-center gap-2">
         <Swords className="h-4 w-4 text-destructive" />
         <h2 className="font-display text-sm font-bold text-foreground">Últimos confrontos</h2>
-        <span className="ml-auto text-[10px] text-muted-foreground">{h2h.recentMeetings.length} jogo{h2h.recentMeetings.length === 1 ? "" : "s"}</span>
+        <span className="ml-auto text-[10px] text-muted-foreground">{filtered.length} de {counts.all}</span>
       </div>
-      <ul className="grid grid-cols-1 gap-1 sm:grid-cols-2 sm:gap-x-6 sm:gap-y-1.5">
-        {h2h.recentMeetings.map((m) => {
-          const aWonMatch = m.winner === m.aTeam;
-          const bWonMatch = m.winner === m.bTeam;
-          const sameTeam = m.asPartners;
-          const scoreLine = m.sets.length
-            ? m.sets
-                .map((s) => {
-                  if (sameTeam) {
-                    const own = m.aTeam === "A" ? s.score_team_a : s.score_team_b;
-                    const opp = m.aTeam === "A" ? s.score_team_b : s.score_team_a;
-                    return `${own}-${opp}`;
-                  }
-                  const aScore = m.aTeam === "A" ? s.score_team_a : s.score_team_b;
-                  const bScore = m.bTeam === "A" ? s.score_team_a : s.score_team_b;
-                  return `${aScore}-${bScore}`;
-                })
-                .join(" ")
-            : "—";
-          const canLink = !!m.season_id;
-          const inner = (
-            <>
-              <span
-                className={`shrink-0 rounded px-1 py-0.5 text-[9px] font-bold uppercase tracking-wider ring-1 ${
-                  sameTeam
-                    ? "bg-primary/15 text-primary ring-primary/30"
-                    : "bg-destructive/10 text-destructive ring-destructive/25"
-                }`}
-                title={sameTeam ? "Parceiros" : "Adversários"}
-              >
-                {sameTeam ? "PC" : "vs"}
-              </span>
-              <div className="min-w-0 flex-1">
-                {sameTeam ? (
-                  <p className="truncate text-[11px] font-semibold text-foreground leading-tight">
-                    {nameA} & {nameB}
-                    <span className={`ml-1 text-[10px] font-bold ${m.winner ? (m.winner === m.aTeam ? "text-success" : "text-destructive") : "text-muted-foreground"}`}>
-                      {m.winner ? (m.winner === m.aTeam ? "V" : "D") : "—"}
-                    </span>
-                  </p>
-                ) : (
-                  <p className="truncate text-[11px] font-semibold leading-tight">
-                    <span className={aWonMatch ? "text-success" : "text-foreground"}>{nameA}</span>
-                    <span className="mx-0.5 text-muted-foreground">vs</span>
-                    <span className={bWonMatch ? "text-success" : "text-foreground"}>{nameB}</span>
-                  </p>
-                )}
-                <div className="flex items-center justify-between gap-2">
-                  <p className="truncate text-[9px] text-muted-foreground leading-tight">
-                    {formatMeetingDate(m.created_at)}
-                  </p>
-                  <span className="shrink-0 font-display text-[10px] font-bold tabular-nums text-foreground">{scoreLine}</span>
-                </div>
-              </div>
-            </>
-          );
-          return (
-            <li key={m.match_id} className="border-b border-border/30 sm:border-b-0 sm:rounded-md sm:border sm:border-border/40 sm:bg-background/30">
-              {canLink ? (
-                <Link
-                  to="/groups/$groupId/seasons/$seasonId/rounds/$roundId"
-                  params={{ groupId, seasonId: m.season_id, roundId: m.round_id }}
-                  className="flex items-center gap-1.5 py-1.5 px-1.5 transition active:bg-accent/40 hover:bg-accent/20 rounded-md"
+
+      {/* Filter pills */}
+      <div className="mb-3 inline-flex flex-wrap gap-1 rounded-full border border-border bg-background/40 p-1">
+        <FilterPill active={filter === "all"} onClick={() => setFilter("all")}>
+          Todos <span className="ml-1 opacity-70">{counts.all}</span>
+        </FilterPill>
+        <FilterPill active={filter === "opponents"} onClick={() => setFilter("opponents")}>
+          Adversários <span className="ml-1 opacity-70">{counts.opponents}</span>
+        </FilterPill>
+        <FilterPill active={filter === "partners"} onClick={() => setFilter("partners")}>
+          Parceiros <span className="ml-1 opacity-70">{counts.partners}</span>
+        </FilterPill>
+      </div>
+
+      {filtered.length === 0 ? (
+        <p className="py-6 text-center text-xs text-muted-foreground">Nenhum confronto neste filtro.</p>
+      ) : (
+        <ul className="grid grid-cols-1 gap-1 sm:grid-cols-2 sm:gap-x-6 sm:gap-y-1.5">
+          {filtered.map((m) => {
+            const aWonMatch = m.winner === m.aTeam;
+            const bWonMatch = m.winner === m.bTeam;
+            const sameTeam = m.asPartners;
+            const scoreLine = m.sets.length
+              ? m.sets
+                  .map((s) => {
+                    if (sameTeam) {
+                      const own = m.aTeam === "A" ? s.score_team_a : s.score_team_b;
+                      const opp = m.aTeam === "A" ? s.score_team_b : s.score_team_a;
+                      return `${own}-${opp}`;
+                    }
+                    const aScore = m.aTeam === "A" ? s.score_team_a : s.score_team_b;
+                    const bScore = m.bTeam === "A" ? s.score_team_a : s.score_team_b;
+                    return `${aScore}-${bScore}`;
+                  })
+                  .join(" ")
+              : "—";
+            const canLink = !!m.season_id;
+
+            // Build "others" context line
+            let othersLine: React.ReactNode = null;
+            if (m.others.length > 0) {
+              if (sameTeam) {
+                // A & B on same team — others on opposing team are opponents
+                const oppTeam = m.aTeam === "A" ? "B" : "A";
+                const opponents = m.others.filter((o) => o.team === oppTeam).map((o) => o.name);
+                if (opponents.length) {
+                  othersLine = <>vs <span className="text-foreground/80">{opponents.join(" & ")}</span></>;
+                }
+              } else {
+                // A and B on opposing teams — each may have a partner
+                const aPartner = m.others.find((o) => o.team === m.aTeam);
+                const bPartner = m.others.find((o) => o.team === m.bTeam);
+                if (aPartner || bPartner) {
+                  othersLine = (
+                    <>
+                      <span className="text-foreground/80">{aPartner?.name ?? "—"}</span>
+                      <span className="mx-1 opacity-60">/</span>
+                      <span className="text-foreground/80">{bPartner?.name ?? "—"}</span>
+                    </>
+                  );
+                }
+              }
+            }
+
+            const inner = (
+              <>
+                <span
+                  className={`shrink-0 rounded px-1 py-0.5 text-[9px] font-bold uppercase tracking-wider ring-1 ${
+                    sameTeam
+                      ? "bg-primary/15 text-primary ring-primary/30"
+                      : "bg-destructive/10 text-destructive ring-destructive/25"
+                  }`}
+                  title={sameTeam ? "Parceiros" : "Adversários"}
                 >
-                  {inner}
-                </Link>
-              ) : (
-                <div className="flex items-center gap-1.5 py-1.5 px-1.5">{inner}</div>
-              )}
-            </li>
-          );
-        })}
-      </ul>
+                  {sameTeam ? "PC" : "vs"}
+                </span>
+                <div className="min-w-0 flex-1">
+                  {sameTeam ? (
+                    <p className="truncate text-[11px] font-semibold text-foreground leading-tight">
+                      {nameA} & {nameB}
+                      <span className={`ml-1 text-[10px] font-bold ${m.winner ? (m.winner === m.aTeam ? "text-success" : "text-destructive") : "text-muted-foreground"}`}>
+                        {m.winner ? (m.winner === m.aTeam ? "V" : "D") : "—"}
+                      </span>
+                    </p>
+                  ) : (
+                    <p className="truncate text-[11px] font-semibold leading-tight">
+                      <span className={aWonMatch ? "text-success" : "text-foreground"}>{nameA}</span>
+                      <span className="mx-0.5 text-muted-foreground">vs</span>
+                      <span className={bWonMatch ? "text-success" : "text-foreground"}>{nameB}</span>
+                    </p>
+                  )}
+                  {othersLine && (
+                    <p className="truncate text-[9px] text-muted-foreground leading-tight">
+                      {othersLine}
+                    </p>
+                  )}
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="truncate text-[9px] text-muted-foreground leading-tight">
+                      {formatMeetingDate(m.created_at)}
+                    </p>
+                    <span className="shrink-0 font-display text-[10px] font-bold tabular-nums text-foreground">{scoreLine}</span>
+                  </div>
+                </div>
+              </>
+            );
+            return (
+              <li key={m.match_id} className="border-b border-border/30 sm:border-b-0 sm:rounded-md sm:border sm:border-border/40 sm:bg-background/30">
+                {canLink ? (
+                  <Link
+                    to="/groups/$groupId/seasons/$seasonId/rounds/$roundId"
+                    params={{ groupId, seasonId: m.season_id, roundId: m.round_id }}
+                    className="flex items-center gap-1.5 py-1.5 px-1.5 transition active:bg-accent/40 hover:bg-accent/20 rounded-md"
+                  >
+                    {inner}
+                  </Link>
+                ) : (
+                  <div className="flex items-center gap-1.5 py-1.5 px-1.5">{inner}</div>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      )}
     </section>
+  );
+}
+
+function FilterPill({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`rounded-full px-3 py-1 text-[10px] font-semibold uppercase tracking-wider transition ${
+        active
+          ? "bg-primary text-primary-foreground"
+          : "text-muted-foreground hover:bg-accent/40 hover:text-foreground"
+      }`}
+    >
+      {children}
+    </button>
   );
 }
 
