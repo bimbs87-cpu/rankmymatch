@@ -511,7 +511,6 @@ function RankingPage() {
                   const next = !m;
                   if (next) {
                     setExpandedUserId(null);
-                    // Pre-select the current user if they are in the ranking
                     setCompareSelection(user?.id && rankings.some((r) => r.user_id === user.id) ? [user.id] : []);
                   } else {
                     setCompareSelection([]);
@@ -519,10 +518,10 @@ function RankingPage() {
                   return next;
                 });
               }}
-              className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
+              className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-bold transition shadow-sm ${
                 compareMode
-                  ? "border-primary bg-primary/15 text-primary"
-                  : "border-border bg-card text-foreground hover:bg-accent"
+                  ? "bg-primary/15 text-primary ring-1 ring-primary/40"
+                  : "bg-primary text-primary-foreground hover:opacity-90"
               }`}
               aria-pressed={compareMode}
               title="Comparar jogadores"
