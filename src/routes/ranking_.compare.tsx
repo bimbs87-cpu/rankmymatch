@@ -444,36 +444,156 @@ function ComparePage() {
           };
         };
 
-        const aggregates: PlayerAggregate[] = userIds.map((uid) => buildAggregate(uid, profilesMap.get(uid)!));
+        // Build group-average aggregate (synthetic player)
+        const buildGroupAverage = (): PlayerAggregate => {
+          // Group all snapshots by user
+          const byUser = new Map<string, any[]>();
+          for (const s of snaps) {
+            const arr = byUser.get(s.user_id) || [];
+            arr.push(s);
+            byUser.set(s.user_id, arr);
+          }
+          const userIdsAll = Array.from(byUser.keys());
+          if (userIdsAll.length === 0) {
+            return {
+              profile: { user_id: GROUP_AVG_ID, name: "Média do grupo", nickname: "Média do grupo", avatar_url: null },
+              seasons: [],
+              career: { matches_played: 0, matches_won: 0, sets_won: 0, sets_lost: 0, games_won: 0, games_lost: 0, seasons_played: 0, titles: 0, podiums: 0, best_position: null },
+              eloSeries: [],
+              eloPeak: 1000, eloLow: 1000, eloCurrent: 1000,
+              streakMax: 0, streakCurrent: 0,
+              roundsPresent: 0, roundsTotal: completedRoundIds.size,
+            };
+          }
 
-        // H2H computation only makes sense for exactly 2 players
+          // Per-season averages (over ALL players that have a snapshot in that season)
+          const bySeason = new Map<string, any[]>();
+          for (const s of snaps) {
+            const arr = bySeason.get(s.season_id) || [];
+            arr.push(s);
+            bySeason.set(s.season_id, arr);
+          }
+          const avgSeasons: SeasonStat[] = [];
+          for (const [sid, arr] of bySeason.entries()) {
+            const n = arr.length;
+            const avgOf = (key: string) => arr.reduce((a, x) => a + Number(x[key] || 0), 0) / n;
+            avgSeasons.push({
+              season_id: sid,
+              season_name: seasonNameMap.get(sid) || "—",
+              rating: avgOf("rating"),
+              matches_played: Math.round(avgOf("matches_played")),
+              matches_won: Math.round(avgOf("matches_won")),
+              sets_won: Math.round(avgOf("sets_won")),
+              sets_lost: Math.round(avgOf("sets_lost")),
+              games_won: Math.round(avgOf("games_won")),
+              games_lost: Math.round(avgOf("games_lost")),
+              position: null,
+              is_eligible: false,
+            });
+          }
+
+          // Career = average across players of (sum across their seasons)
+          const careerByUser = userIdsAll.map((uid) => {
+            const userSnaps = byUser.get(uid)!;
+            return userSnaps.reduce(
+              (acc, s) => {
+                acc.matches_played += s.matches_played || 0;
+                acc.matches_won += s.matches_won || 0;
+                acc.sets_won += s.sets_won || 0;
+                acc.sets_lost += s.sets_lost || 0;
+                acc.games_won += s.games_won || 0;
+                acc.games_lost += s.games_lost || 0;
+                if ((s.matches_played || 0) > 0) acc.seasons_played += 1;
+                return acc;
+              },
+              { matches_played: 0, matches_won: 0, sets_won: 0, sets_lost: 0, games_won: 0, games_lost: 0, seasons_played: 0 },
+            );
+          });
+          const Nu = careerByUser.length || 1;
+          const avgCareer = {
+            matches_played: Math.round(careerByUser.reduce((a, c) => a + c.matches_played, 0) / Nu),
+            matches_won: Math.round(careerByUser.reduce((a, c) => a + c.matches_won, 0) / Nu),
+            sets_won: Math.round(careerByUser.reduce((a, c) => a + c.sets_won, 0) / Nu),
+            sets_lost: Math.round(careerByUser.reduce((a, c) => a + c.sets_lost, 0) / Nu),
+            games_won: Math.round(careerByUser.reduce((a, c) => a + c.games_won, 0) / Nu),
+            games_lost: Math.round(careerByUser.reduce((a, c) => a + c.games_lost, 0) / Nu),
+            seasons_played: Math.round(careerByUser.reduce((a, c) => a + c.seasons_played, 0) / Nu),
+            titles: 0,
+            podiums: 0,
+            best_position: null as number | null,
+          };
+
+          // Average current Elo
+          const currentEloByUser: number[] = [];
+          for (const uid of userIdsAll) {
+            const userEvts = events.filter((e: any) => e.user_id === uid);
+            if (userEvts.length) currentEloByUser.push(Number(userEvts[userEvts.length - 1].rating_after));
+            else {
+              const sn = byUser.get(uid)!;
+              if (sn.length) currentEloByUser.push(Number(sn[0].rating));
+            }
+          }
+          const eloCurrent = currentEloByUser.length
+            ? currentEloByUser.reduce((a, x) => a + x, 0) / currentEloByUser.length
+            : 1000;
+
+          // Avg presence rate
+          const presenceByUser = new Map<string, Set<string>>();
+          for (const p of presence) {
+            if (!completedRoundIds.has(p.round_id)) continue;
+            if (p.status !== "confirmed" && p.status !== "present") continue;
+            const set = presenceByUser.get(p.user_id) || new Set<string>();
+            set.add(p.round_id);
+            presenceByUser.set(p.user_id, set);
+          }
+          const presenceCount = userIdsAll.length
+            ? Math.round(
+                userIdsAll.reduce((a, uid) => a + (presenceByUser.get(uid)?.size || 0), 0) / userIdsAll.length,
+              )
+            : 0;
+
+          return {
+            profile: { user_id: GROUP_AVG_ID, name: "Média do grupo", nickname: "Média do grupo", avatar_url: null },
+            seasons: avgSeasons,
+            career: avgCareer,
+            eloSeries: [],
+            eloPeak: Math.round(eloCurrent),
+            eloLow: Math.round(eloCurrent),
+            eloCurrent,
+            streakMax: 0,
+            streakCurrent: 0,
+            roundsPresent: presenceCount,
+            roundsTotal: completedRoundIds.size,
+          };
+        };
+
+        const aggregates: PlayerAggregate[] = userIds.map((uid) =>
+          uid === GROUP_AVG_ID ? buildGroupAverage() : buildAggregate(uid, profilesMap.get(uid)!),
+        );
+
+        // H2H computation only makes sense for exactly 2 real players
         let h2hData: H2HData | null = null;
-        if (userIds.length === 2) {
-          const [uA, uB] = userIds;
+        if (realIds.length === 2 && !hasGroupAvg) {
+          const [uA, uB] = realIds;
+          const h2hMetaMap = new Map(h2hMatchesMeta.map((m: any) => [m.id, m]));
           const matchToPlayers = new Map<string, any[]>();
-          for (const mp of matchPlayers) {
+          for (const mp of h2hMatchPlayers) {
             const arr = matchToPlayers.get(mp.match_id) || [];
             arr.push(mp);
             matchToPlayers.set(mp.match_id, arr);
           }
 
-          const sharedMatchIds: string[] = [];
-          for (const [mid, ps] of matchToPlayers.entries()) {
-            const hasA = ps.some((p) => p.user_id === uA);
-            const hasB = ps.some((p) => p.user_id === uB);
-            if (hasA && hasB) sharedMatchIds.push(mid);
-          }
+          const sharedMatchIds = Array.from(matchToPlayers.keys()).filter((mid) => {
+            const ps = matchToPlayers.get(mid)!;
+            return ps.some((p) => p.user_id === uA) && ps.some((p) => p.user_id === uB);
+          });
 
           const othersByMatch = new Map<string, { user_id: string; team: "A" | "B" }[]>();
           const extraProfileMap = new Map<string, string>();
           if (sharedMatchIds.length) {
-            const { data: allPlayers, error: apErr } = await supabase
-              .from("match_players")
-              .select("match_id, user_id, team")
-              .in("match_id", sharedMatchIds);
-            if (apErr) throw apErr;
             const otherUserIds = new Set<string>();
-            for (const mp of allPlayers || []) {
+            for (const mp of h2hMatchPlayers) {
+              if (!sharedMatchIds.includes(mp.match_id)) continue;
               if (mp.user_id === uA || mp.user_id === uB) continue;
               const arr = othersByMatch.get(mp.match_id) || [];
               arr.push({ user_id: mp.user_id, team: mp.team as "A" | "B" });
@@ -500,11 +620,12 @@ function ComparePage() {
           let aWon = 0;
           let bWon = 0;
 
-          for (const [matchId, ps] of matchToPlayers.entries()) {
+          for (const matchId of sharedMatchIds) {
+            const ps = matchToPlayers.get(matchId)!;
             const a = ps.find((p) => p.user_id === uA);
             const b = ps.find((p) => p.user_id === uB);
             if (!a || !b) continue;
-            const meta = matchMetaMap.get(matchId);
+            const meta = h2hMetaMap.get(matchId);
             if (!meta || meta.status !== "completed") continue;
 
             const sameTeam = a.team === b.team;
@@ -535,7 +656,7 @@ function ComparePage() {
               bTeam: b.team,
               winner,
               created_at: meta.created_at,
-              sets: setsByMatch.get(matchId) || [],
+              sets: h2hSetsByMatch.get(matchId) || [],
               others,
             });
           }
@@ -545,7 +666,7 @@ function ComparePage() {
           h2hData = {
             asPartners: { played: asPartnersPlayed, won: asPartnersWon },
             asOpponents: { played: asOppPlayed, aWon, bWon },
-            recentMeetings: meetings.slice(0, 10),
+            recentMeetings: meetings, // keep ALL meetings; UI handles slicing
           };
         }
 
