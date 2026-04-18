@@ -1064,11 +1064,21 @@ function ComparePage() {
                     {heroH2H.asOpponents.played > 0 ? (
                       <div className="mt-1.5 grid grid-cols-2 items-end gap-2">
                         <div className="text-center">
-                          <p className="font-display text-2xl font-bold leading-none text-foreground">{heroH2H.asOpponents.aWon}</p>
+                          <p className="font-display text-2xl font-bold leading-none text-foreground">
+                            {heroH2H.asOpponents.aWon}<span className="ml-0.5 text-sm font-bold text-success">V</span>
+                          </p>
+                          <p className="mt-0.5 text-[10px] font-semibold tabular-nums text-muted-foreground">
+                            {pct(heroH2H.asOpponents.aWon, heroH2H.asOpponents.played)}%
+                          </p>
                           <p className="mt-1 truncate text-[10px] text-muted-foreground">{abbreviateName(playerA.profile.name)}</p>
                         </div>
                         <div className="text-center">
-                          <p className="font-display text-2xl font-bold leading-none text-foreground">{heroH2H.asOpponents.bWon}</p>
+                          <p className="font-display text-2xl font-bold leading-none text-foreground">
+                            {heroH2H.asOpponents.bWon}<span className="ml-0.5 text-sm font-bold text-success">V</span>
+                          </p>
+                          <p className="mt-0.5 text-[10px] font-semibold tabular-nums text-muted-foreground">
+                            {pct(heroH2H.asOpponents.bWon, heroH2H.asOpponents.played)}%
+                          </p>
                           <p className="mt-1 truncate text-[10px] text-muted-foreground">{abbreviateName(playerB.profile.name)}</p>
                         </div>
                       </div>
