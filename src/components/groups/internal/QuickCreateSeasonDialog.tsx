@@ -43,6 +43,65 @@ function generateRoundDates(startISO: string, weekday: number, count: number, in
   return out;
 }
 
+// Compute Easter Sunday (Anonymous Gregorian / Meeus algorithm)
+function easterSunday(year: number): Date {
+  const a = year % 19;
+  const b = Math.floor(year / 100);
+  const c = year % 100;
+  const d = Math.floor(b / 4);
+  const e = b % 4;
+  const f = Math.floor((b + 8) / 25);
+  const g = Math.floor((b - f + 1) / 3);
+  const h = (19 * a + b - d - g + 15) % 30;
+  const i = Math.floor(c / 4);
+  const k = c % 4;
+  const l = (32 + 2 * e + 2 * i - h - k) % 7;
+  const m = Math.floor((a + 11 * h + 22 * l) / 451);
+  const month = Math.floor((h + l - 7 * m + 114) / 31); // 3=March,4=April
+  const day = ((h + l - 7 * m + 114) % 31) + 1;
+  return new Date(year, month - 1, day);
+}
+
+function addDays(base: Date, days: number): Date {
+  const d = new Date(base);
+  d.setDate(d.getDate() + days);
+  return d;
+}
+
+// Brazilian national holidays (fixed + Easter-derived) for a given year.
+function brHolidaysForYear(year: number): Set<string> {
+  const out = new Set<string>();
+  // Fixed-date national holidays
+  const fixed: [number, number][] = [
+    [1, 1],   // Confraternização Universal
+    [4, 21],  // Tiradentes
+    [5, 1],   // Dia do Trabalho
+    [9, 7],   // Independência
+    [10, 12], // Nossa Sra. Aparecida
+    [11, 2],  // Finados
+    [11, 15], // Proclamação da República
+    [11, 20], // Consciência Negra (feriado nacional desde 2024)
+    [12, 25], // Natal
+  ];
+  for (const [m, d] of fixed) out.add(toISO(new Date(year, m - 1, d)));
+  // Movable
+  const easter = easterSunday(year);
+  out.add(toISO(addDays(easter, -48))); // Carnaval seg
+  out.add(toISO(addDays(easter, -47))); // Carnaval ter
+  out.add(toISO(addDays(easter, -2)));  // Sexta-feira Santa
+  out.add(toISO(easter));               // Páscoa
+  out.add(toISO(addDays(easter, 60)));  // Corpus Christi
+  return out;
+}
+
+function brHolidaysInRange(dates: string[]): string[] {
+  if (!dates.length) return [];
+  const years = new Set(dates.map((d) => Number(d.slice(0, 4))));
+  const holidays = new Set<string>();
+  for (const y of years) for (const h of brHolidaysForYear(y)) holidays.add(h);
+  return dates.filter((d) => holidays.has(d));
+}
+
 export function QuickCreateSeasonDialog({
   groupId,
   defaultMatchFormat,
