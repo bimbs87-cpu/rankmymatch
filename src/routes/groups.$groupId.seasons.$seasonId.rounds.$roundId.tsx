@@ -414,8 +414,17 @@ function RoundDetailPage() {
   const minPlayersForDraw = isSingles ? 2 : 4;
   const canDraw = isAdmin && presenceConfirmed.length >= minPlayersForDraw && matches.length === 0 && !rivalry;
 
-  const presenceListOpen = isPresenceOpen(presenceConfig, round.scheduled_date, round.scheduled_time, roundId);
+  const [forcePresenceOpen, setForcePresenceOpen] = useState(false);
+  const presenceListOpen =
+    forcePresenceOpen ||
+    isPresenceOpen(presenceConfig, round.scheduled_date, round.scheduled_time, roundId);
   const presenceOpenDate = getPresenceOpenDate(presenceConfig, round.scheduled_date, round.scheduled_time, roundId);
+
+  const handleForceOpenPresence = () => {
+    if (!confirm("Reabrir a lista de presenças agora? Os membros poderão confirmar presença imediatamente.")) return;
+    setForcePresenceOpen(true);
+    toast.success("Lista de presenças reaberta para esta sessão");
+  };
 
   const handleConfirm = async () => {
     if (!user) return;
