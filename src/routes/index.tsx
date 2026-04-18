@@ -104,6 +104,16 @@ interface NextMatchInfo {
   match_id: string | null;
   /** Match status when paired */
   match_status: string | null;
+  /** User's presence status in this round (confirmed | pending | declined | null) */
+  my_presence_status: string | null;
+  /** Group format: 'doubles' | 'singles' */
+  match_format: string;
+  /** When singles: 'rivalry' | 'league' | 'casual' | null */
+  singles_group_type: string | null;
+  /** True if the group is rivalry mode (singles + singles_group_type='rivalry') */
+  is_rivalry: boolean;
+  /** True if there's at least one completed match in this rivalry group */
+  has_any_completed_match: boolean;
 }
 
 interface RecentMatch {
@@ -260,7 +270,7 @@ function DashboardPage() {
     // 1. Upcoming rounds
     const { data: rounds } = await supabase
       .from("rounds")
-      .select("*, groups(name, slots_per_round, presence_open_mode, presence_open_time), seasons(name)")
+      .select("*, groups(name, slots_per_round, presence_open_mode, presence_open_time, match_format, singles_group_type), seasons(name)")
       .in("group_id", groupIds)
       .in("status", ["scheduled", "in_progress"])
       .order("scheduled_date", { ascending: true })
@@ -330,6 +340,14 @@ function DashboardPage() {
       }) || orderedRounds[0];
 
       if (myConfirmedRound) {
+        const groupMeta = myConfirmedRound.groups || {};
+        const matchFormat = groupMeta.match_format || "doubles";
+        const singlesGroupType = groupMeta.singles_group_type || null;
+        const isRivalry = matchFormat === "singles" && singlesGroupType === "rivalry";
+        const myPresenceStatus =
+          (presences || []).find((p: any) => p.round_id === myConfirmedRound.id && p.user_id === user.id)?.status ||
+          null;
+
         // Check if there's a match with the user paired in this round
         const { data: myMatchPlayers } = await supabase
           .from("match_players")
@@ -344,6 +362,40 @@ function DashboardPage() {
           .neq("status", "completed");
 
         const myMatchInRound = (roundMatches || []).find((m: any) => matchIdsForUser.has(m.id));
+
+        // For rivalry: check if there's any completed match in the group
+        let hasAnyCompletedMatch = false;
+        if (isRivalry) {
+          const { data: groupRounds } = await supabase
+            .from("rounds")
+            .select("id")
+            .eq("group_id", myConfirmedRound.group_id);
+          const groupRoundIds = (groupRounds || []).map((r: any) => r.id);
+          if (groupRoundIds.length) {
+            const { count } = await supabase
+              .from("matches")
+              .select("id", { count: "exact", head: true })
+              .in("round_id", groupRoundIds)
+              .eq("status", "completed");
+            hasAnyCompletedMatch = (count || 0) > 0;
+          }
+        }
+
+        const baseInfo = {
+          round_id: myConfirmedRound.id,
+          group_id: myConfirmedRound.group_id,
+          group_name: groupMeta.name || "Grupo",
+          season_id: myConfirmedRound.season_id,
+          season_name: (myConfirmedRound.seasons as any)?.name || null,
+          round_number: myConfirmedRound.round_number,
+          scheduled_date: myConfirmedRound.scheduled_date,
+          scheduled_time: myConfirmedRound.scheduled_time,
+          my_presence_status: myPresenceStatus,
+          match_format: matchFormat,
+          singles_group_type: singlesGroupType,
+          is_rivalry: isRivalry,
+          has_any_completed_match: hasAnyCompletedMatch,
+        };
 
         if (myMatchInRound) {
           // Found pairing — fetch teammates and opponents
@@ -371,14 +423,7 @@ function DashboardPage() {
             .map((p: any) => p.user_id);
 
           setNextMatch({
-            round_id: myConfirmedRound.id,
-            group_id: myConfirmedRound.group_id,
-            group_name: myConfirmedRound.groups?.name || "Grupo",
-            season_id: myConfirmedRound.season_id,
-            season_name: (myConfirmedRound.seasons as any)?.name || null,
-            round_number: myConfirmedRound.round_number,
-            scheduled_date: myConfirmedRound.scheduled_date,
-            scheduled_time: myConfirmedRound.scheduled_time,
+            ...baseInfo,
             has_pairing: true,
             partner_name: partnerId ? nameOf(partnerId) : null,
             opponent_names: opponentIds.map(nameOf),
@@ -388,14 +433,7 @@ function DashboardPage() {
         } else {
           // No pairing yet — show round-only card
           setNextMatch({
-            round_id: myConfirmedRound.id,
-            group_id: myConfirmedRound.group_id,
-            group_name: myConfirmedRound.groups?.name || "Grupo",
-            season_id: myConfirmedRound.season_id,
-            season_name: (myConfirmedRound.seasons as any)?.name || null,
-            round_number: myConfirmedRound.round_number,
-            scheduled_date: myConfirmedRound.scheduled_date,
-            scheduled_time: myConfirmedRound.scheduled_time,
+            ...baseInfo,
             has_pairing: false,
             partner_name: null,
             opponent_names: [],
