@@ -130,3 +130,184 @@ export const promoteMatchToRankingServerFn = createServerFn({ method: "POST" })
 
     return { success: true, recomputedElo };
   });
+
+/**
+ * Revert a previously promoted match — undo the Elo events and snapshots,
+ * mark counts_for_ranking = false, and notify players.
+ *
+ * Steps:
+ *  1. Validate match + admin authorization
+ *  2. Load rating_events for this match
+ *  3. For each affected player: subtract aggregate stat deltas from their snapshot
+ *     (matches_played, matches_won, sets/games for/against, rating reverts to first event's rating_before)
+ *  4. Delete rating_events for this match
+ *  5. Recompute is_eligible + position rank for the season
+ *  6. Update match: counts_for_ranking = false
+ *  7. Notify players
+ */
+export const revertMatchPromotionServerFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => Input.parse(input))
+  .handler(async ({ data, context }) => {
+    const { matchId } = data;
+    const { userId } = context;
+
+    // 1. Load match + round
+    const { data: match, error: matchErr } = await supabaseAdmin
+      .from("matches")
+      .select("id, status, counts_for_ranking, winner_team, round_id, rounds:rounds!inner(group_id, season_id)")
+      .eq("id", matchId)
+      .maybeSingle();
+    if (matchErr) throw new Error(matchErr.message);
+    if (!match) throw new Error("Partida não encontrada");
+    if (!match.counts_for_ranking) {
+      throw new Error("Esta partida já não conta para o ranking");
+    }
+
+    const round = match.rounds as unknown as { group_id: string; season_id: string | null } | null;
+    const groupId = round?.group_id;
+    const seasonId = round?.season_id;
+    if (!groupId) throw new Error("Grupo da partida não encontrado");
+
+    // 2. Auth
+    const { data: isAdmin, error: adminErr } = await supabaseAdmin.rpc("is_group_admin", {
+      _user_id: userId,
+      _group_id: groupId,
+    });
+    if (adminErr) throw new Error(adminErr.message);
+    if (!isAdmin) throw new Error("Apenas administradores podem reverter promoções");
+
+    // 3. Load match players & sets to compute the stat deltas to subtract
+    const [playersRes, setsRes] = await Promise.all([
+      supabaseAdmin.from("match_players").select("user_id, team").eq("match_id", matchId),
+      supabaseAdmin.from("match_sets").select("score_team_a, score_team_b").eq("match_id", matchId),
+    ]);
+    if (playersRes.error) throw new Error(playersRes.error.message);
+    if (setsRes.error) throw new Error(setsRes.error.message);
+
+    const eventsRes = seasonId
+      ? await supabaseAdmin
+          .from("rating_events")
+          .select("user_id, rating_before, rating_after")
+          .eq("match_id", matchId)
+      : { data: [] as Array<{ user_id: string; rating_before: number; rating_after: number }>, error: null };
+
+    const players = playersRes.data || [];
+    const sets = setsRes.data || [];
+    const teamA = players.filter((p) => p.team === "A").map((p) => p.user_id);
+    const teamB = players.filter((p) => p.team === "B").map((p) => p.user_id);
+
+    let setsA = 0;
+    let setsB = 0;
+    let gamesA = 0;
+    let gamesB = 0;
+    for (const s of sets) {
+      gamesA += s.score_team_a;
+      gamesB += s.score_team_b;
+      if (s.score_team_a > s.score_team_b) setsA++;
+      else if (s.score_team_b > s.score_team_a) setsB++;
+    }
+    const winnerTeam = match.winner_team as "A" | "B" | null;
+
+    let revertedElo = false;
+    const events = eventsRes?.data || [];
+
+    if (seasonId && events.length) {
+      // Build a map of rating_before per user (the value to restore)
+      const ratingBeforeMap = new Map<string, number>();
+      for (const ev of events) {
+        // If multiple events somehow exist, keep the EARLIEST rating_before
+        if (!ratingBeforeMap.has(ev.user_id)) {
+          ratingBeforeMap.set(ev.user_id, Number(ev.rating_before));
+        }
+      }
+
+      // Load current snapshots for affected players
+      const allPlayerIds = [...teamA, ...teamB];
+      const { data: snapshots } = await supabaseAdmin
+        .from("ranking_snapshots")
+        .select("*")
+        .eq("season_id", seasonId)
+        .in("user_id", allPlayerIds);
+
+      const updates: Array<PromiseLike<unknown>> = [];
+      for (const snap of snapshots || []) {
+        const uid = snap.user_id;
+        const isTeamA = teamA.includes(uid);
+        const isTeamB = teamB.includes(uid);
+        if (!isTeamA && !isTeamB) continue;
+
+        const isWinner =
+          (isTeamA && winnerTeam === "A") || (isTeamB && winnerTeam === "B");
+
+        const newMatchesPlayed = Math.max(0, (snap.matches_played || 0) - 1);
+        const newMatchesWon = Math.max(0, (snap.matches_won || 0) - (isWinner ? 1 : 0));
+        const newSetsWon = Math.max(0, (snap.sets_won || 0) - (isTeamA ? setsA : setsB));
+        const newSetsLost = Math.max(0, (snap.sets_lost || 0) - (isTeamA ? setsB : setsA));
+        const newGamesWon = Math.max(0, (snap.games_won || 0) - (isTeamA ? gamesA : gamesB));
+        const newGamesLost = Math.max(0, (snap.games_lost || 0) - (isTeamA ? gamesB : gamesA));
+        const newRating = ratingBeforeMap.get(uid) ?? Number(snap.rating);
+
+        updates.push(
+          supabaseAdmin
+            .from("ranking_snapshots")
+            .update({
+              rating: newRating,
+              matches_played: newMatchesPlayed,
+              matches_won: newMatchesWon,
+              sets_won: newSetsWon,
+              sets_lost: newSetsLost,
+              games_won: newGamesWon,
+              games_lost: newGamesLost,
+              is_eligible: newMatchesPlayed >= 3,
+            })
+            .eq("id", snap.id),
+        );
+      }
+      await Promise.all(updates);
+
+      // Delete the rating_events for this match
+      await supabaseAdmin.from("rating_events").delete().eq("match_id", matchId);
+
+      // Recompute position rank
+      const { data: ranked } = await supabaseAdmin
+        .from("ranking_snapshots")
+        .select("id, rating")
+        .eq("season_id", seasonId)
+        .eq("is_eligible", true)
+        .order("rating", { ascending: false });
+      if (ranked) {
+        await Promise.all(
+          ranked.map((r, i) =>
+            supabaseAdmin.from("ranking_snapshots").update({ position: i + 1 }).eq("id", r.id),
+          ),
+        );
+      }
+      revertedElo = true;
+    }
+
+    // 6. Flip the flag
+    const { error: updErr } = await supabaseAdmin
+      .from("matches")
+      .update({ counts_for_ranking: false })
+      .eq("id", matchId);
+    if (updErr) throw new Error(updErr.message);
+
+    // 7. Notify players
+    const allPlayerIds = [...teamA, ...teamB];
+    if (allPlayerIds.length) {
+      const notifRows = allPlayerIds.map((uid) => ({
+        user_id: uid,
+        group_id: groupId,
+        type: "match_unpromoted",
+        title: "Promoção de confronto revertida",
+        body: revertedElo
+          ? "Um admin reverteu a promoção e o Elo foi desfeito."
+          : "Um admin marcou esta partida como avulsa novamente.",
+        data: { match_id: matchId, season_id: seasonId, reverted_by: userId },
+      }));
+      await supabaseAdmin.from("notifications").insert(notifRows);
+    }
+
+    return { success: true, revertedElo };
+  });

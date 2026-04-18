@@ -6,6 +6,8 @@
  *  - Invicto: longest unbeaten streak in the H2H
  *  - Rei da Virada: most comeback wins (lost 1st set, won the match)
  *  - Freguês: most direct losses (mirror of Carrasco)
+ *  - Mestre dos Sets: most sets won across all H2H matches (regardless of match win)
+ *  - Pé Quente: most wins in the last 5 H2H matches
  */
 
 export interface MedalMatchInput {
@@ -30,6 +32,8 @@ export interface DuelMedals {
   invicto: MedalResult;
   reiDaVirada: MedalResult;
   fregues: MedalResult;
+  mestreDosSets: MedalResult;
+  peQuente: MedalResult;
 }
 
 export function computeDuelMedals(
@@ -90,30 +94,6 @@ export function computeDuelMedals(
   let comebacksA = 0;
   let comebacksB = 0;
   for (const m of completed) {
-    if (!m.sets.length || m.sets.length < 2) continue;
-    if (!m.team_a_user_id) continue;
-    const firstSet = m.sets[0];
-    // Determine first-set winner from team A's perspective
-    const aWonFirst = firstSet.scoreA > firstSet.scoreB;
-    const bWonFirst = firstSet.scoreB > firstSet.scoreA;
-    const aIsTeamA = m.team_a_user_id === playerAId;
-    const bIsTeamA = m.team_a_user_id === playerBId;
-
-    // Player A lost first set but won match
-    if (m.winner_user_id === playerAId) {
-      if (aIsTeamA && bWonFirst) comebacksA++;
-      else if (!aIsTeamA && aWonFirst) comebacksA++;
-    } else if (m.winner_user_id === playerBId) {
-      if (bIsTeamA && bWonFirst) comebacksB++; // B is teamA, teamA lost first => bWonFirst false; this branch is wrong logic — recompute
-      // Recompute simply: B lost first set?
-      const bLostFirst = bIsTeamA ? bWonFirst === false && aWonFirst : aWonFirst === false && bWonFirst;
-      if (bLostFirst) comebacksB++;
-    }
-  }
-  // The branch above is convoluted — recompute cleanly:
-  comebacksA = 0;
-  comebacksB = 0;
-  for (const m of completed) {
     if (!m.sets.length || m.sets.length < 2 || !m.team_a_user_id) continue;
     const firstSet = m.sets[0];
     const teamAWonFirst = firstSet.scoreA > firstSet.scoreB;
@@ -136,5 +116,41 @@ export function computeDuelMedals(
       : { holder: "B", value: comebacksB, hint: `${comebacksB} viradas` };
   })();
 
-  return { carrasco, invicto, reiDaVirada, fregues };
+  // Mestre dos Sets — total sets won across ALL H2H matches (even in losses)
+  let setsTotalA = 0;
+  let setsTotalB = 0;
+  for (const m of completed) {
+    if (!m.sets.length || !m.team_a_user_id) continue;
+    const playerAIsTeamA = m.team_a_user_id === playerAId;
+    for (const s of m.sets) {
+      const teamAWon = s.scoreA > s.scoreB;
+      const teamBWon = s.scoreB > s.scoreA;
+      if (!teamAWon && !teamBWon) continue;
+      // Player A won this set?
+      const aWonSet = playerAIsTeamA ? teamAWon : teamBWon;
+      if (aWonSet) setsTotalA++;
+      else setsTotalB++;
+    }
+  }
+  const mestreDosSets: MedalResult = (() => {
+    if (setsTotalA === 0 && setsTotalB === 0) return { holder: null, value: 0, hint: "Sem sets jogados" };
+    if (setsTotalA === setsTotalB) return { holder: null, value: setsTotalA, hint: `Empate em ${setsTotalA}` };
+    return setsTotalA > setsTotalB
+      ? { holder: "A", value: setsTotalA, hint: `${setsTotalA} sets vencidos` }
+      : { holder: "B", value: setsTotalB, hint: `${setsTotalB} sets vencidos` };
+  })();
+
+  // Pé Quente — wins in the last 5 H2H matches (input is newest-first)
+  const last5 = completed.slice(0, 5);
+  const recentA = last5.filter((m) => m.winner_user_id === playerAId).length;
+  const recentB = last5.filter((m) => m.winner_user_id === playerBId).length;
+  const peQuente: MedalResult = (() => {
+    if (last5.length === 0) return { holder: null, value: 0, hint: "Sem confrontos recentes" };
+    if (recentA === recentB) return { holder: null, value: recentA, hint: `Empate em ${recentA} de ${last5.length}` };
+    return recentA > recentB
+      ? { holder: "A", value: recentA, hint: `${recentA} de ${last5.length} recentes` }
+      : { holder: "B", value: recentB, hint: `${recentB} de ${last5.length} recentes` };
+  })();
+
+  return { carrasco, invicto, reiDaVirada, fregues, mestreDosSets, peQuente };
 }

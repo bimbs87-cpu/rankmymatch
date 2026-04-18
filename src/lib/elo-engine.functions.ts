@@ -3,9 +3,9 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { recomputeRoundStatusInternal } from "@/lib/round-status.server";
-import { processMatchEloServer } from "@/lib/elo-engine.server";
+// processMatchEloServer is imported dynamically inside the handler to keep
+// `.server.ts` out of the client static-import trace.
 
-export { processMatchEloServer } from "@/lib/elo-engine.server";
 
 // ============================================================================
 // Elo math (duplicated server-side; keep in sync with src/lib/elo-engine.ts)
@@ -171,6 +171,7 @@ export const submitMatchScoreServerFn = createServerFn({ method: "POST" })
     }
 
     // ---- 8. Process Elo ----
+    const { processMatchEloServer } = await import("@/lib/elo-engine.server");
     await processMatchEloServer({
       matchId,
       seasonId,

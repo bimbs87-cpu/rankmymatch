@@ -6,7 +6,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { DualEloChart } from "@/components/DualEloChart";
 import { computeDuelMedals } from "@/lib/duel-medals";
-import { promoteMatchToRankingServerFn } from "@/lib/promote-match.functions";
+import { promoteMatchToRankingServerFn, revertMatchPromotionServerFn } from "@/lib/promote-match.functions";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "sonner";
 import {
@@ -23,6 +23,7 @@ import {
   History,
   Medal,
   ArrowUpCircle,
+  Undo2,
   Loader2,
 } from "lucide-react";
 
@@ -70,6 +71,7 @@ export function RivalryDuelPage({ groupId, groupName, seasonId, seasonName }: Pr
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
   const [promotingId, setPromotingId] = useState<string | null>(null);
+  const [revertingId, setRevertingId] = useState<string | null>(null);
 
   useEffect(() => {
     loadDuelData();
@@ -250,6 +252,7 @@ export function RivalryDuelPage({ groupId, groupName, seasonId, seasonName }: Pr
   }, [user, groupId]);
 
   const promoteFn = useServerFn(promoteMatchToRankingServerFn);
+  const revertFn = useServerFn(revertMatchPromotionServerFn);
 
   async function handlePromoteMatch(matchId: string) {
     setPromotingId(matchId);
@@ -269,6 +272,27 @@ export function RivalryDuelPage({ groupId, groupName, seasonId, seasonName }: Pr
       toast.error(err?.message || "Erro ao promover confronto");
     } finally {
       setPromotingId(null);
+    }
+  }
+
+  async function handleRevertMatch(matchId: string) {
+    if (!confirm("Reverter promoção? Isso desfaz o Elo e tira a partida do ranking.")) return;
+    setRevertingId(matchId);
+    try {
+      const res = await revertFn({ data: { matchId } });
+      toast.success(
+        res?.revertedElo
+          ? "Promoção revertida — Elo desfeito"
+          : "Partida marcada como avulsa novamente",
+      );
+      setMatches((prev) =>
+        prev.map((m) => (m.id === matchId ? { ...m, counts_for_ranking: false } : m)),
+      );
+      void loadDuelData();
+    } catch (err: any) {
+      toast.error(err?.message || "Erro ao reverter promoção");
+    } finally {
+      setRevertingId(null);
     }
   }
 
@@ -591,6 +615,20 @@ export function RivalryDuelPage({ groupId, groupName, seasonId, seasonName }: Pr
                           Promover para ranking
                         </button>
                       )}
+                      {isAdmin && m.counts_for_ranking && !!m.round_number === false && (
+                        <button
+                          onClick={() => handleRevertMatch(m.id)}
+                          disabled={revertingId === m.id}
+                          className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-warning/30 bg-warning/5 px-2.5 py-1 text-[10px] font-semibold text-warning transition-colors hover:bg-warning/10 disabled:opacity-50"
+                        >
+                          {revertingId === m.id ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : (
+                            <Undo2 className="h-3 w-3" />
+                          )}
+                          Reverter promoção
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -717,6 +755,18 @@ export function RivalryDuelPage({ groupId, groupName, seasonId, seasonName }: Pr
                 label: "Freguês",
                 data: medals.fregues,
                 tip: "Quem mais perdeu nos confrontos diretos — espelho do Carrasco.",
+              },
+              {
+                emoji: "🎾",
+                label: "Mestre dos sets",
+                data: medals.mestreDosSets,
+                tip: "Quem venceu mais sets ao longo do duelo — mesmo nas partidas perdidas.",
+              },
+              {
+                emoji: "🔥",
+                label: "Pé quente",
+                data: medals.peQuente,
+                tip: "Quem ganhou mais nos últimos 5 confrontos diretos.",
               },
             ].map((m) => {
               const holderName =
