@@ -518,8 +518,32 @@ export function RivalryDuelPage({ groupId, groupName, seasonId, seasonName }: Pr
     playerB.user_id,
   );
 
+  // ─── Share (Web Share API + clipboard fallback) ───
+  const handleShare = async () => {
+    const shareData = {
+      title: `Duelo: ${displayNameA} vs ${displayNameB}`,
+      text: `${displayNameA} ${winsA} x ${winsB} ${displayNameB} | RankMyMatch`,
+      url: typeof window !== "undefined" ? window.location.href : "",
+    };
+    try {
+      if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
+        await navigator.share(shareData);
+        return;
+      }
+    } catch {
+      // user cancelled or share failed — fall through to clipboard
+    }
+    try {
+      await navigator.clipboard.writeText(`${shareData.text}\n${shareData.url}`);
+      toast.success("Link do duelo copiado!");
+    } catch {
+      toast.error("Não foi possível compartilhar");
+    }
+  };
+
   return (
-    <div className="space-y-4 px-5 pb-28 animate-fade-in">
+    <div className="px-5 pb-28 animate-fade-in lg:grid lg:grid-cols-12 lg:gap-6 lg:px-6">
+      <div className="space-y-4 lg:col-span-7 lg:space-y-5">
       {/* Block 1: Duel Header */}
       <div className="rounded-3xl border border-border bg-card/50 p-5">
         <div className="flex items-center justify-between mb-4">
