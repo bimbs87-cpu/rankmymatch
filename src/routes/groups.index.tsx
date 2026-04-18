@@ -116,6 +116,7 @@ function GroupsIndexPage() {
       }}
       view={view}
       isLoading={myLoading}
+      alerts={alerts}
     />
   );
 
