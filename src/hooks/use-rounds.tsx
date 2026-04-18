@@ -11,6 +11,11 @@ export function useSeasonRounds(seasonId: string) {
   const [isLoading, setIsLoading] = useState(true);
 
   const refresh = useCallback(async () => {
+    if (!seasonId) {
+      setRounds([]);
+      setIsLoading(false);
+      return;
+    }
     setIsLoading(true);
     const { data } = await supabase
       .from("rounds")
