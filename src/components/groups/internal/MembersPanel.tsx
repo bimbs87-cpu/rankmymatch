@@ -429,14 +429,25 @@ export function MembersPanel({ groupId }: Props) {
                       <Ghost className="h-2.5 w-2.5" />Sem conta
                     </span>
                   )}
-                  {isPlaceholder && pendingInvite && (
-                    <span
-                      className="flex items-center gap-0.5 rounded-full bg-warning/15 px-1.5 py-0.5 text-[9px] font-bold text-warning flex-shrink-0"
-                      title={pendingInvite.expires_at ? `Expira em ${new Date(pendingInvite.expires_at).toLocaleDateString("pt-BR")}` : "Sem expiração"}
-                    >
-                      <MailCheck className="h-2.5 w-2.5" />Convite enviado
-                    </span>
-                  )}
+                  {isPlaceholder && pendingInvite && (() => {
+                    const expiresLabel = pendingInvite.expires_at
+                      ? (() => {
+                          const ms = new Date(pendingInvite.expires_at!).getTime() - Date.now();
+                          const days = Math.ceil(ms / 86400000);
+                          if (days <= 0) return "expira hoje";
+                          if (days === 1) return "expira em 1d";
+                          return `expira em ${days}d`;
+                        })()
+                      : "sem expiração";
+                    return (
+                      <span
+                        className="flex items-center gap-0.5 rounded-full bg-warning/15 px-1.5 py-0.5 text-[9px] font-bold text-warning flex-shrink-0"
+                        title={pendingInvite.expires_at ? `Expira em ${new Date(pendingInvite.expires_at).toLocaleDateString("pt-BR")}` : "Sem expiração"}
+                      >
+                        <MailCheck className="h-2.5 w-2.5" />Convite · {expiresLabel}
+                      </span>
+                    );
+                  })()}
                   {isFormer && (
                     <span className="flex items-center gap-0.5 rounded-full bg-muted px-1.5 py-0.5 text-[9px] font-medium text-muted-foreground flex-shrink-0">
                       <UserMinus className="h-2.5 w-2.5" />Ex-membro
