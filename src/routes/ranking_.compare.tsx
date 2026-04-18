@@ -402,6 +402,7 @@ function ComparePage() {
             bTeam: b.team,
             winner,
             created_at: meta.created_at,
+            sets: setsByMatch.get(matchId) || [],
           });
         }
 
