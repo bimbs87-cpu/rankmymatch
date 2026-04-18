@@ -1442,17 +1442,15 @@ function DashboardPage() {
                 <p className="text-sm text-muted-foreground">Nenhuma partida ainda</p>
               </div>
             ) : (
-              <div className="divide-y divide-border/50">
-                {recentMatches.slice(0, 5).map((m) => {
+              <div>
+                {recentMatches.slice(0, 5).map((m, idx, arr) => {
                   const won = m.winner_team === m.my_team;
-                  const dateStr = new Date(m.created_at).toLocaleDateString("pt-BR", {
-                    day: "2-digit",
-                    month: "short",
-                  });
-                  const timeStr = new Date(m.created_at).toLocaleTimeString("pt-BR", {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  });
+                  const prev = idx > 0 ? arr[idx - 1] : null;
+                  const next = idx < arr.length - 1 ? arr[idx + 1] : null;
+                  const sameAsPrev = prev && prev.round_id && prev.round_id === m.round_id;
+                  const sameAsNext = next && next.round_id && next.round_id === m.round_id;
+                  const isFirstOfGroup = !sameAsPrev;
+                  const isLastOfGroup = !sameAsNext;
                   // Per-set wins from score string ("6-4 / 7-5"): I am team A unless my_team === "B"
                   const setsRaw = m.score_display === "—" ? [] : m.score_display.split(" / ");
                   const setOutcomes = setsRaw.map((s) => {
@@ -1464,11 +1462,38 @@ function DashboardPage() {
                   });
                   const setsWon = setOutcomes.filter((s) => s === true).length;
                   const setsLost = setOutcomes.filter((s) => s === false).length;
+
+                  const canLink = !!(m.round_id && m.group_id && m.season_id);
+                  const RowTag: any = canLink ? Link : "div";
+                  const rowProps: any = canLink
+                    ? {
+                        to: "/groups/$groupId/seasons/$seasonId/rounds/$roundId",
+                        params: {
+                          groupId: m.group_id!,
+                          seasonId: m.season_id!,
+                          roundId: m.round_id!,
+                        },
+                        title: m.round_number != null ? `Abrir rodada ${m.round_number}` : "Abrir rodada",
+                      }
+                    : {};
+
                   return (
-                    <div
+                    <RowTag
                       key={m.id}
-                      className="flex items-stretch gap-3 px-4 py-1 transition-colors hover:bg-accent/30"
+                      {...rowProps}
+                      className={`group/row relative flex items-stretch gap-3 px-4 py-1 transition-colors ${
+                        canLink ? "cursor-pointer hover:bg-accent/40" : ""
+                      } ${isFirstOfGroup && idx > 0 ? "border-t border-border/50" : ""}`}
                     >
+                      {/* Same-round connector (left edge) */}
+                      {sameAsPrev || sameAsNext ? (
+                        <span
+                          aria-hidden
+                          className={`absolute left-0 w-[2px] bg-primary/25 ${
+                            isFirstOfGroup ? "top-1/2 bottom-0" : isLastOfGroup ? "top-0 bottom-1/2" : "inset-y-0"
+                          }`}
+                        />
+                      ) : null}
                       {/* Date with colored bar (V/D indicator) */}
                       <div className="flex shrink-0 items-stretch gap-2">
                         <div
@@ -1476,12 +1501,18 @@ function DashboardPage() {
                           aria-label={won ? "Vitória" : "Derrota"}
                         />
                         <div className="flex flex-col justify-center min-w-[36px]">
-                          <p className="font-display text-base font-bold leading-none text-foreground tabular-nums">
-                            {(() => { const d = new Date(m.match_date + (m.match_date.length === 10 ? "T12:00:00" : "")); return d.getDate().toString().padStart(2, "0"); })()}
-                          </p>
-                          <p className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground mt-0.5">
-                            {(() => { const d = new Date(m.match_date + (m.match_date.length === 10 ? "T12:00:00" : "")); return d.toLocaleDateString("pt-BR", { month: "short" }).replace(".", ""); })()}
-                          </p>
+                          {isFirstOfGroup ? (
+                            <>
+                              <p className="font-display text-base font-bold leading-none text-foreground tabular-nums">
+                                {(() => { const d = new Date(m.match_date + (m.match_date.length === 10 ? "T12:00:00" : "")); return d.getDate().toString().padStart(2, "0"); })()}
+                              </p>
+                              <p className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground mt-0.5">
+                                {(() => { const d = new Date(m.match_date + (m.match_date.length === 10 ? "T12:00:00" : "")); return d.toLocaleDateString("pt-BR", { month: "short" }).replace(".", ""); })()}
+                              </p>
+                            </>
+                          ) : (
+                            <span className="text-[10px] text-muted-foreground/50 leading-none">↳</span>
+                          )}
                         </div>
                       </div>
 
@@ -1523,19 +1554,24 @@ function DashboardPage() {
                         </p>
                       </div>
 
-                      {/* Group */}
-                      <div className="shrink-0 text-right max-w-[140px] flex flex-col justify-center">
-                        {m.group_name && (
+                      {/* Group + Round (clickable hint) */}
+                      <div className="shrink-0 text-right max-w-[160px] flex flex-col justify-center">
+                        {isFirstOfGroup && m.group_name && (
                           <p className="text-[11px] font-semibold text-foreground/80 truncate">{m.group_name}</p>
                         )}
-                        {m.round_number != null && (
-                          <p className="text-[10px] text-muted-foreground">R{m.round_number}</p>
+                        {isFirstOfGroup && m.round_number != null && (
+                          <p className="text-[10px] text-muted-foreground inline-flex items-center justify-end gap-0.5">
+                            Rodada {m.round_number}
+                            {canLink && (
+                              <ChevronRight className="h-3 w-3 opacity-0 transition-opacity group-hover/row:opacity-100" />
+                            )}
+                          </p>
                         )}
                       </div>
 
                       {/* Elo delta */}
                       {m.rating_change !== null && (
-                        <div className="shrink-0 text-right min-w-[52px]">
+                        <div className="shrink-0 text-right min-w-[52px] flex flex-col justify-center">
                           <p className={`font-display text-base font-bold tabular-nums leading-none ${
                             m.rating_change > 0 ? "text-success" : m.rating_change < 0 ? "text-destructive" : "text-muted-foreground"
                           }`}>
@@ -1544,7 +1580,7 @@ function DashboardPage() {
                           <p className="mt-0.5 text-[9px] uppercase tracking-wider text-muted-foreground/70 leading-none">Elo</p>
                         </div>
                       )}
-                    </div>
+                    </RowTag>
                   );
                 })}
               </div>
