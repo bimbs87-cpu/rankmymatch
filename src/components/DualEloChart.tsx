@@ -149,6 +149,9 @@ export function DualEloChart({
     let idx = 0;
     for (const key of sortedKeys) {
       const tickEvents = byTime.get(key)!;
+      // Pick the dominant match for this tick — most match info is keyed by match_id,
+      // and a single timestamp typically corresponds to one match (both players' events).
+      const tickMatchId = tickEvents[0]?.match_id;
       for (const ev of tickEvents) {
         if (ev.user_id === playerAId) curA = ev.rating_after;
         if (ev.user_id === playerBId) curB = ev.rating_after;
@@ -159,6 +162,7 @@ export function DualEloChart({
         label: d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }),
         ts: d.getTime(),
         idx,
+        matchId: tickMatchId,
         ratingA: Math.round(curA),
         ratingB: Math.round(curB),
       });
