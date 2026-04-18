@@ -868,9 +868,14 @@ function CompareLandingPage() {
                 />
               </div>
 
-              {loadingMembers ? (
-                <div className="py-10 flex justify-center">
-                  <TrophyLoadingBar />
+              {loadingMembers && members.length === 0 ? (
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {Array.from({ length: 6 }).map((_, i) => (
+                    <div
+                      key={i}
+                      className="h-[64px] rounded-2xl border border-border bg-card/40 animate-pulse"
+                    />
+                  ))}
                 </div>
               ) : filteredMembers.length === 0 ? (
                 <p className="text-center text-xs text-muted-foreground py-6">
