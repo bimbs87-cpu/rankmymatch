@@ -267,7 +267,7 @@ export function GroupDashboardPanel({ group, onLeft, onPresenceChanged }: Props)
                   </p>
                 )}
               </div>
-              <div className="flex items-center justify-between gap-2">
+              <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
                   <Users className="h-3 w-3" />
                   <span className="font-semibold text-foreground tabular-nums">
@@ -275,19 +275,33 @@ export function GroupDashboardPanel({ group, onLeft, onPresenceChanged }: Props)
                   </span>
                   /{data.next_round.max_players} confirmados
                 </div>
-                {data.next_round.presence_status === "confirmed" ? (
-                  <span className="flex items-center gap-1 rounded-full bg-success/15 px-2 py-0.5 text-[10px] font-bold text-success">
-                    <CheckCircle2 className="h-3 w-3" /> Você confirmou
-                  </span>
-                ) : data.next_round.presence_status === "declined" ? (
-                  <span className="flex items-center gap-1 rounded-full bg-destructive/15 px-2 py-0.5 text-[10px] font-bold text-destructive">
-                    <XCircle className="h-3 w-3" /> Recusado
-                  </span>
-                ) : (
-                  <span className="rounded-full bg-warning/15 px-2 py-0.5 text-[10px] font-bold text-warning">
-                    Aguardando você
-                  </span>
-                )}
+                <div className="flex items-center gap-1.5">
+                  <button
+                    onClick={handleConfirm}
+                    disabled={presenceLoading}
+                    className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold transition-colors disabled:opacity-50 ${
+                      data.next_round.presence_status === "confirmed"
+                        ? "bg-success text-success-foreground"
+                        : "border border-success/40 bg-success/10 text-success hover:bg-success/20"
+                    }`}
+                  >
+                    <CheckCircle2 className="h-3 w-3" />
+                    {data.next_round.presence_status === "confirmed" ? "Confirmado" : "Vou"}
+                  </button>
+                  <button
+                    onClick={handleDecline}
+                    disabled={presenceLoading}
+                    className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold transition-colors disabled:opacity-50 ${
+                      data.next_round.presence_status === "declined" ||
+                      (data.next_round.presence_status as string) === "absent"
+                        ? "bg-destructive text-destructive-foreground"
+                        : "border border-border bg-background/40 text-muted-foreground hover:border-destructive/40 hover:text-destructive"
+                    }`}
+                  >
+                    <XCircle className="h-3 w-3" />
+                    Não vou
+                  </button>
+                </div>
               </div>
             </div>
           ) : (
