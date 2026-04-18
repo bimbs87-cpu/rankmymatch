@@ -462,11 +462,25 @@ function InvitePage() {
           </div>
         </div>
 
+        {/* Claim invite banner */}
+        {invite?.claim_placeholder_user_id && (
+          <div className="mt-4 rounded-2xl border border-success/30 bg-success/10 p-4">
+            <p className="text-center text-xs font-semibold uppercase tracking-wider text-success">
+              ✨ Convite de vinculação direta
+            </p>
+            <p className="mt-2 text-center text-sm text-foreground">
+              Ao entrar, sua conta será automaticamente vinculada ao histórico de{" "}
+              <strong>{invite.claim_placeholder_name || "um jogador"}</strong> — sem precisar de
+              aprovação do admin.
+            </p>
+          </div>
+        )}
+
         {/* Actions */}
         <div className="mt-6 space-y-3">
           {!isAuthenticated ? (
             <InviteAuthButtons inviteUrl={window.location.href} />
-          ) : alreadyMember ? (
+          ) : alreadyMember && !invite?.claim_placeholder_user_id ? (
             <>
               <p className="text-center text-sm text-muted-foreground">
                 Você já é membro deste grupo!
@@ -490,7 +504,9 @@ function InvitePage() {
               ) : (
                 <Users className="h-4 w-4" />
               )}
-              {joining ? "Entrando..." : "Entrar no grupo"}
+              {joining
+                ? (invite?.claim_placeholder_user_id ? "Vinculando..." : "Entrando...")
+                : (invite?.claim_placeholder_user_id ? "Vincular minha conta" : "Entrar no grupo")}
             </button>
           )}
         </div>
