@@ -56,7 +56,7 @@ export function GroupCardPreview({
             </span>
             <VisIcon className="h-3 w-3 flex-shrink-0 text-muted-foreground" />
             {isPremium && (
-              <span className="inline-flex items-center gap-0.5 rounded-full bg-gradient-to-r from-amber-400/20 to-yellow-500/20 px-1.5 py-0.5 text-[9px] font-bold text-amber-600 ring-1 ring-amber-400/40 dark:text-amber-400">
+              <span className="inline-flex items-center gap-0.5 rounded-full bg-[var(--rank-gold)]/15 px-1.5 py-0.5 text-[9px] font-bold text-[var(--rank-gold)] ring-1 ring-[var(--rank-gold)]/40">
                 <Crown className="h-2.5 w-2.5" />
                 PREMIUM
               </span>
