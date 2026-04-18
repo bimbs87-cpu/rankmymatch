@@ -28,6 +28,7 @@ import {
   ChevronDown,
   Trophy,
   Crown,
+  Eraser,
 } from "lucide-react";
 import { useState, useMemo, useEffect } from "react";
 import { toast } from "sonner";
@@ -254,6 +255,29 @@ function RoundDetailPage() {
       toast.error(e.message || "Erro ao excluir rodada");
     } finally {
       setDeletingRound(false);
+    }
+  };
+
+  const handleClearPresences = async () => {
+    if (matches.length > 0) {
+      toast.error("Apague as partidas antes de limpar a lista de presenças.");
+      return;
+    }
+    if (!confirm(
+      `Limpar a lista de presenças desta rodada?\n\n` +
+      `Todas as confirmações serão removidas. As partidas (se já existirem) NÃO serão afetadas. ` +
+      `Os jogadores poderão confirmar novamente quando a lista estiver aberta.`
+    )) return;
+    try {
+      const { error } = await supabase
+        .from("round_presence")
+        .delete()
+        .eq("round_id", roundId);
+      if (error) throw error;
+      toast.success("Lista de presenças limpa");
+      refresh();
+    } catch (e: any) {
+      toast.error(e.message || "Erro ao limpar presenças");
     }
   };
 
