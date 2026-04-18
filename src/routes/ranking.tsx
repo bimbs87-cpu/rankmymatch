@@ -865,30 +865,28 @@ function RankingPage() {
                         )}
                       </div>
 
-                      {/* Compare-with shortcut (left of avatar) */}
-                      {!compareMode && canSelect && (
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            const initial = [entry.user_id];
-                            if (user?.id && user.id !== entry.user_id && rankings.some((r) => r.user_id === user.id && r.matches_played > 0 && !r.isFormerMember)) {
-                              initial.unshift(user.id);
-                            }
-                            setExpandedUserId(null);
-                            setCompareSelection(initial);
-                            setCompareMode(true);
-                          }}
-                          className="mr-1 inline-flex h-5 w-5 lg:h-6 lg:w-6 shrink-0 items-center justify-center rounded-full border border-primary/30 bg-primary/10 text-primary transition-all hover:bg-primary hover:text-primary-foreground hover:border-primary"
-                          title={`Comparar com ${displayName}`}
-                          aria-label={`Comparar com ${displayName}`}
-                        >
-                          <GitCompareArrows className="h-2.5 w-2.5 lg:h-3 lg:w-3" />
-                        </button>
-                      )}
-
-                      {/* Avatar + Name */}
+                      {/* Compare button + Avatar + Name (single grid cell on desktop) */}
                       <div className="flex flex-1 lg:flex-none items-center gap-1.5 lg:gap-2.5 min-w-0 pl-1 lg:pl-0">
+                        {!compareMode && canSelect && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const initial = [entry.user_id];
+                              if (user?.id && user.id !== entry.user_id && rankings.some((r) => r.user_id === user.id && r.matches_played > 0 && !r.isFormerMember)) {
+                                initial.unshift(user.id);
+                              }
+                              setExpandedUserId(null);
+                              setCompareSelection(initial);
+                              setCompareMode(true);
+                            }}
+                            className="inline-flex h-5 w-5 lg:h-6 lg:w-6 shrink-0 items-center justify-center rounded-full border border-primary/30 bg-primary/10 text-primary transition-all hover:bg-primary hover:text-primary-foreground hover:border-primary"
+                            title={`Comparar com ${displayName}`}
+                            aria-label={`Comparar com ${displayName}`}
+                          >
+                            <GitCompareArrows className="h-2.5 w-2.5 lg:h-3 lg:w-3" />
+                          </button>
+                        )}
                         <PlayerAvatar avatarUrl={entry.profile?.avatar_url} name={entry.profile?.name || "?"} size="sm" dimmed={isFormer} className="border border-border !h-7 !w-7 lg:!h-9 lg:!w-9" />
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-1.5">
