@@ -17,9 +17,26 @@ import {
   Shield,
   Globe,
   Lock,
+  LogOut,
 } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { useGroupDashboard } from "@/hooks/use-group-dashboard";
+import { useAuth } from "@/hooks/use-auth";
+import { supabase } from "@/integrations/supabase/client";
+import { confirmPresence, cancelPresence } from "@/lib/round-actions";
+import { leaveGroup } from "@/hooks/use-groups";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Group = Tables<"groups"> & {
@@ -29,6 +46,8 @@ type Group = Tables<"groups"> & {
 
 interface Props {
   group: Group;
+  onLeft?: () => void;
+  onPresenceChanged?: () => void;
 }
 
 const POSITION_COLORS = [
@@ -57,9 +76,67 @@ function timeAgo(iso: string) {
   return `${d}d`;
 }
 
-export function GroupDashboardPanel({ group }: Props) {
-  const { data, isLoading } = useGroupDashboard(group.id);
+export function GroupDashboardPanel({ group, onLeft, onPresenceChanged }: Props) {
+  const { user } = useAuth();
+  const { data, isLoading, refresh } = useGroupDashboard(group.id);
   const isAdmin = group.my_role === "admin" || group.my_role === "creator";
+  const [presenceLoading, setPresenceLoading] = useState(false);
+  const [showLeave, setShowLeave] = useState(false);
+  const [leaving, setLeaving] = useState(false);
+
+  async function handleConfirm() {
+    if (!user || !data.next_round) return;
+    setPresenceLoading(true);
+    try {
+      await confirmPresence(data.next_round.id, user.id);
+      toast.success("Presença confirmada!");
+      await refresh();
+      onPresenceChanged?.();
+    } catch (e) {
+      toast.error("Não foi possível confirmar");
+    } finally {
+      setPresenceLoading(false);
+    }
+  }
+
+  async function handleDecline() {
+    if (!user || !data.next_round) return;
+    setPresenceLoading(true);
+    try {
+      await cancelPresence(data.next_round.id, user.id);
+      toast.success("Presença recusada");
+      await refresh();
+      onPresenceChanged?.();
+    } catch (e) {
+      toast.error("Não foi possível recusar");
+    } finally {
+      setPresenceLoading(false);
+    }
+  }
+
+  async function handleLeave() {
+    if (!user) return;
+    setLeaving(true);
+    try {
+      const { data: row, error } = await supabase
+        .from("group_members")
+        .select("id")
+        .eq("group_id", group.id)
+        .eq("user_id", user.id)
+        .eq("status", "active")
+        .maybeSingle();
+      if (error) throw error;
+      if (!row) throw new Error("Membro não encontrado");
+      await leaveGroup(row.id);
+      toast.success("Você saiu do grupo");
+      setShowLeave(false);
+      onLeft?.();
+    } catch (e: any) {
+      toast.error(e?.message || "Não foi possível sair do grupo");
+    } finally {
+      setLeaving(false);
+    }
+  }
 
   return (
     <div className="space-y-4">
