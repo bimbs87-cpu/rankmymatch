@@ -164,15 +164,15 @@ function SistemaPage() {
               </p>
             </div>
 
-            {/* Mockup hero: somente iMac */}
-            <div className="relative">
+            {/* Mockup hero: screenshot real do app dentro de uma moldura iMac */}
+            <ImacFrame>
               <img
-                src={mockupImacHome}
-                alt="RankMyMatch projetado em um iMac com ranking, evolução do Elo e rodadas"
+                src={screenshotDesktopHome}
+                alt="Painel do RankMyMatch no desktop"
                 className="block w-full"
                 loading="eager"
               />
-            </div>
+            </ImacFrame>
 
           </div>
         </div>
