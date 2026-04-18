@@ -1,5 +1,15 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { ArrowLeft, Bell, CheckCheck, Calendar, Shuffle, MessageSquare } from "lucide-react";
+import {
+  ArrowLeft,
+  Bell,
+  CheckCheck,
+  Calendar,
+  Shuffle,
+  MessageSquare,
+  ArrowUpCircle,
+  Swords,
+  Undo2,
+} from "lucide-react";
 import { useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useNotifications } from "@/hooks/use-notifications";
@@ -13,6 +23,8 @@ const iconMap: Record<string, typeof Bell> = {
   round_created: Calendar,
   draw_completed: Shuffle,
   new_comment: MessageSquare,
+  match_promoted: ArrowUpCircle,
+  match_unpromoted: Undo2,
 };
 
 function timeAgo(dateStr: string) {
@@ -75,31 +87,89 @@ function NotificationsPage() {
           <div className="space-y-2">
             {notifications.map((n) => {
               const Icon = iconMap[n.type] || Bell;
+              const isPromoted = n.type === "match_promoted";
+              const isUnpromoted = n.type === "match_unpromoted";
+              const data = (n.data || {}) as { match_id?: string; season_id?: string | null };
+              const groupId = n.group_id;
+
+              const handleClick = async () => {
+                if (!n.read) await markRead(n.id);
+                if ((isPromoted || isUnpromoted) && groupId) {
+                  navigate({ to: "/groups/$groupId/duel", params: { groupId } });
+                }
+              };
+
+              // Highlighted styling for promotion-related events
+              const baseCls = isPromoted
+                ? n.read
+                  ? "border-primary/20 bg-primary/5"
+                  : "border-primary/40 bg-gradient-to-br from-primary/15 to-primary/5 shadow-[0_0_0_1px_hsl(var(--primary)/0.15)]"
+                : isUnpromoted
+                ? n.read
+                  ? "border-warning/20 bg-warning/5"
+                  : "border-warning/40 bg-warning/10"
+                : n.read
+                ? "border-border bg-card/30"
+                : "border-primary/20 bg-primary/5";
+
+              const iconWrapCls = isPromoted
+                ? "bg-primary/15"
+                : isUnpromoted
+                ? "bg-warning/15"
+                : n.read
+                ? "bg-muted"
+                : "bg-primary/10";
+
+              const iconCls = isPromoted
+                ? "text-primary"
+                : isUnpromoted
+                ? "text-warning"
+                : n.read
+                ? "text-muted-foreground"
+                : "text-primary";
+
               return (
                 <button
                   key={n.id}
-                  onClick={() => !n.read && markRead(n.id)}
-                  className={`flex w-full items-start gap-3 rounded-2xl border p-3.5 text-left transition-colors ${
-                    n.read
-                      ? "border-border bg-card/30"
-                      : "border-primary/20 bg-primary/5"
+                  onClick={handleClick}
+                  className={`flex w-full items-start gap-3 rounded-2xl border p-3.5 text-left transition-all ${baseCls} ${
+                    (isPromoted || isUnpromoted) && groupId ? "active:scale-[0.99]" : ""
                   }`}
                 >
                   <div
-                    className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${
-                      n.read ? "bg-muted" : "bg-primary/10"
-                    }`}
+                    className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${iconWrapCls}`}
                   >
-                    <Icon className={`h-4 w-4 ${n.read ? "text-muted-foreground" : "text-primary"}`} />
+                    <Icon className={`h-4 w-4 ${iconCls}`} />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className={`text-sm font-semibold ${n.read ? "text-muted-foreground" : "text-foreground"}`}>
+                    {isPromoted && (
+                      <div className="mb-1 flex items-center gap-1.5">
+                        <Swords className="h-3 w-3 text-primary" />
+                        <span className="text-[9px] font-bold uppercase tracking-wider text-primary">
+                          Duelo · Ranking
+                        </span>
+                      </div>
+                    )}
+                    <p
+                      className={`text-sm font-semibold ${
+                        n.read && !isPromoted && !isUnpromoted
+                          ? "text-muted-foreground"
+                          : "text-foreground"
+                      }`}
+                    >
                       {n.title}
                     </p>
                     {n.body && (
                       <p className="mt-0.5 text-xs text-muted-foreground line-clamp-2">{n.body}</p>
                     )}
-                    <p className="mt-1 text-[10px] text-muted-foreground/60">{timeAgo(n.created_at)}</p>
+                    <div className="mt-1 flex items-center justify-between">
+                      <p className="text-[10px] text-muted-foreground/60">{timeAgo(n.created_at)}</p>
+                      {(isPromoted || isUnpromoted) && groupId && (
+                        <span className="text-[10px] font-semibold text-primary">
+                          Abrir duelo →
+                        </span>
+                      )}
+                    </div>
                   </div>
                   {!n.read && (
                     <div className="mt-2 h-2 w-2 shrink-0 rounded-full bg-primary" />
@@ -110,7 +180,6 @@ function NotificationsPage() {
           </div>
         )}
       </div>
-
     </div>
   );
 }
