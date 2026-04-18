@@ -909,13 +909,23 @@ function ComparePage() {
       {!isEmbed && (
         <header className="sticky top-0 z-10 border-b border-border/50 bg-background/85 backdrop-blur-xl">
           <div className="mx-auto flex max-w-5xl items-center justify-between gap-2 px-4 py-3 lg:px-0">
-            <Link
-              to="/ranking"
-              className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card/60 px-3 py-1.5 text-xs font-semibold text-foreground transition hover:bg-accent"
-            >
-              <ArrowLeft className="h-3.5 w-3.5" />
-              Ranking
-            </Link>
+            {safeBackTo ? (
+              <a
+                href={safeBackTo}
+                className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card/60 px-3 py-1.5 text-xs font-semibold text-foreground transition hover:bg-accent"
+              >
+                <ArrowLeft className="h-3.5 w-3.5" />
+                Voltar
+              </a>
+            ) : (
+              <Link
+                to="/ranking"
+                className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card/60 px-3 py-1.5 text-xs font-semibold text-foreground transition hover:bg-accent"
+              >
+                <ArrowLeft className="h-3.5 w-3.5" />
+                Ranking
+              </Link>
+            )}
             <div className="min-w-0 flex-1 text-center">
               <p className="truncate font-display text-sm font-bold text-foreground lg:text-base">Comparativo</p>
               {groupName && <p className="truncate text-[10px] text-muted-foreground lg:text-xs">{groupName}</p>}
