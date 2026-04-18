@@ -2,6 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useMyGroups, useMyPendingJoinRequests } from "@/hooks/use-groups";
+import { useGroupAlerts } from "@/hooks/use-group-alerts";
 import { CreateGroupDialog } from "@/components/CreateGroupDialog";
 import { TrophyLoadingBar } from "@/components/TrophyLoadingBar";
 import { GroupSidebar } from "@/components/groups/GroupSidebar";
