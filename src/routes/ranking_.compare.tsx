@@ -1,13 +1,16 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { zodValidator, fallback } from "@tanstack/zod-adapter";
 import { z } from "zod";
-import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, Trophy, Activity, Swords, Users, TrendingUp, Share2, ArrowLeftRight } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { ArrowLeft, Trophy, Activity, Swords, Users, TrendingUp, Share2, ArrowLeftRight, Image as ImageIcon, BarChart3 } from "lucide-react";
 import { toast } from "sonner";
+import { toPng } from "html-to-image";
 import { supabase } from "@/integrations/supabase/client";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { TrophyLoadingBar } from "@/components/TrophyLoadingBar";
 import { abbreviateName } from "@/lib/utils";
+
+const GROUP_AVG_ID = "__group_avg__";
 
 const searchSchema = z.object({
   a: fallback(z.string(), "").default(""),
@@ -134,6 +137,9 @@ function ComparePage() {
         setLoading(false);
         return;
       }
+      // Real player ids (exclude the sentinel "group avg")
+      const realIds = userIds.filter((id) => id !== GROUP_AVG_ID);
+      const hasGroupAvg = userIds.includes(GROUP_AVG_ID);
       setLoading(true);
       setProgress(10);
       setLabel("Buscando jogadores...");
@@ -148,10 +154,12 @@ function ComparePage() {
             .eq("group_id", groupId)
             .in("status", ["active", "finished"])
             .order("created_at", { ascending: false }),
-          supabase
-            .from("user_profiles")
-            .select("user_id, name, nickname, avatar_url")
-            .in("user_id", userIds),
+          realIds.length
+            ? supabase
+                .from("user_profiles")
+                .select("user_id, name, nickname, avatar_url")
+                .in("user_id", realIds)
+            : Promise.resolve({ data: [], error: null } as any),
         ]);
         if (cancelled) return;
         if (groupRes.error) throw groupRes.error;
@@ -167,7 +175,7 @@ function ComparePage() {
         for (const p of profilesRes.data || []) {
           profilesMap.set(p.user_id, p as Profile);
         }
-        for (const id of userIds) {
+        for (const id of realIds) {
           if (!profilesMap.has(id)) {
             setError("Jogador não encontrado");
             setLoading(false);
@@ -179,30 +187,46 @@ function ComparePage() {
         setLabel("Carregando estatísticas...");
 
         // Snapshots, rating events, rounds, presence — scoped to this group
+        const snapshotFilterIds = hasGroupAvg ? null : realIds;
         const [snapsRes, eventsRes, roundsRes, presenceRes] = await Promise.all([
           seasonIds.length
-            ? supabase
-                .from("ranking_snapshots")
-                .select("*")
-                .in("season_id", seasonIds)
-                .in("user_id", userIds)
+            ? (snapshotFilterIds
+                ? supabase
+                    .from("ranking_snapshots")
+                    .select("*")
+                    .in("season_id", seasonIds)
+                    .in("user_id", snapshotFilterIds)
+                : supabase
+                    .from("ranking_snapshots")
+                    .select("*")
+                    .in("season_id", seasonIds))
             : Promise.resolve({ data: [], error: null } as any),
           seasonIds.length
-            ? supabase
-                .from("rating_events")
-                .select("user_id, rating_after, rating_before, rating_change, created_at, match_id, season_id")
-                .in("season_id", seasonIds)
-                .in("user_id", userIds)
-                .order("created_at", { ascending: true })
+            ? (snapshotFilterIds
+                ? supabase
+                    .from("rating_events")
+                    .select("user_id, rating_after, rating_before, rating_change, created_at, match_id, season_id")
+                    .in("season_id", seasonIds)
+                    .in("user_id", snapshotFilterIds)
+                    .order("created_at", { ascending: true })
+                : supabase
+                    .from("rating_events")
+                    .select("user_id, rating_after, rating_before, rating_change, created_at, match_id, season_id")
+                    .in("season_id", seasonIds)
+                    .order("created_at", { ascending: true }))
             : Promise.resolve({ data: [], error: null } as any),
           supabase
             .from("rounds")
             .select("id, status")
             .eq("group_id", groupId),
-          supabase
-            .from("round_presence")
-            .select("round_id, user_id, status")
-            .in("user_id", userIds),
+          (snapshotFilterIds
+            ? supabase
+                .from("round_presence")
+                .select("round_id, user_id, status")
+                .in("user_id", snapshotFilterIds)
+            : supabase
+                .from("round_presence")
+                .select("round_id, user_id, status")),
         ]);
         if (cancelled) return;
         if (snapsRes.error) throw snapsRes.error;
@@ -220,7 +244,7 @@ function ComparePage() {
         setProgress(55);
         setLabel("Calculando confrontos...");
 
-        // Match player rows for ALL involved users
+        // Match player rows (rating-driven — used for player aggregates)
         const matchIdsFromEvents: string[] = Array.from(new Set(events.map((e: any) => e.match_id as string)));
         let matchPlayers: any[] = [];
         let matchesMeta: any[] = [];
@@ -247,6 +271,55 @@ function ComparePage() {
           matchPlayers = mpRes.data || [];
           matchesMeta = mRes.data || [];
           matchSets = setsRes.data || [];
+        }
+
+        // Full H2H pool (all completed group matches involving both players)
+        let h2hMatchPlayers: any[] = matchPlayers;
+        let h2hMatchesMeta: any[] = matchesMeta;
+        let h2hSetsByMatch = new Map<string, { set_number: number; score_team_a: number; score_team_b: number }[]>();
+        if (realIds.length === 2 && !hasGroupAvg && groupRoundIds.size > 0) {
+          const groupRoundIdsArr = Array.from(groupRoundIds) as string[];
+          const { data: allGroupMatches, error: gmErr } = await supabase
+            .from("matches")
+            .select("id, round_id, winner_team, status, created_at")
+            .in("round_id", groupRoundIdsArr)
+            .eq("status", "completed");
+          if (gmErr) throw gmErr;
+          const groupMatchIds = (allGroupMatches || []).map((m: any) => m.id);
+          if (groupMatchIds.length) {
+            const { data: gmpData, error: gmpErr } = await supabase
+              .from("match_players")
+              .select("match_id, user_id, team")
+              .in("match_id", groupMatchIds);
+            if (gmpErr) throw gmpErr;
+            const byMatch = new Map<string, any[]>();
+            for (const mp of gmpData || []) {
+              const arr = byMatch.get(mp.match_id) || [];
+              arr.push(mp);
+              byMatch.set(mp.match_id, arr);
+            }
+            const sharedIds: string[] = [];
+            for (const [mid, ps] of byMatch.entries()) {
+              const hasA = ps.some((p) => p.user_id === realIds[0]);
+              const hasB = ps.some((p) => p.user_id === realIds[1]);
+              if (hasA && hasB) sharedIds.push(mid);
+            }
+            h2hMatchPlayers = (gmpData || []).filter((mp: any) => sharedIds.includes(mp.match_id));
+            h2hMatchesMeta = (allGroupMatches || []).filter((m: any) => sharedIds.includes(m.id));
+            if (sharedIds.length) {
+              const { data: setsData, error: setsErr } = await supabase
+                .from("match_sets")
+                .select("match_id, set_number, score_team_a, score_team_b")
+                .in("match_id", sharedIds)
+                .order("set_number", { ascending: true });
+              if (setsErr) throw setsErr;
+              for (const s of setsData || []) {
+                const arr = h2hSetsByMatch.get(s.match_id) || [];
+                arr.push({ set_number: s.set_number, score_team_a: s.score_team_a, score_team_b: s.score_team_b });
+                h2hSetsByMatch.set(s.match_id, arr);
+              }
+            }
+          }
         }
 
         setProgress(80);
@@ -371,36 +444,156 @@ function ComparePage() {
           };
         };
 
-        const aggregates: PlayerAggregate[] = userIds.map((uid) => buildAggregate(uid, profilesMap.get(uid)!));
+        // Build group-average aggregate (synthetic player)
+        const buildGroupAverage = (): PlayerAggregate => {
+          // Group all snapshots by user
+          const byUser = new Map<string, any[]>();
+          for (const s of snaps) {
+            const arr = byUser.get(s.user_id) || [];
+            arr.push(s);
+            byUser.set(s.user_id, arr);
+          }
+          const userIdsAll = Array.from(byUser.keys());
+          if (userIdsAll.length === 0) {
+            return {
+              profile: { user_id: GROUP_AVG_ID, name: "Média do grupo", nickname: "Média do grupo", avatar_url: null },
+              seasons: [],
+              career: { matches_played: 0, matches_won: 0, sets_won: 0, sets_lost: 0, games_won: 0, games_lost: 0, seasons_played: 0, titles: 0, podiums: 0, best_position: null },
+              eloSeries: [],
+              eloPeak: 1000, eloLow: 1000, eloCurrent: 1000,
+              streakMax: 0, streakCurrent: 0,
+              roundsPresent: 0, roundsTotal: completedRoundIds.size,
+            };
+          }
 
-        // H2H computation only makes sense for exactly 2 players
+          // Per-season averages (over ALL players that have a snapshot in that season)
+          const bySeason = new Map<string, any[]>();
+          for (const s of snaps) {
+            const arr = bySeason.get(s.season_id) || [];
+            arr.push(s);
+            bySeason.set(s.season_id, arr);
+          }
+          const avgSeasons: SeasonStat[] = [];
+          for (const [sid, arr] of bySeason.entries()) {
+            const n = arr.length;
+            const avgOf = (key: string) => arr.reduce((a, x) => a + Number(x[key] || 0), 0) / n;
+            avgSeasons.push({
+              season_id: sid,
+              season_name: seasonNameMap.get(sid) || "—",
+              rating: avgOf("rating"),
+              matches_played: Math.round(avgOf("matches_played")),
+              matches_won: Math.round(avgOf("matches_won")),
+              sets_won: Math.round(avgOf("sets_won")),
+              sets_lost: Math.round(avgOf("sets_lost")),
+              games_won: Math.round(avgOf("games_won")),
+              games_lost: Math.round(avgOf("games_lost")),
+              position: null,
+              is_eligible: false,
+            });
+          }
+
+          // Career = average across players of (sum across their seasons)
+          const careerByUser = userIdsAll.map((uid) => {
+            const userSnaps = byUser.get(uid)!;
+            return userSnaps.reduce(
+              (acc, s) => {
+                acc.matches_played += s.matches_played || 0;
+                acc.matches_won += s.matches_won || 0;
+                acc.sets_won += s.sets_won || 0;
+                acc.sets_lost += s.sets_lost || 0;
+                acc.games_won += s.games_won || 0;
+                acc.games_lost += s.games_lost || 0;
+                if ((s.matches_played || 0) > 0) acc.seasons_played += 1;
+                return acc;
+              },
+              { matches_played: 0, matches_won: 0, sets_won: 0, sets_lost: 0, games_won: 0, games_lost: 0, seasons_played: 0 },
+            );
+          });
+          const Nu = careerByUser.length || 1;
+          const avgCareer = {
+            matches_played: Math.round(careerByUser.reduce((a, c) => a + c.matches_played, 0) / Nu),
+            matches_won: Math.round(careerByUser.reduce((a, c) => a + c.matches_won, 0) / Nu),
+            sets_won: Math.round(careerByUser.reduce((a, c) => a + c.sets_won, 0) / Nu),
+            sets_lost: Math.round(careerByUser.reduce((a, c) => a + c.sets_lost, 0) / Nu),
+            games_won: Math.round(careerByUser.reduce((a, c) => a + c.games_won, 0) / Nu),
+            games_lost: Math.round(careerByUser.reduce((a, c) => a + c.games_lost, 0) / Nu),
+            seasons_played: Math.round(careerByUser.reduce((a, c) => a + c.seasons_played, 0) / Nu),
+            titles: 0,
+            podiums: 0,
+            best_position: null as number | null,
+          };
+
+          // Average current Elo
+          const currentEloByUser: number[] = [];
+          for (const uid of userIdsAll) {
+            const userEvts = events.filter((e: any) => e.user_id === uid);
+            if (userEvts.length) currentEloByUser.push(Number(userEvts[userEvts.length - 1].rating_after));
+            else {
+              const sn = byUser.get(uid)!;
+              if (sn.length) currentEloByUser.push(Number(sn[0].rating));
+            }
+          }
+          const eloCurrent = currentEloByUser.length
+            ? currentEloByUser.reduce((a, x) => a + x, 0) / currentEloByUser.length
+            : 1000;
+
+          // Avg presence rate
+          const presenceByUser = new Map<string, Set<string>>();
+          for (const p of presence) {
+            if (!completedRoundIds.has(p.round_id)) continue;
+            if (p.status !== "confirmed" && p.status !== "present") continue;
+            const set = presenceByUser.get(p.user_id) || new Set<string>();
+            set.add(p.round_id);
+            presenceByUser.set(p.user_id, set);
+          }
+          const presenceCount = userIdsAll.length
+            ? Math.round(
+                userIdsAll.reduce((a, uid) => a + (presenceByUser.get(uid)?.size || 0), 0) / userIdsAll.length,
+              )
+            : 0;
+
+          return {
+            profile: { user_id: GROUP_AVG_ID, name: "Média do grupo", nickname: "Média do grupo", avatar_url: null },
+            seasons: avgSeasons,
+            career: avgCareer,
+            eloSeries: [],
+            eloPeak: Math.round(eloCurrent),
+            eloLow: Math.round(eloCurrent),
+            eloCurrent,
+            streakMax: 0,
+            streakCurrent: 0,
+            roundsPresent: presenceCount,
+            roundsTotal: completedRoundIds.size,
+          };
+        };
+
+        const aggregates: PlayerAggregate[] = userIds.map((uid) =>
+          uid === GROUP_AVG_ID ? buildGroupAverage() : buildAggregate(uid, profilesMap.get(uid)!),
+        );
+
+        // H2H computation only makes sense for exactly 2 real players
         let h2hData: H2HData | null = null;
-        if (userIds.length === 2) {
-          const [uA, uB] = userIds;
+        if (realIds.length === 2 && !hasGroupAvg) {
+          const [uA, uB] = realIds;
+          const h2hMetaMap = new Map(h2hMatchesMeta.map((m: any) => [m.id, m]));
           const matchToPlayers = new Map<string, any[]>();
-          for (const mp of matchPlayers) {
+          for (const mp of h2hMatchPlayers) {
             const arr = matchToPlayers.get(mp.match_id) || [];
             arr.push(mp);
             matchToPlayers.set(mp.match_id, arr);
           }
 
-          const sharedMatchIds: string[] = [];
-          for (const [mid, ps] of matchToPlayers.entries()) {
-            const hasA = ps.some((p) => p.user_id === uA);
-            const hasB = ps.some((p) => p.user_id === uB);
-            if (hasA && hasB) sharedMatchIds.push(mid);
-          }
+          const sharedMatchIds = Array.from(matchToPlayers.keys()).filter((mid) => {
+            const ps = matchToPlayers.get(mid)!;
+            return ps.some((p) => p.user_id === uA) && ps.some((p) => p.user_id === uB);
+          });
 
           const othersByMatch = new Map<string, { user_id: string; team: "A" | "B" }[]>();
           const extraProfileMap = new Map<string, string>();
           if (sharedMatchIds.length) {
-            const { data: allPlayers, error: apErr } = await supabase
-              .from("match_players")
-              .select("match_id, user_id, team")
-              .in("match_id", sharedMatchIds);
-            if (apErr) throw apErr;
             const otherUserIds = new Set<string>();
-            for (const mp of allPlayers || []) {
+            for (const mp of h2hMatchPlayers) {
+              if (!sharedMatchIds.includes(mp.match_id)) continue;
               if (mp.user_id === uA || mp.user_id === uB) continue;
               const arr = othersByMatch.get(mp.match_id) || [];
               arr.push({ user_id: mp.user_id, team: mp.team as "A" | "B" });
@@ -427,11 +620,12 @@ function ComparePage() {
           let aWon = 0;
           let bWon = 0;
 
-          for (const [matchId, ps] of matchToPlayers.entries()) {
+          for (const matchId of sharedMatchIds) {
+            const ps = matchToPlayers.get(matchId)!;
             const a = ps.find((p) => p.user_id === uA);
             const b = ps.find((p) => p.user_id === uB);
             if (!a || !b) continue;
-            const meta = matchMetaMap.get(matchId);
+            const meta = h2hMetaMap.get(matchId);
             if (!meta || meta.status !== "completed") continue;
 
             const sameTeam = a.team === b.team;
@@ -462,7 +656,7 @@ function ComparePage() {
               bTeam: b.team,
               winner,
               created_at: meta.created_at,
-              sets: setsByMatch.get(matchId) || [],
+              sets: h2hSetsByMatch.get(matchId) || [],
               others,
             });
           }
@@ -472,7 +666,7 @@ function ComparePage() {
           h2hData = {
             asPartners: { played: asPartnersPlayed, won: asPartnersWon },
             asOpponents: { played: asOppPlayed, aWon, bWon },
-            recentMeetings: meetings.slice(0, 10),
+            recentMeetings: meetings, // keep ALL meetings; UI handles slicing
           };
         }
 
@@ -508,6 +702,70 @@ function ComparePage() {
     navigate({ to: "/ranking/compare", search: (prev: any) => ({ ...prev, tab: next }) });
   };
 
+  const heroRef = useRef<HTMLDivElement | null>(null);
+  const [exporting, setExporting] = useState(false);
+
+  const toggleGroupAvg = () => {
+    const isOn = userIds.includes(GROUP_AVG_ID);
+    if (isOn) {
+      // remove the avg slot, keep first real id as A and pick next real as B if present
+      navigate({
+        to: "/ranking/compare",
+        search: (prev: any) => {
+          const real = [prev.a, prev.b, prev.c, prev.d].filter((x: string) => x && x !== GROUP_AVG_ID);
+          return { ...prev, a: real[0] || "", b: real[1] || "", c: "", d: "" };
+        },
+      });
+    } else {
+      // require at least 1 real player; replace B with avg
+      navigate({
+        to: "/ranking/compare",
+        search: (prev: any) => ({ ...prev, b: GROUP_AVG_ID, c: "", d: "" }),
+      });
+    }
+  };
+
+  const exportPng = async () => {
+    if (!heroRef.current) return;
+    setExporting(true);
+    try {
+      const dataUrl = await toPng(heroRef.current, {
+        cacheBust: true,
+        pixelRatio: 2,
+        backgroundColor: getComputedStyle(document.documentElement).getPropertyValue("--background")
+          ? `oklch(${getComputedStyle(document.documentElement).getPropertyValue("--background").trim()})`
+          : "#0a0a0a",
+      });
+      // Try to share as file (mobile)
+      const blob = await (await fetch(dataUrl)).blob();
+      const file = new File([blob], `comparativo-${Date.now()}.png`, { type: "image/png" });
+      const nav = navigator as Navigator & {
+        canShare?: (data: { files: File[] }) => boolean;
+        share?: (data: { files?: File[]; title?: string; text?: string }) => Promise<void>;
+      };
+      if (nav.canShare && nav.canShare({ files: [file] }) && nav.share) {
+        try {
+          await nav.share({ files: [file], title: "Comparativo", text: "Comparativo de jogadores" });
+          return;
+        } catch (err: any) {
+          if (err?.name === "AbortError") return;
+          // fall through to download
+        }
+      }
+      // Fallback: download
+      const link = document.createElement("a");
+      link.download = file.name;
+      link.href = dataUrl;
+      link.click();
+      toast.success("Imagem baixada");
+    } catch (e) {
+      console.error("Export PNG failed:", e);
+      toast.error("Não foi possível gerar a imagem");
+    } finally {
+      setExporting(false);
+    }
+  };
+
   const share = async () => {
     const url = window.location.href;
     const title =
@@ -515,7 +773,6 @@ function ComparePage() {
         ? `Comparativo: ${players.map((p) => displayName(p)).join(" vs ")}`
         : "Comparativo";
     const text = title;
-    // Try Web Share API first (mobile / supported browsers)
     const nav = navigator as Navigator & {
       share?: (data: { title?: string; text?: string; url?: string }) => Promise<void>;
     };
@@ -524,12 +781,9 @@ function ComparePage() {
         await nav.share({ title, text, url });
         return;
       } catch (err: any) {
-        // User cancelled — don't fall through to clipboard
         if (err?.name === "AbortError") return;
-        // Other errors fall through to clipboard fallback
       }
     }
-    // Clipboard fallback
     try {
       if (navigator.clipboard?.writeText) {
         await navigator.clipboard.writeText(url);
@@ -537,7 +791,6 @@ function ComparePage() {
         return;
       }
     } catch { /* ignore */ }
-    // Last-resort fallback
     try {
       const ta = document.createElement("textarea");
       ta.value = url;
@@ -583,14 +836,26 @@ function ComparePage() {
             <p className="truncate font-display text-sm font-bold text-foreground lg:text-base">Comparativo</p>
             {groupName && <p className="truncate text-[10px] text-muted-foreground lg:text-xs">{groupName}</p>}
           </div>
-          <button
-            onClick={share}
-            className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card/60 px-3 py-1.5 text-xs font-semibold text-foreground transition hover:bg-accent"
-            aria-label="Compartilhar"
-          >
-            <Share2 className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">Compartilhar</span>
-          </button>
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={exportPng}
+              disabled={exporting || N >= 3}
+              className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card/60 px-3 py-1.5 text-xs font-semibold text-foreground transition hover:bg-accent disabled:opacity-50"
+              aria-label="Exportar como imagem"
+              title="Exportar como imagem PNG"
+            >
+              <ImageIcon className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">{exporting ? "Gerando..." : "Imagem"}</span>
+            </button>
+            <button
+              onClick={share}
+              className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card/60 px-3 py-1.5 text-xs font-semibold text-foreground transition hover:bg-accent"
+              aria-label="Compartilhar"
+            >
+              <Share2 className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Compartilhar</span>
+            </button>
+          </div>
         </div>
       </header>
 
@@ -610,22 +875,40 @@ function ComparePage() {
           <MultiCompareTable players={players} latestSeasonId={latestSeasonId} groupId={groupId} />
         ) : !playerA || !playerB ? null : (
           <>
+            {/* Quick action: compare with group average */}
+            <div className="mb-3 flex flex-wrap items-center justify-end gap-2">
+              <button
+                onClick={toggleGroupAvg}
+                className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-semibold transition ${
+                  userIds.includes(GROUP_AVG_ID)
+                    ? "border-primary bg-primary/15 text-primary"
+                    : "border-border bg-card/60 text-foreground hover:bg-accent"
+                }`}
+                title="Compara com a média de todos jogadores elegíveis do grupo"
+              >
+                <BarChart3 className="h-3.5 w-3.5" />
+                {userIds.includes(GROUP_AVG_ID) ? "Comparando com média do grupo" : "Comparar com média do grupo"}
+              </button>
+            </div>
+
             {/* HERO: head to head */}
-            <section className="rounded-3xl border border-border bg-card/40 p-4 lg:p-6">
+            <section ref={heroRef} className="rounded-3xl border border-border bg-card/40 p-4 lg:p-6">
               <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 lg:gap-6">
                 <PlayerHero player={playerA} side="left" />
                 <div className="flex flex-col items-center gap-2">
                   <div className="rounded-full bg-primary/15 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-primary">
                     VS
                   </div>
-                  <button
-                    onClick={swap}
-                    className="inline-flex items-center gap-1 rounded-full border border-border bg-background/60 px-2 py-1 text-[10px] font-semibold text-muted-foreground hover:bg-accent"
-                    title="Inverter posições"
-                  >
-                    <ArrowLeftRight className="h-3 w-3" />
-                    Inverter
-                  </button>
+                  {!userIds.includes(GROUP_AVG_ID) && (
+                    <button
+                      onClick={swap}
+                      className="inline-flex items-center gap-1 rounded-full border border-border bg-background/60 px-2 py-1 text-[10px] font-semibold text-muted-foreground hover:bg-accent"
+                      title="Inverter posições"
+                    >
+                      <ArrowLeftRight className="h-3 w-3" />
+                      Inverter
+                    </button>
+                  )}
                 </div>
                 <PlayerHero player={playerB} side="right" />
               </div>
@@ -728,7 +1011,7 @@ function formatMeetingDate(iso: string) {
   } catch { return ""; }
 }
 
-type MeetingFilter = "all" | "opponents" | "partners";
+type MeetingFilter = "last10" | "opponents" | "partners" | "all";
 
 function RecentMeetings({
   h2h, groupId, a, b,
@@ -740,196 +1023,214 @@ function RecentMeetings({
 }) {
   const nameA = displayName(a);
   const nameB = displayName(b);
-  const [filter, setFilter] = useState<MeetingFilter>("all");
-  const [showAll, setShowAll] = useState(false);
+  const [filter, setFilter] = useState<MeetingFilter>("last10");
+  const [allSub, setAllSub] = useState<"none" | "opponents" | "partners">("none");
 
   const filtered = useMemo(() => {
+    if (filter === "last10") return h2h.recentMeetings.slice(0, 10);
     if (filter === "opponents") return h2h.recentMeetings.filter((m) => !m.asPartners);
     if (filter === "partners") return h2h.recentMeetings.filter((m) => m.asPartners);
+    if (allSub === "opponents") return h2h.recentMeetings.filter((m) => !m.asPartners);
+    if (allSub === "partners") return h2h.recentMeetings.filter((m) => m.asPartners);
     return h2h.recentMeetings;
-  }, [filter, h2h.recentMeetings]);
-
-  const visible = showAll ? filtered : filtered.slice(0, 5);
+  }, [filter, allSub, h2h.recentMeetings]);
 
   const counts = useMemo(() => ({
-    all: h2h.recentMeetings.length,
+    last10: Math.min(10, h2h.recentMeetings.length),
     opponents: h2h.recentMeetings.filter((m) => !m.asPartners).length,
     partners: h2h.recentMeetings.filter((m) => m.asPartners).length,
+    all: h2h.recentMeetings.length,
   }), [h2h.recentMeetings]);
+
+  const filterOptions: { id: MeetingFilter; label: string; count: number; desc: string }[] = [
+    { id: "last10", label: "10 últimos", count: counts.last10, desc: "Confrontos mais recentes" },
+    { id: "opponents", label: "Adversários", count: counts.opponents, desc: "Quando jogaram em times opostos" },
+    { id: "partners", label: "Parceiros", count: counts.partners, desc: "Quando formaram dupla" },
+    { id: "all", label: "Todos", count: counts.all, desc: "Histórico completo no grupo" },
+  ];
 
   return (
     <section className="mt-3 rounded-3xl border border-border bg-card/40 p-4 lg:p-5">
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <Swords className="h-4 w-4 text-destructive" />
         <h2 className="font-display text-sm font-bold text-foreground">Confrontos</h2>
-        <span className="ml-auto text-[10px] text-muted-foreground">{visible.length} de {filtered.length}</span>
+        <span className="ml-auto text-[10px] text-muted-foreground">{filtered.length} jogo{filtered.length === 1 ? "" : "s"}</span>
       </div>
 
-      {/* Filter pills */}
-      <div className="mb-3 inline-flex flex-wrap gap-1 rounded-full border border-border bg-background/40 p-1">
-        <FilterPill active={filter === "all"} onClick={() => { setFilter("all"); setShowAll(false); }}>
-          Todos <span className="ml-1 opacity-70">{counts.all}</span>
-        </FilterPill>
-        <FilterPill active={filter === "opponents"} onClick={() => { setFilter("opponents"); setShowAll(false); }}>
-          Adversários <span className="ml-1 opacity-70">{counts.opponents}</span>
-        </FilterPill>
-        <FilterPill active={filter === "partners"} onClick={() => { setFilter("partners"); setShowAll(false); }}>
-          Parceiros <span className="ml-1 opacity-70">{counts.partners}</span>
-        </FilterPill>
-      </div>
-
-      {filtered.length === 0 ? (
-        <p className="py-6 text-center text-xs text-muted-foreground">Nenhum confronto neste filtro.</p>
-      ) : (
-        <ul className="flex flex-col divide-y divide-border/30 overflow-hidden rounded-xl border border-border/40 bg-background/30">
-          {visible.map((m) => {
-            const aWonMatch = m.winner === m.aTeam;
-            const bWonMatch = m.winner === m.bTeam;
-            const sameTeam = m.asPartners;
-            const scoreLine = m.sets.length
-              ? m.sets
-                  .map((s) => {
-                    if (sameTeam) {
-                      const own = m.aTeam === "A" ? s.score_team_a : s.score_team_b;
-                      const opp = m.aTeam === "A" ? s.score_team_b : s.score_team_a;
-                      return `${own}-${opp}`;
-                    }
-                    const aScore = m.aTeam === "A" ? s.score_team_a : s.score_team_b;
-                    const bScore = m.bTeam === "A" ? s.score_team_a : s.score_team_b;
-                    return `${aScore}-${bScore}`;
-                  })
-                  .join(" ")
-              : "—";
-            const canLink = !!m.season_id;
-
-            // Build "others" context line
-            let othersLine: React.ReactNode = null;
-            if (m.others.length > 0) {
-              if (sameTeam) {
-                const oppTeam = m.aTeam === "A" ? "B" : "A";
-                const opponents = m.others.filter((o) => o.team === oppTeam).map((o) => o.name);
-                if (opponents.length) {
-                  othersLine = <>vs <span className="text-foreground/80">{opponents.join(" & ")}</span></>;
-                }
-              } else {
-                const aPartner = m.others.find((o) => o.team === m.aTeam);
-                const bPartner = m.others.find((o) => o.team === m.bTeam);
-                if (aPartner || bPartner) {
-                  othersLine = (
-                    <>
-                      <span className="text-foreground/80">{aPartner?.name ?? "—"}</span>
-                      <span className="mx-1 opacity-60">/</span>
-                      <span className="text-foreground/80">{bPartner?.name ?? "—"}</span>
-                    </>
-                  );
-                }
-              }
-            }
-
-            const winLabel = sameTeam
-              ? (m.winner ? (m.winner === m.aTeam ? "V" : "D") : "—")
-              : null;
-            const winLabelClass = sameTeam
-              ? (m.winner ? (m.winner === m.aTeam ? "text-success" : "text-destructive") : "text-muted-foreground")
-              : "";
-
-            const inner = (
-              <div className="flex items-center gap-2.5 px-3 py-2">
-                {/* Badge */}
-                <span
-                  className={`shrink-0 rounded-full px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider ring-1 ${
-                    sameTeam
-                      ? "bg-primary/15 text-primary ring-primary/30"
-                      : "bg-destructive/10 text-destructive ring-destructive/25"
-                  }`}
-                  title={sameTeam ? "Parceiros" : "Adversários"}
-                >
-                  {sameTeam ? "DUPLA" : "VS"}
-                </span>
-
-                {/* Names + others (compact) */}
-                <div className="min-w-0 flex-1">
-                  {sameTeam ? (
-                    <p className="truncate text-[12px] font-semibold leading-tight text-foreground">
-                      {nameA} & {nameB}
-                    </p>
-                  ) : (
-                    <p className="truncate text-[12px] font-semibold leading-tight">
-                      <span className={aWonMatch ? "text-success" : "text-foreground"}>{nameA}</span>
-                      <span className="mx-1 text-muted-foreground">vs</span>
-                      <span className={bWonMatch ? "text-success" : "text-foreground"}>{nameB}</span>
-                    </p>
-                  )}
-                  {othersLine && (
-                    <p className="truncate text-[10px] text-muted-foreground leading-tight">
-                      {othersLine}
-                    </p>
-                  )}
-                </div>
-
-                {/* Score */}
-                <div className="shrink-0 inline-flex items-center gap-1.5 rounded-md bg-muted/50 px-2 py-1">
-                  {winLabel && (
-                    <span className={`font-display text-[10px] font-bold ${winLabelClass}`}>{winLabel}</span>
-                  )}
-                  <span className="font-display text-[12px] font-bold tabular-nums text-foreground">
-                    {scoreLine}
-                  </span>
-                </div>
-
-                {/* Date */}
-                <p className="shrink-0 text-[9px] uppercase tracking-wider text-muted-foreground/80 leading-tight tabular-nums w-[68px] text-right">
-                  {formatMeetingDate(m.created_at)}
-                </p>
-              </div>
-            );
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-[180px_1fr]">
+        <aside className="flex flex-col gap-1 rounded-2xl border border-border/40 bg-background/30 p-2">
+          {filterOptions.map((opt) => {
+            const active = filter === opt.id;
             return (
-              <li key={m.match_id} className="bg-background/0 transition hover:bg-background/40">
-                {canLink ? (
-                  <Link
-                    to="/groups/$groupId/seasons/$seasonId/rounds/$roundId"
-                    params={{ groupId, seasonId: m.season_id, roundId: m.round_id }}
-                    className="block transition active:bg-accent/40 hover:bg-accent/20"
-                  >
-                    {inner}
-                  </Link>
-                ) : (
-                  <div>{inner}</div>
-                )}
-              </li>
+              <button
+                key={opt.id}
+                type="button"
+                onClick={() => { setFilter(opt.id); setAllSub("none"); }}
+                className={`flex items-center justify-between gap-2 rounded-xl px-3 py-2 text-left text-[11px] font-semibold transition ${
+                  active
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:bg-accent/40 hover:text-foreground"
+                }`}
+                title={opt.desc}
+              >
+                <span className="truncate">{opt.label}</span>
+                <span className={`shrink-0 rounded-full px-1.5 py-0.5 text-[9px] tabular-nums ${active ? "bg-primary-foreground/20" : "bg-muted/50"}`}>
+                  {opt.count}
+                </span>
+              </button>
             );
           })}
-        </ul>
-      )}
 
-      {filtered.length > 5 && (
-        <div className="mt-3 flex justify-center">
-          <button
-            type="button"
-            onClick={() => setShowAll((v) => !v)}
-            className="rounded-full border border-border bg-background/60 px-3 py-1.5 text-[11px] font-semibold text-foreground transition hover:bg-accent"
-          >
-            {showAll ? "Mostrar menos" : `Ver histórico completo (${filtered.length})`}
-          </button>
+          {filter === "all" && (
+            <div className="mt-1 border-t border-border/40 pt-2">
+              <p className="px-2 pb-1 text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">Filtrar</p>
+              {([
+                { id: "none", label: "Tudo" },
+                { id: "opponents", label: "Adversários" },
+                { id: "partners", label: "Parceiros" },
+              ] as const).map((s) => {
+                const active = allSub === s.id;
+                return (
+                  <button
+                    key={s.id}
+                    type="button"
+                    onClick={() => setAllSub(s.id)}
+                    className={`block w-full rounded-lg px-3 py-1 text-left text-[10px] font-semibold transition ${
+                      active ? "bg-accent text-foreground" : "text-muted-foreground hover:bg-accent/40 hover:text-foreground"
+                    }`}
+                  >
+                    {s.label}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </aside>
+
+        <div>
+          {filtered.length === 0 ? (
+            <p className="rounded-2xl border border-border/40 bg-background/30 py-8 text-center text-xs text-muted-foreground">
+              Nenhum confronto neste filtro.
+            </p>
+          ) : (
+            <ul className="flex flex-col divide-y divide-border/30 overflow-hidden rounded-2xl border border-border/40 bg-background/30">
+              {filtered.map((m) => {
+                const aWonMatch = m.winner === m.aTeam;
+                const bWonMatch = m.winner === m.bTeam;
+                const sameTeam = m.asPartners;
+                const scoreLine = m.sets.length
+                  ? m.sets
+                      .map((s) => {
+                        if (sameTeam) {
+                          const own = m.aTeam === "A" ? s.score_team_a : s.score_team_b;
+                          const opp = m.aTeam === "A" ? s.score_team_b : s.score_team_a;
+                          return `${own}-${opp}`;
+                        }
+                        const aScore = m.aTeam === "A" ? s.score_team_a : s.score_team_b;
+                        const bScore = m.bTeam === "A" ? s.score_team_a : s.score_team_b;
+                        return `${aScore}-${bScore}`;
+                      })
+                      .join(" ")
+                  : "—";
+                const canLink = !!m.season_id;
+
+                let othersLine: React.ReactNode = null;
+                if (m.others.length > 0) {
+                  if (sameTeam) {
+                    const oppTeam = m.aTeam === "A" ? "B" : "A";
+                    const opponents = m.others.filter((o) => o.team === oppTeam).map((o) => o.name);
+                    if (opponents.length) {
+                      othersLine = <>vs <span className="text-foreground/80">{opponents.join(" & ")}</span></>;
+                    }
+                  } else {
+                    const aPartner = m.others.find((o) => o.team === m.aTeam);
+                    const bPartner = m.others.find((o) => o.team === m.bTeam);
+                    if (aPartner || bPartner) {
+                      othersLine = (
+                        <>
+                          <span className="text-foreground/80">{aPartner?.name ?? "—"}</span>
+                          <span className="mx-1 opacity-60">/</span>
+                          <span className="text-foreground/80">{bPartner?.name ?? "—"}</span>
+                        </>
+                      );
+                    }
+                  }
+                }
+
+                const winLabel = sameTeam
+                  ? (m.winner ? (m.winner === m.aTeam ? "V" : "D") : "—")
+                  : null;
+                const winLabelClass = sameTeam
+                  ? (m.winner ? (m.winner === m.aTeam ? "text-success" : "text-destructive") : "text-muted-foreground")
+                  : "";
+
+                const inner = (
+                  <div className="flex items-center gap-2.5 px-3 py-2">
+                    <span
+                      className={`shrink-0 rounded-full px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider ring-1 ${
+                        sameTeam
+                          ? "bg-primary/15 text-primary ring-primary/30"
+                          : "bg-destructive/10 text-destructive ring-destructive/25"
+                      }`}
+                      title={sameTeam ? "Parceiros" : "Adversários"}
+                    >
+                      {sameTeam ? "DUPLA" : "VS"}
+                    </span>
+
+                    <div className="min-w-0 flex-1">
+                      {sameTeam ? (
+                        <p className="truncate text-[12px] font-semibold leading-tight text-foreground">
+                          {nameA} & {nameB}
+                        </p>
+                      ) : (
+                        <p className="truncate text-[12px] font-semibold leading-tight">
+                          <span className={aWonMatch ? "text-success" : "text-foreground"}>{nameA}</span>
+                          <span className="mx-1 text-muted-foreground">vs</span>
+                          <span className={bWonMatch ? "text-success" : "text-foreground"}>{nameB}</span>
+                        </p>
+                      )}
+                      {othersLine && (
+                        <p className="truncate text-[10px] text-muted-foreground leading-tight">
+                          {othersLine}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="shrink-0 inline-flex items-center gap-1.5 rounded-md bg-muted/50 px-2 py-1">
+                      {winLabel && (
+                        <span className={`font-display text-[10px] font-bold ${winLabelClass}`}>{winLabel}</span>
+                      )}
+                      <span className="font-display text-[12px] font-bold tabular-nums text-foreground">
+                        {scoreLine}
+                      </span>
+                    </div>
+
+                    <p className="shrink-0 text-[9px] uppercase tracking-wider text-muted-foreground/80 leading-tight tabular-nums w-[68px] text-right">
+                      {formatMeetingDate(m.created_at)}
+                    </p>
+                  </div>
+                );
+                return (
+                  <li key={m.match_id} className="bg-background/0 transition hover:bg-background/40">
+                    {canLink ? (
+                      <Link
+                        to="/groups/$groupId/seasons/$seasonId/rounds/$roundId"
+                        params={{ groupId, seasonId: m.season_id, roundId: m.round_id }}
+                        className="block transition active:bg-accent/40 hover:bg-accent/20"
+                      >
+                        {inner}
+                      </Link>
+                    ) : (
+                      <div>{inner}</div>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          )}
         </div>
-      )}
+      </div>
     </section>
-  );
-}
-
-function FilterPill({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`rounded-full px-3 py-1 text-[10px] font-semibold uppercase tracking-wider transition ${
-        active
-          ? "bg-primary text-primary-foreground"
-          : "text-muted-foreground hover:bg-accent/40 hover:text-foreground"
-      }`}
-    >
-      {children}
-    </button>
   );
 }
 
@@ -938,15 +1239,39 @@ function displayName(p: PlayerAggregate) {
 }
 
 function PlayerHero({ player, side }: { player: PlayerAggregate; side: "left" | "right" }) {
+  const last10 = player.eloSeries.slice(-10).map((p) => p.rating);
+  const trend = last10.length >= 2 ? last10[last10.length - 1] - last10[0] : 0;
   return (
     <div className={`flex flex-col items-center gap-2 ${side === "right" ? "" : ""}`}>
       <PlayerAvatar avatarUrl={player.profile.avatar_url} name={player.profile.name} size="lg" className="!h-16 !w-16 lg:!h-20 lg:!w-20 border-2 border-primary/30" />
       <p className="text-center font-display text-sm font-bold text-foreground lg:text-base truncate max-w-full">
         {displayName(player)}
       </p>
+      {last10.length >= 2 && (
+        <MiniSparkline values={last10} trendPositive={trend >= 0} />
+      )}
       <p className="font-display text-2xl font-bold text-primary lg:text-3xl">{Math.round(player.eloCurrent)}</p>
       <p className="text-[10px] text-muted-foreground">Pico {Math.round(player.eloPeak)} · Mín {Math.round(player.eloLow)}</p>
     </div>
+  );
+}
+
+function MiniSparkline({ values, trendPositive }: { values: number[]; trendPositive: boolean }) {
+  const W = 80;
+  const H = 22;
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const range = max - min || 1;
+  const pts = values.map((v, i) => {
+    const x = values.length === 1 ? W / 2 : (i / (values.length - 1)) * W;
+    const y = H - ((v - min) / range) * H;
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  });
+  const color = trendPositive ? "var(--success)" : "var(--destructive)";
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} className="h-5 w-20" preserveAspectRatio="none" aria-label="Últimos 10 jogos">
+      <polyline fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" points={pts.join(" ")} />
+    </svg>
   );
 }
 
