@@ -19,6 +19,10 @@ import {
   Swords,
   X,
   Check,
+  GripVertical,
+  Pencil,
+  Medal,
+  Rocket,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useMyGroups } from "@/hooks/use-groups";
@@ -67,7 +71,10 @@ interface FavoriteRow {
   label: string;
   group_id: string;
   player_ids: string[];
+  sort_order: number;
 }
+
+const MAX_FAVORITES = 10;
 
 interface Suggestion {
   key: string;
@@ -93,6 +100,9 @@ function CompareLandingPage() {
   const [favorites, setFavorites] = useState<FavoriteRow[]>([]);
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [favLabel, setFavLabel] = useState("");
+  const [renameTarget, setRenameTarget] = useState<FavoriteRow | null>(null);
+  const [renameLabel, setRenameLabel] = useState("");
+  const [dragId, setDragId] = useState<string | null>(null);
 
   // Suggestions
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
@@ -144,7 +154,7 @@ function CompareLandingPage() {
           return;
         }
 
-        const [profilesRes, snapsRes] = await Promise.all([
+        const [profilesRes, snapsRes, statsRes] = await Promise.all([
           supabase
             .from("user_profiles")
             .select("user_id, name, nickname, avatar_url")
@@ -152,7 +162,14 @@ function CompareLandingPage() {
           sId
             ? supabase
                 .from("ranking_snapshots")
-                .select("user_id, rating")
+                .select("user_id, rating, position, matches_played")
+                .eq("season_id", sId)
+                .in("user_id", userIds)
+            : Promise.resolve({ data: [] as any[] }),
+          sId
+            ? supabase
+                .from("player_stats_by_season")
+                .select("user_id, matches_played")
                 .eq("season_id", sId)
                 .in("user_id", userIds)
             : Promise.resolve({ data: [] as any[] }),
@@ -161,6 +178,17 @@ function CompareLandingPage() {
         const ratingMap = new Map<string, number>();
         for (const r of (snapsRes.data as any[]) || []) {
           ratingMap.set(r.user_id, Number(r.rating));
+        }
+
+        const gamesMap = new Map<string, number>();
+        for (const r of (statsRes.data as any[]) || []) {
+          gamesMap.set(r.user_id, Number(r.matches_played) || 0);
+        }
+        // Fallback: ranking_snapshots also has matches_played
+        for (const r of (snapsRes.data as any[]) || []) {
+          if (!gamesMap.has(r.user_id) && r.matches_played != null) {
+            gamesMap.set(r.user_id, Number(r.matches_played));
+          }
         }
 
         // Recent trend: sum of last 5 rating_changes per user in current season
@@ -307,6 +335,37 @@ function CompareLandingPage() {
           console.warn("rivalry suggestion failed", e);
         }
 
+        // Disputa pelo pódio — 3º vs 4º colocados
+        if (ranked.length >= 4) {
+          const t3 = ranked[2];
+          const t4 = ranked[3];
+          const diff = Math.round((t3.rating ?? 0) - (t4.rating ?? 0));
+          sug.push({
+            key: "podium",
+            title: "Disputa pelo pódio",
+            subtitle: `${displayOf(t3)} vs ${displayOf(t4)} · ${diff} pts de diferença`,
+            icon: <Medal className="h-4 w-4 text-primary" />,
+            player_ids: [t3.user_id, t4.user_id],
+          });
+        }
+
+        // Estreantes em destaque — <10 jogos, maior Elo
+        const rookies = ranked.filter((m) => {
+          const g = gamesMap.get(m.user_id) ?? 0;
+          return g > 0 && g < 10;
+        });
+        if (rookies.length >= 2) {
+          const r1 = rookies[0];
+          const r2 = rookies[1];
+          sug.push({
+            key: "rookies",
+            title: "Estreantes em destaque",
+            subtitle: `${displayOf(r1)} (${gamesMap.get(r1.user_id)}j) vs ${displayOf(r2)} (${gamesMap.get(r2.user_id)}j)`,
+            icon: <Rocket className="h-4 w-4 text-primary" />,
+            player_ids: [r1.user_id, r2.user_id],
+          });
+        }
+
         if (!cancelled) {
           setMembers(list);
           setActiveSeasonId(sId);
@@ -330,9 +389,10 @@ function CompareLandingPage() {
     }
     const { data } = await supabase
       .from("compare_favorites" as any)
-      .select("id, label, group_id, player_ids")
+      .select("id, label, group_id, player_ids, sort_order")
       .eq("user_id", user.id)
       .eq("group_id", selectedGroupId)
+      .order("sort_order", { ascending: true })
       .order("created_at", { ascending: false });
     setFavorites((data as any[]) || []);
   }, [user, selectedGroupId]);
@@ -415,12 +475,20 @@ function CompareLandingPage() {
 
   const saveFavorite = async () => {
     if (!user || !selectedGroupId || picked.length < 2) return;
+    if (favorites.length >= MAX_FAVORITES) {
+      toast.error(`Limite de ${MAX_FAVORITES} favoritos por grupo atingido`);
+      return;
+    }
     const label = favLabel.trim() || "Comparação";
+    const nextOrder = favorites.length
+      ? Math.max(...favorites.map((f) => f.sort_order ?? 0)) + 1
+      : 0;
     const { error } = await supabase.from("compare_favorites" as any).insert({
       user_id: user.id,
       group_id: selectedGroupId,
       label,
       player_ids: picked,
+      sort_order: nextOrder,
     });
     if (error) {
       toast.error("Não foi possível salvar o favorito");
@@ -438,6 +506,64 @@ function CompareLandingPage() {
       return;
     }
     setFavorites((prev) => prev.filter((f) => f.id !== id));
+  };
+
+  const openRename = (fav: FavoriteRow) => {
+    setRenameTarget(fav);
+    setRenameLabel(fav.label);
+  };
+
+  const confirmRename = async () => {
+    if (!renameTarget) return;
+    const label = renameLabel.trim();
+    if (!label) {
+      toast.error("Informe um nome");
+      return;
+    }
+    const { error } = await supabase
+      .from("compare_favorites" as any)
+      .update({ label })
+      .eq("id", renameTarget.id);
+    if (error) {
+      toast.error("Erro ao renomear");
+      return;
+    }
+    setFavorites((prev) =>
+      prev.map((f) => (f.id === renameTarget.id ? { ...f, label } : f)),
+    );
+    setRenameTarget(null);
+  };
+
+  const persistOrder = async (ordered: FavoriteRow[]) => {
+    // Optimistic update
+    setFavorites(ordered.map((f, i) => ({ ...f, sort_order: i })));
+    // Persist sequentially
+    for (let i = 0; i < ordered.length; i++) {
+      await supabase
+        .from("compare_favorites" as any)
+        .update({ sort_order: i })
+        .eq("id", ordered[i].id);
+    }
+  };
+
+  const handleDragStart = (id: string) => setDragId(id);
+  const handleDragOver = (e: React.DragEvent, overId: string) => {
+    e.preventDefault();
+    if (!dragId || dragId === overId) return;
+    setFavorites((prev) => {
+      const fromIdx = prev.findIndex((f) => f.id === dragId);
+      const toIdx = prev.findIndex((f) => f.id === overId);
+      if (fromIdx < 0 || toIdx < 0) return prev;
+      const next = [...prev];
+      const [moved] = next.splice(fromIdx, 1);
+      next.splice(toIdx, 0, moved);
+      return next;
+    });
+  };
+  const handleDragEnd = () => {
+    if (!dragId) return;
+    setDragId(null);
+    void persistOrder(favorites);
   };
 
   if (loadingGroups) {
@@ -564,22 +690,45 @@ function CompareLandingPage() {
             {/* Favorites */}
             {favorites.length > 0 && (
               <section className="mb-5">
-                <div className="flex items-center gap-2 mb-2">
-                  <Heart className="h-3.5 w-3.5 text-primary fill-primary" />
-                  <p className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground">
-                    Seus favoritos
-                  </p>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <Heart className="h-3.5 w-3.5 text-primary fill-primary" />
+                    <p className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground">
+                      Seus favoritos
+                    </p>
+                  </div>
+                  <Badge variant="secondary" className="text-[10px] tabular-nums">
+                    {favorites.length}/{MAX_FAVORITES}
+                  </Badge>
                 </div>
+                <p className="text-[10px] text-muted-foreground mb-2">
+                  Arraste para reordenar · clique no lápis para renomear
+                </p>
                 <div className="grid gap-2 sm:grid-cols-2">
                   {favorites.map((f) => {
                     const players = f.player_ids
                       .map((id) => memberMap.get(id))
                       .filter(Boolean) as MemberLite[];
+                    const isDragging = dragId === f.id;
                     return (
                       <div
                         key={f.id}
-                        className="group flex items-center gap-3 rounded-2xl border border-border bg-card/60 p-3 hover:border-primary/40 transition-colors"
+                        draggable
+                        onDragStart={() => handleDragStart(f.id)}
+                        onDragOver={(e) => handleDragOver(e, f.id)}
+                        onDragEnd={handleDragEnd}
+                        className={`group flex items-center gap-2 rounded-2xl border bg-card/60 p-3 transition-all ${
+                          isDragging
+                            ? "border-primary opacity-50"
+                            : "border-border hover:border-primary/40"
+                        }`}
                       >
+                        <span
+                          className="cursor-grab active:cursor-grabbing text-muted-foreground/60 hover:text-foreground"
+                          title="Arraste para reordenar"
+                        >
+                          <GripVertical className="h-4 w-4" />
+                        </span>
                         <button
                           onClick={() => goCompare(f.player_ids)}
                           className="flex flex-1 items-center gap-3 min-w-0 text-left"
@@ -606,8 +755,15 @@ function CompareLandingPage() {
                           <ArrowRight className="h-4 w-4 text-muted-foreground/60 shrink-0" />
                         </button>
                         <button
+                          onClick={() => openRename(f)}
+                          className="p-1 text-muted-foreground hover:text-primary transition-colors"
+                          title="Renomear"
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </button>
+                        <button
                           onClick={() => removeFavorite(f.id)}
-                          className="opacity-0 group-hover:opacity-100 transition-opacity p-1 text-muted-foreground hover:text-destructive"
+                          className="p-1 text-muted-foreground hover:text-destructive transition-colors"
                           title="Remover"
                         >
                           <X className="h-3.5 w-3.5" />
@@ -802,8 +958,13 @@ function CompareLandingPage() {
                 onClick={openSaveFavorite}
                 size="lg"
                 variant="outline"
+                disabled={favorites.length >= MAX_FAVORITES}
                 className="rounded-full shadow-lg shrink-0 px-4"
-                title="Salvar como favorito"
+                title={
+                  favorites.length >= MAX_FAVORITES
+                    ? `Limite de ${MAX_FAVORITES} favoritos atingido`
+                    : "Salvar como favorito"
+                }
               >
                 <Star className="h-4 w-4" />
               </Button>
@@ -846,6 +1007,35 @@ function CompareLandingPage() {
               Cancelar
             </Button>
             <Button onClick={saveFavorite} className="gap-1">
+              <Check className="h-4 w-4" /> Salvar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Rename favorite dialog */}
+      <Dialog open={!!renameTarget} onOpenChange={(open) => !open && setRenameTarget(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Renomear favorito</DialogTitle>
+            <DialogDescription>
+              Dê um novo nome para essa comparação.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-2">
+            <Input
+              value={renameLabel}
+              onChange={(e) => setRenameLabel(e.target.value)}
+              placeholder="Nome do favorito"
+              maxLength={60}
+              autoFocus
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setRenameTarget(null)}>
+              Cancelar
+            </Button>
+            <Button onClick={confirmRename} className="gap-1">
               <Check className="h-4 w-4" /> Salvar
             </Button>
           </DialogFooter>

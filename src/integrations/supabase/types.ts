@@ -206,6 +206,7 @@ export type Database = {
           id: string
           label: string
           player_ids: string[]
+          sort_order: number
           updated_at: string
           user_id: string
         }
@@ -215,6 +216,7 @@ export type Database = {
           id?: string
           label: string
           player_ids: string[]
+          sort_order?: number
           updated_at?: string
           user_id: string
         }
@@ -224,6 +226,7 @@ export type Database = {
           id?: string
           label?: string
           player_ids?: string[]
+          sort_order?: number
           updated_at?: string
           user_id?: string
         }
