@@ -430,12 +430,25 @@ function RoundDetailPage() {
   const handleForceOpenPresence = async () => {
     if (!confirm("Reabrir a lista de presenças agora? Os membros poderão confirmar presença imediatamente.")) return;
     setForcePresenceOpen(true);
+    const nowIso = new Date().toISOString();
     try {
       const { error } = await supabase
         .from("rounds")
-        .update({ presence_force_open_at: new Date().toISOString() } as any)
+        .update({ presence_force_open_at: nowIso } as any)
         .eq("id", roundId);
       if (error) throw error;
+      // Audit log (best-effort)
+      if (user) {
+        supabase.from("audit_logs").insert({
+          user_id: user.id,
+          group_id: groupId,
+          action: "presence_force_open",
+          entity_type: "round",
+          entity_id: roundId,
+          new_data: { presence_force_open_at: nowIso },
+          reason: "Admin reabriu lista de presenças antecipadamente",
+        } as any).then(() => {});
+      }
       toast.success("Lista de presenças reaberta para todos");
       refresh();
     } catch (e: any) {
@@ -446,12 +459,25 @@ function RoundDetailPage() {
   const handleUndoForceOpen = async () => {
     if (!confirm("Desfazer a reabertura da lista? Os membros voltarão a aguardar o horário programado.")) return;
     setForcePresenceOpen(false);
+    const previous = persistedForceOpenAt?.toISOString() ?? null;
     try {
       const { error } = await supabase
         .from("rounds")
         .update({ presence_force_open_at: null } as any)
         .eq("id", roundId);
       if (error) throw error;
+      if (user) {
+        supabase.from("audit_logs").insert({
+          user_id: user.id,
+          group_id: groupId,
+          action: "presence_force_open_undo",
+          entity_type: "round",
+          entity_id: roundId,
+          old_data: { presence_force_open_at: previous },
+          new_data: { presence_force_open_at: null },
+          reason: "Admin desfez a reabertura antecipada da lista",
+        } as any).then(() => {});
+      }
       toast.success("Reabertura desfeita");
       refresh();
     } catch (e: any) {
