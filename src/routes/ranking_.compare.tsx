@@ -75,7 +75,6 @@ interface PlayerAggregate {
 interface H2HData {
   asPartners: { played: number; won: number };
   asOpponents: { played: number; aWon: number; bWon: number };
-  // Per-match breakdown for context
   recentMeetings: {
     match_id: string;
     round_id: string;
@@ -86,6 +85,7 @@ interface H2HData {
     bTeam: "A" | "B";
     winner: "A" | "B" | null;
     created_at: string;
+    sets: { set_number: number; score_team_a: number; score_team_b: number }[];
   }[];
 }
 
