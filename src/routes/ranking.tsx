@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useAuth } from "@/hooks/use-auth";
 import { TrophyLoadingBar } from "@/components/TrophyLoadingBar";
 import { useMyGroups } from "@/hooks/use-groups";
-import { BarChart3, Info, ChevronDown, ArrowUp, ArrowDown, Calendar, Layers, Timer, Crown, AlertTriangle, ChevronRight } from "lucide-react";
+import { BarChart3, Info, ChevronDown, ArrowUp, ArrowDown, Calendar, Layers, Timer, Crown, AlertTriangle, ChevronRight, GitCompareArrows, X, Check } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
@@ -68,6 +68,8 @@ function RankingPage() {
   const [completedRounds, setCompletedRounds] = useState(0);
   const [totalSets, setTotalSets] = useState(0);
   const [expandedUserId, setExpandedUserId] = useState<string | null>(null);
+  const [compareMode, setCompareMode] = useState(false);
+  const [compareSelection, setCompareSelection] = useState<string[]>([]);
 
   useEffect(() => {
     let cancelled = false;
