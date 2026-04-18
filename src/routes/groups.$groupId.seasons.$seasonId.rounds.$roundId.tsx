@@ -512,6 +512,15 @@ function RoundDetailPage() {
           </div>
           {isAdmin && (
             <div className="flex items-center gap-1.5">
+              {presences.length > 0 && matches.length === 0 && round.status !== "cancelled" && (
+                <button
+                  onClick={handleClearPresences}
+                  className="flex h-9 w-9 items-center justify-center rounded-full border border-border bg-muted/30 text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                  title="Limpar lista de presenças"
+                >
+                  <Eraser className="h-4 w-4" />
+                </button>
+              )}
               {round.status !== "cancelled" && (
                 <button
                   onClick={handleCancelRound}
