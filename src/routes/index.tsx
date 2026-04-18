@@ -1560,132 +1560,186 @@ function DashboardPage() {
                     Atalhos rápidos
                   </h2>
                   <div className="flex flex-col gap-1.5">
-                    {/* Confirmar presença */}
-                    {nextMatch && nextMatch.my_presence_status !== "confirmed" && nextMatch.presence_is_open && (
-                      <Link
-                        to="/groups/$groupId/seasons/$seasonId/rounds/$roundId"
-                        params={{
-                          groupId: nextMatch.group_id,
-                          seasonId: nextMatch.season_id || "",
-                          roundId: nextMatch.round_id,
-                        }}
-                        className="flex items-center gap-2 rounded-2xl border border-warning/30 bg-warning/5 px-3 py-2 text-xs font-semibold text-warning transition-colors hover:bg-warning/10"
-                      >
-                        <Calendar className="h-4 w-4 shrink-0" />
-                        <span className="truncate">Confirmar presença</span>
-                      </Link>
-                    )}
-
-                    {/* Registrar resultado */}
-                    {(nextMatch?.has_pairing || pendingMatch) && (
-                      <Link
-                        to="/groups/$groupId/seasons/$seasonId/rounds/$roundId"
-                        params={{
-                          groupId: pendingMatch?.group_id || nextMatch!.group_id,
-                          seasonId: pendingMatch?.season_id || nextMatch?.season_id || "",
-                          roundId: pendingMatch?.round_id || nextMatch!.round_id,
-                        }}
-                        className="flex items-center gap-2 rounded-2xl bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
-                      >
-                        <Trophy className="h-4 w-4 shrink-0" />
-                        <span className="truncate">Registrar resultado</span>
-                      </Link>
-                    )}
-
-                    {/* Ver duelo (rivalry) */}
                     {(() => {
                       const rivalryGroup = myGroups.find((g: any) => g.singles_group_type === "rivalry");
-                      if (!rivalryGroup) return null;
-                      return (
-                        <Link
-                          to="/groups/$groupId/duel"
-                          params={{ groupId: rivalryGroup.id }}
-                          className="flex items-center gap-2 rounded-2xl border border-primary/30 bg-primary/5 px-3 py-2 text-xs font-semibold text-primary transition-colors hover:bg-primary/10"
-                        >
-                          <Swords className="h-4 w-4 shrink-0" />
-                          <span className="truncate">Ver duelo</span>
-                        </Link>
-                      );
-                    })()}
-
-                    {/* Notificações com badge */}
-                    {unreadCount > 0 && (
-                      <Link
-                        to="/notifications"
-                        className="flex items-center gap-2 rounded-2xl border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs font-semibold text-destructive transition-colors hover:bg-destructive/10"
-                      >
-                        <Bell className="h-4 w-4 shrink-0" />
-                        <span className="flex-1 truncate text-left">Notificações</span>
-                        <span className="rounded-full bg-destructive px-1.5 py-0.5 text-[9px] font-bold text-destructive-foreground tabular-nums">
-                          {unreadCount > 9 ? "9+" : unreadCount}
-                        </span>
-                      </Link>
-                    )}
-
-                    {/* Separador visual quando há ações + atalhos de navegação */}
-                    <div className="my-1 border-t border-border/40" />
-
-                    {/* Ranking da temporada atual */}
-                    {currentRanking && (
-                      <Link
-                        to="/ranking"
-                        className="flex items-center gap-2 rounded-2xl border border-border bg-muted/30 px-3 py-2 text-xs font-semibold text-foreground transition-colors hover:bg-accent/50"
-                      >
-                        <Crown className="h-4 w-4 shrink-0 text-primary" />
-                        <span className="truncate">Ranking completo</span>
-                      </Link>
-                    )}
-
-                    {/* Temporada atual — atalho profundo */}
-                    {currentRanking?.season_id && currentRanking.group_id && (
-                      <Link
-                        to="/groups/$groupId/seasons/$seasonId"
-                        params={{
-                          groupId: currentRanking.group_id,
-                          seasonId: currentRanking.season_id,
-                        }}
-                        className="flex items-center gap-2 rounded-2xl border border-border bg-muted/30 px-3 py-2 text-xs font-semibold text-foreground transition-colors hover:bg-accent/50"
-                      >
-                        <Medal className="h-4 w-4 shrink-0 text-primary" />
-                        <span className="truncate">Temporada atual</span>
-                      </Link>
-                    )}
-
-                    {/* Histórico completo de partidas */}
-                    <Link
-                      to="/history"
-                      className="flex items-center gap-2 rounded-2xl border border-border bg-muted/30 px-3 py-2 text-xs font-semibold text-foreground transition-colors hover:bg-accent/50"
-                    >
-                      <History className="h-4 w-4 shrink-0 text-primary" />
-                      <span className="truncate">Histórico de partidas</span>
-                    </Link>
-
-                    {/* Gerenciar grupo (admin) — atalho profundo de 3+ cliques */}
-                    {(() => {
                       const adminGroup = myGroups.find(
                         (g: any) => g.my_role === "admin" || g.my_role === "creator"
                       );
-                      if (!adminGroup) return null;
-                      return (
-                        <Link
-                          to="/groups/$groupId"
-                          params={{ groupId: adminGroup.id }}
-                          className="flex items-center gap-2 rounded-2xl border border-border bg-muted/30 px-3 py-2 text-xs font-semibold text-foreground transition-colors hover:bg-accent/50"
-                        >
-                          <Settings className="h-4 w-4 shrink-0 text-primary" />
-                          <span className="truncate">Gerenciar grupo</span>
-                        </Link>
-                      );
-                    })()}
 
-                    {/* Como funciona o ranking */}
-                    <Link
-                      to="/ranking-info"
-                      className="flex items-center gap-2 rounded-2xl border border-border bg-muted/30 px-3 py-2 text-xs font-semibold text-foreground transition-colors hover:bg-accent/50"
-                    >
-                      <HelpCircle className="h-4 w-4 shrink-0 text-muted-foreground" />
-                      <span className="truncate">Como funciona o Elo</span>
-                    </Link>
+                      type Shortcut = {
+                        key: string;
+                        node: React.ReactNode;
+                        priority: number; // lower = higher priority
+                      };
+                      const items: Shortcut[] = [];
+
+                      // 1. Confirmar presença (urgente, contextual)
+                      if (nextMatch && nextMatch.my_presence_status !== "confirmed" && nextMatch.presence_is_open) {
+                        items.push({
+                          key: "confirm",
+                          priority: 1,
+                          node: (
+                            <Link
+                              to="/groups/$groupId/seasons/$seasonId/rounds/$roundId"
+                              params={{
+                                groupId: nextMatch.group_id,
+                                seasonId: nextMatch.season_id || "",
+                                roundId: nextMatch.round_id,
+                              }}
+                              className="flex items-center gap-2 rounded-2xl border border-warning/30 bg-warning/5 px-3 py-2 text-xs font-semibold text-warning transition-colors hover:bg-warning/10"
+                            >
+                              <Calendar className="h-4 w-4 shrink-0" />
+                              <span className="truncate">Confirmar presença</span>
+                            </Link>
+                          ),
+                        });
+                      }
+
+                      // 2. Registrar resultado (urgente)
+                      if (nextMatch?.has_pairing || pendingMatch) {
+                        items.push({
+                          key: "result",
+                          priority: 2,
+                          node: (
+                            <Link
+                              to="/groups/$groupId/seasons/$seasonId/rounds/$roundId"
+                              params={{
+                                groupId: pendingMatch?.group_id || nextMatch!.group_id,
+                                seasonId: pendingMatch?.season_id || nextMatch?.season_id || "",
+                                roundId: pendingMatch?.round_id || nextMatch!.round_id,
+                              }}
+                              className="flex items-center gap-2 rounded-2xl bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+                            >
+                              <Trophy className="h-4 w-4 shrink-0" />
+                              <span className="truncate">Registrar resultado</span>
+                            </Link>
+                          ),
+                        });
+                      }
+
+                      // 3. Notificações com badge
+                      if (unreadCount > 0) {
+                        items.push({
+                          key: "notif",
+                          priority: 3,
+                          node: (
+                            <Link
+                              to="/notifications"
+                              className="flex items-center gap-2 rounded-2xl border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs font-semibold text-destructive transition-colors hover:bg-destructive/10"
+                            >
+                              <Bell className="h-4 w-4 shrink-0" />
+                              <span className="flex-1 truncate text-left">Notificações</span>
+                              <span className="rounded-full bg-destructive px-1.5 py-0.5 text-[9px] font-bold text-destructive-foreground tabular-nums">
+                                {unreadCount > 9 ? "9+" : unreadCount}
+                              </span>
+                            </Link>
+                          ),
+                        });
+                      }
+
+                      // 4. Ver duelo — principal dos atalhos persistentes (destaque sutil)
+                      if (rivalryGroup) {
+                        items.push({
+                          key: "duel",
+                          priority: 4,
+                          node: (
+                            <Link
+                              to="/groups/$groupId/duel"
+                              params={{ groupId: rivalryGroup.id }}
+                              className="flex items-center gap-2 rounded-2xl border border-border bg-muted/30 px-3 py-2 text-xs font-semibold text-foreground transition-colors hover:border-primary/40 hover:bg-primary/5"
+                            >
+                              <Swords className="h-4 w-4 shrink-0 text-primary" />
+                              <span className="truncate">Ver duelo</span>
+                            </Link>
+                          ),
+                        });
+                      }
+
+                      // Atalhos de navegação profunda (preenchimento)
+                      if (currentRanking) {
+                        items.push({
+                          key: "ranking",
+                          priority: 5,
+                          node: (
+                            <Link
+                              to="/ranking"
+                              className="flex items-center gap-2 rounded-2xl border border-border bg-muted/30 px-3 py-2 text-xs font-semibold text-foreground transition-colors hover:bg-accent/50"
+                            >
+                              <Crown className="h-4 w-4 shrink-0 text-primary" />
+                              <span className="truncate">Ranking completo</span>
+                            </Link>
+                          ),
+                        });
+                      }
+
+                      if (currentRanking?.season_id && currentRanking.group_id) {
+                        items.push({
+                          key: "season",
+                          priority: 6,
+                          node: (
+                            <Link
+                              to="/groups/$groupId/seasons/$seasonId"
+                              params={{
+                                groupId: currentRanking.group_id,
+                                seasonId: currentRanking.season_id,
+                              }}
+                              className="flex items-center gap-2 rounded-2xl border border-border bg-muted/30 px-3 py-2 text-xs font-semibold text-foreground transition-colors hover:bg-accent/50"
+                            >
+                              <Medal className="h-4 w-4 shrink-0 text-primary" />
+                              <span className="truncate">Temporada atual</span>
+                            </Link>
+                          ),
+                        });
+                      }
+
+                      items.push({
+                        key: "history",
+                        priority: 7,
+                        node: (
+                          <Link
+                            to="/history"
+                            className="flex items-center gap-2 rounded-2xl border border-border bg-muted/30 px-3 py-2 text-xs font-semibold text-foreground transition-colors hover:bg-accent/50"
+                          >
+                            <History className="h-4 w-4 shrink-0 text-primary" />
+                            <span className="truncate">Histórico de partidas</span>
+                          </Link>
+                        ),
+                      });
+
+                      if (adminGroup) {
+                        items.push({
+                          key: "manage",
+                          priority: 8,
+                          node: (
+                            <Link
+                              to="/groups/$groupId"
+                              params={{ groupId: adminGroup.id }}
+                              className="flex items-center gap-2 rounded-2xl border border-border bg-muted/30 px-3 py-2 text-xs font-semibold text-foreground transition-colors hover:bg-accent/50"
+                            >
+                              <Settings className="h-4 w-4 shrink-0 text-primary" />
+                              <span className="truncate">Gerenciar grupo</span>
+                            </Link>
+                          ),
+                        });
+                      }
+
+                      items.push({
+                        key: "help",
+                        priority: 9,
+                        node: (
+                          <Link
+                            to="/ranking-info"
+                            className="flex items-center gap-2 rounded-2xl border border-border bg-muted/30 px-3 py-2 text-xs font-semibold text-foreground transition-colors hover:bg-accent/50"
+                          >
+                            <HelpCircle className="h-4 w-4 shrink-0 text-muted-foreground" />
+                            <span className="truncate">Como funciona o Elo</span>
+                          </Link>
+                        ),
+                      });
+
+                      const visible = items.sort((a, b) => a.priority - b.priority).slice(0, 4);
+                      return visible.map((item) => <div key={item.key}>{item.node}</div>);
+                    })()}
                   </div>
                 </div>
               </div>
