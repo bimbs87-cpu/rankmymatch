@@ -846,10 +846,10 @@ function DashboardPage() {
       {/* PWA Install Banner */}
       <InstallBanner />
 
-      <div className="space-y-5 px-5 pt-5 lg:grid lg:grid-cols-12 lg:grid-rows-[auto_1fr] lg:gap-6 lg:space-y-0">
-        {/* Season switcher button — above the ranking card */}
+      <div className="space-y-5 px-5 pt-5 lg:grid lg:grid-cols-12 lg:grid-rows-[auto_auto_1fr] lg:gap-6 lg:space-y-0">
+        {/* Season switcher button — above the ranking card (mobile) / between Ranking and Evolução do Elo (desktop) */}
         {!dataLoading && currentRanking && rankings.length > 1 && (
-          <div className="relative flex animate-fade-in lg:col-span-12">
+          <div className="relative flex animate-fade-in lg:col-span-4 lg:col-start-1 lg:row-start-2 lg:self-center">
             <button
               onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowRankingPicker((v) => !v); }}
               className="flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-3 py-1.5 text-[11px] font-semibold text-primary transition-colors hover:bg-primary/15"
@@ -973,7 +973,7 @@ function DashboardPage() {
         )}
 
         {/* DESKTOP-ONLY: Right column = Últimos Resultados + Próximas Rodadas stacked */}
-        <section className="hidden lg:flex lg:flex-col lg:gap-6 lg:col-span-8 lg:col-start-5 lg:row-start-1 lg:row-span-2">
+        <section className="hidden lg:flex lg:flex-col lg:gap-6 lg:col-span-8 lg:col-start-5 lg:row-start-1 lg:row-span-3">
           {/* Últimos Resultados card */}
           <div className="flex flex-col rounded-3xl border border-border bg-card overflow-hidden">
             {/* Header */}
@@ -1333,8 +1333,8 @@ function DashboardPage() {
           </div>
         </section>
 
-        {/* DESKTOP-ONLY: Card de Evolução do Elo (col esquerda, abaixo do Ranking+CTA) */}
-        <section className="hidden lg:block lg:col-span-4 lg:col-start-1 lg:row-start-2">
+        {/* DESKTOP-ONLY: Card de Evolução do Elo (col esquerda, abaixo do seletor de ranking) */}
+        <section className="hidden lg:block lg:col-span-4 lg:col-start-1 lg:row-start-3">
           {(() => {
             const history = currentRanking ? historyBySeason.get(currentRanking.season_id) || [] : [];
             const ratingPoints = history.map((h) => ({ label: h.date, value: h.rating }));
@@ -1600,7 +1600,7 @@ function DashboardPage() {
         </section>
 
         {/* Meus Grupos */}
-        <section className="lg:col-span-12 lg:col-start-1 lg:row-start-3">
+        <section className="lg:col-span-12 lg:col-start-1 lg:row-start-4">
           <div className="mb-3 flex items-center justify-between">
             <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Seus Grupos
