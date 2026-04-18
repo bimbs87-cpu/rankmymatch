@@ -509,7 +509,10 @@ function ComparePage() {
 
   const share = async () => {
     const url = window.location.href;
-    const title = playerA && playerB ? `Comparativo: ${displayName(playerA)} vs ${displayName(playerB)}` : "Comparativo";
+    const title =
+      players.length >= 2
+        ? `Comparativo: ${players.map((p) => displayName(p)).join(" vs ")}`
+        : "Comparativo";
     if (navigator.share) {
       try { await navigator.share({ title, url }); } catch { /* ignore */ }
     } else {
@@ -521,13 +524,18 @@ function ComparePage() {
 
   // Latest season (by snapshots) shown in "Temporada" tab
   const latestSeasonId = useMemo(() => {
-    if (!playerA || !playerB) return null;
-    const ids = new Set<string>();
-    playerA.seasons.forEach((s) => ids.add(s.season_id));
-    playerB.seasons.forEach((s) => ids.add(s.season_id));
-    // Use first id from either player's seasons array (they came ordered by created_at desc from query)
-    return playerA.seasons[0]?.season_id || playerB.seasons[0]?.season_id || null;
-  }, [playerA, playerB]);
+    if (players.length === 0) return null;
+    for (const p of players) {
+      if (p.seasons[0]) return p.seasons[0].season_id;
+    }
+    return null;
+  }, [players]);
+
+  // Compute "advantage" indicator (only for 2-player view)
+  const advantage = useMemo(() => {
+    if (players.length !== 2 || !h2h) return null;
+    return computeAdvantage(players[0], players[1], h2h);
+  }, [players, h2h]);
 
   return (
     <div className="min-h-screen bg-background pb-28 lg:pb-8">
