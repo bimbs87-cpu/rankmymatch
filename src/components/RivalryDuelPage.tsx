@@ -831,6 +831,27 @@ export function RivalryDuelPage({ groupId, groupName, seasonId, seasonName }: Pr
                             Não contou
                           </span>
                         )}
+                        {(() => {
+                          const dA = m.rating_change_by_user?.[playerA.user_id];
+                          const dB = m.rating_change_by_user?.[playerB.user_id];
+                          if (dA == null && dB == null) return null;
+                          const fmt = (v: number | undefined) =>
+                            v == null ? "—" : `${v > 0 ? "+" : ""}${Math.round(v)}`;
+                          return (
+                            <span
+                              className="rounded-full border border-border/60 bg-background/60 px-1.5 py-0.5 text-[9px] font-semibold tabular-nums text-muted-foreground"
+                              title="Variação de Elo desta partida"
+                            >
+                              <span className={dA != null && dA > 0 ? "text-primary" : dA != null && dA < 0 ? "text-destructive" : ""}>
+                                {fmt(dA)}
+                              </span>
+                              <span className="mx-0.5 text-muted-foreground/60">/</span>
+                              <span className={dB != null && dB > 0 ? "text-info" : dB != null && dB < 0 ? "text-destructive" : ""}>
+                                {fmt(dB)}
+                              </span>
+                            </span>
+                          );
+                        })()}
                       </div>
                       {isAdmin && !m.counts_for_ranking && (
                         <button
