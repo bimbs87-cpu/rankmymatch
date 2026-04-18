@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { TrophyLoadingBar } from "@/components/TrophyLoadingBar";
 import { Button } from "@/components/ui/button";
-import { Zap, Users, BarChart3, Trophy, Download } from "lucide-react";
+import { Zap, Users, BarChart3, Trophy, Download, Sparkles, Calendar, TrendingUp } from "lucide-react";
 import logoHorizontalDark from "@/assets/logo-horizontal-dark.png";
 import logoHorizontalLight from "@/assets/logo-horizontal-light.png";
 import logoSquareNeon from "@/assets/logo-square-neon.png";
@@ -108,6 +108,11 @@ function LoginPage() {
     { label: "Agenda", value: "Auto" },
     { label: "Resultados", value: "Histórico" },
   ];
+  const features = [
+    { icon: TrendingUp, title: "Rating dinâmico", desc: "Sobe e desce a cada partida" },
+    { icon: Calendar, title: "Rodadas automáticas", desc: "Sorteio inteligente de duplas" },
+    { icon: Sparkles, title: "Estatísticas reais", desc: "Vitórias, sets, games e streaks" },
+  ];
 
   const GoogleButton = (
     <button
@@ -136,7 +141,7 @@ function LoginPage() {
   );
 
   return (
-    <div className="relative h-screen w-full overflow-hidden bg-background text-foreground">
+    <div className="relative min-h-screen w-full overflow-x-hidden bg-background text-foreground lg:h-screen lg:overflow-hidden">
       {/* === Premium continuous background — fixed to viewport so it never cuts === */}
       <div aria-hidden className="pointer-events-none fixed inset-0 z-0 bg-background" />
       <div
@@ -170,9 +175,9 @@ function LoginPage() {
         }}
       />
 
-      <div className="relative z-10 mx-auto flex h-full w-full max-w-6xl flex-col px-5 py-4 sm:px-6 sm:py-6 lg:grid lg:grid-cols-[1.1fr_1fr] lg:items-center lg:gap-16 lg:px-12 lg:py-10">
+      <div className="relative z-10 mx-auto flex w-full max-w-6xl flex-col px-5 py-5 sm:px-6 sm:py-6 lg:grid lg:h-full lg:grid-cols-[1.1fr_1fr] lg:items-center lg:gap-16 lg:px-12 lg:py-10">
         {/* === LEFT / TOP === */}
-        <div className="flex flex-1 flex-col lg:flex-none">
+        <div className="flex flex-col lg:flex-none">
           {/* Hero logo — floating with soft outer aura */}
           <div className="relative flex items-center justify-center lg:justify-start">
             <div className="relative">
@@ -189,7 +194,7 @@ function LoginPage() {
               <img
                 src={logoSquareNeon}
                 alt="RankMyMatch"
-                className="relative h-28 w-auto object-contain sm:h-36 lg:h-60 animate-float"
+                className="relative h-32 w-auto object-contain sm:h-40 lg:h-60 animate-float"
                 style={{
                   filter:
                     "drop-shadow(0 8px 24px color-mix(in oklab, var(--primary) 25%, transparent))",
@@ -199,20 +204,20 @@ function LoginPage() {
           </div>
 
           {/* Headline */}
-          <div className="mt-4 lg:mt-10">
+          <div className="mt-3 lg:mt-10">
             <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-border/60 bg-card/40 px-2.5 py-0.5 backdrop-blur-sm lg:mb-3 lg:px-3 lg:py-1">
               <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
               <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground lg:text-[11px]">
                 Para feirinos, clubes e amigos
               </span>
             </div>
-            <h1 className="font-black leading-[1.05] tracking-tight text-2xl sm:text-4xl lg:text-6xl xl:text-[4rem]">
+            <h1 className="font-black leading-[1.05] tracking-tight text-[26px] sm:text-4xl lg:text-6xl xl:text-[4rem]">
               <span className="block text-foreground">Pare de anotar resultado</span>
               <span className="block bg-gradient-to-r from-primary via-primary to-primary/70 bg-clip-text text-transparent">
                 na planilha do WhatsApp.
               </span>
             </h1>
-            <p className="mt-3 max-w-md text-xs leading-relaxed text-muted-foreground sm:text-sm lg:mt-5 lg:text-[17px]">
+            <p className="mt-2.5 max-w-md text-xs leading-relaxed text-muted-foreground sm:text-sm lg:mt-5 lg:text-[17px]">
               Rankings Elo, temporadas e estatísticas automáticas para padel,
               tênis, beach tennis e mais.
             </p>
@@ -238,10 +243,32 @@ function LoginPage() {
               </div>
             ))}
           </div>
+
+          {/* Feature list — visible on mobile to fill space, hidden on desktop */}
+          <div className="mt-4 space-y-2 lg:hidden">
+            {features.map((f) => (
+              <div
+                key={f.title}
+                className="flex items-center gap-3 rounded-2xl border border-border/60 bg-card/40 px-3 py-2.5 backdrop-blur-sm"
+              >
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                  <f.icon className="h-4 w-4" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[13px] font-semibold leading-tight text-foreground">
+                    {f.title}
+                  </p>
+                  <p className="text-[11px] leading-tight text-muted-foreground">
+                    {f.desc}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* === RIGHT / BOTTOM — CTA === */}
-        <div className="mt-4 flex flex-col lg:mt-0">
+        <div className="mt-5 flex flex-col lg:mt-0">
           <div className="relative rounded-3xl border border-border/70 bg-card/50 p-4 backdrop-blur-xl shadow-[0_8px_40px_-12px_rgba(0,0,0,0.5)] sm:p-6 lg:p-8">
             {/* top accent line */}
             <div
