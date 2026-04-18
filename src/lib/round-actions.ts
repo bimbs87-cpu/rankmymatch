@@ -120,16 +120,25 @@ export async function cancelPresence(roundId: string, userId: string) {
     .eq("user_id", userId);
 }
 
-// Build singles pairings ordered by Elo.
-// 4 players: round 1 = 1v4/2v3, round 2 = 1v3/2v4, round 3 = 1v2/3v4 (King of the Court).
-// 6+ players (even): classic round-robin (circle method) ordered by Elo, returns round 1 only.
-function buildSinglesPairs(orderedIds: string[]): Array<[string, string]> {
+// Build singles pairings ordered by Elo (King of the Court).
+// 4 players — official fixed cycle, indexed by round_number (1-based, cycles every 3):
+//   round 1 → 1v4 / 2v3
+//   round 2 → 1v3 / 2v4
+//   round 3 → 1v2 / 3v4
+// 6+ players (even): classic round-robin (circle method) ordered by Elo, returns one round.
+function buildSinglesPairs(orderedIds: string[], roundNumber = 1): Array<[string, string]> {
   const n = orderedIds.length;
   if (n < 2 || n % 2 !== 0) return [];
 
   if (n === 4) {
     const [p1, p2, p3, p4] = orderedIds;
-    return [[p1, p4], [p2, p3]];
+    const cycle: Array<Array<[string, string]>> = [
+      [[p1, p4], [p2, p3]], // round 1
+      [[p1, p3], [p2, p4]], // round 2
+      [[p1, p2], [p3, p4]], // round 3
+    ];
+    const idx = ((Math.max(1, roundNumber) - 1) % 3 + 3) % 3;
+    return cycle[idx];
   }
 
   const pairs: Array<[string, string]> = [];
@@ -173,9 +182,11 @@ export async function drawTeams(roundId: string, confirmedPlayerIds: string[], a
       .sort((a, b) => (b.rating - a.rating) || (a.r - b.r))
       .map((x) => x.id);
 
-    const pairs = buildSinglesPairs(ordered);
+    const pairs = buildSinglesPairs(ordered, roundData.round_number ?? 1);
     pairings = pairs.map(([a, b]) => [a, b]);
-  } else {
+  }
+
+  if (pairings.length === 0) {
     const shuffled = [...confirmedPlayerIds];
     for (let i = shuffled.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
