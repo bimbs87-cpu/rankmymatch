@@ -42,6 +42,8 @@ interface Props {
    * show set scores, Δ Elo, and the Oficial/Avulso badge.
    */
   matchInfo?: Record<string, MatchInfoEntry>;
+  /** When true, render slightly shorter for visual balance with sparse data. */
+  compact?: boolean;
 }
 
 interface RawEvent {
@@ -232,7 +234,7 @@ export function DualEloChart({
           Joguem ao menos um confronto para ver o gráfico
         </div>
       ) : (
-        <div className="h-52">
+        <div className={compact ? "h-44" : "h-52"}>
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={data} margin={{ top: 12, right: 8, bottom: 4, left: -22 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" opacity={0.35} />
