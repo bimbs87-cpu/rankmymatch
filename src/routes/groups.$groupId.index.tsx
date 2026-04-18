@@ -400,6 +400,8 @@ function GroupDetailPage() {
 
             {view === "seasons" && <SeasonsPanel groupId={groupId} isAdmin={isAdmin} />}
 
+            {view === "compare" && <GroupComparePanel groupId={groupId} />}
+
             {view === "feed" && (
               <div className="rounded-2xl border border-border bg-card p-8 text-center">
                 <p className="text-sm text-muted-foreground">
