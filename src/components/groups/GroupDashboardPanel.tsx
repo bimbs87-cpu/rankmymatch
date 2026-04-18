@@ -282,6 +282,73 @@ export function GroupDashboardPanel({ group, onLeft, onPresenceChanged }: Props)
         )}
       </div>
 
+      {/* Pending join requests (admin only) */}
+      {isAdmin && data.pending_join_requests.length > 0 && (
+        <div className="rounded-2xl border border-warning/30 bg-warning/5 p-4">
+          <div className="mb-3 flex items-center justify-between">
+            <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-warning">
+              <Inbox className="h-3 w-3" /> Solicitações pendentes
+              <span className="rounded-full bg-warning px-1.5 py-0.5 text-[9px] font-bold text-warning-foreground">
+                {data.pending_join_requests.length}
+              </span>
+            </p>
+            <Link
+              to="/groups/$groupId"
+              params={{ groupId: group.id }}
+              className="text-[10px] font-bold text-warning hover:underline"
+            >
+              Gerenciar →
+            </Link>
+          </div>
+          <ul className="space-y-2">
+            {data.pending_join_requests.slice(0, 5).map((req) => (
+              <li
+                key={req.id}
+                className="flex items-center gap-3 rounded-xl border border-border/60 bg-background/40 p-2.5"
+              >
+                <PlayerAvatar avatarUrl={req.user_avatar} name={req.user_name} size="md" />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-xs font-bold text-foreground">{req.user_name}</p>
+                  <p className="truncate text-[10px] text-muted-foreground">
+                    {req.claimed_player_name ? (
+                      <>Quer assumir <span className="text-foreground">{req.claimed_player_name}</span></>
+                    ) : req.message ? (
+                      req.message
+                    ) : (
+                      <>há {timeAgo(req.created_at)}</>
+                    )}
+                  </p>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    onClick={() => handleApprove(req)}
+                    disabled={resolvingReq === req.id}
+                    className="flex h-7 items-center gap-1 rounded-full border border-success/40 bg-success/10 px-2 text-[10px] font-bold text-success hover:bg-success/20 disabled:opacity-50"
+                    title="Aprovar"
+                  >
+                    <Check className="h-3 w-3" />
+                    Aceitar
+                  </button>
+                  <button
+                    onClick={() => handleReject(req)}
+                    disabled={resolvingReq === req.id}
+                    className="flex h-7 w-7 items-center justify-center rounded-full border border-border bg-background/40 text-muted-foreground hover:border-destructive/40 hover:text-destructive disabled:opacity-50"
+                    title="Recusar"
+                  >
+                    <XIcon className="h-3 w-3" />
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+          {data.pending_join_requests.length > 5 && (
+            <p className="mt-2 text-center text-[10px] text-muted-foreground">
+              +{data.pending_join_requests.length - 5} mais
+            </p>
+          )}
+        </div>
+      )}
+
       {/* Top row: Next round + My position */}
       <div className="grid gap-3 lg:grid-cols-2">
         {/* Next round */}
