@@ -615,6 +615,20 @@ export function RivalryDuelPage({ groupId, groupName, seasonId, seasonName }: Pr
                           Promover para ranking
                         </button>
                       )}
+                      {isAdmin && m.counts_for_ranking && !!m.round_number === false && (
+                        <button
+                          onClick={() => handleRevertMatch(m.id)}
+                          disabled={revertingId === m.id}
+                          className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-warning/30 bg-warning/5 px-2.5 py-1 text-[10px] font-semibold text-warning transition-colors hover:bg-warning/10 disabled:opacity-50"
+                        >
+                          {revertingId === m.id ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : (
+                            <Undo2 className="h-3 w-3" />
+                          )}
+                          Reverter promoção
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>
