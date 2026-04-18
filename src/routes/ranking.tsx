@@ -806,6 +806,22 @@ function RankingPage() {
                         ${interactive ? "cursor-pointer lg:hover:bg-accent/30 focus:outline-none focus:ring-1 focus:ring-primary/40" : ""}
                       `}
                     >
+                      {compareMode && (
+                        <div className="mr-1 flex w-5 shrink-0 items-center justify-center lg:mr-0 lg:w-6">
+                          <span
+                            className={`flex h-4 w-4 items-center justify-center rounded border transition lg:h-5 lg:w-5 ${
+                              isSelected
+                                ? "border-primary bg-primary text-primary-foreground"
+                                : canSelect
+                                ? "border-border bg-background"
+                                : "border-border/40 bg-muted/30"
+                            }`}
+                            aria-hidden="true"
+                          >
+                            {isSelected && <Check className="h-2.5 w-2.5 lg:h-3 lg:w-3" strokeWidth={3} />}
+                          </span>
+                        </div>
+                      )}
                       {/* Position */}
                       <div className="w-8 lg:w-auto shrink-0 text-center">
                         <div className="flex items-center justify-center">
