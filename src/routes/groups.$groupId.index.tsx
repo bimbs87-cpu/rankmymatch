@@ -81,11 +81,6 @@ function GroupDetailPage() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [pendingCompareIds, setPendingCompareIds] = useState<string[] | null>(null);
 
-  const handleCompareFromOverview = (a: string, b: string) => {
-    setPendingCompareIds([a, b]);
-    handleSelectView("compare");
-  };
-
   const [inviteOpen, setInviteOpen] = useState(false);
   const [addPlaceholderOpen, setAddPlaceholderOpen] = useState(false);
   const [claimOpen, setClaimOpen] = useState(false);
@@ -109,6 +104,11 @@ function GroupDetailPage() {
   const handleSelectView = (v: GroupView) => {
     setView(v);
     navigate({ to: "/groups/$groupId", params: { groupId }, search: { view: v }, replace: true });
+  };
+
+  const handleCompareFromOverview = (a: string, b: string) => {
+    setPendingCompareIds([a, b]);
+    handleSelectView("compare");
   };
 
   useEffect(() => {
