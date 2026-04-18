@@ -521,14 +521,14 @@ function SistemaPage() {
       )}
 
       {/* SOCIAL PROOF */}
-      <section className="mx-auto max-w-7xl px-5 py-16 lg:px-8 lg:py-24">
+      <section className="mx-auto max-w-7xl px-5 py-12 lg:px-8 lg:py-16">
         <div className="mx-auto max-w-2xl text-center">
           <h2 className="font-display text-3xl font-black tracking-tight text-foreground lg:text-4xl">
             Quem já joga não larga mais.
           </h2>
         </div>
 
-        <div className="mt-12 grid gap-4 lg:grid-cols-3">
+        <div className="mt-8 grid gap-4 lg:grid-cols-3">
           {[
             {
               quote:
@@ -562,11 +562,11 @@ function SistemaPage() {
       </section>
 
       {/* FAQ */}
-      <section className="mx-auto max-w-3xl px-5 py-16 lg:px-8">
+      <section className="mx-auto max-w-3xl px-5 py-12 lg:px-8 lg:py-16">
         <h2 className="text-center font-display text-3xl font-black tracking-tight text-foreground lg:text-4xl">
           Perguntas que todo mundo faz.
         </h2>
-        <div className="mt-10 space-y-3">
+        <div className="mt-8 space-y-3">
           {[
             {
               q: "Posso cancelar quando quiser?",
