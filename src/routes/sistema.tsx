@@ -222,7 +222,7 @@ function SistemaPage() {
       </section>
 
       {/* FEATURES */}
-      <section className="mx-auto max-w-7xl px-5 py-12 lg:px-8 lg:py-20">
+      <section className="mx-auto max-w-7xl px-5 py-10 lg:px-8 lg:py-14">
         <div className="grid gap-10 lg:grid-cols-2 lg:items-center">
           <div>
             <div className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
@@ -258,7 +258,7 @@ function SistemaPage() {
             </ul>
           </div>
 
-          <div className="mx-auto w-full max-w-[300px] lg:max-w-[360px]">
+          <div className="mx-auto w-full max-w-[280px] lg:max-w-[340px]">
             <img
               src={mockupPhoneRanking}
               alt="Tela de ranking do RankMyMatch com pódio e classificação geral"
@@ -269,29 +269,30 @@ function SistemaPage() {
         </div>
       </section>
 
-      {/* DESKTOP SHOWCASE */}
-      <section className="mx-auto max-w-7xl px-5 py-12 lg:px-8 lg:py-20">
-        <div className="mx-auto max-w-3xl text-center">
-          <div className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
-            <BarChart3 className="h-3.5 w-3.5" />
-            Tela cheia, dados ricos
+      {/* MOBILE SHOWCASE */}
+      <section className="mx-auto max-w-7xl px-5 py-10 lg:px-8 lg:py-14">
+        <div className="grid gap-10 lg:grid-cols-2 lg:items-center">
+          <div className="order-2 mx-auto w-full max-w-[280px] lg:order-1 lg:max-w-[340px]">
+            <img
+              src={mockupPhoneHome}
+              alt="Tela inicial do RankMyMatch no celular com Elo e estatísticas"
+              className="block w-full"
+              loading="lazy"
+            />
           </div>
-          <h2 className="mt-4 font-display text-3xl font-black tracking-tight text-foreground lg:text-4xl">
-            No desktop, vira <span className="text-primary">central de comando</span>.
-          </h2>
-          <p className="mt-3 text-muted-foreground">
-            Tudo que importa em uma tela: ranking, evolução do Elo, próximas rodadas e os últimos
-            resultados — sem precisar abrir 5 abas no WhatsApp.
-          </p>
-        </div>
-
-        <div className="mt-10 lg:mt-14">
-          <img
-            src={mockupImacHome}
-            alt="RankMyMatch no desktop: ranking, evolução do Elo e rodadas em uma única tela"
-            className="mx-auto block w-full max-w-5xl"
-            loading="lazy"
-          />
+          <div className="order-1 lg:order-2">
+            <div className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+              <Sparkles className="h-3.5 w-3.5" />
+              Cabe no bolso
+            </div>
+            <h2 className="mt-4 font-display text-3xl font-black tracking-tight text-foreground lg:text-4xl">
+              No celular, <span className="text-primary">tudo na palma da mão</span>.
+            </h2>
+            <p className="mt-4 text-muted-foreground">
+              Confirme presença, registre placar, acompanhe seu Elo e converse com o grupo — direto do
+              app, em segundos. Pensado mobile-first para a beira da quadra.
+            </p>
+          </div>
         </div>
       </section>
 
