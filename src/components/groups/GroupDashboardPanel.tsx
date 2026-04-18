@@ -479,6 +479,31 @@ export function GroupDashboardPanel({ group, onLeft, onPresenceChanged }: Props)
           </div>
         </div>
       )}
+
+      <AlertDialog open={showLeave} onOpenChange={setShowLeave}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Sair do grupo?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Você não receberá mais notificações nem poderá ver as próximas rodadas de{" "}
+              <span className="font-semibold text-foreground">{group.name}</span>. Seu histórico será preservado.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={leaving}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                handleLeave();
+              }}
+              disabled={leaving}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {leaving ? "Saindo…" : "Sair do grupo"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
