@@ -575,6 +575,8 @@ function ComparePage() {
               Voltar ao ranking
             </Link>
           </div>
+        ) : players.length < 2 ? null : N >= 3 ? (
+          <MultiCompareTable players={players} latestSeasonId={latestSeasonId} groupId={groupId} />
         ) : !playerA || !playerB ? null : (
           <>
             {/* HERO: head to head */}
@@ -596,6 +598,33 @@ function ComparePage() {
                 </div>
                 <PlayerHero player={playerB} side="right" />
               </div>
+
+              {/* Advantage indicator */}
+              {advantage && advantage.leader !== "tie" && (
+                <div className="mt-4 flex items-center justify-center">
+                  <div
+                    className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-[11px] font-bold ${
+                      advantage.leader === "A"
+                        ? "border-primary/40 bg-primary/10 text-primary"
+                        : "border-rank-silver/40 bg-rank-silver/10 text-foreground"
+                    }`}
+                    title={`H2H ${advantage.h2hScoreA.toFixed(0)}–${advantage.h2hScoreB.toFixed(0)} · Elo ${Math.round(playerA.eloCurrent)}–${Math.round(playerB.eloCurrent)} · Forma ${advantage.formA}V${5 - advantage.formA}D vs ${advantage.formB}V${5 - advantage.formB}D`}
+                  >
+                    <Trophy className="h-3 w-3" />
+                    Vantagem: {displayName(advantage.leader === "A" ? playerA : playerB)}
+                    <span className="rounded-full bg-background/50 px-1.5 py-0.5 text-[9px] font-semibold">
+                      {advantage.confidence}%
+                    </span>
+                  </div>
+                </div>
+              )}
+              {advantage && advantage.leader === "tie" && (
+                <div className="mt-4 flex items-center justify-center">
+                  <div className="inline-flex items-center gap-2 rounded-full border border-border bg-background/40 px-3 py-1.5 text-[11px] font-semibold text-muted-foreground">
+                    Equilibrado — sem favorito claro
+                  </div>
+                </div>
+              )}
 
               {/* H2H summary */}
               {h2h && (h2h.asOpponents.played > 0 || h2h.asPartners.played > 0) && (
