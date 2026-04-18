@@ -100,6 +100,7 @@ function GeneralSection({ group, onSaved }: { group: any; onSaved: () => void })
   const [visibility, setVisibility] = useState<string>(initVis);
   const [saving, setSaving] = useState(false);
   const [isPremium, setIsPremium] = useState(false);
+  const [premiumExpiresAt, setPremiumExpiresAt] = useState<Date | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -110,13 +111,20 @@ function GeneralSection({ group, onSaved }: { group: any; onSaved: () => void })
       .maybeSingle()
       .then(({ data }) => {
         if (cancelled) return;
-        if (!data) { setIsPremium(false); return; }
+        if (!data) { setIsPremium(false); setPremiumExpiresAt(null); return; }
         const active = data.status && data.status !== "free" && data.status !== "cancelled";
-        const notExpired = !data.expires_at || new Date(data.expires_at) > new Date();
+        const exp = data.expires_at ? new Date(data.expires_at) : null;
+        const notExpired = !exp || exp > new Date();
         setIsPremium(Boolean(active && notExpired));
+        setPremiumExpiresAt(exp);
       });
     return () => { cancelled = true; };
   }, [group.id]);
+
+  const premiumDaysLeft = premiumExpiresAt
+    ? Math.ceil((premiumExpiresAt.getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+    : null;
+  const premiumExpiringSoon = isPremium && premiumDaysLeft != null && premiumDaysLeft <= 14;
 
   const dirty = name !== group.name || description !== (group.description || "") || visibility !== initVis;
 
