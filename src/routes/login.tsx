@@ -223,11 +223,11 @@ function LoginPage() {
           </div>
 
           {/* Stat cards */}
-          <div className="mt-3 grid grid-cols-3 gap-2 lg:mt-10 lg:gap-3">
+          <div className="mt-3 grid w-full grid-cols-3 gap-2 lg:mt-6 lg:max-w-md lg:gap-3">
             {stats.map((s) => (
               <div
                 key={s.label}
-                className="group relative overflow-hidden rounded-2xl border border-border/70 bg-card/60 px-2 py-2.5 text-center backdrop-blur-md transition-all hover:border-primary/40 hover:bg-card/80 lg:py-4"
+                className="group relative overflow-hidden rounded-2xl border border-border/70 bg-card/60 px-2 py-2.5 text-center backdrop-blur-md transition-all hover:border-primary/40 hover:bg-card/80 lg:py-3.5"
               >
                 <div
                   aria-hidden
@@ -274,6 +274,28 @@ function LoginPage() {
               aria-hidden
               className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-primary/60 to-transparent"
             />
+
+            {/* Features — visible on desktop inside the CTA card */}
+            <div className="mb-5 hidden space-y-2 lg:block">
+              {features.map((f) => (
+                <div
+                  key={f.title}
+                  className="flex items-center gap-3 rounded-2xl border border-border/60 bg-background/30 px-3 py-2.5 backdrop-blur-sm"
+                >
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                    <f.icon className="h-4 w-4" />
+                  </div>
+                  <div className="min-w-0 text-left">
+                    <p className="text-[13px] font-semibold leading-tight text-foreground">
+                      {f.title}
+                    </p>
+                    <p className="text-[11px] leading-tight text-muted-foreground">
+                      {f.desc}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
 
             <div className="mb-5">
               <p className="mb-3 text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
