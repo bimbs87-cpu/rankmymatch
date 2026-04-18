@@ -76,6 +76,7 @@ export function DualEloChart({
   playerBLabel,
   seasonId = null,
   matchInfo,
+  compact = false,
 }: Props) {
   const [loading, setLoading] = useState(true);
   const [events, setEvents] = useState<RawEvent[]>([]);
