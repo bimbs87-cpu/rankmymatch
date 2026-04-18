@@ -107,8 +107,9 @@ function pct(num: number, den: number) {
 function ComparePage() {
   const search = Route.useSearch();
   const navigate = useNavigate();
-  const { a: userA, b: userB, c: userC, d: userD, groupId, tab, embed } = search;
+  const { a: userA, b: userB, c: userC, d: userD, groupId, tab, embed, backTo } = search;
   const isEmbed = embed === "1";
+  const safeBackTo = backTo && backTo.startsWith("/") && !backTo.startsWith("//") ? backTo : "";
   const userIds = useMemo(
     () => [userA, userB, userC, userD].filter((id): id is string => !!id && id.length > 0),
     [userA, userB, userC, userD],
