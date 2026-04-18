@@ -20,7 +20,7 @@ import { Route as HistoryRouteImport } from './routes/history'
 import { Route as GroupsRouteImport } from './routes/groups'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as GroupsIndexRouteImport } from './routes/groups.index'
-import { Route as RankingCompareRouteImport } from './routes/ranking.compare'
+import { Route as RankingCompareRouteImport } from './routes/ranking_.compare'
 import { Route as InviteCodeRouteImport } from './routes/invite.$code'
 import { Route as GroupsGroupIdRouteImport } from './routes/groups.$groupId'
 import { Route as GroupsGroupIdIndexRouteImport } from './routes/groups.$groupId.index'
@@ -88,9 +88,9 @@ const GroupsIndexRoute = GroupsIndexRouteImport.update({
   getParentRoute: () => GroupsRoute,
 } as any)
 const RankingCompareRoute = RankingCompareRouteImport.update({
-  id: '/compare',
-  path: '/compare',
-  getParentRoute: () => RankingRoute,
+  id: '/ranking_/compare',
+  path: '/ranking/compare',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const InviteCodeRoute = InviteCodeRouteImport.update({
   id: '/invite/$code',
@@ -154,7 +154,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/notifications': typeof NotificationsRoute
   '/profile': typeof ProfileRoute
-  '/ranking': typeof RankingRouteWithChildren
+  '/ranking': typeof RankingRoute
   '/ranking-info': typeof RankingInfoRoute
   '/seasons': typeof SeasonsRoute
   '/sistema': typeof SistemaRoute
@@ -177,7 +177,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/notifications': typeof NotificationsRoute
   '/profile': typeof ProfileRoute
-  '/ranking': typeof RankingRouteWithChildren
+  '/ranking': typeof RankingRoute
   '/ranking-info': typeof RankingInfoRoute
   '/seasons': typeof SeasonsRoute
   '/sistema': typeof SistemaRoute
@@ -199,13 +199,13 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/notifications': typeof NotificationsRoute
   '/profile': typeof ProfileRoute
-  '/ranking': typeof RankingRouteWithChildren
+  '/ranking': typeof RankingRoute
   '/ranking-info': typeof RankingInfoRoute
   '/seasons': typeof SeasonsRoute
   '/sistema': typeof SistemaRoute
   '/groups/$groupId': typeof GroupsGroupIdRouteWithChildren
   '/invite/$code': typeof InviteCodeRoute
-  '/ranking/compare': typeof RankingCompareRoute
+  '/ranking_/compare': typeof RankingCompareRoute
   '/groups/': typeof GroupsIndexRoute
   '/groups/$groupId/duel': typeof GroupsGroupIdDuelRoute
   '/groups/$groupId/feed': typeof GroupsGroupIdFeedRoute
@@ -275,7 +275,7 @@ export interface FileRouteTypes {
     | '/sistema'
     | '/groups/$groupId'
     | '/invite/$code'
-    | '/ranking/compare'
+    | '/ranking_/compare'
     | '/groups/'
     | '/groups/$groupId/duel'
     | '/groups/$groupId/feed'
@@ -294,11 +294,12 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   NotificationsRoute: typeof NotificationsRoute
   ProfileRoute: typeof ProfileRoute
-  RankingRoute: typeof RankingRouteWithChildren
+  RankingRoute: typeof RankingRoute
   RankingInfoRoute: typeof RankingInfoRoute
   SeasonsRoute: typeof SeasonsRoute
   SistemaRoute: typeof SistemaRoute
   InviteCodeRoute: typeof InviteCodeRoute
+  RankingCompareRoute: typeof RankingCompareRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -380,12 +381,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof GroupsIndexRouteImport
       parentRoute: typeof GroupsRoute
     }
-    '/ranking/compare': {
-      id: '/ranking/compare'
-      path: '/compare'
+    '/ranking_/compare': {
+      id: '/ranking_/compare'
+      path: '/ranking/compare'
       fullPath: '/ranking/compare'
       preLoaderRoute: typeof RankingCompareRouteImport
-      parentRoute: typeof RankingRoute
+      parentRoute: typeof rootRouteImport
     }
     '/invite/$code': {
       id: '/invite/$code'
@@ -523,17 +524,6 @@ const GroupsRouteChildren: GroupsRouteChildren = {
 const GroupsRouteWithChildren =
   GroupsRoute._addFileChildren(GroupsRouteChildren)
 
-interface RankingRouteChildren {
-  RankingCompareRoute: typeof RankingCompareRoute
-}
-
-const RankingRouteChildren: RankingRouteChildren = {
-  RankingCompareRoute: RankingCompareRoute,
-}
-
-const RankingRouteWithChildren =
-  RankingRoute._addFileChildren(RankingRouteChildren)
-
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   GroupsRoute: GroupsRouteWithChildren,
@@ -541,11 +531,12 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   NotificationsRoute: NotificationsRoute,
   ProfileRoute: ProfileRoute,
-  RankingRoute: RankingRouteWithChildren,
+  RankingRoute: RankingRoute,
   RankingInfoRoute: RankingInfoRoute,
   SeasonsRoute: SeasonsRoute,
   SistemaRoute: SistemaRoute,
   InviteCodeRoute: InviteCodeRoute,
+  RankingCompareRoute: RankingCompareRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

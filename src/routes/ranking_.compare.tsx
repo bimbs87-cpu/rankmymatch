@@ -16,7 +16,7 @@ const searchSchema = z.object({
   seasonId: fallback(z.string(), "").default(""),
 });
 
-export const Route = createFileRoute("/ranking/compare")({
+export const Route = createFileRoute("/ranking_/compare")({
   validateSearch: zodValidator(searchSchema),
   component: ComparePage,
 });
