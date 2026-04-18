@@ -140,7 +140,13 @@ function LoginPage() {
     <div className="min-h-screen bg-background lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center lg:max-w-5xl lg:mx-auto lg:min-h-screen lg:px-12 lg:py-16">
       {/* MOBILE: top zone (~55%) with gradient + DESKTOP: left column */}
       <div className="flex flex-col bg-gradient-to-b from-primary/10 to-background lg:bg-none min-h-[55vh] lg:min-h-0 pt-12 lg:pt-0">
-        <img src={logoSrc} alt="RankMyMatch" className="h-7 w-auto px-6 lg:px-0" />
+        <div className="px-6 lg:px-0">
+          <img
+            src={logoSrc}
+            alt="RankMyMatch"
+            className="h-10 w-auto object-contain"
+          />
+        </div>
 
         <div className="px-6 lg:px-0 mt-6 lg:mt-8">
           <h1 className="font-black text-3xl lg:text-5xl leading-tight">
