@@ -1,0 +1,2 @@
+ALTER TABLE public.compare_favorites ADD COLUMN IF NOT EXISTS sort_order INTEGER NOT NULL DEFAULT 0;
+CREATE INDEX IF NOT EXISTS idx_compare_favorites_sort ON public.compare_favorites(user_id, group_id, sort_order);
