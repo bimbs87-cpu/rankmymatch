@@ -443,6 +443,22 @@ function RoundDetailPage() {
     }
   };
 
+  const handleUndoForceOpen = async () => {
+    if (!confirm("Desfazer a reabertura da lista? Os membros voltarão a aguardar o horário programado.")) return;
+    setForcePresenceOpen(false);
+    try {
+      const { error } = await supabase
+        .from("rounds")
+        .update({ presence_force_open_at: null } as any)
+        .eq("id", roundId);
+      if (error) throw error;
+      toast.success("Reabertura desfeita");
+      refresh();
+    } catch (e: any) {
+      toast.error(e?.message || "Erro ao desfazer");
+    }
+  };
+
   const handleConfirm = async () => {
     if (!user) return;
     try {
