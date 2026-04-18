@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useAuth } from "@/hooks/use-auth";
 import { TrophyLoadingBar } from "@/components/TrophyLoadingBar";
 import { useMyGroups } from "@/hooks/use-groups";
-import { BarChart3, Info, ChevronDown, ArrowUp, ArrowDown, Calendar, Layers, Timer, Crown, AlertTriangle, ChevronRight } from "lucide-react";
+import { BarChart3, Info, ChevronDown, ArrowUp, ArrowDown, Calendar, Layers, Timer, Crown, AlertTriangle, ChevronRight, GitCompareArrows, X, Check } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
@@ -68,6 +68,8 @@ function RankingPage() {
   const [completedRounds, setCompletedRounds] = useState(0);
   const [totalSets, setTotalSets] = useState(0);
   const [expandedUserId, setExpandedUserId] = useState<string | null>(null);
+  const [compareMode, setCompareMode] = useState(false);
+  const [compareSelection, setCompareSelection] = useState<string[]>([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -502,6 +504,33 @@ function RankingPage() {
               )}
             </div>
           )}
+          {selectedSeason && rankings.length >= 2 && (
+            <button
+              onClick={() => {
+                setCompareMode((m) => {
+                  const next = !m;
+                  if (next) {
+                    setExpandedUserId(null);
+                    // Pre-select the current user if they are in the ranking
+                    setCompareSelection(user?.id && rankings.some((r) => r.user_id === user.id) ? [user.id] : []);
+                  } else {
+                    setCompareSelection([]);
+                  }
+                  return next;
+                });
+              }}
+              className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
+                compareMode
+                  ? "border-primary bg-primary/15 text-primary"
+                  : "border-border bg-card text-foreground hover:bg-accent"
+              }`}
+              aria-pressed={compareMode}
+              title="Comparar jogadores"
+            >
+              {compareMode ? <X className="h-3.5 w-3.5" /> : <GitCompareArrows className="h-3.5 w-3.5" />}
+              {compareMode ? "Cancelar" : "Comparar"}
+            </button>
+          )}
           <Link to="/ranking-info" className="rounded-full border border-border bg-card p-2 transition-colors hover:bg-accent" aria-label="Entenda a pontuação" title="Entenda a pontuação">
             <Info className="h-4 w-4 text-muted-foreground" />
           </Link>
@@ -735,29 +764,64 @@ function RankingPage() {
                   : "transparent";
                 const posColor = typeof pos === "number" && pos <= 3 ? "var(--background)" : "var(--muted-foreground)";
 
+                const isSelected = compareSelection.includes(entry.user_id);
+                const canSelect = canExpand; // same eligibility — needs matches
+                const handleRowAction = () => {
+                  if (compareMode) {
+                    if (!canSelect) return;
+                    setCompareSelection((sel) => {
+                      if (sel.includes(entry.user_id)) return sel.filter((id) => id !== entry.user_id);
+                      if (sel.length >= 2) return [sel[1], entry.user_id]; // keep last + new
+                      return [...sel, entry.user_id];
+                    });
+                  } else if (canExpand) {
+                    setExpandedUserId(isExpanded ? null : entry.user_id);
+                  }
+                };
+                const interactive = compareMode ? canSelect : canExpand;
+
                 return (
                   <div key={entry.user_id} className={idx > 0 ? "border-t border-border/40" : ""}>
                     <div
-                      role={canExpand ? "button" : undefined}
-                      tabIndex={canExpand ? 0 : undefined}
-                      aria-expanded={canExpand ? isExpanded : undefined}
-                      onClick={() => canExpand && setExpandedUserId(isExpanded ? null : entry.user_id)}
+                      role={interactive ? "button" : undefined}
+                      tabIndex={interactive ? 0 : undefined}
+                      aria-expanded={!compareMode && canExpand ? isExpanded : undefined}
+                      aria-pressed={compareMode && canSelect ? isSelected : undefined}
+                      onClick={handleRowAction}
                       onKeyDown={(e) => {
-                        if (!canExpand) return;
+                        if (!interactive) return;
                         if (e.key === "Enter" || e.key === " ") {
                           e.preventDefault();
-                          setExpandedUserId(isExpanded ? null : entry.user_id);
+                          handleRowAction();
                         }
                       }}
                       className={`
                         group flex lg:grid lg:grid-cols-[60px_minmax(0,1fr)_90px_100px_140px_120px] lg:gap-3 items-center
                         px-2 py-2 lg:px-4 lg:py-2 transition-colors
                         ${isMe ? "bg-primary/5 lg:bg-primary/10" : isEven ? "bg-muted/10" : ""}
-                        ${isExpanded ? "bg-primary/10 lg:bg-primary/15" : ""}
-                        ${isInactive || isFormer ? "opacity-60" : ""}
-                        ${canExpand ? "cursor-pointer lg:hover:bg-accent/30 focus:outline-none focus:ring-1 focus:ring-primary/40" : ""}
+                        ${isExpanded && !compareMode ? "bg-primary/10 lg:bg-primary/15" : ""}
+                        ${compareMode && isSelected ? "bg-primary/15 ring-1 ring-inset ring-primary/40" : ""}
+                        ${(isInactive || isFormer) && !compareMode ? "opacity-60" : ""}
+                        ${compareMode && !canSelect ? "opacity-40" : ""}
+                        ${interactive ? "cursor-pointer lg:hover:bg-accent/30 focus:outline-none focus:ring-1 focus:ring-primary/40" : ""}
                       `}
                     >
+                      {compareMode && (
+                        <div className="mr-1 flex w-5 shrink-0 items-center justify-center lg:mr-0 lg:w-6">
+                          <span
+                            className={`flex h-4 w-4 items-center justify-center rounded border transition lg:h-5 lg:w-5 ${
+                              isSelected
+                                ? "border-primary bg-primary text-primary-foreground"
+                                : canSelect
+                                ? "border-border bg-background"
+                                : "border-border/40 bg-muted/30"
+                            }`}
+                            aria-hidden="true"
+                          >
+                            {isSelected && <Check className="h-2.5 w-2.5 lg:h-3 lg:w-3" strokeWidth={3} />}
+                          </span>
+                        </div>
+                      )}
                       {/* Position */}
                       <div className="w-8 lg:w-auto shrink-0 text-center">
                         <div className="flex items-center justify-center">
@@ -886,7 +950,7 @@ function RankingPage() {
                       </div>
                     </div>
 
-                    {isExpanded && canExpand && selectedSeason && (
+                    {!compareMode && isExpanded && canExpand && selectedSeason && (
                       <RankingPlayerDetails
                         userId={entry.user_id}
                         seasonId={selectedSeason.id}
@@ -909,6 +973,50 @@ function RankingPage() {
           </div>
         )}
       </div>
+
+      {/* Floating compare bar */}
+      {compareMode && selectedSeason && (
+        <div className="fixed bottom-20 left-1/2 z-30 w-[calc(100%-1.5rem)] max-w-md -translate-x-1/2 lg:bottom-6">
+          <div className="rounded-2xl border border-primary/40 bg-card/95 p-3 shadow-2xl backdrop-blur-xl">
+            <div className="flex items-center gap-3">
+              <div className="flex-1 min-w-0">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  {compareSelection.length}/2 selecionados
+                </p>
+                <p className="truncate text-xs text-foreground">
+                  {compareSelection.length === 0
+                    ? "Toque em 2 jogadores para comparar"
+                    : compareSelection.length === 1
+                    ? "Selecione mais 1 jogador"
+                    : "Pronto para comparar!"}
+                </p>
+              </div>
+              <Link
+                to="/ranking/compare"
+                search={{
+                  a: compareSelection[0] || "",
+                  b: compareSelection[1] || "",
+                  groupId: (selectedSeason as any).group_id,
+                  seasonId: selectedSeason.id,
+                  tab: "season" as const,
+                }}
+                disabled={compareSelection.length !== 2}
+                onClick={(e) => {
+                  if (compareSelection.length !== 2) e.preventDefault();
+                }}
+                className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-4 py-2 text-xs font-bold transition ${
+                  compareSelection.length === 2
+                    ? "bg-primary text-primary-foreground hover:opacity-90"
+                    : "cursor-not-allowed bg-muted text-muted-foreground"
+                }`}
+              >
+                <GitCompareArrows className="h-3.5 w-3.5" />
+                Comparar
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
