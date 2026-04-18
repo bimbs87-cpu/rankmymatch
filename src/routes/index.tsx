@@ -2170,10 +2170,15 @@ function DashboardPage() {
 
         {/* Últimos Resultados (mobile/tablet only — denso, vem antes de Próximas Rodadas) */}
         <section className="lg:hidden">
-          <div className="mb-2 flex items-center justify-between">
-            <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Últimos Resultados
-            </h2>
+          <div className="mb-2 flex items-end justify-between">
+            <div>
+              <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Últimos Resultados
+              </h2>
+              <p className="mt-0.5 text-[9.5px] text-muted-foreground/70">
+                Toque em um resultado para ver a rodada
+              </p>
+            </div>
             <Link to="/history" className="flex items-center gap-0.5 text-xs font-medium text-primary">
               Histórico <ChevronRight className="h-3.5 w-3.5" />
             </Link>
@@ -2191,7 +2196,7 @@ function DashboardPage() {
               </div>
             </div>
           ) : (
-            <div className="overflow-hidden rounded-2xl border border-border bg-card divide-y divide-border/60">
+            <div className="overflow-hidden rounded-2xl border border-border bg-card divide-y divide-border/60 shadow-sm">
               {recentMatches.slice(0, 3).map((m) => {
                 const won = m.winner_team === m.my_team;
                 const winnerLabel = won
@@ -2207,56 +2212,77 @@ function DashboardPage() {
                   ? {
                       to: "/groups/$groupId/seasons/$seasonId/rounds/$roundId",
                       params: { groupId: m.group_id!, seasonId: m.season_id!, roundId: m.round_id! },
+                      role: "button",
+                      "aria-label": `Ver rodada ${m.round_number ?? ""} — ${winnerLabel}`,
                     }
                   : {};
                 return (
                   <RowTag
                     key={m.id}
                     {...rowProps}
-                    className={`flex items-center gap-2 px-2.5 py-1.5 ${canLink ? "active:bg-accent/40 transition-colors" : ""}`}
+                    className={`group relative flex items-stretch gap-2.5 px-2.5 py-2 ${canLink ? "cursor-pointer active:bg-accent/50 transition-colors" : ""}`}
                   >
+                    {/* Result accent bar */}
+                    <span
+                      aria-hidden
+                      className={`absolute left-0 top-1.5 bottom-1.5 w-0.5 rounded-r ${
+                        won ? "bg-success" : "bg-destructive"
+                      }`}
+                    />
+
+                    {/* V/D badge */}
                     <div
-                      className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-[10px] font-bold ${
-                        won ? "bg-success/15 text-success" : "bg-destructive/15 text-destructive"
+                      className={`ml-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-[11px] font-bold ring-1 ${
+                        won
+                          ? "bg-success/15 text-success ring-success/25"
+                          : "bg-destructive/15 text-destructive ring-destructive/25"
                       }`}
                     >
                       {won ? "V" : "D"}
                     </div>
 
-                    <div className="min-w-0 flex-1">
+                    <div className="min-w-0 flex-1 self-center">
                       <div className="flex items-baseline gap-1.5">
-                        <p className="font-display text-[13px] font-bold text-foreground tabular-nums leading-tight">
+                        <p className="font-display text-[14px] font-bold text-foreground tabular-nums leading-tight">
                           {m.score_display}
                         </p>
-                        <p className={`truncate text-[10px] font-semibold leading-tight ${won ? "text-success" : "text-foreground"}`}>
+                        <p className={`truncate text-[10.5px] font-semibold leading-tight ${won ? "text-success" : "text-foreground/85"}`}>
                           {winnerLabel}
                         </p>
                       </div>
-                      <p className="truncate text-[9.5px] leading-tight text-muted-foreground">
+                      <p className="mt-0.5 truncate text-[10px] leading-tight text-muted-foreground">
                         {m.group_name ? `${m.group_name} · ` : ""}Set {m.match_number}
                       </p>
                     </div>
 
-                    {m.rating_change !== null && (
-                      <span
-                        className={`shrink-0 inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-bold tabular-nums ${
-                          m.rating_change > 0
-                            ? "bg-success/15 text-success"
-                            : m.rating_change < 0
-                              ? "bg-destructive/15 text-destructive"
-                              : "bg-muted text-muted-foreground"
-                        }`}
-                      >
-                        {m.rating_change > 0 ? (
-                          <TrendingUp className="h-2.5 w-2.5" />
-                        ) : m.rating_change < 0 ? (
-                          <TrendingDown className="h-2.5 w-2.5" />
-                        ) : (
-                          <Minus className="h-2.5 w-2.5" />
-                        )}
-                        {m.rating_change > 0 ? "+" : ""}{Math.round(m.rating_change)}
-                      </span>
-                    )}
+                    <div className="flex shrink-0 items-center gap-1.5 self-center">
+                      {m.rating_change !== null && (
+                        <span
+                          className={`inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10.5px] font-bold tabular-nums ${
+                            m.rating_change > 0
+                              ? "bg-success/15 text-success"
+                              : m.rating_change < 0
+                                ? "bg-destructive/15 text-destructive"
+                                : "bg-muted text-muted-foreground"
+                          }`}
+                        >
+                          {m.rating_change > 0 ? (
+                            <TrendingUp className="h-2.5 w-2.5" />
+                          ) : m.rating_change < 0 ? (
+                            <TrendingDown className="h-2.5 w-2.5" />
+                          ) : (
+                            <Minus className="h-2.5 w-2.5" />
+                          )}
+                          {m.rating_change > 0 ? "+" : ""}{Math.round(m.rating_change)}
+                        </span>
+                      )}
+                      {canLink && (
+                        <ChevronRight
+                          aria-hidden
+                          className="h-4 w-4 text-muted-foreground/60 transition-transform group-active:translate-x-0.5"
+                        />
+                      )}
+                    </div>
                   </RowTag>
                 );
               })}
