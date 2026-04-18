@@ -122,13 +122,14 @@ function ComparePage() {
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
-      if (!userA || !userB || !groupId) {
-        setError("Parâmetros inválidos");
+      if (userIds.length < 2 || !groupId) {
+        setError("Selecione pelo menos 2 jogadores");
         setLoading(false);
         return;
       }
-      if (userA === userB) {
-        setError("Selecione dois jogadores diferentes");
+      const uniqueIds = Array.from(new Set(userIds));
+      if (uniqueIds.length !== userIds.length) {
+        setError("Jogadores duplicados na comparação");
         setLoading(false);
         return;
       }
@@ -137,7 +138,7 @@ function ComparePage() {
       setLabel("Buscando jogadores...");
 
       try {
-        // Group + seasons
+        // Group + seasons + profiles
         const [groupRes, seasonsRes, profilesRes] = await Promise.all([
           supabase.from("groups").select("name").eq("id", groupId).single(),
           supabase
@@ -149,7 +150,7 @@ function ComparePage() {
           supabase
             .from("user_profiles")
             .select("user_id, name, nickname, avatar_url")
-            .in("user_id", [userA, userB]),
+            .in("user_id", userIds),
         ]);
         if (cancelled) return;
         if (groupRes.error) throw groupRes.error;
@@ -161,32 +162,36 @@ function ComparePage() {
         const seasonIds = seasons.map((s: any) => s.id);
         const seasonNameMap = new Map(seasons.map((s: any) => [s.id, s.name]));
 
-        const profileA = profilesRes.data?.find((p: any) => p.user_id === userA);
-        const profileB = profilesRes.data?.find((p: any) => p.user_id === userB);
-        if (!profileA || !profileB) {
-          setError("Jogador não encontrado");
-          setLoading(false);
-          return;
+        const profilesMap = new Map<string, Profile>();
+        for (const p of profilesRes.data || []) {
+          profilesMap.set(p.user_id, p as Profile);
+        }
+        for (const id of userIds) {
+          if (!profilesMap.has(id)) {
+            setError("Jogador não encontrado");
+            setLoading(false);
+            return;
+          }
         }
 
         setProgress(30);
         setLabel("Carregando estatísticas...");
 
-        // Snapshots, rating events, rounds, presence — all scoped to this group
+        // Snapshots, rating events, rounds, presence — scoped to this group
         const [snapsRes, eventsRes, roundsRes, presenceRes] = await Promise.all([
           seasonIds.length
             ? supabase
                 .from("ranking_snapshots")
                 .select("*")
                 .in("season_id", seasonIds)
-                .in("user_id", [userA, userB])
+                .in("user_id", userIds)
             : Promise.resolve({ data: [], error: null } as any),
           seasonIds.length
             ? supabase
                 .from("rating_events")
                 .select("user_id, rating_after, rating_before, rating_change, created_at, match_id, season_id")
                 .in("season_id", seasonIds)
-                .in("user_id", [userA, userB])
+                .in("user_id", userIds)
                 .order("created_at", { ascending: true })
             : Promise.resolve({ data: [], error: null } as any),
           supabase
@@ -196,7 +201,7 @@ function ComparePage() {
           supabase
             .from("round_presence")
             .select("round_id, user_id, status")
-            .in("user_id", [userA, userB]),
+            .in("user_id", userIds),
         ]);
         if (cancelled) return;
         if (snapsRes.error) throw snapsRes.error;
@@ -214,7 +219,7 @@ function ComparePage() {
         setProgress(55);
         setLabel("Calculando confrontos...");
 
-        // Match player rows for both users to compute H2H + sets for scores
+        // Match player rows for ALL involved users
         const matchIdsFromEvents: string[] = Array.from(new Set(events.map((e: any) => e.match_id as string)));
         let matchPlayers: any[] = [];
         let matchesMeta: any[] = [];
@@ -314,7 +319,6 @@ function ComparePage() {
 
           // Streaks based on rating_change sign
           let streakMax = 0;
-          let streakCurrent = 0;
           let cur = 0;
           for (const e of userEvents) {
             if (Number(e.rating_change) > 0) {
@@ -325,6 +329,7 @@ function ComparePage() {
             }
           }
           // Current streak = trailing same-sign run (positive=wins, negative=losses)
+          let streakCurrent = 0;
           let streakSign: 1 | -1 | 0 = 0;
           for (let i = userEvents.length - 1; i >= 0; i--) {
             const change = Number(userEvents[i].rating_change);
@@ -335,9 +340,7 @@ function ComparePage() {
           }
           const streakCurrentSigned = streakCurrent * (streakSign || 1);
 
-          // Frequency: a player is "present" in a completed round if they actually
-          // played any match in that round (authoritative). Fall back to round_presence
-          // (confirmed/present) for rounds where the user didn't play but signaled presence.
+          // Frequency
           const playedRoundIds = new Set<string>();
           for (const mp of matchPlayers) {
             if (mp.user_id !== uid) continue;
@@ -367,113 +370,114 @@ function ComparePage() {
           };
         };
 
-        const aggA = buildAggregate(userA, profileA);
-        const aggB = buildAggregate(userB, profileB);
+        const aggregates: PlayerAggregate[] = userIds.map((uid) => buildAggregate(uid, profilesMap.get(uid)!));
 
-        // H2H computation: for each match, both must be present
-        const matchToPlayers = new Map<string, any[]>();
-        for (const mp of matchPlayers) {
-          const arr = matchToPlayers.get(mp.match_id) || [];
-          arr.push(mp);
-          matchToPlayers.set(mp.match_id, arr);
-        }
-
-        // We need to also fetch the OTHER players in each shared match (partners/opponents)
-        // to display contextual names in the meetings list.
-        const sharedMatchIds: string[] = [];
-        for (const [mid, players] of matchToPlayers.entries()) {
-          const hasA = players.some((p) => p.user_id === userA);
-          const hasB = players.some((p) => p.user_id === userB);
-          if (hasA && hasB) sharedMatchIds.push(mid);
-        }
-
-        let othersByMatch = new Map<string, { user_id: string; team: "A" | "B" }[]>();
-        let extraProfileMap = new Map<string, string>();
-        if (sharedMatchIds.length) {
-          const { data: allPlayers, error: apErr } = await supabase
-            .from("match_players")
-            .select("match_id, user_id, team")
-            .in("match_id", sharedMatchIds);
-          if (apErr) throw apErr;
-          const otherUserIds = new Set<string>();
-          for (const mp of allPlayers || []) {
-            if (mp.user_id === userA || mp.user_id === userB) continue;
-            const arr = othersByMatch.get(mp.match_id) || [];
-            arr.push({ user_id: mp.user_id, team: mp.team as "A" | "B" });
-            othersByMatch.set(mp.match_id, arr);
-            otherUserIds.add(mp.user_id);
+        // H2H computation only makes sense for exactly 2 players
+        let h2hData: H2HData | null = null;
+        if (userIds.length === 2) {
+          const [uA, uB] = userIds;
+          const matchToPlayers = new Map<string, any[]>();
+          for (const mp of matchPlayers) {
+            const arr = matchToPlayers.get(mp.match_id) || [];
+            arr.push(mp);
+            matchToPlayers.set(mp.match_id, arr);
           }
-          if (otherUserIds.size) {
-            const { data: extraProfs, error: epErr } = await supabase
-              .from("user_profiles")
-              .select("user_id, name, nickname")
-              .in("user_id", Array.from(otherUserIds));
-            if (epErr) throw epErr;
-            for (const p of extraProfs || []) {
-              const display = (p.nickname?.trim() as string) || abbreviateName(p.name);
-              extraProfileMap.set(p.user_id, display);
+
+          const sharedMatchIds: string[] = [];
+          for (const [mid, ps] of matchToPlayers.entries()) {
+            const hasA = ps.some((p) => p.user_id === uA);
+            const hasB = ps.some((p) => p.user_id === uB);
+            if (hasA && hasB) sharedMatchIds.push(mid);
+          }
+
+          const othersByMatch = new Map<string, { user_id: string; team: "A" | "B" }[]>();
+          const extraProfileMap = new Map<string, string>();
+          if (sharedMatchIds.length) {
+            const { data: allPlayers, error: apErr } = await supabase
+              .from("match_players")
+              .select("match_id, user_id, team")
+              .in("match_id", sharedMatchIds);
+            if (apErr) throw apErr;
+            const otherUserIds = new Set<string>();
+            for (const mp of allPlayers || []) {
+              if (mp.user_id === uA || mp.user_id === uB) continue;
+              const arr = othersByMatch.get(mp.match_id) || [];
+              arr.push({ user_id: mp.user_id, team: mp.team as "A" | "B" });
+              othersByMatch.set(mp.match_id, arr);
+              otherUserIds.add(mp.user_id);
+            }
+            if (otherUserIds.size) {
+              const { data: extraProfs, error: epErr } = await supabase
+                .from("user_profiles")
+                .select("user_id, name, nickname")
+                .in("user_id", Array.from(otherUserIds));
+              if (epErr) throw epErr;
+              for (const p of extraProfs || []) {
+                const display = (p.nickname?.trim() as string) || abbreviateName(p.name);
+                extraProfileMap.set(p.user_id, display);
+              }
             }
           }
-        }
 
-        const meetings: H2HData["recentMeetings"] = [];
-        let asPartnersPlayed = 0;
-        let asPartnersWon = 0;
-        let asOppPlayed = 0;
-        let aWon = 0;
-        let bWon = 0;
+          const meetings: H2HData["recentMeetings"] = [];
+          let asPartnersPlayed = 0;
+          let asPartnersWon = 0;
+          let asOppPlayed = 0;
+          let aWon = 0;
+          let bWon = 0;
 
-        for (const [matchId, players] of matchToPlayers.entries()) {
-          const a = players.find((p) => p.user_id === userA);
-          const b = players.find((p) => p.user_id === userB);
-          if (!a || !b) continue;
-          const meta = matchMetaMap.get(matchId);
-          if (!meta || meta.status !== "completed") continue;
+          for (const [matchId, ps] of matchToPlayers.entries()) {
+            const a = ps.find((p) => p.user_id === uA);
+            const b = ps.find((p) => p.user_id === uB);
+            if (!a || !b) continue;
+            const meta = matchMetaMap.get(matchId);
+            if (!meta || meta.status !== "completed") continue;
 
-          const sameTeam = a.team === b.team;
-          const winner = (meta.winner_team as "A" | "B" | null) || null;
+            const sameTeam = a.team === b.team;
+            const winner = (meta.winner_team as "A" | "B" | null) || null;
 
-          if (sameTeam) {
-            asPartnersPlayed += 1;
-            if (winner && winner === a.team) asPartnersWon += 1;
-          } else {
-            asOppPlayed += 1;
-            if (winner === a.team) aWon += 1;
-            else if (winner === b.team) bWon += 1;
+            if (sameTeam) {
+              asPartnersPlayed += 1;
+              if (winner && winner === a.team) asPartnersWon += 1;
+            } else {
+              asOppPlayed += 1;
+              if (winner === a.team) aWon += 1;
+              else if (winner === b.team) bWon += 1;
+            }
+
+            const evt = events.find((e: any) => e.match_id === matchId);
+            const others = (othersByMatch.get(matchId) || []).map((o) => ({
+              user_id: o.user_id,
+              team: o.team,
+              name: extraProfileMap.get(o.user_id) || "Jogador",
+            }));
+            meetings.push({
+              match_id: matchId,
+              round_id: meta.round_id,
+              season_id: evt?.season_id || "",
+              season_name: evt?.season_id ? (seasonNameMap.get(evt.season_id) || "—") : "—",
+              asPartners: sameTeam,
+              aTeam: a.team,
+              bTeam: b.team,
+              winner,
+              created_at: meta.created_at,
+              sets: setsByMatch.get(matchId) || [],
+              others,
+            });
           }
 
-          // Get season name from any event for this match
-          const evt = events.find((e: any) => e.match_id === matchId);
-          const others = (othersByMatch.get(matchId) || []).map((o) => ({
-            user_id: o.user_id,
-            team: o.team,
-            name: extraProfileMap.get(o.user_id) || "Jogador",
-          }));
-          meetings.push({
-            match_id: matchId,
-            round_id: meta.round_id,
-            season_id: evt?.season_id || "",
-            season_name: evt?.season_id ? (seasonNameMap.get(evt.season_id) || "—") : "—",
-            asPartners: sameTeam,
-            aTeam: a.team,
-            bTeam: b.team,
-            winner,
-            created_at: meta.created_at,
-            sets: setsByMatch.get(matchId) || [],
-            others,
-          });
-        }
+          meetings.sort((x, y) => y.created_at.localeCompare(x.created_at));
 
-        meetings.sort((x, y) => y.created_at.localeCompare(x.created_at));
-
-        if (!cancelled) {
-          setPlayerA(aggA);
-          setPlayerB(aggB);
-          setH2H({
+          h2hData = {
             asPartners: { played: asPartnersPlayed, won: asPartnersWon },
             asOpponents: { played: asOppPlayed, aWon, bWon },
             recentMeetings: meetings.slice(0, 10),
-          });
+          };
+        }
+
+        if (!cancelled) {
+          setPlayers(aggregates);
+          setH2H(h2hData);
           setProgress(100);
           setLoading(false);
         }
@@ -490,7 +494,7 @@ function ComparePage() {
     return () => {
       cancelled = true;
     };
-  }, [userA, userB, groupId]);
+  }, [userIds, groupId]);
 
   const swap = () => {
     navigate({
