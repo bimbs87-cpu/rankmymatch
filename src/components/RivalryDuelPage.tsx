@@ -850,6 +850,72 @@ export function RivalryDuelPage({ groupId, groupName, seasonId, seasonName }: Pr
           </div>
         </TooltipProvider>
       </div>
+
+      {/* Block 9: Conquistas do Duelo — timeline of medal holder changes */}
+      <div className="rounded-3xl border border-border bg-card/50 p-5">
+        <div className="mb-3 flex items-center gap-1.5">
+          <Trophy className="h-3.5 w-3.5 text-primary" />
+          <h3 className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            Conquistas do Duelo
+          </h3>
+        </div>
+        {medalsTimeline.events.length === 0 ? (
+          <p className="py-4 text-center text-xs text-muted-foreground">
+            Sem trocas de medalhas ainda — joguem mais confrontos para escrever a história!
+          </p>
+        ) : (
+          <ol className="relative space-y-3 pl-4">
+            <span className="absolute left-1.5 top-1 bottom-1 w-px bg-border" aria-hidden />
+            {medalsTimeline.events.slice(0, 30).map((ev, idx) => {
+              const newName = ev.newHolder === "A" ? displayNameA : displayNameB;
+              const prevName =
+                ev.previousHolder === "A"
+                  ? displayNameA
+                  : ev.previousHolder === "B"
+                    ? displayNameB
+                    : null;
+              const colorCls =
+                ev.newHolder === "A" ? "text-primary" : "text-info";
+              const dotCls =
+                ev.newHolder === "A" ? "bg-primary" : "bg-info";
+              const dateStr = ev.date
+                ? new Date(ev.date + "T00:00:00").toLocaleDateString("pt-BR", {
+                    day: "2-digit",
+                    month: "short",
+                    year: "numeric",
+                  })
+                : `Confronto #${ev.matchIndex}`;
+              return (
+                <li key={`${ev.medal}-${idx}`} className="relative">
+                  <span
+                    className={`absolute -left-[11px] top-1 h-2 w-2 rounded-full ring-2 ring-card ${dotCls}`}
+                    aria-hidden
+                  />
+                  <div className="flex items-start gap-2">
+                    <span className="text-base leading-none" aria-hidden>{ev.medalEmoji}</span>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs">
+                        <span className={`font-bold ${colorCls}`}>{newName}</span>
+                        <span className="text-muted-foreground"> conquistou </span>
+                        <span className="font-semibold text-foreground">{ev.medalLabel}</span>
+                        {prevName && (
+                          <>
+                            <span className="text-muted-foreground"> tirando de </span>
+                            <span className="font-semibold text-foreground">{prevName}</span>
+                          </>
+                        )}
+                      </p>
+                      <p className="mt-0.5 text-[10px] text-muted-foreground">
+                        {dateStr} · valor: {ev.value}
+                      </p>
+                    </div>
+                  </div>
+                </li>
+              );
+            })}
+          </ol>
+        )}
+      </div>
     </div>
   );
 }
