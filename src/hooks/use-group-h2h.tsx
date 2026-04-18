@@ -16,12 +16,26 @@ export interface PlayerRivalry {
   partners_wins: number;
 }
 
+export interface UntappedPair {
+  user_a: string;
+  user_b: string;
+  name_a: string;
+  name_b: string;
+  avatar_a: string | null;
+  avatar_b: string | null;
+  /** How many matches each played in the group (sum used as proxy for "active"). */
+  activity_a: number;
+  activity_b: number;
+}
+
 export interface GroupH2HData {
   rivalries: PlayerRivalry[]; // top opponents (different teams)
   partnerships: PlayerRivalry[]; // top partners (same team)
+  /** Active players who never faced each other yet, ranked by combined activity. */
+  untapped: UntappedPair[];
 }
 
-const EMPTY: GroupH2HData = { rivalries: [], partnerships: [] };
+const EMPTY: GroupH2HData = { rivalries: [], partnerships: [], untapped: [] };
 
 export function useGroupH2H(groupId: string | null) {
   const [data, setData] = useState<GroupH2HData>(EMPTY);
@@ -149,8 +163,36 @@ export function useGroupH2H(groupId: string | null) {
             partners: v.played, partners_wins: v.wins,
           }));
 
+        // Untapped pairs: active group members who have NEVER faced each other
+        // even though both played at least a few matches in the group.
+        const { data: gms } = await supabase
+          .from("group_members").select("user_id").eq("group_id", groupId).eq("status", "active");
+        const activeIds = (gms || []).map((g) => g.user_id);
+        // count matches per user across the group
+        const playCount = new Map<string, number>();
+        for (const arr of byMatch.values()) {
+          for (const p of arr) playCount.set(p.user_id, (playCount.get(p.user_id) || 0) + 1);
+        }
+        const facedKey = new Set<string>(opp.keys());
+        const candidates = activeIds.filter((id) => (playCount.get(id) || 0) >= 3);
+        const untapped: UntappedPair[] = [];
+        for (let i = 0; i < candidates.length; i++) {
+          for (let j = i + 1; j < candidates.length; j++) {
+            const [a, b] = [candidates[i], candidates[j]].sort();
+            if (facedKey.has(`${a}::${b}`)) continue;
+            untapped.push({
+              user_a: a, user_b: b,
+              name_a: dn(a), name_b: dn(b),
+              avatar_a: av(a), avatar_b: av(b),
+              activity_a: playCount.get(a) || 0,
+              activity_b: playCount.get(b) || 0,
+            });
+          }
+        }
+        untapped.sort((x, y) => (y.activity_a + y.activity_b) - (x.activity_a + x.activity_b));
+
         if (!cancelled) {
-          setData({ rivalries, partnerships });
+          setData({ rivalries, partnerships, untapped: untapped.slice(0, 5) });
           setIsLoading(false);
         }
       } catch (err) {

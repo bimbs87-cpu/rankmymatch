@@ -43,7 +43,15 @@ const MAX_FAVORITES = 10;
 
 const displayOf = (m: MemberLite) => m.nickname || m.name;
 
-export function GroupComparePanel({ groupId }: { groupId: string }) {
+interface PanelProps {
+  groupId: string;
+  /** Pre-selected pair to open the embedded compare automatically. */
+  initialPick?: string[] | null;
+  /** Called once the parent-provided initialPick has been consumed. */
+  onConsumeInitial?: () => void;
+}
+
+export function GroupComparePanel({ groupId, initialPick, onConsumeInitial }: PanelProps) {
   const { user } = useAuth();
   const navigate = useNavigate();
 
@@ -229,6 +237,21 @@ export function GroupComparePanel({ groupId }: { groupId: string }) {
   }, [user, groupId]);
 
   useEffect(() => { loadFavorites(); }, [loadFavorites]);
+
+  // Auto-open the embedded compare when a parent passes initialPick
+  // (e.g. user clicks a rivalry/partnership/untapped card on the Overview).
+  useEffect(() => {
+    if (!initialPick || initialPick.length < 2) return;
+    if (loadingMembers) return;
+    const ids = initialPick.slice(0, 4);
+    const label = ids.map((id) => {
+      const m = members.find((x) => x.user_id === id);
+      return m ? (m.nickname || m.name) : "Jogador";
+    }).join(" vs ");
+    setActiveCompare({ ids, label });
+    onConsumeInitial?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialPick, loadingMembers, members]);
 
   const filteredMembers = useMemo(() => {
     const q = search.trim().toLowerCase();

@@ -1,15 +1,14 @@
 import { useMemo, useState } from "react";
 import {
-  LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend,
+  LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
 } from "recharts";
 import { TrendingUp } from "lucide-react";
-import { useGroupEloEvolution } from "@/hooks/use-group-elo-evolution";
+import { useGroupEloEvolution, type SeasonFilter } from "@/hooks/use-group-elo-evolution";
 
 interface Props {
   groupId: string;
 }
 
-// Distinct line colors. Cycles if more than 10 players.
 const COLORS = [
   "hsl(var(--primary))",
   "#38bdf8", "#f472b6", "#facc15", "#a78bfa",
@@ -17,11 +16,11 @@ const COLORS = [
 ];
 
 export function GroupEloEvolutionChart({ groupId }: Props) {
-  const { data, isLoading } = useGroupEloEvolution(groupId);
+  const [filter, setFilter] = useState<SeasonFilter>("all");
+  const { data, isLoading } = useGroupEloEvolution(groupId, filter);
   const [hidden, setHidden] = useState<Set<string>>(new Set());
 
   const chartData = useMemo(() => {
-    // Build a unified set of all timestamps and forward-fill each player's rating.
     const allTs = new Set<number>();
     for (const s of data.series) for (const p of s.points) allTs.add(p.ts);
     const sortedTs = [...allTs].sort((a, b) => a - b);
@@ -48,7 +47,6 @@ export function GroupEloEvolutionChart({ groupId }: Props) {
       </div>
     );
   }
-  if (!data.series.length) return null;
 
   const toggle = (uid: string) => {
     setHidden((prev) => {
@@ -60,81 +58,101 @@ export function GroupEloEvolutionChart({ groupId }: Props) {
 
   return (
     <div className="rounded-3xl border border-border bg-card p-5">
-      <div className="mb-4 flex items-center justify-between gap-2">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
         <h3 className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-muted-foreground">
-          <TrendingUp className="h-3.5 w-3.5" /> Evolução de Elo · histórico completo
+          <TrendingUp className="h-3.5 w-3.5" /> Evolução de Elo
         </h3>
-        <span className="text-[10px] text-muted-foreground">{data.series.length} jogadores</span>
+        <div className="flex items-center gap-2">
+          <select
+            value={filter}
+            onChange={(e) => { setFilter(e.target.value as SeasonFilter); setHidden(new Set()); }}
+            className="rounded-full border border-border bg-background/60 px-2.5 py-1 text-[11px] font-semibold text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+          >
+            <option value="all">Todas as temporadas</option>
+            <option value="active">Apenas ativa</option>
+            {data.seasons.map((s) => (
+              <option key={s.id} value={s.id}>{s.name}</option>
+            ))}
+          </select>
+          <span className="text-[10px] text-muted-foreground">{data.series.length} jogadores</span>
+        </div>
       </div>
 
-      {/* Legend with click-to-toggle */}
-      <div className="mb-3 flex flex-wrap gap-1.5">
-        {data.series.map((s, i) => {
-          const color = COLORS[i % COLORS.length];
-          const isHidden = hidden.has(s.user_id);
-          const last = s.points[s.points.length - 1]?.rating ?? 0;
-          return (
-            <button
-              key={s.user_id}
-              onClick={() => toggle(s.user_id)}
-              className={`flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[11px] font-semibold transition-all ${
-                isHidden
-                  ? "border-border/50 bg-muted/20 text-muted-foreground/50"
-                  : "border-border bg-background/50 text-foreground"
-              }`}
-            >
-              <span className="h-2 w-2 rounded-full" style={{ background: isHidden ? "currentColor" : color }} />
-              <span className="truncate max-w-[120px]">{s.name}</span>
-              <span className="tabular-nums opacity-70">{Math.round(last)}</span>
-            </button>
-          );
-        })}
-      </div>
-
-      <div className="h-64 sm:h-80">
-        <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={chartData} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
-            <XAxis
-              dataKey="ts"
-              type="number"
-              domain={["dataMin", "dataMax"]}
-              tickFormatter={(v) => new Date(v).toLocaleDateString("pt-BR", { month: "short", year: "2-digit" })}
-              tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
-              stroke="hsl(var(--border))"
-            />
-            <YAxis
-              tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
-              stroke="hsl(var(--border))"
-              domain={["auto", "auto"]}
-            />
-            <Tooltip
-              contentStyle={{
-                background: "hsl(var(--card))",
-                border: "1px solid hsl(var(--border))",
-                borderRadius: 12,
-                fontSize: 11,
-              }}
-              labelFormatter={(v) => fmtDate(Number(v))}
-            />
-            {data.series.map((s, i) =>
-              hidden.has(s.user_id) ? null : (
-                <Line
+      {data.series.length === 0 ? (
+        <div className="rounded-xl border border-dashed border-border bg-muted/10 py-10 text-center text-xs text-muted-foreground">
+          Sem dados para o filtro selecionado.
+        </div>
+      ) : (
+        <>
+          <div className="mb-3 flex flex-wrap gap-1.5">
+            {data.series.map((s, i) => {
+              const color = COLORS[i % COLORS.length];
+              const isHidden = hidden.has(s.user_id);
+              const last = s.points[s.points.length - 1]?.rating ?? 0;
+              return (
+                <button
                   key={s.user_id}
-                  type="monotone"
-                  dataKey={s.user_id}
-                  name={s.name}
-                  stroke={COLORS[i % COLORS.length]}
-                  strokeWidth={2}
-                  dot={false}
-                  isAnimationActive={false}
-                  connectNulls
+                  onClick={() => toggle(s.user_id)}
+                  className={`flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[11px] font-semibold transition-all ${
+                    isHidden
+                      ? "border-border/50 bg-muted/20 text-muted-foreground/50"
+                      : "border-border bg-background/50 text-foreground"
+                  }`}
+                >
+                  <span className="h-2 w-2 rounded-full" style={{ background: isHidden ? "currentColor" : color }} />
+                  <span className="truncate max-w-[120px]">{s.name}</span>
+                  <span className="tabular-nums opacity-70">{Math.round(last)}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="h-64 sm:h-80">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={chartData} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
+                <XAxis
+                  dataKey="ts"
+                  type="number"
+                  domain={["dataMin", "dataMax"]}
+                  tickFormatter={(v) => new Date(v).toLocaleDateString("pt-BR", { month: "short", year: "2-digit" })}
+                  tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
+                  stroke="hsl(var(--border))"
                 />
-              )
-            )}
-          </LineChart>
-        </ResponsiveContainer>
-      </div>
+                <YAxis
+                  tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
+                  stroke="hsl(var(--border))"
+                  domain={["auto", "auto"]}
+                />
+                <Tooltip
+                  contentStyle={{
+                    background: "hsl(var(--card))",
+                    border: "1px solid hsl(var(--border))",
+                    borderRadius: 12,
+                    fontSize: 11,
+                  }}
+                  labelFormatter={(v) => fmtDate(Number(v))}
+                />
+                {data.series.map((s, i) =>
+                  hidden.has(s.user_id) ? null : (
+                    <Line
+                      key={s.user_id}
+                      type="monotone"
+                      dataKey={s.user_id}
+                      name={s.name}
+                      stroke={COLORS[i % COLORS.length]}
+                      strokeWidth={2}
+                      dot={false}
+                      isAnimationActive={false}
+                      connectNulls
+                    />
+                  )
+                )}
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </>
+      )}
     </div>
   );
 }

@@ -79,6 +79,7 @@ function GroupDetailPage() {
 
   const [view, setView] = useState<GroupView>(search.view || "overview");
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [pendingCompareIds, setPendingCompareIds] = useState<string[] | null>(null);
 
   const [inviteOpen, setInviteOpen] = useState(false);
   const [addPlaceholderOpen, setAddPlaceholderOpen] = useState(false);
@@ -103,6 +104,11 @@ function GroupDetailPage() {
   const handleSelectView = (v: GroupView) => {
     setView(v);
     navigate({ to: "/groups/$groupId", params: { groupId }, search: { view: v }, replace: true });
+  };
+
+  const handleCompareFromOverview = (a: string, b: string) => {
+    setPendingCompareIds([a, b]);
+    handleSelectView("compare");
   };
 
   useEffect(() => {
@@ -391,6 +397,7 @@ function GroupDetailPage() {
                 description={group.description}
                 onGotoMembers={() => handleSelectView("members")}
                 onGotoResults={() => handleSelectView("results")}
+                onCompare={handleCompareFromOverview}
               />
             )}
 
@@ -400,7 +407,13 @@ function GroupDetailPage() {
 
             {view === "seasons" && <SeasonsPanel groupId={groupId} isAdmin={isAdmin} />}
 
-            {view === "compare" && <GroupComparePanel groupId={groupId} />}
+            {view === "compare" && (
+              <GroupComparePanel
+                groupId={groupId}
+                initialPick={pendingCompareIds}
+                onConsumeInitial={() => setPendingCompareIds(null)}
+              />
+            )}
 
             {view === "feed" && (
               <div className="rounded-2xl border border-border bg-card p-8 text-center">
