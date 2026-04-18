@@ -340,6 +340,14 @@ export async function deleteMatch(matchId: string) {
 }
 
 export async function deleteRound(roundId: string) {
+  // Revert Elo for every match in this round before deletion
+  const { data: matches } = await supabase
+    .from("matches")
+    .select("id")
+    .eq("round_id", roundId);
+  if (matches?.length) {
+    await Promise.all(matches.map((m) => revertMatchElo(m.id)));
+  }
   // Delete all matches of this round first (cascade will handle match_players, match_sets, etc.)
   await supabase.from("matches").delete().eq("round_id", roundId);
   // Delete presences
