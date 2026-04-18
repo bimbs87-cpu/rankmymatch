@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
-import { useNavigate } from "@tanstack/react-router";
 import {
   BarChart3, Search, ArrowRight, Sparkles, Crown, Flame, Snowflake,
   Swords, X, Heart, GripVertical, Pencil, Medal, Rocket,
