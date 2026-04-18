@@ -750,7 +750,7 @@ function RankingPage() {
                         }
                       }}
                       className={`
-                        flex lg:grid lg:grid-cols-[60px_minmax(0,1fr)_90px_100px_140px_120px] lg:gap-3 items-center
+                        group flex lg:grid lg:grid-cols-[60px_minmax(0,1fr)_90px_100px_140px_120px] lg:gap-3 items-center
                         px-2 py-2 lg:px-4 lg:py-2 transition-colors
                         ${isMe ? "bg-primary/5 lg:bg-primary/10" : isEven ? "bg-muted/10" : ""}
                         ${isExpanded ? "bg-primary/10 lg:bg-primary/15" : ""}
@@ -781,16 +781,25 @@ function RankingPage() {
                       <div className="flex flex-1 lg:flex-none items-center gap-1.5 lg:gap-2.5 min-w-0 pl-1 lg:pl-0">
                         <PlayerAvatar avatarUrl={entry.profile?.avatar_url} name={entry.profile?.name || "?"} size="sm" dimmed={isFormer} className="border border-border !h-7 !w-7 lg:!h-9 lg:!w-9" />
                         <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-1">
+                          <div className="flex items-center gap-1.5">
                             <p className={`text-[11px] lg:text-sm font-semibold leading-tight truncate ${isFormer ? "text-muted-foreground line-through" : "text-foreground"}`}>
                               {displayName}
                               {isMe && <span className="ml-1 text-primary text-[9px] lg:text-[10px] font-bold">(você)</span>}
                             </p>
                             {canExpand && (
-                              <ChevronRight
-                                className={`h-3 w-3 lg:h-3.5 lg:w-3.5 shrink-0 text-muted-foreground/60 transition-transform ${isExpanded ? "rotate-90 text-primary" : ""}`}
+                              <span
+                                className={`inline-flex items-center justify-center h-4 w-4 lg:h-5 lg:w-5 shrink-0 rounded-full border transition-all ${
+                                  isExpanded
+                                    ? "bg-primary/20 border-primary/50 text-primary"
+                                    : "bg-muted/40 border-border text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary group-hover:border-primary/40"
+                                }`}
                                 aria-hidden="true"
-                              />
+                                title={isExpanded ? "Recolher detalhes" : "Ver detalhes"}
+                              >
+                                <ChevronDown
+                                  className={`h-2.5 w-2.5 lg:h-3 lg:w-3 transition-transform ${isExpanded ? "rotate-180" : ""}`}
+                                />
+                              </span>
                             )}
                           </div>
                           {isFormer ? (
