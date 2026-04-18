@@ -321,32 +321,48 @@ export function QuickCreateSeasonDialog({
                   </div>
                 </div>
 
-                {previewDates.length > 0 && (
+                {generatedDates.length > 0 && (
                   <div className="rounded-xl border border-dashed border-border bg-card/40 p-2.5">
-                    <div className="mb-1.5 flex items-center gap-1.5">
-                      <CalendarIcon className="h-3 w-3 text-muted-foreground" />
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                        Prévia ({previewDates.length}
-                        {totalRounds > previewDates.length ? ` de ${totalRounds}` : ""})
-                      </span>
+                    <div className="mb-1.5 flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-1.5">
+                        <CalendarIcon className="h-3 w-3 text-muted-foreground" />
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                          Prévia ({previewDates.length} de {totalRounds})
+                        </span>
+                      </div>
+                      {excludedDates.size > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => setExcludedDates(new Set())}
+                          className="text-[10px] font-semibold text-primary hover:underline"
+                        >
+                          Limpar excluídas
+                        </button>
+                      )}
                     </div>
+                    <p className="mb-1.5 text-[10px] text-muted-foreground">
+                      Clique em uma data para excluí-la (ex.: feriados).
+                    </p>
                     <div className="flex flex-wrap gap-1">
-                      {previewDates.map((d) => {
+                      {generatedDates.slice(0, Math.min(generatedDates.length, totalRounds + 6)).map((d) => {
                         const dt = new Date(d + "T00:00:00");
+                        const isExcluded = excludedDates.has(d);
                         return (
-                          <span
+                          <button
                             key={d}
-                            className="rounded-lg bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary"
+                            type="button"
+                            onClick={() => toggleExclude(d)}
+                            className={`rounded-lg px-2 py-0.5 text-[10px] font-medium transition-colors ${
+                              isExcluded
+                                ? "bg-muted/40 text-muted-foreground line-through"
+                                : "bg-primary/10 text-primary hover:bg-primary/20"
+                            }`}
+                            title={isExcluded ? "Clique para incluir" : "Clique para excluir"}
                           >
                             {dt.toLocaleDateString("pt-BR", { day: "2-digit", month: "short" })}
-                          </span>
+                          </button>
                         );
                       })}
-                      {totalRounds > previewDates.length && (
-                        <span className="rounded-lg bg-muted/40 px-2 py-0.5 text-[10px] text-muted-foreground">
-                          +{totalRounds - previewDates.length}…
-                        </span>
-                      )}
                     </div>
                   </div>
                 )}
