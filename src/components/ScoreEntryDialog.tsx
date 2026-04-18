@@ -14,6 +14,12 @@ interface Props {
   teamB: { name: string; avatarUrl?: string; userId?: string }[];
   existingSets?: { setNumber: number; scoreA: number; scoreB: number }[];
   setsPerMatch?: number; // 1 or 3, from season config
+  /**
+   * - "fixed": respect setsPerMatch strictly (default)
+   * - "flexible": allow extra sets up to a soft cap of 9
+   * - "unlimited": no cap (rivalry mode)
+   */
+  setsMode?: "fixed" | "flexible" | "unlimited";
   isSingles?: boolean;
   onClose: () => void;
   onSaved: () => void;
@@ -41,12 +47,22 @@ export function ScoreEntryDialog({
   teamB,
   existingSets,
   setsPerMatch = 3,
+  setsMode,
   isSingles = false,
   onClose,
   onSaved,
 }: Props) {
-  const isUnlimitedSets = setsPerMatch >= 99;
-  const maxSets = isUnlimitedSets ? 99 : setsPerMatch;
+  // Backwards-compat: setsPerMatch === 99 used to signal "unlimited" before setsMode existed.
+  const effectiveMode: "fixed" | "flexible" | "unlimited" =
+    setsMode ?? (setsPerMatch >= 99 ? "unlimited" : "fixed");
+  const isUnlimitedSets = effectiveMode === "unlimited";
+  const isFlexibleSets = effectiveMode === "flexible";
+  const FLEX_CAP = 9;
+  const maxSets = isUnlimitedSets
+    ? 99
+    : isFlexibleSets
+    ? FLEX_CAP
+    : setsPerMatch;
   const initialSets = existingSets?.length
     ? existingSets.map((s) => ({ scoreA: s.scoreA, scoreB: s.scoreB }))
     : [{ scoreA: 0, scoreB: 0 }];
