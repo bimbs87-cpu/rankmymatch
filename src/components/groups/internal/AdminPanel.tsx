@@ -9,6 +9,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { GroupImageUpload } from "@/components/GroupImageUpload";
 import { InviteLinkDialog } from "@/components/InviteLinkDialog";
 import { PlayerClaimsManager } from "@/components/PlayerClaimsManager";
+import { GroupCardPreview } from "@/components/groups/GroupCardPreview";
 import { useGroupDetail, approveJoinRequest, rejectJoinRequest } from "@/hooks/use-groups";
 import { useAuth } from "@/hooks/use-auth";
 
@@ -168,6 +169,18 @@ function GeneralSection({ group, onSaved }: { group: any; onSaved: () => void })
 
       <div className="rounded-2xl border border-border bg-muted/20 p-3 text-xs text-muted-foreground">
         <p><span className="text-foreground">Esporte:</span> <span className="capitalize">{group.sport}</span> · <span className="text-foreground">Máx jogadores:</span> {group.max_players} · <span className="text-foreground">Quadras:</span> {group.simultaneous_courts}</p>
+      </div>
+
+      <div className="rounded-2xl border border-border bg-background/40 p-3">
+        <GroupCardPreview
+          name={name}
+          description={description}
+          visibility={visibility}
+          imageUrl={group.image_url}
+          memberCount={group.member_count ?? 1}
+          matchFormat={group.match_format}
+          sport={group.sport}
+        />
       </div>
 
       {dirty && (
