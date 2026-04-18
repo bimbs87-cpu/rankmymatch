@@ -164,15 +164,36 @@ function SistemaPage() {
               </p>
             </div>
 
-            {/* Mockup desktop + mobile */}
+            {/* Mockup desktop + mobile (hero) */}
             <div className="relative hidden lg:block">
-              <DashboardMockup />
-              <div className="absolute -bottom-8 -left-6 w-44">
-                <PhoneMockup />
+              <BrowserFrame>
+                <img
+                  src={mockupDesktopHome}
+                  alt="Painel do RankMyMatch no desktop com ranking, evolução do Elo, próximas rodadas e últimos resultados"
+                  className="block w-full"
+                  loading="eager"
+                />
+              </BrowserFrame>
+              <div className="absolute -bottom-10 -left-10 w-44 xl:w-52">
+                <PhoneFrame>
+                  <img
+                    src={mockupMobileHome}
+                    alt="Tela inicial do RankMyMatch no celular"
+                    className="block w-full"
+                    loading="eager"
+                  />
+                </PhoneFrame>
               </div>
             </div>
             <div className="lg:hidden">
-              <PhoneMockup />
+              <PhoneFrame className="mx-auto max-w-[280px]">
+                <img
+                  src={mockupMobileHome}
+                  alt="Tela inicial do RankMyMatch no celular"
+                  className="block w-full"
+                  loading="eager"
+                />
+              </PhoneFrame>
             </div>
           </div>
         </div>
@@ -258,7 +279,16 @@ function SistemaPage() {
             </ul>
           </div>
 
-          <RankingMockup />
+          <div className="mx-auto w-full max-w-[300px] lg:max-w-[340px]">
+            <PhoneFrame>
+              <img
+                src={mockupMobileRanking}
+                alt="Tela de ranking do RankMyMatch com pódio, posição do jogador e classificação geral"
+                className="block w-full"
+                loading="lazy"
+              />
+            </PhoneFrame>
+          </div>
         </div>
       </section>
 
