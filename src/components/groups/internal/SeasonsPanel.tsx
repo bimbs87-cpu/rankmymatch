@@ -206,7 +206,7 @@ function SeasonAccordion({
               <span>·</span>
               <span>{season.match_format === "1v1" ? "Singles" : "Duplas"}</span>
               <span>·</span>
-              <RoundsProgress seasonId={season.id} totalRounds={season.total_rounds} />
+              <RoundsProgress seasonId={season.id} totalRounds={season.total_rounds} seasonStatus={season.status} />
             </div>
           </div>
         </button>
