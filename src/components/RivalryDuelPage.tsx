@@ -43,6 +43,10 @@ interface DuelPlayer {
   last_change: number | null;
   win_streak_current: number;
   win_streak_max: number;
+  /** Player's first-known Elo within the active season (or all-time if no season). */
+  rating_start: number | null;
+  /** All-time peak Elo (max rating_after across all events). */
+  rating_peak: number | null;
 }
 
 interface DuelMatch {
@@ -55,6 +59,8 @@ interface DuelMatch {
   counts_for_ranking: boolean;
   round_number: number | null;
   team_a_user_id: string | null;
+  /** Per-player Elo change for this specific match (when available). */
+  rating_change_by_user: Record<string, number>;
 }
 
 interface Props {
@@ -100,7 +106,7 @@ export function RivalryDuelPage({ groupId, groupName, seasonId, seasonName }: Pr
       // Load profiles, ranking snapshots, stats, recent matches in parallel
       const activeSeasonId = seasonId || await getActiveSeasonId(groupId);
 
-      const [profilesRes, snapshotsRes, statsRes, matchesRes, eventsRes] = await Promise.all([
+      const [profilesRes, snapshotsRes, statsRes, matchesRes, eventsRes, allEventsRes] = await Promise.all([
         supabase.from("user_profiles").select("user_id, name, nickname, avatar_url").in("user_id", userIds),
         activeSeasonId
           ? supabase.from("ranking_snapshots").select("*").eq("season_id", activeSeasonId).in("user_id", userIds)
@@ -118,6 +124,20 @@ export function RivalryDuelPage({ groupId, groupName, seasonId, seasonName }: Pr
               .order("created_at", { ascending: false })
               .limit(4)
           : Promise.resolve({ data: [] }),
+        // Full event timeline (scoped to season when available) — used for
+        // per-player initial Elo, peak Elo, and per-match Δ for the chart tooltip.
+        activeSeasonId
+          ? supabase
+              .from("rating_events")
+              .select("user_id, rating_before, rating_after, rating_change, match_id, created_at")
+              .eq("season_id", activeSeasonId)
+              .in("user_id", userIds)
+              .order("created_at", { ascending: true })
+          : supabase
+              .from("rating_events")
+              .select("user_id, rating_before, rating_after, rating_change, match_id, created_at")
+              .in("user_id", userIds)
+              .order("created_at", { ascending: true }),
       ]);
 
       const profileMap = new Map((profilesRes.data || []).map((p) => [p.user_id, p]));
@@ -130,6 +150,23 @@ export function RivalryDuelPage({ groupId, groupName, seasonId, seasonName }: Pr
         if (!lastChangeMap.has(ev.user_id)) {
           lastChangeMap.set(ev.user_id, Number(ev.rating_change));
         }
+      }
+
+      // Per-user starting Elo (rating_before of first event) and peak Elo (max rating_after).
+      const startMap = new Map<string, number>();
+      const peakMap = new Map<string, number>();
+      // Per-match Δ Elo per user, used by the chart tooltip and the recent matches list.
+      const changeByMatchUser = new Map<string, Map<string, number>>();
+      for (const ev of (allEventsRes.data || [])) {
+        const uid = ev.user_id as string;
+        if (!startMap.has(uid)) startMap.set(uid, Number(ev.rating_before));
+        const after = Number(ev.rating_after);
+        const prevPeak = peakMap.get(uid);
+        if (prevPeak == null || after > prevPeak) peakMap.set(uid, after);
+        const mid = ev.match_id as string;
+        const inner = changeByMatchUser.get(mid) || new Map<string, number>();
+        inner.set(uid, Number(ev.rating_change));
+        changeByMatchUser.set(mid, inner);
       }
 
       const buildPlayer = (userId: string): DuelPlayer => {
@@ -151,6 +188,8 @@ export function RivalryDuelPage({ groupId, groupName, seasonId, seasonName }: Pr
           last_change: lastChangeMap.get(userId) ?? null,
           win_streak_current: stats?.win_streak_current || 0,
           win_streak_max: stats?.win_streak_max || 0,
+          rating_start: startMap.get(userId) ?? null,
+          rating_peak: peakMap.get(userId) ?? null,
         };
       };
 
@@ -161,7 +200,13 @@ export function RivalryDuelPage({ groupId, groupName, seasonId, seasonName }: Pr
 
       setPlayerA(buildPlayer(sorted[0]));
       setPlayerB(buildPlayer(sorted[1]));
-      setMatches(matchesRes);
+      // Inject per-match Δ Elo into matches before storing.
+      setMatches(
+        matchesRes.map((m) => ({
+          ...m,
+          rating_change_by_user: Object.fromEntries(changeByMatchUser.get(m.id) || []),
+        })),
+      );
     } catch (err) {
       console.error("Error loading duel data:", err);
     } finally {
@@ -181,7 +226,7 @@ export function RivalryDuelPage({ groupId, groupName, seasonId, seasonName }: Pr
     return data?.id || null;
   }
 
-  async function loadDuelMatches(gid: string, userIds: string[]): Promise<DuelMatch[]> {
+  async function loadDuelMatches(gid: string, userIds: string[]): Promise<Omit<DuelMatch, "rating_change_by_user">[]> {
     // Get all rounds for this group
     const { data: rounds } = await supabase
       .from("rounds")
@@ -341,15 +386,6 @@ export function RivalryDuelPage({ groupId, groupName, seasonId, seasonName }: Pr
   const eloLeader = playerA.rating >= playerB.rating ? "A" : "B";
   const eloDiff = Math.abs(Math.round(playerA.rating) - Math.round(playerB.rating));
 
-  // Dominance indicator
-  const dominanceLabel = (() => {
-    if (totalMatches === 0) return null;
-    const diff = winsA - winsB;
-    if (Math.abs(diff) <= 1) return "Equilíbrio total";
-    if (Math.abs(diff) <= 3) return `${diff > 0 ? displayNameA : displayNameB} com leve vantagem`;
-    return `${diff > 0 ? displayNameA : displayNameB} domina`;
-  })();
-
   const completedMatches = matches.filter((m) => m.status === "completed");
   const filteredMatches = completedMatches.filter((m) => {
     if (matchFilter === "all") return true;
@@ -357,6 +393,105 @@ export function RivalryDuelPage({ groupId, groupName, seasonId, seasonName }: Pr
     return matchFilter === "official" ? isOfficial : !isOfficial;
   });
   const recentMatches = filteredMatches.slice(0, 10);
+
+  // ─── H2H Sets/Games totals (only counting matches between both players) ───
+  let h2hSetsA = 0;
+  let h2hSetsB = 0;
+  let h2hGamesA = 0;
+  let h2hGamesB = 0;
+  for (const m of completedMatches) {
+    // map team A/B to playerA/playerB based on team_a_user_id
+    const aIsTeamA = m.team_a_user_id === playerA.user_id;
+    for (const s of m.sets) {
+      const gA = aIsTeamA ? s.scoreA : s.scoreB;
+      const gB = aIsTeamA ? s.scoreB : s.scoreA;
+      h2hGamesA += gA;
+      h2hGamesB += gB;
+      if (gA > gB) h2hSetsA++;
+      else if (gB > gA) h2hSetsB++;
+    }
+  }
+
+  // ─── Dynamic insights (item 2) — up to 3 ranked phrases ───
+  const insights = (() => {
+    const list: { key: string; text: string; tone: "primary" | "info" | "muted" }[] = [];
+    const diff = winsA - winsB;
+    const leaderName = diff > 0 ? displayNameA : displayNameB;
+    const leaderTone: "primary" | "info" = diff > 0 ? "primary" : "info";
+
+    // Leadership / balance
+    if (totalMatches === 0) {
+      list.push({ key: "no-data", text: "Ainda sem confrontos diretos — joguem o primeiro!", tone: "muted" });
+    } else if (Math.abs(diff) === 0) {
+      list.push({ key: "tie", text: `Duelo empatado em ${winsA} a ${winsA}`, tone: "muted" });
+    } else if (Math.abs(diff) === 1) {
+      list.push({ key: "close", text: `Duelo equilibrado: apenas 1 vitória separa os dois`, tone: "muted" });
+    } else {
+      list.push({ key: "lead", text: `${leaderName} lidera a rivalidade por ${Math.max(winsA, winsB)} a ${Math.min(winsA, winsB)}`, tone: leaderTone });
+    }
+
+    // Last 4 matches
+    const last4 = completedMatches.slice(0, 4);
+    if (last4.length >= 3) {
+      const winsRecentA = last4.filter((m) => m.winner_user_id === playerA.user_id).length;
+      const winsRecentB = last4.length - winsRecentA;
+      if (winsRecentA >= 3) {
+        list.push({ key: "form-a", text: `${displayNameA} venceu ${winsRecentA} dos últimos ${last4.length} confrontos`, tone: "primary" });
+      } else if (winsRecentB >= 3) {
+        list.push({ key: "form-b", text: `${displayNameB} venceu ${winsRecentB} dos últimos ${last4.length} confrontos`, tone: "info" });
+      }
+    }
+
+    // Active streak
+    if (currentStreakA >= 2 && currentStreakA >= currentStreakB) {
+      list.push({ key: "streak-a", text: `${displayNameA} tem ${currentStreakA} vitórias seguidas em jogo`, tone: "primary" });
+    } else if (currentStreakB >= 2 && currentStreakB > currentStreakA) {
+      list.push({ key: "streak-b", text: `${displayNameB} tem ${currentStreakB} vitórias seguidas em jogo`, tone: "info" });
+    }
+
+    // Last winner if no streak insight added
+    if (list.length < 3 && completedMatches[0]) {
+      const lastWinner = completedMatches[0].winner_user_id;
+      if (lastWinner === playerA.user_id) {
+        list.push({ key: "last-a", text: `${displayNameA} venceu o último encontro`, tone: "primary" });
+      } else if (lastWinner === playerB.user_id) {
+        list.push({ key: "last-b", text: `${displayNameB} venceu o último encontro`, tone: "info" });
+      }
+    }
+
+    return list.slice(0, 3);
+  })();
+
+  // ─── Elo deltas vs start of season/duel ───
+  const eloDeltaA =
+    playerA.rating_start != null ? Math.round(playerA.rating - playerA.rating_start) : null;
+  const eloDeltaB =
+    playerB.rating_start != null ? Math.round(playerB.rating - playerB.rating_start) : null;
+
+  // ─── matchInfo for the chart tooltip ───
+  const matchInfoForChart: Record<
+    string,
+    {
+      setScores: string;
+      isOfficial: boolean;
+      date: string | null;
+      changeByUser: Record<string, number>;
+    }
+  > = {};
+  for (const m of completedMatches) {
+    const aIsTeamA = m.team_a_user_id === playerA.user_id;
+    const setScoresArr = m.sets.map((s) => {
+      const left = aIsTeamA ? s.scoreA : s.scoreB;
+      const right = aIsTeamA ? s.scoreB : s.scoreA;
+      return `${left}-${right}`;
+    });
+    matchInfoForChart[m.id] = {
+      setScores: setScoresArr.join(" • "),
+      isOfficial: !!m.round_number && m.counts_for_ranking,
+      date: m.date,
+      changeByUser: m.rating_change_by_user || {},
+    };
+  }
 
   // Real medal computation from H2H history
   const medals = computeDuelMedals(
@@ -444,94 +579,129 @@ export function RivalryDuelPage({ groupId, groupName, seasonId, seasonName }: Pr
         </div>
       </div>
 
-      {/* Block 2: Overall Score */}
+      {/* Block 2: Overall Score (Vitórias / Sets / Games) + dynamic insights */}
       <div className="rounded-3xl border border-border bg-card/50 p-5">
-        <h3 className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-3 text-center">
+        <h3 className="mb-4 text-center text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
           Placar Geral do Duelo
         </h3>
-        <div className="flex items-center justify-center gap-4">
-          <div className="text-center">
-            <span className={`font-display text-4xl font-black ${winsA > winsB ? "text-primary" : winsA === winsB ? "text-foreground" : "text-muted-foreground"}`}>
-              {winsA}
-            </span>
-          </div>
-          <div className="flex flex-col items-center">
-            <span className="text-xs font-bold text-muted-foreground">×</span>
-            <span className="text-[10px] text-muted-foreground mt-1">{totalMatches} jogos</span>
-          </div>
-          <div className="text-center">
-            <span className={`font-display text-4xl font-black ${winsB > winsA ? "text-info" : winsB === winsA ? "text-foreground" : "text-muted-foreground"}`}>
-              {winsB}
-            </span>
-          </div>
+
+        {/* Names line above the scores */}
+        <div className="mb-1 grid grid-cols-[1fr_auto_1fr] items-center gap-3 text-[11px] font-semibold">
+          <span className="truncate text-right text-primary">{displayNameA}</span>
+          <span className="text-[9px] uppercase tracking-wider text-muted-foreground">vs</span>
+          <span className="truncate text-left text-info">{displayNameB}</span>
         </div>
 
-        {/* Win rates */}
-        <div className="mt-3 flex items-center gap-2">
-          <div className="flex-1 text-right">
-            <span className="text-xs font-semibold text-primary">{winRateA}%</span>
-          </div>
-          <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden flex">
-            <div
-              className="h-full bg-primary transition-all duration-500"
-              style={{ width: totalMatches > 0 ? `${winRateA}%` : "50%" }}
-            />
-            <div
-              className="h-full bg-info transition-all duration-500"
-              style={{ width: totalMatches > 0 ? `${winRateB}%` : "50%" }}
-            />
-          </div>
-          <div className="flex-1">
-            <span className="text-xs font-semibold text-info">{winRateB}%</span>
-          </div>
+        {/* Wins — primary big score */}
+        <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
+          <span
+            className={`text-right font-display text-5xl font-black tabular-nums ${
+              winsA > winsB
+                ? "text-primary"
+                : winsA === winsB
+                  ? "text-foreground"
+                  : "text-muted-foreground"
+            }`}
+          >
+            {winsA}
+          </span>
+          <span className="text-xl font-bold text-muted-foreground">×</span>
+          <span
+            className={`text-left font-display text-5xl font-black tabular-nums ${
+              winsB > winsA
+                ? "text-info"
+                : winsB === winsA
+                  ? "text-foreground"
+                  : "text-muted-foreground"
+            }`}
+          >
+            {winsB}
+          </span>
+        </div>
+        <p className="mt-1 text-center text-[10px] uppercase tracking-wider text-muted-foreground">
+          Vitórias · {totalMatches} {totalMatches === 1 ? "jogo" : "jogos"}
+        </p>
+
+        {/* Win rate bar */}
+        <div className="mt-3 flex h-1.5 overflow-hidden rounded-full bg-muted/40">
+          <div
+            className="h-full bg-primary transition-all duration-500"
+            style={{ width: totalMatches > 0 ? `${winRateA}%` : "50%" }}
+          />
+          <div
+            className="h-full bg-info transition-all duration-500"
+            style={{ width: totalMatches > 0 ? `${winRateB}%` : "50%" }}
+          />
+        </div>
+        <div className="mt-1 flex items-center justify-between text-[10px] font-semibold">
+          <span className="text-primary">{winRateA}%</span>
+          <span className="text-info">{winRateB}%</span>
         </div>
 
-        {dominanceLabel && (
-          <p className="mt-2 text-center text-[10px] text-muted-foreground italic">{dominanceLabel}</p>
+        {/* Sets + Games — secondary lines */}
+        <div className="mt-4 grid grid-cols-2 gap-2">
+          <ScoreLine label="Sets" valueA={h2hSetsA} valueB={h2hSetsB} />
+          <ScoreLine label="Games" valueA={h2hGamesA} valueB={h2hGamesB} />
+        </div>
+
+        {/* Dynamic insights — up to 3 stacked phrases */}
+        {insights.length > 0 && (
+          <div className="mt-4 space-y-1.5 border-t border-border/40 pt-3">
+            {insights.map((it) => (
+              <div
+                key={it.key}
+                className="flex items-start gap-2 text-[11px] leading-snug text-foreground"
+              >
+                <span
+                  className={`mt-1 inline-block h-1.5 w-1.5 shrink-0 rounded-full ${
+                    it.tone === "primary"
+                      ? "bg-primary"
+                      : it.tone === "info"
+                        ? "bg-info"
+                        : "bg-muted-foreground/60"
+                  }`}
+                  aria-hidden
+                />
+                <span>{it.text}</span>
+              </div>
+            ))}
+          </div>
         )}
       </div>
 
-      {/* Block 3: Elo Comparison */}
+      {/* Block 3: Elo Comparison — current, delta vs start, peak */}
       <div className="rounded-3xl border border-border bg-card/50 p-5">
-        <h3 className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-3 text-center">
-          Elo Atual
-        </h3>
-        <div className="flex items-center justify-between">
-          <div className="flex-1 text-center">
-            <p className={`font-display text-2xl font-black ${eloLeader === "A" ? "text-primary" : "text-foreground"}`}>
-              {Math.round(playerA.rating)}
-            </p>
-            {playerA.last_change !== null && (
-              <span className={`inline-flex items-center gap-0.5 text-[10px] font-semibold ${
-                playerA.last_change > 0 ? "text-success" : playerA.last_change < 0 ? "text-destructive" : "text-muted-foreground"
-              }`}>
-                {playerA.last_change > 0 ? <TrendingUp className="h-3 w-3" /> : playerA.last_change < 0 ? <TrendingDown className="h-3 w-3" /> : <Minus className="h-3 w-3" />}
-                {playerA.last_change > 0 ? "+" : ""}{Math.round(playerA.last_change)}
-              </span>
-            )}
-          </div>
-
-          <div className="px-4 text-center">
-            <div className={`rounded-full px-3 py-1 text-[10px] font-bold ${
+        <div className="mb-3 flex items-center justify-between">
+          <h3 className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            Elo Atual
+          </h3>
+          <span
+            className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
               eloDiff > 0 ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
-            }`}>
-              {eloDiff > 0 ? `Δ ${eloDiff}` : "="}
-            </div>
-          </div>
+            }`}
+            title="Diferença atual entre os dois jogadores"
+          >
+            {eloDiff > 0 ? `Δ ${eloDiff}` : "="}
+          </span>
+        </div>
 
-          <div className="flex-1 text-center">
-            <p className={`font-display text-2xl font-black ${eloLeader === "B" ? "text-info" : "text-foreground"}`}>
-              {Math.round(playerB.rating)}
-            </p>
-            {playerB.last_change !== null && (
-              <span className={`inline-flex items-center gap-0.5 text-[10px] font-semibold ${
-                playerB.last_change > 0 ? "text-success" : playerB.last_change < 0 ? "text-destructive" : "text-muted-foreground"
-              }`}>
-                {playerB.last_change > 0 ? <TrendingUp className="h-3 w-3" /> : playerB.last_change < 0 ? <TrendingDown className="h-3 w-3" /> : <Minus className="h-3 w-3" />}
-                {playerB.last_change > 0 ? "+" : ""}{Math.round(playerB.last_change)}
-              </span>
-            )}
-          </div>
+        <div className="grid grid-cols-2 gap-3">
+          <EloCard
+            name={displayNameA}
+            rating={Math.round(playerA.rating)}
+            delta={eloDeltaA}
+            peak={playerA.rating_peak != null ? Math.round(playerA.rating_peak) : null}
+            isLeader={eloLeader === "A"}
+            tone="primary"
+          />
+          <EloCard
+            name={displayNameB}
+            rating={Math.round(playerB.rating)}
+            delta={eloDeltaB}
+            peak={playerB.rating_peak != null ? Math.round(playerB.rating_peak) : null}
+            isLeader={eloLeader === "B"}
+            tone="info"
+          />
         </div>
       </div>
 
@@ -687,6 +857,7 @@ export function RivalryDuelPage({ groupId, groupName, seasonId, seasonName }: Pr
         playerALabel={displayNameA}
         playerBLabel={displayNameB}
         seasonId={seasonId}
+        matchInfo={matchInfoForChart}
       />
 
       {/* Comparativo Resumido */}
@@ -777,36 +948,42 @@ export function RivalryDuelPage({ groupId, groupName, seasonId, seasonName }: Pr
               {
                 emoji: "🗡️",
                 label: "Carrasco",
+                subtitle: "mais vitórias totais",
                 data: medals.carrasco,
                 tip: "Quem tem mais vitórias diretas no histórico de confrontos.",
               },
               {
                 emoji: "🛡️",
                 label: "Invicto",
+                subtitle: "maior sequência sem perder",
                 data: medals.invicto,
                 tip: "Maior sequência de vitórias consecutivas em confrontos diretos.",
               },
               {
                 emoji: "👑",
                 label: "Rei da virada",
+                subtitle: "viradas após perder o 1º set",
                 data: medals.reiDaVirada,
                 tip: "Maior número de jogos vencidos depois de perder o primeiro set.",
               },
               {
                 emoji: "🎯",
                 label: "Freguês",
+                subtitle: "mais derrotas no duelo",
                 data: medals.fregues,
                 tip: "Quem mais perdeu nos confrontos diretos — espelho do Carrasco.",
               },
               {
                 emoji: "🎾",
                 label: "Mestre dos sets",
+                subtitle: "mais sets vencidos",
                 data: medals.mestreDosSets,
                 tip: "Quem venceu mais sets ao longo do duelo — mesmo nas partidas perdidas.",
               },
               {
                 emoji: "🔥",
                 label: "Pé quente",
+                subtitle: "mais vitórias recentes",
                 data: medals.peQuente,
                 tip: "Quem ganhou mais nos últimos 5 confrontos diretos.",
               },
@@ -829,6 +1006,9 @@ export function RivalryDuelPage({ groupId, groupName, seasonId, seasonName }: Pr
                       <div className="min-w-0 flex-1">
                         <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
                           {m.label}
+                        </p>
+                        <p className="text-[9px] text-muted-foreground/70 italic mt-0.5">
+                          {m.subtitle}
                         </p>
                         {holderName ? (
                           <>

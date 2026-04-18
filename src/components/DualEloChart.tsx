@@ -19,6 +19,17 @@ const PERIOD_LABELS: { id: Period; label: string }[] = [
   { id: "all", label: "Todos" },
 ];
 
+interface MatchInfoEntry {
+  /** Pre-formatted set scores (e.g. "6-3 • 4-6 • 7-5"). */
+  setScores: string;
+  /** True if the match counted for the season ranking. */
+  isOfficial: boolean;
+  /** ISO date string of the round (or created_at fallback). */
+  date: string | null;
+  /** Per-player Elo change for this match keyed by user_id. */
+  changeByUser: Record<string, number>;
+}
+
 interface Props {
   playerAId: string;
   playerBId: string;
@@ -26,6 +37,11 @@ interface Props {
   playerBLabel: string;
   /** Optional season to scope; null = all time. */
   seasonId?: string | null;
+  /**
+   * Optional metadata about each match (keyed by match_id) so the tooltip can
+   * show set scores, Δ Elo, and the Oficial/Avulso badge.
+   */
+  matchInfo?: Record<string, MatchInfoEntry>;
 }
 
 interface RawEvent {
@@ -41,6 +57,7 @@ interface ChartPoint {
   label: string;
   ts: number;
   idx: number;
+  matchId?: string;
   ratingA?: number;
   ratingB?: number;
 }
@@ -56,6 +73,7 @@ export function DualEloChart({
   playerALabel,
   playerBLabel,
   seasonId = null,
+  matchInfo,
 }: Props) {
   const [loading, setLoading] = useState(true);
   const [events, setEvents] = useState<RawEvent[]>([]);
@@ -131,6 +149,9 @@ export function DualEloChart({
     let idx = 0;
     for (const key of sortedKeys) {
       const tickEvents = byTime.get(key)!;
+      // Pick the dominant match for this tick — most match info is keyed by match_id,
+      // and a single timestamp typically corresponds to one match (both players' events).
+      const tickMatchId = tickEvents[0]?.match_id;
       for (const ev of tickEvents) {
         if (ev.user_id === playerAId) curA = ev.rating_after;
         if (ev.user_id === playerBId) curB = ev.rating_after;
@@ -141,6 +162,7 @@ export function DualEloChart({
         label: d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }),
         ts: d.getTime(),
         idx,
+        matchId: tickMatchId,
         ratingA: Math.round(curA),
         ratingB: Math.round(curB),
       });
@@ -230,14 +252,94 @@ export function DualEloChart({
                 tickFormatter={(v) => Math.round(v).toString()}
               />
               <Tooltip
-                contentStyle={{
-                  backgroundColor: "var(--popover)",
-                  border: "1px solid var(--border)",
-                  borderRadius: "12px",
-                  fontSize: "11px",
-                  color: "var(--popover-foreground)",
+                cursor={{ stroke: "var(--border)", strokeDasharray: "3 3" }}
+                content={({ active, payload }) => {
+                  if (!active || !payload || !payload.length) return null;
+                  const point = payload[0].payload as ChartPoint;
+                  const info = point.matchId ? matchInfo?.[point.matchId] : null;
+                  const dateLabel = info?.date
+                    ? new Date(info.date + "T00:00:00").toLocaleDateString("pt-BR", {
+                        day: "2-digit",
+                        month: "short",
+                        year: "numeric",
+                      })
+                    : new Date(point.ts).toLocaleDateString("pt-BR", {
+                        day: "2-digit",
+                        month: "short",
+                        year: "numeric",
+                      });
+                  const changeA = info?.changeByUser?.[playerAId];
+                  const changeB = info?.changeByUser?.[playerBId];
+                  const fmtDelta = (v?: number) =>
+                    typeof v === "number" && Math.abs(v) >= 0.5
+                      ? `${v > 0 ? "+" : ""}${Math.round(v)}`
+                      : null;
+                  const dA = fmtDelta(changeA);
+                  const dB = fmtDelta(changeB);
+                  return (
+                    <div className="rounded-xl border border-border bg-popover px-3 py-2 text-popover-foreground shadow-lg">
+                      <div className="mb-1.5 flex items-center justify-between gap-3">
+                        <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                          {dateLabel}
+                        </span>
+                        {info && (
+                          <span
+                            className={`rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider ${
+                              info.isOfficial
+                                ? "bg-primary/15 text-primary"
+                                : "bg-muted text-muted-foreground"
+                            }`}
+                          >
+                            {info.isOfficial ? "Oficial" : "Avulso"}
+                          </span>
+                        )}
+                      </div>
+                      {info?.setScores && (
+                        <p className="mb-1.5 font-display text-xs font-semibold tabular-nums">
+                          {info.setScores}
+                        </p>
+                      )}
+                      <div className="space-y-0.5 text-[11px]">
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="flex items-center gap-1.5">
+                            <span className="h-2 w-2 rounded-full bg-primary" />
+                            <span className="font-semibold text-foreground">{playerALabel}</span>
+                          </span>
+                          <span className="font-display tabular-nums">
+                            <span className="text-foreground">{point.ratingA}</span>
+                            {dA && (
+                              <span
+                                className={`ml-1.5 text-[10px] font-semibold ${
+                                  changeA! > 0 ? "text-success" : "text-destructive"
+                                }`}
+                              >
+                                {dA}
+                              </span>
+                            )}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="flex items-center gap-1.5">
+                            <span className="h-2 w-2 rounded-full bg-info" />
+                            <span className="font-semibold text-foreground">{playerBLabel}</span>
+                          </span>
+                          <span className="font-display tabular-nums">
+                            <span className="text-foreground">{point.ratingB}</span>
+                            {dB && (
+                              <span
+                                className={`ml-1.5 text-[10px] font-semibold ${
+                                  changeB! > 0 ? "text-success" : "text-destructive"
+                                }`}
+                              >
+                                {dB}
+                              </span>
+                            )}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  );
                 }}
-                labelStyle={{ fontSize: "10px", color: "var(--muted-foreground)" }}
               />
               <Legend wrapperStyle={{ display: "none" }} />
               <Line
