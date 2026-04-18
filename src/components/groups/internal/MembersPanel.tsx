@@ -145,13 +145,23 @@ export function MembersPanel({ groupId }: Props) {
     const isFormer = (m: { status?: string }) => m.status !== "active";
     list.sort((a, b) => {
       if (isFormer(a) !== isFormer(b)) return isFormer(a) ? 1 : -1;
+      if (sortBy === "no_invite_first") {
+        const aPh = placeholderUserIds.has(a.user_id);
+        const bPh = placeholderUserIds.has(b.user_id);
+        const aNoInvite = aPh && !pendingInvites[a.user_id];
+        const bNoInvite = bPh && !pendingInvites[b.user_id];
+        if (aNoInvite !== bNoInvite) return aNoInvite ? -1 : 1;
+        // tie-break: placeholders before others, then by elo desc
+        if (aPh !== bPh) return aPh ? -1 : 1;
+        return (rankingData[b.user_id]?.rating || 0) - (rankingData[a.user_id]?.rating || 0);
+      }
       if (sortBy === "alpha") return (a.profile?.name || "").localeCompare(b.profile?.name || "");
       if (sortBy === "wins") return (rankingData[b.user_id]?.matches_won || 0) - (rankingData[a.user_id]?.matches_won || 0);
       if (sortBy === "presence") return (presenceData[b.user_id] || 0) - (presenceData[a.user_id] || 0);
       return (rankingData[b.user_id]?.rating || 0) - (rankingData[a.user_id]?.rating || 0);
     });
     return list;
-  }, [members, filter, search, sortBy, rankingData, presenceData, placeholderUserIds]);
+  }, [members, filter, search, sortBy, rankingData, presenceData, placeholderUserIds, pendingInvites]);
 
   // Placeholders visible in current filtered view (for bulk invite)
   const visiblePlaceholders = useMemo(
