@@ -3,6 +3,7 @@ import { zodValidator, fallback } from "@tanstack/zod-adapter";
 import { z } from "zod";
 import { useEffect, useMemo, useState } from "react";
 import { ArrowLeft, Trophy, Activity, Swords, Users, TrendingUp, Share2, ArrowLeftRight } from "lucide-react";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { TrophyLoadingBar } from "@/components/TrophyLoadingBar";
@@ -14,7 +15,7 @@ const searchSchema = z.object({
   c: fallback(z.string(), "").default(""),
   d: fallback(z.string(), "").default(""),
   groupId: fallback(z.string(), "").default(""),
-  tab: fallback(z.enum(["career", "season"]), "season").default("season"),
+  tab: fallback(z.enum(["career", "season"]), "career").default("career"),
   seasonId: fallback(z.string(), "").default(""),
 });
 
@@ -513,12 +514,42 @@ function ComparePage() {
       players.length >= 2
         ? `Comparativo: ${players.map((p) => displayName(p)).join(" vs ")}`
         : "Comparativo";
-    if (navigator.share) {
-      try { await navigator.share({ title, url }); } catch { /* ignore */ }
-    } else {
+    const text = title;
+    // Try Web Share API first (mobile / supported browsers)
+    const nav = navigator as Navigator & {
+      share?: (data: { title?: string; text?: string; url?: string }) => Promise<void>;
+    };
+    if (nav.share) {
       try {
+        await nav.share({ title, text, url });
+        return;
+      } catch (err: any) {
+        // User cancelled — don't fall through to clipboard
+        if (err?.name === "AbortError") return;
+        // Other errors fall through to clipboard fallback
+      }
+    }
+    // Clipboard fallback
+    try {
+      if (navigator.clipboard?.writeText) {
         await navigator.clipboard.writeText(url);
-      } catch { /* ignore */ }
+        toast.success("Link copiado para a área de transferência");
+        return;
+      }
+    } catch { /* ignore */ }
+    // Last-resort fallback
+    try {
+      const ta = document.createElement("textarea");
+      ta.value = url;
+      ta.style.position = "fixed";
+      ta.style.left = "-9999px";
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      ta.remove();
+      toast.success("Link copiado");
+    } catch {
+      toast.error("Não foi possível compartilhar");
     }
   };
 
@@ -747,7 +778,7 @@ function RecentMeetings({
       {filtered.length === 0 ? (
         <p className="py-6 text-center text-xs text-muted-foreground">Nenhum confronto neste filtro.</p>
       ) : (
-        <ul className="grid grid-cols-1 gap-1 sm:grid-cols-2 sm:gap-x-6 sm:gap-y-1.5">
+        <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-3 lg:grid-cols-3">
           {filtered.map((m) => {
             const aWonMatch = m.winner === m.aTeam;
             const bWonMatch = m.winner === m.bTeam;
@@ -794,59 +825,75 @@ function RecentMeetings({
               }
             }
 
+            const winLabel = sameTeam
+              ? (m.winner ? (m.winner === m.aTeam ? "V" : "D") : "—")
+              : null;
+            const winLabelClass = sameTeam
+              ? (m.winner ? (m.winner === m.aTeam ? "text-success" : "text-destructive") : "text-muted-foreground")
+              : "";
+
             const inner = (
-              <>
+              <div className="flex flex-col items-center gap-1.5 py-2.5 px-2 text-center">
+                {/* Badge */}
                 <span
-                  className={`shrink-0 rounded px-1 py-0.5 text-[9px] font-bold uppercase tracking-wider ring-1 ${
+                  className={`rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider ring-1 ${
                     sameTeam
                       ? "bg-primary/15 text-primary ring-primary/30"
                       : "bg-destructive/10 text-destructive ring-destructive/25"
                   }`}
                   title={sameTeam ? "Parceiros" : "Adversários"}
                 >
-                  {sameTeam ? "PC" : "vs"}
+                  {sameTeam ? "Parceiros" : "Adversários"}
                 </span>
-                <div className="min-w-0 flex-1">
-                  <div className="inline-flex max-w-full items-baseline gap-1.5">
-                    {sameTeam ? (
-                      <p className="min-w-0 truncate text-[11px] font-semibold text-foreground leading-tight">
-                        {nameA} & {nameB}
-                        <span className={`ml-1 text-[10px] font-bold ${m.winner ? (m.winner === m.aTeam ? "text-success" : "text-destructive") : "text-muted-foreground"}`}>
-                          {m.winner ? (m.winner === m.aTeam ? "V" : "D") : "—"}
-                        </span>
-                      </p>
-                    ) : (
-                      <p className="min-w-0 truncate text-[11px] font-semibold leading-tight">
-                        <span className={aWonMatch ? "text-success" : "text-foreground"}>{nameA}</span>
-                        <span className="mx-0.5 text-muted-foreground">vs</span>
-                        <span className={bWonMatch ? "text-success" : "text-foreground"}>{nameB}</span>
-                      </p>
-                    )}
-                    <span className="shrink-0 font-display text-[10px] font-bold tabular-nums text-foreground">{scoreLine}</span>
-                  </div>
-                  {othersLine && (
-                    <p className="truncate text-[9px] text-muted-foreground leading-tight">
-                      {othersLine}
-                    </p>
-                  )}
-                  <p className="truncate text-[9px] text-muted-foreground leading-tight">
-                    {formatMeetingDate(m.created_at)}
+
+                {/* Names */}
+                {sameTeam ? (
+                  <p className="max-w-full truncate text-[12px] font-semibold leading-tight text-foreground">
+                    {nameA} & {nameB}
                   </p>
+                ) : (
+                  <p className="max-w-full truncate text-[12px] font-semibold leading-tight">
+                    <span className={aWonMatch ? "text-success" : "text-foreground"}>{nameA}</span>
+                    <span className="mx-1 text-muted-foreground">vs</span>
+                    <span className={bWonMatch ? "text-success" : "text-foreground"}>{nameB}</span>
+                  </p>
+                )}
+
+                {/* Score — prominent and centered */}
+                <div className="inline-flex items-center gap-2 rounded-lg bg-muted/40 px-2.5 py-1">
+                  {winLabel && (
+                    <span className={`font-display text-[11px] font-bold ${winLabelClass}`}>{winLabel}</span>
+                  )}
+                  <span className="font-display text-[13px] font-bold tabular-nums text-foreground">
+                    {scoreLine}
+                  </span>
                 </div>
-              </>
+
+                {/* Others context */}
+                {othersLine && (
+                  <p className="max-w-full truncate text-[10px] text-muted-foreground leading-tight">
+                    {othersLine}
+                  </p>
+                )}
+
+                {/* Date */}
+                <p className="text-[9px] uppercase tracking-wider text-muted-foreground/80 leading-tight">
+                  {formatMeetingDate(m.created_at)}
+                </p>
+              </div>
             );
             return (
-              <li key={m.match_id} className="border-b border-border/30 sm:border-b-0 sm:rounded-md sm:border sm:border-border/40 sm:bg-background/30">
+              <li key={m.match_id} className="rounded-lg border border-border/40 bg-background/30 transition hover:bg-background/50">
                 {canLink ? (
                   <Link
                     to="/groups/$groupId/seasons/$seasonId/rounds/$roundId"
                     params={{ groupId, seasonId: m.season_id, roundId: m.round_id }}
-                    className="flex items-center gap-1.5 py-1.5 px-1.5 transition active:bg-accent/40 hover:bg-accent/20 rounded-md"
+                    className="block rounded-lg transition active:bg-accent/40 hover:bg-accent/20"
                   >
                     {inner}
                   </Link>
                 ) : (
-                  <div className="flex items-center gap-1.5 py-1.5 px-1.5">{inner}</div>
+                  <div>{inner}</div>
                 )}
               </li>
             );
@@ -1007,14 +1054,15 @@ function EloSparkline({ a, b }: { a: PlayerAggregate; b: PlayerAggregate }) {
 function CareerTab({ a, b }: { a: PlayerAggregate; b: PlayerAggregate }) {
   return (
     <>
-      <SectionCard title="Elo (carreira no grupo)" icon={<Activity className="h-4 w-4 text-primary" />}>
-        <StatRow label="Elo atual" a={a.eloCurrent} b={b.eloCurrent} format={(v) => Math.round(v).toString()} />
-        <StatRow label="Pico histórico" a={a.eloPeak} b={b.eloPeak} format={(v) => Math.round(v).toString()} />
-        <StatRow label="Vale histórico" a={a.eloLow} b={b.eloLow} format={(v) => Math.round(v).toString()} higherIsBetter={false} />
-        <EloSparkline a={a} b={b} />
-      </SectionCard>
-
+      {/* Row 1: Elo + Aproveitamento */}
       <div className="mt-3 grid grid-cols-1 gap-3 xl:grid-cols-2">
+        <SectionCard title="Elo (carreira no grupo)" icon={<Activity className="h-4 w-4 text-primary" />} className="mt-0 h-full">
+          <StatRow label="Elo atual" a={a.eloCurrent} b={b.eloCurrent} format={(v) => Math.round(v).toString()} />
+          <StatRow label="Pico histórico" a={a.eloPeak} b={b.eloPeak} format={(v) => Math.round(v).toString()} />
+          <StatRow label="Vale histórico" a={a.eloLow} b={b.eloLow} format={(v) => Math.round(v).toString()} higherIsBetter={false} />
+          <EloSparkline a={a} b={b} />
+        </SectionCard>
+
         <SectionCard title="Aproveitamento total" icon={<Trophy className="h-4 w-4 text-primary" />} className="mt-0 h-full">
           <StatRow label="Partidas" a={a.career.matches_played} b={b.career.matches_played} />
           <StatRow label="Vitórias" a={a.career.matches_won} b={b.career.matches_won} />
@@ -1038,7 +1086,10 @@ function CareerTab({ a, b }: { a: PlayerAggregate; b: PlayerAggregate }) {
             format={(v) => (v > 0 ? `+${v}` : `${v}`)}
           />
         </SectionCard>
+      </div>
 
+      {/* Row 2: Conquistas + Sequências/Frequência */}
+      <div className="mt-3 grid grid-cols-1 gap-3 xl:grid-cols-2">
         <SectionCard title="Conquistas" icon={<Trophy className="h-4 w-4 text-warning" />} className="mt-0 h-full">
           <StatRow label="Temporadas" a={a.career.seasons_played} b={b.career.seasons_played} />
           <StatRow label="Títulos (1º)" a={a.career.titles} b={b.career.titles} />
@@ -1051,25 +1102,25 @@ function CareerTab({ a, b }: { a: PlayerAggregate; b: PlayerAggregate }) {
             higherIsBetter={false}
           />
         </SectionCard>
-      </div>
 
-      <SectionCard title="Sequências e frequência" icon={<TrendingUp className="h-4 w-4 text-success" />}>
-        <StatRow label="Maior sequência V" a={a.streakMax} b={b.streakMax} />
-        <StatRow
-          label="Sequência atual"
-          a={a.streakCurrent}
-          b={b.streakCurrent}
-          format={(v) => (v === 0 ? "—" : v > 0 ? `${v}V` : `${Math.abs(v)}D`)}
-          higherIsBetter={true}
-        />
-        <StatRow
-          label="Presença"
-          a={pct(a.roundsPresent, a.roundsTotal)}
-          b={pct(b.roundsPresent, b.roundsTotal)}
-          format={(v) => `${v}%`}
-        />
-        <StatRow label="Rodadas presentes" a={a.roundsPresent} b={b.roundsPresent} />
-      </SectionCard>
+        <SectionCard title="Sequências e frequência" icon={<TrendingUp className="h-4 w-4 text-success" />} className="mt-0 h-full">
+          <StatRow label="Maior sequência V" a={a.streakMax} b={b.streakMax} />
+          <StatRow
+            label="Sequência atual"
+            a={a.streakCurrent}
+            b={b.streakCurrent}
+            format={(v) => (v === 0 ? "—" : v > 0 ? `${v}V` : `${Math.abs(v)}D`)}
+            higherIsBetter={true}
+          />
+          <StatRow
+            label="Presença"
+            a={pct(a.roundsPresent, a.roundsTotal)}
+            b={pct(b.roundsPresent, b.roundsTotal)}
+            format={(v) => `${v}%`}
+          />
+          <StatRow label="Rodadas presentes" a={a.roundsPresent} b={b.roundsPresent} />
+        </SectionCard>
+      </div>
     </>
   );
 }
@@ -1148,40 +1199,42 @@ function SeasonTab({ a, b, latestSeasonId }: { a: PlayerAggregate; b: PlayerAggr
         </div>
       )}
 
-      <SectionCard title={`Posição — ${seasonName}`} icon={<Trophy className="h-4 w-4 text-primary" />}>
-        <StatRow
-          label="Posição"
-          a={A.position ?? 999}
-          b={B.position ?? 999}
-          format={(v) => (v === 999 ? "—" : `${v}º`)}
-          higherIsBetter={false}
-        />
-        <StatRow label="Elo da temporada" a={A.rating} b={B.rating} format={(v) => Math.round(v).toString()} />
-      </SectionCard>
+      <div className="mt-3 grid grid-cols-1 gap-3 xl:grid-cols-2">
+        <SectionCard title={`Posição — ${seasonName}`} icon={<Trophy className="h-4 w-4 text-primary" />} className="mt-0 h-full">
+          <StatRow
+            label="Posição"
+            a={A.position ?? 999}
+            b={B.position ?? 999}
+            format={(v) => (v === 999 ? "—" : `${v}º`)}
+            higherIsBetter={false}
+          />
+          <StatRow label="Elo da temporada" a={A.rating} b={B.rating} format={(v) => Math.round(v).toString()} />
+        </SectionCard>
 
-      <SectionCard title={`Aproveitamento — ${seasonName}`} icon={<Activity className="h-4 w-4 text-primary" />}>
-        <StatRow label="Partidas" a={A.matches_played} b={B.matches_played} />
-        <StatRow label="Vitórias" a={A.matches_won} b={B.matches_won} />
-        <StatRow
-          label="Aproveitamento"
-          a={pct(A.matches_won, A.matches_played)}
-          b={pct(B.matches_won, B.matches_played)}
-          format={(v) => `${v}%`}
-        />
-        <StatRow label="Sets ganhos" a={A.sets_won} b={B.sets_won} />
-        <StatRow
-          label="Saldo de sets"
-          a={A.sets_won - A.sets_lost}
-          b={B.sets_won - B.sets_lost}
-          format={(v) => (v > 0 ? `+${v}` : `${v}`)}
-        />
-        <StatRow
-          label="Saldo de games"
-          a={A.games_won - A.games_lost}
-          b={B.games_won - B.games_lost}
-          format={(v) => (v > 0 ? `+${v}` : `${v}`)}
-        />
-      </SectionCard>
+        <SectionCard title={`Aproveitamento — ${seasonName}`} icon={<Activity className="h-4 w-4 text-primary" />} className="mt-0 h-full">
+          <StatRow label="Partidas" a={A.matches_played} b={B.matches_played} />
+          <StatRow label="Vitórias" a={A.matches_won} b={B.matches_won} />
+          <StatRow
+            label="Aproveitamento"
+            a={pct(A.matches_won, A.matches_played)}
+            b={pct(B.matches_won, B.matches_played)}
+            format={(v) => `${v}%`}
+          />
+          <StatRow label="Sets ganhos" a={A.sets_won} b={B.sets_won} />
+          <StatRow
+            label="Saldo de sets"
+            a={A.sets_won - A.sets_lost}
+            b={B.sets_won - B.sets_lost}
+            format={(v) => (v > 0 ? `+${v}` : `${v}`)}
+          />
+          <StatRow
+            label="Saldo de games"
+            a={A.games_won - A.games_lost}
+            b={B.games_won - B.games_lost}
+            format={(v) => (v > 0 ? `+${v}` : `${v}`)}
+          />
+        </SectionCard>
+      </div>
     </>
   );
 }

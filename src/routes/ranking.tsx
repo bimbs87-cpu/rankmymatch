@@ -865,8 +865,28 @@ function RankingPage() {
                         )}
                       </div>
 
-                      {/* Avatar + Name */}
+                      {/* Compare button + Avatar + Name (single grid cell on desktop) */}
                       <div className="flex flex-1 lg:flex-none items-center gap-1.5 lg:gap-2.5 min-w-0 pl-1 lg:pl-0">
+                        {!compareMode && canSelect && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const initial = [entry.user_id];
+                              if (user?.id && user.id !== entry.user_id && rankings.some((r) => r.user_id === user.id && r.matches_played > 0 && !r.isFormerMember)) {
+                                initial.unshift(user.id);
+                              }
+                              setExpandedUserId(null);
+                              setCompareSelection(initial);
+                              setCompareMode(true);
+                            }}
+                            className="inline-flex h-5 w-5 lg:h-6 lg:w-6 shrink-0 items-center justify-center rounded-full border border-primary/30 bg-primary/10 text-primary transition-all hover:bg-primary hover:text-primary-foreground hover:border-primary"
+                            title={`Comparar com ${displayName}`}
+                            aria-label={`Comparar com ${displayName}`}
+                          >
+                            <GitCompareArrows className="h-2.5 w-2.5 lg:h-3 lg:w-3" />
+                          </button>
+                        )}
                         <PlayerAvatar avatarUrl={entry.profile?.avatar_url} name={entry.profile?.name || "?"} size="sm" dimmed={isFormer} className="border border-border !h-7 !w-7 lg:!h-9 lg:!w-9" />
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-1.5">
@@ -888,26 +908,6 @@ function RankingPage() {
                                   className={`h-2.5 w-2.5 lg:h-3 lg:w-3 transition-transform ${isExpanded ? "rotate-180" : ""}`}
                                 />
                               </span>
-                            )}
-                            {!compareMode && canSelect && (
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  const initial = [entry.user_id];
-                                  if (user?.id && user.id !== entry.user_id && rankings.some((r) => r.user_id === user.id && r.matches_played > 0 && !r.isFormerMember)) {
-                                    initial.unshift(user.id);
-                                  }
-                                  setExpandedUserId(null);
-                                  setCompareSelection(initial);
-                                  setCompareMode(true);
-                                }}
-                                className="inline-flex h-4 w-4 lg:h-5 lg:w-5 shrink-0 items-center justify-center rounded-full border border-primary/30 bg-primary/10 text-primary transition-all hover:bg-primary hover:text-primary-foreground hover:border-primary"
-                                title={`Comparar com ${displayName}`}
-                                aria-label={`Comparar com ${displayName}`}
-                              >
-                                <GitCompareArrows className="h-2.5 w-2.5 lg:h-3 lg:w-3" />
-                              </button>
                             )}
                           </div>
                           {isFormer ? (
@@ -1044,7 +1044,7 @@ function RankingPage() {
                   d: compareSelection[3] || "",
                   groupId: (selectedSeason as any).group_id,
                   seasonId: selectedSeason.id,
-                  tab: "season" as const,
+                  tab: "career" as const,
                 }}
                 disabled={compareSelection.length < 2}
                 onClick={(e) => {
@@ -1060,6 +1060,14 @@ function RankingPage() {
                 Comparar
               </Link>
             </div>
+            {compareSelection.length >= 3 && (
+              <div className="mt-2 flex items-start gap-1.5 rounded-lg border border-warning/30 bg-warning/10 px-2.5 py-1.5">
+                <Info className="mt-0.5 h-3 w-3 shrink-0 text-warning" />
+                <p className="text-[10px] leading-tight text-foreground">
+                  Comparativos entre <span className="font-bold">2 jogadores</span> são mais completos (H2H, gráfico de Elo, vantagem). Com {compareSelection.length} verá uma tabela compacta lado a lado.
+                </p>
+              </div>
+            )}
           </div>
         </div>
       )}
