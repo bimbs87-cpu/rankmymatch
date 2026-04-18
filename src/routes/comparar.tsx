@@ -100,6 +100,9 @@ function CompareLandingPage() {
   const [favorites, setFavorites] = useState<FavoriteRow[]>([]);
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [favLabel, setFavLabel] = useState("");
+  const [renameTarget, setRenameTarget] = useState<FavoriteRow | null>(null);
+  const [renameLabel, setRenameLabel] = useState("");
+  const [dragId, setDragId] = useState<string | null>(null);
 
   // Suggestions
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
