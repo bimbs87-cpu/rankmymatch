@@ -46,9 +46,32 @@ export function GroupSidebar({
   alerts = {},
 }: Props) {
   const [search, setSearch] = useState("");
-  const filtered = search.trim()
-    ? groups.filter((g) => g.name.toLowerCase().includes(search.trim().toLowerCase()))
-    : groups;
+  const [onlyWithAlerts, setOnlyWithAlerts] = useState(false);
+
+  const totalAlertCount = useMemo(
+    () =>
+      groups.reduce((acc, g) => {
+        const a = alerts[g.id];
+        if (!a) return acc;
+        return acc + (a.pendingPresence ? 1 : 0) + (a.pendingAdminRequests > 0 ? 1 : 0);
+      }, 0),
+    [groups, alerts],
+  );
+
+  const filtered = useMemo(() => {
+    let list = groups;
+    if (onlyWithAlerts) {
+      list = list.filter((g) => {
+        const a = alerts[g.id];
+        return a && (a.pendingPresence || a.pendingAdminRequests > 0);
+      });
+    }
+    if (search.trim()) {
+      const q = search.trim().toLowerCase();
+      list = list.filter((g) => g.name.toLowerCase().includes(q));
+    }
+    return list;
+  }, [groups, alerts, onlyWithAlerts, search]);
 
   return (
     <aside className="flex h-full w-full flex-col bg-card/40 lg:bg-transparent">
