@@ -1773,43 +1773,67 @@ function DashboardPage() {
               </div>
             </div>
           ) : (
-            <div className="grid grid-cols-3 gap-2">
+            <div className="space-y-1.5">
               {recentMatches.slice(0, 3).map((m) => {
                 const won = m.winner_team === m.my_team;
+                const winnerLabel = won
+                  ? "Você venceu"
+                  : m.partner_name
+                    ? `${m.opponent_names[0] || "Adversário"} venceu`
+                    : `${m.opponent_names[0] || "Adversário"} venceu`;
                 return (
                   <div
                     key={m.id}
-                    className="flex flex-col gap-1 rounded-xl border border-border bg-card p-2.5"
+                    className="flex items-center gap-2.5 rounded-xl border border-border bg-card px-3 py-2"
                   >
-                    <div className="flex items-center justify-between gap-1">
-                      <div className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-[10px] font-bold ${
-                        won ? "bg-success/10 text-success" : "bg-destructive/10 text-destructive"
-                      }`}>
-                        {won ? "V" : "D"}
-                      </div>
-                      {m.rating_change !== null && (
-                        <span className={`text-[11px] font-bold ${
-                          m.rating_change > 0 ? "text-success" : m.rating_change < 0 ? "text-destructive" : "text-muted-foreground"
-                        }`}>
-                          {m.rating_change > 0 ? "+" : ""}{Math.round(m.rating_change)}
-                        </span>
-                      )}
+                    {/* Winner badge */}
+                    <div
+                      className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[11px] font-bold ${
+                        won ? "bg-success/15 text-success" : "bg-destructive/15 text-destructive"
+                      }`}
+                    >
+                      {won ? "V" : "D"}
                     </div>
-                    <p className="text-[11px] font-semibold text-foreground truncate leading-tight">
-                      {m.score_display}
-                    </p>
-                    <p className="text-[9px] text-muted-foreground truncate leading-tight">
-                      {m.group_name ? `${m.group_name} · ` : ""}Set {m.match_number}
-                    </p>
-                    {m.partner_name && (
-                      <p className="text-[9px] text-muted-foreground/80 truncate leading-tight">
-                        c/ {m.partner_name}
+
+                    <div className="min-w-0 flex-1">
+                      {/* Score + winner */}
+                      <div className="flex items-baseline gap-2">
+                        <p className="font-display text-sm font-bold text-foreground tabular-nums leading-tight">
+                          {m.score_display}
+                        </p>
+                        <p className={`truncate text-[10px] font-semibold ${won ? "text-success" : "text-foreground"}`}>
+                          {winnerLabel}
+                        </p>
+                      </div>
+                      {/* Meta */}
+                      <p className="mt-0.5 truncate text-[10px] text-muted-foreground">
+                        {m.group_name ? `${m.group_name} · ` : ""}Set {m.match_number}
+                        {m.opponent_names.length > 0 && !won && (
+                          <> · vs {m.opponent_names.join(" & ")}</>
+                        )}
                       </p>
-                    )}
-                    {m.opponent_names.length > 0 && (
-                      <p className="text-[9px] text-muted-foreground/80 truncate leading-tight">
-                        vs {m.opponent_names.join(" & ")}
-                      </p>
+                    </div>
+
+                    {/* Elo delta — main visual on the right */}
+                    {m.rating_change !== null && (
+                      <span
+                        className={`shrink-0 inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-[11px] font-bold tabular-nums ${
+                          m.rating_change > 0
+                            ? "bg-success/15 text-success"
+                            : m.rating_change < 0
+                              ? "bg-destructive/15 text-destructive"
+                              : "bg-muted text-muted-foreground"
+                        }`}
+                      >
+                        {m.rating_change > 0 ? (
+                          <TrendingUp className="h-3 w-3" />
+                        ) : m.rating_change < 0 ? (
+                          <TrendingDown className="h-3 w-3" />
+                        ) : (
+                          <Minus className="h-3 w-3" />
+                        )}
+                        {m.rating_change > 0 ? "+" : ""}{Math.round(m.rating_change)}
+                      </span>
                     )}
                   </div>
                 );
