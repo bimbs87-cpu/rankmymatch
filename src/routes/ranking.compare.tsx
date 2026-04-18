@@ -280,7 +280,7 @@ function ComparePage() {
             created_at: e.created_at,
             season_id: e.season_id,
           }));
-          const eloRatings = eloSeries.map((p) => p.rating);
+          const eloRatings: number[] = eloSeries.map((p: { rating: number }) => p.rating);
           const eloCurrent = eloRatings.length ? eloRatings[eloRatings.length - 1] : 1000;
           const eloPeak = eloRatings.length ? Math.max(...eloRatings) : 1000;
           const eloLow = eloRatings.length ? Math.min(...eloRatings) : 1000;
