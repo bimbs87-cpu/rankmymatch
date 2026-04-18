@@ -1225,7 +1225,7 @@ function DashboardPage() {
       {/* PWA Install Banner */}
       <InstallBanner />
 
-      <div className="space-y-5 px-5 pt-5 lg:grid lg:grid-cols-12 lg:grid-rows-[auto_auto_auto_auto_1fr] lg:gap-6 lg:space-y-0">
+      <div className="space-y-5 px-5 pt-5 lg:grid lg:grid-cols-12 lg:grid-rows-[auto_auto_1fr_auto] lg:gap-6 lg:space-y-0">
         {/* Season switcher button — above the ranking card (mobile) / between Ranking and Evolução do Elo (desktop) */}
         {!dataLoading && currentRanking && rankings.length > 1 && (
           <div className="relative flex animate-fade-in lg:col-span-4 lg:col-start-1 lg:row-start-2 lg:self-center">
@@ -2097,7 +2097,7 @@ function DashboardPage() {
         </section>
 
         {/* Meus Grupos */}
-        <section className="lg:col-span-12 lg:col-start-1 lg:row-start-5">
+        <section className="lg:col-span-12 lg:col-start-1 lg:row-start-4">
           <div className="mb-3 flex items-center justify-between">
             <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Seus Grupos
