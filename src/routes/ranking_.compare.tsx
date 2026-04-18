@@ -1221,15 +1221,39 @@ function displayName(p: PlayerAggregate) {
 }
 
 function PlayerHero({ player, side }: { player: PlayerAggregate; side: "left" | "right" }) {
+  const last10 = player.eloSeries.slice(-10).map((p) => p.rating);
+  const trend = last10.length >= 2 ? last10[last10.length - 1] - last10[0] : 0;
   return (
     <div className={`flex flex-col items-center gap-2 ${side === "right" ? "" : ""}`}>
       <PlayerAvatar avatarUrl={player.profile.avatar_url} name={player.profile.name} size="lg" className="!h-16 !w-16 lg:!h-20 lg:!w-20 border-2 border-primary/30" />
       <p className="text-center font-display text-sm font-bold text-foreground lg:text-base truncate max-w-full">
         {displayName(player)}
       </p>
+      {last10.length >= 2 && (
+        <MiniSparkline values={last10} trendPositive={trend >= 0} />
+      )}
       <p className="font-display text-2xl font-bold text-primary lg:text-3xl">{Math.round(player.eloCurrent)}</p>
       <p className="text-[10px] text-muted-foreground">Pico {Math.round(player.eloPeak)} · Mín {Math.round(player.eloLow)}</p>
     </div>
+  );
+}
+
+function MiniSparkline({ values, trendPositive }: { values: number[]; trendPositive: boolean }) {
+  const W = 80;
+  const H = 22;
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const range = max - min || 1;
+  const pts = values.map((v, i) => {
+    const x = values.length === 1 ? W / 2 : (i / (values.length - 1)) * W;
+    const y = H - ((v - min) / range) * H;
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  });
+  const color = trendPositive ? "var(--success)" : "var(--destructive)";
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} className="h-5 w-20" preserveAspectRatio="none" aria-label="Últimos 10 jogos">
+      <polyline fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" points={pts.join(" ")} />
+    </svg>
   );
 }
 
