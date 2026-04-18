@@ -1,0 +1,389 @@
+import { Link } from "@tanstack/react-router";
+import {
+  CalendarDays,
+  MapPin,
+  Trophy,
+  TrendingUp,
+  Users,
+  ArrowRight,
+  CheckCircle2,
+  XCircle,
+  Sparkles,
+  MessageSquare,
+  Crown,
+  Medal,
+  Award,
+  Settings,
+  Shield,
+  Globe,
+  Lock,
+} from "lucide-react";
+import { PlayerAvatar } from "@/components/PlayerAvatar";
+import { useGroupDashboard } from "@/hooks/use-group-dashboard";
+import type { Tables } from "@/integrations/supabase/types";
+
+type Group = Tables<"groups"> & {
+  member_count?: number;
+  my_role?: string | null;
+};
+
+interface Props {
+  group: Group;
+}
+
+const POSITION_COLORS = [
+  "text-rank-gold",
+  "text-rank-silver",
+  "text-rank-bronze",
+];
+
+const POSITION_ICONS = [Crown, Medal, Award];
+
+function formatDate(dateStr: string | null, timeStr: string | null) {
+  if (!dateStr) return "Data a definir";
+  const d = new Date(`${dateStr}T${timeStr || "00:00"}`);
+  const day = d.toLocaleDateString("pt-BR", { weekday: "short", day: "2-digit", month: "short" });
+  const time = timeStr ? ` · ${timeStr.slice(0, 5)}` : "";
+  return `${day}${time}`;
+}
+
+function timeAgo(iso: string) {
+  const diffMs = Date.now() - new Date(iso).getTime();
+  const min = Math.floor(diffMs / 60000);
+  if (min < 60) return `${min}min`;
+  const h = Math.floor(min / 60);
+  if (h < 24) return `${h}h`;
+  const d = Math.floor(h / 24);
+  return `${d}d`;
+}
+
+export function GroupDashboardPanel({ group }: Props) {
+  const { data, isLoading } = useGroupDashboard(group.id);
+  const isAdmin = group.my_role === "admin" || group.my_role === "creator";
+
+  return (
+    <div className="space-y-4">
+      {/* Cover / Hero */}
+      <div className="relative overflow-hidden rounded-3xl border border-border bg-card">
+        <div
+          className="h-32 w-full bg-gradient-to-br from-primary/30 via-primary/10 to-card sm:h-40"
+          style={
+            group.image_url
+              ? { backgroundImage: `url(${group.image_url})`, backgroundSize: "cover", backgroundPosition: "center" }
+              : undefined
+          }
+        >
+          {group.image_url && <div className="h-full w-full bg-gradient-to-t from-card via-card/50 to-transparent" />}
+        </div>
+        <div className="relative -mt-8 px-5 pb-4">
+          <div className="flex items-end justify-between gap-3">
+            <div className="flex items-end gap-3">
+              <div className="flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-2xl border-4 border-card bg-primary/15 ring-1 ring-primary/30">
+                {group.image_url ? (
+                  <img src={group.image_url} alt="" className="h-full w-full rounded-xl object-cover" />
+                ) : (
+                  <Users className="h-7 w-7 text-primary" />
+                )}
+              </div>
+              <div className="pb-1">
+                <div className="flex items-center gap-2">
+                  <h1 className="font-display text-xl font-bold text-foreground sm:text-2xl">{group.name}</h1>
+                  {group.is_public ? (
+                    <Globe className="h-3.5 w-3.5 text-muted-foreground" />
+                  ) : (
+                    <Lock className="h-3.5 w-3.5 text-muted-foreground" />
+                  )}
+                  {isAdmin && (
+                    <span className="flex items-center gap-1 rounded-full bg-primary/15 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-primary ring-1 ring-primary/30">
+                      <Shield className="h-2.5 w-2.5" />
+                      {group.my_role === "creator" ? "Criador" : "Admin"}
+                    </span>
+                  )}
+                </div>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  {data.member_count} membros · {group.match_format === "singles" ? "Singles" : "Doubles"}
+                </p>
+              </div>
+            </div>
+            <div className="hidden gap-2 pb-1 sm:flex">
+              <Link
+                to="/groups/$groupId"
+                params={{ groupId: group.id }}
+                className="flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 text-xs font-semibold text-foreground hover:border-primary/40"
+              >
+                Abrir grupo
+                <ArrowRight className="h-3 w-3" />
+              </Link>
+              {isAdmin && (
+                <Link
+                  to="/groups/$groupId"
+                  params={{ groupId: group.id }}
+                  className="flex h-8 w-8 items-center justify-center rounded-full border border-border bg-card text-muted-foreground hover:border-primary/40 hover:text-foreground"
+                  title="Ajustes"
+                >
+                  <Settings className="h-3.5 w-3.5" />
+                </Link>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Quick action mobile */}
+      <div className="sm:hidden">
+        <Link
+          to="/groups/$groupId"
+          params={{ groupId: group.id }}
+          className="flex items-center justify-center gap-2 rounded-full bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground"
+        >
+          Abrir grupo
+          <ArrowRight className="h-4 w-4" />
+        </Link>
+      </div>
+
+      {/* Top row: Next round + My position */}
+      <div className="grid gap-3 lg:grid-cols-2">
+        {/* Next round */}
+        <div className="rounded-2xl border border-border bg-card p-4">
+          <div className="mb-3 flex items-center justify-between">
+            <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+              <CalendarDays className="h-3 w-3 text-primary" /> Próxima rodada
+            </p>
+            {data.next_round && (
+              <Link
+                to="/groups/$groupId/seasons/$seasonId/rounds/$roundId"
+                params={{
+                  groupId: group.id,
+                  seasonId: data.current_season?.id || "",
+                  roundId: data.next_round.id,
+                }}
+                className="text-[10px] font-bold text-primary hover:underline"
+              >
+                Ver rodada →
+              </Link>
+            )}
+          </div>
+          {isLoading ? (
+            <div className="h-16 animate-pulse rounded-xl bg-muted/30" />
+          ) : data.next_round ? (
+            <div className="space-y-3">
+              <div>
+                <p className="font-display text-base font-bold text-foreground">
+                  Rodada {data.next_round.round_number ?? "—"}
+                </p>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  {formatDate(data.next_round.scheduled_date, data.next_round.scheduled_time)}
+                </p>
+                {data.next_round.location && (
+                  <p className="mt-0.5 flex items-center gap-1 text-[11px] text-muted-foreground">
+                    <MapPin className="h-3 w-3" />
+                    {data.next_round.location}
+                  </p>
+                )}
+              </div>
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                  <Users className="h-3 w-3" />
+                  <span className="font-semibold text-foreground tabular-nums">
+                    {data.next_round.confirmed_count}
+                  </span>
+                  /{data.next_round.max_players} confirmados
+                </div>
+                {data.next_round.presence_status === "confirmed" ? (
+                  <span className="flex items-center gap-1 rounded-full bg-success/15 px-2 py-0.5 text-[10px] font-bold text-success">
+                    <CheckCircle2 className="h-3 w-3" /> Você confirmou
+                  </span>
+                ) : data.next_round.presence_status === "declined" ? (
+                  <span className="flex items-center gap-1 rounded-full bg-destructive/15 px-2 py-0.5 text-[10px] font-bold text-destructive">
+                    <XCircle className="h-3 w-3" /> Recusado
+                  </span>
+                ) : (
+                  <span className="rounded-full bg-warning/15 px-2 py-0.5 text-[10px] font-bold text-warning">
+                    Aguardando você
+                  </span>
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className="py-4 text-center">
+              <CalendarDays className="mx-auto mb-1.5 h-6 w-6 text-muted-foreground/30" />
+              <p className="text-xs text-muted-foreground">Nenhuma rodada agendada</p>
+            </div>
+          )}
+        </div>
+
+        {/* My position */}
+        <div className="rounded-2xl border border-border bg-card p-4">
+          <div className="mb-3 flex items-center justify-between">
+            <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+              <TrendingUp className="h-3 w-3 text-primary" /> Sua posição
+            </p>
+            {data.current_season && (
+              <span className="text-[10px] text-muted-foreground">{data.current_season.name}</span>
+            )}
+          </div>
+          {isLoading ? (
+            <div className="h-16 animate-pulse rounded-xl bg-muted/30" />
+          ) : data.my_position ? (
+            <div className="flex items-end gap-3">
+              <div>
+                <div className="flex items-baseline gap-1">
+                  <span className="font-display text-3xl font-bold text-primary tabular-nums">
+                    {data.my_position}º
+                  </span>
+                  <span className="text-xs text-muted-foreground">/ {data.total_ranked}</span>
+                </div>
+                <p className="mt-1 text-[11px] text-muted-foreground">
+                  Elo <span className="font-bold text-foreground tabular-nums">{Math.round(data.my_rating || 0)}</span>
+                </p>
+              </div>
+              <Link
+                to="/ranking"
+                className="ml-auto flex items-center gap-1 rounded-full border border-border bg-background/60 px-3 py-1.5 text-[10px] font-bold text-foreground hover:border-primary/40"
+              >
+                Ranking <ArrowRight className="h-3 w-3" />
+              </Link>
+            </div>
+          ) : (
+            <div className="py-4 text-center">
+              <TrendingUp className="mx-auto mb-1.5 h-6 w-6 text-muted-foreground/30" />
+              <p className="text-xs text-muted-foreground">Você ainda não tem ranking aqui</p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Top 3 + Activity */}
+      <div className="grid gap-3 lg:grid-cols-5">
+        {/* Top 3 */}
+        <div className="rounded-2xl border border-border bg-card p-4 lg:col-span-3">
+          <div className="mb-3 flex items-center justify-between">
+            <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+              <Trophy className="h-3 w-3 text-primary" /> Top 3 do grupo
+            </p>
+          </div>
+          {isLoading ? (
+            <div className="h-20 animate-pulse rounded-xl bg-muted/30" />
+          ) : data.podium.length === 0 ? (
+            <div className="py-4 text-center">
+              <Trophy className="mx-auto mb-1.5 h-6 w-6 text-muted-foreground/30" />
+              <p className="text-xs text-muted-foreground">Sem ranking ainda</p>
+            </div>
+          ) : (
+            <ul className="space-y-2">
+              {data.podium.map((p) => {
+                const Icon = POSITION_ICONS[p.position - 1] || Trophy;
+                const color = POSITION_COLORS[p.position - 1] || "text-muted-foreground";
+                return (
+                  <li
+                    key={p.user_id}
+                    className="flex items-center gap-3 rounded-xl border border-border/60 bg-background/40 p-2.5"
+                  >
+                    <Icon className={`h-4 w-4 flex-shrink-0 ${color}`} />
+                    <PlayerAvatar avatarUrl={p.avatar_url} name={p.name} size="md" />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-xs font-bold text-foreground">{p.name}</p>
+                      <p className="text-[10px] text-muted-foreground tabular-nums">Elo {p.rating}</p>
+                    </div>
+                    <span className={`font-display text-sm font-bold tabular-nums ${color}`}>{p.position}º</span>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
+
+        {/* Activity */}
+        <div className="rounded-2xl border border-border bg-card p-4 lg:col-span-2">
+          <div className="mb-3 flex items-center justify-between">
+            <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+              <Sparkles className="h-3 w-3 text-primary" /> Atividade recente
+            </p>
+            <Link
+              to="/groups/$groupId/feed"
+              params={{ groupId: group.id }}
+              className="text-[10px] font-bold text-primary hover:underline"
+            >
+              Feed →
+            </Link>
+          </div>
+          {isLoading ? (
+            <div className="h-20 animate-pulse rounded-xl bg-muted/30" />
+          ) : data.recent_activity.length === 0 ? (
+            <div className="py-4 text-center">
+              <MessageSquare className="mx-auto mb-1.5 h-6 w-6 text-muted-foreground/30" />
+              <p className="text-xs text-muted-foreground">Nenhuma atividade ainda</p>
+            </div>
+          ) : (
+            <ul className="space-y-2">
+              {data.recent_activity.map((a) => (
+                <li key={a.id} className="flex items-start gap-2">
+                  <div className="mt-1 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-primary/10">
+                    {a.kind === "comment" ? (
+                      <MessageSquare className="h-2.5 w-2.5 text-primary" />
+                    ) : (
+                      <Trophy className="h-2.5 w-2.5 text-primary" />
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[11px] leading-tight text-foreground/90">{a.text}</p>
+                    <p className="text-[9px] text-muted-foreground">há {timeAgo(a.created_at)}</p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </div>
+
+      {/* Season stats */}
+      {data.current_season && (
+        <div className="rounded-2xl border border-border bg-card p-4">
+          <div className="mb-3 flex items-center justify-between">
+            <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+              <Trophy className="h-3 w-3 text-primary" /> Temporada atual
+            </p>
+            <Link
+              to="/groups/$groupId/seasons/$seasonId"
+              params={{ groupId: group.id, seasonId: data.current_season.id }}
+              className="text-[10px] font-bold text-primary hover:underline"
+            >
+              Ver temporada →
+            </Link>
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            <SeasonStat
+              label="Temporada"
+              value={data.current_season.name}
+              truncate
+            />
+            <SeasonStat
+              label="Rodadas"
+              value={`${data.current_season.rounds_done}${
+                data.current_season.rounds_total ? `/${data.current_season.rounds_total}` : ""
+              }`}
+            />
+            <SeasonStat
+              label="Formato"
+              value={data.current_season.match_format === "singles" ? "Singles" : "Doubles"}
+            />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SeasonStat({ label, value, truncate }: { label: string; value: string; truncate?: boolean }) {
+  return (
+    <div className="rounded-xl border border-border/60 bg-background/40 p-3">
+      <p className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground">{label}</p>
+      <p
+        className={`mt-1 font-display text-sm font-bold text-foreground ${truncate ? "truncate" : "tabular-nums"}`}
+        title={value}
+      >
+        {value}
+      </p>
+    </div>
+  );
+}
