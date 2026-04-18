@@ -757,31 +757,31 @@ function RecentMeetings({
                   {sameTeam ? "PC" : "vs"}
                 </span>
                 <div className="min-w-0 flex-1">
-                  {sameTeam ? (
-                    <p className="truncate text-[11px] font-semibold text-foreground leading-tight">
-                      {nameA} & {nameB}
-                      <span className={`ml-1 text-[10px] font-bold ${m.winner ? (m.winner === m.aTeam ? "text-success" : "text-destructive") : "text-muted-foreground"}`}>
-                        {m.winner ? (m.winner === m.aTeam ? "V" : "D") : "—"}
-                      </span>
-                    </p>
-                  ) : (
-                    <p className="truncate text-[11px] font-semibold leading-tight">
-                      <span className={aWonMatch ? "text-success" : "text-foreground"}>{nameA}</span>
-                      <span className="mx-0.5 text-muted-foreground">vs</span>
-                      <span className={bWonMatch ? "text-success" : "text-foreground"}>{nameB}</span>
-                    </p>
-                  )}
+                  <div className="flex items-baseline gap-2">
+                    {sameTeam ? (
+                      <p className="min-w-0 flex-1 truncate text-[11px] font-semibold text-foreground leading-tight">
+                        {nameA} & {nameB}
+                        <span className={`ml-1 text-[10px] font-bold ${m.winner ? (m.winner === m.aTeam ? "text-success" : "text-destructive") : "text-muted-foreground"}`}>
+                          {m.winner ? (m.winner === m.aTeam ? "V" : "D") : "—"}
+                        </span>
+                      </p>
+                    ) : (
+                      <p className="min-w-0 flex-1 truncate text-[11px] font-semibold leading-tight">
+                        <span className={aWonMatch ? "text-success" : "text-foreground"}>{nameA}</span>
+                        <span className="mx-0.5 text-muted-foreground">vs</span>
+                        <span className={bWonMatch ? "text-success" : "text-foreground"}>{nameB}</span>
+                      </p>
+                    )}
+                    <span className="shrink-0 font-display text-[10px] font-bold tabular-nums text-foreground">{scoreLine}</span>
+                  </div>
                   {othersLine && (
                     <p className="truncate text-[9px] text-muted-foreground leading-tight">
                       {othersLine}
                     </p>
                   )}
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="truncate text-[9px] text-muted-foreground leading-tight">
-                      {formatMeetingDate(m.created_at)}
-                    </p>
-                    <span className="shrink-0 font-display text-[10px] font-bold tabular-nums text-foreground">{scoreLine}</span>
-                  </div>
+                  <p className="truncate text-[9px] text-muted-foreground leading-tight">
+                    {formatMeetingDate(m.created_at)}
+                  </p>
                 </div>
               </>
             );
