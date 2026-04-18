@@ -9,6 +9,7 @@ import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { isRivalryGroup } from "@/lib/rivalry";
 import { RivalryDuelPage } from "@/components/RivalryDuelPage";
 import { buildDisplayNames, getCollidingFirstNames } from "@/lib/name-disambiguation";
+import { abbreviateName } from "@/lib/utils";
 
 export const Route = createFileRoute("/ranking")({
   component: RankingPage,
@@ -42,12 +43,6 @@ function winRate(won: number, played: number) {
   return Math.round((won / played) * 100);
 }
 
-function abbreviateName(name: string): string {
-  if (!name) return "Jogador";
-  const parts = name.trim().split(/\s+/);
-  if (parts.length <= 1) return name;
-  return `${parts[0]} ${parts[1][0]}.`;
-}
 
 function LoadingBar({ progress, label }: { progress: number; label: string }) {
   return <TrophyLoadingBar progress={progress} label={label} />;

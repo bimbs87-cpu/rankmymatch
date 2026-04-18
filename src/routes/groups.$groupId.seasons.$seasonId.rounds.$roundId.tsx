@@ -31,6 +31,7 @@ import {
 } from "lucide-react";
 import { useState, useMemo, useEffect } from "react";
 import { toast } from "sonner";
+import { abbreviateName } from "@/lib/utils";
 import { isPresenceOpen, getPresenceOpenDate, formatPresenceOpenDate } from "@/lib/presence-schedule";
 
 export const Route = createFileRoute(
@@ -66,13 +67,6 @@ function RoundDetailPage() {
   const [expandedMatch, setExpandedMatch] = useState<string | null>(null);
   const [matchRatings, setMatchRatings] = useState<Record<string, any[]>>({});
   const [previousPositions, setPreviousPositions] = useState<Record<string, number> | null>(null);
-
-  const formatCompactName = (name?: string | null) => {
-    const safeName = (name || "Jogador").trim();
-    const parts = safeName.split(/\s+/).filter(Boolean);
-    if (parts.length <= 1) return safeName;
-    return `${parts[0]} ${parts[parts.length - 1][0]}.`;
-  };
 
   // Auto-load ratings for all completed matches
   useEffect(() => {
@@ -700,7 +694,7 @@ function RoundDetailPage() {
                         {teamA.map((mp: any) => {
                           const eloChange = match.status === "completed" ? getPlayerEloChange(match.id, mp.user_id) : null;
                           const isWinner = match.status === "completed" && match.winner_team === "A";
-                          const displayName = formatCompactName(mp.profile?.nickname || mp.profile?.name || "Jogador");
+                          const displayName = abbreviateName(mp.profile?.nickname || mp.profile?.name || "Jogador");
                           return (
                             <div key={mp.id} className="flex items-center gap-1.5 py-0.5 min-w-0">
                               <PlayerAvatar avatarUrl={mp.profile?.avatar_url || null} name={mp.profile?.name || "?"} size="xs" />
@@ -733,7 +727,7 @@ function RoundDetailPage() {
                         {teamB.map((mp: any) => {
                           const eloChange = match.status === "completed" ? getPlayerEloChange(match.id, mp.user_id) : null;
                           const isWinner = match.status === "completed" && match.winner_team === "B";
-                          const displayName = formatCompactName(mp.profile?.nickname || mp.profile?.name || "Jogador");
+                          const displayName = abbreviateName(mp.profile?.nickname || mp.profile?.name || "Jogador");
                           return (
                             <div key={mp.id} className="flex items-center justify-end gap-1.5 py-0.5 min-w-0">
                               <span className={`w-9 text-left text-[10px] font-bold ${eloChange === null ? "opacity-0" : eloChange > 0 ? "text-success" : "text-destructive"}`}>
