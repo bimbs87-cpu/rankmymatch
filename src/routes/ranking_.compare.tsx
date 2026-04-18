@@ -361,7 +361,8 @@ function ComparePage() {
           arr.push(mp);
           matchToPlayers.set(mp.match_id, arr);
         }
-        const matchMetaMap = new Map(matchesMeta.map((m: any) => [m.id, m]));
+
+
 
         const meetings: H2HData["recentMeetings"] = [];
         let asPartnersPlayed = 0;
