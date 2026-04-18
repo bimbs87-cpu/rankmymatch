@@ -5,6 +5,8 @@ import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianG
 import { toast } from "sonner";
 
 type Period = "7d" | "30d" | "90d" | "all";
+type Granularity = "week" | "month";
+type StatusFilter = "all" | "Vinculado" | "Pendente" | "Expirado" | "Revogado";
 
 interface Props {
   groupId: string;
@@ -49,6 +51,20 @@ function fmtWeekKey(d: Date): string {
   return d.toISOString().slice(0, 10);
 }
 
+function startOfMonth(d: Date): Date {
+  const out = new Date(d.getFullYear(), d.getMonth(), 1);
+  out.setHours(0, 0, 0, 0);
+  return out;
+}
+
+function fmtMonthLabel(d: Date): string {
+  return d.toLocaleDateString("pt-BR", { month: "short", year: "2-digit" });
+}
+
+function fmtMonthKey(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
 function statusOf(i: InviteRow): "Vinculado" | "Revogado" | "Expirado" | "Pendente" {
   if (i.use_count > 0) return "Vinculado";
   if (!i.is_active) return "Revogado";
@@ -58,6 +74,8 @@ function statusOf(i: InviteRow): "Vinculado" | "Revogado" | "Expirado" | "Penden
 
 export function InviteEngagementReport({ groupId }: Props) {
   const [period, setPeriod] = useState<Period>("30d");
+  const [granularity, setGranularity] = useState<Granularity>("week");
+  const [exportFilter, setExportFilter] = useState<StatusFilter>("all");
   const [invites, setInvites] = useState<InviteRow[]>([]);
   const [profileMap, setProfileMap] = useState<Map<string, string>>(new Map());
   const [loading, setLoading] = useState(true);
