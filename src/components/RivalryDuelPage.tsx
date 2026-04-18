@@ -43,6 +43,10 @@ interface DuelPlayer {
   last_change: number | null;
   win_streak_current: number;
   win_streak_max: number;
+  /** Player's first-known Elo within the active season (or all-time if no season). */
+  rating_start: number | null;
+  /** All-time peak Elo (max rating_after across all events). */
+  rating_peak: number | null;
 }
 
 interface DuelMatch {
@@ -55,6 +59,8 @@ interface DuelMatch {
   counts_for_ranking: boolean;
   round_number: number | null;
   team_a_user_id: string | null;
+  /** Per-player Elo change for this specific match (when available). */
+  rating_change_by_user: Record<string, number>;
 }
 
 interface Props {
