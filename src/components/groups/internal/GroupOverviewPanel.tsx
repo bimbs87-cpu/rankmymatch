@@ -357,6 +357,31 @@ function KpiCard({ icon, label, value, sub, loading }: { icon: React.ReactNode; 
   );
 }
 
+interface KpiSlot { icon: React.ReactNode; label: string; value: number; sub?: string }
+
+function DualKpiCard({ a, b, loading }: { a: KpiSlot; b: KpiSlot; loading?: boolean }) {
+  return (
+    <div className="rounded-3xl border border-border bg-card p-3">
+      <div className="grid grid-cols-2 gap-2">
+        {[a, b].map((slot, i) => (
+          <div key={i} className={i === 0 ? "border-r border-border/60 pr-2" : "pl-1"}>
+            <div className="flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider text-muted-foreground">
+              {slot.icon}
+              <span className="truncate">{slot.label}</span>
+            </div>
+            {loading ? (
+              <div className="mt-1 h-6 w-12 animate-pulse rounded bg-muted/40" />
+            ) : (
+              <p className="mt-0.5 font-display text-xl font-black leading-tight text-foreground">{slot.value}</p>
+            )}
+            {slot.sub && <p className="text-[9px] text-muted-foreground truncate">{slot.sub}</p>}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function RecordCard({
   icon, label, rec, suffix = "", prefix = "", tone,
 }: { icon: React.ReactNode; label: string; rec: RecordHolder | null; suffix?: string; prefix?: string; tone: "warning" | "success" | "primary" | "info" }) {
