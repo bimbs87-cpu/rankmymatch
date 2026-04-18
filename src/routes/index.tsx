@@ -182,6 +182,7 @@ function DashboardPage() {
   }
   const { resolved: resolvedTheme } = themeData;
   const [upcomingRounds, setUpcomingRounds] = useState<UpcomingRound[]>([]);
+  const [nextMatch, setNextMatch] = useState<NextMatchInfo | null>(null);
   const [recentMatches, setRecentMatches] = useState<RecentMatch[]>([]);
   const [rankings, setRankings] = useState<RankingOption[]>([]);
   const [selectedSeasonId, setSelectedSeasonId] = useState<string | null>(null);
