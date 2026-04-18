@@ -16,7 +16,7 @@ interface RankingRow {
   avatar_type: string | null;
 }
 
-export function SeasonFinalRanking({ seasonId }: { seasonId: string }) {
+export function SeasonFinalRanking({ seasonId, isActive = false }: { seasonId: string; isActive?: boolean }) {
   const [rows, setRows] = useState<RankingRow[]>([]);
   const [loading, setLoading] = useState(true);
   const { data: extras } = useSeasonExtras(seasonId);
