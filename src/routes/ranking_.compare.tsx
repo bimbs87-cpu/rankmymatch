@@ -695,15 +695,21 @@ function ComparePage() {
     navigate({
       to: "/ranking/compare",
       search: (prev: any) => ({ ...prev, a: prev.b, b: prev.a }),
+      resetScroll: false,
     });
   };
 
   const setTab = (next: "career" | "season") => {
-    navigate({ to: "/ranking/compare", search: (prev: any) => ({ ...prev, tab: next }) });
+    navigate({
+      to: "/ranking/compare",
+      search: (prev: any) => ({ ...prev, tab: next }),
+      resetScroll: false,
+    });
   };
 
   const heroRef = useRef<HTMLDivElement | null>(null);
   const [exporting, setExporting] = useState(false);
+  const [heroScope, setHeroScope] = useState<"career" | "season">("career");
 
   const toggleGroupAvg = () => {
     const isOn = userIds.includes(GROUP_AVG_ID);
@@ -715,12 +721,14 @@ function ComparePage() {
           const real = [prev.a, prev.b, prev.c, prev.d].filter((x: string) => x && x !== GROUP_AVG_ID);
           return { ...prev, a: real[0] || "", b: real[1] || "", c: "", d: "" };
         },
+        resetScroll: false,
       });
     } else {
       // require at least 1 real player; replace B with avg
       navigate({
         to: "/ranking/compare",
         search: (prev: any) => ({ ...prev, b: GROUP_AVG_ID, c: "", d: "" }),
+        resetScroll: false,
       });
     }
   };
