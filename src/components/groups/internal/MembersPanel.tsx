@@ -22,7 +22,7 @@ import {
 import { toast } from "sonner";
 
 type Filter = "all" | "active" | "no_account" | "former" | "admins";
-type SortBy = "elo" | "wins" | "alpha" | "presence";
+type SortBy = "elo" | "wins" | "alpha" | "presence" | "no_invite_first";
 
 interface Props {
   groupId: string;
