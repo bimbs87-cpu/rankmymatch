@@ -42,6 +42,7 @@ export function GroupSidebar({
   onCreate,
   view,
   isLoading,
+  alerts = {},
 }: Props) {
   const [search, setSearch] = useState("");
   const filtered = search.trim()
