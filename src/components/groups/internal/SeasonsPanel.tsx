@@ -36,14 +36,16 @@ function RoundsProgress({ seasonId, totalRounds }: { seasonId: string; totalRoun
   const { completed, cancelled, total } = useSeasonProgress(seasonId, totalRounds);
   if (!total) return null;
   const consumed = completed + cancelled;
+  const remaining = Math.max(0, total - consumed);
   const donePct = Math.min(100, (completed / total) * 100);
   const cancPct = Math.min(100 - donePct, (cancelled / total) * 100);
+  const tooltip = `${completed} concluída${completed === 1 ? "" : "s"}, ${cancelled} cancelada${cancelled === 1 ? "" : "s"}, ${remaining} restante${remaining === 1 ? "" : "s"}`;
   return (
-    <span className="flex items-center gap-1.5">
+    <span className="flex items-center gap-1.5" title={tooltip}>
       <span className="tabular-nums">{consumed} de {total} rodadas</span>
       <span className="relative h-1 w-16 rounded-full bg-muted overflow-hidden flex">
         <span className="h-full bg-primary transition-all" style={{ width: `${donePct}%` }} />
-        <span className="h-full bg-destructive transition-all" style={{ width: `${cancPct}%` }} title={`${cancelled} cancelada(s)`} />
+        <span className="h-full bg-destructive transition-all" style={{ width: `${cancPct}%` }} />
       </span>
     </span>
   );
