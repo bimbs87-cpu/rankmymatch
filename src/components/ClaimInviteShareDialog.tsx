@@ -1,0 +1,332 @@
+import { useEffect, useMemo, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/use-auth";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Copy, MessageCircle, Loader2, Eye, Pencil, Check } from "lucide-react";
+import { toast } from "sonner";
+
+interface PlaceholderTarget {
+  user_id: string;
+  name: string;
+}
+
+interface Props {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  groupId: string;
+  groupName: string;
+  targets: PlaceholderTarget[]; // 1 or many
+  onSent?: () => void;
+}
+
+const DEFAULT_TEMPLATE =
+  "Olá {nome}! 👋\n\n" +
+  "Você já está jogando no grupo *{grupo}* no RankMyMatch, " +
+  "mas ainda sem conta vinculada. Clique no link abaixo, faça login " +
+  "e seu histórico será automaticamente vinculado à sua conta:\n\n" +
+  "{link}\n\n" +
+  "🏆 Veja seu ranking, estatísticas e próximas partidas!";
+
+const STORAGE_KEY = "claim_invite_template_v1";
+
+function generateCode(): string {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
+  let code = "";
+  for (let i = 0; i < 10; i++) code += chars.charAt(Math.floor(Math.random() * chars.length));
+  return code;
+}
+
+function applyTemplate(tpl: string, name: string, group: string, link: string) {
+  return tpl
+    .replace(/\{nome\}/g, name)
+    .replace(/\{grupo\}/g, group)
+    .replace(/\{link\}/g, link);
+}
+
+export function ClaimInviteShareDialog({
+  open,
+  onOpenChange,
+  groupId,
+  groupName,
+  targets,
+  onSent,
+}: Props) {
+  const { user } = useAuth();
+  const [template, setTemplate] = useState<string>(DEFAULT_TEMPLATE);
+  const [editing, setEditing] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [generatedLinks, setGeneratedLinks] = useState<Record<string, string>>({});
+
+  const isBulk = targets.length > 1;
+  const sample = targets[0];
+
+  // Load saved template
+  useEffect(() => {
+    if (!open) return;
+    setEditing(false);
+    setGeneratedLinks({});
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) setTemplate(saved);
+      else setTemplate(DEFAULT_TEMPLATE);
+    } catch {
+      setTemplate(DEFAULT_TEMPLATE);
+    }
+  }, [open]);
+
+  const saveTemplate = () => {
+    try { localStorage.setItem(STORAGE_KEY, template); } catch { /* ignore */ }
+    setEditing(false);
+    toast.success("Modelo salvo");
+  };
+
+  const resetTemplate = () => {
+    setTemplate(DEFAULT_TEMPLATE);
+    try { localStorage.removeItem(STORAGE_KEY); } catch { /* ignore */ }
+  };
+
+  const previewMessage = useMemo(() => {
+    if (!sample) return "";
+    const link = `${window.location.origin}/invite/EXEMPLO123`;
+    return applyTemplate(template, sample.name, groupName || "RankMyMatch", link);
+  }, [template, sample, groupName]);
+
+  // Generate or reuse a claim invite for one placeholder. Returns the URL.
+  const ensureInviteFor = async (placeholderUserId: string): Promise<string> => {
+    if (!user) throw new Error("not authed");
+    // Reuse an existing usable claim invite for this placeholder
+    const { data: existing } = await supabase
+      .from("invite_links")
+      .select("code, use_count, max_uses, expires_at, is_active")
+      .eq("group_id", groupId)
+      .eq("claim_placeholder_user_id", placeholderUserId)
+      .eq("is_active", true)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const isUsable = !!existing
+      && existing.is_active
+      && existing.use_count < (existing.max_uses ?? 1)
+      && (!existing.expires_at || new Date(existing.expires_at) > new Date());
+
+    let code: string;
+    if (isUsable && existing) {
+      code = existing.code;
+    } else {
+      code = generateCode();
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + 30);
+      const { error: insertErr } = await supabase.from("invite_links").insert({
+        group_id: groupId,
+        code,
+        created_by: user.id,
+        max_uses: 1,
+        expires_at: expiresAt.toISOString(),
+        claim_placeholder_user_id: placeholderUserId,
+      } as never);
+      if (insertErr) throw insertErr;
+    }
+    return `${window.location.origin}/invite/${code}`;
+  };
+
+  const buildAllMessages = async () => {
+    const links: Record<string, string> = {};
+    for (const t of targets) {
+      links[t.user_id] = await ensureInviteFor(t.user_id);
+    }
+    setGeneratedLinks(links);
+    return links;
+  };
+
+  // Single send via WhatsApp / Web Share
+  const handleSendSingle = async () => {
+    if (!sample) return;
+    setBusy(true);
+    try {
+      const url = await ensureInviteFor(sample.user_id);
+      const message = applyTemplate(template, sample.name, groupName || "RankMyMatch", url);
+      const waUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+      if (navigator.share) {
+        try {
+          await navigator.share({ title: `Convite para ${sample.name}`, text: message, url });
+        } catch {
+          window.open(waUrl, "_blank");
+        }
+      } else {
+        window.open(waUrl, "_blank");
+      }
+      toast.success("Convite pronto para envio!");
+      onSent?.();
+      onOpenChange(false);
+    } catch (e) {
+      console.error(e);
+      toast.error("Erro ao gerar convite");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  // Bulk: build messages and copy them all to clipboard, separated.
+  const handleBulkCopy = async () => {
+    setBusy(true);
+    try {
+      const links = await buildAllMessages();
+      const blocks = targets.map((t) => {
+        const msg = applyTemplate(template, t.name, groupName || "RankMyMatch", links[t.user_id]);
+        return `— ${t.name} —\n${msg}`;
+      });
+      const out = blocks.join("\n\n────────\n\n");
+      await navigator.clipboard.writeText(out);
+      toast.success(`${targets.length} convites copiados!`);
+      onSent?.();
+    } catch (e) {
+      console.error(e);
+      toast.error("Erro ao gerar convites");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  // Bulk: open WhatsApp with a single broadcast-style message containing all links
+  const handleBulkWhatsApp = async () => {
+    setBusy(true);
+    try {
+      const links = await buildAllMessages();
+      const intro = `🎾 *${groupName || "RankMyMatch"}* — convites de vinculação\n\nClique no SEU link para vincular sua conta:\n`;
+      const lines = targets
+        .map((t) => `• ${t.name}: ${links[t.user_id]}`)
+        .join("\n");
+      const full = `${intro}\n${lines}\n\nApós o login, seu histórico é vinculado automaticamente.`;
+      const waUrl = `https://wa.me/?text=${encodeURIComponent(full)}`;
+      if (navigator.share) {
+        try {
+          await navigator.share({ title: "Convites de vinculação", text: full });
+        } catch {
+          window.open(waUrl, "_blank");
+        }
+      } else {
+        window.open(waUrl, "_blank");
+      }
+      toast.success(`${targets.length} convites prontos!`);
+      onSent?.();
+      onOpenChange(false);
+    } catch (e) {
+      console.error(e);
+      toast.error("Erro ao gerar convites");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md rounded-3xl border-border bg-card">
+        <DialogHeader>
+          <DialogTitle className="font-display text-lg text-foreground">
+            {isBulk ? `Convidar ${targets.length} jogadores` : `Convidar ${sample?.name ?? ""}`}
+          </DialogTitle>
+          <DialogDescription className="text-xs">
+            Mensagem com link único de vinculação automática (válido por 30 dias).
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-3">
+          {/* Targets summary (bulk) */}
+          {isBulk && (
+            <div className="flex flex-wrap gap-1 rounded-2xl border border-border bg-background p-2 max-h-24 overflow-y-auto">
+              {targets.map((t) => (
+                <span key={t.user_id} className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-foreground">
+                  {t.name}
+                </span>
+              ))}
+            </div>
+          )}
+
+          {/* Template editor / preview */}
+          <div className="rounded-2xl border border-border bg-background p-3">
+            <div className="mb-2 flex items-center justify-between">
+              <span className="flex items-center gap-1.5 text-[11px] font-semibold text-muted-foreground">
+                {editing ? <Pencil className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+                {editing ? "Editando modelo" : "Pré-visualização"}
+              </span>
+              {editing ? (
+                <div className="flex gap-1">
+                  <button onClick={resetTemplate} className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+                    Padrão
+                  </button>
+                  <button onClick={saveTemplate} className="flex items-center gap-1 rounded-full bg-primary px-2 py-0.5 text-[10px] font-bold text-primary-foreground">
+                    <Check className="h-2.5 w-2.5" />Salvar
+                  </button>
+                </div>
+              ) : (
+                <button onClick={() => setEditing(true)} className="flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-foreground">
+                  <Pencil className="h-2.5 w-2.5" />Editar
+                </button>
+              )}
+            </div>
+
+            {editing ? (
+              <>
+                <Textarea
+                  value={template}
+                  onChange={(e) => setTemplate(e.target.value)}
+                  rows={9}
+                  className="resize-none border-border bg-card text-xs"
+                  placeholder="Mensagem..."
+                />
+                <p className="mt-1.5 text-[10px] text-muted-foreground">
+                  Variáveis: <code className="text-foreground">{"{nome}"}</code>{" "}
+                  <code className="text-foreground">{"{grupo}"}</code>{" "}
+                  <code className="text-foreground">{"{link}"}</code>
+                </p>
+              </>
+            ) : (
+              <pre className="whitespace-pre-wrap break-words rounded-xl bg-muted/40 p-2 text-[11px] leading-relaxed text-foreground font-sans max-h-48 overflow-y-auto">
+                {previewMessage}
+              </pre>
+            )}
+          </div>
+
+          {/* Actions */}
+          {isBulk ? (
+            <div className="grid gap-2 sm:grid-cols-2">
+              <button
+                onClick={handleBulkWhatsApp}
+                disabled={busy}
+                className="flex items-center justify-center gap-2 rounded-xl bg-success py-2.5 text-sm font-bold text-success-foreground disabled:opacity-50"
+              >
+                {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <MessageCircle className="h-4 w-4" />}
+                WhatsApp
+              </button>
+              <button
+                onClick={handleBulkCopy}
+                disabled={busy}
+                className="flex items-center justify-center gap-2 rounded-xl bg-primary py-2.5 text-sm font-bold text-primary-foreground disabled:opacity-50"
+              >
+                {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Copy className="h-4 w-4" />}
+                Copiar todos
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={handleSendSingle}
+              disabled={busy}
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-success py-2.5 text-sm font-bold text-success-foreground disabled:opacity-50"
+            >
+              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <MessageCircle className="h-4 w-4" />}
+              Enviar pelo WhatsApp
+            </button>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
