@@ -118,6 +118,7 @@ function ComparePage() {
   const [groupName, setGroupName] = useState<string>("");
   const [players, setPlayers] = useState<PlayerAggregate[]>([]);
   const [h2h, setH2H] = useState<H2HData | null>(null);
+  const [opponentElos, setOpponentElos] = useState<Map<string, number>>(new Map());
   const [error, setError] = useState<string | null>(null);
   // Backwards-compat aliases for the rich 2-player view
   const playerA = players[0] ?? null;
@@ -670,9 +671,33 @@ function ComparePage() {
           };
         }
 
+        // Fetch current Elo for opponents seen in H2H meetings (used in "best partner" stat)
+        const oppElosMap = new Map<string, number>();
+        if (h2hData && h2hData.recentMeetings.length > 0) {
+          const oppIds = new Set<string>();
+          for (const m of h2hData.recentMeetings) {
+            for (const o of m.others) oppIds.add(o.user_id);
+          }
+          if (oppIds.size > 0 && seasonIds.length > 0) {
+            const { data: oppEvts } = await supabase
+              .from("rating_events")
+              .select("user_id, rating_after, created_at")
+              .in("season_id", seasonIds)
+              .in("user_id", Array.from(oppIds))
+              .order("created_at", { ascending: false });
+            const seen = new Set<string>();
+            for (const e of oppEvts || []) {
+              if (seen.has(e.user_id)) continue;
+              seen.add(e.user_id);
+              oppElosMap.set(e.user_id, e.rating_after);
+            }
+          }
+        }
+
         if (!cancelled) {
           setPlayers(aggregates);
           setH2H(h2hData);
+          setOpponentElos(oppElosMap);
           setProgress(100);
           setLoading(false);
         }
@@ -695,15 +720,21 @@ function ComparePage() {
     navigate({
       to: "/ranking/compare",
       search: (prev: any) => ({ ...prev, a: prev.b, b: prev.a }),
+      resetScroll: false,
     });
   };
 
   const setTab = (next: "career" | "season") => {
-    navigate({ to: "/ranking/compare", search: (prev: any) => ({ ...prev, tab: next }) });
+    navigate({
+      to: "/ranking/compare",
+      search: (prev: any) => ({ ...prev, tab: next }),
+      resetScroll: false,
+    });
   };
 
   const heroRef = useRef<HTMLDivElement | null>(null);
   const [exporting, setExporting] = useState(false);
+  const [heroScope, setHeroScope] = useState<"career" | "season">("career");
 
   const toggleGroupAvg = () => {
     const isOn = userIds.includes(GROUP_AVG_ID);
@@ -715,12 +746,14 @@ function ComparePage() {
           const real = [prev.a, prev.b, prev.c, prev.d].filter((x: string) => x && x !== GROUP_AVG_ID);
           return { ...prev, a: real[0] || "", b: real[1] || "", c: "", d: "" };
         },
+        resetScroll: false,
       });
     } else {
       // require at least 1 real player; replace B with avg
       navigate({
         to: "/ranking/compare",
         search: (prev: any) => ({ ...prev, b: GROUP_AVG_ID, c: "", d: "" }),
+        resetScroll: false,
       });
     }
   };
@@ -821,6 +854,52 @@ function ComparePage() {
     return computeAdvantage(players[0], players[1], h2h);
   }, [players, h2h]);
 
+  // Season-scoped versions of playerA/B and h2h for the hero card
+  const heroPlayerA = useMemo(
+    () => (heroScope === "season" && playerA && latestSeasonId ? scopePlayerToSeason(playerA, latestSeasonId) : playerA),
+    [playerA, heroScope, latestSeasonId],
+  );
+  const heroPlayerB = useMemo(
+    () => (heroScope === "season" && playerB && latestSeasonId ? scopePlayerToSeason(playerB, latestSeasonId) : playerB),
+    [playerB, heroScope, latestSeasonId],
+  );
+  const heroH2H = useMemo(
+    () => (heroScope === "season" && h2h && latestSeasonId ? scopeH2HToSeason(h2h, latestSeasonId) : h2h),
+    [h2h, heroScope, latestSeasonId],
+  );
+  const heroSeasonName = useMemo(() => {
+    if (heroScope !== "season" || !latestSeasonId) return "";
+    return (
+      playerA?.seasons.find((s) => s.season_id === latestSeasonId)?.season_name ||
+      playerB?.seasons.find((s) => s.season_id === latestSeasonId)?.season_name ||
+      ""
+    );
+  }, [heroScope, latestSeasonId, playerA, playerB]);
+
+  // Best partner stat: average Elo of opponents the duo defeated together
+  const bestPartnerStat = useMemo(() => {
+    if (!heroH2H) return null;
+    const wins = heroH2H.recentMeetings.filter(
+      (m) => m.asPartners && m.winner !== null && m.others.length > 0 && (
+        // partners are on the same team; opponents are on the OPPOSITE team
+        m.aTeam === m.winner
+      ),
+    );
+    if (wins.length === 0) return null;
+    const ratings: number[] = [];
+    for (const m of wins) {
+      for (const o of m.others) {
+        if (o.team !== m.aTeam) {
+          const r = opponentElos.get(o.user_id);
+          if (typeof r === "number") ratings.push(r);
+        }
+      }
+    }
+    if (ratings.length === 0) return null;
+    const avg = ratings.reduce((s, r) => s + r, 0) / ratings.length;
+    return { avg: Math.round(avg), defeatedCount: ratings.length, winCount: wins.length };
+  }, [heroH2H, opponentElos]);
+
   return (
     <div className="min-h-screen bg-background pb-28 lg:pb-8">
       <header className="sticky top-0 z-10 border-b border-border/50 bg-background/85 backdrop-blur-xl">
@@ -893,14 +972,36 @@ function ComparePage() {
 
             {/* HERO: head to head */}
             <section ref={heroRef} className="rounded-3xl border border-border bg-card/40 p-4 lg:p-6">
-              <div className="mb-3 flex items-center justify-center gap-2">
+              <div className="mb-3 flex flex-wrap items-center justify-center gap-2">
                 <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-primary">
                   <Trophy className="h-3 w-3" />
-                  Carreira no grupo · todas as temporadas
+                  {heroScope === "season" && heroSeasonName
+                    ? `Temporada ${heroSeasonName}`
+                    : "Carreira no grupo · todas as temporadas"}
                 </span>
+                {latestSeasonId && (
+                  <div className="inline-flex rounded-full border border-border bg-background/50 p-0.5">
+                    <button
+                      onClick={() => setHeroScope("career")}
+                      className={`rounded-full px-2.5 py-0.5 text-[10px] font-semibold transition ${
+                        heroScope === "career" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      Carreira
+                    </button>
+                    <button
+                      onClick={() => setHeroScope("season")}
+                      className={`rounded-full px-2.5 py-0.5 text-[10px] font-semibold transition ${
+                        heroScope === "season" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      Temporada atual
+                    </button>
+                  </div>
+                )}
               </div>
               <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 lg:gap-6">
-                <PlayerHero player={playerA} side="left" />
+                <PlayerHero player={heroPlayerA!} side="left" />
                 <div className="flex flex-col items-center gap-2">
                   <div className="rounded-full bg-primary/15 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-primary">
                     VS
@@ -916,7 +1017,7 @@ function ComparePage() {
                     </button>
                   )}
                 </div>
-                <PlayerHero player={playerB} side="right" />
+                <PlayerHero player={heroPlayerB!} side="right" />
               </div>
 
               {/* Advantage indicator */}
@@ -947,27 +1048,27 @@ function ComparePage() {
               )}
 
               {/* H2H summary */}
-              {h2h && (h2h.asOpponents.played > 0 || h2h.asPartners.played > 0) && (
+              {heroH2H && (heroH2H.asOpponents.played > 0 || heroH2H.asPartners.played > 0) && (
                 <div className="mt-4 grid grid-cols-2 gap-2 lg:gap-3">
                   {/* Adversários */}
                   <div className="rounded-2xl border border-border/60 bg-background/40 px-3 py-2.5">
                     <div className="flex items-center justify-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
                       <Swords className="h-3 w-3 text-destructive" />
                       Adversários
-                      {h2h.asOpponents.played > 0 && (
+                      {heroH2H.asOpponents.played > 0 && (
                         <span className="ml-1 rounded-full bg-muted/40 px-1.5 py-0.5 text-[9px] font-bold text-foreground/80">
-                          {h2h.asOpponents.played}
+                          {heroH2H.asOpponents.played}
                         </span>
                       )}
                     </div>
-                    {h2h.asOpponents.played > 0 ? (
+                    {heroH2H.asOpponents.played > 0 ? (
                       <div className="mt-1.5 grid grid-cols-2 items-end gap-2">
                         <div className="text-center">
-                          <p className="font-display text-2xl font-bold leading-none text-foreground">{h2h.asOpponents.aWon}</p>
+                          <p className="font-display text-2xl font-bold leading-none text-foreground">{heroH2H.asOpponents.aWon}</p>
                           <p className="mt-1 truncate text-[10px] text-muted-foreground">{abbreviateName(playerA.profile.name)}</p>
                         </div>
                         <div className="text-center">
-                          <p className="font-display text-2xl font-bold leading-none text-foreground">{h2h.asOpponents.bWon}</p>
+                          <p className="font-display text-2xl font-bold leading-none text-foreground">{heroH2H.asOpponents.bWon}</p>
                           <p className="mt-1 truncate text-[10px] text-muted-foreground">{abbreviateName(playerB.profile.name)}</p>
                         </div>
                       </div>
@@ -980,23 +1081,35 @@ function ComparePage() {
                     <div className="flex items-center justify-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
                       <Users className="h-3 w-3 text-primary" />
                       Parceiros
-                      {h2h.asPartners.played > 0 && (
+                      {heroH2H.asPartners.played > 0 && (
                         <span className="ml-1 rounded-full bg-muted/40 px-1.5 py-0.5 text-[9px] font-bold text-foreground/80">
-                          {h2h.asPartners.played}
+                          {heroH2H.asPartners.played}
                         </span>
                       )}
                     </div>
-                    {h2h.asPartners.played > 0 ? (
-                      <div className="mt-1.5 grid grid-cols-2 items-end gap-2">
-                        <div className="text-center">
-                          <p className="font-display text-2xl font-bold leading-none text-success">{h2h.asPartners.won}<span className="ml-0.5 text-sm">V</span></p>
-                          <p className="mt-1 text-[10px] text-muted-foreground">{h2h.asPartners.played - h2h.asPartners.won}D</p>
+                    {heroH2H.asPartners.played > 0 ? (
+                      <>
+                        <div className="mt-1.5 grid grid-cols-2 items-end gap-2">
+                          <div className="text-center">
+                            <p className="font-display text-2xl font-bold leading-none text-success">{heroH2H.asPartners.won}<span className="ml-0.5 text-sm">V</span></p>
+                            <p className="mt-1 text-[10px] text-muted-foreground">{heroH2H.asPartners.played - heroH2H.asPartners.won}D</p>
+                          </div>
+                          <div className="text-center">
+                            <p className="font-display text-2xl font-bold leading-none text-foreground">{pct(heroH2H.asPartners.won, heroH2H.asPartners.played)}<span className="ml-0.5 text-sm">%</span></p>
+                            <p className="mt-1 text-[10px] text-muted-foreground">aproveitamento</p>
+                          </div>
                         </div>
-                        <div className="text-center">
-                          <p className="font-display text-2xl font-bold leading-none text-foreground">{pct(h2h.asPartners.won, h2h.asPartners.played)}<span className="ml-0.5 text-sm">%</span></p>
-                          <p className="mt-1 text-[10px] text-muted-foreground">aproveitamento</p>
-                        </div>
-                      </div>
+                        {bestPartnerStat && (
+                          <div
+                            className="mt-2 flex items-center justify-center gap-1.5 rounded-lg border border-border/40 bg-background/40 px-2 py-1 text-[10px] text-muted-foreground"
+                            title={`Elo médio dos adversários derrotados em ${bestPartnerStat.winCount} vitórias juntos`}
+                          >
+                            <Trophy className="h-3 w-3 text-warning" />
+                            <span>Elo médio dos vencidos:</span>
+                            <span className="font-display text-[11px] font-bold text-foreground">{bestPartnerStat.avg}</span>
+                          </div>
+                        )}
+                      </>
                     ) : (
                       <p className="mt-2 text-center text-[11px] text-muted-foreground">Nunca jogaram juntos</p>
                     )}
@@ -1255,6 +1368,60 @@ function RecentMeetings({
       </div>
     </section>
   );
+}
+
+function scopePlayerToSeason(p: PlayerAggregate, seasonId: string): PlayerAggregate {
+  const series = p.eloSeries.filter((e) => e.season_id === seasonId);
+  const ratings = series.map((e) => e.rating);
+  const seasonStat = p.seasons.find((s) => s.season_id === seasonId);
+  const eloCurrent = ratings.length ? ratings[ratings.length - 1] : seasonStat?.rating ?? p.eloCurrent;
+  const eloPeak = ratings.length ? Math.max(...ratings) : eloCurrent;
+  const eloLow = ratings.length ? Math.min(...ratings) : eloCurrent;
+  // streaks within the season
+  let streakMax = 0;
+  let streakCurrent = 0;
+  for (let i = 1; i < series.length; i++) {
+    const win = series[i].rating > series[i - 1].rating;
+    if (win) {
+      streakCurrent = streakCurrent >= 0 ? streakCurrent + 1 : 1;
+    } else {
+      streakCurrent = streakCurrent <= 0 ? streakCurrent - 1 : -1;
+    }
+    if (streakCurrent > streakMax) streakMax = streakCurrent;
+  }
+  return {
+    ...p,
+    eloSeries: series,
+    eloCurrent,
+    eloPeak,
+    eloLow,
+    streakMax,
+    streakCurrent,
+  };
+}
+
+function scopeH2HToSeason(h2h: H2HData, seasonId: string): H2HData {
+  const meetings = h2h.recentMeetings.filter((m) => m.season_id === seasonId);
+  let asPartnersPlayed = 0;
+  let asPartnersWon = 0;
+  let asOppPlayed = 0;
+  let aWon = 0;
+  let bWon = 0;
+  for (const m of meetings) {
+    if (m.asPartners) {
+      asPartnersPlayed += 1;
+      if (m.winner && m.winner === m.aTeam) asPartnersWon += 1;
+    } else {
+      asOppPlayed += 1;
+      if (m.winner === m.aTeam) aWon += 1;
+      else if (m.winner === m.bTeam) bWon += 1;
+    }
+  }
+  return {
+    asPartners: { played: asPartnersPlayed, won: asPartnersWon },
+    asOpponents: { played: asOppPlayed, aWon, bWon },
+    recentMeetings: meetings,
+  };
 }
 
 function displayName(p: PlayerAggregate) {
