@@ -741,12 +741,15 @@ function RecentMeetings({
   const nameA = displayName(a);
   const nameB = displayName(b);
   const [filter, setFilter] = useState<MeetingFilter>("all");
+  const [showAll, setShowAll] = useState(false);
 
   const filtered = useMemo(() => {
     if (filter === "opponents") return h2h.recentMeetings.filter((m) => !m.asPartners);
     if (filter === "partners") return h2h.recentMeetings.filter((m) => m.asPartners);
     return h2h.recentMeetings;
   }, [filter, h2h.recentMeetings]);
+
+  const visible = showAll ? filtered : filtered.slice(0, 5);
 
   const counts = useMemo(() => ({
     all: h2h.recentMeetings.length,
@@ -758,19 +761,19 @@ function RecentMeetings({
     <section className="mt-3 rounded-3xl border border-border bg-card/40 p-4 lg:p-5">
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <Swords className="h-4 w-4 text-destructive" />
-        <h2 className="font-display text-sm font-bold text-foreground">Últimos confrontos</h2>
-        <span className="ml-auto text-[10px] text-muted-foreground">{filtered.length} de {counts.all}</span>
+        <h2 className="font-display text-sm font-bold text-foreground">Confrontos</h2>
+        <span className="ml-auto text-[10px] text-muted-foreground">{visible.length} de {filtered.length}</span>
       </div>
 
       {/* Filter pills */}
       <div className="mb-3 inline-flex flex-wrap gap-1 rounded-full border border-border bg-background/40 p-1">
-        <FilterPill active={filter === "all"} onClick={() => setFilter("all")}>
+        <FilterPill active={filter === "all"} onClick={() => { setFilter("all"); setShowAll(false); }}>
           Todos <span className="ml-1 opacity-70">{counts.all}</span>
         </FilterPill>
-        <FilterPill active={filter === "opponents"} onClick={() => setFilter("opponents")}>
+        <FilterPill active={filter === "opponents"} onClick={() => { setFilter("opponents"); setShowAll(false); }}>
           Adversários <span className="ml-1 opacity-70">{counts.opponents}</span>
         </FilterPill>
-        <FilterPill active={filter === "partners"} onClick={() => setFilter("partners")}>
+        <FilterPill active={filter === "partners"} onClick={() => { setFilter("partners"); setShowAll(false); }}>
           Parceiros <span className="ml-1 opacity-70">{counts.partners}</span>
         </FilterPill>
       </div>
@@ -778,8 +781,8 @@ function RecentMeetings({
       {filtered.length === 0 ? (
         <p className="py-6 text-center text-xs text-muted-foreground">Nenhum confronto neste filtro.</p>
       ) : (
-        <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-3 lg:grid-cols-3">
-          {filtered.map((m) => {
+        <ul className="flex flex-col divide-y divide-border/30 overflow-hidden rounded-xl border border-border/40 bg-background/30">
+          {visible.map((m) => {
             const aWonMatch = m.winner === m.aTeam;
             const bWonMatch = m.winner === m.bTeam;
             const sameTeam = m.asPartners;
@@ -803,14 +806,12 @@ function RecentMeetings({
             let othersLine: React.ReactNode = null;
             if (m.others.length > 0) {
               if (sameTeam) {
-                // A & B on same team — others on opposing team are opponents
                 const oppTeam = m.aTeam === "A" ? "B" : "A";
                 const opponents = m.others.filter((o) => o.team === oppTeam).map((o) => o.name);
                 if (opponents.length) {
                   othersLine = <>vs <span className="text-foreground/80">{opponents.join(" & ")}</span></>;
                 }
               } else {
-                // A and B on opposing teams — each may have a partner
                 const aPartner = m.others.find((o) => o.team === m.aTeam);
                 const bPartner = m.others.find((o) => o.team === m.bTeam);
                 if (aPartner || bPartner) {
@@ -833,62 +834,62 @@ function RecentMeetings({
               : "";
 
             const inner = (
-              <div className="flex flex-col items-center gap-1.5 py-2.5 px-2 text-center">
+              <div className="flex items-center gap-2.5 px-3 py-2">
                 {/* Badge */}
                 <span
-                  className={`rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider ring-1 ${
+                  className={`shrink-0 rounded-full px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider ring-1 ${
                     sameTeam
                       ? "bg-primary/15 text-primary ring-primary/30"
                       : "bg-destructive/10 text-destructive ring-destructive/25"
                   }`}
                   title={sameTeam ? "Parceiros" : "Adversários"}
                 >
-                  {sameTeam ? "Parceiros" : "Adversários"}
+                  {sameTeam ? "DUPLA" : "VS"}
                 </span>
 
-                {/* Names */}
-                {sameTeam ? (
-                  <p className="max-w-full truncate text-[12px] font-semibold leading-tight text-foreground">
-                    {nameA} & {nameB}
-                  </p>
-                ) : (
-                  <p className="max-w-full truncate text-[12px] font-semibold leading-tight">
-                    <span className={aWonMatch ? "text-success" : "text-foreground"}>{nameA}</span>
-                    <span className="mx-1 text-muted-foreground">vs</span>
-                    <span className={bWonMatch ? "text-success" : "text-foreground"}>{nameB}</span>
-                  </p>
-                )}
-
-                {/* Score — prominent and centered */}
-                <div className="inline-flex items-center gap-2 rounded-lg bg-muted/40 px-2.5 py-1">
-                  {winLabel && (
-                    <span className={`font-display text-[11px] font-bold ${winLabelClass}`}>{winLabel}</span>
+                {/* Names + others (compact) */}
+                <div className="min-w-0 flex-1">
+                  {sameTeam ? (
+                    <p className="truncate text-[12px] font-semibold leading-tight text-foreground">
+                      {nameA} & {nameB}
+                    </p>
+                  ) : (
+                    <p className="truncate text-[12px] font-semibold leading-tight">
+                      <span className={aWonMatch ? "text-success" : "text-foreground"}>{nameA}</span>
+                      <span className="mx-1 text-muted-foreground">vs</span>
+                      <span className={bWonMatch ? "text-success" : "text-foreground"}>{nameB}</span>
+                    </p>
                   )}
-                  <span className="font-display text-[13px] font-bold tabular-nums text-foreground">
+                  {othersLine && (
+                    <p className="truncate text-[10px] text-muted-foreground leading-tight">
+                      {othersLine}
+                    </p>
+                  )}
+                </div>
+
+                {/* Score */}
+                <div className="shrink-0 inline-flex items-center gap-1.5 rounded-md bg-muted/50 px-2 py-1">
+                  {winLabel && (
+                    <span className={`font-display text-[10px] font-bold ${winLabelClass}`}>{winLabel}</span>
+                  )}
+                  <span className="font-display text-[12px] font-bold tabular-nums text-foreground">
                     {scoreLine}
                   </span>
                 </div>
 
-                {/* Others context */}
-                {othersLine && (
-                  <p className="max-w-full truncate text-[10px] text-muted-foreground leading-tight">
-                    {othersLine}
-                  </p>
-                )}
-
                 {/* Date */}
-                <p className="text-[9px] uppercase tracking-wider text-muted-foreground/80 leading-tight">
+                <p className="shrink-0 text-[9px] uppercase tracking-wider text-muted-foreground/80 leading-tight tabular-nums w-[68px] text-right">
                   {formatMeetingDate(m.created_at)}
                 </p>
               </div>
             );
             return (
-              <li key={m.match_id} className="rounded-lg border border-border/40 bg-background/30 transition hover:bg-background/50">
+              <li key={m.match_id} className="bg-background/0 transition hover:bg-background/40">
                 {canLink ? (
                   <Link
                     to="/groups/$groupId/seasons/$seasonId/rounds/$roundId"
                     params={{ groupId, seasonId: m.season_id, roundId: m.round_id }}
-                    className="block rounded-lg transition active:bg-accent/40 hover:bg-accent/20"
+                    className="block transition active:bg-accent/40 hover:bg-accent/20"
                   >
                     {inner}
                   </Link>
@@ -899,6 +900,18 @@ function RecentMeetings({
             );
           })}
         </ul>
+      )}
+
+      {filtered.length > 5 && (
+        <div className="mt-3 flex justify-center">
+          <button
+            type="button"
+            onClick={() => setShowAll((v) => !v)}
+            className="rounded-full border border-border bg-background/60 px-3 py-1.5 text-[11px] font-semibold text-foreground transition hover:bg-accent"
+          >
+            {showAll ? "Mostrar menos" : `Ver histórico completo (${filtered.length})`}
+          </button>
+        </div>
       )}
     </section>
   );
