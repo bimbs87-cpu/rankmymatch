@@ -750,7 +750,7 @@ function RankingPage() {
                         }
                       }}
                       className={`
-                        flex lg:grid lg:grid-cols-[60px_minmax(0,1fr)_90px_100px_140px_120px] lg:gap-3 items-center
+                        group flex lg:grid lg:grid-cols-[60px_minmax(0,1fr)_90px_100px_140px_120px] lg:gap-3 items-center
                         px-2 py-2 lg:px-4 lg:py-2 transition-colors
                         ${isMe ? "bg-primary/5 lg:bg-primary/10" : isEven ? "bg-muted/10" : ""}
                         ${isExpanded ? "bg-primary/10 lg:bg-primary/15" : ""}
