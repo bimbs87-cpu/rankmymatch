@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, useCallback } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import {
   BarChart3, Search, ArrowRight, Sparkles, Crown, Flame, Snowflake,
-  Swords, X, Heart, GripVertical, Pencil, Medal, Rocket,
+  Swords, X, Heart, GripVertical, Pencil, Medal, Rocket, ArrowLeft, ExternalLink,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
@@ -60,6 +60,9 @@ export function GroupComparePanel({ groupId }: { groupId: string }) {
   const [renameTarget, setRenameTarget] = useState<FavoriteRow | null>(null);
   const [renameLabel, setRenameLabel] = useState("");
   const [dragId, setDragId] = useState<string | null>(null);
+
+  // Embedded compare result (keeps the group sidebar visible)
+  const [activeCompare, setActiveCompare] = useState<{ ids: string[]; label: string } | null>(null);
 
   useEffect(() => {
     let cancelled = false;
