@@ -831,22 +831,17 @@ function CompareLandingPage() {
                     Comparações populares
                   </p>
                 </div>
-                <div
-                  className="grid gap-2 grid-cols-2"
-                  style={{ gridTemplateColumns: `repeat(2, minmax(0, 1fr))` }}
-                >
-                  <div className="contents lg:hidden">
-                    {suggestions.map((s) => (
-                      <SuggestionCard key={s.key} s={s} memberMap={memberMap} onClick={() => goCompare(s.player_ids)} />
-                    ))}
-                  </div>
+                <div className="grid gap-2 grid-cols-2 lg:hidden">
+                  {suggestions.map((s) => (
+                    <SuggestionCard key={s.key} s={s} />
+                  ))}
                 </div>
                 <div
-                  className="hidden lg:grid gap-2 mt-0"
+                  className="hidden lg:grid gap-2"
                   style={{ gridTemplateColumns: `repeat(${suggestions.length}, minmax(0, 1fr))` }}
                 >
                   {suggestions.map((s) => (
-                    <SuggestionCard key={s.key} s={s} memberMap={memberMap} onClick={() => goCompare(s.player_ids)} />
+                    <SuggestionCard key={s.key} s={s} />
                   ))}
                 </div>
               </section>
