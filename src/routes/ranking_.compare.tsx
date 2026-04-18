@@ -1336,6 +1336,60 @@ function RecentMeetings({
   );
 }
 
+function scopePlayerToSeason(p: PlayerAggregate, seasonId: string): PlayerAggregate {
+  const series = p.eloSeries.filter((e) => e.season_id === seasonId);
+  const ratings = series.map((e) => e.rating);
+  const seasonStat = p.seasons.find((s) => s.season_id === seasonId);
+  const eloCurrent = ratings.length ? ratings[ratings.length - 1] : seasonStat?.rating ?? p.eloCurrent;
+  const eloPeak = ratings.length ? Math.max(...ratings) : eloCurrent;
+  const eloLow = ratings.length ? Math.min(...ratings) : eloCurrent;
+  // streaks within the season
+  let streakMax = 0;
+  let streakCurrent = 0;
+  for (let i = 1; i < series.length; i++) {
+    const win = series[i].rating > series[i - 1].rating;
+    if (win) {
+      streakCurrent = streakCurrent >= 0 ? streakCurrent + 1 : 1;
+    } else {
+      streakCurrent = streakCurrent <= 0 ? streakCurrent - 1 : -1;
+    }
+    if (streakCurrent > streakMax) streakMax = streakCurrent;
+  }
+  return {
+    ...p,
+    eloSeries: series,
+    eloCurrent,
+    eloPeak,
+    eloLow,
+    streakMax,
+    streakCurrent,
+  };
+}
+
+function scopeH2HToSeason(h2h: H2HData, seasonId: string): H2HData {
+  const meetings = h2h.recentMeetings.filter((m) => m.season_id === seasonId);
+  let asPartnersPlayed = 0;
+  let asPartnersWon = 0;
+  let asOppPlayed = 0;
+  let aWon = 0;
+  let bWon = 0;
+  for (const m of meetings) {
+    if (m.asPartners) {
+      asPartnersPlayed += 1;
+      if (m.winner && m.winner === m.aTeam) asPartnersWon += 1;
+    } else {
+      asOppPlayed += 1;
+      if (m.winner === m.aTeam) aWon += 1;
+      else if (m.winner === m.bTeam) bWon += 1;
+    }
+  }
+  return {
+    asPartners: { played: asPartnersPlayed, won: asPartnersWon },
+    asOpponents: { played: asOppPlayed, aWon, bWon },
+    recentMeetings: meetings,
+  };
+}
+
 function displayName(p: PlayerAggregate) {
   return p.profile.nickname?.trim() || abbreviateName(p.profile.name);
 }
