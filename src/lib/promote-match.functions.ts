@@ -230,7 +230,7 @@ export const revertMatchPromotionServerFn = createServerFn({ method: "POST" })
         .eq("season_id", seasonId)
         .in("user_id", allPlayerIds);
 
-      const updates: Array<Promise<unknown>> = [];
+      const updates: Array<PromiseLike<unknown>> = [];
       for (const snap of snapshots || []) {
         const uid = snap.user_id;
         const isTeamA = teamA.includes(uid);
