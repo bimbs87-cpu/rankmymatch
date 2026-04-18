@@ -252,7 +252,6 @@ function InvitePage() {
         return;
       }
 
-    try {
       if (isFull) {
         // Group is full — create a join request instead
         const { error: reqErr } = await supabase.from("group_join_requests").insert({
