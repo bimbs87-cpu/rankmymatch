@@ -171,8 +171,6 @@ function LoginPage() {
       />
 
       <div className="relative z-10 mx-auto flex h-full w-full max-w-6xl flex-col px-5 py-4 sm:px-6 sm:py-6 lg:grid lg:grid-cols-[1.1fr_1fr] lg:items-center lg:gap-16 lg:px-12 lg:py-10">
-
-      <div className="relative mx-auto flex min-h-screen w-full max-w-6xl flex-col px-6 py-10 lg:grid lg:grid-cols-[1.1fr_1fr] lg:items-center lg:gap-20 lg:px-12 lg:py-16">
         {/* === LEFT / TOP === */}
         <div className="flex flex-1 flex-col lg:flex-none">
           {/* Hero logo — floating with soft outer aura */}
