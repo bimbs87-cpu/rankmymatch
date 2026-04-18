@@ -570,32 +570,66 @@ export function RivalryDuelPage({ groupId, groupName, seasonId, seasonName }: Pr
         </div>
 
         {/* Face-off avatars — denser on mobile */}
-        <div className="flex items-center justify-between">
-          <div className="flex flex-col items-center gap-1.5 flex-1 lg:gap-2">
-            <PlayerAvatar
-              avatarUrl={playerA.avatar_url}
-              name={playerA.name}
-              size="lg"
-              className="ring-2 ring-primary/40"
-            />
-            <p className="text-xs font-bold text-foreground truncate max-w-[110px] lg:text-sm">{displayNameA}</p>
-          </div>
+        {(() => {
+          const last5 = completedMatches.slice(0, 5);
+          const last5A = last5.filter((m) => m.winner_user_id === playerA.user_id).length;
+          const last5B = last5.filter((m) => m.winner_user_id === playerB.user_id).length;
+          const renderTrend = (wins: number, total: number, tone: "primary" | "info") => {
+            if (total === 0) return null;
+            const delta = wins - (total - wins); // positive = winning more
+            const Arrow = delta > 0 ? TrendingUp : delta < 0 ? TrendingDown : Minus;
+            const cls =
+              delta > 0
+                ? tone === "primary" ? "text-primary" : "text-info"
+                : delta < 0
+                  ? "text-destructive"
+                  : "text-muted-foreground";
+            return (
+              <span
+                className={`mt-0.5 inline-flex items-center gap-0.5 text-[10px] font-bold tabular-nums ${cls}`}
+                title={`Últimos ${total} confrontos: ${wins}V / ${total - wins}D`}
+              >
+                <Arrow className="h-3 w-3" />
+                <span>{wins}/{total}</span>
+              </span>
+            );
+          };
+          return (
+            <div className="flex items-center justify-between">
+              <div className="flex flex-col items-center gap-1.5 flex-1 lg:gap-2">
+                <PlayerAvatar
+                  avatarUrl={playerA.avatar_url}
+                  name={playerA.name}
+                  size="lg"
+                  className="ring-2 ring-primary/40"
+                />
+                <p className="text-xs font-bold text-foreground truncate max-w-[110px] lg:text-sm">{displayNameA}</p>
+                {renderTrend(last5A, last5.length, "primary")}
+              </div>
 
-          <div className="flex flex-col items-center gap-1 px-2">
-            <Swords className="h-5 w-5 text-primary" />
-            <span className="text-[10px] text-muted-foreground font-semibold">VS</span>
-          </div>
+              <div className="flex flex-col items-center gap-1 px-2">
+                <Swords className="h-5 w-5 text-primary" />
+                <span className="text-[10px] text-muted-foreground font-semibold">VS</span>
+                {last5.length > 0 && (
+                  <span className="text-[9px] uppercase tracking-wider text-muted-foreground/70">
+                    últimos {last5.length}
+                  </span>
+                )}
+              </div>
 
-          <div className="flex flex-col items-center gap-1.5 flex-1 lg:gap-2">
-            <PlayerAvatar
-              avatarUrl={playerB.avatar_url}
-              name={playerB.name}
-              size="lg"
-              className="ring-2 ring-info/40"
-            />
-            <p className="text-xs font-bold text-foreground truncate max-w-[110px] lg:text-sm">{displayNameB}</p>
-          </div>
-        </div>
+              <div className="flex flex-col items-center gap-1.5 flex-1 lg:gap-2">
+                <PlayerAvatar
+                  avatarUrl={playerB.avatar_url}
+                  name={playerB.name}
+                  size="lg"
+                  className="ring-2 ring-info/40"
+                />
+                <p className="text-xs font-bold text-foreground truncate max-w-[110px] lg:text-sm">{displayNameB}</p>
+                {renderTrend(last5B, last5.length, "info")}
+              </div>
+            </div>
+          );
+        })()}
       </div>
 
       {/* Block 2: Overall Score (Vitórias / Sets / Games) + dynamic insights */}
@@ -901,7 +935,7 @@ export function RivalryDuelPage({ groupId, groupName, seasonId, seasonName }: Pr
       />
       </div>
 
-      <div className="mt-4 space-y-4 lg:col-span-5 lg:mt-0 lg:space-y-5">
+      <div className="mt-4 space-y-4 lg:col-span-5 lg:mt-0 lg:space-y-5 lg:sticky lg:top-4 lg:self-start lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto lg:pr-1">
       {/* Comparativo Resumido */}
       <div className="rounded-3xl border border-border bg-card/50 p-5">
         <div className="flex items-center gap-1.5 mb-3">
