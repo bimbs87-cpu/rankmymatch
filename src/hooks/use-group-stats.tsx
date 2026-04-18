@@ -85,14 +85,28 @@ export function useGroupGlobalStats(groupId: string | null) {
       const roundIds = (rounds || []).map((r) => r.id);
       const totalRounds = roundIds.length;
 
-      // Matches
+      // Matches + map round->scheduled_date
       let totalMatches = 0;
       let matchIds: string[] = [];
+      const matchDateMap = new Map<string, number>(); // match_id -> ms
       if (roundIds.length) {
+        const { data: roundsFull } = await supabase
+          .from("rounds").select("id, scheduled_date, created_at").in("id", roundIds);
+        const roundDateMap = new Map<string, number>();
+        for (const r of roundsFull || []) {
+          const ts = r.scheduled_date
+            ? new Date(r.scheduled_date + "T12:00:00").getTime()
+            : new Date(r.created_at).getTime();
+          roundDateMap.set(r.id, ts);
+        }
         const { data: matches } = await supabase
-          .from("matches").select("id, winner_team").in("round_id", roundIds);
+          .from("matches").select("id, winner_team, round_id, created_at").in("round_id", roundIds);
         totalMatches = matches?.length || 0;
         matchIds = (matches || []).map((m) => m.id);
+        for (const m of matches || []) {
+          const ts = roundDateMap.get(m.round_id) ?? new Date(m.created_at).getTime();
+          matchDateMap.set(m.id, ts);
+        }
       }
 
       // Active players
