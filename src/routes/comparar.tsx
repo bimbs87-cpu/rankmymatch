@@ -335,6 +335,37 @@ function CompareLandingPage() {
           console.warn("rivalry suggestion failed", e);
         }
 
+        // Disputa pelo pódio — 3º vs 4º colocados
+        if (ranked.length >= 4) {
+          const t3 = ranked[2];
+          const t4 = ranked[3];
+          const diff = Math.round((t3.rating ?? 0) - (t4.rating ?? 0));
+          sug.push({
+            key: "podium",
+            title: "Disputa pelo pódio",
+            subtitle: `${displayOf(t3)} vs ${displayOf(t4)} · ${diff} pts de diferença`,
+            icon: <Medal className="h-4 w-4 text-primary" />,
+            player_ids: [t3.user_id, t4.user_id],
+          });
+        }
+
+        // Estreantes em destaque — <10 jogos, maior Elo
+        const rookies = ranked.filter((m) => {
+          const g = gamesMap.get(m.user_id) ?? 0;
+          return g > 0 && g < 10;
+        });
+        if (rookies.length >= 2) {
+          const r1 = rookies[0];
+          const r2 = rookies[1];
+          sug.push({
+            key: "rookies",
+            title: "Estreantes em destaque",
+            subtitle: `${displayOf(r1)} (${gamesMap.get(r1.user_id)}j) vs ${displayOf(r2)} (${gamesMap.get(r2.user_id)}j)`,
+            icon: <Rocket className="h-4 w-4 text-primary" />,
+            player_ids: [r1.user_id, r2.user_id],
+          });
+        }
+
         if (!cancelled) {
           setMembers(list);
           setActiveSeasonId(sId);
