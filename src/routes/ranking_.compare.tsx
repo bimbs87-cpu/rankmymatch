@@ -1003,13 +1003,40 @@ function StatRow({
   );
 }
 
-function SectionCard({ title, icon, children, className = "" }: { title: string; icon: React.ReactNode; children: React.ReactNode; className?: string }) {
+function SectionCard({
+  title,
+  icon,
+  children,
+  className = "",
+  a,
+  b,
+}: {
+  title: string;
+  icon: React.ReactNode;
+  children: React.ReactNode;
+  className?: string;
+  a?: PlayerAggregate;
+  b?: PlayerAggregate;
+}) {
   return (
     <section className={`mt-3 rounded-3xl border border-border bg-card/40 p-4 lg:p-5 ${className}`}>
       <div className="mb-2 flex items-center gap-2">
         {icon}
         <h2 className="font-display text-sm font-bold text-foreground">{title}</h2>
       </div>
+      {a && b && (
+        <div className="sticky top-0 z-[1] -mx-4 mb-1 grid grid-cols-[1fr_auto_1fr] items-center gap-3 border-b border-border/40 bg-card/80 px-4 py-1.5 backdrop-blur lg:-mx-5 lg:px-5">
+          <div className="flex items-center justify-end gap-1.5">
+            <span className="truncate text-[10px] font-bold uppercase tracking-wider text-primary">{displayName(a)}</span>
+            <PlayerAvatar avatarUrl={a.profile.avatar_url} name={a.profile.name} size="sm" className="!h-5 !w-5 ring-1 ring-primary/40" />
+          </div>
+          <span className="text-[9px] font-semibold text-muted-foreground">vs</span>
+          <div className="flex items-center justify-start gap-1.5">
+            <PlayerAvatar avatarUrl={b.profile.avatar_url} name={b.profile.name} size="sm" className="!h-5 !w-5 ring-1 ring-rank-silver/40" />
+            <span className="truncate text-[10px] font-bold uppercase tracking-wider text-foreground">{displayName(b)}</span>
+          </div>
+        </div>
+      )}
       <div className="divide-y divide-border/40">{children}</div>
     </section>
   );
