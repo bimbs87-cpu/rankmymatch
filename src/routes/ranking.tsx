@@ -2,10 +2,11 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useAuth } from "@/hooks/use-auth";
 import { TrophyLoadingBar } from "@/components/TrophyLoadingBar";
 import { useMyGroups } from "@/hooks/use-groups";
-import { BarChart3, Info, ChevronDown, ArrowUp, ArrowDown, Calendar, Layers, Timer, Crown, AlertTriangle } from "lucide-react";
+import { BarChart3, Info, ChevronDown, ArrowUp, ArrowDown, Calendar, Layers, Timer, Crown, AlertTriangle, ChevronRight } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
+import { RankingPlayerDetails } from "@/components/RankingPlayerDetails";
 import { isRivalryGroup } from "@/lib/rivalry";
 import { buildDisplayNames, getCollidingFirstNames } from "@/lib/name-disambiguation";
 import { abbreviateName } from "@/lib/utils";
@@ -66,6 +67,7 @@ function RankingPage() {
   const [totalRounds, setTotalRounds] = useState(0);
   const [completedRounds, setCompletedRounds] = useState(0);
   const [totalSets, setTotalSets] = useState(0);
+  const [expandedUserId, setExpandedUserId] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -404,6 +406,10 @@ function RankingPage() {
     };
   }, [authLoading, groupsLoading, isAuthenticated, user?.id, groups, selectedSeasonId]);
 
+  useEffect(() => {
+    setExpandedUserId(null);
+  }, [selectedSeasonId]);
+
   const isPageLoading = authLoading || groupsLoading || (loading && isAuthenticated);
 
   const myRanking = rankings.find((r) => r.user_id === user?.id);
@@ -719,6 +725,8 @@ function RankingPage() {
                 const displayName = getDisplayName(entry);
                 const losses = entry.matches_played - entry.matches_won;
                 const isEven = idx % 2 === 0;
+                const isExpanded = expandedUserId === entry.user_id;
+                const canExpand = entry.matches_played > 0 && !isFormer;
 
                 const posBg =
                   typeof pos === "number" && pos === 1 ? "var(--rank-gold)"
@@ -728,126 +736,163 @@ function RankingPage() {
                 const posColor = typeof pos === "number" && pos <= 3 ? "var(--background)" : "var(--muted-foreground)";
 
                 return (
-                  <div
-                    key={entry.user_id}
-                    className={`
-                      flex lg:grid lg:grid-cols-[60px_minmax(0,1fr)_90px_100px_140px_120px] lg:gap-3 items-center
-                      px-2 py-2 lg:px-4 lg:py-2 transition-colors
-                      ${isMe ? "bg-primary/5 lg:bg-primary/10" : isEven ? "bg-muted/10" : ""}
-                      ${isInactive || isFormer ? "opacity-50" : ""}
-                      ${idx > 0 ? "border-t border-border/40" : ""}
-                      lg:hover:bg-accent/30
-                    `}
-                  >
-                    {/* Position */}
-                    <div className="w-8 lg:w-auto shrink-0 text-center">
-                      <div className="flex items-center justify-center">
-                        <div
-                          className="flex h-5 w-5 lg:h-7 lg:w-9 items-center justify-center rounded-md text-[10px] lg:text-xs font-bold"
-                          style={{ backgroundColor: posBg, color: posColor }}
-                        >
-                          {pos}
-                        </div>
-                      </div>
-                      {entry.positionChange !== undefined && entry.positionChange !== 0 && (
-                        <div className={`mt-0.5 flex items-center justify-center gap-px text-[8px] lg:text-[10px] font-bold leading-none ${
-                          entry.positionChange > 0 ? "text-success" : "text-destructive"
-                        }`}>
-                          {entry.positionChange > 0 ? "▲" : "▼"}{Math.abs(entry.positionChange)}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Avatar + Name */}
-                    <div className="flex flex-1 lg:flex-none items-center gap-1.5 lg:gap-2.5 min-w-0 pl-1 lg:pl-0">
-                      <PlayerAvatar avatarUrl={entry.profile?.avatar_url} name={entry.profile?.name || "?"} size="sm" dimmed={isFormer} className="border border-border !h-7 !w-7 lg:!h-9 lg:!w-9" />
-                      <div className="min-w-0">
-                        <p className={`text-[11px] lg:text-sm font-semibold leading-tight truncate ${isFormer ? "text-muted-foreground line-through" : "text-foreground"}`}>
-                          {displayName}
-                          {isMe && <span className="ml-1 text-primary text-[9px] lg:text-[10px] font-bold">(você)</span>}
-                        </p>
-                        {isFormer ? (
-                          <p className="text-[8px] lg:text-[10px] uppercase tracking-wide text-muted-foreground leading-none mt-0.5">Ex-membro</p>
-                        ) : isInactive && !entry.hasSnapshot ? (
-                          <p className="text-[8px] lg:text-[10px] text-muted-foreground leading-none mt-0.5">Sem partidas</p>
-                        ) : isInactive ? (
-                          <p className="hidden lg:block text-[10px] text-muted-foreground leading-none mt-0.5">Não elegível</p>
-                        ) : null}
-                      </div>
-                    </div>
-
-                    {/* Elo */}
-                    <div className="w-11 lg:w-auto text-center">
-                      <p className="font-display text-[11px] lg:text-base font-bold text-foreground leading-tight">{Math.round(entry.rating)}</p>
-                      {entry.lastChange !== undefined && (
-                        <p className={`text-[8px] lg:text-[10px] font-semibold leading-none ${entry.lastChange > 0 ? "text-success" : entry.lastChange < 0 ? "text-destructive" : "text-muted-foreground"}`}>
-                          {entry.lastChange > 0 ? "+" : ""}{Math.round(entry.lastChange)}
-                        </p>
-                      )}
-                    </div>
-
-                    {/* MOBILE V/D (WR%) */}
-                    <div className="w-[72px] text-center lg:hidden">
-                      {entry.matches_played > 0 ? (
-                        <span className="text-[10px]">
-                          <span className="text-foreground">{entry.matches_won}/{losses}</span>
-                          <span className={`ml-1 font-semibold ${wr >= 60 ? "text-success" : wr >= 40 ? "text-foreground" : "text-destructive"}`}>
-                            ({wr}%)
-                          </span>
-                        </span>
-                      ) : (
-                        <span className="text-[10px] text-muted-foreground">0/0</span>
-                      )}
-                    </div>
-
-                    {/* DESKTOP V / D split */}
-                    <div className="hidden lg:block text-center text-sm tabular-nums">
-                      {entry.matches_played > 0 ? (
-                        <span>
-                          <span className="font-semibold text-success">{entry.matches_won}</span>
-                          <span className="mx-1 text-muted-foreground">/</span>
-                          <span className="font-semibold text-destructive">{losses}</span>
-                        </span>
-                      ) : (
-                        <span className="text-muted-foreground">—</span>
-                      )}
-                    </div>
-
-                    {/* DESKTOP Win rate with bar */}
-                    <div className="hidden lg:flex flex-col items-center gap-1">
-                      {entry.matches_played > 0 ? (
-                        <>
-                          <span className={`text-xs font-semibold tabular-nums ${wr >= 60 ? "text-success" : wr >= 40 ? "text-foreground" : "text-destructive"}`}>
-                            {wr}%
-                          </span>
-                          <div className="h-1 w-20 rounded-full bg-muted overflow-hidden">
-                            <div
-                              className={`h-full ${wr >= 60 ? "bg-success" : wr >= 40 ? "bg-primary" : "bg-destructive"}`}
-                              style={{ width: `${wr}%` }}
-                            />
-                          </div>
-                        </>
-                      ) : (
-                        <span className="text-xs text-muted-foreground">—</span>
-                      )}
-                    </div>
-
-                    {/* Last 5 results */}
-                    <div className="flex w-16 lg:w-auto justify-center gap-0.5 lg:gap-1">
-                      {entry.last_5_results.length > 0 ? (
-                        entry.last_5_results.slice(0, 5).map((r, i) => (
+                  <div key={entry.user_id} className={idx > 0 ? "border-t border-border/40" : ""}>
+                    <div
+                      role={canExpand ? "button" : undefined}
+                      tabIndex={canExpand ? 0 : undefined}
+                      aria-expanded={canExpand ? isExpanded : undefined}
+                      onClick={() => canExpand && setExpandedUserId(isExpanded ? null : entry.user_id)}
+                      onKeyDown={(e) => {
+                        if (!canExpand) return;
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          setExpandedUserId(isExpanded ? null : entry.user_id);
+                        }
+                      }}
+                      className={`
+                        flex lg:grid lg:grid-cols-[60px_minmax(0,1fr)_90px_100px_140px_120px] lg:gap-3 items-center
+                        px-2 py-2 lg:px-4 lg:py-2 transition-colors
+                        ${isMe ? "bg-primary/5 lg:bg-primary/10" : isEven ? "bg-muted/10" : ""}
+                        ${isExpanded ? "bg-primary/10 lg:bg-primary/15" : ""}
+                        ${isInactive || isFormer ? "opacity-60" : ""}
+                        ${canExpand ? "cursor-pointer lg:hover:bg-accent/30 focus:outline-none focus:ring-1 focus:ring-primary/40" : ""}
+                      `}
+                    >
+                      {/* Position */}
+                      <div className="w-8 lg:w-auto shrink-0 text-center">
+                        <div className="flex items-center justify-center">
                           <div
-                            key={i}
-                            className={`h-2.5 w-2.5 lg:h-3 lg:w-3 rounded-full ${
-                              r === "W" ? "bg-success" : r === "L" ? "bg-destructive" : "bg-muted"
-                            }`}
-                            title={r === "W" ? "Vitória" : r === "L" ? "Derrota" : ""}
-                          />
-                        ))
-                      ) : (
-                        <span className="text-[9px] lg:text-xs text-muted-foreground">—</span>
-                      )}
+                            className="flex h-5 w-5 lg:h-7 lg:w-9 items-center justify-center rounded-md text-[10px] lg:text-xs font-bold"
+                            style={{ backgroundColor: posBg, color: posColor }}
+                          >
+                            {pos}
+                          </div>
+                        </div>
+                        {entry.positionChange !== undefined && entry.positionChange !== 0 && (
+                          <div className={`mt-0.5 flex items-center justify-center gap-px text-[8px] lg:text-[10px] font-bold leading-none ${
+                            entry.positionChange > 0 ? "text-success" : "text-destructive"
+                          }`}>
+                            {entry.positionChange > 0 ? "▲" : "▼"}{Math.abs(entry.positionChange)}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Avatar + Name */}
+                      <div className="flex flex-1 lg:flex-none items-center gap-1.5 lg:gap-2.5 min-w-0 pl-1 lg:pl-0">
+                        <PlayerAvatar avatarUrl={entry.profile?.avatar_url} name={entry.profile?.name || "?"} size="sm" dimmed={isFormer} className="border border-border !h-7 !w-7 lg:!h-9 lg:!w-9" />
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-1">
+                            <p className={`text-[11px] lg:text-sm font-semibold leading-tight truncate ${isFormer ? "text-muted-foreground line-through" : "text-foreground"}`}>
+                              {displayName}
+                              {isMe && <span className="ml-1 text-primary text-[9px] lg:text-[10px] font-bold">(você)</span>}
+                            </p>
+                            {canExpand && (
+                              <ChevronRight
+                                className={`h-3 w-3 lg:h-3.5 lg:w-3.5 shrink-0 text-muted-foreground/60 transition-transform ${isExpanded ? "rotate-90 text-primary" : ""}`}
+                                aria-hidden="true"
+                              />
+                            )}
+                          </div>
+                          {isFormer ? (
+                            <p className="text-[8px] lg:text-[10px] uppercase tracking-wide text-muted-foreground leading-none mt-0.5">Ex-membro</p>
+                          ) : isInactive && !entry.hasSnapshot ? (
+                            <p className="text-[8px] lg:text-[10px] text-muted-foreground leading-none mt-0.5">Sem partidas</p>
+                          ) : isInactive ? (
+                            <p className="hidden lg:block text-[10px] text-muted-foreground leading-none mt-0.5">Não elegível</p>
+                          ) : null}
+                        </div>
+                      </div>
+
+                      {/* Elo */}
+                      <div className="w-11 lg:w-auto text-center">
+                        <p className="font-display text-[11px] lg:text-base font-bold text-foreground leading-tight">{Math.round(entry.rating)}</p>
+                        {entry.lastChange !== undefined && (
+                          <p className={`text-[8px] lg:text-[10px] font-semibold leading-none ${entry.lastChange > 0 ? "text-success" : entry.lastChange < 0 ? "text-destructive" : "text-muted-foreground"}`}>
+                            {entry.lastChange > 0 ? "+" : ""}{Math.round(entry.lastChange)}
+                          </p>
+                        )}
+                      </div>
+
+                      {/* MOBILE V/D (WR%) */}
+                      <div className="w-[72px] text-center lg:hidden">
+                        {entry.matches_played > 0 ? (
+                          <span className="text-[10px]">
+                            <span className="text-foreground">{entry.matches_won}/{losses}</span>
+                            <span className={`ml-1 font-semibold ${wr >= 60 ? "text-success" : wr >= 40 ? "text-foreground" : "text-destructive"}`}>
+                              ({wr}%)
+                            </span>
+                          </span>
+                        ) : (
+                          <span className="text-[10px] text-muted-foreground">0/0</span>
+                        )}
+                      </div>
+
+                      {/* DESKTOP V / D split */}
+                      <div className="hidden lg:block text-center text-sm tabular-nums">
+                        {entry.matches_played > 0 ? (
+                          <span>
+                            <span className="font-semibold text-success">{entry.matches_won}</span>
+                            <span className="mx-1 text-muted-foreground">/</span>
+                            <span className="font-semibold text-destructive">{losses}</span>
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </div>
+
+                      {/* DESKTOP Win rate with bar */}
+                      <div className="hidden lg:flex flex-col items-center gap-1">
+                        {entry.matches_played > 0 ? (
+                          <>
+                            <span className={`text-xs font-semibold tabular-nums ${wr >= 60 ? "text-success" : wr >= 40 ? "text-foreground" : "text-destructive"}`}>
+                              {wr}%
+                            </span>
+                            <div className="h-1 w-20 rounded-full bg-muted overflow-hidden">
+                              <div
+                                className={`h-full ${wr >= 60 ? "bg-success" : wr >= 40 ? "bg-primary" : "bg-destructive"}`}
+                                style={{ width: `${wr}%` }}
+                              />
+                            </div>
+                          </>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        )}
+                      </div>
+
+                      {/* Last 5 results */}
+                      <div className="flex w-16 lg:w-auto justify-center gap-0.5 lg:gap-1">
+                        {entry.last_5_results.length > 0 ? (
+                          entry.last_5_results.slice(0, 5).map((r, i) => (
+                            <div
+                              key={i}
+                              className={`h-2.5 w-2.5 lg:h-3 lg:w-3 rounded-full ${
+                                r === "W" ? "bg-success" : r === "L" ? "bg-destructive" : "bg-muted"
+                              }`}
+                              title={r === "W" ? "Vitória" : r === "L" ? "Derrota" : ""}
+                            />
+                          ))
+                        ) : (
+                          <span className="text-[9px] lg:text-xs text-muted-foreground">—</span>
+                        )}
+                      </div>
                     </div>
+
+                    {isExpanded && canExpand && selectedSeason && (
+                      <RankingPlayerDetails
+                        userId={entry.user_id}
+                        seasonId={selectedSeason.id}
+                        groupId={(selectedSeason as any).group_id}
+                        rating={entry.rating}
+                        matchesPlayed={entry.matches_played}
+                        matchesWon={entry.matches_won}
+                        setsWon={entry.sets_won}
+                        setsLost={entry.sets_lost}
+                        gamesWon={entry.games_won}
+                        gamesLost={entry.games_lost}
+                        position={entry.position}
+                        isEligible={entry.is_eligible}
+                      />
+                    )}
                   </div>
                 );
               })}
