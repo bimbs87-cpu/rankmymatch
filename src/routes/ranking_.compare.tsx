@@ -390,7 +390,7 @@ function ComparePage() {
           for (const mp of allPlayers || []) {
             if (mp.user_id === userA || mp.user_id === userB) continue;
             const arr = othersByMatch.get(mp.match_id) || [];
-            arr.push({ user_id: mp.user_id, team: mp.team });
+            arr.push({ user_id: mp.user_id, team: mp.team as "A" | "B" });
             othersByMatch.set(mp.match_id, arr);
             otherUserIds.add(mp.user_id);
           }
