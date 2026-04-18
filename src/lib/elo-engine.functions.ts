@@ -3,6 +3,9 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { recomputeRoundStatusInternal } from "@/lib/round-status.server";
+import { processMatchEloServer } from "@/lib/elo-engine.server";
+
+export { processMatchEloServer } from "@/lib/elo-engine.server";
 
 // ============================================================================
 // Elo math (duplicated server-side; keep in sync with src/lib/elo-engine.ts)
