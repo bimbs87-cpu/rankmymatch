@@ -26,15 +26,63 @@ interface Props {
   onSent?: () => void;
 }
 
-const DEFAULT_TEMPLATE =
-  "Olá {nome}! 👋\n\n" +
-  "Você já está jogando no grupo *{grupo}* no RankMyMatch, " +
-  "mas ainda sem conta vinculada. Clique no link abaixo, faça login " +
-  "e seu histórico será automaticamente vinculado à sua conta:\n\n" +
-  "{link}\n\n" +
-  "🏆 Veja seu ranking, estatísticas e próximas partidas!";
+const DEFAULT_TEMPLATES: { id: string; name: string; body: string }[] = [
+  {
+    id: "default",
+    name: "Padrão",
+    body:
+      "Olá {nome}! 👋\n\n" +
+      "Você já está jogando no grupo *{grupo}* no RankMyMatch, " +
+      "mas ainda sem conta vinculada. Clique no link abaixo, faça login " +
+      "e seu histórico será automaticamente vinculado à sua conta:\n\n" +
+      "{link}\n\n" +
+      "🏆 Veja seu ranking, estatísticas e próximas partidas!",
+  },
+  {
+    id: "short",
+    name: "Curto",
+    body:
+      "Oi {nome}! 🎾 Vincule sua conta no *{grupo}*:\n{link}",
+  },
+  {
+    id: "formal",
+    name: "Formal",
+    body:
+      "Olá, {nome}.\n\n" +
+      "Convido você a vincular sua conta ao grupo {grupo} no RankMyMatch. " +
+      "Acesse o link abaixo para concluir o processo:\n\n{link}\n\n" +
+      "Atenciosamente.",
+  },
+  {
+    id: "fun",
+    name: "Engraçado",
+    body:
+      "Eitcha {nome}! 🔥\n\n" +
+      "Tá jogando bonito no *{grupo}* mas seu ranking tá voando sozinho 😂\n" +
+      "Clica aí pra puxar tudo pra sua conta:\n\n{link}\n\n" +
+      "Bora ver quem manda na quadra! 💪🎾",
+  },
+];
 
-const STORAGE_KEY = "claim_invite_template_v1";
+const STORAGE_TEMPLATES_KEY = "claim_invite_templates_v2";
+const STORAGE_SELECTED_KEY = "claim_invite_selected_template_v2";
+
+interface SavedTemplate { id: string; name: string; body: string }
+
+function loadTemplates(): SavedTemplate[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_TEMPLATES_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length) return parsed;
+    }
+  } catch { /* ignore */ }
+  return DEFAULT_TEMPLATES;
+}
+
+function saveTemplates(list: SavedTemplate[]) {
+  try { localStorage.setItem(STORAGE_TEMPLATES_KEY, JSON.stringify(list)); } catch { /* ignore */ }
+}
 
 function generateCode(): string {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
@@ -59,7 +107,8 @@ export function ClaimInviteShareDialog({
   onSent,
 }: Props) {
   const { user } = useAuth();
-  const [template, setTemplate] = useState<string>(DEFAULT_TEMPLATE);
+  const [templates, setTemplates] = useState<SavedTemplate[]>(DEFAULT_TEMPLATES);
+  const [selectedId, setSelectedId] = useState<string>("default");
   const [editing, setEditing] = useState(false);
   const [busy, setBusy] = useState(false);
   const [generatedLinks, setGeneratedLinks] = useState<Record<string, string>>({});
@@ -67,29 +116,69 @@ export function ClaimInviteShareDialog({
   const isBulk = targets.length > 1;
   const sample = targets[0];
 
-  // Load saved template
+  const selected = useMemo(
+    () => templates.find((t) => t.id === selectedId) || templates[0],
+    [templates, selectedId],
+  );
+  const template = selected?.body || "";
+
+  // Load saved templates + selection
   useEffect(() => {
     if (!open) return;
     setEditing(false);
     setGeneratedLinks({});
+    const list = loadTemplates();
+    setTemplates(list);
     try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) setTemplate(saved);
-      else setTemplate(DEFAULT_TEMPLATE);
+      const sel = localStorage.getItem(STORAGE_SELECTED_KEY);
+      if (sel && list.some((t) => t.id === sel)) setSelectedId(sel);
+      else setSelectedId(list[0].id);
     } catch {
-      setTemplate(DEFAULT_TEMPLATE);
+      setSelectedId(list[0].id);
     }
   }, [open]);
 
-  const saveTemplate = () => {
-    try { localStorage.setItem(STORAGE_KEY, template); } catch { /* ignore */ }
+  const updateBody = (body: string) => {
+    setTemplates((prev) => prev.map((t) => (t.id === selectedId ? { ...t, body } : t)));
+  };
+
+  const persist = () => {
+    saveTemplates(templates);
+    try { localStorage.setItem(STORAGE_SELECTED_KEY, selectedId); } catch { /* ignore */ }
     setEditing(false);
     toast.success("Modelo salvo");
   };
 
-  const resetTemplate = () => {
-    setTemplate(DEFAULT_TEMPLATE);
-    try { localStorage.removeItem(STORAGE_KEY); } catch { /* ignore */ }
+  const resetCurrentToDefault = () => {
+    const def = DEFAULT_TEMPLATES.find((t) => t.id === selectedId);
+    if (def) {
+      setTemplates((prev) => prev.map((t) => (t.id === selectedId ? { ...t, body: def.body } : t)));
+      toast.success("Restaurado para o padrão");
+    } else {
+      toast.info("Modelo personalizado — sem padrão para restaurar");
+    }
+  };
+
+  const addTemplate = () => {
+    const name = prompt("Nome do novo modelo:")?.trim();
+    if (!name) return;
+    const id = `custom_${Date.now()}`;
+    const next = [...templates, { id, name, body: DEFAULT_TEMPLATES[0].body }];
+    setTemplates(next);
+    saveTemplates(next);
+    setSelectedId(id);
+    setEditing(true);
+    try { localStorage.setItem(STORAGE_SELECTED_KEY, id); } catch { /* ignore */ }
+  };
+
+  const deleteCurrent = () => {
+    if (templates.length <= 1) { toast.error("Mantenha pelo menos um modelo"); return; }
+    if (!confirm(`Excluir modelo "${selected?.name}"?`)) return;
+    const next = templates.filter((t) => t.id !== selectedId);
+    setTemplates(next);
+    saveTemplates(next);
+    setSelectedId(next[0].id);
+    try { localStorage.setItem(STORAGE_SELECTED_KEY, next[0].id); } catch { /* ignore */ }
   };
 
   const previewMessage = useMemo(() => {
