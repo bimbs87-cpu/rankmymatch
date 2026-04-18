@@ -343,7 +343,7 @@ function CompareLandingPage() {
           const diff = Math.round((t3.rating ?? 0) - (t4.rating ?? 0));
           sug.push({
             key: "podium",
-            title: "Disputa pelo pódio",
+            title: "Disputa pelo 3º",
             subtitle: `${displayOf(t3)} vs ${displayOf(t4)} · ${diff} pts de diferença`,
             icon: <Medal className="h-4 w-4 text-primary" />,
             player_ids: [t3.user_id, t4.user_id],
