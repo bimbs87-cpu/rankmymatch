@@ -333,9 +333,11 @@ function AdvancedSection({ group, isCreator, onSaved }: { group: any; isCreator:
     <div className="space-y-4">
       <div>
         <h3 className="flex items-center gap-2 font-display text-base font-bold text-destructive">
-          <AlertTriangle className="h-4 w-4" /> Avançado
+          <AlertTriangle className="h-4 w-4" /> Zona de perigo — Grupo
         </h3>
-        <p className="text-xs text-muted-foreground">Status do grupo e ações destrutivas.</p>
+        <p className="text-xs text-muted-foreground">
+          Ações que afetam o <strong className="text-foreground">grupo inteiro</strong> (não confundir com encerrar uma temporada — isso é feito em <strong className="text-foreground">Temporadas</strong>, expandindo a temporada desejada).
+        </p>
       </div>
 
       {!isCreator ? (
@@ -343,17 +345,40 @@ function AdvancedSection({ group, isCreator, onSaved }: { group: any; isCreator:
           Apenas o criador do grupo pode arquivar ou eliminar.
         </p>
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-3">
           {group.status === "active" && (
             <>
-              <button onClick={() => setStatus("finished", "Marcado como concluído")}
-                className="flex w-full items-center justify-center gap-2 rounded-2xl border border-border py-3 text-sm font-medium hover:bg-accent/30">
-                <CheckCircle2 className="h-4 w-4 text-success" /> Marcar como concluído
-              </button>
-              <button onClick={() => setStatus("inactive", "Grupo desativado")}
-                className="flex w-full items-center justify-center gap-2 rounded-2xl border border-border py-3 text-sm font-medium text-muted-foreground hover:bg-accent/30">
-                <EyeOff className="h-4 w-4" /> Desativar grupo
-              </button>
+              <div className="rounded-2xl border border-border bg-background/40 p-3">
+                <div className="mb-2 flex items-start gap-2">
+                  <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-success" />
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-foreground">Marcar grupo como concluído</p>
+                    <p className="text-[11px] text-muted-foreground">
+                      Use quando o grupo terminou suas atividades de vez. Continua visível em modo somente-leitura. Pode ser reativado depois.
+                    </p>
+                  </div>
+                </div>
+                <button onClick={() => setStatus("finished", "Grupo marcado como concluído")}
+                  className="w-full rounded-xl border border-border py-2 text-xs font-bold hover:bg-accent/30">
+                  Concluir grupo
+                </button>
+              </div>
+
+              <div className="rounded-2xl border border-border bg-background/40 p-3">
+                <div className="mb-2 flex items-start gap-2">
+                  <EyeOff className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-foreground">Desativar grupo</p>
+                    <p className="text-[11px] text-muted-foreground">
+                      Some das listas e ninguém entra mais. Os dados ficam preservados e você pode reativar quando quiser.
+                    </p>
+                  </div>
+                </div>
+                <button onClick={() => setStatus("inactive", "Grupo desativado")}
+                  className="w-full rounded-xl border border-border py-2 text-xs font-bold text-muted-foreground hover:bg-accent/30">
+                  Desativar grupo
+                </button>
+              </div>
             </>
           )}
           {(group.status === "inactive" || group.status === "finished") && (
@@ -362,10 +387,22 @@ function AdvancedSection({ group, isCreator, onSaved }: { group: any; isCreator:
               <CheckCircle2 className="h-4 w-4" /> Reativar grupo
             </button>
           )}
-          <button onClick={() => setShowDelete(true)}
-            className="flex w-full items-center justify-center gap-2 rounded-2xl border border-destructive/30 py-3 text-sm font-medium text-destructive hover:bg-destructive/10">
-            <Trash2 className="h-4 w-4" /> Eliminar permanentemente
-          </button>
+
+          <div className="rounded-2xl border border-destructive/30 bg-destructive/5 p-3">
+            <div className="mb-2 flex items-start gap-2">
+              <Trash2 className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-destructive">Eliminar grupo permanentemente</p>
+                <p className="text-[11px] text-muted-foreground">
+                  Apaga o grupo, rodadas, partidas, rankings e histórico. <strong className="text-foreground">Não tem volta.</strong>
+                </p>
+              </div>
+            </div>
+            <button onClick={() => setShowDelete(true)}
+              className="w-full rounded-xl border border-destructive/40 py-2 text-xs font-bold text-destructive hover:bg-destructive/10">
+              Eliminar grupo
+            </button>
+          </div>
         </div>
       )}
 
