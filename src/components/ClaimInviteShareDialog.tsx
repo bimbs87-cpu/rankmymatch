@@ -428,14 +428,38 @@ export function ClaimInviteShareDialog({
               </pre>
             )}
 
-            {/* Char counter */}
-            <div className="mt-2 flex items-center justify-between text-[10px]">
+          {/* Char counter */}
+            <div className="mt-2 flex items-center justify-between gap-2 text-[10px]">
               <span className={`font-semibold ${charTone}`}>
                 {charCount} caracteres · {charLabel}
               </span>
-              <span className="text-muted-foreground">
-                limite WhatsApp ~{WA_HARD_LIMIT}
-              </span>
+              <div className="flex items-center gap-2">
+                {charCount > WA_SOFT_LIMIT && selectedId !== "short" && (
+                  <button
+                    onClick={() => {
+                      setSelectedId("short");
+                      try { localStorage.setItem(STORAGE_SELECTED_KEY, "short"); } catch { /* ignore */ }
+                      // Ensure "short" exists in current templates list (could have been deleted)
+                      setTemplates((prev) => {
+                        if (prev.some((t) => t.id === "short")) return prev;
+                        const def = DEFAULT_TEMPLATES.find((t) => t.id === "short")!;
+                        const next = [...prev, def];
+                        saveTemplates(next);
+                        return next;
+                      });
+                      setEditing(false);
+                      toast.success("Modelo Curto aplicado");
+                    }}
+                    className="rounded-full bg-warning/20 px-2 py-0.5 font-bold text-warning hover:bg-warning/30"
+                    title="Trocar para o modelo Curto"
+                  >
+                    ⚡ Encurtar automaticamente
+                  </button>
+                )}
+                <span className="text-muted-foreground">
+                  limite ~{WA_HARD_LIMIT}
+                </span>
+              </div>
             </div>
           </div>
 

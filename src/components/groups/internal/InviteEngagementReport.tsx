@@ -19,6 +19,7 @@ interface InviteRow {
   use_count: number;
   max_uses: number | null;
   claim_placeholder_user_id: string | null;
+  created_by: string | null;
 }
 
 const PERIOD_OPTS: { id: Period; label: string; days: number | null }[] = [
@@ -58,6 +59,7 @@ function statusOf(i: InviteRow): "Vinculado" | "Revogado" | "Expirado" | "Penden
 export function InviteEngagementReport({ groupId }: Props) {
   const [period, setPeriod] = useState<Period>("30d");
   const [invites, setInvites] = useState<InviteRow[]>([]);
+  const [profileMap, setProfileMap] = useState<Map<string, string>>(new Map());
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -66,12 +68,29 @@ export function InviteEngagementReport({ groupId }: Props) {
     (async () => {
       const { data } = await supabase
         .from("invite_links")
-        .select("id, code, created_at, expires_at, is_active, use_count, max_uses, claim_placeholder_user_id")
+        .select("id, code, created_at, expires_at, is_active, use_count, max_uses, claim_placeholder_user_id, created_by")
         .eq("group_id", groupId)
         .not("claim_placeholder_user_id", "is", null)
         .order("created_at", { ascending: false });
       if (!active) return;
-      setInvites((data || []) as InviteRow[]);
+      const list = (data || []) as InviteRow[];
+      setInvites(list);
+
+      // Build user_id -> name map for placeholders + creators
+      const ids = new Set<string>();
+      for (const i of list) {
+        if (i.claim_placeholder_user_id) ids.add(i.claim_placeholder_user_id);
+        if (i.created_by) ids.add(i.created_by);
+      }
+      if (ids.size) {
+        const { data: profs } = await supabase
+          .from("user_profiles")
+          .select("user_id, name, nickname")
+          .in("user_id", Array.from(ids));
+        if (active) {
+          setProfileMap(new Map((profs || []).map((p) => [p.user_id, p.nickname || p.name || ""])));
+        }
+      }
       setLoading(false);
     })();
     return () => { active = false; };
@@ -120,7 +139,12 @@ export function InviteEngagementReport({ groupId }: Props) {
 
     return Array.from(buckets.values())
       .sort((a, b) => a.weekStart.getTime() - b.weekStart.getTime())
-      .map((b) => ({ week: fmtWeekLabel(b.weekStart), Enviados: b.sent, Vinculados: b.converted }));
+      .map((b) => ({
+        week: fmtWeekLabel(b.weekStart),
+        Enviados: b.sent,
+        Vinculados: b.converted,
+        Conversao: b.sent > 0 ? Math.round((b.converted / b.sent) * 100) : 0,
+      }));
   }, [stats.list, period]);
 
   const exportCsv = () => {
@@ -128,9 +152,11 @@ export function InviteEngagementReport({ groupId }: Props) {
       toast.info("Nada para exportar nesse período");
       return;
     }
-    const header = ["codigo", "criado_em", "expira_em", "usos", "status"];
+    const header = ["codigo", "jogador_alvo", "criado_por", "criado_em", "expira_em", "usos", "status"];
     const rows = stats.list.map((i) => [
       i.code,
+      i.claim_placeholder_user_id ? (profileMap.get(i.claim_placeholder_user_id) || "") : "",
+      i.created_by ? (profileMap.get(i.created_by) || "") : "",
       new Date(i.created_at).toISOString(),
       i.expires_at ? new Date(i.expires_at).toISOString() : "",
       String(i.use_count),
@@ -233,10 +259,11 @@ export function InviteEngagementReport({ groupId }: Props) {
               </div>
               <div className="h-44 w-full">
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={weekly} margin={{ top: 6, right: 8, left: -20, bottom: 0 }}>
+                  <LineChart data={weekly} margin={{ top: 6, right: 4, left: -20, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
                     <XAxis dataKey="week" tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} />
-                    <YAxis allowDecimals={false} tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} />
+                    <YAxis yAxisId="left" allowDecimals={false} tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} />
+                    <YAxis yAxisId="right" orientation="right" domain={[0, 100]} tick={{ fontSize: 10, fill: "hsl(var(--info))" }} unit="%" width={34} />
                     <Tooltip
                       contentStyle={{
                         background: "hsl(var(--card))",
@@ -244,10 +271,12 @@ export function InviteEngagementReport({ groupId }: Props) {
                         borderRadius: 12,
                         fontSize: 11,
                       }}
+                      formatter={(value: number, name: string) => name === "Conversao" ? [`${value}%`, "Conversão"] : [value, name]}
                     />
                     <Legend wrapperStyle={{ fontSize: 10 }} />
-                    <Line type="monotone" dataKey="Enviados" stroke="hsl(var(--muted-foreground))" strokeWidth={2} dot={{ r: 2 }} />
-                    <Line type="monotone" dataKey="Vinculados" stroke="hsl(var(--success))" strokeWidth={2} dot={{ r: 2 }} />
+                    <Line yAxisId="left" type="monotone" dataKey="Enviados" stroke="hsl(var(--muted-foreground))" strokeWidth={2} dot={{ r: 2 }} />
+                    <Line yAxisId="left" type="monotone" dataKey="Vinculados" stroke="hsl(var(--success))" strokeWidth={2} dot={{ r: 2 }} />
+                    <Line yAxisId="right" type="monotone" dataKey="Conversao" name="Conversão %" stroke="hsl(var(--info))" strokeWidth={2} strokeDasharray="4 3" dot={{ r: 2 }} />
                   </LineChart>
                 </ResponsiveContainer>
               </div>
