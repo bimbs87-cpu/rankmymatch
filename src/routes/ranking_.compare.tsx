@@ -875,22 +875,40 @@ function ComparePage() {
           <MultiCompareTable players={players} latestSeasonId={latestSeasonId} groupId={groupId} />
         ) : !playerA || !playerB ? null : (
           <>
+            {/* Quick action: compare with group average */}
+            <div className="mb-3 flex flex-wrap items-center justify-end gap-2">
+              <button
+                onClick={toggleGroupAvg}
+                className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-semibold transition ${
+                  userIds.includes(GROUP_AVG_ID)
+                    ? "border-primary bg-primary/15 text-primary"
+                    : "border-border bg-card/60 text-foreground hover:bg-accent"
+                }`}
+                title="Compara com a média de todos jogadores elegíveis do grupo"
+              >
+                <BarChart3 className="h-3.5 w-3.5" />
+                {userIds.includes(GROUP_AVG_ID) ? "Comparando com média do grupo" : "Comparar com média do grupo"}
+              </button>
+            </div>
+
             {/* HERO: head to head */}
-            <section className="rounded-3xl border border-border bg-card/40 p-4 lg:p-6">
+            <section ref={heroRef} className="rounded-3xl border border-border bg-card/40 p-4 lg:p-6">
               <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 lg:gap-6">
                 <PlayerHero player={playerA} side="left" />
                 <div className="flex flex-col items-center gap-2">
                   <div className="rounded-full bg-primary/15 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-primary">
                     VS
                   </div>
-                  <button
-                    onClick={swap}
-                    className="inline-flex items-center gap-1 rounded-full border border-border bg-background/60 px-2 py-1 text-[10px] font-semibold text-muted-foreground hover:bg-accent"
-                    title="Inverter posições"
-                  >
-                    <ArrowLeftRight className="h-3 w-3" />
-                    Inverter
-                  </button>
+                  {!userIds.includes(GROUP_AVG_ID) && (
+                    <button
+                      onClick={swap}
+                      className="inline-flex items-center gap-1 rounded-full border border-border bg-background/60 px-2 py-1 text-[10px] font-semibold text-muted-foreground hover:bg-accent"
+                      title="Inverter posições"
+                    >
+                      <ArrowLeftRight className="h-3 w-3" />
+                      Inverter
+                    </button>
+                  )}
                 </div>
                 <PlayerHero player={playerB} side="right" />
               </div>
