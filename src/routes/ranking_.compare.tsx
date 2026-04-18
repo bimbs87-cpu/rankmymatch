@@ -1011,7 +1011,7 @@ function formatMeetingDate(iso: string) {
   } catch { return ""; }
 }
 
-type MeetingFilter = "all" | "opponents" | "partners";
+type MeetingFilter = "last10" | "opponents" | "partners" | "all";
 
 function RecentMeetings({
   h2h, groupId, a, b,
@@ -1023,196 +1023,214 @@ function RecentMeetings({
 }) {
   const nameA = displayName(a);
   const nameB = displayName(b);
-  const [filter, setFilter] = useState<MeetingFilter>("all");
-  const [showAll, setShowAll] = useState(false);
+  const [filter, setFilter] = useState<MeetingFilter>("last10");
+  const [allSub, setAllSub] = useState<"none" | "opponents" | "partners">("none");
 
   const filtered = useMemo(() => {
+    if (filter === "last10") return h2h.recentMeetings.slice(0, 10);
     if (filter === "opponents") return h2h.recentMeetings.filter((m) => !m.asPartners);
     if (filter === "partners") return h2h.recentMeetings.filter((m) => m.asPartners);
+    if (allSub === "opponents") return h2h.recentMeetings.filter((m) => !m.asPartners);
+    if (allSub === "partners") return h2h.recentMeetings.filter((m) => m.asPartners);
     return h2h.recentMeetings;
-  }, [filter, h2h.recentMeetings]);
-
-  const visible = showAll ? filtered : filtered.slice(0, 5);
+  }, [filter, allSub, h2h.recentMeetings]);
 
   const counts = useMemo(() => ({
-    all: h2h.recentMeetings.length,
+    last10: Math.min(10, h2h.recentMeetings.length),
     opponents: h2h.recentMeetings.filter((m) => !m.asPartners).length,
     partners: h2h.recentMeetings.filter((m) => m.asPartners).length,
+    all: h2h.recentMeetings.length,
   }), [h2h.recentMeetings]);
+
+  const filterOptions: { id: MeetingFilter; label: string; count: number; desc: string }[] = [
+    { id: "last10", label: "10 últimos", count: counts.last10, desc: "Confrontos mais recentes" },
+    { id: "opponents", label: "Adversários", count: counts.opponents, desc: "Quando jogaram em times opostos" },
+    { id: "partners", label: "Parceiros", count: counts.partners, desc: "Quando formaram dupla" },
+    { id: "all", label: "Todos", count: counts.all, desc: "Histórico completo no grupo" },
+  ];
 
   return (
     <section className="mt-3 rounded-3xl border border-border bg-card/40 p-4 lg:p-5">
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <Swords className="h-4 w-4 text-destructive" />
         <h2 className="font-display text-sm font-bold text-foreground">Confrontos</h2>
-        <span className="ml-auto text-[10px] text-muted-foreground">{visible.length} de {filtered.length}</span>
+        <span className="ml-auto text-[10px] text-muted-foreground">{filtered.length} jogo{filtered.length === 1 ? "" : "s"}</span>
       </div>
 
-      {/* Filter pills */}
-      <div className="mb-3 inline-flex flex-wrap gap-1 rounded-full border border-border bg-background/40 p-1">
-        <FilterPill active={filter === "all"} onClick={() => { setFilter("all"); setShowAll(false); }}>
-          Todos <span className="ml-1 opacity-70">{counts.all}</span>
-        </FilterPill>
-        <FilterPill active={filter === "opponents"} onClick={() => { setFilter("opponents"); setShowAll(false); }}>
-          Adversários <span className="ml-1 opacity-70">{counts.opponents}</span>
-        </FilterPill>
-        <FilterPill active={filter === "partners"} onClick={() => { setFilter("partners"); setShowAll(false); }}>
-          Parceiros <span className="ml-1 opacity-70">{counts.partners}</span>
-        </FilterPill>
-      </div>
-
-      {filtered.length === 0 ? (
-        <p className="py-6 text-center text-xs text-muted-foreground">Nenhum confronto neste filtro.</p>
-      ) : (
-        <ul className="flex flex-col divide-y divide-border/30 overflow-hidden rounded-xl border border-border/40 bg-background/30">
-          {visible.map((m) => {
-            const aWonMatch = m.winner === m.aTeam;
-            const bWonMatch = m.winner === m.bTeam;
-            const sameTeam = m.asPartners;
-            const scoreLine = m.sets.length
-              ? m.sets
-                  .map((s) => {
-                    if (sameTeam) {
-                      const own = m.aTeam === "A" ? s.score_team_a : s.score_team_b;
-                      const opp = m.aTeam === "A" ? s.score_team_b : s.score_team_a;
-                      return `${own}-${opp}`;
-                    }
-                    const aScore = m.aTeam === "A" ? s.score_team_a : s.score_team_b;
-                    const bScore = m.bTeam === "A" ? s.score_team_a : s.score_team_b;
-                    return `${aScore}-${bScore}`;
-                  })
-                  .join(" ")
-              : "—";
-            const canLink = !!m.season_id;
-
-            // Build "others" context line
-            let othersLine: React.ReactNode = null;
-            if (m.others.length > 0) {
-              if (sameTeam) {
-                const oppTeam = m.aTeam === "A" ? "B" : "A";
-                const opponents = m.others.filter((o) => o.team === oppTeam).map((o) => o.name);
-                if (opponents.length) {
-                  othersLine = <>vs <span className="text-foreground/80">{opponents.join(" & ")}</span></>;
-                }
-              } else {
-                const aPartner = m.others.find((o) => o.team === m.aTeam);
-                const bPartner = m.others.find((o) => o.team === m.bTeam);
-                if (aPartner || bPartner) {
-                  othersLine = (
-                    <>
-                      <span className="text-foreground/80">{aPartner?.name ?? "—"}</span>
-                      <span className="mx-1 opacity-60">/</span>
-                      <span className="text-foreground/80">{bPartner?.name ?? "—"}</span>
-                    </>
-                  );
-                }
-              }
-            }
-
-            const winLabel = sameTeam
-              ? (m.winner ? (m.winner === m.aTeam ? "V" : "D") : "—")
-              : null;
-            const winLabelClass = sameTeam
-              ? (m.winner ? (m.winner === m.aTeam ? "text-success" : "text-destructive") : "text-muted-foreground")
-              : "";
-
-            const inner = (
-              <div className="flex items-center gap-2.5 px-3 py-2">
-                {/* Badge */}
-                <span
-                  className={`shrink-0 rounded-full px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider ring-1 ${
-                    sameTeam
-                      ? "bg-primary/15 text-primary ring-primary/30"
-                      : "bg-destructive/10 text-destructive ring-destructive/25"
-                  }`}
-                  title={sameTeam ? "Parceiros" : "Adversários"}
-                >
-                  {sameTeam ? "DUPLA" : "VS"}
-                </span>
-
-                {/* Names + others (compact) */}
-                <div className="min-w-0 flex-1">
-                  {sameTeam ? (
-                    <p className="truncate text-[12px] font-semibold leading-tight text-foreground">
-                      {nameA} & {nameB}
-                    </p>
-                  ) : (
-                    <p className="truncate text-[12px] font-semibold leading-tight">
-                      <span className={aWonMatch ? "text-success" : "text-foreground"}>{nameA}</span>
-                      <span className="mx-1 text-muted-foreground">vs</span>
-                      <span className={bWonMatch ? "text-success" : "text-foreground"}>{nameB}</span>
-                    </p>
-                  )}
-                  {othersLine && (
-                    <p className="truncate text-[10px] text-muted-foreground leading-tight">
-                      {othersLine}
-                    </p>
-                  )}
-                </div>
-
-                {/* Score */}
-                <div className="shrink-0 inline-flex items-center gap-1.5 rounded-md bg-muted/50 px-2 py-1">
-                  {winLabel && (
-                    <span className={`font-display text-[10px] font-bold ${winLabelClass}`}>{winLabel}</span>
-                  )}
-                  <span className="font-display text-[12px] font-bold tabular-nums text-foreground">
-                    {scoreLine}
-                  </span>
-                </div>
-
-                {/* Date */}
-                <p className="shrink-0 text-[9px] uppercase tracking-wider text-muted-foreground/80 leading-tight tabular-nums w-[68px] text-right">
-                  {formatMeetingDate(m.created_at)}
-                </p>
-              </div>
-            );
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-[180px_1fr]">
+        <aside className="flex flex-col gap-1 rounded-2xl border border-border/40 bg-background/30 p-2">
+          {filterOptions.map((opt) => {
+            const active = filter === opt.id;
             return (
-              <li key={m.match_id} className="bg-background/0 transition hover:bg-background/40">
-                {canLink ? (
-                  <Link
-                    to="/groups/$groupId/seasons/$seasonId/rounds/$roundId"
-                    params={{ groupId, seasonId: m.season_id, roundId: m.round_id }}
-                    className="block transition active:bg-accent/40 hover:bg-accent/20"
-                  >
-                    {inner}
-                  </Link>
-                ) : (
-                  <div>{inner}</div>
-                )}
-              </li>
+              <button
+                key={opt.id}
+                type="button"
+                onClick={() => { setFilter(opt.id); setAllSub("none"); }}
+                className={`flex items-center justify-between gap-2 rounded-xl px-3 py-2 text-left text-[11px] font-semibold transition ${
+                  active
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:bg-accent/40 hover:text-foreground"
+                }`}
+                title={opt.desc}
+              >
+                <span className="truncate">{opt.label}</span>
+                <span className={`shrink-0 rounded-full px-1.5 py-0.5 text-[9px] tabular-nums ${active ? "bg-primary-foreground/20" : "bg-muted/50"}`}>
+                  {opt.count}
+                </span>
+              </button>
             );
           })}
-        </ul>
-      )}
 
-      {filtered.length > 5 && (
-        <div className="mt-3 flex justify-center">
-          <button
-            type="button"
-            onClick={() => setShowAll((v) => !v)}
-            className="rounded-full border border-border bg-background/60 px-3 py-1.5 text-[11px] font-semibold text-foreground transition hover:bg-accent"
-          >
-            {showAll ? "Mostrar menos" : `Ver histórico completo (${filtered.length})`}
-          </button>
+          {filter === "all" && (
+            <div className="mt-1 border-t border-border/40 pt-2">
+              <p className="px-2 pb-1 text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">Filtrar</p>
+              {([
+                { id: "none", label: "Tudo" },
+                { id: "opponents", label: "Adversários" },
+                { id: "partners", label: "Parceiros" },
+              ] as const).map((s) => {
+                const active = allSub === s.id;
+                return (
+                  <button
+                    key={s.id}
+                    type="button"
+                    onClick={() => setAllSub(s.id)}
+                    className={`block w-full rounded-lg px-3 py-1 text-left text-[10px] font-semibold transition ${
+                      active ? "bg-accent text-foreground" : "text-muted-foreground hover:bg-accent/40 hover:text-foreground"
+                    }`}
+                  >
+                    {s.label}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </aside>
+
+        <div>
+          {filtered.length === 0 ? (
+            <p className="rounded-2xl border border-border/40 bg-background/30 py-8 text-center text-xs text-muted-foreground">
+              Nenhum confronto neste filtro.
+            </p>
+          ) : (
+            <ul className="flex flex-col divide-y divide-border/30 overflow-hidden rounded-2xl border border-border/40 bg-background/30">
+              {filtered.map((m) => {
+                const aWonMatch = m.winner === m.aTeam;
+                const bWonMatch = m.winner === m.bTeam;
+                const sameTeam = m.asPartners;
+                const scoreLine = m.sets.length
+                  ? m.sets
+                      .map((s) => {
+                        if (sameTeam) {
+                          const own = m.aTeam === "A" ? s.score_team_a : s.score_team_b;
+                          const opp = m.aTeam === "A" ? s.score_team_b : s.score_team_a;
+                          return `${own}-${opp}`;
+                        }
+                        const aScore = m.aTeam === "A" ? s.score_team_a : s.score_team_b;
+                        const bScore = m.bTeam === "A" ? s.score_team_a : s.score_team_b;
+                        return `${aScore}-${bScore}`;
+                      })
+                      .join(" ")
+                  : "—";
+                const canLink = !!m.season_id;
+
+                let othersLine: React.ReactNode = null;
+                if (m.others.length > 0) {
+                  if (sameTeam) {
+                    const oppTeam = m.aTeam === "A" ? "B" : "A";
+                    const opponents = m.others.filter((o) => o.team === oppTeam).map((o) => o.name);
+                    if (opponents.length) {
+                      othersLine = <>vs <span className="text-foreground/80">{opponents.join(" & ")}</span></>;
+                    }
+                  } else {
+                    const aPartner = m.others.find((o) => o.team === m.aTeam);
+                    const bPartner = m.others.find((o) => o.team === m.bTeam);
+                    if (aPartner || bPartner) {
+                      othersLine = (
+                        <>
+                          <span className="text-foreground/80">{aPartner?.name ?? "—"}</span>
+                          <span className="mx-1 opacity-60">/</span>
+                          <span className="text-foreground/80">{bPartner?.name ?? "—"}</span>
+                        </>
+                      );
+                    }
+                  }
+                }
+
+                const winLabel = sameTeam
+                  ? (m.winner ? (m.winner === m.aTeam ? "V" : "D") : "—")
+                  : null;
+                const winLabelClass = sameTeam
+                  ? (m.winner ? (m.winner === m.aTeam ? "text-success" : "text-destructive") : "text-muted-foreground")
+                  : "";
+
+                const inner = (
+                  <div className="flex items-center gap-2.5 px-3 py-2">
+                    <span
+                      className={`shrink-0 rounded-full px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider ring-1 ${
+                        sameTeam
+                          ? "bg-primary/15 text-primary ring-primary/30"
+                          : "bg-destructive/10 text-destructive ring-destructive/25"
+                      }`}
+                      title={sameTeam ? "Parceiros" : "Adversários"}
+                    >
+                      {sameTeam ? "DUPLA" : "VS"}
+                    </span>
+
+                    <div className="min-w-0 flex-1">
+                      {sameTeam ? (
+                        <p className="truncate text-[12px] font-semibold leading-tight text-foreground">
+                          {nameA} & {nameB}
+                        </p>
+                      ) : (
+                        <p className="truncate text-[12px] font-semibold leading-tight">
+                          <span className={aWonMatch ? "text-success" : "text-foreground"}>{nameA}</span>
+                          <span className="mx-1 text-muted-foreground">vs</span>
+                          <span className={bWonMatch ? "text-success" : "text-foreground"}>{nameB}</span>
+                        </p>
+                      )}
+                      {othersLine && (
+                        <p className="truncate text-[10px] text-muted-foreground leading-tight">
+                          {othersLine}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="shrink-0 inline-flex items-center gap-1.5 rounded-md bg-muted/50 px-2 py-1">
+                      {winLabel && (
+                        <span className={`font-display text-[10px] font-bold ${winLabelClass}`}>{winLabel}</span>
+                      )}
+                      <span className="font-display text-[12px] font-bold tabular-nums text-foreground">
+                        {scoreLine}
+                      </span>
+                    </div>
+
+                    <p className="shrink-0 text-[9px] uppercase tracking-wider text-muted-foreground/80 leading-tight tabular-nums w-[68px] text-right">
+                      {formatMeetingDate(m.created_at)}
+                    </p>
+                  </div>
+                );
+                return (
+                  <li key={m.match_id} className="bg-background/0 transition hover:bg-background/40">
+                    {canLink ? (
+                      <Link
+                        to="/groups/$groupId/seasons/$seasonId/rounds/$roundId"
+                        params={{ groupId, seasonId: m.season_id, roundId: m.round_id }}
+                        className="block transition active:bg-accent/40 hover:bg-accent/20"
+                      >
+                        {inner}
+                      </Link>
+                    ) : (
+                      <div>{inner}</div>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          )}
         </div>
-      )}
+      </div>
     </section>
-  );
-}
-
-function FilterPill({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`rounded-full px-3 py-1 text-[10px] font-semibold uppercase tracking-wider transition ${
-        active
-          ? "bg-primary text-primary-foreground"
-          : "text-muted-foreground hover:bg-accent/40 hover:text-foreground"
-      }`}
-    >
-      {children}
-    </button>
   );
 }
 
