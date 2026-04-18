@@ -100,6 +100,35 @@ export function GroupDashboardPanel({ group, onLeft, onPresenceChanged }: Props)
   const [presenceLoading, setPresenceLoading] = useState(false);
   const [showLeave, setShowLeave] = useState(false);
   const [leaving, setLeaving] = useState(false);
+  const [resolvingReq, setResolvingReq] = useState<string | null>(null);
+
+  async function handleApprove(req: typeof data.pending_join_requests[number]) {
+    if (!user) return;
+    setResolvingReq(req.id);
+    try {
+      await approveJoinRequest(req.id, group.id, req.user_id, user.id);
+      toast.success(`${req.user_name} entrou no grupo`);
+      await refresh();
+    } catch (e: any) {
+      toast.error(e?.message || "Não foi possível aprovar");
+    } finally {
+      setResolvingReq(null);
+    }
+  }
+
+  async function handleReject(req: typeof data.pending_join_requests[number]) {
+    if (!user) return;
+    setResolvingReq(req.id);
+    try {
+      await rejectJoinRequest(req.id, user.id);
+      toast.success("Solicitação recusada");
+      await refresh();
+    } catch (e: any) {
+      toast.error(e?.message || "Não foi possível recusar");
+    } finally {
+      setResolvingReq(null);
+    }
+  }
 
   async function handleConfirm() {
     if (!user || !data.next_round) return;
