@@ -241,8 +241,8 @@ function LoginPage() {
         </div>
 
         {/* === RIGHT / BOTTOM — CTA === */}
-        <div className="mt-10 flex flex-col lg:mt-0">
-          <div className="relative rounded-3xl border border-border/70 bg-card/50 p-6 backdrop-blur-xl shadow-[0_8px_40px_-12px_rgba(0,0,0,0.5)] sm:p-7 lg:p-8">
+        <div className="mt-4 flex flex-col lg:mt-0">
+          <div className="relative rounded-3xl border border-border/70 bg-card/50 p-4 backdrop-blur-xl shadow-[0_8px_40px_-12px_rgba(0,0,0,0.5)] sm:p-6 lg:p-8">
             {/* top accent line */}
             <div
               aria-hidden
