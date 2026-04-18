@@ -605,6 +605,15 @@ function RoundDetailPage() {
                   Abre {formatPresenceOpenDate(presenceOpenDate)}
                 </p>
               )}
+              {isAdmin && (
+                <button
+                  onClick={handleForceOpenPresence}
+                  className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-primary/40 bg-primary/10 px-3 py-1.5 text-xs font-bold text-primary hover:bg-primary/20"
+                >
+                  <UserCheck className="h-3.5 w-3.5" />
+                  Reabrir agora (admin)
+                </button>
+              )}
             </div>
           )}
         </div>
