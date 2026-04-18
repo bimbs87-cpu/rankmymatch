@@ -825,59 +825,75 @@ function RecentMeetings({
               }
             }
 
+            const winLabel = sameTeam
+              ? (m.winner ? (m.winner === m.aTeam ? "V" : "D") : "—")
+              : null;
+            const winLabelClass = sameTeam
+              ? (m.winner ? (m.winner === m.aTeam ? "text-success" : "text-destructive") : "text-muted-foreground")
+              : "";
+
             const inner = (
-              <>
+              <div className="flex flex-col items-center gap-1.5 py-2.5 px-2 text-center">
+                {/* Badge */}
                 <span
-                  className={`shrink-0 rounded px-1 py-0.5 text-[9px] font-bold uppercase tracking-wider ring-1 ${
+                  className={`rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider ring-1 ${
                     sameTeam
                       ? "bg-primary/15 text-primary ring-primary/30"
                       : "bg-destructive/10 text-destructive ring-destructive/25"
                   }`}
                   title={sameTeam ? "Parceiros" : "Adversários"}
                 >
-                  {sameTeam ? "PC" : "vs"}
+                  {sameTeam ? "Parceiros" : "Adversários"}
                 </span>
-                <div className="min-w-0 flex-1">
-                  <div className="inline-flex max-w-full items-baseline gap-1.5">
-                    {sameTeam ? (
-                      <p className="min-w-0 truncate text-[11px] font-semibold text-foreground leading-tight">
-                        {nameA} & {nameB}
-                        <span className={`ml-1 text-[10px] font-bold ${m.winner ? (m.winner === m.aTeam ? "text-success" : "text-destructive") : "text-muted-foreground"}`}>
-                          {m.winner ? (m.winner === m.aTeam ? "V" : "D") : "—"}
-                        </span>
-                      </p>
-                    ) : (
-                      <p className="min-w-0 truncate text-[11px] font-semibold leading-tight">
-                        <span className={aWonMatch ? "text-success" : "text-foreground"}>{nameA}</span>
-                        <span className="mx-0.5 text-muted-foreground">vs</span>
-                        <span className={bWonMatch ? "text-success" : "text-foreground"}>{nameB}</span>
-                      </p>
-                    )}
-                    <span className="shrink-0 font-display text-[10px] font-bold tabular-nums text-foreground">{scoreLine}</span>
-                  </div>
-                  {othersLine && (
-                    <p className="truncate text-[9px] text-muted-foreground leading-tight">
-                      {othersLine}
-                    </p>
-                  )}
-                  <p className="truncate text-[9px] text-muted-foreground leading-tight">
-                    {formatMeetingDate(m.created_at)}
+
+                {/* Names */}
+                {sameTeam ? (
+                  <p className="max-w-full truncate text-[12px] font-semibold leading-tight text-foreground">
+                    {nameA} & {nameB}
                   </p>
+                ) : (
+                  <p className="max-w-full truncate text-[12px] font-semibold leading-tight">
+                    <span className={aWonMatch ? "text-success" : "text-foreground"}>{nameA}</span>
+                    <span className="mx-1 text-muted-foreground">vs</span>
+                    <span className={bWonMatch ? "text-success" : "text-foreground"}>{nameB}</span>
+                  </p>
+                )}
+
+                {/* Score — prominent and centered */}
+                <div className="inline-flex items-center gap-2 rounded-lg bg-muted/40 px-2.5 py-1">
+                  {winLabel && (
+                    <span className={`font-display text-[11px] font-bold ${winLabelClass}`}>{winLabel}</span>
+                  )}
+                  <span className="font-display text-[13px] font-bold tabular-nums text-foreground">
+                    {scoreLine}
+                  </span>
                 </div>
-              </>
+
+                {/* Others context */}
+                {othersLine && (
+                  <p className="max-w-full truncate text-[10px] text-muted-foreground leading-tight">
+                    {othersLine}
+                  </p>
+                )}
+
+                {/* Date */}
+                <p className="text-[9px] uppercase tracking-wider text-muted-foreground/80 leading-tight">
+                  {formatMeetingDate(m.created_at)}
+                </p>
+              </div>
             );
             return (
-              <li key={m.match_id} className="border-b border-border/30 sm:border-b-0 sm:rounded-md sm:border sm:border-border/40 sm:bg-background/30">
+              <li key={m.match_id} className="rounded-lg border border-border/40 bg-background/30 transition hover:bg-background/50">
                 {canLink ? (
                   <Link
                     to="/groups/$groupId/seasons/$seasonId/rounds/$roundId"
                     params={{ groupId, seasonId: m.season_id, roundId: m.round_id }}
-                    className="flex items-center gap-1.5 py-1.5 px-1.5 transition active:bg-accent/40 hover:bg-accent/20 rounded-md"
+                    className="block rounded-lg transition active:bg-accent/40 hover:bg-accent/20"
                   >
                     {inner}
                   </Link>
                 ) : (
-                  <div className="flex items-center gap-1.5 py-1.5 px-1.5">{inner}</div>
+                  <div>{inner}</div>
                 )}
               </li>
             );
