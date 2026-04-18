@@ -1,9 +1,11 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { DualEloChart } from "@/components/DualEloChart";
+import { computeDuelMedals } from "@/lib/duel-medals";
+import { toast } from "sonner";
 import {
   Swords,
   Trophy,
@@ -11,15 +13,14 @@ import {
   TrendingDown,
   Minus,
   Share2,
-  ChevronRight,
-  Flame,
   Target,
   BarChart3,
   Calendar,
   PlusCircle,
   History,
   Medal,
-  Lock,
+  ArrowUpCircle,
+  Loader2,
 } from "lucide-react";
 
 interface DuelPlayer {
