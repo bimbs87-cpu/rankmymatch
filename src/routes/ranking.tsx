@@ -511,7 +511,6 @@ function RankingPage() {
                   const next = !m;
                   if (next) {
                     setExpandedUserId(null);
-                    // Pre-select the current user if they are in the ranking
                     setCompareSelection(user?.id && rankings.some((r) => r.user_id === user.id) ? [user.id] : []);
                   } else {
                     setCompareSelection([]);
@@ -519,10 +518,10 @@ function RankingPage() {
                   return next;
                 });
               }}
-              className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
+              className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-bold transition shadow-sm ${
                 compareMode
-                  ? "border-primary bg-primary/15 text-primary"
-                  : "border-border bg-card text-foreground hover:bg-accent"
+                  ? "bg-primary/15 text-primary ring-1 ring-primary/40"
+                  : "bg-primary text-primary-foreground hover:opacity-90"
               }`}
               aria-pressed={compareMode}
               title="Comparar jogadores"
@@ -727,6 +726,31 @@ function RankingPage() {
 
             {/* ============ RIGHT: Ranking table ============ */}
             <div className="rounded-2xl border border-border overflow-hidden bg-card/30">
+              {/* Compare hint banner */}
+              {!compareMode && rankings.length >= 2 && (
+                <button
+                  onClick={() => {
+                    setExpandedUserId(null);
+                    setCompareSelection(user?.id && rankings.some((r) => r.user_id === user.id) ? [user.id] : []);
+                    setCompareMode(true);
+                  }}
+                  className="group flex w-full items-center justify-between gap-2 border-b border-primary/20 bg-gradient-to-r from-primary/10 via-primary/5 to-transparent px-3 py-2 text-left transition hover:from-primary/15"
+                >
+                  <span className="flex items-center gap-2 min-w-0">
+                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/20 text-primary">
+                      <GitCompareArrows className="h-3.5 w-3.5" />
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block text-[11px] lg:text-xs font-bold text-foreground leading-tight">Comparar jogadores</span>
+                      <span className="block text-[10px] lg:text-[11px] text-muted-foreground leading-tight truncate">Estatísticas, Elo, H2H e sequências</span>
+                    </span>
+                  </span>
+                  <span className="flex shrink-0 items-center gap-1 rounded-full bg-primary px-2.5 py-1 text-[10px] lg:text-[11px] font-bold text-primary-foreground transition group-hover:opacity-90">
+                    Iniciar
+                    <ChevronRight className="h-3 w-3" />
+                  </span>
+                </button>
+              )}
               {/* Desktop header */}
               <div className="hidden lg:grid lg:grid-cols-[60px_minmax(0,1fr)_90px_100px_140px_120px] items-center gap-3 border-b border-border bg-muted/40 px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
                 <span className="text-center">Pos.</span>
