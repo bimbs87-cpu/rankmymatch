@@ -22,7 +22,7 @@ import {
 import { toast } from "sonner";
 
 type Filter = "all" | "active" | "no_account" | "former" | "admins";
-type SortBy = "elo" | "wins" | "alpha" | "presence";
+type SortBy = "elo" | "wins" | "alpha" | "presence" | "no_invite_first";
 
 interface Props {
   groupId: string;
@@ -145,13 +145,23 @@ export function MembersPanel({ groupId }: Props) {
     const isFormer = (m: { status?: string }) => m.status !== "active";
     list.sort((a, b) => {
       if (isFormer(a) !== isFormer(b)) return isFormer(a) ? 1 : -1;
+      if (sortBy === "no_invite_first") {
+        const aPh = placeholderUserIds.has(a.user_id);
+        const bPh = placeholderUserIds.has(b.user_id);
+        const aNoInvite = aPh && !pendingInvites[a.user_id];
+        const bNoInvite = bPh && !pendingInvites[b.user_id];
+        if (aNoInvite !== bNoInvite) return aNoInvite ? -1 : 1;
+        // tie-break: placeholders before others, then by elo desc
+        if (aPh !== bPh) return aPh ? -1 : 1;
+        return (rankingData[b.user_id]?.rating || 0) - (rankingData[a.user_id]?.rating || 0);
+      }
       if (sortBy === "alpha") return (a.profile?.name || "").localeCompare(b.profile?.name || "");
       if (sortBy === "wins") return (rankingData[b.user_id]?.matches_won || 0) - (rankingData[a.user_id]?.matches_won || 0);
       if (sortBy === "presence") return (presenceData[b.user_id] || 0) - (presenceData[a.user_id] || 0);
       return (rankingData[b.user_id]?.rating || 0) - (rankingData[a.user_id]?.rating || 0);
     });
     return list;
-  }, [members, filter, search, sortBy, rankingData, presenceData, placeholderUserIds]);
+  }, [members, filter, search, sortBy, rankingData, presenceData, placeholderUserIds, pendingInvites]);
 
   // Placeholders visible in current filtered view (for bulk invite)
   const visiblePlaceholders = useMemo(
@@ -262,6 +272,7 @@ export function MembersPanel({ groupId }: Props) {
     { id: "wins", label: "Vitórias" },
     { id: "presence", label: "Presença" },
     { id: "alpha", label: "A-Z" },
+    { id: "no_invite_first", label: "Sem convite no topo" },
   ];
 
   const activeMembers = members.filter((m) => (m as { status?: string }).status === "active");
@@ -397,7 +408,7 @@ export function MembersPanel({ groupId }: Props) {
               />
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-1.5">
-                  {isFormer && isAdmin && renamingUserId === m.user_id ? (
+                  {(isFormer || isPlaceholder) && isAdmin && renamingUserId === m.user_id ? (
                     <input
                       value={renameValue}
                       onChange={(e) => setRenameValue(e.target.value)}
@@ -418,14 +429,25 @@ export function MembersPanel({ groupId }: Props) {
                       <Ghost className="h-2.5 w-2.5" />Sem conta
                     </span>
                   )}
-                  {isPlaceholder && pendingInvite && (
-                    <span
-                      className="flex items-center gap-0.5 rounded-full bg-warning/15 px-1.5 py-0.5 text-[9px] font-bold text-warning flex-shrink-0"
-                      title={pendingInvite.expires_at ? `Expira em ${new Date(pendingInvite.expires_at).toLocaleDateString("pt-BR")}` : "Sem expiração"}
-                    >
-                      <MailCheck className="h-2.5 w-2.5" />Convite enviado
-                    </span>
-                  )}
+                  {isPlaceholder && pendingInvite && (() => {
+                    const expiresLabel = pendingInvite.expires_at
+                      ? (() => {
+                          const ms = new Date(pendingInvite.expires_at!).getTime() - Date.now();
+                          const days = Math.ceil(ms / 86400000);
+                          if (days <= 0) return "expira hoje";
+                          if (days === 1) return "expira em 1d";
+                          return `expira em ${days}d`;
+                        })()
+                      : "sem expiração";
+                    return (
+                      <span
+                        className="flex items-center gap-0.5 rounded-full bg-warning/15 px-1.5 py-0.5 text-[9px] font-bold text-warning flex-shrink-0"
+                        title={pendingInvite.expires_at ? `Expira em ${new Date(pendingInvite.expires_at).toLocaleDateString("pt-BR")}` : "Sem expiração"}
+                      >
+                        <MailCheck className="h-2.5 w-2.5" />Convite · {expiresLabel}
+                      </span>
+                    );
+                  })()}
                   {isFormer && (
                     <span className="flex items-center gap-0.5 rounded-full bg-muted px-1.5 py-0.5 text-[9px] font-medium text-muted-foreground flex-shrink-0">
                       <UserMinus className="h-2.5 w-2.5" />Ex-membro
@@ -460,33 +482,49 @@ export function MembersPanel({ groupId }: Props) {
                   )
                 )}
                 {isAdmin && isPlaceholder && (
-                  pendingInvite ? (
+                  renamingUserId === m.user_id ? (
                     <>
-                      <button
-                        onClick={() => handleInviteSingle(m.user_id, m.profile?.name || "Jogador")}
-                        className="flex items-center gap-1 rounded-lg bg-warning/10 px-2 py-1.5 text-[10px] font-semibold text-warning hover:bg-warning/20"
-                        title="Reenviar convite"
-                      >
-                        <RotateCcw className="h-3 w-3" />
-                        <span className="hidden sm:inline">Reenviar</span>
-                      </button>
-                      <button
-                        onClick={() => handleRevokeInvite(m.user_id, m.profile?.name || "Jogador")}
-                        className="rounded-lg bg-destructive/10 p-1.5 text-destructive hover:bg-destructive/20"
-                        title="Revogar convite"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
+                      <button onClick={handleSaveRename} disabled={renameSaving} className="rounded-lg bg-success/10 p-1.5 text-success" title="Salvar"><Check className="h-3 w-3" /></button>
+                      <button onClick={() => setRenamingUserId(null)} className="rounded-lg bg-muted p-1.5 text-muted-foreground" title="Cancelar"><X className="h-3 w-3" /></button>
                     </>
                   ) : (
-                    <button
-                      onClick={() => handleInviteSingle(m.user_id, m.profile?.name || "Jogador")}
-                      className="flex items-center gap-1 rounded-lg bg-success/10 px-2 py-1.5 text-[10px] font-semibold text-success hover:bg-success/20"
-                      title="Convidar pelo WhatsApp"
-                    >
-                      <MessageCircle className="h-3 w-3" />
-                      <span className="hidden sm:inline">Convidar</span>
-                    </button>
+                    <>
+                      <button
+                        onClick={() => handleStartRename(m.user_id, m.profile?.name || "")}
+                        className="rounded-lg bg-muted p-1.5 text-muted-foreground hover:bg-muted/70"
+                        title="Renomear jogador"
+                      >
+                        <Pencil className="h-3 w-3" />
+                      </button>
+                      {pendingInvite ? (
+                        <>
+                          <button
+                            onClick={() => handleInviteSingle(m.user_id, m.profile?.name || "Jogador")}
+                            className="flex items-center gap-1 rounded-lg bg-warning/10 px-2 py-1.5 text-[10px] font-semibold text-warning hover:bg-warning/20"
+                            title="Reenviar convite"
+                          >
+                            <RotateCcw className="h-3 w-3" />
+                            <span className="hidden sm:inline">Reenviar</span>
+                          </button>
+                          <button
+                            onClick={() => handleRevokeInvite(m.user_id, m.profile?.name || "Jogador")}
+                            className="rounded-lg bg-destructive/10 p-1.5 text-destructive hover:bg-destructive/20"
+                            title="Revogar convite"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </>
+                      ) : (
+                        <button
+                          onClick={() => handleInviteSingle(m.user_id, m.profile?.name || "Jogador")}
+                          className="flex items-center gap-1 rounded-lg bg-success/10 px-2 py-1.5 text-[10px] font-semibold text-success hover:bg-success/20"
+                          title="Convidar pelo WhatsApp"
+                        >
+                          <MessageCircle className="h-3 w-3" />
+                          <span className="hidden sm:inline">Convidar</span>
+                        </button>
+                      )}
+                    </>
                   )
                 )}
                 {isAdmin && !isFormer && !isMe && m.role !== "creator" && (

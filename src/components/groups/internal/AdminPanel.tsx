@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import {
   Settings2, Bell, Users, Link2, AlertTriangle, Save, Loader2, Globe, Lock, EyeOff,
-  CheckCircle2, Trash2,
+  CheckCircle2, Trash2, BarChart3,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,10 +10,11 @@ import { GroupImageUpload } from "@/components/GroupImageUpload";
 import { InviteLinkDialog } from "@/components/InviteLinkDialog";
 import { PlayerClaimsManager } from "@/components/PlayerClaimsManager";
 import { GroupCardPreview } from "@/components/groups/GroupCardPreview";
+import { InviteEngagementReport } from "@/components/groups/internal/InviteEngagementReport";
 import { useGroupDetail, approveJoinRequest, rejectJoinRequest } from "@/hooks/use-groups";
 import { useAuth } from "@/hooks/use-auth";
 
-type Section = "general" | "presence" | "members" | "invites" | "advanced";
+type Section = "general" | "presence" | "members" | "invites" | "engagement" | "advanced";
 
 interface Props {
   group: any;
@@ -28,6 +29,7 @@ const SECTIONS: { id: Section; label: string; icon: typeof Settings2 }[] = [
   { id: "presence", label: "Presença", icon: Bell },
   { id: "members", label: "Membros & vínculos", icon: Users },
   { id: "invites", label: "Convites", icon: Link2 },
+  { id: "engagement", label: "Engajamento", icon: BarChart3 },
   { id: "advanced", label: "Avançado", icon: AlertTriangle },
 ];
 
@@ -80,6 +82,7 @@ export function AdminPanel({ group, isCreator, onSaved, pendingRequestsCount }: 
               setInviteOpen={setInviteOpen}
             />
           )}
+          {section === "engagement" && <InviteEngagementReport groupId={group.id} />}
           {section === "advanced" && (
             <AdvancedSection group={group} isCreator={isCreator} onSaved={onSaved} />
           )}
