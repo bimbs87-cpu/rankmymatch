@@ -284,35 +284,50 @@ export function GroupDashboardPanel({ group, onLeft, onPresenceChanged }: Props)
                   </span>
                   /{data.next_round.max_players} confirmados
                 </div>
-                <div className="flex items-center gap-1.5">
-                  <button
-                    onClick={handleConfirm}
-                    disabled={presenceLoading}
-                    className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold transition-colors disabled:opacity-50 ${
-                      data.next_round.presence_status === "confirmed"
-                        ? "bg-success text-success-foreground"
-                        : "border border-success/40 bg-success/10 text-success hover:bg-success/20"
-                    }`}
+                {data.next_round.presence_is_open ? (
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      onClick={handleConfirm}
+                      disabled={presenceLoading}
+                      className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold transition-colors disabled:opacity-50 ${
+                        data.next_round.presence_status === "confirmed"
+                          ? "bg-success text-success-foreground"
+                          : "border border-success/40 bg-success/10 text-success hover:bg-success/20"
+                      }`}
+                    >
+                      <CheckCircle2 className="h-3 w-3" />
+                      {data.next_round.presence_status === "confirmed" ? "Confirmado" : "Vou"}
+                    </button>
+                    <button
+                      onClick={handleDecline}
+                      disabled={presenceLoading}
+                      className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold transition-colors disabled:opacity-50 ${
+                        data.next_round.presence_status === "declined" ||
+                        (data.next_round.presence_status as string) === "absent"
+                          ? "bg-destructive text-destructive-foreground"
+                          : "border border-border bg-background/40 text-muted-foreground hover:border-destructive/40 hover:text-destructive"
+                      }`}
+                    >
+                      <XCircle className="h-3 w-3" />
+                      Não vou
+                    </button>
+                  </div>
+                ) : (
+                  <span
+                    className="flex items-center gap-1 rounded-full border border-border bg-background/40 px-2.5 py-1 text-[10px] font-semibold text-muted-foreground"
+                    title={
+                      data.next_round.presence_opens_at
+                        ? `Abre em ${new Date(data.next_round.presence_opens_at).toLocaleString("pt-BR")}`
+                        : "Lista ainda não aberta"
+                    }
                   >
-                    <CheckCircle2 className="h-3 w-3" />
-                    {data.next_round.presence_status === "confirmed" ? "Confirmado" : "Vou"}
-                  </button>
-                  <button
-                    onClick={handleDecline}
-                    disabled={presenceLoading}
-                    className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold transition-colors disabled:opacity-50 ${
-                      data.next_round.presence_status === "declined" ||
-                      (data.next_round.presence_status as string) === "absent"
-                        ? "bg-destructive text-destructive-foreground"
-                        : "border border-border bg-background/40 text-muted-foreground hover:border-destructive/40 hover:text-destructive"
-                    }`}
-                  >
-                    <XCircle className="h-3 w-3" />
-                    Não vou
-                  </button>
-                </div>
+                    <Lock className="h-3 w-3" />
+                    {data.next_round.presence_opens_at
+                      ? `Abre ${formatOpensAt(data.next_round.presence_opens_at)}`
+                      : "Lista fechada"}
+                  </span>
+                )}
               </div>
-            </div>
           ) : (
             <div className="py-4 text-center">
               <CalendarDays className="mx-auto mb-1.5 h-6 w-6 text-muted-foreground/30" />
