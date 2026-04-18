@@ -22,6 +22,7 @@ const ITEMS: Item[] = [
   { id: "members", label: "Membros", icon: Users },
   { id: "results", label: "Resultados", icon: BarChart3 },
   { id: "seasons", label: "Temporadas", icon: Trophy },
+  { id: "compare", label: "Comparar", icon: GitCompare },
   { id: "feed", label: "Feed", icon: MessageSquare },
   { id: "admin", label: "Admin", icon: Settings2, adminOnly: true },
 ];
