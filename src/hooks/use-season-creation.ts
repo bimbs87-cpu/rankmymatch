@@ -29,6 +29,25 @@ export async function createSeasonWithRounds(data: {
     const normalizedSeasonMatchFormat = normalizeSeasonMatchFormat(data.matchFormat);
     const isSingles = normalizedSeasonMatchFormat === "1v1";
 
+    // Singles round sizing:
+    // - rivalry: 2 players
+    // - league/casual: group's configured max_players (fallback 8)
+    let singlesMaxPlayers = 8;
+    if (isSingles) {
+      const { data: groupRow } = await supabase
+        .from("groups")
+        .select("singles_group_type, max_players")
+        .eq("id", data.groupId)
+        .single();
+      if (groupRow?.singles_group_type === "rivalry") {
+        singlesMaxPlayers = 2;
+      } else {
+        singlesMaxPlayers = groupRow?.max_players && groupRow.max_players >= 2
+          ? groupRow.max_players
+          : 8;
+      }
+    }
+
     const insertData: any = {
       group_id: data.groupId,
       name: data.name,
@@ -65,7 +84,7 @@ export async function createSeasonWithRounds(data: {
       round_number: idx + 1,
       scheduled_date: date,
       scheduled_time: data.scheduledTime || null,
-      max_players: isSingles ? 2 : 8,
+      max_players: isSingles ? singlesMaxPlayers : 8,
       match_format: isSingles ? "singles" : "doubles",
       status: "scheduled" as const,
     }));
