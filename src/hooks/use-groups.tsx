@@ -132,7 +132,7 @@ interface PendingGroupCard extends Group {
   member_count: number;
   claimed_player_name?: string | null;
   pending_kind: "join_request" | "claim";
-  status?: "pending" | "approved" | "rejected";
+  request_status?: "pending" | "approved" | "rejected";
 }
 
 /**
@@ -213,7 +213,7 @@ export function useMyPendingJoinRequests() {
           const joinReq = joinReqByGroup.get(group.id);
           const claimReq = claimReqByGroup.get(group.id);
           const claimedPlayerId = joinReq?.claimed_player_id || claimReq?.placeholder_user_id || null;
-          const status = (claimReq?.status || joinReq?.status || "pending") as
+          const requestStatus = (claimReq?.status || joinReq?.status || "pending") as
             | "pending"
             | "approved"
             | "rejected";
@@ -222,7 +222,7 @@ export function useMyPendingJoinRequests() {
             ...group,
             claimed_player_name: claimedPlayerId ? claimNames[claimedPlayerId] || null : null,
             pending_kind: claimReq ? "claim" : "join_request",
-            status,
+            request_status: requestStatus,
           };
         }),
       );
