@@ -266,7 +266,6 @@ export function GroupSidebar({
                   </li>
                 );
               })}
-              ))}
             </ul>
           </div>
         )}
