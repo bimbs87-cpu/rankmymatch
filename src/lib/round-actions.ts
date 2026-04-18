@@ -15,6 +15,30 @@ export async function createRound(data: {
   userId: string;
 }) {
   const isSingles = data.matchFormat === "singles";
+
+  // Singles round sizing — derive from group when caller didn't provide:
+  // - rivalry: 2
+  // - league/casual: group.max_players (fallback 8)
+  let resolvedMaxPlayers = data.maxPlayers;
+  let groupSinglesType: string | null = null;
+  if (isSingles) {
+    const { data: groupRow } = await supabase
+      .from("groups")
+      .select("singles_group_type, max_players")
+      .eq("id", data.groupId)
+      .single();
+    groupSinglesType = groupRow?.singles_group_type ?? null;
+    if (!resolvedMaxPlayers) {
+      if (groupSinglesType === "rivalry") {
+        resolvedMaxPlayers = 2;
+      } else {
+        resolvedMaxPlayers = groupRow?.max_players && groupRow.max_players >= 2
+          ? groupRow.max_players
+          : 8;
+      }
+    }
+  }
+
   const { data: round, error } = await supabase
     .from("rounds")
     .insert({
@@ -24,7 +48,7 @@ export async function createRound(data: {
       scheduled_date: data.scheduledDate || null,
       scheduled_time: data.scheduledTime || null,
       location: data.location || null,
-      max_players: data.maxPlayers || (isSingles ? 2 : 8),
+      max_players: resolvedMaxPlayers || 8,
       match_format: isSingles ? "singles" : "doubles",
       status: "scheduled",
     })
@@ -32,26 +56,16 @@ export async function createRound(data: {
     .single();
   if (error) throw error;
 
-  // Rivalry auto-confirm: if singles group with rivalry type OR exactly 2 active members,
-  // auto-confirm both members so the round skips the presence step entirely.
-  if (isSingles) {
-    const { data: groupData } = await supabase
-      .from("groups")
-      .select("singles_group_type")
-      .eq("id", data.groupId)
-      .single();
-
+  // Rivalry auto-confirm: ONLY when the group is explicitly singles_group_type = 'rivalry'.
+  // We no longer infer rivalry from member count or max_players.
+  if (isSingles && groupSinglesType === "rivalry") {
     const { data: activeMembers } = await supabase
       .from("group_members")
       .select("user_id")
       .eq("group_id", data.groupId)
       .eq("status", "active");
 
-    const isRivalry =
-      groupData?.singles_group_type === "rivalry" ||
-      (activeMembers?.length ?? 0) === 2;
-
-    if (isRivalry && activeMembers && activeMembers.length === 2) {
+    if (activeMembers && activeMembers.length === 2) {
       const nowIso = new Date().toISOString();
       await supabase.from("round_presence").upsert(
         activeMembers.map((m) => ({
