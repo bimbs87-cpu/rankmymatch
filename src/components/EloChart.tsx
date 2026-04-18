@@ -149,13 +149,13 @@ export function EloChart({ userId }: { userId: string }) {
     if (!cx || !cy) return null;
     return (
       <g>
-        <circle cx={cx} cy={cy} r={3} fill="#c8ff00" strokeWidth={0} />
+        <circle cx={cx} cy={cy} r={3} fill="var(--primary)" strokeWidth={0} />
         {payload.position && (
           <text
             x={cx}
             y={cy - 10}
             textAnchor="middle"
-            fill="rgba(255,255,255,0.7)"
+            fill="var(--muted-foreground)"
             fontSize={9}
             fontWeight={600}
           >
@@ -230,32 +230,34 @@ export function EloChart({ userId }: { userId: string }) {
         <div className="h-48">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={data} margin={{ top: 18, right: 5, bottom: 5, left: -20 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" opacity={0.4} />
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" opacity={0.4} />
               <XAxis
                 dataKey="label"
-                tick={{ fontSize: 10, fill: "rgba(255,255,255,0.5)" }}
+                tick={{ fontSize: 10, fill: "var(--muted-foreground)" }}
                 tickLine={false}
                 axisLine={false}
               />
               <YAxis
                 domain={[minRating, maxRating]}
-                tick={{ fontSize: 10, fill: "rgba(255,255,255,0.5)" }}
+                tick={{ fontSize: 10, fill: "var(--muted-foreground)" }}
                 tickLine={false}
                 axisLine={false}
+                tickCount={5}
+                tickFormatter={(val) => Math.round(val).toString()}
               />
               <ReferenceLine
                 y={1000}
-                stroke="rgba(255,255,255,0.3)"
+                stroke="var(--border)"
                 strokeDasharray="4 4"
                 opacity={0.3}
               />
               <Tooltip
                 contentStyle={{
-                  backgroundColor: "rgba(30,30,40,0.95)",
-                  border: "1px solid rgba(255,255,255,0.1)",
+                  backgroundColor: "var(--popover)",
+                  border: "1px solid var(--border)",
                   borderRadius: "12px",
                   fontSize: "12px",
-                  color: "rgba(255,255,255,0.9)",
+                  color: "var(--popover-foreground)",
                 }}
                 formatter={(value: any, _name: any, props: any) => {
                   const change = props.payload.change;
@@ -269,10 +271,10 @@ export function EloChart({ userId }: { userId: string }) {
               <Line
                 type="monotone"
                 dataKey="rating"
-                stroke="#c8ff00"
+                stroke="var(--primary)"
                 strokeWidth={2.5}
                 dot={<CustomDot />}
-                activeDot={{ r: 5, fill: "#c8ff00", strokeWidth: 2, stroke: "rgba(30,30,40,1)" }}
+                activeDot={{ r: 5, fill: "var(--primary)", strokeWidth: 2, stroke: "var(--background)" }}
               />
             </LineChart>
           </ResponsiveContainer>
