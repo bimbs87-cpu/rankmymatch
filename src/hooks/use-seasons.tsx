@@ -187,6 +187,39 @@ export async function createRound(data: {
     .single();
   if (error) throw error;
 
+  // Rivalry auto-confirm: if singles group with rivalry type OR exactly 2 active members,
+  // auto-confirm both members so the round skips the presence step entirely.
+  if (isSingles) {
+    const { data: groupData } = await supabase
+      .from("groups")
+      .select("singles_group_type")
+      .eq("id", data.groupId)
+      .single();
+
+    const { data: activeMembers } = await supabase
+      .from("group_members")
+      .select("user_id")
+      .eq("group_id", data.groupId)
+      .eq("status", "active");
+
+    const isRivalry =
+      groupData?.singles_group_type === "rivalry" ||
+      (activeMembers?.length ?? 0) === 2;
+
+    if (isRivalry && activeMembers && activeMembers.length === 2) {
+      const nowIso = new Date().toISOString();
+      await supabase.from("round_presence").upsert(
+        activeMembers.map((m) => ({
+          round_id: round.id,
+          user_id: m.user_id,
+          status: "confirmed",
+          confirmed_at: nowIso,
+        })),
+        { onConflict: "round_id,user_id" }
+      );
+    }
+  }
+
   // Notify group members
   notifyGroupMembers({
     groupId: data.groupId,
