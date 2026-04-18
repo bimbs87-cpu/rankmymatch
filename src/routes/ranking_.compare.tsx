@@ -118,6 +118,7 @@ function ComparePage() {
   const [groupName, setGroupName] = useState<string>("");
   const [players, setPlayers] = useState<PlayerAggregate[]>([]);
   const [h2h, setH2H] = useState<H2HData | null>(null);
+  const [opponentElos, setOpponentElos] = useState<Map<string, number>>(new Map());
   const [error, setError] = useState<string | null>(null);
   // Backwards-compat aliases for the rich 2-player view
   const playerA = players[0] ?? null;
