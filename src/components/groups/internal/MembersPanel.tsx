@@ -272,6 +272,7 @@ export function MembersPanel({ groupId }: Props) {
     { id: "wins", label: "Vitórias" },
     { id: "presence", label: "Presença" },
     { id: "alpha", label: "A-Z" },
+    { id: "no_invite_first", label: "Sem convite no topo" },
   ];
 
   const activeMembers = members.filter((m) => (m as { status?: string }).status === "active");
