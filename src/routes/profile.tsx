@@ -26,6 +26,7 @@ import {
   Monitor,
   Download,
   Share,
+  Bell,
 } from "lucide-react";
 import { useTheme } from "@/lib/theme";
 
@@ -440,6 +441,14 @@ function ProfilePage() {
           >
             <History className="h-4 w-4 text-muted-foreground" />
             <span className="flex-1 text-sm font-medium text-foreground">Histórico</span>
+            <ChevronRight className="h-4 w-4 text-muted-foreground/50" />
+          </Link>
+          <Link
+            to="/notifications"
+            className="flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left transition-colors hover:bg-accent"
+          >
+            <Bell className="h-4 w-4 text-muted-foreground" />
+            <span className="flex-1 text-sm font-medium text-foreground">Notificações</span>
             <ChevronRight className="h-4 w-4 text-muted-foreground/50" />
           </Link>
           <button

@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SistemaRouteImport } from './routes/sistema'
 import { Route as SeasonsRouteImport } from './routes/seasons'
 import { Route as RankingInfoRouteImport } from './routes/ranking-info'
 import { Route as RankingRouteImport } from './routes/ranking'
@@ -29,6 +30,11 @@ import { Route as GroupsGroupIdSeasonsSeasonIdRouteImport } from './routes/group
 import { Route as GroupsGroupIdSeasonsSeasonIdIndexRouteImport } from './routes/groups.$groupId.seasons.$seasonId.index'
 import { Route as GroupsGroupIdSeasonsSeasonIdRoundsRoundIdRouteImport } from './routes/groups.$groupId.seasons.$seasonId.rounds.$roundId'
 
+const SistemaRoute = SistemaRouteImport.update({
+  id: '/sistema',
+  path: '/sistema',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SeasonsRoute = SeasonsRouteImport.update({
   id: '/seasons',
   path: '/seasons',
@@ -139,6 +145,7 @@ export interface FileRoutesByFullPath {
   '/ranking': typeof RankingRoute
   '/ranking-info': typeof RankingInfoRoute
   '/seasons': typeof SeasonsRoute
+  '/sistema': typeof SistemaRoute
   '/groups/$groupId': typeof GroupsGroupIdRouteWithChildren
   '/invite/$code': typeof InviteCodeRoute
   '/groups/': typeof GroupsIndexRoute
@@ -159,6 +166,7 @@ export interface FileRoutesByTo {
   '/ranking': typeof RankingRoute
   '/ranking-info': typeof RankingInfoRoute
   '/seasons': typeof SeasonsRoute
+  '/sistema': typeof SistemaRoute
   '/invite/$code': typeof InviteCodeRoute
   '/groups': typeof GroupsIndexRoute
   '/groups/$groupId/feed': typeof GroupsGroupIdFeedRoute
@@ -178,6 +186,7 @@ export interface FileRoutesById {
   '/ranking': typeof RankingRoute
   '/ranking-info': typeof RankingInfoRoute
   '/seasons': typeof SeasonsRoute
+  '/sistema': typeof SistemaRoute
   '/groups/$groupId': typeof GroupsGroupIdRouteWithChildren
   '/invite/$code': typeof InviteCodeRoute
   '/groups/': typeof GroupsIndexRoute
@@ -201,6 +210,7 @@ export interface FileRouteTypes {
     | '/ranking'
     | '/ranking-info'
     | '/seasons'
+    | '/sistema'
     | '/groups/$groupId'
     | '/invite/$code'
     | '/groups/'
@@ -221,6 +231,7 @@ export interface FileRouteTypes {
     | '/ranking'
     | '/ranking-info'
     | '/seasons'
+    | '/sistema'
     | '/invite/$code'
     | '/groups'
     | '/groups/$groupId/feed'
@@ -239,6 +250,7 @@ export interface FileRouteTypes {
     | '/ranking'
     | '/ranking-info'
     | '/seasons'
+    | '/sistema'
     | '/groups/$groupId'
     | '/invite/$code'
     | '/groups/'
@@ -261,11 +273,19 @@ export interface RootRouteChildren {
   RankingRoute: typeof RankingRoute
   RankingInfoRoute: typeof RankingInfoRoute
   SeasonsRoute: typeof SeasonsRoute
+  SistemaRoute: typeof SistemaRoute
   InviteCodeRoute: typeof InviteCodeRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/sistema': {
+      id: '/sistema'
+      path: '/sistema'
+      fullPath: '/sistema'
+      preLoaderRoute: typeof SistemaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/seasons': {
       id: '/seasons'
       path: '/seasons'
@@ -473,6 +493,7 @@ const rootRouteChildren: RootRouteChildren = {
   RankingRoute: RankingRoute,
   RankingInfoRoute: RankingInfoRoute,
   SeasonsRoute: SeasonsRoute,
+  SistemaRoute: SistemaRoute,
   InviteCodeRoute: InviteCodeRoute,
 }
 export const routeTree = rootRouteImport
