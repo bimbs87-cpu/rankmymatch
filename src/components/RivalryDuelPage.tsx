@@ -930,7 +930,7 @@ export function RivalryDuelPage({ groupId, groupName, seasonId, seasonName }: Pr
       />
       </div>
 
-      <div className="mt-4 space-y-4 lg:col-span-5 lg:mt-0 lg:space-y-5 lg:sticky lg:top-4 lg:self-start lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto lg:pr-1">
+      <div className="mt-4 space-y-4 lg:col-span-5 lg:mt-0 lg:space-y-5 lg:sticky lg:top-4 lg:self-start">
       {/* Comparativo Resumido */}
       <div className="rounded-3xl border border-border bg-card/50 p-5">
         <div className="flex items-center gap-1.5 mb-3">
