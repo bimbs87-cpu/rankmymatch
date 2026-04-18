@@ -42,6 +42,11 @@ import {
   User as UserIcon,
   Crown,
   HelpCircle,
+  History,
+  Settings,
+  CalendarPlus,
+  ListChecks,
+  Medal,
 } from "lucide-react";
 
 const DESKTOP_NAV = [
@@ -142,6 +147,7 @@ interface RecentMatch {
 interface RankingOption {
   season_id: string;
   season_name: string;
+  group_id: string;
   group_name: string;
   rounds_completed: number;
   rounds_total: number;
@@ -640,6 +646,7 @@ function DashboardPage() {
           return {
             season_id: snap.season_id,
             season_name: season?.name || "Temporada",
+            group_id: season?.group_id || "",
             group_name: groupNameMap.get(season?.group_id) || "",
             rounds_completed: roundCounts.completed,
             rounds_total: Math.max(roundCounts.completed, plannedTotal),
@@ -1537,15 +1544,22 @@ function DashboardPage() {
           </div>
 
           {/* Seu próximo confronto + Atalhos rápidos — desktop, side-by-side on the same row */}
-          {nextMatchCardJSX && (
+          {(nextMatchCardJSX || true) && (
             <div className="flex flex-row gap-4">
-              <div className="flex-1 min-w-0">{nextMatchCardJSX}</div>
-              <div className="w-[240px] shrink-0">
+              {nextMatchCardJSX ? (
+                <div className="flex-1 min-w-0">{nextMatchCardJSX}</div>
+              ) : (
+                <div className="flex-1 min-w-0 flex items-center justify-center rounded-3xl border border-dashed border-border bg-card/50 p-6">
+                  <p className="text-xs text-muted-foreground">Nenhum confronto próximo agendado</p>
+                </div>
+              )}
+              <div className="w-[260px] shrink-0">
                 <div className="rounded-3xl border border-border bg-card p-4 h-full">
                   <h2 className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                     Atalhos rápidos
                   </h2>
-                  <div className="flex flex-col gap-2">
+                  <div className="flex flex-col gap-1.5">
+                    {/* Confirmar presença */}
                     {nextMatch && nextMatch.my_presence_status !== "confirmed" && nextMatch.presence_is_open && (
                       <Link
                         to="/groups/$groupId/seasons/$seasonId/rounds/$roundId"
@@ -1554,12 +1568,14 @@ function DashboardPage() {
                           seasonId: nextMatch.season_id || "",
                           roundId: nextMatch.round_id,
                         }}
-                        className="flex items-center gap-2 rounded-2xl border border-warning/30 bg-warning/5 px-3 py-2.5 text-xs font-semibold text-warning transition-colors hover:bg-warning/10"
+                        className="flex items-center gap-2 rounded-2xl border border-warning/30 bg-warning/5 px-3 py-2 text-xs font-semibold text-warning transition-colors hover:bg-warning/10"
                       >
                         <Calendar className="h-4 w-4 shrink-0" />
                         <span className="truncate">Confirmar presença</span>
                       </Link>
                     )}
+
+                    {/* Registrar resultado */}
                     {(nextMatch?.has_pairing || pendingMatch) && (
                       <Link
                         to="/groups/$groupId/seasons/$seasonId/rounds/$roundId"
@@ -1568,12 +1584,14 @@ function DashboardPage() {
                           seasonId: pendingMatch?.season_id || nextMatch?.season_id || "",
                           roundId: pendingMatch?.round_id || nextMatch!.round_id,
                         }}
-                        className="flex items-center gap-2 rounded-2xl bg-primary px-3 py-2.5 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+                        className="flex items-center gap-2 rounded-2xl bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
                       >
                         <Trophy className="h-4 w-4 shrink-0" />
                         <span className="truncate">Registrar resultado</span>
                       </Link>
                     )}
+
+                    {/* Ver duelo (rivalry) */}
                     {(() => {
                       const rivalryGroup = myGroups.find((g: any) => g.singles_group_type === "rivalry");
                       if (!rivalryGroup) return null;
@@ -1581,18 +1599,92 @@ function DashboardPage() {
                         <Link
                           to="/groups/$groupId/duel"
                           params={{ groupId: rivalryGroup.id }}
-                          className="flex items-center gap-2 rounded-2xl border border-primary/30 bg-primary/5 px-3 py-2.5 text-xs font-semibold text-primary transition-colors hover:bg-primary/10"
+                          className="flex items-center gap-2 rounded-2xl border border-primary/30 bg-primary/5 px-3 py-2 text-xs font-semibold text-primary transition-colors hover:bg-primary/10"
                         >
                           <Swords className="h-4 w-4 shrink-0" />
                           <span className="truncate">Ver duelo</span>
                         </Link>
                       );
                     })()}
-                    {!nextMatch && !pendingMatch && !myGroups.find((g: any) => g.singles_group_type === "rivalry") && (
-                      <p className="text-[11px] text-muted-foreground/70 text-center py-2">
-                        Sem ações pendentes
-                      </p>
+
+                    {/* Notificações com badge */}
+                    {unreadCount > 0 && (
+                      <Link
+                        to="/notifications"
+                        className="flex items-center gap-2 rounded-2xl border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs font-semibold text-destructive transition-colors hover:bg-destructive/10"
+                      >
+                        <Bell className="h-4 w-4 shrink-0" />
+                        <span className="flex-1 truncate text-left">Notificações</span>
+                        <span className="rounded-full bg-destructive px-1.5 py-0.5 text-[9px] font-bold text-destructive-foreground tabular-nums">
+                          {unreadCount > 9 ? "9+" : unreadCount}
+                        </span>
+                      </Link>
                     )}
+
+                    {/* Separador visual quando há ações + atalhos de navegação */}
+                    <div className="my-1 border-t border-border/40" />
+
+                    {/* Ranking da temporada atual */}
+                    {currentRanking && (
+                      <Link
+                        to="/ranking"
+                        className="flex items-center gap-2 rounded-2xl border border-border bg-muted/30 px-3 py-2 text-xs font-semibold text-foreground transition-colors hover:bg-accent/50"
+                      >
+                        <Crown className="h-4 w-4 shrink-0 text-primary" />
+                        <span className="truncate">Ranking completo</span>
+                      </Link>
+                    )}
+
+                    {/* Temporada atual — atalho profundo */}
+                    {currentRanking?.season_id && currentRanking.group_id && (
+                      <Link
+                        to="/groups/$groupId/seasons/$seasonId"
+                        params={{
+                          groupId: currentRanking.group_id,
+                          seasonId: currentRanking.season_id,
+                        }}
+                        className="flex items-center gap-2 rounded-2xl border border-border bg-muted/30 px-3 py-2 text-xs font-semibold text-foreground transition-colors hover:bg-accent/50"
+                      >
+                        <Medal className="h-4 w-4 shrink-0 text-primary" />
+                        <span className="truncate">Temporada atual</span>
+                      </Link>
+                    )}
+
+                    {/* Histórico completo de partidas */}
+                    <Link
+                      to="/history"
+                      className="flex items-center gap-2 rounded-2xl border border-border bg-muted/30 px-3 py-2 text-xs font-semibold text-foreground transition-colors hover:bg-accent/50"
+                    >
+                      <History className="h-4 w-4 shrink-0 text-primary" />
+                      <span className="truncate">Histórico de partidas</span>
+                    </Link>
+
+                    {/* Gerenciar grupo (admin) — atalho profundo de 3+ cliques */}
+                    {(() => {
+                      const adminGroup = myGroups.find(
+                        (g: any) => g.my_role === "admin" || g.my_role === "creator"
+                      );
+                      if (!adminGroup) return null;
+                      return (
+                        <Link
+                          to="/groups/$groupId"
+                          params={{ groupId: adminGroup.id }}
+                          className="flex items-center gap-2 rounded-2xl border border-border bg-muted/30 px-3 py-2 text-xs font-semibold text-foreground transition-colors hover:bg-accent/50"
+                        >
+                          <Settings className="h-4 w-4 shrink-0 text-primary" />
+                          <span className="truncate">Gerenciar grupo</span>
+                        </Link>
+                      );
+                    })()}
+
+                    {/* Como funciona o ranking */}
+                    <Link
+                      to="/ranking-info"
+                      className="flex items-center gap-2 rounded-2xl border border-border bg-muted/30 px-3 py-2 text-xs font-semibold text-foreground transition-colors hover:bg-accent/50"
+                    >
+                      <HelpCircle className="h-4 w-4 shrink-0 text-muted-foreground" />
+                      <span className="truncate">Como funciona o Elo</span>
+                    </Link>
                   </div>
                 </div>
               </div>
