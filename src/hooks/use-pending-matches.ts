@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/use-auth";
 
 export interface PendingMatch {
   id: string;
@@ -125,7 +126,7 @@ export function usePendingMatch(groupId?: string) {
     } finally {
       setIsLoading(false);
     }
-  }, [groupId]);
+  }, [groupId, user]);
 
   useEffect(() => { refresh(); }, [refresh]);
 
