@@ -1007,6 +1007,35 @@ function CompareLandingPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Rename favorite dialog */}
+      <Dialog open={!!renameTarget} onOpenChange={(open) => !open && setRenameTarget(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Renomear favorito</DialogTitle>
+            <DialogDescription>
+              Dê um novo nome para essa comparação.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-2">
+            <Input
+              value={renameLabel}
+              onChange={(e) => setRenameLabel(e.target.value)}
+              placeholder="Nome do favorito"
+              maxLength={60}
+              autoFocus
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setRenameTarget(null)}>
+              Cancelar
+            </Button>
+            <Button onClick={confirmRename} className="gap-1">
+              <Check className="h-4 w-4" /> Salvar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
