@@ -20,6 +20,8 @@ interface InviteData {
   max_uses: number | null;
   use_count: number;
   expires_at: string | null;
+  claim_placeholder_user_id: string | null;
+  claim_placeholder_name?: string | null;
   group: {
     name: string;
     description: string | null;
@@ -106,7 +108,7 @@ function InvitePage() {
       setLoading(true);
       const { data: inviteData, error: inviteErr } = await supabase
         .from("invite_links")
-        .select("id, group_id, code, is_active, max_uses, use_count, expires_at")
+        .select("id, group_id, code, is_active, max_uses, use_count, expires_at, claim_placeholder_user_id")
         .eq("code", code)
         .eq("is_active", true)
         .maybeSingle();
@@ -143,6 +145,18 @@ function InvitePage() {
       });
       const count = countData ?? 0;
 
+      // Load placeholder name if this is a claim invite
+      let placeholderName: string | null = null;
+      const claimPlaceholderId = (inviteData as any).claim_placeholder_user_id as string | null;
+      if (claimPlaceholderId) {
+        const { data: ph } = await supabase
+          .from("user_profiles")
+          .select("name")
+          .eq("user_id", claimPlaceholderId)
+          .maybeSingle();
+        placeholderName = ph?.name ?? null;
+      }
+
       // Check if already member
       if (user) {
         const { data: membership } = await supabase
@@ -158,6 +172,8 @@ function InvitePage() {
 
       setInvite({
         ...inviteData,
+        claim_placeholder_user_id: claimPlaceholderId,
+        claim_placeholder_name: placeholderName,
         group: groupData ? { ...groupData, member_count: count } : null,
       });
       setLoading(false);
@@ -174,8 +190,68 @@ function InvitePage() {
     const maxPlayers = invite.group?.max_players ?? 999;
     const currentCount = invite.group?.member_count ?? 0;
     const isFull = currentCount >= maxPlayers;
+    const isClaimInvite = !!invite.claim_placeholder_user_id;
 
     try {
+      // CLAIM INVITE: auto-link account to placeholder, no admin approval needed
+      if (isClaimInvite && invite.claim_placeholder_user_id) {
+        const { data: ph } = await supabase
+          .from("user_profiles")
+          .select("user_id, is_placeholder")
+          .eq("user_id", invite.claim_placeholder_user_id)
+          .maybeSingle();
+
+        if (!ph || !ph.is_placeholder) {
+          toast.error("Este convite já foi usado ou o jogador já tem conta vinculada.");
+          setJoining(false);
+          return;
+        }
+
+        const { error: mergeErr } = await supabase.rpc("merge_placeholder_player", {
+          _placeholder_user_id: invite.claim_placeholder_user_id,
+          _real_user_id: user.id,
+          _group_id: invite.group_id,
+        });
+
+        if (mergeErr) {
+          console.error("[invite] merge error:", mergeErr);
+          toast.error("Erro ao vincular conta. Tente novamente.");
+          setJoining(false);
+          return;
+        }
+
+        await supabase
+          .from("invite_links")
+          .update({ use_count: invite.use_count + 1, is_active: false })
+          .eq("id", invite.id);
+
+        const { data: admins } = await supabase
+          .from("group_members")
+          .select("user_id")
+          .eq("group_id", invite.group_id)
+          .in("role", ["creator", "admin"])
+          .eq("status", "active");
+
+        if (admins?.length) {
+          const notifications = admins
+            .filter((a) => a.user_id !== user.id)
+            .map((a) => ({
+              user_id: a.user_id,
+              group_id: invite.group_id,
+              type: "member_joined",
+              title: "Conta vinculada via convite",
+              body: `${userName} vinculou sua conta ao histórico de ${invite.claim_placeholder_name || "um jogador sem conta"}.`,
+              data: { invite_code: invite.code },
+            }));
+          if (notifications.length) await supabase.from("notifications").insert(notifications);
+        }
+
+        setJoined(true);
+        toast.success(`Conta vinculada ao histórico de ${invite.claim_placeholder_name || "jogador"}!`);
+        setJoining(false);
+        return;
+      }
+
       if (isFull) {
         // Group is full — create a join request instead
         const { error: reqErr } = await supabase.from("group_join_requests").insert({
@@ -386,11 +462,25 @@ function InvitePage() {
           </div>
         </div>
 
+        {/* Claim invite banner */}
+        {invite?.claim_placeholder_user_id && (
+          <div className="mt-4 rounded-2xl border border-success/30 bg-success/10 p-4">
+            <p className="text-center text-xs font-semibold uppercase tracking-wider text-success">
+              ✨ Convite de vinculação direta
+            </p>
+            <p className="mt-2 text-center text-sm text-foreground">
+              Ao entrar, sua conta será automaticamente vinculada ao histórico de{" "}
+              <strong>{invite.claim_placeholder_name || "um jogador"}</strong> — sem precisar de
+              aprovação do admin.
+            </p>
+          </div>
+        )}
+
         {/* Actions */}
         <div className="mt-6 space-y-3">
           {!isAuthenticated ? (
             <InviteAuthButtons inviteUrl={window.location.href} />
-          ) : alreadyMember ? (
+          ) : alreadyMember && !invite?.claim_placeholder_user_id ? (
             <>
               <p className="text-center text-sm text-muted-foreground">
                 Você já é membro deste grupo!
@@ -414,7 +504,9 @@ function InvitePage() {
               ) : (
                 <Users className="h-4 w-4" />
               )}
-              {joining ? "Entrando..." : "Entrar no grupo"}
+              {joining
+                ? (invite?.claim_placeholder_user_id ? "Vinculando..." : "Entrando...")
+                : (invite?.claim_placeholder_user_id ? "Vincular minha conta" : "Entrar no grupo")}
             </button>
           )}
         </div>

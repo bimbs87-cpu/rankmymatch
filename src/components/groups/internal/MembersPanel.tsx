@@ -17,7 +17,7 @@ import { SearchUserDialog } from "@/components/SearchUserDialog";
 import { InviteLinkDialog } from "@/components/InviteLinkDialog";
 import {
   Search, Filter, ArrowUpDown, KeyRound, Shield, Ghost, UserMinus, Pencil, GitMerge,
-  Check, X, Trophy, ChevronRight, UserPlus, Share2, MoreHorizontal, Crown, Flame,
+  Check, X, Trophy, ChevronRight, UserPlus, Share2, MoreHorizontal, Crown, Flame, MessageCircle, Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -45,6 +45,86 @@ export function MembersPanel({ groupId }: Props) {
   const [addPlaceholderOpen, setAddPlaceholderOpen] = useState(false);
   const [searchUserOpen, setSearchUserOpen] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
+  const [generatingInviteFor, setGeneratingInviteFor] = useState<string | null>(null);
+  const [groupName, setGroupName] = useState<string>("");
+
+  // Load group name for WhatsApp message
+  useEffect(() => {
+    supabase.from("groups").select("name").eq("id", groupId).maybeSingle()
+      .then(({ data }) => { if (data?.name) setGroupName(data.name); });
+  }, [groupId]);
+
+  const generateClaimCode = (): string => {
+    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
+    let code = "";
+    for (let i = 0; i < 10; i++) code += chars.charAt(Math.floor(Math.random() * chars.length));
+    return code;
+  };
+
+  const handleShareClaimInvite = async (placeholderUserId: string, placeholderName: string) => {
+    if (!user) return;
+    setGeneratingInviteFor(placeholderUserId);
+    try {
+      // Reuse an existing unused claim invite for this placeholder if it exists
+      const { data: existing } = await supabase
+        .from("invite_links")
+        .select("code, use_count, max_uses, expires_at, is_active")
+        .eq("group_id", groupId)
+        .eq("claim_placeholder_user_id", placeholderUserId)
+        .eq("is_active", true)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      let code: string;
+      const isUsable = existing && existing.use_count < (existing.max_uses ?? 1)
+        && (!existing.expires_at || new Date(existing.expires_at) > new Date());
+
+      if (isUsable && existing) {
+        code = existing.code;
+      } else {
+        code = generateClaimCode();
+        const expiresAt = new Date();
+        expiresAt.setDate(expiresAt.getDate() + 30);
+        const { error: insertErr } = await supabase.from("invite_links").insert({
+          group_id: groupId,
+          code,
+          created_by: user.id,
+          max_uses: 1,
+          expires_at: expiresAt.toISOString(),
+          claim_placeholder_user_id: placeholderUserId,
+        } as any);
+        if (insertErr) throw insertErr;
+      }
+
+      const url = `${window.location.origin}/invite/${code}`;
+      const message =
+        `Olá ${placeholderName}! 👋\n\n` +
+        `Você já está jogando no grupo *${groupName || "RankMyMatch"}* no RankMyMatch, ` +
+        `mas ainda sem conta vinculada. Clique no link abaixo, faça login e seu histórico ` +
+        `será automaticamente vinculado à sua conta:\n\n${url}\n\n` +
+        `🏆 Veja seu ranking, estatísticas e próximas partidas!`;
+
+      const waUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+
+      // Try Web Share API first (better on mobile), fall back to WhatsApp web
+      if (navigator.share) {
+        try {
+          await navigator.share({ title: `Convite para ${placeholderName}`, text: message, url });
+        } catch {
+          window.open(waUrl, "_blank");
+        }
+      } else {
+        window.open(waUrl, "_blank");
+      }
+      toast.success("Convite pronto para envio!");
+    } catch (e: any) {
+      console.error(e);
+      toast.error("Erro ao gerar convite");
+    } finally {
+      setGeneratingInviteFor(null);
+    }
+  };
 
   // Load ranking data
   useEffect(() => {
@@ -331,6 +411,21 @@ export function MembersPanel({ groupId }: Props) {
                       <button onClick={() => handleStartRename(m.user_id, m.profile?.name || "")} className="rounded-lg bg-muted p-1.5 text-muted-foreground" title="Renomear"><Pencil className="h-3 w-3" /></button>
                     </>
                   )
+                )}
+                {isAdmin && !isFormer && placeholderUserIds.has(m.user_id) && (
+                  <button
+                    onClick={() => handleShareClaimInvite(m.user_id, m.profile?.name || "Jogador")}
+                    disabled={generatingInviteFor === m.user_id}
+                    className="flex items-center gap-1 rounded-lg bg-success/10 px-2 py-1.5 text-[10px] font-semibold text-success hover:bg-success/20 disabled:opacity-50"
+                    title="Convidar pelo WhatsApp para vincular conta"
+                  >
+                    {generatingInviteFor === m.user_id ? (
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                    ) : (
+                      <MessageCircle className="h-3 w-3" />
+                    )}
+                    <span className="hidden sm:inline">Convidar</span>
+                  </button>
                 )}
                 {isAdmin && !isFormer && !isMe && m.role !== "creator" && (
                   <>

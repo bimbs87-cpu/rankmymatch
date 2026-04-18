@@ -544,6 +544,7 @@ export type Database = {
       }
       invite_links: {
         Row: {
+          claim_placeholder_user_id: string | null
           code: string
           created_at: string
           created_by: string
@@ -555,6 +556,7 @@ export type Database = {
           use_count: number
         }
         Insert: {
+          claim_placeholder_user_id?: string | null
           code: string
           created_at?: string
           created_by: string
@@ -566,6 +568,7 @@ export type Database = {
           use_count?: number
         }
         Update: {
+          claim_placeholder_user_id?: string | null
           code?: string
           created_at?: string
           created_by?: string
