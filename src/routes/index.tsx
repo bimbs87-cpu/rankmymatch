@@ -85,7 +85,26 @@ interface UpcomingRound {
   presence_open_time: string;
 }
 
-interface RecentMatch {
+interface NextMatchInfo {
+  round_id: string;
+  group_id: string;
+  group_name: string;
+  season_id: string | null;
+  season_name: string | null;
+  round_number: number | null;
+  scheduled_date: string | null;
+  scheduled_time: string | null;
+  /** Match record exists & user is paired */
+  has_pairing: boolean;
+  /** When has_pairing: the partner display name (doubles only) */
+  partner_name: string | null;
+  /** When has_pairing: the opponent display names */
+  opponent_names: string[];
+  /** When has_pairing: the user's match id (for "Registrar resultado") */
+  match_id: string | null;
+  /** Match status when paired */
+  match_status: string | null;
+}
   id: string;
   match_number: number | null;
   winner_team: string | null;
