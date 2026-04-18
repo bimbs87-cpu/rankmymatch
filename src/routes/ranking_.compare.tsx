@@ -1185,3 +1185,241 @@ function SeasonTab({ a, b, latestSeasonId }: { a: PlayerAggregate; b: PlayerAggr
     </>
   );
 }
+
+// ===== Advantage indicator (H2H direto + Elo atual + forma recente) =====
+function computeAdvantage(
+  a: PlayerAggregate,
+  b: PlayerAggregate,
+  h2h: H2HData,
+): {
+  leader: "A" | "B" | "tie";
+  confidence: number;
+  h2hScoreA: number;
+  h2hScoreB: number;
+  formA: number;
+  formB: number;
+} {
+  const totalH2H = h2h.asOpponents.played;
+  let h2hA = 50;
+  let h2hB = 50;
+  if (totalH2H > 0) {
+    h2hA = (h2h.asOpponents.aWon / totalH2H) * 100;
+    h2hB = (h2h.asOpponents.bWon / totalH2H) * 100;
+  }
+  const eloDiff = a.eloCurrent - b.eloCurrent;
+  const expA = 1 / (1 + Math.pow(10, -eloDiff / 400));
+  const eloA = expA * 100;
+  const eloB = (1 - expA) * 100;
+  const lastN = (p: PlayerAggregate, n: number) => {
+    const events = p.eloSeries.slice(-n - 1);
+    let wins = 0;
+    let total = 0;
+    for (let i = 1; i < events.length; i++) {
+      total += 1;
+      if (events[i].rating > events[i - 1].rating) wins += 1;
+    }
+    if (events.length === 1) {
+      total = 0;
+    }
+    return { wins, total };
+  };
+  const fA = lastN(a, 5);
+  const fB = lastN(b, 5);
+  const formA = fA.total > 0 ? (fA.wins / fA.total) * 100 : 50;
+  const formB = fB.total > 0 ? (fB.wins / fB.total) * 100 : 50;
+  const scoreA = h2hA * 0.5 + eloA * 0.3 + formA * 0.2;
+  const scoreB = h2hB * 0.5 + eloB * 0.3 + formB * 0.2;
+  const diff = scoreA - scoreB;
+  const leader: "A" | "B" | "tie" = Math.abs(diff) < 4 ? "tie" : diff > 0 ? "A" : "B";
+  const confidence = Math.min(99, Math.max(50, Math.round(50 + Math.abs(diff))));
+  return { leader, confidence, h2hScoreA: h2hA, h2hScoreB: h2hB, formA: fA.wins, formB: fB.wins };
+}
+
+// ===== Multi-player comparison table (3-4 players) =====
+function MultiCompareTable({
+  players,
+  latestSeasonId,
+}: {
+  players: PlayerAggregate[];
+  latestSeasonId: string | null;
+  groupId: string;
+}) {
+  const [scope, setScope] = useState<"career" | "season">("season");
+  const allSeasonIds: string[] = [];
+  const seenIds = new Set<string>();
+  for (const p of players) {
+    for (const s of p.seasons) {
+      if (!seenIds.has(s.season_id)) {
+        seenIds.add(s.season_id);
+        allSeasonIds.push(s.season_id);
+      }
+    }
+  }
+  const initial = latestSeasonId && allSeasonIds.includes(latestSeasonId) ? latestSeasonId : allSeasonIds[0] || "";
+  const [seasonId, setSeasonId] = useState<string>(initial);
+  useEffect(() => {
+    if (initial && !seasonId) setSeasonId(initial);
+  }, [initial, seasonId]);
+
+  const seasonName =
+    players.flatMap((p) => p.seasons).find((s) => s.season_id === seasonId)?.season_name || "—";
+
+  const seasonStats = (p: PlayerAggregate) =>
+    p.seasons.find((s) => s.season_id === seasonId) || {
+      rating: 1000,
+      matches_played: 0,
+      matches_won: 0,
+      sets_won: 0,
+      sets_lost: 0,
+      games_won: 0,
+      games_lost: 0,
+      position: null as number | null,
+      is_eligible: false,
+    };
+
+  type Cell = { value: number; format?: (v: number) => string };
+  type Row = { label: string; cells: Cell[]; higherIsBetter?: boolean };
+
+  const careerRows: Row[] = [
+    { label: "Elo atual", cells: players.map((p) => ({ value: p.eloCurrent, format: (v) => Math.round(v).toString() })) },
+    { label: "Pico Elo", cells: players.map((p) => ({ value: p.eloPeak, format: (v) => Math.round(v).toString() })) },
+    { label: "Partidas", cells: players.map((p) => ({ value: p.career.matches_played })) },
+    { label: "Vitórias", cells: players.map((p) => ({ value: p.career.matches_won })) },
+    { label: "Aproveitamento", cells: players.map((p) => ({ value: pct(p.career.matches_won, p.career.matches_played), format: (v) => `${v}%` })) },
+    { label: "Saldo sets", cells: players.map((p) => ({ value: p.career.sets_won - p.career.sets_lost, format: (v) => (v > 0 ? `+${v}` : `${v}`) })) },
+    { label: "Saldo games", cells: players.map((p) => ({ value: p.career.games_won - p.career.games_lost, format: (v) => (v > 0 ? `+${v}` : `${v}`) })) },
+    { label: "Títulos", cells: players.map((p) => ({ value: p.career.titles })) },
+    { label: "Pódios", cells: players.map((p) => ({ value: p.career.podiums })) },
+    { label: "Melhor pos.", cells: players.map((p) => ({ value: p.career.best_position ?? 999, format: (v) => (v === 999 ? "—" : `${v}º`) })), higherIsBetter: false },
+    { label: "Maior seq. V", cells: players.map((p) => ({ value: p.streakMax })) },
+    { label: "Sequência atual", cells: players.map((p) => ({ value: p.streakCurrent, format: (v) => (v === 0 ? "—" : v > 0 ? `${v}V` : `${Math.abs(v)}D`) })) },
+    { label: "Presença", cells: players.map((p) => ({ value: pct(p.roundsPresent, p.roundsTotal), format: (v) => `${v}%` })) },
+  ];
+
+  const seasonRows: Row[] = [
+    { label: "Posição", cells: players.map((p) => ({ value: seasonStats(p).position ?? 999, format: (v) => (v === 999 ? "—" : `${v}º`) })), higherIsBetter: false },
+    { label: "Elo temporada", cells: players.map((p) => ({ value: seasonStats(p).rating, format: (v) => Math.round(v).toString() })) },
+    { label: "Partidas", cells: players.map((p) => ({ value: seasonStats(p).matches_played })) },
+    { label: "Vitórias", cells: players.map((p) => ({ value: seasonStats(p).matches_won })) },
+    { label: "Aproveitamento", cells: players.map((p) => ({ value: pct(seasonStats(p).matches_won, seasonStats(p).matches_played), format: (v) => `${v}%` })) },
+    { label: "Sets ganhos", cells: players.map((p) => ({ value: seasonStats(p).sets_won })) },
+    { label: "Saldo sets", cells: players.map((p) => ({ value: seasonStats(p).sets_won - seasonStats(p).sets_lost, format: (v) => (v > 0 ? `+${v}` : `${v}`) })) },
+    { label: "Saldo games", cells: players.map((p) => ({ value: seasonStats(p).games_won - seasonStats(p).games_lost, format: (v) => (v > 0 ? `+${v}` : `${v}`) })) },
+  ];
+
+  const rows = scope === "career" ? careerRows : seasonRows;
+
+  return (
+    <>
+      <section className="rounded-3xl border border-border bg-card/40 p-4 lg:p-5">
+        <div className="mb-3 flex items-center gap-2">
+          <Users className="h-4 w-4 text-primary" />
+          <h2 className="font-display text-sm font-bold text-foreground">
+            Comparando {players.length} jogadores
+          </h2>
+        </div>
+        <div className={`grid gap-2 ${players.length === 3 ? "grid-cols-3" : "grid-cols-2 sm:grid-cols-4"}`}>
+          {players.map((p) => (
+            <div
+              key={p.profile.user_id}
+              className="flex flex-col items-center gap-1.5 rounded-2xl border border-border/60 bg-background/40 p-3"
+            >
+              <PlayerAvatar
+                avatarUrl={p.profile.avatar_url}
+                name={p.profile.name}
+                size="md"
+                className="!h-12 !w-12 border-2 border-primary/30"
+              />
+              <p className="text-center font-display text-xs font-bold text-foreground truncate max-w-full">
+                {displayName(p)}
+              </p>
+              <p className="font-display text-lg font-bold text-primary">{Math.round(p.eloCurrent)}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <div className="mt-4 inline-flex rounded-full border border-border bg-card/60 p-1">
+        <TabBtn active={scope === "season"} onClick={() => setScope("season")}>Temporada</TabBtn>
+        <TabBtn active={scope === "career"} onClick={() => setScope("career")}>Carreira no grupo</TabBtn>
+      </div>
+
+      {scope === "season" && allSeasonIds.length > 1 && (
+        <div className="mt-3 flex flex-wrap gap-2">
+          {allSeasonIds.map((id) => {
+            const name = players.flatMap((p) => p.seasons).find((s) => s.season_id === id)?.season_name || "—";
+            const active = id === seasonId;
+            return (
+              <button
+                key={id}
+                onClick={() => setSeasonId(id)}
+                className={`rounded-full border px-3 py-1 text-[11px] font-semibold transition ${
+                  active ? "border-primary bg-primary/15 text-primary" : "border-border bg-card/40 text-muted-foreground hover:bg-accent"
+                }`}
+              >
+                {name}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      <section className="mt-3 overflow-hidden rounded-3xl border border-border bg-card/40">
+        {scope === "season" && (
+          <div className="border-b border-border/40 bg-background/30 px-4 py-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            {seasonName}
+          </div>
+        )}
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs">
+            <thead className="bg-background/40 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+              <tr>
+                <th className="px-3 py-2 text-left">Métrica</th>
+                {players.map((p) => (
+                  <th key={p.profile.user_id} className="px-2 py-2 text-center min-w-[80px]">
+                    <span className="block truncate max-w-[100px] mx-auto" title={displayName(p)}>
+                      {displayName(p)}
+                    </span>
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row, ri) => {
+                const higherIsBetter = row.higherIsBetter !== false;
+                const values = row.cells.map((c) => c.value);
+                const best = higherIsBetter ? Math.max(...values) : Math.min(...values);
+                const worst = higherIsBetter ? Math.min(...values) : Math.max(...values);
+                const allSame = best === worst;
+                return (
+                  <tr key={row.label} className={ri % 2 === 0 ? "bg-background/20" : ""}>
+                    <td className="px-3 py-2 font-semibold text-muted-foreground">{row.label}</td>
+                    {row.cells.map((c, ci) => {
+                      const isBest = !allSame && c.value === best;
+                      const isWorst = !allSame && c.value === worst && players.length > 2;
+                      return (
+                        <td
+                          key={ci}
+                          className={`px-2 py-2 text-center font-display tabular-nums ${
+                            isBest ? "font-bold text-success" : isWorst ? "text-muted-foreground" : "text-foreground"
+                          }`}
+                        >
+                          {(c.format || ((v: number) => `${v}`))(c.value)}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <p className="mt-3 px-1 text-center text-[10px] text-muted-foreground">
+        <span className="text-success font-bold">Verde</span> = melhor da métrica.
+        Use a página com 2 jogadores para ver confrontos diretos detalhados.
+      </p>
+    </>
+  );
+}
