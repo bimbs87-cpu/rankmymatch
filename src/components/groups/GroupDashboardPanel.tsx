@@ -17,9 +17,26 @@ import {
   Shield,
   Globe,
   Lock,
+  LogOut,
 } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { useGroupDashboard } from "@/hooks/use-group-dashboard";
+import { useAuth } from "@/hooks/use-auth";
+import { supabase } from "@/integrations/supabase/client";
+import { confirmPresence, cancelPresence } from "@/lib/round-actions";
+import { leaveGroup } from "@/hooks/use-groups";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Group = Tables<"groups"> & {
@@ -29,6 +46,8 @@ type Group = Tables<"groups"> & {
 
 interface Props {
   group: Group;
+  onLeft?: () => void;
+  onPresenceChanged?: () => void;
 }
 
 const POSITION_COLORS = [
@@ -57,9 +76,67 @@ function timeAgo(iso: string) {
   return `${d}d`;
 }
 
-export function GroupDashboardPanel({ group }: Props) {
-  const { data, isLoading } = useGroupDashboard(group.id);
+export function GroupDashboardPanel({ group, onLeft, onPresenceChanged }: Props) {
+  const { user } = useAuth();
+  const { data, isLoading, refresh } = useGroupDashboard(group.id);
   const isAdmin = group.my_role === "admin" || group.my_role === "creator";
+  const [presenceLoading, setPresenceLoading] = useState(false);
+  const [showLeave, setShowLeave] = useState(false);
+  const [leaving, setLeaving] = useState(false);
+
+  async function handleConfirm() {
+    if (!user || !data.next_round) return;
+    setPresenceLoading(true);
+    try {
+      await confirmPresence(data.next_round.id, user.id);
+      toast.success("Presença confirmada!");
+      await refresh();
+      onPresenceChanged?.();
+    } catch (e) {
+      toast.error("Não foi possível confirmar");
+    } finally {
+      setPresenceLoading(false);
+    }
+  }
+
+  async function handleDecline() {
+    if (!user || !data.next_round) return;
+    setPresenceLoading(true);
+    try {
+      await cancelPresence(data.next_round.id, user.id);
+      toast.success("Presença recusada");
+      await refresh();
+      onPresenceChanged?.();
+    } catch (e) {
+      toast.error("Não foi possível recusar");
+    } finally {
+      setPresenceLoading(false);
+    }
+  }
+
+  async function handleLeave() {
+    if (!user) return;
+    setLeaving(true);
+    try {
+      const { data: row, error } = await supabase
+        .from("group_members")
+        .select("id")
+        .eq("group_id", group.id)
+        .eq("user_id", user.id)
+        .eq("status", "active")
+        .maybeSingle();
+      if (error) throw error;
+      if (!row) throw new Error("Membro não encontrado");
+      await leaveGroup(row.id);
+      toast.success("Você saiu do grupo");
+      setShowLeave(false);
+      onLeft?.();
+    } catch (e: any) {
+      toast.error(e?.message || "Não foi possível sair do grupo");
+    } finally {
+      setLeaving(false);
+    }
+  }
 
   return (
     <div className="space-y-4">
@@ -114,7 +191,7 @@ export function GroupDashboardPanel({ group }: Props) {
                 Abrir grupo
                 <ArrowRight className="h-3 w-3" />
               </Link>
-              {isAdmin && (
+              {isAdmin ? (
                 <Link
                   to="/groups/$groupId"
                   params={{ groupId: group.id }}
@@ -123,6 +200,15 @@ export function GroupDashboardPanel({ group }: Props) {
                 >
                   <Settings className="h-3.5 w-3.5" />
                 </Link>
+              ) : (
+                <button
+                  onClick={() => setShowLeave(true)}
+                  className="flex h-8 items-center gap-1.5 rounded-full border border-border bg-card px-3 text-xs font-semibold text-muted-foreground hover:border-destructive/40 hover:text-destructive"
+                  title="Sair do grupo"
+                >
+                  <LogOut className="h-3.5 w-3.5" />
+                  Sair
+                </button>
               )}
             </div>
           </div>
@@ -130,15 +216,24 @@ export function GroupDashboardPanel({ group }: Props) {
       </div>
 
       {/* Quick action mobile */}
-      <div className="sm:hidden">
+      <div className="flex gap-2 sm:hidden">
         <Link
           to="/groups/$groupId"
           params={{ groupId: group.id }}
-          className="flex items-center justify-center gap-2 rounded-full bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground"
+          className="flex flex-1 items-center justify-center gap-2 rounded-full bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground"
         >
           Abrir grupo
           <ArrowRight className="h-4 w-4" />
         </Link>
+        {!isAdmin && (
+          <button
+            onClick={() => setShowLeave(true)}
+            className="flex items-center justify-center gap-1.5 rounded-full border border-border bg-card px-4 py-2.5 text-sm font-semibold text-muted-foreground"
+          >
+            <LogOut className="h-4 w-4" />
+            Sair
+          </button>
+        )}
       </div>
 
       {/* Top row: Next round + My position */}
@@ -181,7 +276,7 @@ export function GroupDashboardPanel({ group }: Props) {
                   </p>
                 )}
               </div>
-              <div className="flex items-center justify-between gap-2">
+              <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
                   <Users className="h-3 w-3" />
                   <span className="font-semibold text-foreground tabular-nums">
@@ -189,19 +284,33 @@ export function GroupDashboardPanel({ group }: Props) {
                   </span>
                   /{data.next_round.max_players} confirmados
                 </div>
-                {data.next_round.presence_status === "confirmed" ? (
-                  <span className="flex items-center gap-1 rounded-full bg-success/15 px-2 py-0.5 text-[10px] font-bold text-success">
-                    <CheckCircle2 className="h-3 w-3" /> Você confirmou
-                  </span>
-                ) : data.next_round.presence_status === "declined" ? (
-                  <span className="flex items-center gap-1 rounded-full bg-destructive/15 px-2 py-0.5 text-[10px] font-bold text-destructive">
-                    <XCircle className="h-3 w-3" /> Recusado
-                  </span>
-                ) : (
-                  <span className="rounded-full bg-warning/15 px-2 py-0.5 text-[10px] font-bold text-warning">
-                    Aguardando você
-                  </span>
-                )}
+                <div className="flex items-center gap-1.5">
+                  <button
+                    onClick={handleConfirm}
+                    disabled={presenceLoading}
+                    className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold transition-colors disabled:opacity-50 ${
+                      data.next_round.presence_status === "confirmed"
+                        ? "bg-success text-success-foreground"
+                        : "border border-success/40 bg-success/10 text-success hover:bg-success/20"
+                    }`}
+                  >
+                    <CheckCircle2 className="h-3 w-3" />
+                    {data.next_round.presence_status === "confirmed" ? "Confirmado" : "Vou"}
+                  </button>
+                  <button
+                    onClick={handleDecline}
+                    disabled={presenceLoading}
+                    className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold transition-colors disabled:opacity-50 ${
+                      data.next_round.presence_status === "declined" ||
+                      (data.next_round.presence_status as string) === "absent"
+                        ? "bg-destructive text-destructive-foreground"
+                        : "border border-border bg-background/40 text-muted-foreground hover:border-destructive/40 hover:text-destructive"
+                    }`}
+                  >
+                    <XCircle className="h-3 w-3" />
+                    Não vou
+                  </button>
+                </div>
               </div>
             </div>
           ) : (
@@ -370,6 +479,31 @@ export function GroupDashboardPanel({ group }: Props) {
           </div>
         </div>
       )}
+
+      <AlertDialog open={showLeave} onOpenChange={setShowLeave}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Sair do grupo?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Você não receberá mais notificações nem poderá ver as próximas rodadas de{" "}
+              <span className="font-semibold text-foreground">{group.name}</span>. Seu histórico será preservado.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={leaving}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                handleLeave();
+              }}
+              disabled={leaving}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {leaving ? "Saindo…" : "Sair do grupo"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

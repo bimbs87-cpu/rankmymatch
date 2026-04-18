@@ -16,6 +16,11 @@ interface PendingItem {
   name: string;
 }
 
+export interface GroupAlertInfo {
+  pendingPresence: boolean;
+  pendingAdminRequests: number;
+}
+
 interface Props {
   groups: GroupSidebarItem[];
   pendingGroups: PendingItem[];
@@ -25,6 +30,7 @@ interface Props {
   onCreate: () => void;
   view: "group" | "explore";
   isLoading: boolean;
+  alerts?: Record<string, GroupAlertInfo>;
 }
 
 export function GroupSidebar({
@@ -36,6 +42,7 @@ export function GroupSidebar({
   onCreate,
   view,
   isLoading,
+  alerts = {},
 }: Props) {
   const [search, setSearch] = useState("");
   const filtered = search.trim()
@@ -93,6 +100,9 @@ export function GroupSidebar({
             {filtered.map((g) => {
               const isActive = view === "group" && selectedId === g.id;
               const isAdmin = g.my_role === "admin" || g.my_role === "creator";
+              const a = alerts[g.id];
+              const adminCount = a?.pendingAdminRequests ?? 0;
+              const hasAlert = (a?.pendingPresence ?? false) || adminCount > 0;
               return (
                 <li key={g.id}>
                   <button
@@ -124,6 +134,18 @@ export function GroupSidebar({
                       {isAdmin && (
                         <span className="absolute -bottom-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary ring-2 ring-background">
                           <Shield className="h-2 w-2 text-primary-foreground" />
+                        </span>
+                      )}
+                      {hasAlert && (
+                        <span
+                          className="absolute -top-0.5 -right-0.5 flex min-h-[16px] min-w-[16px] items-center justify-center rounded-full bg-warning px-1 text-[9px] font-bold text-warning-foreground ring-2 ring-background"
+                          title={
+                            adminCount > 0
+                              ? `${adminCount} solicitação${adminCount !== 1 ? "ões" : ""} pendente`
+                              : "Confirme sua presença"
+                          }
+                        >
+                          {adminCount > 0 ? adminCount : "!"}
                         </span>
                       )}
                     </div>

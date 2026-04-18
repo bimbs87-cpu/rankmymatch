@@ -2,6 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useMyGroups, useMyPendingJoinRequests } from "@/hooks/use-groups";
+import { useGroupAlerts } from "@/hooks/use-group-alerts";
 import { CreateGroupDialog } from "@/components/CreateGroupDialog";
 import { TrophyLoadingBar } from "@/components/TrophyLoadingBar";
 import { GroupSidebar } from "@/components/groups/GroupSidebar";
@@ -66,6 +67,13 @@ function GroupsIndexPage() {
     [pendingGroups],
   );
 
+  const allGroupIds = useMemo(() => myGroups.map((g) => g.id), [myGroups]);
+  const adminGroupIds = useMemo(
+    () => myGroups.filter((g) => g.my_role === "admin" || g.my_role === "creator").map((g) => g.id),
+    [myGroups],
+  );
+  const { alerts, refresh: refreshAlerts } = useGroupAlerts(allGroupIds, adminGroupIds);
+
   if (authLoading) return <TrophyLoadingBar />;
 
   if (!isAuthenticated) {
@@ -108,6 +116,7 @@ function GroupsIndexPage() {
       }}
       view={view}
       isLoading={myLoading}
+      alerts={alerts}
     />
   );
 
@@ -160,7 +169,15 @@ function GroupsIndexPage() {
           {view === "explore" ? (
             <ExplorePanel />
           ) : selectedGroup ? (
-            <GroupDashboardPanel group={selectedGroup} />
+            <GroupDashboardPanel
+              group={selectedGroup}
+              onPresenceChanged={refreshAlerts}
+              onLeft={() => {
+                setSelectedId(null);
+                refresh();
+                refreshAlerts();
+              }}
+            />
           ) : (
             <EmptyState onCreate={() => setShowCreate(true)} onExplore={() => setView("explore")} />
           )}
