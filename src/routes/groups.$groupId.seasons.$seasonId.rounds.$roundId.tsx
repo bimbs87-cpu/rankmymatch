@@ -68,6 +68,7 @@ function RoundDetailPage() {
   const [expandedMatch, setExpandedMatch] = useState<string | null>(null);
   const [matchRatings, setMatchRatings] = useState<Record<string, any[]>>({});
   const [previousPositions, setPreviousPositions] = useState<Record<string, number> | null>(null);
+  const [forcePresenceOpen, setForcePresenceOpen] = useState(false);
 
   // Auto-load ratings for all completed matches
   useEffect(() => {
@@ -414,7 +415,6 @@ function RoundDetailPage() {
   const minPlayersForDraw = isSingles ? 2 : 4;
   const canDraw = isAdmin && presenceConfirmed.length >= minPlayersForDraw && matches.length === 0 && !rivalry;
 
-  const [forcePresenceOpen, setForcePresenceOpen] = useState(false);
   const presenceListOpen =
     forcePresenceOpen ||
     isPresenceOpen(presenceConfig, round.scheduled_date, round.scheduled_time, roundId);
