@@ -15,6 +15,7 @@ export async function createSeasonWithRounds(data: {
   scheduledTime?: string;
   matchFormat?: string;
   setsPerMatch?: number;
+  setsMode?: "fixed" | "flexible" | "unlimited";
   singlesPairingMode?: string;
   oddPlayerRule?: string;
 }) {
@@ -38,6 +39,7 @@ export async function createSeasonWithRounds(data: {
       status: "active",
     };
     if (data.setsPerMatch != null) insertData.sets_per_match = data.setsPerMatch;
+    if (data.setsMode) insertData.sets_mode = data.setsMode;
     if (data.singlesPairingMode) insertData.singles_pairing_mode = data.singlesPairingMode;
     if (data.oddPlayerRule) insertData.odd_player_rule = data.oddPlayerRule;
 

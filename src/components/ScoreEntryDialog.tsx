@@ -314,7 +314,14 @@ export function ScoreEntryDialog({
             </button>
           </div>
           <p className="mb-5 text-xs text-muted-foreground">
-            {isSingles ? "1 confronto" : "1 partida"}{isUnlimitedSets ? " • adicione sets conforme necessário" : maxSets === 1 ? " • 1 set" : ` • melhor de ${maxSets} sets`}
+            {isSingles ? "1 confronto" : "1 partida"}
+            {isUnlimitedSets
+              ? " • sets livres"
+              : isFlexibleSets
+              ? ` • melhor de ${setsPerMatch} sets (sets extras permitidos)`
+              : maxSets === 1
+              ? " • 1 set"
+              : ` • melhor de ${maxSets} sets`}
           </p>
 
           {isSingles ? (
