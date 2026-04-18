@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Settings2, Bell, Users, Link2, AlertTriangle, Save, Loader2, Globe, Lock, EyeOff,
   CheckCircle2, Trash2,
@@ -96,6 +96,24 @@ function GeneralSection({ group, onSaved }: { group: any; onSaved: () => void })
   const initVis = group.visibility || (group.is_public ? "public" : "private");
   const [visibility, setVisibility] = useState<string>(initVis);
   const [saving, setSaving] = useState(false);
+  const [isPremium, setIsPremium] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    supabase
+      .from("group_subscriptions")
+      .select("status, expires_at")
+      .eq("group_id", group.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (cancelled) return;
+        if (!data) { setIsPremium(false); return; }
+        const active = data.status && data.status !== "free" && data.status !== "cancelled";
+        const notExpired = !data.expires_at || new Date(data.expires_at) > new Date();
+        setIsPremium(Boolean(active && notExpired));
+      });
+    return () => { cancelled = true; };
+  }, [group.id]);
 
   const dirty = name !== group.name || description !== (group.description || "") || visibility !== initVis;
 
@@ -180,6 +198,7 @@ function GeneralSection({ group, onSaved }: { group: any; onSaved: () => void })
           memberCount={group.member_count ?? 1}
           matchFormat={group.match_format}
           sport={group.sport}
+          isPremium={isPremium}
         />
       </div>
 

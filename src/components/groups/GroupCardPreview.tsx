@@ -1,4 +1,4 @@
-import { Globe, Lock, EyeOff, Users } from "lucide-react";
+import { Globe, Lock, EyeOff, Users, Crown } from "lucide-react";
 
 interface Props {
   name: string;
@@ -8,6 +8,7 @@ interface Props {
   memberCount?: number;
   matchFormat?: string; // singles | doubles
   sport?: string; // padel | tennis
+  isPremium?: boolean;
 }
 
 /**
@@ -22,6 +23,7 @@ export function GroupCardPreview({
   memberCount = 1,
   matchFormat = "doubles",
   sport = "padel",
+  isPremium = false,
 }: Props) {
   const VisIcon = visibility === "public" ? Globe : visibility === "hidden" ? EyeOff : Lock;
   const visLabel =
@@ -53,6 +55,12 @@ export function GroupCardPreview({
               {name?.trim() || "Nome do grupo"}
             </span>
             <VisIcon className="h-3 w-3 flex-shrink-0 text-muted-foreground" />
+            {isPremium && (
+              <span className="inline-flex items-center gap-0.5 rounded-full bg-[var(--rank-gold)]/15 px-1.5 py-0.5 text-[9px] font-bold text-[var(--rank-gold)] ring-1 ring-[var(--rank-gold)]/40">
+                <Crown className="h-2.5 w-2.5" />
+                PREMIUM
+              </span>
+            )}
           </div>
           <p className="mt-0.5 text-[11px] text-muted-foreground">
             {memberCount} membro{memberCount !== 1 ? "s" : ""} ·{" "}

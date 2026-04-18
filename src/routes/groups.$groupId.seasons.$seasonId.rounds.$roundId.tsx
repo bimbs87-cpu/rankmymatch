@@ -68,6 +68,7 @@ function RoundDetailPage() {
   const [expandedMatch, setExpandedMatch] = useState<string | null>(null);
   const [matchRatings, setMatchRatings] = useState<Record<string, any[]>>({});
   const [previousPositions, setPreviousPositions] = useState<Record<string, number> | null>(null);
+  const [forcePresenceOpen, setForcePresenceOpen] = useState(false);
 
   // Auto-load ratings for all completed matches
   useEffect(() => {
@@ -414,8 +415,16 @@ function RoundDetailPage() {
   const minPlayersForDraw = isSingles ? 2 : 4;
   const canDraw = isAdmin && presenceConfirmed.length >= minPlayersForDraw && matches.length === 0 && !rivalry;
 
-  const presenceListOpen = isPresenceOpen(presenceConfig, round.scheduled_date, round.scheduled_time, roundId);
+  const presenceListOpen =
+    forcePresenceOpen ||
+    isPresenceOpen(presenceConfig, round.scheduled_date, round.scheduled_time, roundId);
   const presenceOpenDate = getPresenceOpenDate(presenceConfig, round.scheduled_date, round.scheduled_time, roundId);
+
+  const handleForceOpenPresence = () => {
+    if (!confirm("Reabrir a lista de presenças agora? Os membros poderão confirmar presença imediatamente.")) return;
+    setForcePresenceOpen(true);
+    toast.success("Lista de presenças reaberta para esta sessão");
+  };
 
   const handleConfirm = async () => {
     if (!user) return;
@@ -604,6 +613,15 @@ function RoundDetailPage() {
                 <p className="mt-1 text-xs text-muted-foreground">
                   Abre {formatPresenceOpenDate(presenceOpenDate)}
                 </p>
+              )}
+              {isAdmin && (
+                <button
+                  onClick={handleForceOpenPresence}
+                  className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-primary/40 bg-primary/10 px-3 py-1.5 text-xs font-bold text-primary hover:bg-primary/20"
+                >
+                  <UserCheck className="h-3.5 w-3.5" />
+                  Reabrir agora (admin)
+                </button>
               )}
             </div>
           )}
