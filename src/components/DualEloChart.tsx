@@ -11,8 +11,15 @@ import {
   Legend,
 } from "recharts";
 
+type Period = "last10" | "season" | "all";
+
+const PERIOD_LABELS: { id: Period; label: string }[] = [
+  { id: "last10", label: "Últimos 10" },
+  { id: "season", label: "Temporada" },
+  { id: "all", label: "Todos" },
+];
+
 interface Props {
-  /** Two duel players (order = visual A on primary, B on info). */
   playerAId: string;
   playerBId: string;
   playerALabel: string;
@@ -27,14 +34,12 @@ interface RawEvent {
   rating_change: number;
   created_at: string;
   match_id: string;
+  season_id: string | null;
 }
 
 interface ChartPoint {
-  /** Display label on the X axis. */
   label: string;
-  /** Sortable timestamp. */
   ts: number;
-  /** Sequential confronto index (1-based). */
   idx: number;
   ratingA?: number;
   ratingB?: number;
@@ -42,11 +47,8 @@ interface ChartPoint {
 
 /**
  * Dual Elo evolution chart for the head-to-head duel page.
- *
- * Plots both players' Elo over time on the same axis, sampled at the timestamps
- * where AT LEAST ONE of them has a rating event. Missing values for the other
- * player are forward-filled from the last known rating so both lines stay
- * continuous and visually comparable.
+ * Plots both players' Elo over time on the same axis with a period selector
+ * (Últimos 10 / Temporada / Todos).
  */
 export function DualEloChart({
   playerAId,
@@ -57,18 +59,19 @@ export function DualEloChart({
 }: Props) {
   const [loading, setLoading] = useState(true);
   const [events, setEvents] = useState<RawEvent[]>([]);
+  const [period, setPeriod] = useState<Period>(seasonId ? "season" : "all");
 
   useEffect(() => {
     let alive = true;
     (async () => {
       setLoading(true);
-      let q = supabase
+      // Always fetch the full timeline; period filtering happens client-side
+      // so the user can switch without re-querying.
+      const { data } = await supabase
         .from("rating_events")
-        .select("user_id, rating_after, rating_change, created_at, match_id")
+        .select("user_id, rating_after, rating_change, created_at, match_id, season_id")
         .in("user_id", [playerAId, playerBId])
         .order("created_at", { ascending: true });
-      if (seasonId) q = q.eq("season_id", seasonId);
-      const { data } = await q;
       if (!alive) return;
       setEvents(
         (data || []).map((e: any) => ({
@@ -77,6 +80,7 @@ export function DualEloChart({
           rating_change: Number(e.rating_change),
           created_at: e.created_at,
           match_id: e.match_id,
+          season_id: e.season_id,
         })),
       );
       setLoading(false);
@@ -84,24 +88,30 @@ export function DualEloChart({
     return () => {
       alive = false;
     };
-  }, [playerAId, playerBId, seasonId]);
+  }, [playerAId, playerBId]);
 
   const data: ChartPoint[] = useMemo(() => {
     if (!events.length) return [];
 
-    // Group events by created_at timestamp (so same-match events collapse into one tick)
+    // Filter by period
+    let scoped = events;
+    if (period === "season" && seasonId) {
+      scoped = events.filter((e) => e.season_id === seasonId);
+    }
+
+    if (!scoped.length) return [];
+
+    // Group events by created_at timestamp
     const byTime = new Map<string, RawEvent[]>();
-    for (const ev of events) {
+    for (const ev of scoped) {
       const list = byTime.get(ev.created_at) || [];
       list.push(ev);
       byTime.set(ev.created_at, list);
     }
     const sortedKeys = [...byTime.keys()].sort();
 
-    // Initial ratings: derive starting Elo from the FIRST event of each player
-    // (rating_after - rating_change). If a player has no events, default to 1000.
-    const firstA = events.find((e) => e.user_id === playerAId);
-    const firstB = events.find((e) => e.user_id === playerBId);
+    const firstA = scoped.find((e) => e.user_id === playerAId);
+    const firstB = scoped.find((e) => e.user_id === playerBId);
     const startA = firstA ? firstA.rating_after - firstA.rating_change : 1000;
     const startB = firstB ? firstB.rating_after - firstB.rating_change : 1000;
 
@@ -136,8 +146,13 @@ export function DualEloChart({
       });
     }
 
+    // last10 — keep first point as baseline + last 10 events
+    if (period === "last10" && points.length > 11) {
+      return [points[0], ...points.slice(-10)];
+    }
+
     return points;
-  }, [events, playerAId, playerBId]);
+  }, [events, playerAId, playerBId, period, seasonId]);
 
   const allRatings = data.flatMap((p) =>
     [p.ratingA, p.ratingB].filter((v): v is number => typeof v === "number"),
@@ -162,6 +177,28 @@ export function DualEloChart({
             <span className="h-2 w-2 rounded-full bg-info" /> {playerBLabel}
           </span>
         </div>
+      </div>
+
+      {/* Period selector */}
+      <div className="mb-2 flex items-center justify-end gap-1">
+        {PERIOD_LABELS.map((p) => {
+          const disabled = p.id === "season" && !seasonId;
+          return (
+            <button
+              key={p.id}
+              type="button"
+              onClick={() => !disabled && setPeriod(p.id)}
+              disabled={disabled}
+              className={`rounded-full px-2.5 py-1 text-[10px] font-semibold transition-colors ${
+                period === p.id
+                  ? "bg-primary/15 text-primary"
+                  : "text-muted-foreground hover:bg-accent hover:text-foreground disabled:opacity-30 disabled:hover:bg-transparent"
+              }`}
+            >
+              {p.label}
+            </button>
+          );
+        })}
       </div>
 
       {loading ? (
