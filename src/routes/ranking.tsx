@@ -764,27 +764,46 @@ function RankingPage() {
                   : "transparent";
                 const posColor = typeof pos === "number" && pos <= 3 ? "var(--background)" : "var(--muted-foreground)";
 
+                const isSelected = compareSelection.includes(entry.user_id);
+                const canSelect = canExpand; // same eligibility — needs matches
+                const handleRowAction = () => {
+                  if (compareMode) {
+                    if (!canSelect) return;
+                    setCompareSelection((sel) => {
+                      if (sel.includes(entry.user_id)) return sel.filter((id) => id !== entry.user_id);
+                      if (sel.length >= 2) return [sel[1], entry.user_id]; // keep last + new
+                      return [...sel, entry.user_id];
+                    });
+                  } else if (canExpand) {
+                    setExpandedUserId(isExpanded ? null : entry.user_id);
+                  }
+                };
+                const interactive = compareMode ? canSelect : canExpand;
+
                 return (
                   <div key={entry.user_id} className={idx > 0 ? "border-t border-border/40" : ""}>
                     <div
-                      role={canExpand ? "button" : undefined}
-                      tabIndex={canExpand ? 0 : undefined}
-                      aria-expanded={canExpand ? isExpanded : undefined}
-                      onClick={() => canExpand && setExpandedUserId(isExpanded ? null : entry.user_id)}
+                      role={interactive ? "button" : undefined}
+                      tabIndex={interactive ? 0 : undefined}
+                      aria-expanded={!compareMode && canExpand ? isExpanded : undefined}
+                      aria-pressed={compareMode && canSelect ? isSelected : undefined}
+                      onClick={handleRowAction}
                       onKeyDown={(e) => {
-                        if (!canExpand) return;
+                        if (!interactive) return;
                         if (e.key === "Enter" || e.key === " ") {
                           e.preventDefault();
-                          setExpandedUserId(isExpanded ? null : entry.user_id);
+                          handleRowAction();
                         }
                       }}
                       className={`
                         group flex lg:grid lg:grid-cols-[60px_minmax(0,1fr)_90px_100px_140px_120px] lg:gap-3 items-center
                         px-2 py-2 lg:px-4 lg:py-2 transition-colors
                         ${isMe ? "bg-primary/5 lg:bg-primary/10" : isEven ? "bg-muted/10" : ""}
-                        ${isExpanded ? "bg-primary/10 lg:bg-primary/15" : ""}
-                        ${isInactive || isFormer ? "opacity-60" : ""}
-                        ${canExpand ? "cursor-pointer lg:hover:bg-accent/30 focus:outline-none focus:ring-1 focus:ring-primary/40" : ""}
+                        ${isExpanded && !compareMode ? "bg-primary/10 lg:bg-primary/15" : ""}
+                        ${compareMode && isSelected ? "bg-primary/15 ring-1 ring-inset ring-primary/40" : ""}
+                        ${(isInactive || isFormer) && !compareMode ? "opacity-60" : ""}
+                        ${compareMode && !canSelect ? "opacity-40" : ""}
+                        ${interactive ? "cursor-pointer lg:hover:bg-accent/30 focus:outline-none focus:ring-1 focus:ring-primary/40" : ""}
                       `}
                     >
                       {/* Position */}
