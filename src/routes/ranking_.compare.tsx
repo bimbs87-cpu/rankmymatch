@@ -620,7 +620,7 @@ function RecentMeetings({
         <h2 className="font-display text-sm font-bold text-foreground">Últimos confrontos</h2>
         <span className="ml-auto text-[10px] text-muted-foreground">{h2h.recentMeetings.length} jogo{h2h.recentMeetings.length === 1 ? "" : "s"}</span>
       </div>
-      <ul className="grid grid-cols-1 gap-1 sm:grid-cols-2 sm:gap-x-3 sm:gap-y-1">
+      <ul className="grid grid-cols-1 gap-1 sm:grid-cols-2 sm:gap-x-6 sm:gap-y-1.5">
         {h2h.recentMeetings.map((m) => {
           const aWonMatch = m.winner === m.aTeam;
           const bWonMatch = m.winner === m.bTeam;
@@ -667,11 +667,13 @@ function RecentMeetings({
                     <span className={bWonMatch ? "text-success" : "text-foreground"}>{nameB}</span>
                   </p>
                 )}
-                <p className="truncate text-[9px] text-muted-foreground leading-tight">
-                  {formatMeetingDate(m.created_at)}
-                </p>
+                <div className="flex items-center justify-between gap-2">
+                  <p className="truncate text-[9px] text-muted-foreground leading-tight">
+                    {formatMeetingDate(m.created_at)}
+                  </p>
+                  <span className="shrink-0 font-display text-[10px] font-bold tabular-nums text-foreground">{scoreLine}</span>
+                </div>
               </div>
-              <span className="shrink-0 font-display text-[10px] font-bold tabular-nums text-foreground">{scoreLine}</span>
             </>
           );
           return (
