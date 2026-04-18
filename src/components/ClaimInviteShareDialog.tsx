@@ -9,7 +9,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { Copy, MessageCircle, Loader2, Eye, Pencil, Check } from "lucide-react";
+import { Copy, MessageCircle, Loader2, Eye, Pencil, Check, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 interface PlaceholderTarget {
