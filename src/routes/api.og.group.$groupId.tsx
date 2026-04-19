@@ -63,6 +63,7 @@ function truncate(s: string, max: number): string {
 interface GroupOgData {
   name: string;
   logoUrl: string | null;
+  ogCoverUrl: string | null;
   memberCount: number;
   activeSeasonName: string | null;
   sport: string;
@@ -74,7 +75,7 @@ async function getGroupOgData(groupId: string): Promise<GroupOgData | null> {
   const sb = getSupabaseAdmin();
   const { data: group } = await sb
     .from("groups")
-    .select("id, name, image_url, sport, mode, updated_at")
+    .select("id, name, image_url, og_cover_url, sport, mode, updated_at")
     .eq("id", groupId)
     .maybeSingle();
   if (!group) return null;
@@ -96,16 +97,20 @@ async function getGroupOgData(groupId: string): Promise<GroupOgData | null> {
     .limit(1)
     .maybeSingle();
 
+  const ogCoverUrl = (group as { og_cover_url?: string | null }).og_cover_url ?? null;
+
   const cacheKey = [
     String(new Date(group.updated_at).getTime()),
     String(memberCount ?? 0),
     season?.id || "no-season",
     season ? String(new Date(season.updated_at).getTime()) : "0",
+    ogCoverUrl ? "cov1" : "cov0",
   ].join("_");
 
   return {
     name: group.name,
     logoUrl: group.image_url,
+    ogCoverUrl,
     memberCount: memberCount ?? 0,
     activeSeasonName: season?.name ?? null,
     sport: group.sport,
@@ -146,6 +151,7 @@ const SPORT_LABEL: Record<string, string> = {
 function buildSvg(opts: {
   name: string;
   logoDataUri: string | null;
+  coverDataUri: string | null;
   memberCount: number;
   activeSeasonName: string | null;
   sport: string;
@@ -170,6 +176,13 @@ function buildSvg(opts: {
         <text x="110" y="148" font-size="100" font-weight="800" fill="#a3ff12" text-anchor="middle" font-family="Inter, sans-serif">${escapeXml((opts.name[0] || "?").toUpperCase())}</text>
       </g>`;
 
+  // When a custom OG cover is provided, render it as a darkened hero background
+  // behind the brand-dark gradient so text remains legible.
+  const coverBlock = opts.coverDataUri
+    ? `<image href="${opts.coverDataUri}" x="0" y="0" width="1200" height="630" preserveAspectRatio="xMidYMid slice" opacity="0.55"/>
+       <rect width="1200" height="630" fill="url(#coverShade)"/>`
+    : "";
+
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
   <defs>
@@ -185,8 +198,13 @@ function buildSvg(opts: {
       <stop offset="0%" stop-color="#a3ff12" stop-opacity="0.18"/>
       <stop offset="100%" stop-color="#a3ff12" stop-opacity="0"/>
     </radialGradient>
+    <linearGradient id="coverShade" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0a0e0d" stop-opacity="0.45"/>
+      <stop offset="100%" stop-color="#0a0e0d" stop-opacity="0.85"/>
+    </linearGradient>
   </defs>
   <rect width="1200" height="630" fill="url(#bg)"/>
+  ${coverBlock}
   <rect width="1200" height="630" fill="url(#glow)"/>
   <g font-family="Inter, system-ui, -apple-system, Segoe UI, sans-serif">
     <text x="80" y="110" font-size="32" font-weight="600" fill="#a3ff12" letter-spacing="4">RANKMYMATCH</text>
@@ -228,6 +246,7 @@ function buildFallbackSvg(): string {
   return buildSvg({
     name: "Grupo",
     logoDataUri: null,
+    coverDataUri: null,
     memberCount: 0,
     activeSeasonName: null,
     sport: "padel",
@@ -363,10 +382,14 @@ export const Route = createFileRoute("/api/og/group/$groupId")({
             }
           }
 
-          const logoDataUri = await fetchImageDataUri(data.logoUrl);
+          const [logoDataUri, coverDataUri] = await Promise.all([
+            fetchImageDataUri(data.logoUrl),
+            fetchImageDataUri(data.ogCoverUrl),
+          ]);
           const svg = buildSvg({
             name: data.name,
             logoDataUri,
+            coverDataUri,
             memberCount: data.memberCount,
             activeSeasonName: data.activeSeasonName,
             sport: data.sport,

@@ -113,6 +113,7 @@ function GroupDetailPage() {
 
   const [view, setView] = useState<GroupView>(search.view || "overview");
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [memberShareOpen, setMemberShareOpen] = useState(false);
   const [pendingCompareIds, setPendingCompareIds] = useState<string[] | null>(null);
 
   const [inviteOpen, setInviteOpen] = useState(false);
@@ -346,6 +347,10 @@ function GroupDetailPage() {
     newComments: commentCount,
   };
 
+  const memberShareUrl = typeof window !== "undefined"
+    ? `${window.location.origin}/groups/${groupId}`
+    : `https://rankmymatch.app/groups/${groupId}`;
+
   const sidebarProps = {
     groupName: group.name,
     groupImage: group.image_url,
@@ -354,6 +359,7 @@ function GroupDetailPage() {
     view,
     onSelect: handleSelectView,
     badges,
+    onShareClick: () => setMemberShareOpen(true),
   };
 
   return (
@@ -577,6 +583,15 @@ function GroupDetailPage() {
           onAdded={refresh}
         />
       )}
+
+      <ShareGroupDialog
+        open={memberShareOpen}
+        onOpenChange={setMemberShareOpen}
+        url={memberShareUrl}
+        groupName={group.name}
+        groupId={groupId}
+        isAdmin={isAdmin}
+      />
 
       {/* Leave dialog */}
       {leaveDialogOpen && (

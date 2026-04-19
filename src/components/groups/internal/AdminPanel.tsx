@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import {
   Settings2, Bell, Users, Link2, AlertTriangle, Save, Loader2, Globe, Lock, EyeOff,
-  CheckCircle2, Trash2, BarChart3, ScrollText, Image as ImageIcon, Wrench,
+  CheckCircle2, Trash2, BarChart3, ScrollText, Image as ImageIcon, Wrench, Share2,
 } from "lucide-react";
+import { GroupOgCoverUpload } from "@/components/GroupOgCoverUpload";
+import { getRecentShareCount } from "@/lib/track-share";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "@tanstack/react-router";
@@ -59,9 +61,12 @@ export function AdminPanel({ group, isCreator, onSaved, pendingRequestsCount }: 
 
   return (
     <div className="space-y-4">
-      <div>
-        <h2 className="font-display text-xl font-bold text-foreground">Administração</h2>
-        <p className="text-xs text-muted-foreground">Configurações e gestão do grupo</p>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h2 className="font-display text-xl font-bold text-foreground">Administração</h2>
+          <p className="text-xs text-muted-foreground">Configurações e gestão do grupo</p>
+        </div>
+        <ShareCounterPill groupId={group.id} />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[220px_1fr]">
@@ -117,6 +122,28 @@ export function AdminPanel({ group, isCreator, onSaved, pendingRequestsCount }: 
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+/* =============== Share counter pill (last 7 days) =============== */
+function ShareCounterPill({ groupId }: { groupId: string }) {
+  const [count, setCount] = useState<number | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    getRecentShareCount(groupId, 7)
+      .then((c) => { if (!cancelled) setCount(c); })
+      .catch(() => { if (!cancelled) setCount(0); });
+    return () => { cancelled = true; };
+  }, [groupId]);
+  if (count === null) return null;
+  return (
+    <div
+      className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 text-[11px] font-semibold text-foreground"
+      title="Compartilhamentos do grupo nos últimos 7 dias"
+    >
+      <Share2 className="h-3.5 w-3.5 text-primary" />
+      📤 {count} compartilhamento{count === 1 ? "" : "s"} esta semana
     </div>
   );
 }
@@ -224,6 +251,12 @@ function GeneralSection({ group, onSaved }: { group: any; onSaved: () => void })
           toast.success("Imagem removida");
           onSaved();
         }}
+      />
+
+      <GroupOgCoverUpload
+        groupId={group.id}
+        currentUrl={(group as { og_cover_url?: string | null }).og_cover_url ?? null}
+        onChanged={onSaved}
       />
 
       <div>

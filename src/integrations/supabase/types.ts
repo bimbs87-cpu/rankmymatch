@@ -428,6 +428,30 @@ export type Database = {
           },
         ]
       }
+      group_share_events: {
+        Row: {
+          channel: string
+          created_at: string
+          group_id: string
+          id: string
+          user_id: string | null
+        }
+        Insert: {
+          channel: string
+          created_at?: string
+          group_id: string
+          id?: string
+          user_id?: string | null
+        }
+        Update: {
+          channel?: string
+          created_at?: string
+          group_id?: string
+          id?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       group_subscriptions: {
         Row: {
           created_at: string
@@ -486,6 +510,7 @@ export type Database = {
           max_players: number
           mode: string
           name: string
+          og_cover_url: string | null
           presence_open_mode: string
           presence_open_time: string
           simultaneous_courts: number
@@ -508,6 +533,7 @@ export type Database = {
           max_players?: number
           mode?: string
           name: string
+          og_cover_url?: string | null
           presence_open_mode?: string
           presence_open_time?: string
           simultaneous_courts?: number
@@ -530,6 +556,7 @@ export type Database = {
           max_players?: number
           mode?: string
           name?: string
+          og_cover_url?: string | null
           presence_open_mode?: string
           presence_open_time?: string
           simultaneous_courts?: number
