@@ -54,6 +54,7 @@ interface OgData {
   bestPosition: number | null;
   avatarUrl: string | null;
   form: FormState;
+  tagline: string | null;
 }
 
 async function getPlayerOgData(userId: string): Promise<{ data: OgData | null; cacheKey: string }> {
