@@ -253,13 +253,13 @@ export function ProfileBody({
         {showStats ? (
           <>
             {eloHistory.length > 1 ? (
-              <section className="rounded-3xl border border-border bg-card p-4">
+              <section className="overflow-hidden rounded-3xl border border-border bg-card p-4">
                 <div className="flex items-center justify-between">
                   <h3 className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
                     <Activity className="h-3.5 w-3.5" /> Evolução do Elo
                   </h3>
                 </div>
-                <div className="mt-2 h-56">
+                <div className="mt-2 h-56 w-full overflow-hidden">
                   <EloEvolutionChart points={eloHistory} defaultPeriod="all" />
                 </div>
               </section>
