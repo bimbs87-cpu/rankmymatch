@@ -185,8 +185,12 @@ export function AvatarPromptGate() {
     <>
       <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
         <div className="w-full max-w-sm rounded-3xl border border-border bg-card p-6 text-center shadow-2xl">
-          <div className="mx-auto mb-4 h-20 w-20 overflow-hidden rounded-full border-2 border-primary/30 bg-muted">
-            <img src={noPhotoAvatar} alt="" className="h-full w-full object-cover" />
+          <div className={`mx-auto mb-4 h-20 w-20 overflow-hidden rounded-full border-2 bg-muted ${randomPreview ? "border-primary ring-4 ring-primary/20" : "border-primary/30"}`}>
+            <img
+              src={randomPreview?.url ?? noPhotoAvatar}
+              alt=""
+              className="h-full w-full object-cover"
+            />
           </div>
           <h2 className="font-display text-lg font-bold text-foreground">
             {isMandatory ? "Foto de perfil obrigatória" : "Escolha sua foto de perfil"}
