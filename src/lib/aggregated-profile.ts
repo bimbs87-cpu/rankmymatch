@@ -319,10 +319,21 @@ export async function loadAggregatedSummary(userId: string): Promise<AggregatedS
  * Build chronological elo series from rating_events for the chart.
  */
 export async function loadEloHistory(userId: string): Promise<{ date: string; rating: number }[]> {
+  // Join through matches -> rounds to use scheduled_date as the chronological key.
+  // rating_events.created_at can be rewritten by batch Elo recalculations, which
+  // collapses all events onto a single recent date and breaks the 30/90/all filter.
   const { data } = await supabase
     .from("rating_events")
-    .select("rating_after, created_at")
-    .eq("user_id", userId)
-    .order("created_at", { ascending: true });
-  return (data ?? []).map((e) => ({ date: e.created_at, rating: e.rating_after }));
+    .select("rating_after, created_at, match_id, matches!inner(match_number, rounds!inner(scheduled_date))")
+    .eq("user_id", userId);
+  const rows = (data ?? []).map((e: any) => {
+    const sched = e.matches?.rounds?.scheduled_date as string | null | undefined;
+    const matchNo = (e.matches?.match_number ?? 0) as number;
+    const ts = sched
+      ? new Date(sched + "T12:00:00").getTime() + matchNo // tiebreak preserves intra-round order
+      : new Date(e.created_at).getTime();
+    return { ts, date: sched ? new Date(sched + "T12:00:00").toISOString() : e.created_at, rating: Number(e.rating_after) };
+  });
+  rows.sort((a, b) => a.ts - b.ts);
+  return rows.map(({ date, rating }) => ({ date, rating }));
 }
