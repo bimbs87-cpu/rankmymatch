@@ -62,21 +62,29 @@ export function GroupInternalSidebar({
           <ChevronLeft className="h-3.5 w-3.5" />
           Meus grupos
         </Link>
-        <div className="flex items-center gap-3">
+        <Link
+          to="/profile"
+          aria-label="Abrir meu perfil"
+          className="group flex items-center gap-3 rounded-2xl -m-1 p-1 transition-colors hover:bg-accent/30"
+        >
           {groupImage ? (
-            <img src={groupImage} alt={groupName} className="h-11 w-11 rounded-2xl object-cover" />
+            <img
+              src={groupImage}
+              alt={groupName}
+              className="h-11 w-11 rounded-2xl object-cover transition-all duration-200 group-hover:scale-105 group-hover:shadow-[0_0_0_2px_hsl(var(--primary)/0.4)]"
+            />
           ) : (
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10">
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 transition-all duration-200 group-hover:scale-105 group-hover:bg-primary/20">
               <span className="font-display text-base font-bold text-primary">
                 {groupName.slice(0, 1).toUpperCase()}
               </span>
             </div>
           )}
           <div className="min-w-0 flex-1">
-            <h2 className="truncate font-display text-sm font-bold text-foreground">{groupName}</h2>
+            <h2 className="truncate font-display text-sm font-bold text-foreground group-hover:text-primary transition-colors">{groupName}</h2>
             <p className="text-[11px] text-muted-foreground">{memberCount} membros ativos</p>
           </div>
-        </div>
+        </Link>
       </div>
 
       {/* Nav */}
