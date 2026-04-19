@@ -856,6 +856,16 @@ function AdminInboxPage() {
                 {resolved.map((r) => {
                   const Icon = r.kind === "join_request" ? UserPlus : Link2;
                   const approved = r.status === "approved";
+                  const ageMs = Date.now() - new Date(r.resolvedAt).getTime();
+                  const undoable =
+                    ageMs <= UNDO_WINDOW_MS &&
+                    !(r.kind === "claim" && approved);
+                  const undoTitle =
+                    r.kind === "claim" && approved
+                      ? "Vínculos aprovados são irreversíveis"
+                      : ageMs > UNDO_WINDOW_MS
+                        ? "Janela de 24h expirou"
+                        : "Desfazer (até 24h)";
                   return (
                     <div
                       key={`${r.kind}-${r.id}`}
@@ -933,6 +943,21 @@ function AdminInboxPage() {
                             )}
                           </p>
                         </div>
+                        {undoable && (
+                          <button
+                            onClick={() => handleUndo(r)}
+                            disabled={undoBusy === r.id}
+                            title={undoTitle}
+                            className="inline-flex items-center gap-1 rounded-lg border border-border bg-background px-2 py-1.5 text-[11px] font-semibold text-foreground hover:bg-muted disabled:opacity-40"
+                          >
+                            {undoBusy === r.id ? (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            ) : (
+                              <Undo2 className="h-3.5 w-3.5" />
+                            )}
+                            Desfazer
+                          </button>
+                        )}
                       </div>
                     </div>
                   );
