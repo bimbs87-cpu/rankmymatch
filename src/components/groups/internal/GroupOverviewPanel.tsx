@@ -68,8 +68,20 @@ export function GroupOverviewPanel({ groupId, groupName, groupImage, description
           <div className="h-20 bg-gradient-to-br from-primary/20 to-primary/5" />
         )}
         <div className="px-5 pb-5 -mt-4 relative">
-          <h1 className="font-display text-xl font-bold text-foreground">{groupName}</h1>
-          {description && <p className="mt-1 text-sm text-muted-foreground">{description}</p>}
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0 flex-1">
+              <h1 className="font-display text-xl font-bold text-foreground">{groupName}</h1>
+              {description && <p className="mt-1 text-sm text-muted-foreground">{description}</p>}
+            </div>
+            <button
+              onClick={() => setShareOpen(true)}
+              className="shrink-0 inline-flex items-center gap-1.5 rounded-full border border-border bg-background/80 px-3 py-1.5 text-[11px] font-semibold text-foreground backdrop-blur transition hover:bg-accent"
+              aria-label="Compartilhar grupo"
+            >
+              <Share2 className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Compartilhar</span>
+            </button>
+          </div>
           <div className="mt-3 flex flex-wrap gap-2 text-[11px]">
             <span className="rounded-full bg-muted/60 px-2.5 py-1 text-muted-foreground">
               {data.member_count} membros
@@ -87,6 +99,15 @@ export function GroupOverviewPanel({ groupId, groupName, groupImage, description
           </div>
         </div>
       </div>
+
+      <ShareGroupDialog
+        open={shareOpen}
+        onOpenChange={setShareOpen}
+        url={shareUrl}
+        groupName={groupName}
+        groupId={groupId}
+        isAdmin={isAdmin}
+      />
 
       {/* Linha compacta: 2 KPIs combinados + Próxima rodada + Sua posição (sempre 4 colunas) */}
       <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
