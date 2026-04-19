@@ -5,6 +5,7 @@ import { useAdminPendingCount } from "@/hooks/use-admin-pending-count";
 import { useUserProfile } from "@/hooks/use-user-profile";
 import { useTheme } from "@/lib/theme";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
+import { NotificationsPopover } from "@/components/NotificationsPopover";
 import logoSymbolNeon from "@/assets/logo-symbol-neon.png";
 import logoSymbolBlack from "@/assets/logo-symbol-black.png";
 
