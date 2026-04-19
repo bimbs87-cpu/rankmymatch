@@ -220,11 +220,11 @@ function ChangelogPage() {
         {/* Grouped condensed list */}
         {notes && filtered.length > 0 && (
           <div className="space-y-5">
-            {Object.entries(grouped).map(([monthKey, items]) => (
-              <section key={monthKey} className="rounded-3xl border border-border bg-card p-4 lg:p-5">
+            {groupedEntries.map(([versionKey, items]) => (
+              <section key={versionKey} className="rounded-3xl border border-border bg-card p-4 lg:p-5">
                 <div className="mb-2 flex items-baseline justify-between border-b border-border pb-2">
                   <h2 className="font-display text-sm font-bold uppercase tracking-wider text-foreground">
-                    {monthLabel(monthKey)}
+                    {versionLabel(versionKey)}
                   </h2>
                   <span className="text-[10px] font-mono text-muted-foreground">
                     {items.length} {items.length === 1 ? "item" : "itens"}
