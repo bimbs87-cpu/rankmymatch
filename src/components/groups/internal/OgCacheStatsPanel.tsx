@@ -204,7 +204,7 @@ export function OgCacheStatsPanel() {
           </h4>
         </div>
         {stats.topPlayers.length === 0 ? (
-          <p className="text-xs text-muted-foreground">Nenhuma renderização nos últimos 7 dias.</p>
+          <p className="text-xs text-muted-foreground">Nenhuma renderização nos últimos {stats.windowDays} dias.</p>
         ) : (
           <ol className="space-y-1.5">
             {stats.topPlayers.map((p, idx) => (
