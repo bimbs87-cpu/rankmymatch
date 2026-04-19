@@ -279,14 +279,59 @@ function ProfilePage() {
           <Field label="Frase no card de compartilhamento">
             <input
               value={editTagline}
-              onChange={(e) => setEditTagline(e.target.value.slice(0, 60))}
+              onChange={(e) => {
+                const raw = e.target.value;
+                setTaglineTruncated(raw.length > 60);
+                setEditTagline(raw.slice(0, 60));
+              }}
+              onPaste={(e) => {
+                const pasted = e.clipboardData.getData("text");
+                const currentSelectionLen =
+                  (e.currentTarget.selectionEnd ?? editTagline.length) -
+                  (e.currentTarget.selectionStart ?? 0);
+                const projectedLen = editTagline.length - currentSelectionLen + pasted.length;
+                if (projectedLen > 60) setTaglineTruncated(true);
+              }}
               maxLength={60}
               placeholder="Ex: Vamos jogar?"
               className="w-full rounded-2xl border border-border bg-card px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/50 focus:border-primary focus:outline-none"
             />
-            <p className="mt-1 text-[11px] text-muted-foreground">
-              Aparece como subtítulo no card que vai pro WhatsApp/Instagram. {editTagline.length}/60
-            </p>
+            {/* Progress bar showing how close to the 60-char limit */}
+            <div
+              className="mt-1.5 h-1 w-full overflow-hidden rounded-full bg-muted"
+              role="progressbar"
+              aria-valuemin={0}
+              aria-valuemax={60}
+              aria-valuenow={editTagline.length}
+            >
+              <div
+                className={`h-full transition-all ${
+                  editTagline.length >= 60
+                    ? "bg-orange-500"
+                    : editTagline.length >= 48
+                      ? "bg-amber-400"
+                      : "bg-primary"
+                }`}
+                style={{ width: `${Math.min(100, (editTagline.length / 60) * 100)}%` }}
+              />
+            </div>
+            <div className="mt-1 flex items-center justify-between gap-2">
+              <p className="text-[11px] text-muted-foreground">
+                Aparece como subtítulo no card que vai pro WhatsApp/Instagram.
+              </p>
+              <span
+                className={`shrink-0 text-[11px] tabular-nums ${
+                  editTagline.length >= 60 ? "font-semibold text-orange-500" : "text-muted-foreground"
+                }`}
+              >
+                {editTagline.length}/60
+              </span>
+            </div>
+            {taglineTruncated && (
+              <p className="mt-1 flex items-center gap-1 text-[11px] font-medium text-orange-500">
+                <span aria-hidden>⚠</span> Tagline truncada — limite de 60 caracteres.
+              </p>
+            )}
           </Field>
           <Field label="Cor de destaque do badge">
             <div className="flex flex-wrap gap-2">
