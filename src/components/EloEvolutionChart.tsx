@@ -138,7 +138,7 @@ export function EloEvolutionChart({
             <svg
               ref={svgRef}
               viewBox={`0 0 ${w} ${h}`}
-              className="h-full w-full"
+              className="block h-full w-full"
               preserveAspectRatio="none"
               onMouseMove={handleMove}
               onMouseLeave={handleLeave}
