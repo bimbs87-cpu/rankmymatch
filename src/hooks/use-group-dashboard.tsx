@@ -17,6 +17,8 @@ export interface NextRoundInfo {
   presence_opens_at: string | null;
   confirmed_avatars: { user_id: string; name: string; avatar_url: string | null }[];
   confirmed_all: { user_id: string; name: string; avatar_url: string | null; confirmed_at: string | null }[];
+  declined_all: { user_id: string; name: string; avatar_url: string | null; confirmed_at: string | null }[];
+  pending_all: { user_id: string; name: string; avatar_url: string | null }[];
 }
 
 export interface PendingJoinReq {
@@ -144,31 +146,75 @@ export function useGroupDashboard(groupId: string | null) {
           .select("user_id, status, confirmed_at")
           .eq("round_id", r.id);
         const confirmedList = (presences || []).filter((p) => p.status === "confirmed");
+        const declinedList = (presences || []).filter((p) => p.status === "declined");
         const confirmed = confirmedList.length;
         const mine = user ? (presences || []).find((p) => p.user_id === user.id) : null;
         const open = isPresenceOpen(presenceCfg, r.scheduled_date, r.scheduled_time, r.id);
         const opensAt = open ? null : getPresenceOpenDate(presenceCfg, r.scheduled_date, r.scheduled_time, r.id);
 
-        // Fetch profiles for ALL confirmed players (so we can show full popover)
+        // Active members of the group → derive "pending" = members with no confirmed/declined record
+        const { data: activeMembers } = await supabase
+          .from("group_members")
+          .select("user_id")
+          .eq("group_id", groupId)
+          .eq("status", "active");
+        const respondedIds = new Set((presences || []).map((p) => p.user_id));
+        const pendingMemberIds = (activeMembers || [])
+          .map((m) => m.user_id)
+          .filter((uid) => !respondedIds.has(uid));
+
+        // Fetch profiles for ALL involved players
         const sortedConfirmedAll = [...confirmedList].sort(
           (a, b) => new Date(b.confirmed_at || 0).getTime() - new Date(a.confirmed_at || 0).getTime()
         );
+        const sortedDeclinedAll = [...declinedList].sort(
+          (a, b) => new Date(b.confirmed_at || 0).getTime() - new Date(a.confirmed_at || 0).getTime()
+        );
+        const allInvolvedIds = [
+          ...new Set([
+            ...sortedConfirmedAll.map((p) => p.user_id),
+            ...sortedDeclinedAll.map((p) => p.user_id),
+            ...pendingMemberIds,
+          ]),
+        ];
         let confirmedAvatars: NextRoundInfo["confirmed_avatars"] = [];
         let confirmedAll: NextRoundInfo["confirmed_all"] = [];
-        if (sortedConfirmedAll.length) {
-          const ids = sortedConfirmedAll.map((p) => p.user_id);
+        let declinedAll: NextRoundInfo["declined_all"] = [];
+        let pendingAll: NextRoundInfo["pending_all"] = [];
+        if (allInvolvedIds.length) {
           const { data: profs } = await supabase
             .from("user_profiles")
             .select("user_id, name, nickname, avatar_url")
-            .in("user_id", ids);
+            .in("user_id", allInvolvedIds);
           const profMap = new Map((profs || []).map((p) => [p.user_id, p]));
+          const nameOf = (uid: string) => {
+            const prof = profMap.get(uid);
+            return prof?.nickname || prof?.name || "Jogador";
+          };
           confirmedAll = sortedConfirmedAll.map((p) => {
             const prof = profMap.get(p.user_id);
             return {
               user_id: p.user_id,
-              name: prof?.nickname || prof?.name || "Jogador",
+              name: nameOf(p.user_id),
               avatar_url: prof?.avatar_url ?? null,
               confirmed_at: p.confirmed_at ?? null,
+            };
+          });
+          declinedAll = sortedDeclinedAll.map((p) => {
+            const prof = profMap.get(p.user_id);
+            return {
+              user_id: p.user_id,
+              name: nameOf(p.user_id),
+              avatar_url: prof?.avatar_url ?? null,
+              confirmed_at: p.confirmed_at ?? null,
+            };
+          });
+          pendingAll = pendingMemberIds.map((uid) => {
+            const prof = profMap.get(uid);
+            return {
+              user_id: uid,
+              name: nameOf(uid),
+              avatar_url: prof?.avatar_url ?? null,
             };
           });
           confirmedAvatars = confirmedAll.slice(0, 3).map((p) => ({
@@ -192,6 +238,8 @@ export function useGroupDashboard(groupId: string | null) {
           presence_opens_at: opensAt ? opensAt.toISOString() : null,
           confirmed_avatars: confirmedAvatars,
           confirmed_all: confirmedAll,
+          declined_all: declinedAll,
+          pending_all: pendingAll,
         };
       }
 

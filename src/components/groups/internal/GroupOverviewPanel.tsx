@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router";
 import {
   Calendar, Clock, MapPin, Trophy, ChevronRight, Users, MessageSquare, Lock,
   CheckCircle2, XCircle, Flame, TrendingUp, Award, Zap, Target, Crown, Sparkles, Activity,
+  HelpCircle,
 } from "lucide-react";
 import { useGroupDashboard } from "@/hooks/use-group-dashboard";
 import { useGroupGlobalStats, type RecordHolder } from "@/hooks/use-group-stats";
@@ -11,8 +12,10 @@ import { GroupEloEvolutionChart } from "./GroupEloEvolutionChart";
 import { confirmPresence, cancelPresence } from "@/lib/round-actions";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { notifyUrgentPendingMembers } from "@/lib/urgency-notify";
 
 interface Props {
   groupId: string;
@@ -347,6 +350,23 @@ function NextRoundCard({ data, isLoading, groupId, busy, onPresence }: NextRound
     return null;
   }, [data.next_round]);
 
+  // Fire-and-forget in-app notifications to pending members when urgency kicks in.
+  // Idempotent per-round via localStorage cooldown inside the helper.
+  useEffect(() => {
+    const r = data.next_round;
+    if (!urgency || !r || !r.presence_is_open) return;
+    const pendingIds = (r.pending_all || []).map((p) => p.user_id);
+    if (!pendingIds.length) return;
+    void notifyUrgentPendingMembers({
+      roundId: r.id,
+      groupId,
+      pendingUserIds: pendingIds,
+      hoursLeft: urgency.hours,
+      slotsLeft: urgency.slotsLeft,
+      roundNumber: r.round_number,
+    });
+  }, [urgency, data.next_round, groupId]);
+
   return (
     <div className="rounded-3xl border border-border bg-card p-3 relative">
       <div className="mb-1.5 flex items-center justify-between gap-2">
@@ -415,25 +435,52 @@ function NextRoundCard({ data, isLoading, groupId, busy, onPresence }: NextRound
                   )}
                 </button>
               </PopoverTrigger>
-              <PopoverContent align="start" className="w-64 p-0">
-                <div className="border-b border-border px-3 py-2 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                  Confirmados ({data.next_round.confirmed_all.length})
-                </div>
-                <ul className="max-h-64 overflow-y-auto divide-y divide-border/60">
-                  {data.next_round.confirmed_all.map((p) => (
-                    <li key={p.user_id} className="flex items-center gap-2 px-3 py-1.5">
-                      <PlayerAvatar avatarUrl={p.avatar_url} name={p.name} size="sm" />
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-xs font-semibold text-foreground">{p.name}</p>
-                        {p.confirmed_at && (
-                          <p className="text-[10px] text-muted-foreground">
-                            {new Date(p.confirmed_at).toLocaleString("pt-BR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}
-                          </p>
-                        )}
-                      </div>
-                    </li>
-                  ))}
-                </ul>
+              <PopoverContent align="start" className="w-72 p-0">
+                <Tabs defaultValue="confirmed" className="w-full">
+                  <TabsList className="grid w-full grid-cols-3 rounded-none rounded-t-md h-9">
+                    <TabsTrigger value="confirmed" className="text-[10px] gap-1">
+                      <CheckCircle2 className="h-3 w-3" />
+                      <span>{data.next_round.confirmed_all.length}</span>
+                    </TabsTrigger>
+                    <TabsTrigger value="pending" className="text-[10px] gap-1">
+                      <HelpCircle className="h-3 w-3" />
+                      <span>{data.next_round.pending_all.length}</span>
+                    </TabsTrigger>
+                    <TabsTrigger value="declined" className="text-[10px] gap-1">
+                      <XCircle className="h-3 w-3" />
+                      <span>{data.next_round.declined_all.length}</span>
+                    </TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="confirmed" className="mt-0">
+                    <PresenceList
+                      empty="Ninguém confirmou ainda"
+                      items={data.next_round.confirmed_all.map((p) => ({
+                        ...p,
+                        meta: p.confirmed_at
+                          ? new Date(p.confirmed_at).toLocaleString("pt-BR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })
+                          : null,
+                      }))}
+                    />
+                  </TabsContent>
+                  <TabsContent value="pending" className="mt-0">
+                    <PresenceList
+                      empty="Todos já responderam"
+                      items={data.next_round.pending_all.map((p) => ({ ...p, meta: "Sem resposta" }))}
+                    />
+                  </TabsContent>
+                  <TabsContent value="declined" className="mt-0">
+                    <PresenceList
+                      empty="Ninguém recusou"
+                      items={data.next_round.declined_all.map((p) => ({
+                        ...p,
+                        meta: p.confirmed_at
+                          ? new Date(p.confirmed_at).toLocaleString("pt-BR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })
+                          : null,
+                      }))}
+                    />
+                  </TabsContent>
+                </Tabs>
               </PopoverContent>
             </Popover>
           )}
@@ -482,5 +529,35 @@ function NextRoundCard({ data, isLoading, groupId, busy, onPresence }: NextRound
         </div>
       )}
     </div>
+  );
+}
+
+interface PresenceListItem {
+  user_id: string;
+  name: string;
+  avatar_url: string | null;
+  meta?: string | null;
+}
+
+function PresenceList({ items, empty }: { items: PresenceListItem[]; empty: string }) {
+  if (!items.length) {
+    return (
+      <div className="px-3 py-6 text-center text-[11px] text-muted-foreground">
+        {empty}
+      </div>
+    );
+  }
+  return (
+    <ul className="max-h-64 overflow-y-auto divide-y divide-border/60">
+      {items.map((p) => (
+        <li key={p.user_id} className="flex items-center gap-2 px-3 py-1.5">
+          <PlayerAvatar avatarUrl={p.avatar_url} name={p.name} size="sm" />
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-xs font-semibold text-foreground">{p.name}</p>
+            {p.meta && <p className="truncate text-[10px] text-muted-foreground">{p.meta}</p>}
+          </div>
+        </li>
+      ))}
+    </ul>
   );
 }
