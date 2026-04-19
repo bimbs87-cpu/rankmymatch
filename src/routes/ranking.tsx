@@ -6,6 +6,7 @@ import { BarChart3, Info, ChevronDown, ArrowUp, ArrowDown, Calendar, Layers, Tim
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
+import { PlayerAvatarLink } from "@/components/PlayerProfileViewer";
 import { RankingPlayerDetails } from "@/components/RankingPlayerDetails";
 import { isRivalryGroup } from "@/lib/rivalry";
 import { buildDisplayNames, getCollidingFirstNames } from "@/lib/name-disambiguation";
@@ -887,7 +888,9 @@ function RankingPage() {
                             <GitCompareArrows className="h-2.5 w-2.5 lg:h-3 lg:w-3" />
                           </button>
                         )}
-                        <PlayerAvatar avatarUrl={entry.profile?.avatar_url} name={entry.profile?.name || "?"} size="sm" dimmed={isFormer} className="border border-border !h-7 !w-7 lg:!h-9 lg:!w-9" />
+                        <PlayerAvatarLink userId={entry.user_id} ariaLabel={`Ver perfil de ${displayName}`}>
+                          <PlayerAvatar avatarUrl={entry.profile?.avatar_url} name={entry.profile?.name || "?"} size="sm" dimmed={isFormer} className="border border-border !h-7 !w-7 lg:!h-9 lg:!w-9" />
+                        </PlayerAvatarLink>
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-1.5">
                             <p className={`text-[11px] lg:text-sm font-semibold leading-tight truncate ${isFormer ? "text-muted-foreground line-through" : "text-foreground"}`}>
