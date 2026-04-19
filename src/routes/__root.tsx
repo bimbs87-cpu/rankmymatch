@@ -159,6 +159,7 @@ function AuthNav() {
   return (
     <>
       <BottomNav />
+      <AvatarPromptGate />
     </>
   );
 }
