@@ -61,7 +61,7 @@ async function getPlayerOgData(userId: string): Promise<{ data: OgData | null; c
   const sb = getSupabaseAdmin();
   const { data: profile } = await sb
     .from("user_profiles")
-    .select("name, nickname, avatar_url")
+    .select("name, nickname, avatar_url, share_tagline")
     .eq("user_id", userId)
     .maybeSingle();
 
@@ -111,6 +111,12 @@ async function getPlayerOgData(userId: string): Promise<{ data: OgData | null; c
     lastEventTs = String(new Date(events[0].created_at).getTime());
   }
 
+  const tagline = (profile.share_tagline || "").trim() || null;
+  // Hash tagline into cache key so changes invalidate cache
+  const taglineHash = tagline
+    ? Array.from(tagline).reduce((h, c) => ((h << 5) - h + c.charCodeAt(0)) | 0, 0).toString(36)
+    : "n";
+
   return {
     data: {
       name: profile.nickname?.trim() || profile.name || "Jogador",
@@ -118,8 +124,9 @@ async function getPlayerOgData(userId: string): Promise<{ data: OgData | null; c
       bestPosition,
       avatarUrl: profile.avatar_url || null,
       form,
+      tagline,
     },
-    cacheKey: lastEventTs,
+    cacheKey: `${lastEventTs}_${taglineHash}`,
   };
 }
 
@@ -167,12 +174,14 @@ function buildSvg(opts: {
   bestPos: number | null;
   avatarDataUri: string | null;
   form: FormState;
+  tagline: string | null;
 }): string {
   const name = escapeXml(truncate(opts.name, 24));
   const elo = opts.elo != null ? String(opts.elo) : "—";
   const bestPos = opts.bestPos != null ? `#${opts.bestPos}` : "—";
   const badge = formBadgeMarkup(opts.form);
   const badgeLabel = escapeXml(badge.label);
+  const tagline = opts.tagline ? escapeXml(truncate(opts.tagline, 60)) : null;
 
   const avatarBlock = opts.avatarDataUri
     ? `<g transform="translate(80, 200)">
@@ -218,6 +227,11 @@ function buildSvg(opts: {
       <rect width="${badgeLabel.length * 16 + 60}" height="44" rx="22" fill="${badge.bg}"/>
       <text x="30" y="29" font-size="20" font-weight="800" fill="${badge.fg}" letter-spacing="2">${badgeLabel}</text>
     </g>
+    ${
+      tagline
+        ? `<text x="300" y="385" font-size="26" font-style="italic" font-weight="500" fill="#cbd5e1">"${tagline}"</text>`
+        : ""
+    }
 
     <g transform="translate(80, 430)">
       <rect width="500" height="150" rx="24" fill="#1a201f" stroke="#2a312f" stroke-width="2"/>
@@ -241,6 +255,7 @@ function buildFallbackSvg(): string {
     bestPos: null,
     avatarDataUri: null,
     form: "stable",
+    tagline: null,
   });
 }
 
