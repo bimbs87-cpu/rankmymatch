@@ -477,6 +477,22 @@ function ProfilePage() {
 
   return (
     <div className="min-h-screen bg-background pb-28">
+      {/* Banner: app em desenvolvimento */}
+      <div className="px-5 pt-4 lg:mx-auto lg:max-w-7xl lg:px-6">
+        <Link
+          to="/sobre-desenvolvimento"
+          className="group flex items-center gap-2.5 rounded-full border border-primary/30 bg-primary/5 px-3.5 py-2 text-xs font-semibold text-primary transition-all hover:border-primary/50 hover:bg-primary/10"
+          aria-label="Sobre o desenvolvimento do aplicativo"
+        >
+          <span className="relative flex h-2 w-2 shrink-0">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75" />
+            <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
+          </span>
+          <span className="flex-1 truncate">App em desenvolvimento — sua opinião conta</span>
+          <ChevronRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+        </Link>
+      </div>
+
       <ProfileBody
         profile={{ ...profile, avatar_url: avatarUrl }}
         summary={summary}
