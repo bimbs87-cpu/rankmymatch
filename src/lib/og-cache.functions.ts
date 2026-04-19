@@ -36,6 +36,7 @@ export interface OgCacheStats {
   totalMiss: number;
   hitRatePct: number; // 0..100
   topPlayers: { user_id: string; name: string; renders: number }[];
+  daily: { date: string; hit: number; miss: number }[];
   windowDays: number;
 }
 
