@@ -215,42 +215,19 @@ function RootComponent() {
               }}
             />
 
-            {/* Desktop: login-style background — soft neon auras + grid + vignette */}
+            {/* Desktop: subtle solid tint, no grid/auras to avoid hard edges */}
             <div
               aria-hidden
               className="pointer-events-none fixed inset-0 z-0 hidden lg:block"
               style={{
-                backgroundImage: `
-                  radial-gradient(60vw 60vw at 12% 8%, color-mix(in oklab, var(--primary) 14%, transparent), transparent 65%),
-                  radial-gradient(55vw 55vw at 92% 92%, color-mix(in oklab, var(--primary) 8%, transparent), transparent 70%),
-                  radial-gradient(40vw 40vw at 88% 12%, color-mix(in oklab, var(--primary) 5%, transparent), transparent 70%)
-                `,
-              }}
-            />
-            <div
-              aria-hidden
-              className="pointer-events-none fixed inset-0 z-0 hidden opacity-[0.05] lg:block"
-              style={{
-                backgroundImage:
-                  "linear-gradient(to right, currentColor 1px, transparent 1px), linear-gradient(to bottom, currentColor 1px, transparent 1px)",
-                backgroundSize: "56px 56px",
-                maskImage: "radial-gradient(ellipse at center, black 30%, transparent 75%)",
-                WebkitMaskImage: "radial-gradient(ellipse at center, black 30%, transparent 75%)",
-              }}
-            />
-            <div
-              aria-hidden
-              className="pointer-events-none fixed inset-0 z-0 hidden lg:block"
-              style={{
-                background:
-                  "radial-gradient(ellipse at center, transparent 60%, color-mix(in oklab, var(--background) 70%, transparent) 100%)",
+                background: "color-mix(in oklab, var(--background) 96%, var(--primary))",
               }}
             />
 
             {/* Shared noise texture (very subtle on desktop) */}
             <div
               aria-hidden
-              className="pointer-events-none fixed inset-0 z-0 opacity-[0.10] mix-blend-overlay lg:opacity-[0.06]"
+              className="pointer-events-none fixed inset-0 z-0 opacity-[0.10] mix-blend-overlay lg:hidden"
               style={{
                 backgroundImage:
                   "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.75  0 0 0 0 1  0 0 0 0 0.55  0 0 0 0.55 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>\")",
