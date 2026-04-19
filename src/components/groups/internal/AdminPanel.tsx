@@ -18,7 +18,7 @@ import { useGroupDetail, approveJoinRequest, rejectJoinRequest } from "@/hooks/u
 import { useAuth } from "@/hooks/use-auth";
 import { startRenewalCheckout, salesWhatsAppUrl } from "@/lib/payment-provider";
 
-type Section = "general" | "presence" | "members" | "invites" | "engagement" | "audit" | "og-cache" | "advanced";
+type Section = "general" | "presence" | "members" | "invites" | "engagement" | "audit" | "maintenance" | "og-cache" | "advanced";
 
 interface Props {
   group: any;
