@@ -159,7 +159,7 @@ export function AvatarPromptGate() {
         googlePhotoUrl={googlePhoto}
         onSelect={handleSelect}
         saving={saving}
-        googleOnly={isMandatory}
+        googleOnly={isMandatory && !!googlePhoto}
       />
     ) : null;
   }
