@@ -33,7 +33,18 @@ export function OgCacheStatsPanel() {
       setError(null);
       try {
         const res = await fetchStats({ data: { days: range } });
-        if (!cancelled) setStats(res);
+        if (!cancelled) {
+          // Defensive: ensure expected shape so the UI never crashes on undefined fields
+          const safe: OgCacheStats = {
+            windowDays: res?.windowDays ?? range,
+            totalHit: res?.totalHit ?? 0,
+            totalMiss: res?.totalMiss ?? 0,
+            hitRatePct: res?.hitRatePct ?? 0,
+            daily: Array.isArray(res?.daily) ? res.daily : [],
+            topUsers: Array.isArray((res as any)?.topUsers) ? (res as any).topUsers : [],
+          } as OgCacheStats;
+          setStats(safe);
+        }
       } catch (e) {
         if (!cancelled) setError("Falha ao carregar estatísticas");
         console.error(e);
