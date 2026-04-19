@@ -51,6 +51,14 @@ function concatBytes(...parts: Uint8Array[]): Uint8Array {
   return out;
 }
 
+// Always materialize a strict ArrayBuffer (not SharedArrayBuffer) so the
+// value satisfies BufferSource in TS strict mode.
+function toAB(u8: Uint8Array): ArrayBuffer {
+  const ab = new ArrayBuffer(u8.byteLength);
+  new Uint8Array(ab).set(u8);
+  return ab;
+}
+
 // ---------- VAPID JWT (ES256) ----------
 async function importVapidPrivateKey(privB64u: string, pubB64u: string): Promise<CryptoKey> {
   const d = bytesToB64u(b64uToBytes(privB64u));
@@ -114,9 +122,9 @@ async function hkdf(
   info: Uint8Array,
   length: number,
 ): Promise<Uint8Array> {
-  const baseKey = await crypto.subtle.importKey("raw", ikm, "HKDF", false, ["deriveBits"]);
+  const baseKey = await crypto.subtle.importKey("raw", toAB(ikm), "HKDF", false, ["deriveBits"]);
   const bits = await crypto.subtle.deriveBits(
-    { name: "HKDF", hash: "SHA-256", salt, info },
+    { name: "HKDF", hash: "SHA-256", salt: toAB(salt), info: toAB(info) },
     baseKey,
     length * 8,
   );
@@ -145,7 +153,7 @@ async function encryptPayload(
   // Import recipient public key (raw, 65 bytes uncompressed)
   const recipientKey = await crypto.subtle.importKey(
     "raw",
-    recipientPub,
+    toAB(recipientPub),
     { name: "ECDH", namedCurve: "P-256" },
     true,
     [],
@@ -186,8 +194,8 @@ async function encryptPayload(
   // Plaintext padded with 0x02 || 0x00*pad (for last record)
   const padded = concatBytes(plaintext, new Uint8Array([0x02]));
 
-  const aesKey = await crypto.subtle.importKey("raw", cek, { name: "AES-GCM" }, false, ["encrypt"]);
-  const ctBuf = await crypto.subtle.encrypt({ name: "AES-GCM", iv: nonce }, aesKey, padded);
+  const aesKey = await crypto.subtle.importKey("raw", toAB(cek), { name: "AES-GCM" }, false, ["encrypt"]);
+  const ctBuf = await crypto.subtle.encrypt({ name: "AES-GCM", iv: toAB(nonce) }, aesKey, toAB(padded));
   const ciphertext = new Uint8Array(ctBuf);
 
   // Header: salt(16) || rs(uint32 BE) || idlen(1) || keyid(idlen)
