@@ -66,6 +66,7 @@ function AdminInboxPage() {
   const [loading, setLoading] = useState(true);
   const [groupFilter, setGroupFilter] = useState<string>("all");
   const [kindFilter, setKindFilter] = useState<"all" | Kind>("all");
+  const [ageFilter, setAgeFilter] = useState<"all" | "old">("all");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState(false);
 
@@ -189,13 +190,23 @@ function AdminInboxPage() {
     return [...m.entries()].map(([id, name]) => ({ id, name }));
   }, [items]);
 
+  const OLD_THRESHOLD_MS = 3 * 24 * 60 * 60 * 1000;
+  const isOld = (createdAt: string) =>
+    Date.now() - new Date(createdAt).getTime() >= OLD_THRESHOLD_MS;
+
   const filtered = useMemo(() => {
     return items.filter(
       (it) =>
         (groupFilter === "all" || it.groupId === groupFilter) &&
-        (kindFilter === "all" || it.kind === kindFilter),
+        (kindFilter === "all" || it.kind === kindFilter) &&
+        (ageFilter === "all" || isOld(it.createdAt)),
     );
-  }, [items, groupFilter, kindFilter]);
+  }, [items, groupFilter, kindFilter, ageFilter]);
+
+  const oldCount = useMemo(
+    () => items.filter((it) => isOld(it.createdAt)).length,
+    [items],
+  );
 
   const toggleSelect = (id: string) => {
     setSelected((prev) => {
