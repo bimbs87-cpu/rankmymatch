@@ -15,9 +15,12 @@ import {
   Users,
   Trophy,
 } from "lucide-react";
+import { useEffect } from "react";
 import { BugReportForm } from "@/components/BugReportForm";
 import { ReleaseNotesSection } from "@/components/ReleaseNotesSection";
+import { PublicBugReportsList } from "@/components/PublicBugReportsList";
 import { APP_VERSION } from "@/lib/app-version";
+import { markReleasesSeen } from "@/hooks/use-new-releases";
 
 export const Route = createFileRoute("/sobre-desenvolvimento")({
   head: () => ({
@@ -40,6 +43,9 @@ const SUPPORT_WHATSAPP = "https://wa.me/?text=" + encodeURIComponent(
 const SUPPORT_EMAIL = "mailto:contato@rankmymatch.app?subject=Bug%20no%20RankMyMatch&body=Ol%C3%A1%21%20Encontrei%20algo%20no%20RankMyMatch%3A%0A%0A-%20O%20que%20aconteceu%3A%0A-%20Onde%20estava%20%28tela%2Fgrupo%29%3A%0A-%20O%20que%20esperava%3A";
 
 function AboutDevelopmentPage() {
+  useEffect(() => {
+    markReleasesSeen();
+  }, []);
   return (
     <div className="min-h-screen bg-background pb-28">
       {/* Header */}

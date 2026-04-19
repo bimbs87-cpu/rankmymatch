@@ -60,7 +60,7 @@ const STATUS_ICONS: Record<Status, React.ReactNode> = {
 };
 
 function BugAdminPage() {
-  const { user, loading: authLoading } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const [reports, setReports] = useState<BugReport[] | null>(null);
