@@ -22,14 +22,14 @@ export function PlayerAvatar({ avatarUrl, name = "", size = "sm", className = ""
   const s = SIZES[size];
   const dimClass = dimmed ? "opacity-40 grayscale" : "";
 
-  // Special "no photo" marker → use the generic silhouette avatar
+  // Special "no photo" marker → use the generic silhouette avatar (subtle muted bg)
   if (avatarUrl === "avatar:no-photo") {
     return (
-      <img
-        src={noPhotoAvatar}
-        alt=""
-        className={`shrink-0 rounded-full object-cover ${s.container} ${dimClass} ${className}`}
-      />
+      <div
+        className={`shrink-0 overflow-hidden rounded-full bg-muted/40 flex items-center justify-center ${s.container} ${dimClass} ${className}`}
+      >
+        <img src={noPhotoAvatar} alt="" className="h-[88%] w-[88%] object-contain opacity-70" />
+      </div>
     );
   }
 
@@ -67,10 +67,10 @@ export function PlayerAvatar({ avatarUrl, name = "", size = "sm", className = ""
 
   // No avatar at all → silhouette (replaces old initials fallback)
   return (
-    <img
-      src={noPhotoAvatar}
-      alt={name ? `Foto de ${name}` : ""}
-      className={`shrink-0 rounded-full object-cover ${s.container} ${dimClass} ${className}`}
-    />
+    <div
+      className={`shrink-0 overflow-hidden rounded-full bg-muted/40 flex items-center justify-center ${s.container} ${dimClass} ${className}`}
+    >
+      <img src={noPhotoAvatar} alt={name ? `Foto de ${name}` : ""} className="h-[88%] w-[88%] object-contain opacity-70" />
+    </div>
   );
 }

@@ -76,6 +76,9 @@ export function InviteEngagementReport({ groupId }: Props) {
   const [period, setPeriod] = useState<Period>("30d");
   const [granularity, setGranularity] = useState<Granularity>("week");
   const [exportFilter, setExportFilter] = useState<StatusFilter>("all");
+  const [useCustomRange, setUseCustomRange] = useState(false);
+  const [customFrom, setCustomFrom] = useState<string>("");
+  const [customTo, setCustomTo] = useState<string>("");
   const [invites, setInvites] = useState<InviteRow[]>([]);
   const [profileMap, setProfileMap] = useState<Map<string, string>>(new Map());
   const [loading, setLoading] = useState(true);
@@ -178,9 +181,19 @@ export function InviteEngagementReport({ groupId }: Props) {
   }, [stats.list, period, granularity]);
 
   const exportCsv = () => {
+    let base = stats.list;
+    if (useCustomRange && (customFrom || customTo)) {
+      const fromTs = customFrom ? new Date(customFrom + "T00:00:00").getTime() : -Infinity;
+      const toTs = customTo ? new Date(customTo + "T23:59:59").getTime() : Infinity;
+      // For custom range, ignore the period filter and use full invites list
+      base = invites.filter((i) => {
+        const t = new Date(i.created_at).getTime();
+        return t >= fromTs && t <= toTs;
+      });
+    }
     const filtered = exportFilter === "all"
-      ? stats.list
-      : stats.list.filter((i) => statusOf(i) === exportFilter);
+      ? base
+      : base.filter((i) => statusOf(i) === exportFilter);
     if (filtered.length === 0) {
       toast.info("Nada para exportar com esse filtro");
       return;
@@ -202,7 +215,10 @@ export function InviteEngagementReport({ groupId }: Props) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `convites-${exportFilter}-${period}-${new Date().toISOString().slice(0, 10)}.csv`;
+    const rangeLabel = useCustomRange && (customFrom || customTo)
+      ? `${customFrom || "inicio"}_${customTo || "hoje"}`
+      : period;
+    a.download = `convites-${exportFilter}-${rangeLabel}-${new Date().toISOString().slice(0, 10)}.csv`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -247,19 +263,54 @@ export function InviteEngagementReport({ groupId }: Props) {
       </div>
 
       {/* Period selector */}
-      <div className="flex flex-wrap gap-1.5">
+      <div className="flex flex-wrap items-center gap-1.5">
         {PERIOD_OPTS.map((p) => (
           <button
             key={p.id}
-            onClick={() => setPeriod(p.id)}
+            onClick={() => { setPeriod(p.id); setUseCustomRange(false); }}
             className={`rounded-full px-3 py-1 text-[11px] font-semibold transition-colors ${
-              period === p.id ? "bg-primary text-primary-foreground" : "bg-muted/40 text-muted-foreground hover:bg-muted"
+              period === p.id && !useCustomRange ? "bg-primary text-primary-foreground" : "bg-muted/40 text-muted-foreground hover:bg-muted"
             }`}
           >
             {p.label}
           </button>
         ))}
+        <button
+          onClick={() => setUseCustomRange((v) => !v)}
+          className={`rounded-full px-3 py-1 text-[11px] font-semibold transition-colors ${
+            useCustomRange ? "bg-primary text-primary-foreground" : "bg-muted/40 text-muted-foreground hover:bg-muted"
+          }`}
+          title="Definir intervalo customizado para a exportação"
+        >
+          📅 Customizado
+        </button>
       </div>
+
+      {useCustomRange && (
+        <div className="flex flex-wrap items-end gap-2 rounded-2xl border border-dashed border-border bg-muted/10 p-3">
+          <div className="flex flex-col gap-0.5">
+            <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">De</label>
+            <input
+              type="date"
+              value={customFrom}
+              onChange={(e) => setCustomFrom(e.target.value)}
+              className="rounded-lg border border-border bg-background px-2 py-1 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+            />
+          </div>
+          <div className="flex flex-col gap-0.5">
+            <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Até</label>
+            <input
+              type="date"
+              value={customTo}
+              onChange={(e) => setCustomTo(e.target.value)}
+              className="rounded-lg border border-border bg-background px-2 py-1 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+            />
+          </div>
+          <p className="text-[10px] text-muted-foreground flex-1 min-w-[140px]">
+            Aplica apenas à exportação CSV. Os gráficos continuam refletindo o período selecionado acima.
+          </p>
+        </div>
+      )}
 
       {loading ? (
         <div className="flex items-center justify-center py-10">

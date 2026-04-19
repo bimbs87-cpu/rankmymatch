@@ -11,7 +11,8 @@ import { GroupEloEvolutionChart } from "./GroupEloEvolutionChart";
 import { confirmPresence, cancelPresence } from "@/lib/round-actions";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 interface Props {
   groupId: string;
@@ -92,103 +93,7 @@ export function GroupOverviewPanel({ groupId, groupName, groupImage, description
         />
 
         {/* Próxima rodada */}
-        <div className="rounded-3xl border border-border bg-card p-3">
-          <div className="mb-1.5 flex items-center justify-between gap-2">
-            <h3 className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Próxima rodada</h3>
-            {data.next_round && (
-              <Link
-                to="/groups/$groupId/seasons/$seasonId/rounds/$roundId"
-                params={{ groupId, seasonId: data.current_season?.id || "", roundId: data.next_round.id }}
-                className="text-[10px] font-semibold text-primary"
-              >
-                Abrir →
-              </Link>
-            )}
-          </div>
-          {isLoading ? (
-            <div className="h-14 animate-pulse rounded-xl bg-muted/30" />
-          ) : data.next_round ? (
-            <>
-              <div className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
-                <Calendar className="h-3 w-3 text-primary shrink-0" />
-                <span className="truncate">
-                  Rodada {data.next_round.round_number}
-                  {data.next_round.scheduled_date && (
-                    <span className="text-muted-foreground font-normal">
-                      {" "}· {new Date(data.next_round.scheduled_date + "T00:00:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "short" })}
-                    </span>
-                  )}
-                </span>
-              </div>
-              <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] text-muted-foreground">
-                {data.next_round.scheduled_time && (
-                  <span className="flex items-center gap-0.5"><Clock className="h-2.5 w-2.5" />{data.next_round.scheduled_time.slice(0, 5)}</span>
-                )}
-                <span className="flex items-center gap-0.5"><Users className="h-2.5 w-2.5" />{data.next_round.confirmed_count}/{data.next_round.max_players}</span>
-              </div>
-
-              {/* Avatares confirmados (prova social) */}
-              {data.next_round.confirmed_avatars.length > 0 && (
-                <div className="mt-1.5 flex items-center gap-1.5">
-                  <div className="flex -space-x-1.5">
-                    {data.next_round.confirmed_avatars.map((p) => (
-                      <div key={p.user_id} className="ring-2 ring-card rounded-full" title={p.name}>
-                        <PlayerAvatar avatarUrl={p.avatar_url} name={p.name} size="xs" />
-                      </div>
-                    ))}
-                  </div>
-                  {data.next_round.confirmed_count > data.next_round.confirmed_avatars.length && (
-                    <span className="text-[9px] text-muted-foreground">
-                      +{data.next_round.confirmed_count - data.next_round.confirmed_avatars.length}
-                    </span>
-                  )}
-                </div>
-              )}
-
-              <div className="mt-1.5">
-                {data.next_round.presence_is_open ? (
-                  <div className="flex gap-1">
-                    <button
-                      disabled={busy}
-                      onClick={() => handlePresence("confirmed")}
-                      className={`flex flex-1 items-center justify-center gap-1 rounded-full px-2 py-1 text-[10px] font-semibold transition-colors ${
-                        data.next_round.presence_status === "confirmed"
-                          ? "bg-success text-success-foreground"
-                          : "border border-success/40 bg-success/10 text-success hover:bg-success/20"
-                      }`}
-                    >
-                      <CheckCircle2 className="h-3 w-3" />Vou
-                    </button>
-                    <button
-                      disabled={busy}
-                      onClick={() => handlePresence("declined")}
-                      className={`flex flex-1 items-center justify-center gap-1 rounded-full px-2 py-1 text-[10px] font-semibold transition-colors ${
-                        data.next_round.presence_status === "declined"
-                          ? "bg-destructive text-destructive-foreground"
-                          : "border border-destructive/40 bg-destructive/10 text-destructive hover:bg-destructive/20"
-                      }`}
-                    >
-                      <XCircle className="h-3 w-3" />Não
-                    </button>
-                  </div>
-                ) : (
-                  <div className="flex items-center justify-center gap-1 rounded-lg border border-dashed border-border bg-muted/20 py-1 text-[10px] text-muted-foreground">
-                    <Lock className="h-2.5 w-2.5 shrink-0" />
-                    <span className="truncate">
-                      {data.next_round.presence_opens_at
-                        ? `Abre ${new Date(data.next_round.presence_opens_at).toLocaleString("pt-BR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}`
-                        : "Não aberta"}
-                    </span>
-                  </div>
-                )}
-              </div>
-            </>
-          ) : (
-            <div className="rounded-xl border border-dashed border-border bg-muted/10 py-3 text-center text-[10px] text-muted-foreground">
-              Sem rodada agendada
-            </div>
-          )}
-        </div>
+        <NextRoundCard data={data} isLoading={isLoading} groupId={groupId} busy={busy} onPresence={handlePresence} />
 
         {/* Sua posição */}
         <div className="rounded-3xl border border-border bg-card p-3">
@@ -415,6 +320,167 @@ function RecordCard({
         </div>
         <span className={`font-display text-base font-black ${toneClass}`}>{prefix}{rec.value}{suffix}</span>
       </div>
+    </div>
+  );
+}
+
+interface NextRoundCardProps {
+  data: ReturnType<typeof useGroupDashboard>["data"];
+  isLoading: boolean;
+  groupId: string;
+  busy: boolean;
+  onPresence: (status: "confirmed" | "declined") => void;
+}
+
+function NextRoundCard({ data, isLoading, groupId, busy, onPresence }: NextRoundCardProps) {
+  const urgency = useMemo(() => {
+    const r = data.next_round;
+    if (!r || !r.scheduled_date) return null;
+    const dateStr = r.scheduled_time ? `${r.scheduled_date}T${r.scheduled_time}` : `${r.scheduled_date}T20:00:00`;
+    const ts = new Date(dateStr).getTime();
+    const diffMs = ts - Date.now();
+    const slotsLeft = (r.max_players ?? 0) - (r.confirmed_count ?? 0);
+    if (diffMs > 0 && diffMs < 24 * 60 * 60 * 1000 && slotsLeft > 0) {
+      const hours = Math.max(1, Math.round(diffMs / 3600000));
+      return { hours, slotsLeft };
+    }
+    return null;
+  }, [data.next_round]);
+
+  return (
+    <div className="rounded-3xl border border-border bg-card p-3 relative">
+      <div className="mb-1.5 flex items-center justify-between gap-2">
+        <h3 className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+          Próxima rodada
+          {urgency && (
+            <span
+              className="relative flex h-2 w-2"
+              title={`Faltam ~${urgency.hours}h e ${urgency.slotsLeft} vaga${urgency.slotsLeft > 1 ? "s" : ""} aberta${urgency.slotsLeft > 1 ? "s" : ""}`}
+            >
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-warning opacity-70" />
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-warning" />
+            </span>
+          )}
+        </h3>
+        {data.next_round && (
+          <Link
+            to="/groups/$groupId/seasons/$seasonId/rounds/$roundId"
+            params={{ groupId, seasonId: data.current_season?.id || "", roundId: data.next_round.id }}
+            className="text-[10px] font-semibold text-primary"
+          >
+            Abrir →
+          </Link>
+        )}
+      </div>
+      {isLoading ? (
+        <div className="h-14 animate-pulse rounded-xl bg-muted/30" />
+      ) : data.next_round ? (
+        <>
+          <div className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
+            <Calendar className="h-3 w-3 text-primary shrink-0" />
+            <span className="truncate">
+              Rodada {data.next_round.round_number}
+              {data.next_round.scheduled_date && (
+                <span className="text-muted-foreground font-normal">
+                  {" "}· {new Date(data.next_round.scheduled_date + "T00:00:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "short" })}
+                </span>
+              )}
+            </span>
+          </div>
+          <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] text-muted-foreground">
+            {data.next_round.scheduled_time && (
+              <span className="flex items-center gap-0.5"><Clock className="h-2.5 w-2.5" />{data.next_round.scheduled_time.slice(0, 5)}</span>
+            )}
+            <span className="flex items-center gap-0.5"><Users className="h-2.5 w-2.5" />{data.next_round.confirmed_count}/{data.next_round.max_players}</span>
+            {urgency && (
+              <span className="font-bold text-warning">⏱ ~{urgency.hours}h</span>
+            )}
+          </div>
+
+          {data.next_round.confirmed_avatars.length > 0 && (
+            <Popover>
+              <PopoverTrigger asChild>
+                <button className="mt-1.5 flex items-center gap-1.5 rounded-md hover:bg-muted/30 -mx-1 px-1 py-0.5 transition-colors" title="Ver confirmados">
+                  <div className="flex -space-x-1.5">
+                    {data.next_round.confirmed_avatars.map((p) => (
+                      <div key={p.user_id} className="ring-2 ring-card rounded-full">
+                        <PlayerAvatar avatarUrl={p.avatar_url} name={p.name} size="xs" />
+                      </div>
+                    ))}
+                  </div>
+                  {data.next_round.confirmed_count > data.next_round.confirmed_avatars.length && (
+                    <span className="text-[9px] text-muted-foreground">
+                      +{data.next_round.confirmed_count - data.next_round.confirmed_avatars.length}
+                    </span>
+                  )}
+                </button>
+              </PopoverTrigger>
+              <PopoverContent align="start" className="w-64 p-0">
+                <div className="border-b border-border px-3 py-2 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                  Confirmados ({data.next_round.confirmed_all.length})
+                </div>
+                <ul className="max-h-64 overflow-y-auto divide-y divide-border/60">
+                  {data.next_round.confirmed_all.map((p) => (
+                    <li key={p.user_id} className="flex items-center gap-2 px-3 py-1.5">
+                      <PlayerAvatar avatarUrl={p.avatar_url} name={p.name} size="sm" />
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-xs font-semibold text-foreground">{p.name}</p>
+                        {p.confirmed_at && (
+                          <p className="text-[10px] text-muted-foreground">
+                            {new Date(p.confirmed_at).toLocaleString("pt-BR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}
+                          </p>
+                        )}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </PopoverContent>
+            </Popover>
+          )}
+
+          <div className="mt-1.5">
+            {data.next_round.presence_is_open ? (
+              <div className="flex gap-1">
+                <button
+                  disabled={busy}
+                  onClick={() => onPresence("confirmed")}
+                  className={`flex flex-1 items-center justify-center gap-1 rounded-full px-2 py-1 text-[10px] font-semibold transition-colors ${
+                    data.next_round.presence_status === "confirmed"
+                      ? "bg-success text-success-foreground"
+                      : "border border-success/40 bg-success/10 text-success hover:bg-success/20"
+                  }`}
+                >
+                  <CheckCircle2 className="h-3 w-3" />Vou
+                </button>
+                <button
+                  disabled={busy}
+                  onClick={() => onPresence("declined")}
+                  className={`flex flex-1 items-center justify-center gap-1 rounded-full px-2 py-1 text-[10px] font-semibold transition-colors ${
+                    data.next_round.presence_status === "declined"
+                      ? "bg-destructive text-destructive-foreground"
+                      : "border border-destructive/40 bg-destructive/10 text-destructive hover:bg-destructive/20"
+                  }`}
+                >
+                  <XCircle className="h-3 w-3" />Não
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center justify-center gap-1 rounded-lg border border-dashed border-border bg-muted/20 py-1 text-[10px] text-muted-foreground">
+                <Lock className="h-2.5 w-2.5 shrink-0" />
+                <span className="truncate">
+                  {data.next_round.presence_opens_at
+                    ? `Abre ${new Date(data.next_round.presence_opens_at).toLocaleString("pt-BR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}`
+                    : "Não aberta"}
+                </span>
+              </div>
+            )}
+          </div>
+        </>
+      ) : (
+        <div className="rounded-xl border border-dashed border-border bg-muted/10 py-3 text-center text-[10px] text-muted-foreground">
+          Sem rodada agendada
+        </div>
+      )}
     </div>
   );
 }
