@@ -29,6 +29,7 @@ import { Route as RankingCompareRouteImport } from './routes/ranking_.compare'
 import { Route as PlayersUserIdRouteImport } from './routes/players.$userId'
 import { Route as InviteCodeRouteImport } from './routes/invite.$code'
 import { Route as HooksPresenceWindowOpenedRouteImport } from './routes/hooks.presence-window-opened'
+import { Route as HooksAdminUndoRouteImport } from './routes/hooks.admin-undo'
 import { Route as HooksAdminPendingReminderRouteImport } from './routes/hooks.admin-pending-reminder'
 import { Route as HooksAdminActionRouteImport } from './routes/hooks.admin-action'
 import { Route as GroupsGroupIdRouteImport } from './routes/groups.$groupId'
@@ -147,6 +148,11 @@ const HooksPresenceWindowOpenedRoute =
     path: '/hooks/presence-window-opened',
     getParentRoute: () => rootRouteImport,
   } as any)
+const HooksAdminUndoRoute = HooksAdminUndoRouteImport.update({
+  id: '/hooks/admin-undo',
+  path: '/hooks/admin-undo',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const HooksAdminPendingReminderRoute =
   HooksAdminPendingReminderRouteImport.update({
     id: '/hooks/admin-pending-reminder',
@@ -247,6 +253,7 @@ export interface FileRoutesByFullPath {
   '/groups/$groupId': typeof GroupsGroupIdRouteWithChildren
   '/hooks/admin-action': typeof HooksAdminActionRoute
   '/hooks/admin-pending-reminder': typeof HooksAdminPendingReminderRoute
+  '/hooks/admin-undo': typeof HooksAdminUndoRoute
   '/hooks/presence-window-opened': typeof HooksPresenceWindowOpenedRoute
   '/invite/$code': typeof InviteCodeRoute
   '/players/$userId': typeof PlayersUserIdRoute
@@ -282,6 +289,7 @@ export interface FileRoutesByTo {
   '/admin/inbox': typeof AdminInboxRoute
   '/hooks/admin-action': typeof HooksAdminActionRoute
   '/hooks/admin-pending-reminder': typeof HooksAdminPendingReminderRoute
+  '/hooks/admin-undo': typeof HooksAdminUndoRoute
   '/hooks/presence-window-opened': typeof HooksPresenceWindowOpenedRoute
   '/invite/$code': typeof InviteCodeRoute
   '/players/$userId': typeof PlayersUserIdRoute
@@ -318,6 +326,7 @@ export interface FileRoutesById {
   '/groups/$groupId': typeof GroupsGroupIdRouteWithChildren
   '/hooks/admin-action': typeof HooksAdminActionRoute
   '/hooks/admin-pending-reminder': typeof HooksAdminPendingReminderRoute
+  '/hooks/admin-undo': typeof HooksAdminUndoRoute
   '/hooks/presence-window-opened': typeof HooksPresenceWindowOpenedRoute
   '/invite/$code': typeof InviteCodeRoute
   '/players/$userId': typeof PlayersUserIdRoute
@@ -357,6 +366,7 @@ export interface FileRouteTypes {
     | '/groups/$groupId'
     | '/hooks/admin-action'
     | '/hooks/admin-pending-reminder'
+    | '/hooks/admin-undo'
     | '/hooks/presence-window-opened'
     | '/invite/$code'
     | '/players/$userId'
@@ -392,6 +402,7 @@ export interface FileRouteTypes {
     | '/admin/inbox'
     | '/hooks/admin-action'
     | '/hooks/admin-pending-reminder'
+    | '/hooks/admin-undo'
     | '/hooks/presence-window-opened'
     | '/invite/$code'
     | '/players/$userId'
@@ -427,6 +438,7 @@ export interface FileRouteTypes {
     | '/groups/$groupId'
     | '/hooks/admin-action'
     | '/hooks/admin-pending-reminder'
+    | '/hooks/admin-undo'
     | '/hooks/presence-window-opened'
     | '/invite/$code'
     | '/players/$userId'
@@ -464,6 +476,7 @@ export interface RootRouteChildren {
   AdminInboxRoute: typeof AdminInboxRoute
   HooksAdminActionRoute: typeof HooksAdminActionRoute
   HooksAdminPendingReminderRoute: typeof HooksAdminPendingReminderRoute
+  HooksAdminUndoRoute: typeof HooksAdminUndoRoute
   HooksPresenceWindowOpenedRoute: typeof HooksPresenceWindowOpenedRoute
   InviteCodeRoute: typeof InviteCodeRoute
   PlayersUserIdRoute: typeof PlayersUserIdRoute
@@ -613,6 +626,13 @@ declare module '@tanstack/react-router' {
       path: '/hooks/presence-window-opened'
       fullPath: '/hooks/presence-window-opened'
       preLoaderRoute: typeof HooksPresenceWindowOpenedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/hooks/admin-undo': {
+      id: '/hooks/admin-undo'
+      path: '/hooks/admin-undo'
+      fullPath: '/hooks/admin-undo'
+      preLoaderRoute: typeof HooksAdminUndoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/hooks/admin-pending-reminder': {
@@ -815,6 +835,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminInboxRoute: AdminInboxRoute,
   HooksAdminActionRoute: HooksAdminActionRoute,
   HooksAdminPendingReminderRoute: HooksAdminPendingReminderRoute,
+  HooksAdminUndoRoute: HooksAdminUndoRoute,
   HooksPresenceWindowOpenedRoute: HooksPresenceWindowOpenedRoute,
   InviteCodeRoute: InviteCodeRoute,
   PlayersUserIdRoute: PlayersUserIdRoute,
