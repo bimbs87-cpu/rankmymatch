@@ -5,6 +5,8 @@ import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianG
 import { toast } from "sonner";
 
 type Period = "7d" | "30d" | "90d" | "all";
+type Granularity = "week" | "month";
+type StatusFilter = "all" | "Vinculado" | "Pendente" | "Expirado" | "Revogado";
 
 interface Props {
   groupId: string;
@@ -49,6 +51,20 @@ function fmtWeekKey(d: Date): string {
   return d.toISOString().slice(0, 10);
 }
 
+function startOfMonth(d: Date): Date {
+  const out = new Date(d.getFullYear(), d.getMonth(), 1);
+  out.setHours(0, 0, 0, 0);
+  return out;
+}
+
+function fmtMonthLabel(d: Date): string {
+  return d.toLocaleDateString("pt-BR", { month: "short", year: "2-digit" });
+}
+
+function fmtMonthKey(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
 function statusOf(i: InviteRow): "Vinculado" | "Revogado" | "Expirado" | "Pendente" {
   if (i.use_count > 0) return "Vinculado";
   if (!i.is_active) return "Revogado";
@@ -58,6 +74,8 @@ function statusOf(i: InviteRow): "Vinculado" | "Revogado" | "Expirado" | "Penden
 
 export function InviteEngagementReport({ groupId }: Props) {
   const [period, setPeriod] = useState<Period>("30d");
+  const [granularity, setGranularity] = useState<Granularity>("week");
+  const [exportFilter, setExportFilter] = useState<StatusFilter>("all");
   const [invites, setInvites] = useState<InviteRow[]>([]);
   const [profileMap, setProfileMap] = useState<Map<string, string>>(new Map());
   const [loading, setLoading] = useState(true);
@@ -111,49 +129,64 @@ export function InviteEngagementReport({ groupId }: Props) {
     return { sent, converted, expired, pending, revoked, rate, list };
   }, [invites, period]);
 
-  // Weekly trend: aggregate by ISO week (Mon-Sun) within selected period
-  const weekly = useMemo(() => {
+  // Trend by selected granularity (week or month)
+  const trend = useMemo(() => {
     if (stats.list.length === 0) return [];
     const days = PERIOD_OPTS.find((p) => p.id === period)?.days;
-    // Determine range: from earliest to now (or cutoff)
     const now = new Date();
     const startBound = days != null ? new Date(Date.now() - days * 86400000) : new Date(Math.min(...stats.list.map((i) => new Date(i.created_at).getTime())));
 
-    // Build buckets per week
-    const buckets = new Map<string, { weekStart: Date; sent: number; converted: number }>();
-    let cursor = startOfWeek(startBound);
-    const endCursor = startOfWeek(now);
-    while (cursor.getTime() <= endCursor.getTime()) {
-      buckets.set(fmtWeekKey(cursor), { weekStart: new Date(cursor), sent: 0, converted: 0 });
-      cursor = new Date(cursor.getTime() + 7 * 86400000);
-    }
-
-    for (const i of stats.list) {
-      const w = startOfWeek(new Date(i.created_at));
-      const key = fmtWeekKey(w);
-      const b = buckets.get(key);
-      if (!b) continue;
-      b.sent += 1;
-      if (i.use_count > 0) b.converted += 1;
+    const buckets = new Map<string, { start: Date; sent: number; converted: number }>();
+    if (granularity === "week") {
+      let cursor = startOfWeek(startBound);
+      const end = startOfWeek(now);
+      while (cursor.getTime() <= end.getTime()) {
+        buckets.set(fmtWeekKey(cursor), { start: new Date(cursor), sent: 0, converted: 0 });
+        cursor = new Date(cursor.getTime() + 7 * 86400000);
+      }
+      for (const i of stats.list) {
+        const k = fmtWeekKey(startOfWeek(new Date(i.created_at)));
+        const b = buckets.get(k);
+        if (!b) continue;
+        b.sent += 1;
+        if (i.use_count > 0) b.converted += 1;
+      }
+    } else {
+      let cursor = startOfMonth(startBound);
+      const end = startOfMonth(now);
+      while (cursor.getTime() <= end.getTime()) {
+        buckets.set(fmtMonthKey(cursor), { start: new Date(cursor), sent: 0, converted: 0 });
+        cursor = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1);
+      }
+      for (const i of stats.list) {
+        const k = fmtMonthKey(startOfMonth(new Date(i.created_at)));
+        const b = buckets.get(k);
+        if (!b) continue;
+        b.sent += 1;
+        if (i.use_count > 0) b.converted += 1;
+      }
     }
 
     return Array.from(buckets.values())
-      .sort((a, b) => a.weekStart.getTime() - b.weekStart.getTime())
+      .sort((a, b) => a.start.getTime() - b.start.getTime())
       .map((b) => ({
-        week: fmtWeekLabel(b.weekStart),
+        bucket: granularity === "week" ? fmtWeekLabel(b.start) : fmtMonthLabel(b.start),
         Enviados: b.sent,
         Vinculados: b.converted,
         Conversao: b.sent > 0 ? Math.round((b.converted / b.sent) * 100) : 0,
       }));
-  }, [stats.list, period]);
+  }, [stats.list, period, granularity]);
 
   const exportCsv = () => {
-    if (stats.list.length === 0) {
-      toast.info("Nada para exportar nesse período");
+    const filtered = exportFilter === "all"
+      ? stats.list
+      : stats.list.filter((i) => statusOf(i) === exportFilter);
+    if (filtered.length === 0) {
+      toast.info("Nada para exportar com esse filtro");
       return;
     }
     const header = ["codigo", "jogador_alvo", "criado_por", "criado_em", "expira_em", "usos", "status"];
-    const rows = stats.list.map((i) => [
+    const rows = filtered.map((i) => [
       i.code,
       i.claim_placeholder_user_id ? (profileMap.get(i.claim_placeholder_user_id) || "") : "",
       i.created_by ? (profileMap.get(i.created_by) || "") : "",
@@ -169,12 +202,12 @@ export function InviteEngagementReport({ groupId }: Props) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `convites-engajamento-${period}-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.download = `convites-${exportFilter}-${period}-${new Date().toISOString().slice(0, 10)}.csv`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    toast.success("CSV exportado");
+    toast.success(`CSV exportado (${filtered.length})`);
   };
 
   return (
@@ -188,14 +221,29 @@ export function InviteEngagementReport({ groupId }: Props) {
             Convites de vinculação enviados a jogadores sem conta e quantos viraram contas reais.
           </p>
         </div>
-        <button
-          onClick={exportCsv}
-          disabled={loading || stats.sent === 0}
-          className="flex shrink-0 items-center gap-1 rounded-full border border-border bg-background px-3 py-1 text-[10px] font-bold text-foreground transition-colors hover:bg-muted disabled:opacity-50"
-          title="Exportar CSV"
-        >
-          <Download className="h-3 w-3" /> CSV
-        </button>
+        <div className="flex shrink-0 items-center gap-1.5">
+          <select
+            value={exportFilter}
+            onChange={(e) => setExportFilter(e.target.value as StatusFilter)}
+            disabled={loading}
+            className="rounded-full border border-border bg-background px-2 py-1 text-[10px] font-semibold text-foreground focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-50"
+            title="Filtrar exportação por status"
+          >
+            <option value="all">Todos</option>
+            <option value="Pendente">Só pendentes</option>
+            <option value="Vinculado">Só vinculados</option>
+            <option value="Expirado">Só expirados</option>
+            <option value="Revogado">Só revogados</option>
+          </select>
+          <button
+            onClick={exportCsv}
+            disabled={loading || stats.sent === 0}
+            className="flex items-center gap-1 rounded-full border border-border bg-background px-3 py-1 text-[10px] font-bold text-foreground transition-colors hover:bg-muted disabled:opacity-50"
+            title="Exportar CSV"
+          >
+            <Download className="h-3 w-3" /> CSV
+          </button>
+        </div>
       </div>
 
       {/* Period selector */}
@@ -251,17 +299,37 @@ export function InviteEngagementReport({ groupId }: Props) {
             </div>
           </div>
 
-          {/* Weekly trend chart */}
-          {weekly.length > 1 && (
+          {/* Trend chart with granularity toggle */}
+          {trend.length > 1 && (
             <div className="rounded-2xl border border-border bg-card/40 p-3">
-              <div className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold text-foreground">
-                <LineIcon className="h-3 w-3" /> Tendência semanal
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <div className="flex items-center gap-1.5 text-[11px] font-semibold text-foreground">
+                  <LineIcon className="h-3 w-3" /> Tendência {granularity === "week" ? "semanal" : "mensal"}
+                </div>
+                <div className="flex items-center gap-0.5 rounded-full bg-muted/40 p-0.5">
+                  <button
+                    onClick={() => setGranularity("week")}
+                    className={`rounded-full px-2 py-0.5 text-[10px] font-bold transition-colors ${
+                      granularity === "week" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    Semanal
+                  </button>
+                  <button
+                    onClick={() => setGranularity("month")}
+                    className={`rounded-full px-2 py-0.5 text-[10px] font-bold transition-colors ${
+                      granularity === "month" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    Mensal
+                  </button>
+                </div>
               </div>
               <div className="h-44 w-full">
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={weekly} margin={{ top: 6, right: 4, left: -20, bottom: 0 }}>
+                  <LineChart data={trend} margin={{ top: 6, right: 4, left: -20, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
-                    <XAxis dataKey="week" tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} />
+                    <XAxis dataKey="bucket" tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} />
                     <YAxis yAxisId="left" allowDecimals={false} tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} />
                     <YAxis yAxisId="right" orientation="right" domain={[0, 100]} tick={{ fontSize: 10, fill: "hsl(var(--info))" }} unit="%" width={34} />
                     <Tooltip

@@ -78,16 +78,22 @@ export function GroupOverviewPanel({ groupId, groupName, groupImage, description
         </div>
       </div>
 
-      {/* KPIs globais + Próxima rodada + Sua posição — todos na mesma linha em desktop */}
-      <div className="grid grid-cols-2 gap-2 lg:grid-cols-6">
-        <KpiCard icon={<Trophy className="h-4 w-4" />} label="Temporadas" value={stats.total_seasons} sub={`${stats.finished_seasons} encerradas`} loading={statsLoading} />
-        <KpiCard icon={<Calendar className="h-4 w-4" />} label="Rodadas" value={stats.total_rounds} loading={statsLoading} />
-        <KpiCard icon={<Activity className="h-4 w-4" />} label="Partidas" value={stats.total_matches} loading={statsLoading} />
-        <KpiCard icon={<Users className="h-4 w-4" />} label="Jogadores" value={stats.total_active_players} loading={statsLoading} />
+      {/* Linha compacta: 2 KPIs combinados + Próxima rodada + Sua posição (sempre 4 colunas) */}
+      <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
+        <DualKpiCard
+          a={{ icon: <Trophy className="h-3 w-3" />, label: "Temporadas", value: stats.total_seasons, sub: stats.finished_seasons ? `${stats.finished_seasons} encerr.` : undefined }}
+          b={{ icon: <Activity className="h-3 w-3" />, label: "Partidas", value: stats.total_matches }}
+          loading={statsLoading}
+        />
+        <DualKpiCard
+          a={{ icon: <Calendar className="h-3 w-3" />, label: "Rodadas", value: stats.total_rounds }}
+          b={{ icon: <Users className="h-3 w-3" />, label: "Jogadores", value: stats.total_active_players }}
+          loading={statsLoading}
+        />
 
-        {/* Próxima rodada — em mobile ocupa metade da linha; em desktop 1 coluna */}
-        <div className="rounded-3xl border border-border bg-card p-3 lg:p-4">
-          <div className="mb-2 flex items-center justify-between gap-2">
+        {/* Próxima rodada */}
+        <div className="rounded-3xl border border-border bg-card p-3">
+          <div className="mb-1.5 flex items-center justify-between gap-2">
             <h3 className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Próxima rodada</h3>
             {data.next_round && (
               <Link
@@ -100,7 +106,7 @@ export function GroupOverviewPanel({ groupId, groupName, groupImage, description
             )}
           </div>
           {isLoading ? (
-            <div className="h-16 animate-pulse rounded-xl bg-muted/30" />
+            <div className="h-14 animate-pulse rounded-xl bg-muted/30" />
           ) : data.next_round ? (
             <>
               <div className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
@@ -114,19 +120,38 @@ export function GroupOverviewPanel({ groupId, groupName, groupImage, description
                   )}
                 </span>
               </div>
-              <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] text-muted-foreground">
+              <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] text-muted-foreground">
                 {data.next_round.scheduled_time && (
                   <span className="flex items-center gap-0.5"><Clock className="h-2.5 w-2.5" />{data.next_round.scheduled_time.slice(0, 5)}</span>
                 )}
                 <span className="flex items-center gap-0.5"><Users className="h-2.5 w-2.5" />{data.next_round.confirmed_count}/{data.next_round.max_players}</span>
               </div>
-              <div className="mt-2">
+
+              {/* Avatares confirmados (prova social) */}
+              {data.next_round.confirmed_avatars.length > 0 && (
+                <div className="mt-1.5 flex items-center gap-1.5">
+                  <div className="flex -space-x-1.5">
+                    {data.next_round.confirmed_avatars.map((p) => (
+                      <div key={p.user_id} className="ring-2 ring-card rounded-full" title={p.name}>
+                        <PlayerAvatar avatarUrl={p.avatar_url} name={p.name} size="xs" />
+                      </div>
+                    ))}
+                  </div>
+                  {data.next_round.confirmed_count > data.next_round.confirmed_avatars.length && (
+                    <span className="text-[9px] text-muted-foreground">
+                      +{data.next_round.confirmed_count - data.next_round.confirmed_avatars.length}
+                    </span>
+                  )}
+                </div>
+              )}
+
+              <div className="mt-1.5">
                 {data.next_round.presence_is_open ? (
                   <div className="flex gap-1">
                     <button
                       disabled={busy}
                       onClick={() => handlePresence("confirmed")}
-                      className={`flex flex-1 items-center justify-center gap-1 rounded-full px-2 py-1.5 text-[10px] font-semibold transition-colors ${
+                      className={`flex flex-1 items-center justify-center gap-1 rounded-full px-2 py-1 text-[10px] font-semibold transition-colors ${
                         data.next_round.presence_status === "confirmed"
                           ? "bg-success text-success-foreground"
                           : "border border-success/40 bg-success/10 text-success hover:bg-success/20"
@@ -137,7 +162,7 @@ export function GroupOverviewPanel({ groupId, groupName, groupImage, description
                     <button
                       disabled={busy}
                       onClick={() => handlePresence("declined")}
-                      className={`flex flex-1 items-center justify-center gap-1 rounded-full px-2 py-1.5 text-[10px] font-semibold transition-colors ${
+                      className={`flex flex-1 items-center justify-center gap-1 rounded-full px-2 py-1 text-[10px] font-semibold transition-colors ${
                         data.next_round.presence_status === "declined"
                           ? "bg-destructive text-destructive-foreground"
                           : "border border-destructive/40 bg-destructive/10 text-destructive hover:bg-destructive/20"
@@ -147,7 +172,7 @@ export function GroupOverviewPanel({ groupId, groupName, groupImage, description
                     </button>
                   </div>
                 ) : (
-                  <div className="flex items-center justify-center gap-1 rounded-lg border border-dashed border-border bg-muted/20 py-1.5 text-[10px] text-muted-foreground">
+                  <div className="flex items-center justify-center gap-1 rounded-lg border border-dashed border-border bg-muted/20 py-1 text-[10px] text-muted-foreground">
                     <Lock className="h-2.5 w-2.5 shrink-0" />
                     <span className="truncate">
                       {data.next_round.presence_opens_at
@@ -159,20 +184,20 @@ export function GroupOverviewPanel({ groupId, groupName, groupImage, description
               </div>
             </>
           ) : (
-            <div className="rounded-xl border border-dashed border-border bg-muted/10 py-4 text-center text-[10px] text-muted-foreground">
+            <div className="rounded-xl border border-dashed border-border bg-muted/10 py-3 text-center text-[10px] text-muted-foreground">
               Sem rodada agendada
             </div>
           )}
         </div>
 
         {/* Sua posição */}
-        <div className="rounded-3xl border border-border bg-card p-3 lg:p-4">
-          <h3 className="mb-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Sua posição</h3>
+        <div className="rounded-3xl border border-border bg-card p-3">
+          <h3 className="mb-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Sua posição</h3>
           {isLoading ? (
-            <div className="h-16 animate-pulse rounded-xl bg-muted/30" />
+            <div className="h-14 animate-pulse rounded-xl bg-muted/30" />
           ) : data.my_position ? (
             <button onClick={onGotoMembers} className="flex w-full items-center gap-2 text-left">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10">
                 <span className="font-display text-base font-black text-primary">#{data.my_position}</span>
               </div>
               <div className="min-w-0 flex-1">
@@ -182,7 +207,7 @@ export function GroupOverviewPanel({ groupId, groupName, groupImage, description
               <ChevronRight className="h-3 w-3 shrink-0 text-muted-foreground" />
             </button>
           ) : (
-            <div className="rounded-xl border border-dashed border-border bg-muted/10 py-4 text-center text-[10px] text-muted-foreground">
+            <div className="rounded-xl border border-dashed border-border bg-muted/10 py-3 text-center text-[10px] text-muted-foreground">
               Jogue para entrar no ranking
             </div>
           )}
@@ -328,6 +353,31 @@ function KpiCard({ icon, label, value, sub, loading }: { icon: React.ReactNode; 
         <p className="mt-0.5 font-display text-2xl font-black text-foreground">{value}</p>
       )}
       {sub && <p className="text-[10px] text-muted-foreground">{sub}</p>}
+    </div>
+  );
+}
+
+interface KpiSlot { icon: React.ReactNode; label: string; value: number; sub?: string }
+
+function DualKpiCard({ a, b, loading }: { a: KpiSlot; b: KpiSlot; loading?: boolean }) {
+  return (
+    <div className="rounded-3xl border border-border bg-card p-3">
+      <div className="grid grid-cols-2 gap-2">
+        {[a, b].map((slot, i) => (
+          <div key={i} className={i === 0 ? "border-r border-border/60 pr-2" : "pl-1"}>
+            <div className="flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider text-muted-foreground">
+              {slot.icon}
+              <span className="truncate">{slot.label}</span>
+            </div>
+            {loading ? (
+              <div className="mt-1 h-6 w-12 animate-pulse rounded bg-muted/40" />
+            ) : (
+              <p className="mt-0.5 font-display text-xl font-black leading-tight text-foreground">{slot.value}</p>
+            )}
+            {slot.sub && <p className="text-[9px] text-muted-foreground truncate">{slot.sub}</p>}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
