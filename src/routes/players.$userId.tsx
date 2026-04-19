@@ -104,6 +104,7 @@ function PlayerPublicProfile() {
           <ArrowLeft className="h-4 w-4 text-foreground" />
         </button>
         <h1 className="flex-1 font-display text-lg font-bold text-foreground">Perfil</h1>
+        <ShareProfileButton userId={userId} playerName={profile.name || "jogador"} />
         <span className="inline-flex items-center gap-1 rounded-full bg-muted/40 px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
           <Lock className="h-3 w-3" /> Público
         </span>
