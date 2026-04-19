@@ -70,16 +70,26 @@ export function useGroupAlerts(groupIds: string[], adminGroupIds: string[]) {
         }
       }
 
-      // Admin: pending join requests
+      // Admin: pending join requests + pending player claims
       const adminCounts = new Map<string, number>();
       if (adminGroupIds.length) {
-        const { data: reqs } = await supabase
-          .from("group_join_requests")
-          .select("group_id")
-          .in("group_id", adminGroupIds)
-          .eq("status", "pending");
+        const [{ data: reqs }, { data: claims }] = await Promise.all([
+          supabase
+            .from("group_join_requests")
+            .select("group_id")
+            .in("group_id", adminGroupIds)
+            .eq("status", "pending"),
+          supabase
+            .from("player_claims")
+            .select("group_id")
+            .in("group_id", adminGroupIds)
+            .eq("status", "pending"),
+        ]);
         for (const r of reqs || []) {
           adminCounts.set(r.group_id, (adminCounts.get(r.group_id) || 0) + 1);
+        }
+        for (const c of claims || []) {
+          adminCounts.set(c.group_id, (adminCounts.get(c.group_id) || 0) + 1);
         }
       }
 
@@ -114,6 +124,11 @@ export function useGroupAlerts(groupIds: string[], adminGroupIds: string[]) {
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "group_join_requests" },
+        () => refreshRef.current(),
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "player_claims" },
         () => refreshRef.current(),
       )
       .on(

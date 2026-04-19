@@ -32,6 +32,16 @@ export interface PendingJoinReq {
   claimed_player_name: string | null;
 }
 
+export interface PendingClaim {
+  id: string;
+  claimer_user_id: string;
+  claimer_name: string;
+  claimer_avatar: string | null;
+  placeholder_user_id: string;
+  placeholder_name: string;
+  created_at: string;
+}
+
 export interface PodiumPlayer {
   user_id: string;
   name: string;
@@ -66,6 +76,7 @@ export interface GroupDashboardData {
   current_season: SeasonInfo | null;
   member_count: number;
   pending_join_requests: PendingJoinReq[];
+  pending_claims: PendingClaim[];
 }
 
 const EMPTY: GroupDashboardData = {
@@ -78,6 +89,7 @@ const EMPTY: GroupDashboardData = {
   current_season: null,
   member_count: 0,
   pending_join_requests: [],
+  pending_claims: [],
 };
 
 export function useGroupDashboard(groupId: string | null) {
@@ -369,6 +381,40 @@ export function useGroupDashboard(groupId: string | null) {
         });
       }
 
+      // Pending player_claims (admin-only; RLS returns [] for non-admins)
+      let pendingClaims: PendingClaim[] = [];
+      const { data: claimRows } = await supabase
+        .from("player_claims")
+        .select("id, claimer_user_id, placeholder_user_id, created_at")
+        .eq("group_id", groupId)
+        .eq("status", "pending")
+        .order("created_at", { ascending: false });
+      if (claimRows && claimRows.length) {
+        const ids = [
+          ...new Set(
+            claimRows.flatMap((c) => [c.claimer_user_id, c.placeholder_user_id]),
+          ),
+        ];
+        const { data: profs } = await supabase
+          .from("user_profiles")
+          .select("user_id, name, nickname, avatar_url")
+          .in("user_id", ids);
+        const pmap = new Map((profs || []).map((p) => [p.user_id, p]));
+        pendingClaims = claimRows.map((c) => {
+          const claimer = pmap.get(c.claimer_user_id);
+          const ph = pmap.get(c.placeholder_user_id);
+          return {
+            id: c.id,
+            claimer_user_id: c.claimer_user_id,
+            claimer_name: claimer?.nickname || claimer?.name || "Usuário",
+            claimer_avatar: claimer?.avatar_url ?? null,
+            placeholder_user_id: c.placeholder_user_id,
+            placeholder_name: ph?.nickname || ph?.name || "Jogador",
+            created_at: c.created_at,
+          };
+        });
+      }
+
       setData({
         next_round: nextRound,
         my_position: myPos,
@@ -388,6 +434,7 @@ export function useGroupDashboard(groupId: string | null) {
           : null,
         member_count: memberCount,
         pending_join_requests: pendingJoinRequests,
+        pending_claims: pendingClaims,
       });
     } catch (err) {
       console.error("Erro ao carregar dashboard do grupo:", err);

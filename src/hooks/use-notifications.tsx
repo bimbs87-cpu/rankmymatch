@@ -101,6 +101,62 @@ export function useNotifications() {
 }
 
 /**
+ * Notify only the active admins/creators of a group (in-app + best-effort push).
+ * Used for moderation events: join requests, player claims, etc.
+ */
+export async function notifyGroupAdmins(params: {
+  groupId: string;
+  actorId: string;
+  type: string;
+  title: string;
+  body: string;
+  data?: Record<string, string | number | boolean | null>;
+  /** Optional URL to open when the push is tapped. Defaults to the group page. */
+  url?: string;
+}) {
+  const { data: admins } = await supabase
+    .from("group_members")
+    .select("user_id")
+    .eq("group_id", params.groupId)
+    .eq("status", "active")
+    .in("role", ["creator", "admin"])
+    .neq("user_id", params.actorId);
+
+  if (!admins?.length) return;
+
+  const userIds = admins.map((a) => a.user_id);
+  const rows = userIds.map((uid) => ({
+    user_id: uid,
+    group_id: params.groupId,
+    type: params.type,
+    title: params.title,
+    body: params.body,
+    data: params.data || {},
+  }));
+
+  await supabase.from("notifications").insert(rows);
+
+  try {
+    const { sendPushFn } = await import("@/lib/push.functions");
+    void sendPushFn({
+      data: {
+        userIds,
+        payload: {
+          title: params.title,
+          body: params.body,
+          url: params.url || `/groups/${params.groupId}`,
+          type: params.type,
+          tag: `${params.type}:${params.groupId}`,
+          data: { groupId: params.groupId, ...(params.data || {}) },
+        },
+      },
+    }).catch(() => {});
+  } catch {
+    /* push is optional */
+  }
+}
+
+/**
  * Notify all members of a group except the actor (in-app + best-effort push).
  */
 export async function notifyGroupMembers(params: {
