@@ -164,14 +164,16 @@ function GeneralSection({ group, onSaved }: { group: any; onSaved: () => void })
                 Renove para manter o badge PREMIUM e os recursos avançados ativos no grupo.
               </p>
               <div className="mt-2 flex flex-wrap gap-2">
-                <a
-                  href="/sistema#planos"
+                <button
+                  onClick={() =>
+                    startRenewalCheckout({ groupId: group.id, groupName: group.name })
+                  }
                   className="rounded-full bg-primary px-3 py-1 text-[11px] font-bold text-primary-foreground hover:opacity-90"
                 >
                   Renovar assinatura
-                </a>
+                </button>
                 <a
-                  href={`https://wa.me/?text=${encodeURIComponent(`Olá! Quero renovar a assinatura PREMIUM do grupo "${group.name}".`)}`}
+                  href={salesWhatsAppUrl(group.name)}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="rounded-full border border-border bg-background px-3 py-1 text-[11px] font-bold text-foreground hover:bg-muted"
