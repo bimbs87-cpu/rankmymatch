@@ -128,7 +128,7 @@ export function EloEvolutionChart({
         ))}
       </div>
 
-      <div className="relative flex-1 rounded-xl bg-muted/10 p-2">
+      <div className="relative min-h-0 flex-1 overflow-hidden rounded-xl bg-muted/10 p-2">
         {!filtered.length ? (
           <div className="flex h-full items-center justify-center text-[11px] text-muted-foreground">
             Sem histórico ainda
@@ -138,7 +138,7 @@ export function EloEvolutionChart({
             <svg
               ref={svgRef}
               viewBox={`0 0 ${w} ${h}`}
-              className="h-full w-full"
+              className="block h-full w-full"
               preserveAspectRatio="none"
               onMouseMove={handleMove}
               onMouseLeave={handleLeave}
