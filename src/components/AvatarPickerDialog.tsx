@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -6,7 +6,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { PREMIUM_AVATARS, SPORT_TABS, getAvatarUrl } from "@/lib/avatar-data";
-import { Check } from "lucide-react";
+import { Check, Shuffle, X } from "lucide-react";
 
 interface AvatarPickerDialogProps {
   open: boolean;
@@ -33,8 +33,30 @@ export function AvatarPickerDialog({
   googleOnly = false,
 }: AvatarPickerDialogProps) {
   const [tab, setTab] = useState(SPORT_TABS[0].key);
+  // Random preview: id of the avatar chosen by the dice — highlighted in the grid
+  // until the user confirms with "Usar este avatar" (which then saves it).
+  const [randomPickId, setRandomPickId] = useState<string | null>(null);
 
-  const filtered = PREMIUM_AVATARS.filter((a) => a.sport === tab);
+  const filtered = useMemo(() => PREMIUM_AVATARS.filter((a) => a.sport === tab), [tab]);
+
+  const rollRandom = () => {
+    if (!filtered.length) return;
+    let pick = filtered[Math.floor(Math.random() * filtered.length)];
+    if (filtered.length > 1) {
+      let attempts = 0;
+      while (pick.id === randomPickId && attempts < 5) {
+        pick = filtered[Math.floor(Math.random() * filtered.length)];
+        attempts++;
+      }
+    }
+    setRandomPickId(pick.id);
+  };
+
+  const confirmRandom = () => {
+    if (!randomPickId) return;
+    onSelect(`avatar:${randomPickId}`, "emoji");
+    setRandomPickId(null);
+  };
 
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
@@ -81,20 +103,58 @@ export function AvatarPickerDialog({
             )}
 
             {!googleOnly && (
-            <div className="flex flex-wrap gap-1.5 sm:gap-2">
-              {SPORT_TABS.map((s) => (
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex flex-wrap gap-1.5 sm:gap-2">
+                {SPORT_TABS.map((s) => (
+                  <button
+                    key={s.key}
+                    onClick={() => { setTab(s.key); setRandomPickId(null); }}
+                    className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
+                      tab === s.key
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-muted text-muted-foreground"
+                    }`}
+                  >
+                    {s.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Random + confirm controls */}
+              {randomPickId ? (
+                <div className="flex items-center gap-1.5">
+                  <button
+                    onClick={confirmRandom}
+                    disabled={saving}
+                    className="flex items-center gap-1 rounded-full bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground hover:opacity-90 disabled:opacity-60"
+                  >
+                    <Check className="h-3.5 w-3.5" /> Usar este
+                  </button>
+                  <button
+                    onClick={rollRandom}
+                    disabled={saving}
+                    className="flex items-center gap-1 rounded-full border border-border bg-background px-3 py-1.5 text-xs font-bold text-foreground hover:border-primary/50 hover:text-primary disabled:opacity-60"
+                  >
+                    <Shuffle className="h-3.5 w-3.5" /> De novo
+                  </button>
+                  <button
+                    onClick={() => setRandomPickId(null)}
+                    disabled={saving}
+                    aria-label="Cancelar sorteio"
+                    className="flex items-center justify-center rounded-full border border-border bg-background p-1.5 text-muted-foreground hover:text-foreground"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              ) : (
                 <button
-                  key={s.key}
-                  onClick={() => setTab(s.key)}
-                  className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
-                    tab === s.key
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-muted text-muted-foreground"
-                  }`}
+                  onClick={rollRandom}
+                  disabled={saving}
+                  className="flex items-center gap-1 rounded-full border border-primary/40 bg-primary/10 px-3 py-1.5 text-xs font-bold text-primary hover:bg-primary/20 disabled:opacity-60"
                 >
-                  {s.label}
+                  <Shuffle className="h-3.5 w-3.5" /> Sortear
                 </button>
-              ))}
+              )}
             </div>
             )}
 
@@ -103,15 +163,18 @@ export function AvatarPickerDialog({
               {filtered.map((avatar) => {
                 const avatarKey = `avatar:${avatar.id}`;
                 const isSelected = currentAvatarUrl === avatarKey || currentAvatarUrl === `emoji:${avatar.id}`;
+                const isRandomPick = randomPickId === avatar.id;
                 const src = getAvatarUrl(avatar.id);
                 if (!src) return null;
                 return (
                   <button
                     key={avatar.id}
                     disabled={saving}
-                    onClick={() => onSelect(avatarKey, "emoji")}
+                    onClick={() => { setRandomPickId(null); onSelect(avatarKey, "emoji"); }}
                     className={`relative flex aspect-[0.88] items-center justify-center overflow-hidden rounded-2xl border-2 bg-muted/50 transition-all sm:aspect-square ${
-                      isSelected
+                      isRandomPick
+                        ? "border-primary ring-4 ring-primary/40 scale-[1.02]"
+                        : isSelected
                         ? "border-primary ring-2 ring-primary/30"
                         : "border-transparent hover:border-border"
                     }`}
@@ -122,7 +185,14 @@ export function AvatarPickerDialog({
                       className="h-full w-full object-cover"
                       loading="lazy"
                     />
-                    {isSelected && (
+                    {isRandomPick && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-primary/20">
+                        <span className="rounded-full bg-primary px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-primary-foreground">
+                          Sorteado
+                        </span>
+                      </div>
+                    )}
+                    {!isRandomPick && isSelected && (
                       <div className="absolute inset-0 flex items-center justify-center bg-primary/30">
                         <Check className="h-6 w-6 text-primary-foreground drop-shadow-md" />
                       </div>
