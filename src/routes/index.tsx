@@ -15,6 +15,7 @@ import { usePendingMatch } from "@/hooks/use-pending-matches";
 import { PendingMatchCard } from "@/components/PendingMatchCard";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { InstallBanner } from "@/components/InstallBanner";
+import { InstallIconButton } from "@/components/InstallIconButton";
 import { PushOptInBanner } from "@/components/PushOptInBanner";
 import { EloEvolutionChart } from "@/components/EloEvolutionChart";
 import { supabase } from "@/integrations/supabase/client";
@@ -1276,6 +1277,7 @@ function DashboardPage() {
 
           <div className="flex items-center gap-2">
             <img src={resolvedTheme === "light" ? logoSymbolBlack : logoSymbolNeon} alt="RankMyMatch" className="h-7 w-7" />
+            <InstallIconButton />
             <Link to="/notifications" className="relative rounded-full border border-border bg-card p-2.5 transition-colors hover:bg-accent">
               <Bell className="h-4 w-4 text-muted-foreground" />
               {unreadCount > 0 && (
