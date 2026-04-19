@@ -944,6 +944,33 @@ export type Database = {
         }
         Relationships: []
       }
+      push_notification_preferences: {
+        Row: {
+          created_at: string
+          enabled: boolean
+          event_type: string
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          enabled?: boolean
+          event_type: string
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          enabled?: boolean
+          event_type?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       push_subscriptions: {
         Row: {
           auth: string
@@ -1157,6 +1184,21 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      round_presence_push_log: {
+        Row: {
+          pushed_at: string
+          round_id: string
+        }
+        Insert: {
+          pushed_at?: string
+          round_id: string
+        }
+        Update: {
+          pushed_at?: string
+          round_id?: string
+        }
+        Relationships: []
       }
       rounds: {
         Row: {
