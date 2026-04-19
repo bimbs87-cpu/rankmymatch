@@ -352,19 +352,23 @@ export function ScoreEntryDialog({
           {isSingles ? (
             <div className="mb-4 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <PlayerAvatar avatarUrl={teamA[0]?.avatarUrl || null} name={playerAName} size="md" className="ring-2 ring-primary/30" />
+                <PlayerAvatarLink userId={teamA[0]?.userId} ariaLabel={`Ver perfil de ${playerAName}`}>
+                  <PlayerAvatar avatarUrl={teamA[0]?.avatarUrl || null} name={playerAName} size="md" className="ring-2 ring-primary/30" />
+                </PlayerAvatarLink>
                 <div className="flex flex-col">
-                  <span className="text-sm font-semibold text-primary leading-tight">{playerAName}</span>
+                  <PlayerNameLink userId={teamA[0]?.userId} className="text-sm font-semibold text-primary leading-tight">{playerAName}</PlayerNameLink>
                   {renderEloBadge(teamA[0]?.userId)}
                 </div>
               </div>
               <span className="text-xs font-bold text-muted-foreground">VS</span>
               <div className="flex items-center gap-2">
                 <div className="flex flex-col items-end">
-                  <span className="text-sm font-semibold text-info leading-tight">{playerBName}</span>
+                  <PlayerNameLink userId={teamB[0]?.userId} className="text-sm font-semibold text-info leading-tight">{playerBName}</PlayerNameLink>
                   {renderEloBadge(teamB[0]?.userId)}
                 </div>
-                <PlayerAvatar avatarUrl={teamB[0]?.avatarUrl || null} name={playerBName} size="md" className="ring-2 ring-info/30" />
+                <PlayerAvatarLink userId={teamB[0]?.userId} ariaLabel={`Ver perfil de ${playerBName}`}>
+                  <PlayerAvatar avatarUrl={teamB[0]?.avatarUrl || null} name={playerBName} size="md" className="ring-2 ring-info/30" />
+                </PlayerAvatarLink>
               </div>
             </div>
           ) : (
