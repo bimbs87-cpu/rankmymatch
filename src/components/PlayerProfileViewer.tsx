@@ -130,6 +130,7 @@ function PlayerProfileDrawer({
   const navigate = useNavigate();
   const [profile, setProfile] = useState<QuickProfile | null>(null);
   const [stats, setStats] = useState<QuickStats | null>(null);
+  const [h2h, setH2h] = useState<H2HResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [meId, setMeId] = useState<string | null>(null);
 
@@ -138,6 +139,7 @@ function PlayerProfileDrawer({
     if (!userId) {
       setProfile(null);
       setStats(null);
+      setH2h(null);
       return;
     }
     setLoading(true);
