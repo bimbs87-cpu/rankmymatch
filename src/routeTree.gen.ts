@@ -30,6 +30,7 @@ import { Route as PlayersUserIdRouteImport } from './routes/players.$userId'
 import { Route as InviteCodeRouteImport } from './routes/invite.$code'
 import { Route as HooksPresenceWindowOpenedRouteImport } from './routes/hooks.presence-window-opened'
 import { Route as HooksAdminPendingReminderRouteImport } from './routes/hooks.admin-pending-reminder'
+import { Route as HooksAdminActionRouteImport } from './routes/hooks.admin-action'
 import { Route as GroupsGroupIdRouteImport } from './routes/groups.$groupId'
 import { Route as AdminInboxRouteImport } from './routes/admin.inbox'
 import { Route as GroupsGroupIdIndexRouteImport } from './routes/groups.$groupId.index'
@@ -152,6 +153,11 @@ const HooksAdminPendingReminderRoute =
     path: '/hooks/admin-pending-reminder',
     getParentRoute: () => rootRouteImport,
   } as any)
+const HooksAdminActionRoute = HooksAdminActionRouteImport.update({
+  id: '/hooks/admin-action',
+  path: '/hooks/admin-action',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const GroupsGroupIdRoute = GroupsGroupIdRouteImport.update({
   id: '/$groupId',
   path: '/$groupId',
@@ -239,6 +245,7 @@ export interface FileRoutesByFullPath {
   '/sobre-desenvolvimento': typeof SobreDesenvolvimentoRouteWithChildren
   '/admin/inbox': typeof AdminInboxRoute
   '/groups/$groupId': typeof GroupsGroupIdRouteWithChildren
+  '/hooks/admin-action': typeof HooksAdminActionRoute
   '/hooks/admin-pending-reminder': typeof HooksAdminPendingReminderRoute
   '/hooks/presence-window-opened': typeof HooksPresenceWindowOpenedRoute
   '/invite/$code': typeof InviteCodeRoute
@@ -273,6 +280,7 @@ export interface FileRoutesByTo {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/sobre-desenvolvimento': typeof SobreDesenvolvimentoRouteWithChildren
   '/admin/inbox': typeof AdminInboxRoute
+  '/hooks/admin-action': typeof HooksAdminActionRoute
   '/hooks/admin-pending-reminder': typeof HooksAdminPendingReminderRoute
   '/hooks/presence-window-opened': typeof HooksPresenceWindowOpenedRoute
   '/invite/$code': typeof InviteCodeRoute
@@ -308,6 +316,7 @@ export interface FileRoutesById {
   '/sobre-desenvolvimento': typeof SobreDesenvolvimentoRouteWithChildren
   '/admin/inbox': typeof AdminInboxRoute
   '/groups/$groupId': typeof GroupsGroupIdRouteWithChildren
+  '/hooks/admin-action': typeof HooksAdminActionRoute
   '/hooks/admin-pending-reminder': typeof HooksAdminPendingReminderRoute
   '/hooks/presence-window-opened': typeof HooksPresenceWindowOpenedRoute
   '/invite/$code': typeof InviteCodeRoute
@@ -346,6 +355,7 @@ export interface FileRouteTypes {
     | '/sobre-desenvolvimento'
     | '/admin/inbox'
     | '/groups/$groupId'
+    | '/hooks/admin-action'
     | '/hooks/admin-pending-reminder'
     | '/hooks/presence-window-opened'
     | '/invite/$code'
@@ -380,6 +390,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/sobre-desenvolvimento'
     | '/admin/inbox'
+    | '/hooks/admin-action'
     | '/hooks/admin-pending-reminder'
     | '/hooks/presence-window-opened'
     | '/invite/$code'
@@ -414,6 +425,7 @@ export interface FileRouteTypes {
     | '/sobre-desenvolvimento'
     | '/admin/inbox'
     | '/groups/$groupId'
+    | '/hooks/admin-action'
     | '/hooks/admin-pending-reminder'
     | '/hooks/presence-window-opened'
     | '/invite/$code'
@@ -450,6 +462,7 @@ export interface RootRouteChildren {
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   SobreDesenvolvimentoRoute: typeof SobreDesenvolvimentoRouteWithChildren
   AdminInboxRoute: typeof AdminInboxRoute
+  HooksAdminActionRoute: typeof HooksAdminActionRoute
   HooksAdminPendingReminderRoute: typeof HooksAdminPendingReminderRoute
   HooksPresenceWindowOpenedRoute: typeof HooksPresenceWindowOpenedRoute
   InviteCodeRoute: typeof InviteCodeRoute
@@ -607,6 +620,13 @@ declare module '@tanstack/react-router' {
       path: '/hooks/admin-pending-reminder'
       fullPath: '/hooks/admin-pending-reminder'
       preLoaderRoute: typeof HooksAdminPendingReminderRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/hooks/admin-action': {
+      id: '/hooks/admin-action'
+      path: '/hooks/admin-action'
+      fullPath: '/hooks/admin-action'
+      preLoaderRoute: typeof HooksAdminActionRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/groups/$groupId': {
@@ -793,6 +813,7 @@ const rootRouteChildren: RootRouteChildren = {
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   SobreDesenvolvimentoRoute: SobreDesenvolvimentoRouteWithChildren,
   AdminInboxRoute: AdminInboxRoute,
+  HooksAdminActionRoute: HooksAdminActionRoute,
   HooksAdminPendingReminderRoute: HooksAdminPendingReminderRoute,
   HooksPresenceWindowOpenedRoute: HooksPresenceWindowOpenedRoute,
   InviteCodeRoute: InviteCodeRoute,

@@ -144,7 +144,7 @@ export async function notifyGroupAdmins(params: {
         payload: {
           title: params.title,
           body: params.body,
-          url: params.url || `/groups/${params.groupId}`,
+          url: params.url || `/admin/inbox`,
           type: params.type,
           tag: `${params.type}:${params.groupId}`,
           data: { groupId: params.groupId, ...(params.data || {}) },
