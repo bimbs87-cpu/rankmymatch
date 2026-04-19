@@ -113,11 +113,11 @@ function ChangelogPage() {
     [notes, filter, normalizedQuery],
   );
 
-  // Group by month for organization
+  // Group by major.minor version (e.g. "0.28")
   const grouped = filtered.reduce(
     (acc, n) => {
-      const d = new Date(n.released_at);
-      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      const [maj, min] = parseVersion(n.version);
+      const key = `${maj}.${min}`;
       if (!acc[key]) acc[key] = [];
       acc[key].push(n);
       return acc;
@@ -125,11 +125,11 @@ function ChangelogPage() {
     {} as Record<string, ReleaseNote[]>,
   );
 
-  const monthLabel = (key: string) => {
-    const [y, m] = key.split("-");
-    const d = new Date(Number(y), Number(m) - 1, 1);
-    return new Intl.DateTimeFormat("pt-BR", { month: "long", year: "numeric" }).format(d);
-  };
+  const groupedEntries = Object.entries(grouped).sort(([a], [b]) =>
+    compareVersionsDesc(a, b),
+  );
+
+  const versionLabel = (key: string) => `v${key}.x`;
 
   const counts = {
     all: notes?.length ?? 0,
