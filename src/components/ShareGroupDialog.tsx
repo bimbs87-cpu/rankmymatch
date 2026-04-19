@@ -44,8 +44,30 @@ export function ShareGroupDialog({ open, onOpenChange, url, groupName, groupId, 
   const [clearingCache, setClearingCache] = useState(false);
   const [cacheStatus, setCacheStatus] = useState<"HIT" | "MISS" | "UNKNOWN" | null>(null);
   const [ogVersion, setOgVersion] = useState(0);
+  const [waTemplate, setWaTemplate] = useState<string>(DEFAULT_WA_TEMPLATE);
+  const [waEditing, setWaEditing] = useState(false);
+  const [waDraft, setWaDraft] = useState<string>(DEFAULT_WA_TEMPLATE);
+  const [savingTpl, setSavingTpl] = useState(false);
   const ogImgRef = useRef<HTMLImageElement>(null);
   const invalidateGroupCache = useServerFn(invalidateGroupOgCache);
+
+  // Load custom WhatsApp template for this group
+  useEffect(() => {
+    if (!open || !groupId) return;
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("groups")
+        .select("whatsapp_share_template")
+        .eq("id", groupId)
+        .maybeSingle();
+      if (cancelled) return;
+      const tpl = (data as { whatsapp_share_template?: string | null } | null)?.whatsapp_share_template?.trim() || DEFAULT_WA_TEMPLATE;
+      setWaTemplate(tpl);
+      setWaDraft(tpl);
+    })();
+    return () => { cancelled = true; };
+  }, [open, groupId]);
 
   useEffect(() => {
     if (!open) {
