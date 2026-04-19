@@ -184,7 +184,7 @@ export function LandingPage() {
 
       {/* === Header === */}
       <header className="relative z-20">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-3 sm:px-8 sm:py-4">
+        <div className="mx-auto flex max-w-7xl items-center justify-center px-5 py-3 sm:justify-between sm:px-8 sm:py-4">
           <img src={logoSrc} alt="RankMyMatch" className="h-12 w-auto sm:h-16 lg:h-20" />
           <button
             onClick={handleGoogleLogin}
