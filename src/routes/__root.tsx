@@ -4,6 +4,7 @@ import { UserProfileProvider } from "@/hooks/use-user-profile";
 import { BottomNav } from "@/components/BottomNav";
 import { DesktopNav } from "@/components/DesktopNav";
 import { InstallFlowProvider } from "@/components/InstallFlowProvider";
+import { AvatarPromptGate } from "@/components/AvatarPromptGate";
 import { Toaster } from "@/components/ui/sonner";
 import "../styles.css";
 import { useEffect } from "react";
