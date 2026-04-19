@@ -6,6 +6,7 @@
  * Ranking blocks (current Elo, weighted Elo, best position, form) are ALWAYS visible.
  */
 import type { ReactNode } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { EloEvolutionChart } from "@/components/EloEvolutionChart";
@@ -31,6 +32,7 @@ import {
   Crosshair,
 } from "lucide-react";
 import { abbreviateName } from "@/lib/utils";
+import { loadH2HBetween, type H2HResult } from "@/lib/h2h";
 import type {
   AggregatedProfile,
   AggregatedSummary,
@@ -47,6 +49,8 @@ interface Props {
   footer?: ReactNode;
   /** When true, treat as the user viewing themselves (skip privacy gating) */
   isSelfView?: boolean;
+  /** Logged-in viewer id — when set and != profile, loads H2H comigo block */
+  viewerId?: string | null;
 }
 
 const HAND_LABEL: Record<string, string> = { right: "Destro", left: "Canhoto" };
