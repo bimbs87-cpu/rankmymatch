@@ -213,25 +213,61 @@ export function AvatarPromptGate() {
           <div className="mt-5 space-y-2">
             {mandatoryNoGoogle ? (
               <>
-                <button
-                  onClick={handleRandomPreset}
-                  disabled={saving}
-                  className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-3 text-sm font-bold text-primary-foreground hover:opacity-90 disabled:opacity-60"
-                >
-                  <Shuffle className="h-4 w-4" />
-                  Sortear um avatar pra mim
-                </button>
-                <button
-                  onClick={() => setPicker(true)}
-                  disabled={saving}
-                  className="flex w-full items-center justify-center gap-2 rounded-2xl border border-border bg-background py-2.5 text-xs font-bold text-foreground hover:border-primary/50 hover:text-primary disabled:opacity-60"
-                >
-                  <UserCircle2 className="h-4 w-4" />
-                  Escolher da galeria
-                </button>
-                <p className="rounded-xl border border-warning/30 bg-warning/5 p-2 text-[11px] text-warning">
-                  Você precisa carregar um avatar da lista disponível para continuar.
-                </p>
+                {randomPreview ? (
+                  <>
+                    <p className="text-xs font-semibold text-foreground">
+                      Gostou desse? Confirme ou sorteie de novo.
+                    </p>
+                    <button
+                      onClick={confirmRandomPreview}
+                      disabled={saving}
+                      className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-3 text-sm font-bold text-primary-foreground hover:opacity-90 disabled:opacity-60"
+                    >
+                      <Check className="h-4 w-4" />
+                      {saving ? "Salvando..." : "Usar este avatar"}
+                    </button>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        onClick={rollRandomPreview}
+                        disabled={saving}
+                        className="flex items-center justify-center gap-2 rounded-2xl border border-border bg-background py-2.5 text-xs font-bold text-foreground hover:border-primary/50 hover:text-primary disabled:opacity-60"
+                      >
+                        <Shuffle className="h-4 w-4" />
+                        Sortear de novo
+                      </button>
+                      <button
+                        onClick={() => setRandomPreview(null)}
+                        disabled={saving}
+                        className="flex items-center justify-center gap-2 rounded-2xl border border-border bg-background py-2.5 text-xs font-bold text-muted-foreground hover:text-foreground disabled:opacity-60"
+                      >
+                        <X className="h-4 w-4" />
+                        Cancelar
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      onClick={rollRandomPreview}
+                      disabled={saving}
+                      className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-3 text-sm font-bold text-primary-foreground hover:opacity-90 disabled:opacity-60"
+                    >
+                      <Shuffle className="h-4 w-4" />
+                      Sortear um avatar pra mim
+                    </button>
+                    <button
+                      onClick={() => setPicker(true)}
+                      disabled={saving}
+                      className="flex w-full items-center justify-center gap-2 rounded-2xl border border-border bg-background py-2.5 text-xs font-bold text-foreground hover:border-primary/50 hover:text-primary disabled:opacity-60"
+                    >
+                      <UserCircle2 className="h-4 w-4" />
+                      Escolher da galeria
+                    </button>
+                    <p className="rounded-xl border border-warning/30 bg-warning/5 p-2 text-[11px] text-warning">
+                      Você precisa carregar um avatar da lista disponível para continuar.
+                    </p>
+                  </>
+                )}
               </>
             ) : isMandatory && googlePhoto ? (
               <button
