@@ -45,6 +45,9 @@ type BugReport = {
 const STATUSES = ["open", "in_progress", "resolved", "wont_fix"] as const;
 type Status = (typeof STATUSES)[number];
 
+const PRIORITIES = ["low", "medium", "high", "critical"] as const;
+type Priority = (typeof PRIORITIES)[number];
+
 const STATUS_LABELS: Record<Status, string> = {
   open: "Abertos",
   in_progress: "Em andamento",
@@ -59,12 +62,27 @@ const STATUS_ICONS: Record<Status, React.ReactNode> = {
   wont_fix: <XCircle className="h-3.5 w-3.5" />,
 };
 
+const PRIORITY_LABELS: Record<Priority, string> = {
+  low: "Baixa",
+  medium: "Média",
+  high: "Alta",
+  critical: "Crítica",
+};
+
+const PRIORITY_CLS: Record<Priority, string> = {
+  low: "border-slate-500/30 bg-slate-500/10 text-slate-400",
+  medium: "border-sky-500/30 bg-sky-500/10 text-sky-400",
+  high: "border-amber-500/30 bg-amber-500/10 text-amber-400",
+  critical: "border-destructive/40 bg-destructive/10 text-destructive",
+};
+
 function BugAdminPage() {
   const { user, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const [reports, setReports] = useState<BugReport[] | null>(null);
   const [filter, setFilter] = useState<Status>("open");
+  const [priorityFilter, setPriorityFilter] = useState<Priority | "all">("all");
   const [draftNotes, setDraftNotes] = useState<Record<string, string>>({});
   const [savingId, setSavingId] = useState<string | null>(null);
 
@@ -151,7 +169,11 @@ function BugAdminPage() {
     );
   }
 
-  const filtered = (reports ?? []).filter((r) => r.status === filter);
+  const filtered = (reports ?? []).filter(
+    (r) =>
+      r.status === filter &&
+      (priorityFilter === "all" || r.priority === priorityFilter),
+  );
   const counts = STATUSES.reduce(
     (acc, s) => {
       acc[s] = (reports ?? []).filter((r) => r.status === s).length;
@@ -179,7 +201,7 @@ function BugAdminPage() {
       </header>
 
       <main className="mx-auto w-full max-w-6xl space-y-5 px-5 lg:px-6">
-        {/* Filter tabs */}
+        {/* Status filter tabs */}
         <div className="flex flex-wrap gap-2">
           {STATUSES.map((s) => (
             <button
@@ -196,6 +218,36 @@ function BugAdminPage() {
               <span className="ml-1 rounded-full bg-background/60 px-1.5 text-[10px] tabular-nums">
                 {counts[s] ?? 0}
               </span>
+            </button>
+          ))}
+        </div>
+
+        {/* Priority filter */}
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+            Prioridade:
+          </span>
+          <button
+            onClick={() => setPriorityFilter("all")}
+            className={`rounded-full border px-2.5 py-1 text-[11px] font-bold transition-colors ${
+              priorityFilter === "all"
+                ? "border-primary bg-primary/15 text-primary"
+                : "border-border bg-card text-muted-foreground hover:bg-accent"
+            }`}
+          >
+            Todas
+          </button>
+          {PRIORITIES.map((p) => (
+            <button
+              key={p}
+              onClick={() => setPriorityFilter(p)}
+              className={`rounded-full border px-2.5 py-1 text-[11px] font-bold transition-colors ${
+                priorityFilter === p
+                  ? PRIORITY_CLS[p] + " ring-1 ring-current"
+                  : "border-border bg-card text-muted-foreground hover:bg-accent"
+              }`}
+            >
+              {PRIORITY_LABELS[p]}
             </button>
           ))}
         </div>
@@ -228,6 +280,15 @@ function BugAdminPage() {
                     {r.description}
                   </p>
                   <div className="mt-2 flex flex-wrap gap-2 text-[10px] text-muted-foreground">
+                    <span
+                      className={`rounded-full border px-2 py-0.5 font-bold ${
+                        PRIORITY_CLS[(r.priority as Priority) ?? "medium"] ??
+                        PRIORITY_CLS.medium
+                      }`}
+                    >
+                      {PRIORITY_LABELS[(r.priority as Priority) ?? "medium"] ??
+                        r.priority}
+                    </span>
                     {r.route && (
                       <span className="rounded-full border border-border bg-background/50 px-2 py-0.5 font-mono">
                         {r.route}
@@ -285,6 +346,27 @@ function BugAdminPage() {
                         {STATUS_LABELS[s]}
                       </button>
                     ))}
+                  </div>
+                  <div className="mt-3">
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                      Prioridade
+                    </label>
+                    <div className="mt-1 flex flex-wrap gap-1.5">
+                      {PRIORITIES.map((p) => (
+                        <button
+                          key={p}
+                          onClick={() => updateReport(r.id, { priority: p })}
+                          disabled={savingId === r.id}
+                          className={`rounded-full border px-2.5 py-1 text-[11px] font-bold transition-colors ${
+                            r.priority === p
+                              ? PRIORITY_CLS[p] + " ring-1 ring-current"
+                              : "border-border bg-background text-foreground hover:bg-accent"
+                          } disabled:opacity-50`}
+                        >
+                          {PRIORITY_LABELS[p]}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                   <label className="flex items-center gap-2 pt-2 text-xs text-foreground">
                     <input
