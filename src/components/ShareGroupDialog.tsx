@@ -255,6 +255,13 @@ export function ShareGroupDialog({ open, onOpenChange, url, groupName, groupId, 
     }
   };
 
+  const handleWhatsApp = () => {
+    const message = `🎾 Confira o grupo *${groupName}* no RankMyMatch!\n\nRanking, rodadas e estatísticas em tempo real.\n\n${url}`;
+    const wa = `https://wa.me/?text=${encodeURIComponent(message)}`;
+    window.open(wa, "_blank", "noopener,noreferrer");
+    void trackShareEvent(groupId, "whatsapp");
+  };
+
   const canNativeShare = typeof navigator !== "undefined" && "share" in navigator;
 
   return (
