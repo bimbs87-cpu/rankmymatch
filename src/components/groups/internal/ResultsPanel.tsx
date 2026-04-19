@@ -285,8 +285,10 @@ function Section({ title, count, children }: { title: string; count: number; chi
   );
 }
 
-function RoundRow({ r, matches, formatDate, groupId, seasonId, defaultOpen }: any) {
+function RoundRow({ r, matches, formatDate, groupId, seasonId, isAdmin, onReload, defaultOpen }: any) {
   const [open, setOpen] = useState(defaultOpen);
+  const [reopeningId, setReopeningId] = useState<string | null>(null);
+  const reopenFn = useServerFn(reopenMatchServerFn);
   const isCancelled = r.status === "cancelled";
   const isCompleted = r.status === "completed";
 
@@ -308,6 +310,20 @@ function RoundRow({ r, matches, formatDate, groupId, seasonId, defaultOpen }: an
 
   const statusLabel = isCancelled ? "Cancelada" : isCompleted ? "Encerrada" : r.status === "in_progress" ? "Em jogo" : "Agendada";
   const statusClass = isCancelled ? "bg-destructive/10 text-destructive" : isCompleted ? "bg-success/10 text-success" : r.status === "in_progress" ? "bg-warning/10 text-warning" : "bg-info/10 text-info";
+
+  const handleReopen = async (matchId: string) => {
+    if (!confirm("Reabrir esta partida? Os sets gravados e o impacto no Elo serão apagados — você precisará regravar o placar.")) return;
+    setReopeningId(matchId);
+    try {
+      await reopenFn({ data: { matchId, reason: "Reaberta via Resultados/admin" } });
+      toast.success("Partida reaberta. Regrave o placar normalmente.");
+      onReload?.();
+    } catch (e: any) {
+      toast.error(e?.message || "Erro ao reabrir");
+    } finally {
+      setReopeningId(null);
+    }
+  };
 
   return (
     <div className={`rounded-2xl border border-border bg-card/50 ${isCancelled ? "opacity-50" : ""}`}>
@@ -341,6 +357,7 @@ function RoundRow({ r, matches, formatDate, groupId, seasonId, defaultOpen }: an
                 const sets = (m.match_sets || []).sort((a: any, b: any) => a.set_number - b.set_number);
                 const winA = m.winner_team === "A";
                 const winB = m.winner_team === "B";
+                const canReopen = isAdmin && m.status === "completed";
                 return (
                   <div key={m.id} className="rounded-xl border border-border bg-background/50 p-3">
                     <div className="flex items-center justify-between gap-2 text-xs">
@@ -350,6 +367,19 @@ function RoundRow({ r, matches, formatDate, groupId, seasonId, defaultOpen }: an
                       </span>
                       <span className={`flex-1 truncate text-right font-medium ${winB ? "text-success" : "text-foreground"}`}>{teamPlayers(m, "B") || "—"}</span>
                     </div>
+                    {canReopen && (
+                      <div className="mt-2 flex justify-end">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleReopen(m.id); }}
+                          disabled={reopeningId === m.id}
+                          className="flex items-center gap-1 rounded-full border border-warning/40 bg-warning/10 px-2.5 py-1 text-[10px] font-bold text-warning hover:bg-warning/20 disabled:opacity-50"
+                          title="Apaga sets e Elo desta partida para regravar o placar"
+                        >
+                          {reopeningId === m.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Unlock className="h-3 w-3" />}
+                          Reabrir
+                        </button>
+                      </div>
+                    )}
                   </div>
                 );
               })}
