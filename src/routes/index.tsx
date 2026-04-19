@@ -481,27 +481,46 @@ function DashboardPage() {
       }
     }
 
-    // 2. Recent matches (via rating_events) — fetch a wider window then sort by
-    // round date (matches Histórico ordering) since rating_events.created_at
-    // is often identical across a batch and would otherwise be non-deterministic.
-    const { data: events } = await supabase
-      .from("rating_events")
-      .select("*, matches(match_number, winner_team, round_id, status)")
+    // 2. Recent matches: rating_events.created_at is unreliable for ordering
+    // (batch recalculations rewrite created_at, masking truly recent matches).
+    // Strategy: pull the user's most recent matches via match_players → matches
+    // joined to rounds, ordered by round.scheduled_date desc, then attach rating.
+    const { data: recentPlayerRows } = await supabase
+      .from("match_players")
+      .select("match_id, team, matches!inner(id, match_number, winner_team, round_id, status, rounds!inner(id, round_number, scheduled_date, group_id, season_id, groups(name)))")
       .eq("user_id", user.id)
-      .order("created_at", { ascending: false })
-      .limit(40);
+      .eq("matches.status", "completed")
+      .order("scheduled_date", { ascending: false, foreignTable: "matches.rounds" })
+      .order("match_number", { ascending: false, foreignTable: "matches" })
+      .limit(8);
+
+    const events = (recentPlayerRows || []).map((row: any) => ({
+      match_id: row.match_id,
+      matches: {
+        match_number: row.matches?.match_number,
+        winner_team: row.matches?.winner_team,
+        round_id: row.matches?.round_id,
+        status: row.matches?.status,
+      },
+      _round: row.matches?.rounds,
+      _my_team: row.team,
+      created_at: row.matches?.rounds?.scheduled_date || null,
+      rating_change: 0,
+    }));
 
     if (events?.length) {
       const matchIds = events.map((e: any) => e.match_id);
       const roundIds = events.map((e: any) => (e.matches as any)?.round_id).filter(Boolean);
 
-      const [playersRes, roundsRes, setsRes] = await Promise.all([
+      const [playersRes, roundsRes, setsRes, ratingRes] = await Promise.all([
         supabase.from("match_players").select("match_id, team, user_id").in("match_id", matchIds),
         roundIds.length
           ? supabase.from("rounds").select("id, round_number, scheduled_date, group_id, season_id, groups(name)").in("id", [...new Set(roundIds)])
           : Promise.resolve({ data: [] }),
         supabase.from("match_sets").select("match_id, score_team_a, score_team_b, set_number").in("match_id", matchIds).order("set_number"),
+        supabase.from("rating_events").select("match_id, rating_change").in("match_id", matchIds).eq("user_id", user.id),
       ]);
+      const ratingMap = new Map((ratingRes.data || []).map((r: any) => [r.match_id, Number(r.rating_change)]));
 
       // Load partner + opponent profiles
       const otherPlayerIds = new Set<string>();
@@ -547,7 +566,7 @@ function DashboardPage() {
             group_name: (round?.groups as any)?.name || "",
             season_id: round?.season_id ?? null,
             score_display: scoreDisplay,
-            rating_change: Number(e.rating_change),
+            rating_change: ratingMap.get(e.match_id) ?? 0,
             created_at: e.created_at,
             match_date: round?.scheduled_date || e.created_at,
             partner_name: shortName(partnerProfile),
