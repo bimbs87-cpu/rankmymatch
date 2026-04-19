@@ -510,24 +510,27 @@ export const Route = createFileRoute("/api/og/player/$userId")({
           // Default: try PNG, fall back to SVG (unless caller forced PNG).
           const png = await svgToPng(svg);
           if (png) {
-            // Fire-and-forget cache write (don't block response). 6h TTL.
-            try {
-              const sb = getSupabaseAdmin();
-              await sb.storage.from("og-cache").upload(cacheObjectPath, png as unknown as Blob, {
-                contentType: "image/png",
-                upsert: true,
-                cacheControl: "21600",
-              });
-            } catch (e) {
-              console.error("og cache write failed:", e);
+            if (!hasPreview) {
+              try {
+                const sb = getSupabaseAdmin();
+                await sb.storage.from("og-cache").upload(cacheObjectPath, png as unknown as Blob, {
+                  contentType: "image/png",
+                  upsert: true,
+                  cacheControl: "21600",
+                });
+              } catch (e) {
+                console.error("og cache write failed:", e);
+              }
+              logRender("MISS");
             }
-            logRender("MISS");
             return new Response(png as unknown as BodyInit, {
               status: 200,
               headers: {
                 "Content-Type": "image/png",
-                "Cache-Control": "public, max-age=21600, s-maxage=21600",
-                "X-Cache": "MISS",
+                "Cache-Control": hasPreview
+                  ? "no-store"
+                  : "public, max-age=21600, s-maxage=21600",
+                "X-Cache": hasPreview ? "PREVIEW" : "MISS",
                 ...CORS_HEADERS,
               },
             });
