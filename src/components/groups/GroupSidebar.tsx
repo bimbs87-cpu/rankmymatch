@@ -103,6 +103,19 @@ export function GroupSidebar({
           />
         </div>
 
+        {/* Explore button — directly below filter */}
+        <button
+          onClick={onSelectExplore}
+          className={`mb-2 flex w-full items-center gap-2 rounded-full border px-3 py-1.5 text-[11px] font-bold transition-all ${
+            view === "explore"
+              ? "border-primary/40 bg-primary/10 text-foreground"
+              : "border-border bg-card/60 text-muted-foreground hover:border-primary/30 hover:text-foreground"
+          }`}
+        >
+          <Compass className="h-3.5 w-3.5 text-primary" />
+          Explorar grupos
+        </button>
+
         {/* Pending-only toggle */}
         {totalAlertCount > 0 && (
           <button
@@ -271,20 +284,6 @@ export function GroupSidebar({
         )}
       </div>
 
-      {/* Explore button */}
-      <div className="border-t border-border/40 p-3">
-        <button
-          onClick={onSelectExplore}
-          className={`flex w-full items-center gap-2 rounded-xl border px-3 py-2.5 text-left text-xs font-bold transition-all ${
-            view === "explore"
-              ? "border-primary/40 bg-primary/10 text-foreground"
-              : "border-border bg-card/60 text-muted-foreground hover:border-primary/30 hover:text-foreground"
-          }`}
-        >
-          <Compass className="h-4 w-4 text-primary" />
-          Explorar grupos
-        </button>
-      </div>
     </aside>
   );
 }
