@@ -3,7 +3,7 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { recomputeRoundStatusInternal } from "@/lib/round-status.server";
-import { logAudit } from "@/lib/audit-log";
+// Audit logs are written via supabaseAdmin directly below.
 
 /**
  * Match maintenance server functions.
