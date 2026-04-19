@@ -346,6 +346,10 @@ function GroupDetailPage() {
     newComments: commentCount,
   };
 
+  const memberShareUrl = typeof window !== "undefined"
+    ? `${window.location.origin}/groups/${groupId}`
+    : `https://rankmymatch.app/groups/${groupId}`;
+
   const sidebarProps = {
     groupName: group.name,
     groupImage: group.image_url,
@@ -354,6 +358,7 @@ function GroupDetailPage() {
     view,
     onSelect: handleSelectView,
     badges,
+    onShareClick: () => setMemberShareOpen(true),
   };
 
   return (
