@@ -453,7 +453,11 @@ function ComparePage() {
             .filter((p: any) => p.user_id === uid && completedRoundIds.has(p.round_id) && (p.status === "confirmed" || p.status === "present"))
             .map((p: any) => p.round_id);
           for (const rid of signaledPresent) playedRoundIds.add(rid);
-          const roundsPresent = playedRoundIds.size;
+          // Fallback: when rating_events are blocked by RLS, matchPlayers may be empty
+          // (it's keyed off matchIdsFromEvents). Use career matches_played as a lower bound.
+          const roundsPresent = playedRoundIds.size > 0
+            ? playedRoundIds.size
+            : Math.min(career.matches_played, completedRoundIds.size);
           const roundsTotal = completedRoundIds.size;
 
           return {
