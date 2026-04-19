@@ -25,12 +25,12 @@ export function DesktopNav() {
     <header className="hidden lg:block z-40 -mx-8 px-8 pt-6 pb-3 bg-background border-b border-border/40">
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-6">
         {/* Left: avatar + name */}
-        <Link to="/profile" className="flex items-center gap-3 min-w-0 group">
+        <Link to="/profile" aria-label="Abrir perfil" className="group flex items-center gap-3 min-w-0">
           <PlayerAvatar
             avatarUrl={avatarUrl}
             name={headerName}
             size="lg"
-            className="border border-border !h-10 !w-10"
+            className="border border-border !h-10 !w-10 transition-all duration-200 group-hover:scale-105 group-hover:border-primary group-hover:shadow-[0_0_0_3px_hsl(var(--primary)/0.18),0_0_16px_hsl(var(--primary)/0.35)]"
           />
           <div className="min-w-0">
             <p className="text-[10px] uppercase tracking-widest text-muted-foreground">

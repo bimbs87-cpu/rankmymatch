@@ -1231,9 +1231,14 @@ function DashboardPage() {
             <Link
               to="/profile"
               aria-label="Abrir perfil"
-              className="rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-primary transition-transform active:scale-95"
+              className="group rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-primary transition-transform active:scale-95"
             >
-              <PlayerAvatar avatarUrl={headerAvatarUrl} name={headerDisplayName} size="lg" className="border border-border !h-11 !w-11" />
+              <PlayerAvatar
+                avatarUrl={headerAvatarUrl}
+                name={headerDisplayName}
+                size="lg"
+                className="border border-border !h-11 !w-11 transition-all duration-200 group-hover:scale-105 group-hover:border-primary group-hover:shadow-[0_0_0_3px_hsl(var(--primary)/0.18),0_0_18px_hsl(var(--primary)/0.35)]"
+              />
             </Link>
             <div>
               <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Olá,</p>
