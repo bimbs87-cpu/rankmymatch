@@ -382,10 +382,14 @@ export const Route = createFileRoute("/api/og/group/$groupId")({
             }
           }
 
-          const logoDataUri = await fetchImageDataUri(data.logoUrl);
+          const [logoDataUri, coverDataUri] = await Promise.all([
+            fetchImageDataUri(data.logoUrl),
+            fetchImageDataUri(data.ogCoverUrl),
+          ]);
           const svg = buildSvg({
             name: data.name,
             logoDataUri,
+            coverDataUri,
             memberCount: data.memberCount,
             activeSeasonName: data.activeSeasonName,
             sport: data.sport,
