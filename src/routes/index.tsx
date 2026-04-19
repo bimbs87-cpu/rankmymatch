@@ -95,8 +95,15 @@ export const Route = createFileRoute("/")({
     ],
     links: [{ rel: "canonical", href: "https://rankmymatch.app/" }],
   }),
-  component: DashboardPage,
+  component: IndexRoute,
 });
+
+function IndexRoute() {
+  const { isAuthenticated, isLoading } = useAuth();
+  if (isLoading) return <TrophyLoadingBar />;
+  if (!isAuthenticated) return <LandingPage />;
+  return <DashboardPage />;
+}
 
 interface UpcomingRound {
   id: string;
@@ -201,14 +208,9 @@ function DashboardPage() {
     console.error("[DashboardPage] useAuth error:", e);
     throw e;
   }
-  const { user, isAuthenticated, isLoading } = authData;
+  const { user } = useAuth();
 
   const navigate = useNavigate();
-  // Non-authenticated visitors (e.g. from ads) see the marketing landing page
-  // instead of being redirected to /login. /login is still available directly.
-  if (!isLoading && !isAuthenticated) {
-    return <LandingPage />;
-  }
 
   let groupsData: ReturnType<typeof useMyGroups>;
   try {
