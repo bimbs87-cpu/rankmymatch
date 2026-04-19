@@ -9,7 +9,7 @@
 import { useEffect, useRef, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import QRCode from "qrcode";
-import { Copy, Check, Share2, X, Download, ImageIcon } from "lucide-react";
+import { Copy, Check, Share2, X, Download, ImageIcon, ImageDown } from "lucide-react";
 import { toast } from "sonner";
 
 interface Props {
@@ -18,22 +18,49 @@ interface Props {
   url: string;
   playerName: string;
   userId: string;
+  /** Quando true, mostra selo "PNG cache HIT/MISS" sobre a prévia da OG (debug). */
+  isOwner?: boolean;
 }
 
-export function QrShareDialog({ open, onOpenChange, url, playerName, userId }: Props) {
+export function QrShareDialog({ open, onOpenChange, url, playerName, userId, isOwner = false }: Props) {
   const [copied, setCopied] = useState(false);
+  const [copiedImg, setCopiedImg] = useState(false);
   const [ogLoaded, setOgLoaded] = useState(false);
   const [ogError, setOgError] = useState(false);
   const [downloading, setDownloading] = useState(false);
+  const [copyingImg, setCopyingImg] = useState(false);
+  const [cacheStatus, setCacheStatus] = useState<"HIT" | "MISS" | "UNKNOWN" | null>(null);
   const ogImgRef = useRef<HTMLImageElement>(null);
 
   useEffect(() => {
     if (!open) {
       setCopied(false);
+      setCopiedImg(false);
       setOgLoaded(false);
       setOgError(false);
+      setCacheStatus(null);
     }
   }, [open]);
+
+  // Para o selo HIT/MISS, fazemos um HEAD à própria OG (não bloqueia o <img>)
+  useEffect(() => {
+    if (!open || !isOwner) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`/api/og/player/${userId}`, { method: "HEAD", cache: "no-store" });
+        const v = res.headers.get("X-Cache");
+        if (cancelled) return;
+        if (v === "HIT" || v === "MISS") setCacheStatus(v);
+        else setCacheStatus("UNKNOWN");
+      } catch {
+        if (!cancelled) setCacheStatus("UNKNOWN");
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [open, isOwner, userId]);
 
   if (!open) return null;
 
