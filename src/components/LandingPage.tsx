@@ -243,7 +243,7 @@ export function LandingPage() {
             </h1>
 
             <p className="mt-4 max-w-xl text-[13px] leading-relaxed text-muted-foreground sm:text-base lg:text-lg lg:hidden whitespace-nowrap">
-              Rankings de grupos, gestão de temporadas e muito informação
+              Rankings, gestão de temporadas e muito informação
             </p>
             <p className="mt-4 hidden max-w-xl text-sm leading-relaxed text-muted-foreground sm:text-base lg:block lg:text-lg">
               <span className="font-semibold text-foreground">Estatísticas avançadas</span>, ranking Elo, gestão de
