@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { Loader2, ScrollText } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Loader2, ScrollText, Download, ChevronDown, ChevronUp } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 interface Props {
@@ -41,11 +41,182 @@ function fmtDate(iso: string) {
   });
 }
 
+function csvEscape(value: string): string {
+  const s = value ?? "";
+  if (s.includes(",") || s.includes("\"") || s.includes("\n")) {
+    return `"${s.replace(/"/g, '""')}"`;
+  }
+  return s;
+}
+
+function downloadCsv(rows: AuditRow[], actorNames: Record<string, string>) {
+  const header = ["data", "ator", "acao", "entidade", "entidade_id", "motivo"];
+  const lines = [header.join(",")];
+  for (const r of rows) {
+    lines.push(
+      [
+        fmtDate(r.created_at),
+        actorNames[r.user_id] || r.user_id,
+        ACTION_LABELS[r.action] || r.action,
+        r.entity_type,
+        r.entity_id ?? "",
+        r.reason ?? "",
+      ]
+        .map((v) => csvEscape(String(v)))
+        .join(","),
+    );
+  }
+  const blob = new Blob(["\uFEFF" + lines.join("\n")], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `auditoria-${new Date().toISOString().slice(0, 10)}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+/** Pretty single-line preview of a primitive value. */
+function pretty(v: unknown): string {
+  if (v === null || v === undefined) return "—";
+  if (typeof v === "string" || typeof v === "number" || typeof v === "boolean") return String(v);
+  try {
+    return JSON.stringify(v);
+  } catch {
+    return String(v);
+  }
+}
+
+/** Specialized side-by-side renderer for match_score_edited (sets array). */
+function ScoreDiff({ oldData, newData }: { oldData: any; newData: any }) {
+  const oldSets: Array<{ set_number?: number; score_team_a?: number; score_team_b?: number }> =
+    Array.isArray(oldData?.sets) ? oldData.sets : [];
+  const newSets: Array<{ set_number?: number; score_team_a?: number; score_team_b?: number }> =
+    Array.isArray(newData?.sets) ? newData.sets : [];
+  const max = Math.max(oldSets.length, newSets.length, 1);
+  const rows = Array.from({ length: max }, (_, i) => ({
+    n: i + 1,
+    o: oldSets[i],
+    nw: newSets[i],
+  }));
+  return (
+    <div className="grid grid-cols-2 gap-2">
+      <div className="rounded-lg border border-border bg-muted/20 p-2">
+        <p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Antes</p>
+        <div className="space-y-1">
+          {rows.map((r) => (
+            <div key={`o${r.n}`} className="flex items-center justify-between rounded bg-background/40 px-2 py-1 text-xs">
+              <span className="text-muted-foreground">Set {r.n}</span>
+              <span className="font-mono font-bold text-foreground">
+                {r.o ? `${r.o.score_team_a ?? "-"} × ${r.o.score_team_b ?? "-"}` : "—"}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="rounded-lg border border-primary/40 bg-primary/5 p-2">
+        <p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-primary">Depois</p>
+        <div className="space-y-1">
+          {rows.map((r) => {
+            const changed =
+              !r.o ||
+              !r.nw ||
+              r.o.score_team_a !== r.nw.score_team_a ||
+              r.o.score_team_b !== r.nw.score_team_b;
+            return (
+              <div
+                key={`n${r.n}`}
+                className={`flex items-center justify-between rounded px-2 py-1 text-xs ${
+                  changed ? "bg-primary/15" : "bg-background/40"
+                }`}
+              >
+                <span className="text-muted-foreground">Set {r.n}</span>
+                <span className={`font-mono font-bold ${changed ? "text-primary" : "text-foreground"}`}>
+                  {r.nw ? `${r.nw.score_team_a ?? "-"} × ${r.nw.score_team_b ?? "-"}` : "—"}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** Generic field-by-field diff for arbitrary objects. */
+function GenericDiff({ oldData, newData }: { oldData: any; newData: any }) {
+  const isObj = (v: any) => v && typeof v === "object" && !Array.isArray(v);
+  const keys = Array.from(
+    new Set([...(isObj(oldData) ? Object.keys(oldData) : []), ...(isObj(newData) ? Object.keys(newData) : [])]),
+  );
+
+  if (!keys.length) {
+    return (
+      <div className="grid grid-cols-2 gap-2 text-[11px]">
+        <div className="rounded-lg border border-border bg-muted/20 p-2">
+          <p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Antes</p>
+          <pre className="overflow-x-auto whitespace-pre-wrap break-all text-foreground">{pretty(oldData)}</pre>
+        </div>
+        <div className="rounded-lg border border-primary/40 bg-primary/5 p-2">
+          <p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-primary">Depois</p>
+          <pre className="overflow-x-auto whitespace-pre-wrap break-all text-foreground">{pretty(newData)}</pre>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="overflow-hidden rounded-lg border border-border">
+      <table className="w-full text-[11px]">
+        <thead className="bg-muted/30 text-[10px] uppercase tracking-wider text-muted-foreground">
+          <tr>
+            <th className="px-2 py-1 text-left font-bold">Campo</th>
+            <th className="px-2 py-1 text-left font-bold">Antes</th>
+            <th className="px-2 py-1 text-left font-bold">Depois</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-border">
+          {keys.map((k) => {
+            const ov = isObj(oldData) ? (oldData as any)[k] : undefined;
+            const nv = isObj(newData) ? (newData as any)[k] : undefined;
+            const changed = JSON.stringify(ov) !== JSON.stringify(nv);
+            return (
+              <tr key={k} className={changed ? "bg-primary/5" : ""}>
+                <td className="px-2 py-1 font-mono text-muted-foreground">{k}</td>
+                <td className="px-2 py-1 font-mono text-foreground/80">{pretty(ov)}</td>
+                <td className={`px-2 py-1 font-mono ${changed ? "font-bold text-primary" : "text-foreground/80"}`}>
+                  {pretty(nv)}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function DiffView({ row }: { row: AuditRow }) {
+  if (row.old_data == null && row.new_data == null) {
+    return (
+      <p className="rounded-lg border border-dashed border-border bg-muted/10 p-2 text-center text-[11px] text-muted-foreground">
+        Sem dados de diff disponíveis para este evento.
+      </p>
+    );
+  }
+  if (row.action === "match_score_edited") {
+    return <ScoreDiff oldData={row.old_data} newData={row.new_data} />;
+  }
+  return <GenericDiff oldData={row.old_data} newData={row.new_data} />;
+}
+
 export function AuditPanel({ groupId }: Props) {
   const [rows, setRows] = useState<AuditRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>("all");
   const [actorNames, setActorNames] = useState<Record<string, string>>({});
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     let cancelled = false;
@@ -60,7 +231,6 @@ export function AuditPanel({ groupId }: Props) {
       if (cancelled) return;
       const list = (data || []) as AuditRow[];
       setRows(list);
-      // Resolve actor names
       const ids = Array.from(new Set(list.map((r) => r.user_id))).filter(Boolean);
       if (ids.length > 0) {
         const { data: profs } = await supabase
@@ -82,18 +252,31 @@ export function AuditPanel({ groupId }: Props) {
     };
   }, [groupId]);
 
-  const actions = Array.from(new Set(rows.map((r) => r.action))).sort();
-  const filtered = filter === "all" ? rows : rows.filter((r) => r.action === filter);
+  const actions = useMemo(() => Array.from(new Set(rows.map((r) => r.action))).sort(), [rows]);
+  const filtered = useMemo(
+    () => (filter === "all" ? rows : rows.filter((r) => r.action === filter)),
+    [filter, rows],
+  );
 
   return (
     <div className="space-y-4">
-      <div>
-        <h3 className="flex items-center gap-2 font-display text-base font-bold text-foreground">
-          <ScrollText className="h-4 w-4" /> Auditoria
-        </h3>
-        <p className="text-xs text-muted-foreground">
-          Últimos 50 eventos registrados para o grupo. Use para rastrear ações administrativas.
-        </p>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h3 className="flex items-center gap-2 font-display text-base font-bold text-foreground">
+            <ScrollText className="h-4 w-4" /> Auditoria
+          </h3>
+          <p className="text-xs text-muted-foreground">
+            Últimos 50 eventos registrados para o grupo. Clique para ver o diff.
+          </p>
+        </div>
+        <button
+          onClick={() => downloadCsv(filtered, actorNames)}
+          disabled={filtered.length === 0}
+          className="flex items-center gap-1.5 rounded-lg border border-border bg-background px-2.5 py-1.5 text-[11px] font-bold text-foreground hover:border-primary/50 hover:text-primary disabled:cursor-not-allowed disabled:opacity-50"
+          title="Exportar eventos filtrados como CSV"
+        >
+          <Download className="h-3.5 w-3.5" /> Exportar CSV
+        </button>
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
@@ -125,9 +308,15 @@ export function AuditPanel({ groupId }: Props) {
           {filtered.map((r) => {
             const label = ACTION_LABELS[r.action] || r.action;
             const actor = actorNames[r.user_id] || "Usuário";
+            const isOpen = !!expanded[r.id];
+            const hasDiff = r.old_data != null || r.new_data != null;
             return (
-              <li key={r.id} className="rounded-xl border border-border bg-background/40 p-3">
-                <div className="flex items-start justify-between gap-2">
+              <li key={r.id} className="overflow-hidden rounded-xl border border-border bg-background/40">
+                <button
+                  type="button"
+                  onClick={() => setExpanded((s) => ({ ...s, [r.id]: !s[r.id] }))}
+                  className="flex w-full items-start gap-2 p-3 text-left hover:bg-muted/20"
+                >
                   <div className="min-w-0 flex-1">
                     <p className="text-xs font-bold text-foreground">{label}</p>
                     <p className="mt-0.5 text-[11px] text-muted-foreground">
@@ -141,7 +330,17 @@ export function AuditPanel({ groupId }: Props) {
                       {r.entity_id ? ` · ${r.entity_id.slice(0, 8)}` : ""}
                     </p>
                   </div>
-                </div>
+                  {hasDiff && (
+                    <span className="mt-0.5 shrink-0 text-muted-foreground">
+                      {isOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                    </span>
+                  )}
+                </button>
+                {isOpen && hasDiff && (
+                  <div className="border-t border-border bg-muted/10 p-3">
+                    <DiffView row={r} />
+                  </div>
+                )}
               </li>
             );
           })}
