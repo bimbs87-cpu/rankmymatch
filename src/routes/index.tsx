@@ -1228,7 +1228,13 @@ function DashboardPage() {
       <header className="lg:hidden px-5 pb-2 pt-6">
         <div className="flex items-center justify-between gap-6">
           <div className="flex items-center gap-3">
-            <PlayerAvatar avatarUrl={headerAvatarUrl} name={headerDisplayName} size="lg" className="border border-border !h-11 !w-11" />
+            <Link
+              to="/profile"
+              aria-label="Abrir perfil"
+              className="rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-primary transition-transform active:scale-95"
+            >
+              <PlayerAvatar avatarUrl={headerAvatarUrl} name={headerDisplayName} size="lg" className="border border-border !h-11 !w-11" />
+            </Link>
             <div>
               <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Olá,</p>
               <div className="flex items-center gap-1.5">
