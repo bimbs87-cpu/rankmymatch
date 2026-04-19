@@ -197,7 +197,31 @@ function RootComponent() {
       <UserProfileProvider>
         <PlayerProfileViewerProvider>
           <InstallFlowProvider>
-            <div className="mx-auto max-w-lg lg:max-w-7xl lg:px-8 min-h-screen">
+            {/* === Premium global background === */}
+            <div aria-hidden className="pointer-events-none fixed inset-0 z-0 bg-background" />
+            <div
+              aria-hidden
+              className="pointer-events-none fixed inset-0 z-0"
+              style={{
+                backgroundImage: `
+                  radial-gradient(80vw 55vh at 50% -10%, color-mix(in oklab, var(--primary) 28%, transparent), transparent 70%),
+                  radial-gradient(70vw 50vh at 110% 35%, color-mix(in oklab, var(--primary) 16%, transparent), transparent 75%),
+                  radial-gradient(90vw 60vh at -10% 70%, color-mix(in oklab, var(--primary) 14%, transparent), transparent 75%),
+                  radial-gradient(70vw 50vh at 50% 110%, color-mix(in oklab, var(--primary) 22%, transparent), transparent 70%),
+                  linear-gradient(180deg, color-mix(in oklab, var(--background) 90%, var(--primary)) 0%, var(--background) 40%, var(--background) 65%, color-mix(in oklab, var(--background) 90%, var(--primary)) 100%)
+                `,
+              }}
+            />
+            <div
+              aria-hidden
+              className="pointer-events-none fixed inset-0 z-0 opacity-[0.10] mix-blend-overlay"
+              style={{
+                backgroundImage:
+                  "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.75  0 0 0 0 1  0 0 0 0 0.55  0 0 0 0.55 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>\")",
+                backgroundSize: "260px 260px",
+              }}
+            />
+            <div className="relative z-10 mx-auto max-w-lg lg:max-w-7xl lg:px-8 min-h-screen">
               <AuthDesktopNav />
               <Outlet />
             </div>
