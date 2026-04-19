@@ -14,6 +14,7 @@ import { useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useNotifications } from "@/hooks/use-notifications";
 import { TrophyLoadingBar } from "@/components/TrophyLoadingBar";
+import { PushOptInCard } from "@/components/PushOptInCard";
 
 export const Route = createFileRoute("/notifications")({
   head: () => ({
@@ -79,6 +80,9 @@ function NotificationsPage() {
       </header>
 
       <div className="px-5 pt-4">
+        <div className="mb-4">
+          <PushOptInCard />
+        </div>
         {isLoading ? (
           <TrophyLoadingBar fullScreen={false} compact />
         ) : notifications.length === 0 ? (
