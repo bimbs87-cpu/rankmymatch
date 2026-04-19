@@ -96,8 +96,6 @@ export function AvatarPickerDialog({
                 </button>
               ))}
             </div>
-
-            </div>
             )}
 
             {!googleOnly && (
@@ -133,6 +131,7 @@ export function AvatarPickerDialog({
                 );
               })}
             </div>
+            )}
           </div>
         </DialogContent>
       </Dialog>
