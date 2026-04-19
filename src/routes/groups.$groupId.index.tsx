@@ -584,6 +584,15 @@ function GroupDetailPage() {
         />
       )}
 
+      <ShareGroupDialog
+        open={memberShareOpen}
+        onOpenChange={setMemberShareOpen}
+        url={memberShareUrl}
+        groupName={group.name}
+        groupId={groupId}
+        isAdmin={isAdmin}
+      />
+
       {/* Leave dialog */}
       {leaveDialogOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
