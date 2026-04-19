@@ -29,9 +29,11 @@ import { Route as RankingCompareRouteImport } from './routes/ranking_.compare'
 import { Route as PlayersUserIdRouteImport } from './routes/players.$userId'
 import { Route as InviteCodeRouteImport } from './routes/invite.$code'
 import { Route as HooksPresenceWindowOpenedRouteImport } from './routes/hooks.presence-window-opened'
+import { Route as HooksAdminUndoRouteImport } from './routes/hooks.admin-undo'
 import { Route as HooksAdminPendingReminderRouteImport } from './routes/hooks.admin-pending-reminder'
 import { Route as HooksAdminActionRouteImport } from './routes/hooks.admin-action'
 import { Route as GroupsGroupIdRouteImport } from './routes/groups.$groupId'
+import { Route as AdminMetricsRouteImport } from './routes/admin.metrics'
 import { Route as AdminInboxRouteImport } from './routes/admin.inbox'
 import { Route as GroupsGroupIdIndexRouteImport } from './routes/groups.$groupId.index'
 import { Route as GroupsGroupIdSeasonsRouteImport } from './routes/groups.$groupId.seasons'
@@ -147,6 +149,11 @@ const HooksPresenceWindowOpenedRoute =
     path: '/hooks/presence-window-opened',
     getParentRoute: () => rootRouteImport,
   } as any)
+const HooksAdminUndoRoute = HooksAdminUndoRouteImport.update({
+  id: '/hooks/admin-undo',
+  path: '/hooks/admin-undo',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const HooksAdminPendingReminderRoute =
   HooksAdminPendingReminderRouteImport.update({
     id: '/hooks/admin-pending-reminder',
@@ -162,6 +169,11 @@ const GroupsGroupIdRoute = GroupsGroupIdRouteImport.update({
   id: '/$groupId',
   path: '/$groupId',
   getParentRoute: () => GroupsRoute,
+} as any)
+const AdminMetricsRoute = AdminMetricsRouteImport.update({
+  id: '/admin/metrics',
+  path: '/admin/metrics',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AdminInboxRoute = AdminInboxRouteImport.update({
   id: '/admin/inbox',
@@ -244,9 +256,11 @@ export interface FileRoutesByFullPath {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/sobre-desenvolvimento': typeof SobreDesenvolvimentoRouteWithChildren
   '/admin/inbox': typeof AdminInboxRoute
+  '/admin/metrics': typeof AdminMetricsRoute
   '/groups/$groupId': typeof GroupsGroupIdRouteWithChildren
   '/hooks/admin-action': typeof HooksAdminActionRoute
   '/hooks/admin-pending-reminder': typeof HooksAdminPendingReminderRoute
+  '/hooks/admin-undo': typeof HooksAdminUndoRoute
   '/hooks/presence-window-opened': typeof HooksPresenceWindowOpenedRoute
   '/invite/$code': typeof InviteCodeRoute
   '/players/$userId': typeof PlayersUserIdRoute
@@ -280,8 +294,10 @@ export interface FileRoutesByTo {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/sobre-desenvolvimento': typeof SobreDesenvolvimentoRouteWithChildren
   '/admin/inbox': typeof AdminInboxRoute
+  '/admin/metrics': typeof AdminMetricsRoute
   '/hooks/admin-action': typeof HooksAdminActionRoute
   '/hooks/admin-pending-reminder': typeof HooksAdminPendingReminderRoute
+  '/hooks/admin-undo': typeof HooksAdminUndoRoute
   '/hooks/presence-window-opened': typeof HooksPresenceWindowOpenedRoute
   '/invite/$code': typeof InviteCodeRoute
   '/players/$userId': typeof PlayersUserIdRoute
@@ -315,9 +331,11 @@ export interface FileRoutesById {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/sobre-desenvolvimento': typeof SobreDesenvolvimentoRouteWithChildren
   '/admin/inbox': typeof AdminInboxRoute
+  '/admin/metrics': typeof AdminMetricsRoute
   '/groups/$groupId': typeof GroupsGroupIdRouteWithChildren
   '/hooks/admin-action': typeof HooksAdminActionRoute
   '/hooks/admin-pending-reminder': typeof HooksAdminPendingReminderRoute
+  '/hooks/admin-undo': typeof HooksAdminUndoRoute
   '/hooks/presence-window-opened': typeof HooksPresenceWindowOpenedRoute
   '/invite/$code': typeof InviteCodeRoute
   '/players/$userId': typeof PlayersUserIdRoute
@@ -354,9 +372,11 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/sobre-desenvolvimento'
     | '/admin/inbox'
+    | '/admin/metrics'
     | '/groups/$groupId'
     | '/hooks/admin-action'
     | '/hooks/admin-pending-reminder'
+    | '/hooks/admin-undo'
     | '/hooks/presence-window-opened'
     | '/invite/$code'
     | '/players/$userId'
@@ -390,8 +410,10 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/sobre-desenvolvimento'
     | '/admin/inbox'
+    | '/admin/metrics'
     | '/hooks/admin-action'
     | '/hooks/admin-pending-reminder'
+    | '/hooks/admin-undo'
     | '/hooks/presence-window-opened'
     | '/invite/$code'
     | '/players/$userId'
@@ -424,9 +446,11 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/sobre-desenvolvimento'
     | '/admin/inbox'
+    | '/admin/metrics'
     | '/groups/$groupId'
     | '/hooks/admin-action'
     | '/hooks/admin-pending-reminder'
+    | '/hooks/admin-undo'
     | '/hooks/presence-window-opened'
     | '/invite/$code'
     | '/players/$userId'
@@ -462,8 +486,10 @@ export interface RootRouteChildren {
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   SobreDesenvolvimentoRoute: typeof SobreDesenvolvimentoRouteWithChildren
   AdminInboxRoute: typeof AdminInboxRoute
+  AdminMetricsRoute: typeof AdminMetricsRoute
   HooksAdminActionRoute: typeof HooksAdminActionRoute
   HooksAdminPendingReminderRoute: typeof HooksAdminPendingReminderRoute
+  HooksAdminUndoRoute: typeof HooksAdminUndoRoute
   HooksPresenceWindowOpenedRoute: typeof HooksPresenceWindowOpenedRoute
   InviteCodeRoute: typeof InviteCodeRoute
   PlayersUserIdRoute: typeof PlayersUserIdRoute
@@ -615,6 +641,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof HooksPresenceWindowOpenedRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/hooks/admin-undo': {
+      id: '/hooks/admin-undo'
+      path: '/hooks/admin-undo'
+      fullPath: '/hooks/admin-undo'
+      preLoaderRoute: typeof HooksAdminUndoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/hooks/admin-pending-reminder': {
       id: '/hooks/admin-pending-reminder'
       path: '/hooks/admin-pending-reminder'
@@ -635,6 +668,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/groups/$groupId'
       preLoaderRoute: typeof GroupsGroupIdRouteImport
       parentRoute: typeof GroupsRoute
+    }
+    '/admin/metrics': {
+      id: '/admin/metrics'
+      path: '/admin/metrics'
+      fullPath: '/admin/metrics'
+      preLoaderRoute: typeof AdminMetricsRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/admin/inbox': {
       id: '/admin/inbox'
@@ -813,8 +853,10 @@ const rootRouteChildren: RootRouteChildren = {
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   SobreDesenvolvimentoRoute: SobreDesenvolvimentoRouteWithChildren,
   AdminInboxRoute: AdminInboxRoute,
+  AdminMetricsRoute: AdminMetricsRoute,
   HooksAdminActionRoute: HooksAdminActionRoute,
   HooksAdminPendingReminderRoute: HooksAdminPendingReminderRoute,
+  HooksAdminUndoRoute: HooksAdminUndoRoute,
   HooksPresenceWindowOpenedRoute: HooksPresenceWindowOpenedRoute,
   InviteCodeRoute: InviteCodeRoute,
   PlayersUserIdRoute: PlayersUserIdRoute,

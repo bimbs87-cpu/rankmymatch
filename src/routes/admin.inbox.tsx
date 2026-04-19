@@ -13,6 +13,8 @@ import {
   Bell,
   History,
   AlertTriangle,
+  Undo2,
+  BarChart3,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
@@ -62,6 +64,8 @@ interface ResolvedItem {
   resolvedByName: string | null;
 }
 
+const UNDO_WINDOW_MS = 24 * 60 * 60 * 1000;
+
 const OLD_THRESHOLD_MS = 3 * 24 * 60 * 60 * 1000;
 const CRITICAL_THRESHOLD_MS = 7 * 24 * 60 * 60 * 1000;
 
@@ -98,6 +102,7 @@ function AdminInboxPage() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState(false);
   const [reminderBusy, setReminderBusy] = useState(false);
+  const [undoBusy, setUndoBusy] = useState<string | null>(null);
   const [tab, setTab] = useState<"pending" | "history">("pending");
 
   useEffect(() => {
@@ -492,6 +497,43 @@ function AdminInboxPage() {
     }
   };
 
+  const handleUndo = async (r: ResolvedItem) => {
+    if (r.kind === "claim" && r.status === "approved") {
+      toast.error(
+        "Vínculos aprovados são irreversíveis (dados já foram mesclados).",
+      );
+      return;
+    }
+    const ageMs = Date.now() - new Date(r.resolvedAt).getTime();
+    if (ageMs > UNDO_WINDOW_MS) {
+      toast.error("Janela de 24h para desfazer expirou.");
+      return;
+    }
+    const label =
+      r.status === "approved" ? "aprovação" : "recusa";
+    if (!window.confirm(`Desfazer ${label} de ${r.requesterName}?`)) return;
+    setUndoBusy(r.id);
+    try {
+      const res = await fetch("/hooks/admin-undo", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ kind: r.kind, id: r.id }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json?.error || `HTTP ${res.status}`);
+      toast.success("Ação desfeita · solicitação voltou para Pendentes");
+      setResolved((prev) => prev.filter((x) => x.id !== r.id));
+      void refreshCount();
+      void loadAll();
+    } catch (err) {
+      console.error(err);
+      toast.error(err instanceof Error ? err.message : "Falha ao desfazer");
+    } finally {
+      setUndoBusy(null);
+    }
+  };
+
   if (authLoading || loading) {
     return (
       <div className="min-h-screen bg-background pb-32 lg:pb-12">
@@ -541,6 +583,14 @@ function AdminInboxPage() {
             )}
             Disparar lembrete
           </button>
+          <Link
+            to="/admin/metrics"
+            className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-muted"
+            title="Ver métricas dos últimos 30 dias"
+          >
+            <BarChart3 className="h-3.5 w-3.5" />
+            Métricas
+          </Link>
         </div>
 
         <Tabs value={tab} onValueChange={(v) => setTab(v as "pending" | "history")}>
@@ -806,6 +856,16 @@ function AdminInboxPage() {
                 {resolved.map((r) => {
                   const Icon = r.kind === "join_request" ? UserPlus : Link2;
                   const approved = r.status === "approved";
+                  const ageMs = Date.now() - new Date(r.resolvedAt).getTime();
+                  const undoable =
+                    ageMs <= UNDO_WINDOW_MS &&
+                    !(r.kind === "claim" && approved);
+                  const undoTitle =
+                    r.kind === "claim" && approved
+                      ? "Vínculos aprovados são irreversíveis"
+                      : ageMs > UNDO_WINDOW_MS
+                        ? "Janela de 24h expirou"
+                        : "Desfazer (até 24h)";
                   return (
                     <div
                       key={`${r.kind}-${r.id}`}
@@ -883,6 +943,21 @@ function AdminInboxPage() {
                             )}
                           </p>
                         </div>
+                        {undoable && (
+                          <button
+                            onClick={() => handleUndo(r)}
+                            disabled={undoBusy === r.id}
+                            title={undoTitle}
+                            className="inline-flex items-center gap-1 rounded-lg border border-border bg-background px-2 py-1.5 text-[11px] font-semibold text-foreground hover:bg-muted disabled:opacity-40"
+                          >
+                            {undoBusy === r.id ? (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            ) : (
+                              <Undo2 className="h-3.5 w-3.5" />
+                            )}
+                            Desfazer
+                          </button>
+                        )}
                       </div>
                     </div>
                   );
