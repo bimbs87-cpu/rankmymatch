@@ -129,6 +129,6 @@ export const getOgCacheStats = createServerFn({ method: "GET" })
       hitRatePct: total > 0 ? Math.round((hit / total) * 100) : 0,
       topPlayers,
       daily,
-      windowDays: 7,
+      windowDays,
     };
   });
