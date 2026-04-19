@@ -31,6 +31,10 @@ export function GroupSettingsForm({
   onSaved,
 }: Props) {
   const navigate = useNavigate();
+  const invalidateGroupCache = useServerFn(invalidateGroupOgCache);
+  const clearOgCache = () => {
+    invalidateGroupCache({ data: { groupId } }).catch(() => {});
+  };
   const [name, setName] = useState(initName);
   const [description, setDescription] = useState(initDesc || "");
   const initialVis = initVisibility || (initPublic ? "public" : "private");
