@@ -52,6 +52,24 @@ const TYPE_META: Record<
   },
 };
 
+function parseVersion(v: string): number[] {
+  return v
+    .replace(/^v/i, "")
+    .split(".")
+    .map((p) => parseInt(p, 10) || 0);
+}
+
+function compareVersionsDesc(a: string, b: string): number {
+  const pa = parseVersion(a);
+  const pb = parseVersion(b);
+  const len = Math.max(pa.length, pb.length);
+  for (let i = 0; i < len; i++) {
+    const diff = (pb[i] ?? 0) - (pa[i] ?? 0);
+    if (diff !== 0) return diff;
+  }
+  return 0;
+}
+
 function formatDate(iso: string) {
   try {
     return new Intl.DateTimeFormat("pt-BR", {
