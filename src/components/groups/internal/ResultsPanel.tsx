@@ -1,12 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useGroupSeasons, useSeasonRounds } from "@/hooks/use-seasons";
 import { TrophyLoadingBar } from "@/components/TrophyLoadingBar";
 import { buildDisplayNames } from "@/lib/name-disambiguation";
+import { reopenMatchServerFn } from "@/lib/match-maintenance.functions";
 import {
   Calendar, Clock, MapPin, ChevronDown, ChevronRight, Trophy, BarChart3,
-  Filter, List, Activity, Users,
+  Filter, List, Activity, Users, Unlock, Loader2,
 } from "lucide-react";
 
 interface Props {
