@@ -17,6 +17,8 @@ import { OgCacheStatsPanel } from "@/components/groups/internal/OgCacheStatsPane
 import { useGroupDetail, approveJoinRequest, rejectJoinRequest } from "@/hooks/use-groups";
 import { useAuth } from "@/hooks/use-auth";
 import { startRenewalCheckout, salesWhatsAppUrl } from "@/lib/payment-provider";
+import { useServerFn } from "@tanstack/react-start";
+import { detectDesyncedMatchesServerFn } from "@/lib/match-maintenance.functions";
 
 type Section = "general" | "presence" | "members" | "invites" | "engagement" | "audit" | "maintenance" | "og-cache" | "advanced";
 
@@ -44,6 +46,16 @@ export function AdminPanel({ group, isCreator, onSaved, pendingRequestsCount }: 
   const [section, setSection] = useState<Section>("general");
   const [inviteOpen, setInviteOpen] = useState(false);
   const [desyncedCount, setDesyncedCount] = useState(0);
+  const detectFn = useServerFn(detectDesyncedMatchesServerFn);
+
+  // Silent scan on mount so the Maintenance badge is visible without opening the section
+  useEffect(() => {
+    let cancelled = false;
+    detectFn({ data: { groupId: group.id } })
+      .then((res) => { if (!cancelled) setDesyncedCount(res.desynced.length); })
+      .catch(() => { /* silent */ });
+    return () => { cancelled = true; };
+  }, [group.id, detectFn]);
 
   return (
     <div className="space-y-4">
