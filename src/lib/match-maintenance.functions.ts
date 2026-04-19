@@ -276,6 +276,3 @@ export const reopenMatchServerFn = createServerFn({ method: "POST" })
 
     return { ok: true };
   });
-
-// Avoid lint warning if logAudit isn't used in this file
-void logAudit;
