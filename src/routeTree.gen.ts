@@ -18,6 +18,7 @@ import { Route as RankingRouteImport } from './routes/ranking'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as LandingRouteImport } from './routes/landing'
 import { Route as HistoryRouteImport } from './routes/history'
 import { Route as GroupsRouteImport } from './routes/groups'
 import { Route as CompararRouteImport } from './routes/comparar'
@@ -90,6 +91,11 @@ const NotificationsRoute = NotificationsRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LandingRoute = LandingRouteImport.update({
+  id: '/landing',
+  path: '/landing',
   getParentRoute: () => rootRouteImport,
 } as any)
 const HistoryRoute = HistoryRouteImport.update({
@@ -246,6 +252,7 @@ export interface FileRoutesByFullPath {
   '/comparar': typeof CompararRoute
   '/groups': typeof GroupsRouteWithChildren
   '/history': typeof HistoryRoute
+  '/landing': typeof LandingRoute
   '/login': typeof LoginRoute
   '/notifications': typeof NotificationsRoute
   '/profile': typeof ProfileRoute
@@ -284,6 +291,7 @@ export interface FileRoutesByTo {
   '/changelog': typeof ChangelogRoute
   '/comparar': typeof CompararRoute
   '/history': typeof HistoryRoute
+  '/landing': typeof LandingRoute
   '/login': typeof LoginRoute
   '/notifications': typeof NotificationsRoute
   '/profile': typeof ProfileRoute
@@ -321,6 +329,7 @@ export interface FileRoutesById {
   '/comparar': typeof CompararRoute
   '/groups': typeof GroupsRouteWithChildren
   '/history': typeof HistoryRoute
+  '/landing': typeof LandingRoute
   '/login': typeof LoginRoute
   '/notifications': typeof NotificationsRoute
   '/profile': typeof ProfileRoute
@@ -362,6 +371,7 @@ export interface FileRouteTypes {
     | '/comparar'
     | '/groups'
     | '/history'
+    | '/landing'
     | '/login'
     | '/notifications'
     | '/profile'
@@ -400,6 +410,7 @@ export interface FileRouteTypes {
     | '/changelog'
     | '/comparar'
     | '/history'
+    | '/landing'
     | '/login'
     | '/notifications'
     | '/profile'
@@ -436,6 +447,7 @@ export interface FileRouteTypes {
     | '/comparar'
     | '/groups'
     | '/history'
+    | '/landing'
     | '/login'
     | '/notifications'
     | '/profile'
@@ -476,6 +488,7 @@ export interface RootRouteChildren {
   CompararRoute: typeof CompararRoute
   GroupsRoute: typeof GroupsRouteWithChildren
   HistoryRoute: typeof HistoryRoute
+  LandingRoute: typeof LandingRoute
   LoginRoute: typeof LoginRoute
   NotificationsRoute: typeof NotificationsRoute
   ProfileRoute: typeof ProfileRoute
@@ -562,6 +575,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/landing': {
+      id: '/landing'
+      path: '/landing'
+      fullPath: '/landing'
+      preLoaderRoute: typeof LandingRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/history': {
@@ -843,6 +863,7 @@ const rootRouteChildren: RootRouteChildren = {
   CompararRoute: CompararRoute,
   GroupsRoute: GroupsRouteWithChildren,
   HistoryRoute: HistoryRoute,
+  LandingRoute: LandingRoute,
   LoginRoute: LoginRoute,
   NotificationsRoute: NotificationsRoute,
   ProfileRoute: ProfileRoute,
