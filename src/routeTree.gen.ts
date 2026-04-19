@@ -30,6 +30,7 @@ import { Route as GroupsGroupIdIndexRouteImport } from './routes/groups.$groupId
 import { Route as GroupsGroupIdSeasonsRouteImport } from './routes/groups.$groupId.seasons'
 import { Route as GroupsGroupIdFeedRouteImport } from './routes/groups.$groupId.feed'
 import { Route as GroupsGroupIdDuelRouteImport } from './routes/groups.$groupId.duel'
+import { Route as ApiPushVapidPublicKeyRouteImport } from './routes/api.push.vapid-public-key'
 import { Route as GroupsGroupIdSeasonsIndexRouteImport } from './routes/groups.$groupId.seasons.index'
 import { Route as GroupsGroupIdSeasonsSeasonIdRouteImport } from './routes/groups.$groupId.seasons.$seasonId'
 import { Route as ApiOgPlayerUserIdRouteImport } from './routes/api.og.player.$userId'
@@ -142,6 +143,11 @@ const GroupsGroupIdDuelRoute = GroupsGroupIdDuelRouteImport.update({
   path: '/duel',
   getParentRoute: () => GroupsGroupIdRoute,
 } as any)
+const ApiPushVapidPublicKeyRoute = ApiPushVapidPublicKeyRouteImport.update({
+  id: '/api/push/vapid-public-key',
+  path: '/api/push/vapid-public-key',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const GroupsGroupIdSeasonsIndexRoute =
   GroupsGroupIdSeasonsIndexRouteImport.update({
     id: '/',
@@ -195,6 +201,7 @@ export interface FileRoutesByFullPath {
   '/players/$userId': typeof PlayersUserIdRoute
   '/ranking/compare': typeof RankingCompareRoute
   '/groups/': typeof GroupsIndexRoute
+  '/api/push/vapid-public-key': typeof ApiPushVapidPublicKeyRoute
   '/groups/$groupId/duel': typeof GroupsGroupIdDuelRoute
   '/groups/$groupId/feed': typeof GroupsGroupIdFeedRoute
   '/groups/$groupId/seasons': typeof GroupsGroupIdSeasonsRouteWithChildren
@@ -222,6 +229,7 @@ export interface FileRoutesByTo {
   '/players/$userId': typeof PlayersUserIdRoute
   '/ranking/compare': typeof RankingCompareRoute
   '/groups': typeof GroupsIndexRoute
+  '/api/push/vapid-public-key': typeof ApiPushVapidPublicKeyRoute
   '/groups/$groupId/duel': typeof GroupsGroupIdDuelRoute
   '/groups/$groupId/feed': typeof GroupsGroupIdFeedRoute
   '/groups/$groupId': typeof GroupsGroupIdIndexRoute
@@ -250,6 +258,7 @@ export interface FileRoutesById {
   '/players/$userId': typeof PlayersUserIdRoute
   '/ranking_/compare': typeof RankingCompareRoute
   '/groups/': typeof GroupsIndexRoute
+  '/api/push/vapid-public-key': typeof ApiPushVapidPublicKeyRoute
   '/groups/$groupId/duel': typeof GroupsGroupIdDuelRoute
   '/groups/$groupId/feed': typeof GroupsGroupIdFeedRoute
   '/groups/$groupId/seasons': typeof GroupsGroupIdSeasonsRouteWithChildren
@@ -281,6 +290,7 @@ export interface FileRouteTypes {
     | '/players/$userId'
     | '/ranking/compare'
     | '/groups/'
+    | '/api/push/vapid-public-key'
     | '/groups/$groupId/duel'
     | '/groups/$groupId/feed'
     | '/groups/$groupId/seasons'
@@ -308,6 +318,7 @@ export interface FileRouteTypes {
     | '/players/$userId'
     | '/ranking/compare'
     | '/groups'
+    | '/api/push/vapid-public-key'
     | '/groups/$groupId/duel'
     | '/groups/$groupId/feed'
     | '/groups/$groupId'
@@ -335,6 +346,7 @@ export interface FileRouteTypes {
     | '/players/$userId'
     | '/ranking_/compare'
     | '/groups/'
+    | '/api/push/vapid-public-key'
     | '/groups/$groupId/duel'
     | '/groups/$groupId/feed'
     | '/groups/$groupId/seasons'
@@ -363,6 +375,7 @@ export interface RootRouteChildren {
   InviteCodeRoute: typeof InviteCodeRoute
   PlayersUserIdRoute: typeof PlayersUserIdRoute
   RankingCompareRoute: typeof RankingCompareRoute
+  ApiPushVapidPublicKeyRoute: typeof ApiPushVapidPublicKeyRoute
   ApiOgGroupGroupIdRoute: typeof ApiOgGroupGroupIdRoute
   ApiOgPlayerUserIdRoute: typeof ApiOgPlayerUserIdRoute
 }
@@ -516,6 +529,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof GroupsGroupIdDuelRouteImport
       parentRoute: typeof GroupsGroupIdRoute
     }
+    '/api/push/vapid-public-key': {
+      id: '/api/push/vapid-public-key'
+      path: '/api/push/vapid-public-key'
+      fullPath: '/api/push/vapid-public-key'
+      preLoaderRoute: typeof ApiPushVapidPublicKeyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/groups/$groupId/seasons/': {
       id: '/groups/$groupId/seasons/'
       path: '/'
@@ -640,6 +660,7 @@ const rootRouteChildren: RootRouteChildren = {
   InviteCodeRoute: InviteCodeRoute,
   PlayersUserIdRoute: PlayersUserIdRoute,
   RankingCompareRoute: RankingCompareRoute,
+  ApiPushVapidPublicKeyRoute: ApiPushVapidPublicKeyRoute,
   ApiOgGroupGroupIdRoute: ApiOgGroupGroupIdRoute,
   ApiOgPlayerUserIdRoute: ApiOgPlayerUserIdRoute,
 }
