@@ -100,6 +100,44 @@ export function GroupDashboardPanel({ group, onLeft, onPresenceChanged }: Props)
   const [showLeave, setShowLeave] = useState(false);
   const [leaving, setLeaving] = useState(false);
   const [resolvingReq, setResolvingReq] = useState<string | null>(null);
+  const [resolvingClaim, setResolvingClaim] = useState<string | null>(null);
+
+  async function handleApproveClaim(claim: typeof data.pending_claims[number]) {
+    if (!user) return;
+    setResolvingClaim(claim.id);
+    try {
+      const { error } = await supabase.rpc("merge_placeholder_player", {
+        _placeholder_user_id: claim.placeholder_user_id,
+        _real_user_id: claim.claimer_user_id,
+        _group_id: group.id,
+      });
+      if (error) throw error;
+      toast.success(`${claim.claimer_name} vinculado a ${claim.placeholder_name}`);
+      await refresh();
+    } catch (e: any) {
+      toast.error(e?.message || "Erro ao aprovar vínculo");
+    } finally {
+      setResolvingClaim(null);
+    }
+  }
+
+  async function handleRejectClaim(claim: typeof data.pending_claims[number]) {
+    if (!user) return;
+    setResolvingClaim(claim.id);
+    try {
+      const { error } = await supabase
+        .from("player_claims")
+        .update({ status: "rejected", resolved_at: new Date().toISOString(), resolved_by: user.id })
+        .eq("id", claim.id);
+      if (error) throw error;
+      toast.success("Vínculo recusado");
+      await refresh();
+    } catch (e: any) {
+      toast.error(e?.message || "Erro ao recusar");
+    } finally {
+      setResolvingClaim(null);
+    }
+  }
 
   async function handleApprove(req: typeof data.pending_join_requests[number]) {
     if (!user) return;
