@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import {
   Settings2, Bell, Users, Link2, AlertTriangle, Save, Loader2, Globe, Lock, EyeOff,
-  CheckCircle2, Trash2, BarChart3, ScrollText, Image as ImageIcon, Wrench,
+  CheckCircle2, Trash2, BarChart3, ScrollText, Image as ImageIcon, Wrench, Share2,
 } from "lucide-react";
+import { GroupOgCoverUpload } from "@/components/GroupOgCoverUpload";
+import { getRecentShareCount } from "@/lib/track-share";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "@tanstack/react-router";
@@ -59,9 +61,12 @@ export function AdminPanel({ group, isCreator, onSaved, pendingRequestsCount }: 
 
   return (
     <div className="space-y-4">
-      <div>
-        <h2 className="font-display text-xl font-bold text-foreground">Administração</h2>
-        <p className="text-xs text-muted-foreground">Configurações e gestão do grupo</p>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h2 className="font-display text-xl font-bold text-foreground">Administração</h2>
+          <p className="text-xs text-muted-foreground">Configurações e gestão do grupo</p>
+        </div>
+        <ShareCounterPill groupId={group.id} />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[220px_1fr]">
@@ -224,6 +229,12 @@ function GeneralSection({ group, onSaved }: { group: any; onSaved: () => void })
           toast.success("Imagem removida");
           onSaved();
         }}
+      />
+
+      <GroupOgCoverUpload
+        groupId={group.id}
+        currentUrl={(group as { og_cover_url?: string | null }).og_cover_url ?? null}
+        onChanged={onSaved}
       />
 
       <div>
