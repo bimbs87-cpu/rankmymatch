@@ -55,19 +55,11 @@ interface Props {
   viewerId?: string | null;
 }
 
+import { ALL_SHOT_LABELS } from "@/lib/sport-shots";
+
 const HAND_LABEL: Record<string, string> = { right: "Destro", left: "Canhoto" };
 const POS_LABEL: Record<string, string> = { left: "Esquerda", right: "Direita", both: "Ambos" };
-const SHOT_LABEL: Record<string, string> = {
-  none: "Nenhum",
-  bandeja: "Bandeja",
-  vibora: "Víbora",
-  smash: "Smash",
-  lob: "Lob",
-  chiquita: "Chiquita",
-  rulo: "Rulo",
-  bajada: "Bajada",
-  gancho: "Gancho",
-};
+const SHOT_LABEL: Record<string, string> = ALL_SHOT_LABELS;
 
 function formText(state: FormState): { label: string; cls: string; icon: ReactNode } {
   if (state === "rising")
