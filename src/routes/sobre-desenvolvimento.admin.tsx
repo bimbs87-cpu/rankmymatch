@@ -280,6 +280,15 @@ function BugAdminPage() {
                     {r.description}
                   </p>
                   <div className="mt-2 flex flex-wrap gap-2 text-[10px] text-muted-foreground">
+                    <span
+                      className={`rounded-full border px-2 py-0.5 font-bold ${
+                        PRIORITY_CLS[(r.priority as Priority) ?? "medium"] ??
+                        PRIORITY_CLS.medium
+                      }`}
+                    >
+                      {PRIORITY_LABELS[(r.priority as Priority) ?? "medium"] ??
+                        r.priority}
+                    </span>
                     {r.route && (
                       <span className="rounded-full border border-border bg-background/50 px-2 py-0.5 font-mono">
                         {r.route}
