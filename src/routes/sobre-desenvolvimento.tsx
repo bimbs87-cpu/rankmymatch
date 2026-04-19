@@ -9,7 +9,7 @@ import {
   ShieldCheck,
   MessageCircle,
   Mail,
-  Github,
+  Code2,
   Layers,
   Zap,
   Users,

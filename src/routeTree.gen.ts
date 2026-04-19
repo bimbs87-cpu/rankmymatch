@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SobreDesenvolvimentoRouteImport } from './routes/sobre-desenvolvimento'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as SistemaRouteImport } from './routes/sistema'
 import { Route as SeasonsRouteImport } from './routes/seasons'
@@ -39,6 +40,11 @@ import { Route as ApiOgGroupGroupIdRouteImport } from './routes/api.og.group.$gr
 import { Route as GroupsGroupIdSeasonsSeasonIdIndexRouteImport } from './routes/groups.$groupId.seasons.$seasonId.index'
 import { Route as GroupsGroupIdSeasonsSeasonIdRoundsRoundIdRouteImport } from './routes/groups.$groupId.seasons.$seasonId.rounds.$roundId'
 
+const SobreDesenvolvimentoRoute = SobreDesenvolvimentoRouteImport.update({
+  id: '/sobre-desenvolvimento',
+  path: '/sobre-desenvolvimento',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
   path: '/sitemap.xml',
@@ -203,6 +209,7 @@ export interface FileRoutesByFullPath {
   '/seasons': typeof SeasonsRoute
   '/sistema': typeof SistemaRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/sobre-desenvolvimento': typeof SobreDesenvolvimentoRoute
   '/groups/$groupId': typeof GroupsGroupIdRouteWithChildren
   '/hooks/presence-window-opened': typeof HooksPresenceWindowOpenedRoute
   '/invite/$code': typeof InviteCodeRoute
@@ -233,6 +240,7 @@ export interface FileRoutesByTo {
   '/seasons': typeof SeasonsRoute
   '/sistema': typeof SistemaRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/sobre-desenvolvimento': typeof SobreDesenvolvimentoRoute
   '/hooks/presence-window-opened': typeof HooksPresenceWindowOpenedRoute
   '/invite/$code': typeof InviteCodeRoute
   '/players/$userId': typeof PlayersUserIdRoute
@@ -262,6 +270,7 @@ export interface FileRoutesById {
   '/seasons': typeof SeasonsRoute
   '/sistema': typeof SistemaRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/sobre-desenvolvimento': typeof SobreDesenvolvimentoRoute
   '/groups/$groupId': typeof GroupsGroupIdRouteWithChildren
   '/hooks/presence-window-opened': typeof HooksPresenceWindowOpenedRoute
   '/invite/$code': typeof InviteCodeRoute
@@ -295,6 +304,7 @@ export interface FileRouteTypes {
     | '/seasons'
     | '/sistema'
     | '/sitemap.xml'
+    | '/sobre-desenvolvimento'
     | '/groups/$groupId'
     | '/hooks/presence-window-opened'
     | '/invite/$code'
@@ -325,6 +335,7 @@ export interface FileRouteTypes {
     | '/seasons'
     | '/sistema'
     | '/sitemap.xml'
+    | '/sobre-desenvolvimento'
     | '/hooks/presence-window-opened'
     | '/invite/$code'
     | '/players/$userId'
@@ -353,6 +364,7 @@ export interface FileRouteTypes {
     | '/seasons'
     | '/sistema'
     | '/sitemap.xml'
+    | '/sobre-desenvolvimento'
     | '/groups/$groupId'
     | '/hooks/presence-window-opened'
     | '/invite/$code'
@@ -385,6 +397,7 @@ export interface RootRouteChildren {
   SeasonsRoute: typeof SeasonsRoute
   SistemaRoute: typeof SistemaRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
+  SobreDesenvolvimentoRoute: typeof SobreDesenvolvimentoRoute
   HooksPresenceWindowOpenedRoute: typeof HooksPresenceWindowOpenedRoute
   InviteCodeRoute: typeof InviteCodeRoute
   PlayersUserIdRoute: typeof PlayersUserIdRoute
@@ -396,6 +409,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/sobre-desenvolvimento': {
+      id: '/sobre-desenvolvimento'
+      path: '/sobre-desenvolvimento'
+      fullPath: '/sobre-desenvolvimento'
+      preLoaderRoute: typeof SobreDesenvolvimentoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/sitemap.xml': {
       id: '/sitemap.xml'
       path: '/sitemap.xml'
@@ -678,6 +698,7 @@ const rootRouteChildren: RootRouteChildren = {
   SeasonsRoute: SeasonsRoute,
   SistemaRoute: SistemaRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
+  SobreDesenvolvimentoRoute: SobreDesenvolvimentoRoute,
   HooksPresenceWindowOpenedRoute: HooksPresenceWindowOpenedRoute,
   InviteCodeRoute: InviteCodeRoute,
   PlayersUserIdRoute: PlayersUserIdRoute,
