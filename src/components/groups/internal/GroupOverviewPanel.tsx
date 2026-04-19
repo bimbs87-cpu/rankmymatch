@@ -99,6 +99,14 @@ export function GroupOverviewPanel({ groupId, groupName, groupImage, description
                 Rodada {data.current_season.rounds_done}/{data.current_season.rounds_total}
               </span>
             )}
+            {isTopSharer && (
+              <span
+                className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-amber-400/20 to-amber-500/10 px-2.5 py-1 font-semibold text-amber-500 ring-1 ring-amber-400/40 animate-in fade-in slide-in-from-bottom-1"
+                title={`Você fez ${topSharer!.count} compartilhamento${topSharer!.count === 1 ? "" : "s"} esta semana`}
+              >
+                🥇 Top divulgador da semana
+              </span>
+            )}
           </div>
         </div>
       </div>
