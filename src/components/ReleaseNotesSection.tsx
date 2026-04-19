@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { Sparkles, Wrench, Rocket, Loader2 } from "lucide-react";
+import { Sparkles, Wrench, Rocket, Loader2, ArrowRight } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 
 type ReleaseNote = {
@@ -93,38 +94,45 @@ export function ReleaseNotesSection() {
       )}
 
       {notes && notes.length > 0 && (
-        <ol className="relative space-y-3 border-l border-border pl-4">
-          {notes.map((n) => {
-            const meta = TYPE_META[n.type] ?? TYPE_META.feature;
-            return (
-              <li key={n.id} className="relative">
-                <span className="absolute -left-[21px] top-1.5 h-2.5 w-2.5 rounded-full border-2 border-card bg-primary" />
-                <div className="flex flex-wrap items-center gap-2">
-                  <span
-                    className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-bold ${meta.cls}`}
-                  >
-                    {meta.icon}
-                    {meta.label}
-                  </span>
-                  <span className="font-mono text-[11px] text-muted-foreground">
-                    {n.version}
-                  </span>
-                  <span className="text-[10px] text-muted-foreground">
-                    · {formatDate(n.released_at)}
-                  </span>
-                </div>
-                <p className="mt-1 text-sm font-bold text-foreground">
-                  {n.title}
-                </p>
-                {n.description && (
-                  <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
-                    {n.description}
-                  </p>
-                )}
-              </li>
-            );
-          })}
-        </ol>
+        <>
+          <ol className="relative space-y-3 border-l border-border pl-4">
+            {notes.map((n) => {
+              const meta = TYPE_META[n.type] ?? TYPE_META.feature;
+              return (
+                <li key={n.id} className="relative">
+                  <span className="absolute -left-[21px] top-1.5 h-2.5 w-2.5 rounded-full border-2 border-card bg-primary" />
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span
+                      className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-bold ${meta.cls}`}
+                    >
+                      {meta.icon}
+                      {meta.label}
+                    </span>
+                    <span className="font-mono text-[11px] text-muted-foreground">
+                      {n.version}
+                    </span>
+                    <span className="text-[10px] text-muted-foreground">
+                      · {formatDate(n.released_at)}
+                    </span>
+                  </div>
+                  <p className="mt-1 text-sm font-bold text-foreground">{n.title}</p>
+                  {n.description && (
+                    <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
+                      {n.description}
+                    </p>
+                  )}
+                </li>
+              );
+            })}
+          </ol>
+          <Link
+            to="/changelog"
+            className="mt-4 inline-flex items-center gap-1.5 rounded-full border border-border bg-background px-3.5 py-1.5 text-xs font-bold text-foreground transition-colors hover:border-primary/40 hover:bg-primary/5 hover:text-primary"
+          >
+            Ver mais
+            <ArrowRight className="h-3 w-3" />
+          </Link>
+        </>
       )}
     </section>
   );
