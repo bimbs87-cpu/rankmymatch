@@ -199,9 +199,11 @@ function RootComponent() {
           <InstallFlowProvider>
             {/* === Premium global background === */}
             <div aria-hidden className="pointer-events-none fixed inset-0 z-0 bg-background" />
+
+            {/* Mobile/tablet auras (intense) */}
             <div
               aria-hidden
-              className="pointer-events-none fixed inset-0 z-0"
+              className="pointer-events-none fixed inset-0 z-0 lg:hidden"
               style={{
                 backgroundImage: `
                   radial-gradient(80vw 55vh at 50% -10%, color-mix(in oklab, var(--primary) 28%, transparent), transparent 70%),
@@ -212,9 +214,39 @@ function RootComponent() {
                 `,
               }}
             />
+
+            {/* Desktop auras: confined to outer edges so they never sit behind content */}
             <div
               aria-hidden
-              className="pointer-events-none fixed inset-0 z-0 opacity-[0.10] mix-blend-overlay"
+              className="pointer-events-none fixed inset-0 z-0 hidden lg:block"
+              style={{
+                backgroundImage: `
+                  radial-gradient(40vw 70vh at 0% 20%, color-mix(in oklab, var(--primary) 18%, transparent), transparent 60%),
+                  radial-gradient(40vw 70vh at 100% 80%, color-mix(in oklab, var(--primary) 16%, transparent), transparent 60%),
+                  radial-gradient(35vw 50vh at 100% 0%, color-mix(in oklab, var(--primary) 10%, transparent), transparent 65%),
+                  radial-gradient(35vw 50vh at 0% 100%, color-mix(in oklab, var(--primary) 10%, transparent), transparent 65%),
+                  linear-gradient(180deg, color-mix(in oklab, var(--background) 92%, var(--primary)) 0%, var(--background) 35%, var(--background) 65%, color-mix(in oklab, var(--background) 92%, var(--primary)) 100%)
+                `,
+              }}
+            />
+
+            {/* Desktop subtle grid behind everything for depth */}
+            <div
+              aria-hidden
+              className="pointer-events-none fixed inset-0 z-0 hidden opacity-[0.04] lg:block"
+              style={{
+                backgroundImage:
+                  "linear-gradient(to right, currentColor 1px, transparent 1px), linear-gradient(to bottom, currentColor 1px, transparent 1px)",
+                backgroundSize: "64px 64px",
+                maskImage: "radial-gradient(ellipse at center, black 30%, transparent 80%)",
+                WebkitMaskImage: "radial-gradient(ellipse at center, black 30%, transparent 80%)",
+              }}
+            />
+
+            {/* Shared noise texture (very subtle on desktop) */}
+            <div
+              aria-hidden
+              className="pointer-events-none fixed inset-0 z-0 opacity-[0.10] mix-blend-overlay lg:opacity-[0.06]"
               style={{
                 backgroundImage:
                   "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.75  0 0 0 0 1  0 0 0 0 0.55  0 0 0 0.55 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>\")",
