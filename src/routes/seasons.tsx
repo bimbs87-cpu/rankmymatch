@@ -7,6 +7,16 @@ import { useState, useEffect } from "react";
 import { Trophy, Calendar, ChevronRight, Users } from "lucide-react";
 
 export const Route = createFileRoute("/seasons")({
+  head: () => ({
+    meta: [
+      { title: "Temporadas — RankMyMatch" },
+      { name: "description", content: "Acompanhe suas temporadas ativas e finalizadas no RankMyMatch." },
+      { property: "og:title", content: "Temporadas — RankMyMatch" },
+      { property: "og:description", content: "Histórico de temporadas, rodadas e desempenho." },
+      { name: "robots", content: "noindex, follow" },
+    ],
+    links: [{ rel: "canonical", href: "https://rankmymatch.app/seasons" }],
+  }),
   component: SeasonsPage,
 });
 

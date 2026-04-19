@@ -2,6 +2,15 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowLeft, TrendingUp, TrendingDown, Target, Shield, Award } from "lucide-react";
 
 export const Route = createFileRoute("/ranking-info")({
+  head: () => ({
+    meta: [
+      { title: "Como funciona o ranking — RankMyMatch" },
+      { name: "description", content: "Entenda o sistema de Elo adaptado para padel, beach tênis e tênis: como pontuação, k-factor e margem de vitória influenciam seu ranking." },
+      { property: "og:title", content: "Como funciona o ranking Elo do RankMyMatch" },
+      { property: "og:description", content: "Sistema Elo adaptado para esportes de raquete entre amigos e clubes." },
+    ],
+    links: [{ rel: "canonical", href: "https://rankmymatch.app/ranking-info" }],
+  }),
   component: RankingInfoPage,
 });
 

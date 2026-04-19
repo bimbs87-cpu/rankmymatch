@@ -34,6 +34,14 @@ interface MatchHistory {
 }
 
 export const Route = createFileRoute("/history")({
+  head: () => ({
+    meta: [
+      { title: "Histórico — RankMyMatch" },
+      { name: "description", content: "Histórico completo de partidas, evolução de Elo e estatísticas pessoais." },
+      { name: "robots", content: "noindex, follow" },
+    ],
+    links: [{ rel: "canonical", href: "https://rankmymatch.app/history" }],
+  }),
   component: HistoryPage,
 });
 

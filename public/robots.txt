@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+Disallow: /profile
+Disallow: /notifications
+Disallow: /history
+Disallow: /api/
+Disallow: /hooks/
+
+Sitemap: https://rankmymatch.app/sitemap.xml

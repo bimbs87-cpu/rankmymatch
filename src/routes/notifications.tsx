@@ -16,6 +16,12 @@ import { useNotifications } from "@/hooks/use-notifications";
 import { TrophyLoadingBar } from "@/components/TrophyLoadingBar";
 
 export const Route = createFileRoute("/notifications")({
+  head: () => ({
+    meta: [
+      { title: "Notificações — RankMyMatch" },
+      { name: "robots", content: "noindex, nofollow" },
+    ],
+  }),
   component: NotificationsPage,
 });
 

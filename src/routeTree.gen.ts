@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as SistemaRouteImport } from './routes/sistema'
 import { Route as SeasonsRouteImport } from './routes/seasons'
 import { Route as RankingInfoRouteImport } from './routes/ranking-info'
@@ -35,6 +36,11 @@ import { Route as ApiOgPlayerUserIdRouteImport } from './routes/api.og.player.$u
 import { Route as GroupsGroupIdSeasonsSeasonIdIndexRouteImport } from './routes/groups.$groupId.seasons.$seasonId.index'
 import { Route as GroupsGroupIdSeasonsSeasonIdRoundsRoundIdRouteImport } from './routes/groups.$groupId.seasons.$seasonId.rounds.$roundId'
 
+const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
+  id: '/sitemap.xml',
+  path: '/sitemap.xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SistemaRoute = SistemaRouteImport.update({
   id: '/sistema',
   path: '/sistema',
@@ -177,6 +183,7 @@ export interface FileRoutesByFullPath {
   '/ranking-info': typeof RankingInfoRoute
   '/seasons': typeof SeasonsRoute
   '/sistema': typeof SistemaRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/groups/$groupId': typeof GroupsGroupIdRouteWithChildren
   '/invite/$code': typeof InviteCodeRoute
   '/players/$userId': typeof PlayersUserIdRoute
@@ -203,6 +210,7 @@ export interface FileRoutesByTo {
   '/ranking-info': typeof RankingInfoRoute
   '/seasons': typeof SeasonsRoute
   '/sistema': typeof SistemaRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/invite/$code': typeof InviteCodeRoute
   '/players/$userId': typeof PlayersUserIdRoute
   '/ranking/compare': typeof RankingCompareRoute
@@ -228,6 +236,7 @@ export interface FileRoutesById {
   '/ranking-info': typeof RankingInfoRoute
   '/seasons': typeof SeasonsRoute
   '/sistema': typeof SistemaRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/groups/$groupId': typeof GroupsGroupIdRouteWithChildren
   '/invite/$code': typeof InviteCodeRoute
   '/players/$userId': typeof PlayersUserIdRoute
@@ -257,6 +266,7 @@ export interface FileRouteTypes {
     | '/ranking-info'
     | '/seasons'
     | '/sistema'
+    | '/sitemap.xml'
     | '/groups/$groupId'
     | '/invite/$code'
     | '/players/$userId'
@@ -283,6 +293,7 @@ export interface FileRouteTypes {
     | '/ranking-info'
     | '/seasons'
     | '/sistema'
+    | '/sitemap.xml'
     | '/invite/$code'
     | '/players/$userId'
     | '/ranking/compare'
@@ -307,6 +318,7 @@ export interface FileRouteTypes {
     | '/ranking-info'
     | '/seasons'
     | '/sistema'
+    | '/sitemap.xml'
     | '/groups/$groupId'
     | '/invite/$code'
     | '/players/$userId'
@@ -335,6 +347,7 @@ export interface RootRouteChildren {
   RankingInfoRoute: typeof RankingInfoRoute
   SeasonsRoute: typeof SeasonsRoute
   SistemaRoute: typeof SistemaRoute
+  SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   InviteCodeRoute: typeof InviteCodeRoute
   PlayersUserIdRoute: typeof PlayersUserIdRoute
   RankingCompareRoute: typeof RankingCompareRoute
@@ -343,6 +356,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/sitemap.xml': {
+      id: '/sitemap.xml'
+      path: '/sitemap.xml'
+      fullPath: '/sitemap.xml'
+      preLoaderRoute: typeof SitemapDotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/sistema': {
       id: '/sistema'
       path: '/sistema'
@@ -596,6 +616,7 @@ const rootRouteChildren: RootRouteChildren = {
   RankingInfoRoute: RankingInfoRoute,
   SeasonsRoute: SeasonsRoute,
   SistemaRoute: SistemaRoute,
+  SitemapDotxmlRoute: SitemapDotxmlRoute,
   InviteCodeRoute: InviteCodeRoute,
   PlayersUserIdRoute: PlayersUserIdRoute,
   RankingCompareRoute: RankingCompareRoute,

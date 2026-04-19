@@ -13,6 +13,16 @@ import { buildDisplayNames, getCollidingFirstNames } from "@/lib/name-disambigua
 import { abbreviateName } from "@/lib/utils";
 
 export const Route = createFileRoute("/ranking")({
+  head: () => ({
+    meta: [
+      { title: "Ranking — RankMyMatch" },
+      { name: "description", content: "Veja o ranking dos seus grupos e temporadas no RankMyMatch." },
+      { property: "og:title", content: "Ranking — RankMyMatch" },
+      { property: "og:description", content: "Acompanhe sua posição e a evolução do Elo dos seus grupos." },
+      { name: "robots", content: "noindex, follow" },
+    ],
+    links: [{ rel: "canonical", href: "https://rankmymatch.app/ranking" }],
+  }),
   component: RankingPage,
 });
 
