@@ -118,15 +118,16 @@ export function ProfileBody({
   }, [viewerId, profile.user_id]);
 
   return (
-    <div className="space-y-4 pb-28">
-      {/* HERO */}
-      <header className="relative overflow-hidden bg-card px-5 pb-7 pt-10">
+    <div className="mx-auto w-full max-w-7xl space-y-3 pb-28 lg:space-y-4 lg:px-6 lg:pt-4">
+      {/* HERO — compact horizontal on desktop, centered stack on mobile */}
+      <header className="relative overflow-hidden bg-card px-5 pb-7 pt-10 lg:rounded-3xl lg:border lg:border-border lg:px-6 lg:py-5">
         <div className="absolute inset-0 bg-gradient-to-br from-primary/15 via-transparent to-transparent" />
         {topRightActions ? (
           <div className="absolute right-4 top-4 z-10">{topRightActions}</div>
         ) : null}
         <div className="relative">
-          <div className="flex flex-col items-center text-center">
+          {/* MOBILE: centered stack */}
+          <div className="flex flex-col items-center text-center lg:hidden">
             <div className="relative mb-3">
               <PlayerAvatar
                 avatarUrl={profile.avatar_url}
@@ -155,8 +156,6 @@ export function ProfileBody({
                 {profile.instagram_handle}
               </a>
             ) : null}
-
-            {/* Form badge */}
             <span
               className={`mt-3 inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider ${form.cls}`}
             >
@@ -164,12 +163,87 @@ export function ProfileBody({
               {form.label}
             </span>
           </div>
+
+          {/* DESKTOP: horizontal — avatar | identity | inline metrics */}
+          <div className="hidden lg:flex lg:items-center lg:gap-5">
+            <div className="relative shrink-0">
+              <PlayerAvatar
+                avatarUrl={profile.avatar_url}
+                name={profile.name}
+                size="xl"
+                className="border-2 border-border"
+              />
+              {heroActions ? (
+                <div className="absolute bottom-0 right-0">{heroActions}</div>
+              ) : null}
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                <h1 className="font-display text-3xl font-bold leading-tight text-foreground">
+                  {abbreviateName(profile.name)}
+                </h1>
+                <span
+                  className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider ${form.cls}`}
+                >
+                  {form.icon}
+                  {form.label}
+                </span>
+              </div>
+              <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-0.5 text-sm text-muted-foreground">
+                {profile.nickname ? <span>@{profile.nickname}</span> : null}
+                {showPersonal && profile.instagram_handle ? (
+                  <a
+                    href={`https://instagram.com/${profile.instagram_handle}`}
+                    target="_blank"
+                    rel="noreferrer noopener"
+                    className="inline-flex items-center gap-1 hover:text-primary"
+                  >
+                    <AtSign className="h-3 w-3" />
+                    {profile.instagram_handle}
+                  </a>
+                ) : null}
+              </div>
+            </div>
+            {/* Inline KPI strip on desktop hero */}
+            <div className="flex shrink-0 items-stretch gap-3 border-l border-border/60 pl-5">
+              <HeroKpi
+                label="Elo"
+                value={summary.weightedElo != null ? String(summary.weightedElo) : "—"}
+                sub={
+                  summary.trend30d !== 0
+                    ? `${summary.trend30d > 0 ? "+" : ""}${summary.trend30d} 30d`
+                    : "estável"
+                }
+                tone={summary.trend30d > 0 ? "primary" : summary.trend30d < 0 ? "destructive" : "muted"}
+              />
+              <HeroKpi
+                label="Win rate"
+                value={summary.totalMatches > 0 ? `${summary.winRate}%` : "—"}
+                sub={`${summary.totalWins}V • ${summary.totalMatches - summary.totalWins}D`}
+                tone="primary"
+              />
+              <HeroKpi
+                label="Partidas"
+                value={String(summary.totalMatches)}
+                sub={`${summary.totalSetsWon} sets`}
+                tone="muted"
+              />
+              {summary.bestPosition ? (
+                <HeroKpi
+                  label="Melhor"
+                  value={`#${summary.bestPosition.pos}`}
+                  sub={summary.bestPosition.group}
+                  tone="primary"
+                />
+              ) : null}
+            </div>
+          </div>
         </div>
       </header>
 
-      <div className="space-y-4 px-5">
-        {/* HEADLINE METRICS — always visible */}
-        <section className="grid grid-cols-2 gap-2">
+      <div className="space-y-3 px-5 lg:space-y-4 lg:px-0">
+        {/* HEADLINE METRICS — mobile only (desktop has them inline in hero) */}
+        <section className="grid grid-cols-2 gap-2 lg:hidden">
           <BigMetric
             label="Elo médio"
             value={summary.weightedElo != null ? String(summary.weightedElo) : "—"}
