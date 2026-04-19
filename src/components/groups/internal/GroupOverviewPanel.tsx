@@ -17,6 +17,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { notifyUrgentPendingMembers } from "@/lib/urgency-notify";
+import { useTopSharer } from "@/hooks/use-top-sharer";
 
 interface Props {
   groupId: string;
