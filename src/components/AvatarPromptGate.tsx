@@ -96,10 +96,14 @@ export function AvatarPromptGate() {
     setOpen(false);
   };
 
+  // In mandatory mode WITHOUT a Google photo, the user is forced to pick a
+  // preset avatar from the gallery (no uploads, no "agora não").
+  const mandatoryNoGoogle = isMandatory && !googlePhoto;
+
   const handleSelect = async (url: string, type: "google" | "emoji") => {
     if (!user) return;
-    // In mandatory mode, only Google photos are accepted (no preset/uploads).
-    if (isMandatory && type !== "google") {
+    // In mandatory mode WITH Google photo, only Google is accepted.
+    if (isMandatory && googlePhoto && type !== "google") {
       toast.error("Após 3 adiamentos, apenas a foto do Google pode ser usada");
       return;
     }
@@ -129,6 +133,17 @@ export function AvatarPromptGate() {
   const handleUseGoogle = async () => {
     if (!googlePhoto) return;
     await handleSelect(googlePhoto, "google");
+  };
+
+  const handleRandomPreset = async () => {
+    const pick = PREMIUM_AVATARS[Math.floor(Math.random() * PREMIUM_AVATARS.length)];
+    const url = getAvatarUrl(pick.id);
+    if (!url) {
+      toast.error("Não foi possível gerar um avatar aleatório, escolha um da lista");
+      setPicker(true);
+      return;
+    }
+    await handleSelect(url, "emoji");
   };
 
   if (!open) {
