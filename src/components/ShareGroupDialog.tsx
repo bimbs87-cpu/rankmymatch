@@ -372,6 +372,13 @@ export function ShareGroupDialog({ open, onOpenChange, url, groupName, groupId, 
                 {copyingImg ? "Copiando…" : copiedImg ? "Imagem copiada" : "Copiar imagem"}
               </button>
             )}
+            <button
+              onClick={handleWhatsApp}
+              className="col-span-2 inline-flex items-center justify-center gap-1.5 rounded-full bg-[#25D366] px-3 py-2.5 text-xs font-semibold text-white transition hover:opacity-90"
+            >
+              <MessageCircle className="h-3.5 w-3.5" />
+              Compartilhar no WhatsApp
+            </button>
             {canNativeShare && (
               <button
                 onClick={handleNativeShare}
