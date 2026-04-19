@@ -2263,7 +2263,7 @@ function DashboardPage() {
                         </p>
                       </div>
                       <p className="mt-0.5 truncate text-[10px] leading-tight text-muted-foreground">
-                        {m.group_name ? `${m.group_name} · ` : ""}Set {m.match_number}
+                        {m.group_name ? `${m.group_name} · ` : ""}{m.round_number ? `Rodada ${m.round_number}` : `Partida ${m.match_number ?? "?"}`}
                       </p>
                     </div>
 
