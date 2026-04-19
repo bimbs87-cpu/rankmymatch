@@ -210,6 +210,14 @@ export function EloEvolutionChart({
         </div>
       </div>
 
+      {points.length > 0 && (
+        <p className="mb-1 text-[10px] text-muted-foreground">
+          {filtered.length} {filtered.length === 1 ? "partida" : "partidas"}
+          {period === "all"
+            ? " no histórico completo"
+            : ` nos últimos ${period === "30d" ? 30 : 90} dias`}
+        </p>
+      )}
       <div className="relative min-h-0 flex-1 overflow-hidden rounded-xl bg-muted/10 p-2">
         {!filtered.length ? (
           <div className="flex h-full items-center justify-center text-[11px] text-muted-foreground">

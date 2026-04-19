@@ -52,7 +52,8 @@ export function RankingPlayerDetails(props: Props) {
     const load = async () => {
       setLoading(true);
       try {
-        // 1) Season player stats (streaks, attendance)
+        // 1) Season player stats (streaks, attendance) — used as hint;
+        // we always derive from raw data when fields are missing/zero.
         const statsP = supabase
           .from("player_stats_by_season")
           .select("win_streak_current, win_streak_max, rounds_present, rounds_absent, reliability_score")
@@ -68,18 +69,14 @@ export function RankingPlayerDetails(props: Props) {
           .eq("user_id", userId)
           .order("created_at", { ascending: true });
 
-        const [statsRes, eventsRes] = await Promise.all([statsP, eventsP]);
-        if (cancelled) return;
+        // 3) Rounds in this season — for presence fallback
+        const roundsP = supabase
+          .from("rounds")
+          .select("id, scheduled_date, created_at")
+          .eq("season_id", seasonId);
 
-        if (statsRes.data) {
-          setStats({
-            win_streak_current: statsRes.data.win_streak_current || 0,
-            win_streak_max: statsRes.data.win_streak_max || 0,
-            rounds_present: statsRes.data.rounds_present || 0,
-            rounds_absent: statsRes.data.rounds_absent || 0,
-            reliability_score: Number(statsRes.data.reliability_score || 0),
-          });
-        }
+        const [statsRes, eventsRes, roundsRes] = await Promise.all([statsP, eventsP, roundsP]);
+        if (cancelled) return;
 
         const events = (eventsRes.data || []) as any[];
         setRatingHistory(events.map((e) => ({
@@ -88,14 +85,86 @@ export function RankingPlayerDetails(props: Props) {
           rating_change: Number(e.rating_change),
         })));
 
-        // 3) Partners & rivals (only if there are matches)
-        if (events.length > 0) {
-          const matchIds = events.map((e) => e.match_id).filter(Boolean);
-          if (matchIds.length === 0) {
-            setLoading(false);
-            return;
+        // ─── Compute streaks + presence from raw data (always, as fallback/source-of-truth) ───
+        const matchIds = events.map((e) => e.match_id).filter(Boolean);
+
+        // Default values (will be overridden below if we can derive them)
+        let derivedStreakCur = 0;
+        let derivedStreakMax = 0;
+        let derivedPresent = 0;
+        let derivedAbsent = 0;
+
+        if (matchIds.length > 0) {
+          // Need match_players + matches (winner_team) to know if user won each match
+          const [mpRes, mRes] = await Promise.all([
+            supabase.from("match_players").select("match_id, user_id, team").in("match_id", matchIds),
+            supabase.from("matches").select("id, winner_team, round_id, created_at").in("id", matchIds),
+          ]);
+          const allPlayers = (mpRes.data || []) as { match_id: string; user_id: string; team: string }[];
+          const matchesData = (mRes.data || []) as { id: string; winner_team: string | null; round_id: string; created_at: string }[];
+
+          // My team per match
+          const myTeamByMatch = new Map<string, string>();
+          for (const p of allPlayers) {
+            if (p.user_id === userId) myTeamByMatch.set(p.match_id, p.team);
           }
 
+          // Sort matches chronologically by created_at to compute streaks
+          const myMatches = matchesData
+            .filter((m) => myTeamByMatch.has(m.id))
+            .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+
+          let cur = 0;
+          let max = 0;
+          for (const m of myMatches) {
+            const myTeam = myTeamByMatch.get(m.id)!;
+            const won = m.winner_team != null && m.winner_team === myTeam;
+            if (won) {
+              cur += 1;
+              if (cur > max) max = cur;
+            } else {
+              cur = 0;
+            }
+          }
+          derivedStreakCur = cur;
+          derivedStreakMax = max;
+
+          // Presence (rounds played) — distinct rounds in which user participated in any match
+          const playedRoundIds = new Set(myMatches.map((m) => m.round_id));
+          derivedPresent = playedRoundIds.size;
+
+          // Absent = rounds in season that already happened (scheduled_date <= today) and user did NOT play
+          const today = new Date();
+          today.setHours(23, 59, 59, 999);
+          const seasonRounds = (roundsRes.data || []) as { id: string; scheduled_date: string | null; created_at: string }[];
+          const pastRounds = seasonRounds.filter((r) => {
+            const d = r.scheduled_date ? new Date(r.scheduled_date + "T12:00:00") : new Date(r.created_at);
+            return d.getTime() <= today.getTime();
+          });
+          derivedAbsent = Math.max(0, pastRounds.length - derivedPresent);
+        }
+
+        // Merge: prefer the derived value when stats row is missing OR when
+        // the stats row reports 0 while derived is > 0 (stale snapshot).
+        const statsRow = statsRes.data;
+        setStats({
+          win_streak_current: statsRow?.win_streak_current && statsRow.win_streak_current > 0
+            ? statsRow.win_streak_current
+            : derivedStreakCur,
+          win_streak_max: statsRow?.win_streak_max && statsRow.win_streak_max > 0
+            ? Math.max(statsRow.win_streak_max, derivedStreakMax)
+            : derivedStreakMax,
+          rounds_present: statsRow?.rounds_present && statsRow.rounds_present > 0
+            ? Math.max(statsRow.rounds_present, derivedPresent)
+            : derivedPresent,
+          rounds_absent: statsRow?.rounds_absent != null && (statsRow.rounds_present ?? 0) > 0
+            ? statsRow.rounds_absent
+            : derivedAbsent,
+          reliability_score: Number(statsRow?.reliability_score || 0),
+        });
+
+        // 4) Partners & rivals (only if there are matches)
+        if (events.length > 0 && matchIds.length > 0) {
           // Fetch all match_players for these matches + match results
           const [mpRes, mRes] = await Promise.all([
             supabase.from("match_players").select("match_id, user_id, team").in("match_id", matchIds),
