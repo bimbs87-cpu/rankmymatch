@@ -14,7 +14,7 @@ import { useUserProfile } from "@/hooks/use-user-profile";
 import { AvatarPickerDialog } from "@/components/AvatarPickerDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { UserCircle2, AlertCircle, Shuffle } from "lucide-react";
+import { UserCircle2, AlertCircle, Shuffle, Check, X } from "lucide-react";
 import noPhotoAvatar from "@/assets/avatars/no-photo.png";
 import { PREMIUM_AVATARS, getAvatarUrl } from "@/lib/avatar-data";
 
