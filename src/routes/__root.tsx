@@ -36,9 +36,22 @@ function NotFoundComponent() {
 
 export const Route = createRootRoute({
   head: () => ({
-    meta: [
-      { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
+    meta: ROOT_META,
+    scripts: [
+      {
+        async: true,
+        src: "https://www.googletagmanager.com/gtag/js?id=AW-18099845561",
+      },
+      {
+        children: `window.dataLayer = window.dataLayer || [];function gtag(){dataLayer.push(arguments);}gtag('js', new Date());gtag('config', 'AW-18099845561');`,
+      },
+      {
+        type: "application/ld+json",
+        children: JSON.stringify(ROOT_JSONLD),
+      },
+    ],
+    links: ROOT_LINKS,
+  }),
       { title: "RankMyMatch — Rankings de Padel, Beach Tênis, Tênis e mais.." },
       { name: "description", content: "O app definitivo para feirinos com rankings, temporadas de padel entre amigos e clubes." },
       { property: "og:title", content: "RankMyMatch — Rankings de Padel, Beach Tênis, Tênis e mais.." },
