@@ -22,10 +22,22 @@ import { useTheme } from "@/lib/theme";
 function GoogleIcon({ className }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" aria-hidden>
-      <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4" />
-      <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
-      <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
-      <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
+      <path
+        d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"
+        fill="#4285F4"
+      />
+      <path
+        d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+        fill="#34A853"
+      />
+      <path
+        d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+        fill="#FBBC05"
+      />
+      <path
+        d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+        fill="#EA4335"
+      />
     </svg>
   );
 }
@@ -46,7 +58,7 @@ export function LandingPage() {
         window.localStorage.removeItem(testKey);
       } catch {
         setError(
-          "Seu navegador está bloqueando o armazenamento local (talvez Modo Privado do Safari). Abra em uma aba normal para entrar."
+          "Seu navegador está bloqueando o armazenamento local (talvez Modo Privado do Safari). Abra em uma aba normal para entrar.",
         );
         setLoading(false);
         return;
@@ -111,7 +123,7 @@ export function LandingPage() {
     {
       icon: Users,
       title: "Multi-grupo",
-      desc: "Gerencie quantos grupos quiser — feirinha, clube, amigos, tudo num lugar.",
+      desc: "Gerencie quantos grupos quiser — Feirinos, clube, amigos, tudo num lugar.",
     },
     {
       icon: ShieldCheck,
@@ -138,7 +150,9 @@ export function LandingPage() {
     >
       <GoogleIcon className={size === "lg" ? "h-5 w-5" : "h-4 w-4"} />
       {loading ? "Entrando..." : "Entrar com Google"}
-      <ArrowRight className={`transition-transform group-hover:translate-x-0.5 ${size === "lg" ? "h-5 w-5" : "h-4 w-4"}`} />
+      <ArrowRight
+        className={`transition-transform group-hover:translate-x-0.5 ${size === "lg" ? "h-5 w-5" : "h-4 w-4"}`}
+      />
     </button>
   );
 
@@ -206,9 +220,9 @@ export function LandingPage() {
             </h1>
 
             <p className="mx-auto mt-5 max-w-xl text-sm leading-relaxed text-muted-foreground sm:text-base lg:mx-0 lg:text-lg">
-              <span className="font-semibold text-foreground">Estatísticas avançadas</span>,
-              ranking Elo dinâmico e gestão de temporadas para padel, tênis, beach tennis e mais.
-              Pare de anotar resultado em planilha do WhatsApp.
+              <span className="font-semibold text-foreground">Estatísticas avançadas</span>, ranking Elo dinâmico e
+              gestão de temporadas para padel, tênis, beach tennis e mais. Pare de anotar resultado em planilha do
+              WhatsApp.
             </p>
 
             <div className="mt-7 flex flex-col items-center gap-3 sm:flex-row sm:justify-center lg:justify-start">
@@ -219,9 +233,7 @@ export function LandingPage() {
               </div>
             </div>
 
-            {error && (
-              <p className="mt-4 text-center text-sm text-destructive lg:text-left">{error}</p>
-            )}
+            {error && <p className="mt-4 text-center text-sm text-destructive lg:text-left">{error}</p>}
 
             <div className="mt-8">
               <p className="mb-2 text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
@@ -307,10 +319,7 @@ export function LandingPage() {
 
           <div className="mt-10 grid gap-4 sm:grid-cols-3">
             {steps.map((s) => (
-              <div
-                key={s.n}
-                className="relative rounded-2xl border border-border/60 bg-card/50 p-6 backdrop-blur-md"
-              >
+              <div key={s.n} className="relative rounded-2xl border border-border/60 bg-card/50 p-6 backdrop-blur-md">
                 <div className="mb-3 inline-flex h-10 items-center justify-center rounded-full bg-primary/10 px-3 text-sm font-black text-primary">
                   {s.n}
                 </div>
@@ -347,8 +356,8 @@ export function LandingPage() {
               Bora subir no <span className="text-primary">ranking</span>?
             </h2>
             <p className="mx-auto mt-3 max-w-lg text-sm text-muted-foreground sm:text-base">
-              Junte-se a feirinhas e clubes que já largaram a planilha.
-              Entre com Google e crie seu primeiro grupo agora.
+              Junte-se a feirinhas e clubes que já largaram a planilha. Entre com Google e crie seu primeiro grupo
+              agora.
             </p>
             <div className="mt-7 flex justify-center">
               <CTAButton size="lg" />
@@ -368,9 +377,15 @@ export function LandingPage() {
             <span>© {new Date().getFullYear()} RankMyMatch</span>
           </div>
           <div className="flex items-center gap-4">
-            <a href="/sobre-desenvolvimento" className="hover:text-foreground">Sobre</a>
-            <a href="/changelog" className="hover:text-foreground">Changelog</a>
-            <a href="/login" className="hover:text-foreground">Entrar</a>
+            <a href="/sobre-desenvolvimento" className="hover:text-foreground">
+              Sobre
+            </a>
+            <a href="/changelog" className="hover:text-foreground">
+              Changelog
+            </a>
+            <a href="/login" className="hover:text-foreground">
+              Entrar
+            </a>
           </div>
         </div>
       </footer>
