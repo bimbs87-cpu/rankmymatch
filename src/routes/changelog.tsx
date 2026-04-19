@@ -187,7 +187,7 @@ function ChangelogPage() {
                         key={n.id}
                         className="flex items-start gap-2.5 py-1.5 text-[13px] leading-snug"
                       >
-                        <span className="mt-1.5 inline-block h-1.5 w-1.5 shrink-0 rounded-full ${meta.dot}" />
+                        <span className={`mt-1.5 inline-block h-1.5 w-1.5 shrink-0 rounded-full ${meta.dot}`} />
                         <span
                           className={`mt-0.5 inline-flex shrink-0 items-center gap-0.5 rounded border px-1 py-0 font-mono text-[9px] font-bold ${meta.cls}`}
                         >
