@@ -108,6 +108,11 @@ function ProfilePage() {
   const [editAccent, setEditAccent] = useState<AccentKey | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [privacy, setPrivacy] = useState<PrivacySettings>(DEFAULT_PRIVACY);
+  // Sport-aware shot picker — derived from groups the user belongs to.
+  const [userSports, setUserSports] = useState<SportKey[]>(["padel"]);
+  const [activeSportTab, setActiveSportTab] = useState<SportKey>("padel");
+  const sportConfig = SPORTS[activeSportTab];
+  const hasDoublesSport = userSports.some((s) => !SPORTS[s].isSinglesOnly);
 
   useEffect(() => {
     if (!isAuthenticated && !isLoading) navigate({ to: "/login" });
