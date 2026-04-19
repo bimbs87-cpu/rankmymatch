@@ -184,7 +184,8 @@ function ProfilePage() {
         worst_shot: editWorstShot,
         instagram_handle: editInstagram.trim().replace(/^@/, "").slice(0, 30) || null,
         share_tagline: editTagline.trim().slice(0, 60) || null,
-      })
+        share_accent_color: editAccent,
+      } as never)
       .eq("user_id", user.id);
     if (error) {
       toast.error("Erro ao salvar perfil");
