@@ -53,6 +53,29 @@ import { GroupComparePanel } from "@/components/groups/internal/GroupComparePane
 import { AdminPanel } from "@/components/groups/internal/AdminPanel";
 
 export const Route = createFileRoute("/groups/$groupId/")({
+  head: ({ params }) => ({
+    meta: [
+      { title: "Grupo — RankMyMatch" },
+      { name: "description", content: "Veja ranking, temporadas e rodadas deste grupo no RankMyMatch." },
+      { property: "og:title", content: "Grupo no RankMyMatch" },
+      { property: "og:description", content: "Ranking, temporadas e rodadas." },
+      { property: "og:type", content: "website" },
+      { name: "robots", content: "index, follow" },
+    ],
+    links: [{ rel: "canonical", href: `https://rankmymatch.app/groups/${params.groupId}` }],
+    scripts: [
+      {
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "SportsTeam",
+          name: "Grupo RankMyMatch",
+          url: `https://rankmymatch.app/groups/${params.groupId}`,
+          sport: ["Padel", "Beach Tennis", "Tennis"],
+        }),
+      },
+    ],
+  }),
   component: GroupDetailPage,
   validateSearch: (search: Record<string, unknown>): { view?: GroupView } => ({
     view: typeof search.view === "string" ? (search.view as GroupView) : undefined,

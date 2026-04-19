@@ -97,6 +97,7 @@ export const Route = createRootRoute({
       },
     ],
     links: [
+      { rel: "canonical", href: "https://rankmymatch.app/" },
       { rel: "manifest", href: "/manifest.json" },
       { rel: "apple-touch-icon", sizes: "180x180", href: "/apple-touch-icon.png" },
       { rel: "icon", type: "image/png", sizes: "32x32", href: "/favicon-32.png" },
