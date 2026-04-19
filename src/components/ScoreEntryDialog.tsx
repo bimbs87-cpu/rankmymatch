@@ -268,6 +268,31 @@ export function ScoreEntryDialog({
         sets.map((s, i) => ({ setNumber: i + 1, scoreA: s.scoreA, scoreB: s.scoreB }))
       );
       const winnerName = result.winnerTeam === "A" ? playerAName : playerBName;
+      // Audit: was this an EDIT (existing sets) or a fresh entry? Only log edits
+      // to keep the audit panel focused on meaningful admin overrides.
+      if (existingSets && existingSets.length > 0) {
+        try {
+          const { data: round } = await supabase
+            .from("matches")
+            .select("round_id, rounds:rounds!inner(group_id)")
+            .eq("id", matchId)
+            .maybeSingle();
+          const groupId = (round?.rounds as unknown as { group_id: string } | null)?.group_id;
+          if (groupId) {
+            const { logAudit } = await import("@/lib/audit-log");
+            await logAudit({
+              groupId,
+              action: "match_score_edited",
+              entityType: "match",
+              entityId: matchId,
+              oldData: { sets: existingSets },
+              newData: { sets, winnerTeam: result.winnerTeam, setsA: result.setsA, setsB: result.setsB },
+            });
+          }
+        } catch {
+          /* best effort */
+        }
+      }
       toast.success(
         isSingles
           ? `${winnerName} venceu por ${result.setsA} set${result.setsA > 1 ? "s" : ""} a ${result.setsB}!`

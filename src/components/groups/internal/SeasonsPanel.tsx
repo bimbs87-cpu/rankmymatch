@@ -303,7 +303,19 @@ function SeasonStatusActions({ season, onChanged }: { season: any; onChanged: ()
     if (!season.end_date) patch.end_date = today;
     const { error } = await supabase.from("seasons").update(patch).eq("id", season.id);
     if (error) toast.error("Erro ao encerrar temporada");
-    else { toast.success("Temporada encerrada"); onChanged(); }
+    else {
+      toast.success("Temporada encerrada");
+      const { logAudit } = await import("@/lib/audit-log");
+      await logAudit({
+        groupId: season.group_id,
+        action: "season_finished",
+        entityType: "season",
+        entityId: season.id,
+        oldData: { status: season.status, end_date: season.end_date },
+        newData: { status: "finished", end_date: patch.end_date ?? season.end_date },
+      });
+      onChanged();
+    }
     setBusy(false);
   };
 
