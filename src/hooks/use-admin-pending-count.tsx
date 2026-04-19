@@ -63,24 +63,29 @@ export function useAdminPendingCount() {
     void refresh();
   }, [refresh]);
 
-  // Realtime: refresh on relevant changes
+  // Realtime: refresh on relevant changes.
+  // Use a unique channel name per mount to avoid "cannot add postgres_changes
+  // callbacks after subscribe()" errors in StrictMode / fast remounts where
+  // the same channel name gets reused before the previous one is fully removed.
   useEffect(() => {
     if (!user) return;
-    const channel = supabase
-      .channel(`admin-pending-${user.id}`)
+    const uid = user.id;
+    const channelName = `admin-pending-${uid}-${Math.random().toString(36).slice(2, 10)}`;
+    const channel = supabase.channel(channelName);
+    channel
       .on(
-        "postgres_changes",
+        "postgres_changes" as never,
         { event: "*", schema: "public", table: "group_join_requests" },
         () => refreshRef.current(),
       )
       .on(
-        "postgres_changes",
+        "postgres_changes" as never,
         { event: "*", schema: "public", table: "player_claims" },
         () => refreshRef.current(),
       )
       .subscribe();
     return () => {
-      supabase.removeChannel(channel);
+      void supabase.removeChannel(channel);
     };
   }, [user?.id]);
 
