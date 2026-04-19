@@ -401,12 +401,17 @@ export function MembersPanel({ groupId }: Props) {
               ) : (
                 <span className="w-5 text-center text-[10px] text-muted-foreground/40">—</span>
               )}
-              <PlayerAvatar
-                avatarUrl={isFormer ? null : m.profile?.avatar_url}
-                name={isFormer ? "?" : (m.profile?.name || "?")}
-                size="lg"
-                dimmed={isFormer}
-              />
+              <PlayerAvatarLink
+                userId={isPlaceholder || isFormer ? undefined : m.user_id}
+                ariaLabel={`Ver perfil de ${m.profile?.name || "jogador"}`}
+              >
+                <PlayerAvatar
+                  avatarUrl={isFormer ? null : m.profile?.avatar_url}
+                  name={isFormer ? "?" : (m.profile?.name || "?")}
+                  size="lg"
+                  dimmed={isFormer}
+                />
+              </PlayerAvatarLink>
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-1.5">
                   {(isFormer || isPlaceholder) && isAdmin && renamingUserId === m.user_id ? (

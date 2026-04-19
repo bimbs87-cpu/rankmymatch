@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { type FeedComment, toggleReaction, postComment } from "@/hooks/use-feed";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
+import { PlayerAvatarLink, PlayerNameLink } from "@/components/PlayerProfileViewer";
 import { MessageCircle, Send, Smile } from "lucide-react";
 
 const QUICK_EMOJIS = ["👍", "🔥", "😂", "👏", "💪", "🏆"];
@@ -40,19 +41,21 @@ function CommentBubble({
   return (
     <div className={`${isReply ? "ml-10 mt-2" : ""}`}>
       <div className="flex gap-2.5">
-        <PlayerAvatar
-          avatarUrl={comment.profile?.avatar_url || null}
-          name={comment.profile?.name || "?"}
-          size={isReply ? "sm" : "md"}
-          className={`border border-border ${isReply ? "!h-7 !w-7" : "!h-9 !w-9"}`}
-        />
+        <PlayerAvatarLink userId={comment.user_id} ariaLabel={`Ver perfil de ${comment.profile?.name || "jogador"}`}>
+          <PlayerAvatar
+            avatarUrl={comment.profile?.avatar_url || null}
+            name={comment.profile?.name || "?"}
+            size={isReply ? "sm" : "md"}
+            className={`border border-border ${isReply ? "!h-7 !w-7" : "!h-9 !w-9"}`}
+          />
+        </PlayerAvatarLink>
 
         <div className="flex-1 min-w-0">
           <div className="rounded-2xl border border-border bg-card/50 px-3.5 py-2.5">
             <div className="flex items-center gap-2 mb-0.5">
-              <span className="text-xs font-semibold text-foreground truncate">
+              <PlayerNameLink userId={comment.user_id} className="text-xs font-semibold text-foreground truncate">
                 {comment.profile?.nickname || comment.profile?.name || "Jogador"}
-              </span>
+              </PlayerNameLink>
               <span className="text-[10px] text-muted-foreground shrink-0">
                 {timeAgo(comment.created_at)}
               </span>

@@ -3,6 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { Swords, ChevronRight, Edit3 } from "lucide-react";
 import { ScoreEntryDialog } from "@/components/ScoreEntryDialog";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
+import { PlayerAvatarLink } from "@/components/PlayerProfileViewer";
 import type { PendingMatch } from "@/hooks/use-pending-matches";
 
 interface Props {
@@ -45,7 +46,9 @@ export function PendingMatchCard({ match, onScoreSaved, showGroupName = true, is
         <div className="flex items-center gap-3 mb-3">
           {/* Side A */}
           <div className="flex flex-1 items-center gap-2">
-            <PlayerAvatar avatarUrl={match.teamA[0]?.avatar_url || null} name={playerAName} size="sm" className="ring-1 ring-primary/30 !h-7 !w-7" />
+            <PlayerAvatarLink userId={(match.teamA[0] as any)?.user_id} ariaLabel={`Ver perfil de ${playerAName}`}>
+              <PlayerAvatar avatarUrl={match.teamA[0]?.avatar_url || null} name={playerAName} size="sm" className="ring-1 ring-primary/30 !h-7 !w-7" />
+            </PlayerAvatarLink>
             <div className="min-w-0">
               <p className="text-xs font-semibold text-foreground truncate">{playerAName}</p>
               {!isSingles && match.teamA.length > 1 && (
@@ -68,7 +71,9 @@ export function PendingMatchCard({ match, onScoreSaved, showGroupName = true, is
                 </p>
               )}
             </div>
-            <PlayerAvatar avatarUrl={match.teamB[0]?.avatar_url || null} name={playerBName} size="sm" className="ring-1 ring-info/30 !h-7 !w-7" />
+            <PlayerAvatarLink userId={(match.teamB[0] as any)?.user_id} ariaLabel={`Ver perfil de ${playerBName}`}>
+              <PlayerAvatar avatarUrl={match.teamB[0]?.avatar_url || null} name={playerBName} size="sm" className="ring-1 ring-info/30 !h-7 !w-7" />
+            </PlayerAvatarLink>
           </div>
         </div>
 
