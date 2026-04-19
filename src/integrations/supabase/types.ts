@@ -102,6 +102,48 @@ export type Database = {
           },
         ]
       }
+      bug_reports: {
+        Row: {
+          created_at: string
+          description: string
+          id: string
+          priority: string
+          route: string | null
+          screenshot_url: string | null
+          status: string
+          title: string
+          updated_at: string
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          id?: string
+          priority?: string
+          route?: string | null
+          screenshot_url?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          id?: string
+          priority?: string
+          route?: string | null
+          screenshot_url?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       comment_reactions: {
         Row: {
           comment_id: string
@@ -1173,6 +1215,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      release_notes: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_published: boolean
+          released_at: string
+          title: string
+          type: string
+          updated_at: string
+          version: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_published?: boolean
+          released_at?: string
+          title: string
+          type?: string
+          updated_at?: string
+          version: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_published?: boolean
+          released_at?: string
+          title?: string
+          type?: string
+          updated_at?: string
+          version?: string
+        }
+        Relationships: []
       }
       round_presence: {
         Row: {
