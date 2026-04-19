@@ -91,6 +91,7 @@ export function AdminPanel({ group, isCreator, onSaved, pendingRequestsCount }: 
           )}
           {section === "engagement" && <InviteEngagementReport groupId={group.id} />}
           {section === "audit" && <AuditPanel groupId={group.id} />}
+          {section === "maintenance" && <MaintenancePanel groupId={group.id} />}
           {section === "og-cache" && isCreator && <OgCacheStatsPanel />}
           {section === "advanced" && (
             <AdvancedSection group={group} isCreator={isCreator} onSaved={onSaved} />
