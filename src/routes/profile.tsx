@@ -69,6 +69,16 @@ const SHOT_OPTIONS = [
   { value: "gancho", label: "Gancho" },
 ];
 
+type AccentKey = "emerald" | "amber" | "sky" | "rose" | "violet" | "slate";
+const ACCENT_OPTIONS: { key: AccentKey; label: string; cls: string }[] = [
+  { key: "emerald", label: "Neon", cls: "bg-[#a3ff12]" },
+  { key: "amber", label: "Âmbar", cls: "bg-[#fbbf24]" },
+  { key: "sky", label: "Céu", cls: "bg-[#38bdf8]" },
+  { key: "rose", label: "Rosa", cls: "bg-[#fb7185]" },
+  { key: "violet", label: "Violeta", cls: "bg-[#a78bfa]" },
+  { key: "slate", label: "Ardósia", cls: "bg-[#94a3b8]" },
+];
+
 function ProfilePage() {
   const { user, isAuthenticated, isLoading, signOut } = useAuth();
   const navigate = useNavigate();
