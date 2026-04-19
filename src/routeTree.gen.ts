@@ -29,7 +29,9 @@ import { Route as RankingCompareRouteImport } from './routes/ranking_.compare'
 import { Route as PlayersUserIdRouteImport } from './routes/players.$userId'
 import { Route as InviteCodeRouteImport } from './routes/invite.$code'
 import { Route as HooksPresenceWindowOpenedRouteImport } from './routes/hooks.presence-window-opened'
+import { Route as HooksAdminPendingReminderRouteImport } from './routes/hooks.admin-pending-reminder'
 import { Route as GroupsGroupIdRouteImport } from './routes/groups.$groupId'
+import { Route as AdminInboxRouteImport } from './routes/admin.inbox'
 import { Route as GroupsGroupIdIndexRouteImport } from './routes/groups.$groupId.index'
 import { Route as GroupsGroupIdSeasonsRouteImport } from './routes/groups.$groupId.seasons'
 import { Route as GroupsGroupIdFeedRouteImport } from './routes/groups.$groupId.feed'
@@ -144,10 +146,21 @@ const HooksPresenceWindowOpenedRoute =
     path: '/hooks/presence-window-opened',
     getParentRoute: () => rootRouteImport,
   } as any)
+const HooksAdminPendingReminderRoute =
+  HooksAdminPendingReminderRouteImport.update({
+    id: '/hooks/admin-pending-reminder',
+    path: '/hooks/admin-pending-reminder',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const GroupsGroupIdRoute = GroupsGroupIdRouteImport.update({
   id: '/$groupId',
   path: '/$groupId',
   getParentRoute: () => GroupsRoute,
+} as any)
+const AdminInboxRoute = AdminInboxRouteImport.update({
+  id: '/admin/inbox',
+  path: '/admin/inbox',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const GroupsGroupIdIndexRoute = GroupsGroupIdIndexRouteImport.update({
   id: '/',
@@ -224,7 +237,9 @@ export interface FileRoutesByFullPath {
   '/sistema': typeof SistemaRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/sobre-desenvolvimento': typeof SobreDesenvolvimentoRouteWithChildren
+  '/admin/inbox': typeof AdminInboxRoute
   '/groups/$groupId': typeof GroupsGroupIdRouteWithChildren
+  '/hooks/admin-pending-reminder': typeof HooksAdminPendingReminderRoute
   '/hooks/presence-window-opened': typeof HooksPresenceWindowOpenedRoute
   '/invite/$code': typeof InviteCodeRoute
   '/players/$userId': typeof PlayersUserIdRoute
@@ -257,6 +272,8 @@ export interface FileRoutesByTo {
   '/sistema': typeof SistemaRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/sobre-desenvolvimento': typeof SobreDesenvolvimentoRouteWithChildren
+  '/admin/inbox': typeof AdminInboxRoute
+  '/hooks/admin-pending-reminder': typeof HooksAdminPendingReminderRoute
   '/hooks/presence-window-opened': typeof HooksPresenceWindowOpenedRoute
   '/invite/$code': typeof InviteCodeRoute
   '/players/$userId': typeof PlayersUserIdRoute
@@ -289,7 +306,9 @@ export interface FileRoutesById {
   '/sistema': typeof SistemaRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/sobre-desenvolvimento': typeof SobreDesenvolvimentoRouteWithChildren
+  '/admin/inbox': typeof AdminInboxRoute
   '/groups/$groupId': typeof GroupsGroupIdRouteWithChildren
+  '/hooks/admin-pending-reminder': typeof HooksAdminPendingReminderRoute
   '/hooks/presence-window-opened': typeof HooksPresenceWindowOpenedRoute
   '/invite/$code': typeof InviteCodeRoute
   '/players/$userId': typeof PlayersUserIdRoute
@@ -325,7 +344,9 @@ export interface FileRouteTypes {
     | '/sistema'
     | '/sitemap.xml'
     | '/sobre-desenvolvimento'
+    | '/admin/inbox'
     | '/groups/$groupId'
+    | '/hooks/admin-pending-reminder'
     | '/hooks/presence-window-opened'
     | '/invite/$code'
     | '/players/$userId'
@@ -358,6 +379,8 @@ export interface FileRouteTypes {
     | '/sistema'
     | '/sitemap.xml'
     | '/sobre-desenvolvimento'
+    | '/admin/inbox'
+    | '/hooks/admin-pending-reminder'
     | '/hooks/presence-window-opened'
     | '/invite/$code'
     | '/players/$userId'
@@ -389,7 +412,9 @@ export interface FileRouteTypes {
     | '/sistema'
     | '/sitemap.xml'
     | '/sobre-desenvolvimento'
+    | '/admin/inbox'
     | '/groups/$groupId'
+    | '/hooks/admin-pending-reminder'
     | '/hooks/presence-window-opened'
     | '/invite/$code'
     | '/players/$userId'
@@ -424,6 +449,8 @@ export interface RootRouteChildren {
   SistemaRoute: typeof SistemaRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   SobreDesenvolvimentoRoute: typeof SobreDesenvolvimentoRouteWithChildren
+  AdminInboxRoute: typeof AdminInboxRoute
+  HooksAdminPendingReminderRoute: typeof HooksAdminPendingReminderRoute
   HooksPresenceWindowOpenedRoute: typeof HooksPresenceWindowOpenedRoute
   InviteCodeRoute: typeof InviteCodeRoute
   PlayersUserIdRoute: typeof PlayersUserIdRoute
@@ -575,12 +602,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof HooksPresenceWindowOpenedRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/hooks/admin-pending-reminder': {
+      id: '/hooks/admin-pending-reminder'
+      path: '/hooks/admin-pending-reminder'
+      fullPath: '/hooks/admin-pending-reminder'
+      preLoaderRoute: typeof HooksAdminPendingReminderRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/groups/$groupId': {
       id: '/groups/$groupId'
       path: '/$groupId'
       fullPath: '/groups/$groupId'
       preLoaderRoute: typeof GroupsGroupIdRouteImport
       parentRoute: typeof GroupsRoute
+    }
+    '/admin/inbox': {
+      id: '/admin/inbox'
+      path: '/admin/inbox'
+      fullPath: '/admin/inbox'
+      preLoaderRoute: typeof AdminInboxRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/groups/$groupId/': {
       id: '/groups/$groupId/'
@@ -751,6 +792,8 @@ const rootRouteChildren: RootRouteChildren = {
   SistemaRoute: SistemaRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   SobreDesenvolvimentoRoute: SobreDesenvolvimentoRouteWithChildren,
+  AdminInboxRoute: AdminInboxRoute,
+  HooksAdminPendingReminderRoute: HooksAdminPendingReminderRoute,
   HooksPresenceWindowOpenedRoute: HooksPresenceWindowOpenedRoute,
   InviteCodeRoute: InviteCodeRoute,
   PlayersUserIdRoute: PlayersUserIdRoute,
