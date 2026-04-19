@@ -9,7 +9,7 @@
 import { useEffect, useRef, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import QRCode from "qrcode";
-import { Copy, Check, Share2, X, Download, ImageIcon, ImageDown, RefreshCw } from "lucide-react";
+import { Copy, Check, Share2, X, Download, ImageIcon, ImageDown, RefreshCw, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
 import { invalidateGroupOgCache } from "@/lib/og-cache.functions";
@@ -255,6 +255,13 @@ export function ShareGroupDialog({ open, onOpenChange, url, groupName, groupId, 
     }
   };
 
+  const handleWhatsApp = () => {
+    const message = `🎾 Confira o grupo *${groupName}* no RankMyMatch!\n\nRanking, rodadas e estatísticas em tempo real.\n\n${url}`;
+    const wa = `https://wa.me/?text=${encodeURIComponent(message)}`;
+    window.open(wa, "_blank", "noopener,noreferrer");
+    void trackShareEvent(groupId, "whatsapp");
+  };
+
   const canNativeShare = typeof navigator !== "undefined" && "share" in navigator;
 
   return (
@@ -365,6 +372,13 @@ export function ShareGroupDialog({ open, onOpenChange, url, groupName, groupId, 
                 {copyingImg ? "Copiando…" : copiedImg ? "Imagem copiada" : "Copiar imagem"}
               </button>
             )}
+            <button
+              onClick={handleWhatsApp}
+              className="col-span-2 inline-flex items-center justify-center gap-1.5 rounded-full bg-[#25D366] px-3 py-2.5 text-xs font-semibold text-white transition hover:opacity-90"
+            >
+              <MessageCircle className="h-3.5 w-3.5" />
+              Compartilhar no WhatsApp
+            </button>
             {canNativeShare && (
               <button
                 onClick={handleNativeShare}

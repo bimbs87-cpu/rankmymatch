@@ -17,6 +17,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { notifyUrgentPendingMembers } from "@/lib/urgency-notify";
+import { useTopSharer } from "@/hooks/use-top-sharer";
 
 interface Props {
   groupId: string;
@@ -38,6 +39,8 @@ export function GroupOverviewPanel({ groupId, groupName, groupImage, description
   const { user } = useAuth();
   const { data, isLoading, refresh } = useGroupDashboard(groupId);
   const { data: stats, isLoading: statsLoading } = useGroupGlobalStats(groupId);
+  const { data: topSharer } = useTopSharer(groupId);
+  const isTopSharer = !!user && !!topSharer && topSharer.user_id === user.id && topSharer.count >= 2;
   const [busy, setBusy] = useState(false);
 
   const handlePresence = async (status: "confirmed" | "declined") => {
@@ -94,6 +97,14 @@ export function GroupOverviewPanel({ groupId, groupName, groupImage, description
             {data.current_season?.rounds_total != null && (
               <span className="rounded-full bg-muted/60 px-2.5 py-1 text-muted-foreground">
                 Rodada {data.current_season.rounds_done}/{data.current_season.rounds_total}
+              </span>
+            )}
+            {isTopSharer && (
+              <span
+                className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-amber-400/20 to-amber-500/10 px-2.5 py-1 font-semibold text-amber-500 ring-1 ring-amber-400/40 animate-in fade-in slide-in-from-bottom-1"
+                title={`Você fez ${topSharer!.count} compartilhamento${topSharer!.count === 1 ? "" : "s"} esta semana`}
+              >
+                🥇 Top divulgador da semana
               </span>
             )}
           </div>
