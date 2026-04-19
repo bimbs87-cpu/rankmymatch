@@ -373,6 +373,18 @@ function AdminInboxPage() {
                 <option value="join_request">Entrar no grupo</option>
                 <option value="claim">Vincular jogador</option>
               </select>
+              <select
+                value={ageFilter}
+                onChange={(e) =>
+                  setAgeFilter(e.target.value as "all" | "old")
+                }
+                className="rounded-full border border-border bg-card px-3 py-1.5 text-xs"
+              >
+                <option value="all">Qualquer idade</option>
+                <option value="old">
+                  Antigos (3+ dias){oldCount > 0 ? ` · ${oldCount}` : ""}
+                </option>
+              </select>
             </div>
 
             {/* Bulk bar */}
@@ -415,10 +427,17 @@ function AdminInboxPage() {
               {filtered.map((it) => {
                 const Icon = it.kind === "join_request" ? UserPlus : Link2;
                 const isSelected = selected.has(it.id);
+                const old = isOld(it.createdAt);
                 return (
                   <div
                     key={`${it.kind}-${it.id}`}
-                    className={`rounded-2xl border bg-card p-3 transition-colors ${isSelected ? "border-primary/60" : "border-border"}`}
+                    className={`rounded-2xl border p-3 transition-colors ${
+                      old
+                        ? "border-destructive/50 bg-destructive/5"
+                        : isSelected
+                          ? "border-primary/60 bg-card"
+                          : "border-border bg-card"
+                    }`}
                   >
                     <div className="flex items-start gap-3">
                       <input
@@ -443,8 +462,11 @@ function AdminInboxPage() {
                               ? "Entrar"
                               : "Vincular"}
                           </span>
-                          <span className="text-[10px] text-muted-foreground">
+                          <span
+                            className={`text-[10px] ${old ? "font-bold text-destructive" : "text-muted-foreground"}`}
+                          >
                             · {timeAgo(it.createdAt)}
+                            {old ? " · antigo" : ""}
                           </span>
                         </div>
                         <p className="mt-0.5 text-xs text-muted-foreground">
