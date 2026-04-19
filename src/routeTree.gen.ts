@@ -33,6 +33,7 @@ import { Route as GroupsGroupIdDuelRouteImport } from './routes/groups.$groupId.
 import { Route as GroupsGroupIdSeasonsIndexRouteImport } from './routes/groups.$groupId.seasons.index'
 import { Route as GroupsGroupIdSeasonsSeasonIdRouteImport } from './routes/groups.$groupId.seasons.$seasonId'
 import { Route as ApiOgPlayerUserIdRouteImport } from './routes/api.og.player.$userId'
+import { Route as ApiOgGroupGroupIdRouteImport } from './routes/api.og.group.$groupId'
 import { Route as GroupsGroupIdSeasonsSeasonIdIndexRouteImport } from './routes/groups.$groupId.seasons.$seasonId.index'
 import { Route as GroupsGroupIdSeasonsSeasonIdRoundsRoundIdRouteImport } from './routes/groups.$groupId.seasons.$seasonId.rounds.$roundId'
 
@@ -158,6 +159,11 @@ const ApiOgPlayerUserIdRoute = ApiOgPlayerUserIdRouteImport.update({
   path: '/api/og/player/$userId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiOgGroupGroupIdRoute = ApiOgGroupGroupIdRouteImport.update({
+  id: '/api/og/group/$groupId',
+  path: '/api/og/group/$groupId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const GroupsGroupIdSeasonsSeasonIdIndexRoute =
   GroupsGroupIdSeasonsSeasonIdIndexRouteImport.update({
     id: '/',
@@ -193,6 +199,7 @@ export interface FileRoutesByFullPath {
   '/groups/$groupId/feed': typeof GroupsGroupIdFeedRoute
   '/groups/$groupId/seasons': typeof GroupsGroupIdSeasonsRouteWithChildren
   '/groups/$groupId/': typeof GroupsGroupIdIndexRoute
+  '/api/og/group/$groupId': typeof ApiOgGroupGroupIdRoute
   '/api/og/player/$userId': typeof ApiOgPlayerUserIdRoute
   '/groups/$groupId/seasons/$seasonId': typeof GroupsGroupIdSeasonsSeasonIdRouteWithChildren
   '/groups/$groupId/seasons/': typeof GroupsGroupIdSeasonsIndexRoute
@@ -218,6 +225,7 @@ export interface FileRoutesByTo {
   '/groups/$groupId/duel': typeof GroupsGroupIdDuelRoute
   '/groups/$groupId/feed': typeof GroupsGroupIdFeedRoute
   '/groups/$groupId': typeof GroupsGroupIdIndexRoute
+  '/api/og/group/$groupId': typeof ApiOgGroupGroupIdRoute
   '/api/og/player/$userId': typeof ApiOgPlayerUserIdRoute
   '/groups/$groupId/seasons': typeof GroupsGroupIdSeasonsIndexRoute
   '/groups/$groupId/seasons/$seasonId': typeof GroupsGroupIdSeasonsSeasonIdIndexRoute
@@ -246,6 +254,7 @@ export interface FileRoutesById {
   '/groups/$groupId/feed': typeof GroupsGroupIdFeedRoute
   '/groups/$groupId/seasons': typeof GroupsGroupIdSeasonsRouteWithChildren
   '/groups/$groupId/': typeof GroupsGroupIdIndexRoute
+  '/api/og/group/$groupId': typeof ApiOgGroupGroupIdRoute
   '/api/og/player/$userId': typeof ApiOgPlayerUserIdRoute
   '/groups/$groupId/seasons/$seasonId': typeof GroupsGroupIdSeasonsSeasonIdRouteWithChildren
   '/groups/$groupId/seasons/': typeof GroupsGroupIdSeasonsIndexRoute
@@ -276,6 +285,7 @@ export interface FileRouteTypes {
     | '/groups/$groupId/feed'
     | '/groups/$groupId/seasons'
     | '/groups/$groupId/'
+    | '/api/og/group/$groupId'
     | '/api/og/player/$userId'
     | '/groups/$groupId/seasons/$seasonId'
     | '/groups/$groupId/seasons/'
@@ -301,6 +311,7 @@ export interface FileRouteTypes {
     | '/groups/$groupId/duel'
     | '/groups/$groupId/feed'
     | '/groups/$groupId'
+    | '/api/og/group/$groupId'
     | '/api/og/player/$userId'
     | '/groups/$groupId/seasons'
     | '/groups/$groupId/seasons/$seasonId'
@@ -328,6 +339,7 @@ export interface FileRouteTypes {
     | '/groups/$groupId/feed'
     | '/groups/$groupId/seasons'
     | '/groups/$groupId/'
+    | '/api/og/group/$groupId'
     | '/api/og/player/$userId'
     | '/groups/$groupId/seasons/$seasonId'
     | '/groups/$groupId/seasons/'
@@ -351,6 +363,7 @@ export interface RootRouteChildren {
   InviteCodeRoute: typeof InviteCodeRoute
   PlayersUserIdRoute: typeof PlayersUserIdRoute
   RankingCompareRoute: typeof RankingCompareRoute
+  ApiOgGroupGroupIdRoute: typeof ApiOgGroupGroupIdRoute
   ApiOgPlayerUserIdRoute: typeof ApiOgPlayerUserIdRoute
 }
 
@@ -524,6 +537,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiOgPlayerUserIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/og/group/$groupId': {
+      id: '/api/og/group/$groupId'
+      path: '/api/og/group/$groupId'
+      fullPath: '/api/og/group/$groupId'
+      preLoaderRoute: typeof ApiOgGroupGroupIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/groups/$groupId/seasons/$seasonId/': {
       id: '/groups/$groupId/seasons/$seasonId/'
       path: '/'
@@ -620,6 +640,7 @@ const rootRouteChildren: RootRouteChildren = {
   InviteCodeRoute: InviteCodeRoute,
   PlayersUserIdRoute: PlayersUserIdRoute,
   RankingCompareRoute: RankingCompareRoute,
+  ApiOgGroupGroupIdRoute: ApiOgGroupGroupIdRoute,
   ApiOgPlayerUserIdRoute: ApiOgPlayerUserIdRoute,
 }
 export const routeTree = rootRouteImport
