@@ -14,13 +14,16 @@ import {
   Zap,
   Users,
   Trophy,
+  ShieldAlert,
 } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { BugReportForm } from "@/components/BugReportForm";
 import { ReleaseNotesSection } from "@/components/ReleaseNotesSection";
 import { PublicBugReportsList } from "@/components/PublicBugReportsList";
 import { APP_VERSION } from "@/lib/app-version";
 import { markReleasesSeen } from "@/hooks/use-new-releases";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/use-auth";
 
 export const Route = createFileRoute("/sobre-desenvolvimento")({
   head: () => ({
