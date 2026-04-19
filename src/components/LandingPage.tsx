@@ -226,7 +226,7 @@ export function LandingPage() {
             </p>
 
             {/* Mobile-only hero image (between text and CTA) */}
-            <div className="relative mt-6 lg:hidden">
+            <div className="relative mt-6 -mx-5 lg:hidden">
               <div
                 aria-hidden
                 className="pointer-events-none absolute inset-0 -z-10 blur-3xl"
@@ -238,7 +238,7 @@ export function LandingPage() {
               <img
                 src={heroMobile}
                 alt="RankMyMatch no celular: ranking, pódio e estatísticas"
-                className="relative mx-auto w-full max-w-[280px] object-contain"
+                className="relative block w-full h-auto object-contain"
                 loading="eager"
               />
             </div>
