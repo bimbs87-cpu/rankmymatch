@@ -5,11 +5,21 @@
  * or pending player claims, send a single push reminder. Dedup via
  * `admin_pending_reminder_log` so no admin gets pinged more than once
  * every 24h, even if the cron runs multiple times in a day.
+ *
+ * Escalated alerts: if any pending item is 7+ days old it is flagged
+ * as "critical" — a separate critical push is sent and bypasses the
+ * 24h cooldown so the admin gets one extra ping per day for criticals.
+ *
+ * Manual trigger: passing header `X-Force-Send: 1` (or body `{force:true}`)
+ * bypasses the 24h cooldown for the regular reminder. Useful for testing
+ * and for admins to force a reminder from the inbox UI.
  */
 import { createFileRoute } from "@tanstack/react-router";
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 import { sendPushToUserIds } from "@/lib/web-push.server";
+
+const CRITICAL_THRESHOLD_MS = 7 * 24 * 60 * 60 * 1000;
 
 function getAdmin() {
   const url = process.env.SUPABASE_URL;
@@ -29,29 +39,62 @@ export const Route = createFileRoute("/hooks/admin-pending-reminder")({
           return new Response("Unauthorized", { status: 401 });
         }
 
-        const sb = getAdmin();
+        // Force flag bypasses 24h cooldown (manual trigger from UI / tests)
+        let force = request.headers.get("x-force-send") === "1";
+        try {
+          const body = await request.clone().json().catch(() => ({}));
+          if (body && typeof body === "object" && (body as any).force === true) {
+            force = true;
+          }
+        } catch {
+          /* ignore */
+        }
 
-        // Pull all pending join requests + claims with their group_id.
+        const sb = getAdmin();
+        const now = Date.now();
+
+        // Pull all pending join requests + claims with their group_id + created_at.
         const [reqsRes, claimsRes] = await Promise.all([
           sb
             .from("group_join_requests")
-            .select("group_id")
+            .select("group_id, created_at")
             .eq("status", "pending"),
-          sb.from("player_claims").select("group_id").eq("status", "pending"),
+          sb
+            .from("player_claims")
+            .select("group_id, created_at")
+            .eq("status", "pending"),
         ]);
 
-        // Count per group
-        const countByGroup = new Map<string, number>();
-        for (const r of reqsRes.data || [])
-          countByGroup.set(r.group_id, (countByGroup.get(r.group_id) || 0) + 1);
-        for (const c of claimsRes.data || [])
-          countByGroup.set(c.group_id, (countByGroup.get(c.group_id) || 0) + 1);
+        // Per-group total + critical (7+ days) counts
+        const totalByGroup = new Map<string, number>();
+        const criticalByGroup = new Map<string, number>();
+        const bump = (g: string, m: Map<string, number>) =>
+          m.set(g, (m.get(g) || 0) + 1);
 
-        if (countByGroup.size === 0) {
+        for (const r of reqsRes.data || []) {
+          bump(r.group_id, totalByGroup);
+          if (
+            r.created_at &&
+            now - new Date(r.created_at).getTime() >= CRITICAL_THRESHOLD_MS
+          ) {
+            bump(r.group_id, criticalByGroup);
+          }
+        }
+        for (const c of claimsRes.data || []) {
+          bump(c.group_id, totalByGroup);
+          if (
+            c.created_at &&
+            now - new Date(c.created_at).getTime() >= CRITICAL_THRESHOLD_MS
+          ) {
+            bump(c.group_id, criticalByGroup);
+          }
+        }
+
+        if (totalByGroup.size === 0) {
           return Response.json({ ok: true, processed: 0, sent: 0 });
         }
 
-        const groupIds = [...countByGroup.keys()];
+        const groupIds = [...totalByGroup.keys()];
 
         // Fetch admins of those groups + group names
         const [adminsRes, groupsRes] = await Promise.all([
@@ -68,19 +111,21 @@ export const Route = createFileRoute("/hooks/admin-pending-reminder")({
           (groupsRes.data || []).map((g) => [g.id, g.name as string]),
         );
 
-        // Aggregate per admin: total pending + sample group name
+        // Aggregate per admin: total + critical + sample group name
         const perAdmin = new Map<
           string,
-          { total: number; groups: Set<string> }
+          { total: number; critical: number; groups: Set<string> }
         >();
         for (const a of adminsRes.data || []) {
-          const cnt = countByGroup.get(a.group_id) || 0;
+          const cnt = totalByGroup.get(a.group_id) || 0;
           if (!cnt) continue;
           const cur = perAdmin.get(a.user_id) || {
             total: 0,
+            critical: 0,
             groups: new Set<string>(),
           };
           cur.total += cnt;
+          cur.critical += criticalByGroup.get(a.group_id) || 0;
           cur.groups.add(a.group_id);
           perAdmin.set(a.user_id, cur);
         }
@@ -91,8 +136,9 @@ export const Route = createFileRoute("/hooks/admin-pending-reminder")({
 
         const adminIds = [...perAdmin.keys()];
 
-        // Dedup: skip admins reminded in the last 24h
-        const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+        // Dedup standard reminder: skip admins reminded in last 24h
+        // (force=true OR critical items bypass this for that admin)
+        const cutoff = new Date(now - 24 * 60 * 60 * 1000).toISOString();
         const { data: logRows } = await sb
           .from("admin_pending_reminder_log")
           .select("user_id, last_reminded_at")
@@ -103,59 +149,98 @@ export const Route = createFileRoute("/hooks/admin-pending-reminder")({
             .map((r) => r.user_id),
         );
 
-        const targets = adminIds.filter((id) => !recentlyReminded.has(id));
-        if (!targets.length) {
-          return Response.json({ ok: true, processed: 0, sent: 0, skipped: adminIds.length });
-        }
-
         let totalSent = 0;
-        for (const adminId of targets) {
+        let processed = 0;
+        let skipped = 0;
+        let criticalSent = 0;
+
+        for (const adminId of adminIds) {
           const info = perAdmin.get(adminId)!;
           const total = info.total;
+          const critical = info.critical;
           const groupCount = info.groups.size;
           const firstGroupName =
             groupNames.get([...info.groups][0]) || "seu grupo";
 
-          const title = `📥 ${total} solicitação${total > 1 ? "ões" : ""} pendente${total > 1 ? "s" : ""}`;
-          const body =
-            groupCount > 1
-              ? `Você tem solicitações em ${groupCount} grupos. Toque para revisar.`
-              : `Solicitação aguardando em ${firstGroupName}.`;
+          const cooldownActive = recentlyReminded.has(adminId);
+          const sendStandard = force || !cooldownActive;
+          const sendCritical = critical > 0; // criticals bypass cooldown
 
-          // In-app notification
-          await sb.from("notifications").insert({
-            user_id: adminId,
-            type: "admin_pending_reminder",
-            title,
-            body,
-            data: { total, groupCount },
-          });
+          if (!sendStandard && !sendCritical) {
+            skipped++;
+            continue;
+          }
+          processed++;
 
-          // Push (best-effort)
-          const result = await sendPushToUserIds([adminId], {
-            title,
-            body,
-            url: "/admin/inbox",
-            type: "admin_pending_reminder",
-            tag: "admin_pending_reminder",
-            data: { total, groupCount },
-          });
-          totalSent += result.sent;
+          // ----- Standard reminder -----
+          if (sendStandard) {
+            const title = `📥 ${total} solicitação${total > 1 ? "ões" : ""} pendente${total > 1 ? "s" : ""}`;
+            const body =
+              groupCount > 1
+                ? `Você tem solicitações em ${groupCount} grupos. Toque para revisar.`
+                : `Solicitação aguardando em ${firstGroupName}.`;
 
-          // Upsert reminder log
-          await sb
-            .from("admin_pending_reminder_log")
-            .upsert(
-              { user_id: adminId, last_reminded_at: new Date().toISOString() },
-              { onConflict: "user_id" },
-            );
+            await sb.from("notifications").insert({
+              user_id: adminId,
+              type: "admin_pending_reminder",
+              title,
+              body,
+              data: { total, groupCount, critical },
+            });
+
+            const result = await sendPushToUserIds([adminId], {
+              title,
+              body,
+              url: "/admin/inbox",
+              type: "admin_pending_reminder",
+              tag: "admin_pending_reminder",
+              data: { total, groupCount, critical },
+            });
+            totalSent += result.sent;
+
+            await sb
+              .from("admin_pending_reminder_log")
+              .upsert(
+                { user_id: adminId, last_reminded_at: new Date().toISOString() },
+                { onConflict: "user_id" },
+              );
+          }
+
+          // ----- Critical escalation (extra push, bypasses cooldown) -----
+          if (sendCritical) {
+            const cTitle = `🚨 ${critical} solicitação${critical > 1 ? "ões" : ""} crítica${critical > 1 ? "s" : ""} (7+ dias)`;
+            const cBody =
+              critical > 1
+                ? `${critical} pedidos parados há mais de 7 dias precisam da sua atenção.`
+                : `Um pedido está parado há mais de 7 dias em ${firstGroupName}.`;
+
+            await sb.from("notifications").insert({
+              user_id: adminId,
+              type: "admin_pending_critical",
+              title: cTitle,
+              body: cBody,
+              data: { critical, total, groupCount },
+            });
+
+            const cResult = await sendPushToUserIds([adminId], {
+              title: cTitle,
+              body: cBody,
+              url: "/admin/inbox",
+              type: "admin_pending_critical",
+              tag: "admin_pending_critical",
+              data: { critical, total, groupCount },
+            });
+            criticalSent += cResult.sent;
+          }
         }
 
         return Response.json({
           ok: true,
-          processed: targets.length,
+          processed,
           sent: totalSent,
-          skipped: adminIds.length - targets.length,
+          criticalSent,
+          skipped,
+          forced: force,
         });
       },
     },
