@@ -15,6 +15,9 @@ import {
   Users,
   Trophy,
 } from "lucide-react";
+import { BugReportForm } from "@/components/BugReportForm";
+import { ReleaseNotesSection } from "@/components/ReleaseNotesSection";
+import { APP_VERSION } from "@/lib/app-version";
 
 export const Route = createFileRoute("/sobre-desenvolvimento")({
   head: () => ({
@@ -142,9 +145,12 @@ function AboutDevelopmentPage() {
           </p>
         </section>
 
-        {/* BUGS */}
+        {/* CHANGELOG / RELEASE NOTES */}
+        <ReleaseNotesSection />
+
+        {/* IN-APP BUG REPORT FORM */}
         <section className="rounded-3xl border border-border bg-card p-5 lg:p-6">
-          <div className="flex items-start gap-4">
+          <div className="mb-4 flex items-start gap-4">
             <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-destructive/10 text-destructive">
               <Bug className="h-6 w-6" />
             </div>
@@ -153,29 +159,34 @@ function AboutDevelopmentPage() {
                 Encontrou um bug? Conta pra gente!
               </h3>
               <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-                Cada bug reportado é uma melhoria desbloqueada. Descreva o que
-                aconteceu, em qual tela, e o que você esperava — quanto mais
-                detalhe, mais rápido a correção entra.
+                Cada relato vira melhoria. Preencha aqui — registramos a tela
+                atual e seu navegador automaticamente.
               </p>
-              <div className="mt-4 flex flex-wrap gap-2">
-                <a
-                  href={SUPPORT_WHATSAPP}
-                  target="_blank"
-                  rel="noreferrer noopener"
-                  className="inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-xs font-bold text-primary-foreground transition-opacity hover:opacity-90"
-                >
-                  <MessageCircle className="h-3.5 w-3.5" />
-                  Reportar via WhatsApp
-                </a>
-                <a
-                  href={SUPPORT_EMAIL}
-                  className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-xs font-bold text-foreground transition-colors hover:bg-accent"
-                >
-                  <Mail className="h-3.5 w-3.5" />
-                  Enviar e-mail
-                </a>
-              </div>
             </div>
+          </div>
+
+          <BugReportForm />
+
+          <div className="mt-5 flex flex-wrap items-center gap-2 border-t border-border pt-4">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+              Prefere outro canal?
+            </span>
+            <a
+              href={SUPPORT_WHATSAPP}
+              target="_blank"
+              rel="noreferrer noopener"
+              className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 text-[11px] font-bold text-foreground transition-colors hover:bg-accent"
+            >
+              <MessageCircle className="h-3 w-3" />
+              WhatsApp
+            </a>
+            <a
+              href={SUPPORT_EMAIL}
+              className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 text-[11px] font-bold text-foreground transition-colors hover:bg-accent"
+            >
+              <Mail className="h-3 w-3" />
+              E-mail
+            </a>
           </div>
         </section>
 
@@ -201,7 +212,7 @@ function AboutDevelopmentPage() {
         {/* FOOTER LINK */}
         <div className="flex items-center justify-center gap-2 pt-2 text-[11px] text-muted-foreground">
           <Code2 className="h-3 w-3" />
-          <span>RankMyMatch · v0.{new Date().getFullYear() % 100}.{new Date().getMonth() + 1}</span>
+          <span>RankMyMatch · {APP_VERSION}</span>
         </div>
       </main>
     </div>
