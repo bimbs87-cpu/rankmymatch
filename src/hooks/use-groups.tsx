@@ -522,15 +522,49 @@ export async function rejectJoinRequest(requestId: string, adminId: string) {
 export async function removeMember(memberId: string) {
   // Soft-remove: keep group_members row with status='removed' so the original
   // name continues to appear (dimmed) in rankings, matches and history.
+  // Load row first so we can audit it (group_id + user_id + role).
+  const { data: prev } = await supabase
+    .from("group_members")
+    .select("group_id, user_id, role, status")
+    .eq("id", memberId)
+    .maybeSingle();
   const { error } = await supabase
     .from("group_members")
     .update({ status: "removed", updated_at: new Date().toISOString() })
     .eq("id", memberId);
   if (error) throw error;
+  if (prev?.group_id) {
+    const { logAudit } = await import("@/lib/audit-log");
+    await logAudit({
+      groupId: prev.group_id,
+      action: "member_removed",
+      entityType: "group_member",
+      entityId: memberId,
+      oldData: prev,
+      newData: { ...prev, status: "removed" },
+    });
+  }
 }
 
 export async function updateMemberRole(memberId: string, role: string) {
+  const { data: prev } = await supabase
+    .from("group_members")
+    .select("group_id, user_id, role")
+    .eq("id", memberId)
+    .maybeSingle();
   await supabase.from("group_members").update({ role }).eq("id", memberId);
+  // Only log when promotion to admin/creator (the meaningful change for auditors).
+  if (prev?.group_id && prev.role !== role && (role === "admin" || role === "creator")) {
+    const { logAudit } = await import("@/lib/audit-log");
+    await logAudit({
+      groupId: prev.group_id,
+      action: "member_promoted",
+      entityType: "group_member",
+      entityId: memberId,
+      oldData: { role: prev.role },
+      newData: { role },
+    });
+  }
 }
 
 export async function checkUserHasResults(groupId: string, userId: string): Promise<boolean> {

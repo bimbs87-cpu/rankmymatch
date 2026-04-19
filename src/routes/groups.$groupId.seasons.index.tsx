@@ -273,6 +273,14 @@ function GroupSeasonsPage() {
       } else if (action === "finish") {
         await supabase.from("seasons").update({ status: "finished" }).eq("id", seasonId);
         toast.success("Temporada concluída");
+        const { logAudit } = await import("@/lib/audit-log");
+        await logAudit({
+          groupId,
+          action: "season_finished",
+          entityType: "season",
+          entityId: seasonId,
+          newData: { status: "finished" },
+        });
       } else if (action === "rename") {
         const current = seasons.find((s) => s.id === seasonId);
         const next = window.prompt("Novo nome da temporada:", current?.name || "")?.trim();
