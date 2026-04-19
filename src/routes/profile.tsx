@@ -150,12 +150,17 @@ function ProfilePage() {
     if (user) {
       const { data } = await supabase
         .from("user_profiles")
-        .select("share_tagline")
+        .select("share_tagline, share_accent_color")
         .eq("user_id", user.id)
         .maybeSingle();
       setEditTagline(data?.share_tagline || "");
+      const acc = (data as { share_accent_color?: string | null } | null)?.share_accent_color;
+      setEditAccent(
+        acc && ACCENT_OPTIONS.some((o) => o.key === acc) ? (acc as AccentKey) : null,
+      );
     } else {
       setEditTagline("");
+      setEditAccent(null);
     }
     setEditing(true);
   };
