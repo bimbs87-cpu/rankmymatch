@@ -58,17 +58,24 @@ export function MaintenancePanel({ groupId, onCountChange }: Props) {
     setScanning(true);
     try {
       const res = await detectFn({ data: { groupId } });
-      setDesynced(res.desynced);
-      onCountChange?.(res.desynced.length);
+      const list = Array.isArray(res?.desynced) ? res.desynced : [];
+      setDesynced(list);
+      onCountChange?.(list.length);
       if (showToast) {
         toast.success(
-          res.desynced.length === 0
+          list.length === 0
             ? "Nenhuma partida dessincronizada"
-            : `${res.desynced.length} partida(s) precisa(m) de atenção`,
+            : `${list.length} partida(s) precisa(m) de atenção`,
         );
       }
     } catch (e: any) {
-      toast.error(e?.message || "Erro ao escanear");
+      const msg =
+        e instanceof Response
+          ? `Erro ${e.status} ao escanear`
+          : e?.message || "Erro ao escanear";
+      toast.error(msg);
+      setDesynced([]);
+      onCountChange?.(0);
     } finally {
       setScanning(false);
       setLoading(false);
