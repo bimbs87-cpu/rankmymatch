@@ -52,6 +52,24 @@ const TYPE_META: Record<
   },
 };
 
+function parseVersion(v: string): number[] {
+  return v
+    .replace(/^v/i, "")
+    .split(".")
+    .map((p) => parseInt(p, 10) || 0);
+}
+
+function compareVersionsDesc(a: string, b: string): number {
+  const pa = parseVersion(a);
+  const pb = parseVersion(b);
+  const len = Math.max(pa.length, pb.length);
+  for (let i = 0; i < len; i++) {
+    const diff = (pb[i] ?? 0) - (pa[i] ?? 0);
+    if (diff !== 0) return diff;
+  }
+  return 0;
+}
+
 function formatDate(iso: string) {
   try {
     return new Intl.DateTimeFormat("pt-BR", {
@@ -75,9 +93,11 @@ function ChangelogPage() {
       const { data } = await supabase
         .from("release_notes")
         .select("id, version, title, description, type, released_at")
-        .eq("is_published", true)
-        .order("released_at", { ascending: false });
-      setNotes((data ?? []) as ReleaseNote[]);
+        .eq("is_published", true);
+      const sorted = ((data ?? []) as ReleaseNote[]).sort((a, b) =>
+        compareVersionsDesc(a.version, b.version),
+      );
+      setNotes(sorted);
     })();
   }, []);
 
@@ -93,11 +113,11 @@ function ChangelogPage() {
     [notes, filter, normalizedQuery],
   );
 
-  // Group by month for organization
+  // Group by major.minor version (e.g. "0.28")
   const grouped = filtered.reduce(
     (acc, n) => {
-      const d = new Date(n.released_at);
-      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      const [maj, min] = parseVersion(n.version);
+      const key = `${maj}.${min}`;
       if (!acc[key]) acc[key] = [];
       acc[key].push(n);
       return acc;
@@ -105,11 +125,11 @@ function ChangelogPage() {
     {} as Record<string, ReleaseNote[]>,
   );
 
-  const monthLabel = (key: string) => {
-    const [y, m] = key.split("-");
-    const d = new Date(Number(y), Number(m) - 1, 1);
-    return new Intl.DateTimeFormat("pt-BR", { month: "long", year: "numeric" }).format(d);
-  };
+  const groupedEntries = Object.entries(grouped).sort(([a], [b]) =>
+    compareVersionsDesc(a, b),
+  );
+
+  const versionLabel = (key: string) => `v${key}.x`;
 
   const counts = {
     all: notes?.length ?? 0,
@@ -200,11 +220,11 @@ function ChangelogPage() {
         {/* Grouped condensed list */}
         {notes && filtered.length > 0 && (
           <div className="space-y-5">
-            {Object.entries(grouped).map(([monthKey, items]) => (
-              <section key={monthKey} className="rounded-3xl border border-border bg-card p-4 lg:p-5">
+            {groupedEntries.map(([versionKey, items]) => (
+              <section key={versionKey} className="rounded-3xl border border-border bg-card p-4 lg:p-5">
                 <div className="mb-2 flex items-baseline justify-between border-b border-border pb-2">
                   <h2 className="font-display text-sm font-bold uppercase tracking-wider text-foreground">
-                    {monthLabel(monthKey)}
+                    {versionLabel(versionKey)}
                   </h2>
                   <span className="text-[10px] font-mono text-muted-foreground">
                     {items.length} {items.length === 1 ? "item" : "itens"}
