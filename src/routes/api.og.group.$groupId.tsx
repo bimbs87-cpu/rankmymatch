@@ -63,6 +63,7 @@ function truncate(s: string, max: number): string {
 interface GroupOgData {
   name: string;
   logoUrl: string | null;
+  ogCoverUrl: string | null;
   memberCount: number;
   activeSeasonName: string | null;
   sport: string;
@@ -74,7 +75,7 @@ async function getGroupOgData(groupId: string): Promise<GroupOgData | null> {
   const sb = getSupabaseAdmin();
   const { data: group } = await sb
     .from("groups")
-    .select("id, name, image_url, sport, mode, updated_at")
+    .select("id, name, image_url, og_cover_url, sport, mode, updated_at")
     .eq("id", groupId)
     .maybeSingle();
   if (!group) return null;
@@ -96,16 +97,20 @@ async function getGroupOgData(groupId: string): Promise<GroupOgData | null> {
     .limit(1)
     .maybeSingle();
 
+  const ogCoverUrl = (group as { og_cover_url?: string | null }).og_cover_url ?? null;
+
   const cacheKey = [
     String(new Date(group.updated_at).getTime()),
     String(memberCount ?? 0),
     season?.id || "no-season",
     season ? String(new Date(season.updated_at).getTime()) : "0",
+    ogCoverUrl ? "cov1" : "cov0",
   ].join("_");
 
   return {
     name: group.name,
     logoUrl: group.image_url,
+    ogCoverUrl,
     memberCount: memberCount ?? 0,
     activeSeasonName: season?.name ?? null,
     sport: group.sport,
