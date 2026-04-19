@@ -137,15 +137,30 @@ export function AvatarPromptGate() {
     await handleSelect(googlePhoto, "google");
   };
 
-  const handleRandomPreset = async () => {
-    const pick = PREMIUM_AVATARS[Math.floor(Math.random() * PREMIUM_AVATARS.length)];
+  /** Pick a random preset and show a preview — does NOT save until confirmed. */
+  const rollRandomPreview = () => {
+    // Avoid rolling the same one twice in a row when possible
+    let pick = PREMIUM_AVATARS[Math.floor(Math.random() * PREMIUM_AVATARS.length)];
+    if (randomPreview && PREMIUM_AVATARS.length > 1) {
+      let attempts = 0;
+      while (getAvatarUrl(pick.id) === randomPreview.url && attempts < 5) {
+        pick = PREMIUM_AVATARS[Math.floor(Math.random() * PREMIUM_AVATARS.length)];
+        attempts++;
+      }
+    }
     const url = getAvatarUrl(pick.id);
     if (!url) {
       toast.error("Não foi possível gerar um avatar aleatório, escolha um da lista");
       setPicker(true);
       return;
     }
-    await handleSelect(url, "emoji");
+    setRandomPreview({ url });
+  };
+
+  const confirmRandomPreview = async () => {
+    if (!randomPreview) return;
+    await handleSelect(randomPreview.url, "emoji");
+    setRandomPreview(null);
   };
 
   if (!open) {
