@@ -19,7 +19,7 @@ export function BottomNav() {
     <nav className="fixed bottom-5 left-4 right-4 z-50 mx-auto max-w-lg lg:hidden">
       <Link
         to="/sobre-desenvolvimento"
-        className="absolute -top-6 left-1/2 -translate-x-1/2 inline-flex items-center gap-1.5 rounded-full border border-border bg-card/90 px-2.5 py-0.5 font-mono text-[9px] font-medium text-muted-foreground shadow-sm backdrop-blur transition-colors hover:text-primary"
+        className="absolute -top-3 left-1/2 -translate-x-1/2 z-10 inline-flex items-center gap-1.5 rounded-full border border-border bg-card/95 px-2.5 py-0.5 font-mono text-[9px] font-medium text-muted-foreground shadow-sm backdrop-blur transition-colors hover:text-primary"
         aria-label="Sobre o desenvolvimento"
       >
         {APP_VERSION}
