@@ -50,12 +50,22 @@ export function AdminPanel({ group, isCreator, onSaved, pendingRequestsCount }: 
   const [section, setSection] = useState<Section>("general");
   const [inviteOpen, setInviteOpen] = useState(false);
   const [desyncedCount, setDesyncedCount] = useState(0);
+  const { session, isLoading: authLoading } = useAuth();
   const detectFn = useServerFn(detectDesyncedMatchesServerFn);
 
   // Silent scan on mount so the Maintenance badge is visible without opening the section
   useEffect(() => {
+    if (authLoading) return;
+    if (!session?.access_token) {
+      setDesyncedCount(0);
+      return;
+    }
+
     let cancelled = false;
-    detectFn({ data: { groupId: group.id } })
+    detectFn({
+      data: { groupId: group.id },
+      headers: { authorization: `Bearer ${session.access_token}` },
+    })
       .then((res) => {
         if (cancelled) return;
         const list = Array.isArray(res?.desynced) ? res.desynced : [];
@@ -63,7 +73,7 @@ export function AdminPanel({ group, isCreator, onSaved, pendingRequestsCount }: 
       })
       .catch(() => { /* silent */ });
     return () => { cancelled = true; };
-  }, [group.id, detectFn]);
+  }, [group.id, detectFn, authLoading, session?.access_token]);
 
   return (
     <div className="space-y-4">

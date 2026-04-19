@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { Loader2, Wrench, CheckCircle2, RefreshCw, Unlock, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
+import { useAuth } from "@/hooks/use-auth";
 import {
   detectDesyncedMatchesServerFn,
   finalizeDesyncedMatchesServerFn,
@@ -39,6 +40,7 @@ function fmtDate(d: string | null) {
 }
 
 export function MaintenancePanel({ groupId, onCountChange }: Props) {
+  const { session, isLoading: authLoading } = useAuth();
   const detectFn = useServerFn(detectDesyncedMatchesServerFn);
   const finalizeFn = useServerFn(finalizeDesyncedMatchesServerFn);
   const reopenFn = useServerFn(reopenMatchServerFn);
@@ -55,9 +57,20 @@ export function MaintenancePanel({ groupId, onCountChange }: Props) {
   const [reopening, setReopening] = useState(false);
 
   const scan = async (showToast = false) => {
+    if (!session?.access_token) {
+      if (!authLoading && showToast) toast.error("Faça login novamente");
+      setDesynced([]);
+      onCountChange?.(0);
+      setLoading(false);
+      return;
+    }
+
     setScanning(true);
     try {
-      const res = await detectFn({ data: { groupId } });
+      const res = await detectFn({
+        data: { groupId },
+        headers: { authorization: `Bearer ${session.access_token}` },
+      });
       const list = Array.isArray(res?.desynced) ? res.desynced : [];
       setDesynced(list);
       onCountChange?.(list.length);
@@ -83,11 +96,16 @@ export function MaintenancePanel({ groupId, onCountChange }: Props) {
   };
 
   useEffect(() => {
-    scan(false);
+    if (authLoading) return;
+    void scan(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [groupId]);
+  }, [groupId, authLoading, session?.access_token]);
 
   const finalizeAll = async () => {
+    if (!session?.access_token) {
+      toast.error("Faça login novamente");
+      return;
+    }
     const eligible = desynced.filter((d) => d.winner != null);
     if (eligible.length === 0) {
       toast.error("Nenhuma partida elegível (todas têm empate em sets)");
@@ -97,6 +115,7 @@ export function MaintenancePanel({ groupId, onCountChange }: Props) {
     try {
       const res = await finalizeFn({
         data: { groupId, matchIds: eligible.map((d) => d.matchId) },
+        headers: { authorization: `Bearer ${session.access_token}` },
       });
       toast.success(`${res.okCount} finalizada(s)${res.failCount ? `, ${res.failCount} falha(s)` : ""}`);
       await scan(false);
@@ -108,9 +127,16 @@ export function MaintenancePanel({ groupId, onCountChange }: Props) {
   };
 
   const finalizeOne = async (matchId: string) => {
+    if (!session?.access_token) {
+      toast.error("Faça login novamente");
+      return;
+    }
     setFinalizingOne(matchId);
     try {
-      const res = await finalizeFn({ data: { groupId, matchIds: [matchId] } });
+      const res = await finalizeFn({
+        data: { groupId, matchIds: [matchId] },
+        headers: { authorization: `Bearer ${session.access_token}` },
+      });
       const r = res.results[0];
       if (r?.ok) toast.success("Partida finalizada");
       else toast.error(r?.reason || "Falha");
@@ -123,6 +149,10 @@ export function MaintenancePanel({ groupId, onCountChange }: Props) {
   };
 
   const reopen = async () => {
+    if (!session?.access_token) {
+      toast.error("Faça login novamente");
+      return;
+    }
     const id = reopenId.trim();
     if (!id) {
       toast.error("Cole o ID da partida");
@@ -130,7 +160,10 @@ export function MaintenancePanel({ groupId, onCountChange }: Props) {
     }
     setReopening(true);
     try {
-      await reopenFn({ data: { matchId: id, reason: reopenReason.trim() || undefined } });
+      await reopenFn({
+        data: { matchId: id, reason: reopenReason.trim() || undefined },
+        headers: { authorization: `Bearer ${session.access_token}` },
+      });
       toast.success("Partida reaberta. Regrave o placar normalmente.");
       setReopenId("");
       setReopenReason("");
