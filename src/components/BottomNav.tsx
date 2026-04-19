@@ -1,7 +1,8 @@
 import { Link, useLocation } from "@tanstack/react-router";
-import { Home, Users, User, Crown, BarChart3 } from "lucide-react";
+import { Home, Users, User, Crown, BarChart3, Inbox } from "lucide-react";
 import { APP_VERSION } from "@/lib/app-version";
 import { useNewReleasesCount } from "@/hooks/use-new-releases";
+import { useAdminPendingCount } from "@/hooks/use-admin-pending-count";
 
 const NAV_ITEMS = [
   { to: "/", icon: Home, label: "Início" },
@@ -14,9 +15,22 @@ const NAV_ITEMS = [
 export function BottomNav() {
   const location = useLocation();
   const newReleases = useNewReleasesCount();
+  const { count: adminPending } = useAdminPendingCount();
 
   return (
     <>
+      {adminPending > 0 && (
+        <Link
+          to="/admin/inbox"
+          aria-label={`${adminPending} solicitações de admin pendentes`}
+          className="fixed bottom-24 right-4 z-50 inline-flex h-12 w-12 items-center justify-center rounded-full border border-warning/40 bg-warning text-warning-foreground shadow-lg transition-transform hover:scale-105 lg:hidden"
+        >
+          <Inbox className="h-5 w-5" />
+          <span className="absolute -right-1 -top-1 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-destructive-foreground">
+            {adminPending > 9 ? "9+" : adminPending}
+          </span>
+        </Link>
+      )}
       <Link
         to="/sobre-desenvolvimento"
         className="fixed bottom-1 right-2 z-40 inline-flex items-center gap-1 rounded-full bg-transparent px-1.5 py-0.5 font-mono text-[8px] font-medium text-muted-foreground/50 transition-colors hover:text-primary lg:hidden"

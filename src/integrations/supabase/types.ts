@@ -14,6 +14,21 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_pending_reminder_log: {
+        Row: {
+          last_reminded_at: string
+          user_id: string
+        }
+        Insert: {
+          last_reminded_at?: string
+          user_id: string
+        }
+        Update: {
+          last_reminded_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       app_admins: {
         Row: {
           created_at: string
