@@ -14,6 +14,8 @@ import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
 import { invalidateGroupOgCache } from "@/lib/og-cache.functions";
 import { trackShareEvent } from "@/lib/track-share";
+import { supabase } from "@/integrations/supabase/client";
+import { Pencil } from "lucide-react";
 
 interface Props {
   open: boolean;
