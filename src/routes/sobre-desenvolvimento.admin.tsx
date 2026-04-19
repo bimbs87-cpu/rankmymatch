@@ -169,7 +169,11 @@ function BugAdminPage() {
     );
   }
 
-  const filtered = (reports ?? []).filter((r) => r.status === filter);
+  const filtered = (reports ?? []).filter(
+    (r) =>
+      r.status === filter &&
+      (priorityFilter === "all" || r.priority === priorityFilter),
+  );
   const counts = STATUSES.reduce(
     (acc, s) => {
       acc[s] = (reports ?? []).filter((r) => r.status === s).length;
@@ -197,7 +201,7 @@ function BugAdminPage() {
       </header>
 
       <main className="mx-auto w-full max-w-6xl space-y-5 px-5 lg:px-6">
-        {/* Filter tabs */}
+        {/* Status filter tabs */}
         <div className="flex flex-wrap gap-2">
           {STATUSES.map((s) => (
             <button
@@ -214,6 +218,36 @@ function BugAdminPage() {
               <span className="ml-1 rounded-full bg-background/60 px-1.5 text-[10px] tabular-nums">
                 {counts[s] ?? 0}
               </span>
+            </button>
+          ))}
+        </div>
+
+        {/* Priority filter */}
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+            Prioridade:
+          </span>
+          <button
+            onClick={() => setPriorityFilter("all")}
+            className={`rounded-full border px-2.5 py-1 text-[11px] font-bold transition-colors ${
+              priorityFilter === "all"
+                ? "border-primary bg-primary/15 text-primary"
+                : "border-border bg-card text-muted-foreground hover:bg-accent"
+            }`}
+          >
+            Todas
+          </button>
+          {PRIORITIES.map((p) => (
+            <button
+              key={p}
+              onClick={() => setPriorityFilter(p)}
+              className={`rounded-full border px-2.5 py-1 text-[11px] font-bold transition-colors ${
+                priorityFilter === p
+                  ? PRIORITY_CLS[p] + " ring-1 ring-current"
+                  : "border-border bg-card text-muted-foreground hover:bg-accent"
+              }`}
+            >
+              {PRIORITY_LABELS[p]}
             </button>
           ))}
         </div>
