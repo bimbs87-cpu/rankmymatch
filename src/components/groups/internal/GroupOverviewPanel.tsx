@@ -350,6 +350,23 @@ function NextRoundCard({ data, isLoading, groupId, busy, onPresence }: NextRound
     return null;
   }, [data.next_round]);
 
+  // Fire-and-forget in-app notifications to pending members when urgency kicks in.
+  // Idempotent per-round via localStorage cooldown inside the helper.
+  useEffect(() => {
+    const r = data.next_round;
+    if (!urgency || !r || !r.presence_is_open) return;
+    const pendingIds = (r.pending_all || []).map((p) => p.user_id);
+    if (!pendingIds.length) return;
+    void notifyUrgentPendingMembers({
+      roundId: r.id,
+      groupId,
+      pendingUserIds: pendingIds,
+      hoursLeft: urgency.hours,
+      slotsLeft: urgency.slotsLeft,
+      roundNumber: r.round_number,
+    });
+  }, [urgency, data.next_round, groupId]);
+
   return (
     <div className="rounded-3xl border border-border bg-card p-3 relative">
       <div className="mb-1.5 flex items-center justify-between gap-2">
