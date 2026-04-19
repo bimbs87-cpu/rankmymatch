@@ -1,11 +1,12 @@
 /**
  * Share button for player profile pages (own /profile and public /players/$userId).
- * - Tries Web Share API first (mobile-friendly)
- * - Falls back to copying the public URL to clipboard
+ * - Opens a dialog with QR code, copy link and native share button.
+ *   (Sempre abre o diálogo — assim usuários em desktop também conseguem o QR
+ *   para troca presencial em quadra.)
  */
 import { useState } from "react";
-import { Share2, Check } from "lucide-react";
-import { toast } from "sonner";
+import { Share2 } from "lucide-react";
+import { QrShareDialog } from "@/components/QrShareDialog";
 
 interface Props {
   userId: string;
@@ -15,33 +16,11 @@ interface Props {
 }
 
 export function ShareProfileButton({ userId, playerName, className, variant = "ghost" }: Props) {
-  const [copied, setCopied] = useState(false);
-
-  const handleShare = async () => {
-    const url = `${window.location.origin}/players/${userId}`;
-    const text = `Veja o perfil de ${playerName} no RankMyMatch`;
-
-    // Try Web Share API
-    if (typeof navigator !== "undefined" && "share" in navigator) {
-      try {
-        await navigator.share({ title: text, text, url });
-        return;
-      } catch (err) {
-        // User cancelled or share failed — fall through to copy
-        if ((err as Error).name === "AbortError") return;
-      }
-    }
-
-    // Fallback: copy to clipboard
-    try {
-      await navigator.clipboard.writeText(url);
-      setCopied(true);
-      toast.success("Link do perfil copiado!");
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      toast.error("Não foi possível compartilhar");
-    }
-  };
+  const [open, setOpen] = useState(false);
+  const url =
+    typeof window !== "undefined"
+      ? `${window.location.origin}/players/${userId}`
+      : `/players/${userId}`;
 
   const baseCls =
     variant === "primary"
@@ -49,13 +28,16 @@ export function ShareProfileButton({ userId, playerName, className, variant = "g
       : "border border-border bg-card text-foreground hover:bg-accent";
 
   return (
-    <button
-      onClick={handleShare}
-      className={`inline-flex items-center justify-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${baseCls} ${className ?? ""}`}
-      aria-label="Compartilhar perfil"
-    >
-      {copied ? <Check className="h-3.5 w-3.5" /> : <Share2 className="h-3.5 w-3.5" />}
-      <span>Compartilhar</span>
-    </button>
+    <>
+      <button
+        onClick={() => setOpen(true)}
+        className={`inline-flex items-center justify-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${baseCls} ${className ?? ""}`}
+        aria-label="Compartilhar perfil"
+      >
+        <Share2 className="h-3.5 w-3.5" />
+        <span>Compartilhar</span>
+      </button>
+      <QrShareDialog open={open} onOpenChange={setOpen} url={url} playerName={playerName} />
+    </>
   );
 }
