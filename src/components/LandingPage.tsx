@@ -1,5 +1,4 @@
-import { useState, useEffect } from "react";
-import { useNavigate } from "@tanstack/react-router";
+import { useState } from "react";
 import { lovable } from "@/integrations/lovable/index";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -17,6 +16,7 @@ import {
 import logoHorizontalDark from "@/assets/logo-horizontal-dark.png";
 import logoHorizontalLight from "@/assets/logo-horizontal-light.png";
 import heroDevices from "@/assets/landing-hero-devices.png";
+import heroMobile from "@/assets/landing-hero-mobile.png";
 import { useTheme } from "@/lib/theme";
 
 function GoogleIcon({ className }: { className?: string }) {
@@ -46,7 +46,6 @@ export function LandingPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const { resolved: resolvedTheme } = useTheme();
-  const navigate = useNavigate();
 
   const handleGoogleLogin = async () => {
     setLoading(true);
@@ -140,13 +139,13 @@ export function LandingPage() {
 
   const sports = ["Padel", "Tênis", "Beach Tennis", "Squash", "Pickleball"];
 
-  const CTAButton = ({ size = "md" }: { size?: "md" | "lg" }) => (
+  const CTAButton = ({ size = "md", className = "" }: { size?: "md" | "lg"; className?: string }) => (
     <button
       onClick={handleGoogleLogin}
       disabled={loading}
       className={`group inline-flex items-center justify-center gap-3 rounded-full bg-primary font-semibold text-primary-foreground shadow-lg shadow-primary/30 transition-all hover:bg-primary/90 hover:shadow-primary/40 active:scale-[0.98] disabled:opacity-60 ${
         size === "lg" ? "px-7 py-4 text-base" : "px-6 py-3 text-sm"
-      }`}
+      } ${className}`}
     >
       <GoogleIcon className={size === "lg" ? "h-5 w-5" : "h-4 w-4"} />
       {loading ? "Entrando..." : "Entrar com Google"}
@@ -185,8 +184,8 @@ export function LandingPage() {
 
       {/* === Header === */}
       <header className="relative z-20">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-4 sm:px-8 sm:py-5">
-          <img src={logoSrc} alt="RankMyMatch" className="h-14 w-auto sm:h-20 lg:h-24" />
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-3 sm:px-8 sm:py-4">
+          <img src={logoSrc} alt="RankMyMatch" className="h-12 w-auto sm:h-16 lg:h-20" />
           <button
             onClick={handleGoogleLogin}
             disabled={loading}
@@ -200,16 +199,17 @@ export function LandingPage() {
 
       {/* === Hero === */}
       <section className="relative z-10">
-        <div className="mx-auto grid max-w-7xl items-center gap-10 px-5 py-8 sm:px-8 sm:py-14 lg:grid-cols-[1.05fr_1fr] lg:gap-14 lg:py-20">
-          <div className="text-center lg:text-left">
-            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-border/60 bg-card/40 px-3 py-1 backdrop-blur-sm">
+        <div className="mx-auto grid max-w-7xl items-center gap-6 px-5 pb-8 pt-2 sm:px-8 sm:pb-12 sm:pt-6 lg:grid-cols-[1.05fr_1fr] lg:gap-12 lg:pb-16 lg:pt-10">
+          {/* Text column */}
+          <div className="text-left">
+            <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-border/60 bg-card/40 px-3 py-1 backdrop-blur-sm">
               <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
               <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
                 Para feirinos, clube e amigos
               </span>
             </div>
 
-            <h1 className="font-black leading-[1.05] tracking-tight text-3xl sm:text-5xl lg:text-6xl">
+            <h1 className="font-black leading-[1.05] tracking-tight text-[28px] sm:text-5xl lg:text-6xl">
               <span className="block text-foreground">Registre seu</span>
               <span className="block">
                 <span className="bg-gradient-to-r from-primary via-primary to-primary/70 bg-clip-text text-transparent">
@@ -219,27 +219,45 @@ export function LandingPage() {
               <span className="block text-foreground">em um só lugar</span>
             </h1>
 
-            <p className="mx-auto mt-5 max-w-xl text-sm leading-relaxed text-muted-foreground sm:text-base lg:mx-0 lg:text-lg">
+            <p className="mt-4 max-w-xl text-sm leading-relaxed text-muted-foreground sm:text-base lg:text-lg">
               <span className="font-semibold text-foreground">Estatísticas avançadas</span>, ranking Elo dinâmico e
               gestão de temporadas para padel, tênis, beach tennis e mais. Pare de anotar resultado em planilha do
               WhatsApp.
             </p>
 
-            <div className="mt-7 flex flex-col items-center gap-3 sm:flex-row sm:justify-center lg:justify-start">
-              <CTAButton size="lg" />
+            {/* Mobile-only hero image (between text and CTA) */}
+            <div className="relative mt-6 lg:hidden">
+              <div
+                aria-hidden
+                className="pointer-events-none absolute inset-0 -z-10 blur-3xl"
+                style={{
+                  background:
+                    "radial-gradient(closest-side, color-mix(in oklab, var(--primary) 22%, transparent), transparent 70%)",
+                }}
+              />
+              <img
+                src={heroMobile}
+                alt="RankMyMatch no celular: ranking, pódio e estatísticas"
+                className="relative mx-auto w-full max-w-[280px] object-contain"
+                loading="eager"
+              />
+            </div>
+
+            <div className="mt-5 flex flex-col items-start gap-2.5 sm:flex-row sm:items-center sm:gap-4 lg:justify-start">
+              <CTAButton size="lg" className="w-full sm:w-auto" />
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 <CheckCircle2 className="h-4 w-4 text-primary" />
                 <span>Grátis para começar · sem cartão</span>
               </div>
             </div>
 
-            {error && <p className="mt-4 text-center text-sm text-destructive lg:text-left">{error}</p>}
+            {error && <p className="mt-3 text-sm text-destructive">{error}</p>}
 
-            <div className="mt-8">
+            <div className="mt-6">
               <p className="mb-2 text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
                 Esportes suportados
               </p>
-              <div className="flex flex-wrap justify-center gap-1.5 lg:justify-start">
+              <div className="flex flex-wrap gap-1.5">
                 {sports.map((s) => (
                   <span
                     key={s}
@@ -252,8 +270,8 @@ export function LandingPage() {
             </div>
           </div>
 
-          {/* Hero image */}
-          <div className="relative">
+          {/* Desktop hero image */}
+          <div className="relative hidden lg:block">
             <div
               aria-hidden
               className="pointer-events-none absolute inset-0 -z-10 blur-3xl"
@@ -274,17 +292,17 @@ export function LandingPage() {
 
       {/* === Features === */}
       <section className="relative z-10 border-t border-border/40">
-        <div className="mx-auto max-w-7xl px-5 py-14 sm:px-8 sm:py-20">
-          <div className="mx-auto max-w-2xl text-center">
+        <div className="mx-auto max-w-7xl px-5 py-10 sm:px-8 sm:py-16">
+          <div className="mx-auto max-w-2xl text-left sm:text-center">
             <h2 className="text-2xl font-black tracking-tight sm:text-4xl">
-              Tudo que sua <span className="text-primary">feirinos</span> precisa
+              Tudo o que seu <span className="text-primary">feirino</span> precisa
             </h2>
-            <p className="mt-3 text-sm text-muted-foreground sm:text-base">
+            <p className="mt-2 text-sm text-muted-foreground sm:text-base">
               Da rodada de quarta-feira ao campeonato anual. Sem planilha, sem confusão.
             </p>
           </div>
 
-          <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="mt-8 grid gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {features.map((f) => (
               <div
                 key={f.title}
@@ -307,20 +325,20 @@ export function LandingPage() {
 
       {/* === How it works === */}
       <section className="relative z-10 border-t border-border/40">
-        <div className="mx-auto max-w-7xl px-5 py-14 sm:px-8 sm:py-20">
-          <div className="mx-auto max-w-2xl text-center">
+        <div className="mx-auto max-w-7xl px-5 py-10 sm:px-8 sm:py-16">
+          <div className="mx-auto max-w-2xl text-left sm:text-center">
             <h2 className="text-2xl font-black tracking-tight sm:text-4xl">
               Comece em <span className="text-primary">3 passos</span>
             </h2>
-            <p className="mt-3 text-sm text-muted-foreground sm:text-base">
+            <p className="mt-2 text-sm text-muted-foreground sm:text-base">
               Do login à primeira partida em menos de 2 minutos.
             </p>
           </div>
 
-          <div className="mt-10 grid gap-4 sm:grid-cols-3">
+          <div className="mt-8 grid gap-3 sm:gap-4 sm:grid-cols-3">
             {steps.map((s) => (
-              <div key={s.n} className="relative rounded-2xl border border-border/60 bg-card/50 p-6 backdrop-blur-md">
-                <div className="mb-3 inline-flex h-10 items-center justify-center rounded-full bg-primary/10 px-3 text-sm font-black text-primary">
+              <div key={s.n} className="relative rounded-2xl border border-border/60 bg-card/50 p-5 backdrop-blur-md">
+                <div className="mb-3 inline-flex h-9 items-center justify-center rounded-full bg-primary/10 px-3 text-sm font-black text-primary">
                   {s.n}
                 </div>
                 <h3 className="text-base font-bold text-foreground">{s.title}</h3>
@@ -329,8 +347,7 @@ export function LandingPage() {
             ))}
           </div>
 
-          <div className="mt-10 flex flex-col items-center gap-3">
-            <CTAButton size="lg" />
+          <div className="mt-8 flex flex-col items-center gap-2">
             <p className="text-xs text-muted-foreground">
               <Zap className="mr-1 inline h-3.5 w-3.5 text-primary" />
               Sem cadastro: 1 clique e você já está no ranking.
@@ -341,8 +358,8 @@ export function LandingPage() {
 
       {/* === Final CTA === */}
       <section className="relative z-10 border-t border-border/40">
-        <div className="mx-auto max-w-5xl px-5 py-14 sm:px-8 sm:py-20">
-          <div className="relative overflow-hidden rounded-3xl border border-primary/30 bg-card/60 p-8 text-center backdrop-blur-xl sm:p-12">
+        <div className="mx-auto max-w-5xl px-5 py-10 sm:px-8 sm:py-16">
+          <div className="relative overflow-hidden rounded-3xl border border-primary/30 bg-card/60 p-7 text-center backdrop-blur-xl sm:p-12">
             <div
               aria-hidden
               className="pointer-events-none absolute inset-0 -z-10"
@@ -351,15 +368,15 @@ export function LandingPage() {
                   "radial-gradient(ellipse at top, color-mix(in oklab, var(--primary) 18%, transparent), transparent 70%)",
               }}
             />
-            <Sparkles className="mx-auto mb-4 h-8 w-8 text-primary" />
+            <Sparkles className="mx-auto mb-3 h-8 w-8 text-primary" />
             <h2 className="text-2xl font-black tracking-tight sm:text-4xl">
               Bora subir no <span className="text-primary">ranking</span>?
             </h2>
-            <p className="mx-auto mt-3 max-w-lg text-sm text-muted-foreground sm:text-base">
+            <p className="mx-auto mt-2 max-w-lg text-sm text-muted-foreground sm:text-base">
               Junte-se a feirinos e clubes que já largaram a planilha. Entre com Google e crie seu primeiro grupo agora.
             </p>
-            <div className="mt-7 flex justify-center">
-              <CTAButton size="lg" />
+            <div className="mt-6 flex justify-center">
+              <CTAButton size="lg" className="w-full sm:w-auto" />
             </div>
             <p className="mt-3 text-[11px] text-muted-foreground">
               Ao entrar, você concorda com nossos Termos de Uso e Política de Privacidade.
@@ -370,7 +387,7 @@ export function LandingPage() {
 
       {/* === Footer === */}
       <footer className="relative z-10 border-t border-border/40">
-        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 px-5 py-6 text-xs text-muted-foreground sm:flex-row sm:px-8">
+        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 px-5 py-5 text-xs text-muted-foreground sm:flex-row sm:px-8">
           <div className="flex items-center gap-2">
             <img src={logoSrc} alt="RankMyMatch" className="h-6 w-auto" />
             <span>© {new Date().getFullYear()} RankMyMatch</span>
