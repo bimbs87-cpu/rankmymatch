@@ -1,4 +1,4 @@
-import { useMemo, useState, useRef } from "react";
+import { useMemo, useState, useRef, useEffect, useLayoutEffect } from "react";
 
 export type EloPoint = { date: string; rating: number };
 export type ChartPeriod = "30d" | "90d" | "all";
@@ -28,6 +28,14 @@ interface Marker {
   color: string;
 }
 
+/**
+ * Pixel-accurate Elo evolution chart.
+ *
+ * Uses a ResizeObserver to drive the SVG viewBox to the actual container
+ * pixel dimensions, so geometry, dots, lines and text all render at 1:1
+ * scale with no stretching distortion. The chart re-runs its layout math
+ * on resize, so it stays crisp at any width/height.
+ */
 export function EloEvolutionChart({
   points,
   color = "#84cc16",
@@ -38,6 +46,26 @@ export function EloEvolutionChart({
   const [hoverIdx, setHoverIdx] = useState<number | null>(null);
   const [hoverMarker, setHoverMarker] = useState<MarkerKind | null>(null);
   const svgRef = useRef<SVGSVGElement | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+
+  // Measured container size (drives viewBox and layout math)
+  const [size, setSize] = useState<{ w: number; h: number }>({ w: 600, h: height });
+
+  useLayoutEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const measure = () => {
+      const rect = el.getBoundingClientRect();
+      // Subtract padding (p-2 → 8px each side)
+      const w = Math.max(200, Math.floor(rect.width - 16));
+      const h = Math.max(120, Math.floor(rect.height - 16));
+      setSize((prev) => (prev.w === w && prev.h === h ? prev : { w, h }));
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   const filtered = useMemo(() => {
     if (!points.length) return [];
@@ -45,43 +73,68 @@ export function EloEvolutionChart({
     const days = period === "30d" ? 30 : 90;
     const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
     const inRange = points.filter((p) => new Date(p.date).getTime() >= cutoff);
-    // Always keep at least 2 points for a visible chart
     return inRange.length >= 2 ? inRange : points.slice(-Math.min(points.length, 10));
   }, [points, period]);
 
-  const w = 520;
-  const h = height;
-  const padL = 36;
-  const padR = 14;
-  const padT = 14;
-  const padB = 24;
+  // Reset hover state when filter or data change
+  useEffect(() => {
+    setHoverIdx(null);
+    setHoverMarker(null);
+  }, [period, points]);
+
+  const w = size.w;
+  const h = size.h;
+  // Responsive padding — generous on left for Y labels, room on right for marker labels
+  const padL = 44;
+  const padR = 56;
+  const padT = 20;
+  const padB = 26;
 
   const values = filtered.map((p) => p.rating);
   const minV = values.length ? Math.min(...values) : 0;
   const maxV = values.length ? Math.max(...values) : 1;
   const range = Math.max(1, maxV - minV);
-  const innerW = w - padL - padR;
-  const innerH = h - padT - padB;
+  const innerW = Math.max(1, w - padL - padR);
+  const innerH = Math.max(1, h - padT - padB);
 
   const xFor = (i: number) =>
-    padL +
-    (filtered.length === 1 ? innerW / 2 : (i / (filtered.length - 1)) * innerW);
+    padL + (filtered.length === 1 ? innerW / 2 : (i / (filtered.length - 1)) * innerW);
   const yFor = (v: number) => padT + (1 - (v - minV) / range) * innerH;
 
   const pathD = filtered
-    .map((p, i) => `${i === 0 ? "M" : "L"} ${xFor(i)} ${yFor(p.rating)}`)
+    .map((p, i) => `${i === 0 ? "M" : "L"} ${xFor(i).toFixed(2)} ${yFor(p.rating).toFixed(2)}`)
     .join(" ");
   const areaD =
     filtered.length > 0
-      ? `${pathD} L ${xFor(filtered.length - 1)} ${padT + innerH} L ${xFor(0)} ${padT + innerH} Z`
+      ? `${pathD} L ${xFor(filtered.length - 1).toFixed(2)} ${(padT + innerH).toFixed(2)} L ${xFor(0).toFixed(2)} ${(padT + innerH).toFixed(2)} Z`
       : "";
 
-  const yTicks = [0, 0.5, 1].map((t) => ({
+  const yTicks = [0, 0.25, 0.5, 0.75, 1].map((t) => ({
     val: maxV - t * range,
     yPx: padT + t * innerH,
   }));
 
-  // ─── Markers (computed over the FILTERED window so they make sense per period) ───
+  // X-axis date ticks — show 3-5 evenly spaced dates
+  const xTicks = useMemo(() => {
+    if (filtered.length < 2) return [];
+    const targetCount = Math.min(5, Math.max(3, Math.floor(innerW / 110)));
+    const step = (filtered.length - 1) / (targetCount - 1);
+    const out: { i: number; label: string }[] = [];
+    const seen = new Set<number>();
+    for (let k = 0; k < targetCount; k++) {
+      const i = Math.round(k * step);
+      if (seen.has(i)) continue;
+      seen.add(i);
+      const d = new Date(filtered[i].date);
+      out.push({
+        i,
+        label: d.toLocaleDateString("pt-BR", { day: "2-digit", month: "short" }),
+      });
+    }
+    return out;
+  }, [filtered, innerW]);
+
+  // ─── Markers (over filtered window) ───
   const markers = useMemo<Marker[]>(() => {
     if (filtered.length < 2) return [];
     let peakIdx = 0;
@@ -150,12 +203,9 @@ export function EloEvolutionChart({
   const tooltipX = hovered != null && hoverIdx != null ? xFor(hoverIdx) : 0;
   const tooltipY = hovered != null ? yFor(hovered.rating) : 0;
   const tooltipBoxW = 130;
-  const tooltipBoxH = 38;
-  const tooltipLeft = Math.max(
-    4,
-    Math.min(w - tooltipBoxW - 4, tooltipX - tooltipBoxW / 2),
-  );
-  const tooltipTop = Math.max(4, tooltipY - tooltipBoxH - 10);
+  const tooltipBoxH = 44;
+  const tooltipLeft = Math.max(4, Math.min(w - tooltipBoxW - 4, tooltipX - tooltipBoxW / 2));
+  const tooltipTop = Math.max(4, tooltipY - tooltipBoxH - 12);
 
   const formatDate = (iso: string) => {
     const d = new Date(iso);
@@ -170,9 +220,8 @@ export function EloEvolutionChart({
 
   return (
     <div className="flex h-full flex-col">
-      {/* Period selector */}
+      {/* Period selector + legend */}
       <div className="mb-2 flex items-center justify-between gap-2">
-        {/* Marker legend */}
         {markers.length > 0 ? (
           <div className="flex flex-wrap items-center gap-2">
             {markers.map((m) => (
@@ -218,7 +267,10 @@ export function EloEvolutionChart({
             : ` nos últimos ${period === "30d" ? 30 : 90} dias`}
         </p>
       )}
-      <div className="relative min-h-0 flex-1 overflow-hidden rounded-xl bg-muted/10 p-2">
+      <div
+        ref={containerRef}
+        className="relative min-h-0 flex-1 overflow-hidden rounded-xl bg-muted/10 p-2"
+      >
         {!filtered.length ? (
           <div className="flex h-full items-center justify-center text-[11px] text-muted-foreground">
             Sem histórico ainda
@@ -227,35 +279,60 @@ export function EloEvolutionChart({
           <>
             <svg
               ref={svgRef}
+              width={w}
+              height={h}
               viewBox={`0 0 ${w} ${h}`}
-              className="block h-full w-full transition-opacity duration-300"
-              preserveAspectRatio="none"
+              className="block h-full w-full"
+              preserveAspectRatio="xMidYMid meet"
               onMouseMove={handleMove}
               onMouseLeave={handleLeave}
-              key={period /* re-mounts on period change so the area animates in */}
+              key={`${period}-${w}-${h}`}
             >
+              <defs>
+                <linearGradient id="elo-grad" x1="0" x2="0" y1="0" y2="1">
+                  <stop offset="0%" stopColor={color} stopOpacity="0.32" />
+                  <stop offset="100%" stopColor={color} stopOpacity="0" />
+                </linearGradient>
+              </defs>
+
               {/* Y grid + labels */}
               {yTicks.map((t, i) => (
-                <g key={i}>
+                <g key={`y-${i}`}>
                   <line
                     x1={padL}
                     x2={w - padR}
                     y1={t.yPx}
                     y2={t.yPx}
                     stroke="var(--border)"
-                    strokeDasharray="2 3"
-                    opacity="0.5"
+                    strokeDasharray="2 4"
+                    opacity="0.45"
                   />
                   <text
-                    x={padL - 4}
+                    x={padL - 8}
                     y={t.yPx + 3}
                     textAnchor="end"
-                    fontSize="9"
+                    fontSize="10"
                     fill="var(--muted-foreground)"
+                    fontFamily="ui-monospace, SFMono-Regular, Menlo, monospace"
                   >
                     {Math.round(t.val)}
                   </text>
                 </g>
+              ))}
+
+              {/* X axis date ticks */}
+              {xTicks.map((t) => (
+                <text
+                  key={`x-${t.i}`}
+                  x={xFor(t.i)}
+                  y={h - 8}
+                  textAnchor="middle"
+                  fontSize="9"
+                  fill="var(--muted-foreground)"
+                  fontFamily="ui-sans-serif, system-ui, sans-serif"
+                >
+                  {t.label}
+                </text>
               ))}
 
               {/* Marker horizontal lines */}
@@ -267,15 +344,18 @@ export function EloEvolutionChart({
                     y1={yFor(m.rating)}
                     y2={yFor(m.rating)}
                     stroke={m.color}
-                    strokeOpacity={hoverMarker === m.kind ? 0.8 : 0.4}
+                    strokeOpacity={hoverMarker === m.kind ? 0.85 : 0.4}
                     strokeDasharray="4 4"
                     strokeWidth={hoverMarker === m.kind ? 1.5 : 1}
                     className="transition-opacity"
                     style={{ cursor: "pointer" }}
-                    onMouseEnter={() => { setHoverMarker(m.kind); setHoverIdx(null); }}
+                    onMouseEnter={() => {
+                      setHoverMarker(m.kind);
+                      setHoverIdx(null);
+                    }}
                     onMouseLeave={() => setHoverMarker(null)}
                   />
-                  {/* invisible thicker hover hit area */}
+                  {/* invisible thicker hit area */}
                   <line
                     x1={padL}
                     x2={w - padR}
@@ -284,30 +364,41 @@ export function EloEvolutionChart({
                     stroke="transparent"
                     strokeWidth="10"
                     style={{ cursor: "pointer" }}
-                    onMouseEnter={() => { setHoverMarker(m.kind); setHoverIdx(null); }}
+                    onMouseEnter={() => {
+                      setHoverMarker(m.kind);
+                      setHoverIdx(null);
+                    }}
                     onMouseLeave={() => setHoverMarker(null)}
                   />
                   <text
-                    x={w - padR - 2}
-                    y={yFor(m.rating) - 3}
-                    textAnchor="end"
-                    fontSize="8"
+                    x={w - padR + 4}
+                    y={yFor(m.rating) + 3}
+                    textAnchor="start"
+                    fontSize="9"
                     fontWeight="700"
                     fill={m.color}
                     style={{ pointerEvents: "none" }}
+                    fontFamily="ui-sans-serif, system-ui, sans-serif"
                   >
-                    {m.label.toUpperCase()} · {Math.round(m.rating)}
+                    {m.label.toUpperCase()}
+                  </text>
+                  <text
+                    x={w - padR + 4}
+                    y={yFor(m.rating) + 14}
+                    textAnchor="start"
+                    fontSize="9"
+                    fontWeight="600"
+                    fill={m.color}
+                    fillOpacity="0.75"
+                    style={{ pointerEvents: "none" }}
+                    fontFamily="ui-monospace, SFMono-Regular, Menlo, monospace"
+                  >
+                    {Math.round(m.rating)}
                   </text>
                 </g>
               ))}
 
-              <defs>
-                <linearGradient id="elo-grad" x1="0" x2="0" y1="0" y2="1">
-                  <stop offset="0%" stopColor={color} stopOpacity="0.35" />
-                  <stop offset="100%" stopColor={color} stopOpacity="0" />
-                </linearGradient>
-              </defs>
-
+              {/* Area fill + line */}
               <path d={areaD} fill="url(#elo-grad)" />
               <path
                 d={pathD}
@@ -318,30 +409,43 @@ export function EloEvolutionChart({
                 strokeLinecap="round"
               />
 
-              {/* All points */}
-              {filtered.map((p, i) => (
-                <circle
-                  key={i}
-                  cx={xFor(i)}
-                  cy={yFor(p.rating)}
-                  r={hoverIdx === i ? 4 : 2.5}
-                  fill={color}
-                  stroke={hoverIdx === i ? "var(--background)" : "none"}
-                  strokeWidth={hoverIdx === i ? 2 : 0}
-                />
-              ))}
+              {/* Data points (only render dots when there are few enough to keep clean) */}
+              {filtered.length <= 60 &&
+                filtered.map((p, i) => (
+                  <circle
+                    key={i}
+                    cx={xFor(i)}
+                    cy={yFor(p.rating)}
+                    r={hoverIdx === i ? 4 : 2.25}
+                    fill={color}
+                    stroke={hoverIdx === i ? "var(--background)" : "none"}
+                    strokeWidth={hoverIdx === i ? 2 : 0}
+                  />
+                ))}
 
-              {/* Hover guide line */}
+              {/* Hover guide line + accent dot when many points */}
               {hovered != null && hoverIdx != null && (
-                <line
-                  x1={tooltipX}
-                  x2={tooltipX}
-                  y1={padT}
-                  y2={padT + innerH}
-                  stroke={color}
-                  strokeOpacity="0.4"
-                  strokeDasharray="3 3"
-                />
+                <>
+                  <line
+                    x1={tooltipX}
+                    x2={tooltipX}
+                    y1={padT}
+                    y2={padT + innerH}
+                    stroke={color}
+                    strokeOpacity="0.45"
+                    strokeDasharray="3 3"
+                  />
+                  {filtered.length > 60 && (
+                    <circle
+                      cx={tooltipX}
+                      cy={tooltipY}
+                      r={4}
+                      fill={color}
+                      stroke="var(--background)"
+                      strokeWidth={2}
+                    />
+                  )}
+                </>
               )}
             </svg>
 
@@ -359,7 +463,8 @@ export function EloEvolutionChart({
                   {formatDate(hovered.date)}
                 </p>
                 <p className="font-display text-sm font-bold text-foreground tabular-nums">
-                  {Math.round(hovered.rating)} <span className="text-[10px] font-normal text-muted-foreground">Elo</span>
+                  {Math.round(hovered.rating)}{" "}
+                  <span className="text-[10px] font-normal text-muted-foreground">Elo</span>
                 </p>
               </div>
             )}
