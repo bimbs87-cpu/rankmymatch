@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { Home, User, Crown, Users, Bell, BarChart3 } from "lucide-react";
 import { useNotifications } from "@/hooks/use-notifications";
+import { useAdminPendingCount } from "@/hooks/use-admin-pending-count";
 import { useUserProfile } from "@/hooks/use-user-profile";
 import { useTheme } from "@/lib/theme";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
@@ -17,6 +18,8 @@ const NAV_ITEMS = [
 
 export function DesktopNav() {
   const { unreadCount } = useNotifications();
+  const { count: adminPending } = useAdminPendingCount();
+  const totalBadge = unreadCount + adminPending;
   const { displayName, nickname, avatarUrl } = useUserProfile();
   const { resolved: resolvedTheme } = useTheme();
   const headerName = nickname || displayName || "Você";
@@ -69,9 +72,22 @@ export function DesktopNav() {
             alt="RankMyMatch"
             className="h-7 w-7"
           />
+          {adminPending > 0 && (
+            <Link
+              to="/admin/inbox"
+              aria-label={`${adminPending} solicitações de admin pendentes`}
+              className="relative rounded-full border border-warning/40 bg-warning/10 p-2.5 transition-colors hover:bg-warning/20"
+            >
+              <Users className="h-4 w-4 text-warning" />
+              <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-warning px-1 text-[9px] font-bold text-warning-foreground">
+                {adminPending > 9 ? "9+" : adminPending}
+              </span>
+            </Link>
+          )}
           <Link
             to="/notifications"
             className="relative rounded-full border border-border bg-card p-2.5 transition-colors hover:bg-accent"
+            aria-label={totalBadge > 0 ? `${totalBadge} notificações` : "Notificações"}
           >
             <Bell className="h-4 w-4 text-muted-foreground" />
             {unreadCount > 0 && (
