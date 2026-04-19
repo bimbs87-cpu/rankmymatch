@@ -125,11 +125,17 @@ async function getPlayerOgData(
     lastEventTs = String(new Date(events[0].created_at).getTime());
   }
 
-  const tagline = (profile.share_tagline || "").trim() || null;
-  // Hash tagline into cache key so changes invalidate cache
+  const rawTagline = overrides && "tagline" in overrides ? overrides.tagline : profile.share_tagline;
+  const tagline = (rawTagline || "").trim() || null;
   const taglineHash = tagline
     ? Array.from(tagline).reduce((h, c) => ((h << 5) - h + c.charCodeAt(0)) | 0, 0).toString(36)
     : "n";
+
+  const rawAccent =
+    overrides && "accentColor" in overrides ? overrides.accentColor : (profile.share_accent_color as AccentColor | null);
+  const accentColor: AccentColor | null =
+    rawAccent && rawAccent in ACCENT_PALETTE ? (rawAccent as AccentColor) : null;
+  const accentKey = accentColor || "n";
 
   return {
     data: {
@@ -139,8 +145,9 @@ async function getPlayerOgData(
       avatarUrl: profile.avatar_url || null,
       form,
       tagline,
+      accentColor,
     },
-    cacheKey: `${lastEventTs}_${taglineHash}`,
+    cacheKey: `${lastEventTs}_${taglineHash}_${accentKey}`,
   };
 }
 
