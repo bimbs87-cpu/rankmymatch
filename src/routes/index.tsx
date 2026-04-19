@@ -517,8 +517,7 @@ function DashboardPage() {
 
       const roundMap = new Map((roundsRes.data || []).map((r: any) => [r.id, r]));
 
-      setRecentMatches(
-        events.map((e: any) => {
+      const mapped = events.map((e: any) => {
           const match = e.matches as any;
           const matchPlayers = (playersRes.data || []).filter((p: any) => p.match_id === e.match_id);
           const myPlayer = matchPlayers.find((p: any) => p.user_id === user.id);
@@ -533,6 +532,10 @@ function DashboardPage() {
           const scoreDisplay = sets.length
             ? sets.map((s: any) => `${s.score_team_a}-${s.score_team_b}`).join(" / ")
             : "—";
+          // Use round.scheduled_date when available so ordering matches Histórico.
+          const sortDate =
+            (round?.scheduled_date ? new Date(round.scheduled_date + "T12:00:00").getTime() : 0)
+            || new Date(e.created_at).getTime();
           return {
             id: e.match_id,
             match_number: match?.match_number,
@@ -549,9 +552,16 @@ function DashboardPage() {
             match_date: round?.scheduled_date || e.created_at,
             partner_name: shortName(partnerProfile),
             opponent_names: opponentNames,
+            _sort_date: sortDate,
+            _match_number_sort: match?.match_number ?? 0,
           };
-        })
-      );
+        });
+      // Sort by round date desc, then by match_number desc as tiebreaker.
+      mapped.sort((a: any, b: any) => {
+        if (b._sort_date !== a._sort_date) return b._sort_date - a._sort_date;
+        return (b._match_number_sort || 0) - (a._match_number_sort || 0);
+      });
+      setRecentMatches(mapped);
     } else {
       setRecentMatches([]);
     }
