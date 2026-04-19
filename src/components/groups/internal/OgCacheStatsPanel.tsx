@@ -81,9 +81,38 @@ export function OgCacheStatsPanel() {
   return (
     <div className="space-y-4">
       <div>
-        <div className="flex items-center gap-2">
-          <BarChart3 className="h-4 w-4 text-primary" />
-          <h3 className="font-display text-base font-bold text-foreground">Cache de cards de compartilhamento</h3>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <BarChart3 className="h-4 w-4 text-primary" />
+            <h3 className="font-display text-base font-bold text-foreground">Cache de cards de compartilhamento</h3>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="flex rounded-full border border-border bg-card p-0.5 text-xs font-semibold">
+              {([7, 30, 90] as RangeKey[]).map((r) => (
+                <button
+                  key={r}
+                  type="button"
+                  onClick={() => setRange(r)}
+                  className={`rounded-full px-3 py-1 transition-colors ${
+                    range === r
+                      ? "bg-primary text-primary-foreground"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {r}d
+                </button>
+              ))}
+            </div>
+            <button
+              type="button"
+              onClick={exportCsv}
+              className="flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-muted/40"
+              title="Exportar daily.csv"
+            >
+              <Download className="h-3.5 w-3.5" />
+              CSV
+            </button>
+          </div>
         </div>
         <p className="mt-1 text-xs text-muted-foreground">
           Estatísticas dos últimos {stats.windowDays} dias. Quanto maior o hit-rate, mais barata e
@@ -106,7 +135,7 @@ export function OgCacheStatsPanel() {
         <div className="mb-3 flex items-center gap-2">
           <LineChartIcon className="h-4 w-4 text-muted-foreground" />
           <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-            Renderizações por dia (últimos 7 dias)
+            Renderizações por dia (últimos {stats.windowDays} dias)
           </h4>
         </div>
         <div className="h-56 w-full">
