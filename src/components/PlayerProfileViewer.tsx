@@ -39,6 +39,7 @@ import {
   Swords,
 } from "lucide-react";
 import { abbreviateName } from "@/lib/utils";
+import { loadH2HBetween, type H2HResult } from "@/lib/h2h";
 
 type ViewerContextValue = {
   openProfile: (userId: string) => void;
@@ -129,6 +130,7 @@ function PlayerProfileDrawer({
   const navigate = useNavigate();
   const [profile, setProfile] = useState<QuickProfile | null>(null);
   const [stats, setStats] = useState<QuickStats | null>(null);
+  const [h2h, setH2h] = useState<H2HResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [meId, setMeId] = useState<string | null>(null);
 
@@ -137,6 +139,7 @@ function PlayerProfileDrawer({
     if (!userId) {
       setProfile(null);
       setStats(null);
+      setH2h(null);
       return;
     }
     setLoading(true);
@@ -256,6 +259,12 @@ function PlayerProfileDrawer({
         });
         setLoading(false);
       }
+
+      // Load H2H against viewer when viewer != target and we share at least 1 group
+      if (auth.user?.id && auth.user.id !== userId && sharedGroups > 0) {
+        const h = await loadH2HBetween(auth.user.id, userId).catch(() => null);
+        if (!cancelled) setH2h(h);
+      }
     })();
 
     return () => {
@@ -292,6 +301,7 @@ function PlayerProfileDrawer({
           <DrawerBody
             profile={profile}
             stats={stats}
+            h2h={h2h}
             isMe={!!isMe}
             onViewFull={handleViewFull}
           />
@@ -308,11 +318,13 @@ function PlayerProfileDrawer({
 function DrawerBody({
   profile,
   stats,
+  h2h,
   isMe,
   onViewFull,
 }: {
   profile: QuickProfile;
   stats: QuickStats | null;
+  h2h: H2HResult | null;
   isMe: boolean;
   onViewFull: () => void;
 }) {
@@ -435,6 +447,11 @@ function DrawerBody({
         </div>
       ) : null}
 
+      {/* H2H "Confronto comigo" — only when viewer != target & at least 1 match */}
+      {!isMe && h2h && h2h.matchesPlayed > 0 ? (
+        <H2HBlock h2h={h2h} />
+      ) : null}
+
       {/* CTA full profile */}
       <button
         onClick={onViewFull}
@@ -444,6 +461,49 @@ function DrawerBody({
         {isMe ? "Ir para meu perfil" : "Ver perfil completo"}
       </button>
     </div>
+  );
+}
+
+function H2HBlock({ h2h }: { h2h: H2HResult }) {
+  const setsDiff = h2h.setsMe - h2h.setsThem;
+  const winLeader = h2h.meWins === h2h.themWins ? "tie" : h2h.meWins > h2h.themWins ? "me" : "them";
+  return (
+    <section className="rounded-3xl border border-border bg-card p-3">
+      <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+        <Swords className="h-3 w-3" /> Confronto direto comigo
+      </p>
+      <div className="mt-2 flex items-end justify-between gap-3">
+        <div className="text-center">
+          <p className={`font-display text-2xl font-bold tabular-nums ${winLeader === "me" ? "text-primary" : "text-foreground"}`}>
+            {h2h.meWins}
+          </p>
+          <p className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">Você</p>
+        </div>
+        <div className="flex flex-col items-center pb-1">
+          <span className="text-[10px] font-bold text-muted-foreground">vs</span>
+          <span className="text-[10px] tabular-nums text-muted-foreground">
+            {h2h.matchesPlayed} {h2h.matchesPlayed === 1 ? "jogo" : "jogos"}
+          </span>
+        </div>
+        <div className="text-center">
+          <p className={`font-display text-2xl font-bold tabular-nums ${winLeader === "them" ? "text-destructive" : "text-foreground"}`}>
+            {h2h.themWins}
+          </p>
+          <p className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">Adversário</p>
+        </div>
+      </div>
+      <div className="mt-2 flex items-center justify-between gap-2 border-t border-border/60 pt-2 text-[10px]">
+        <span className="text-muted-foreground">
+          Sets: <span className="font-bold text-foreground tabular-nums">{h2h.setsMe}-{h2h.setsThem}</span>
+        </span>
+        <span className={`font-bold tabular-nums ${setsDiff > 0 ? "text-primary" : setsDiff < 0 ? "text-destructive" : "text-muted-foreground"}`}>
+          {setsDiff > 0 ? `+${setsDiff}` : setsDiff} sets
+        </span>
+        <span className={`font-bold tabular-nums ${h2h.gamesDiff > 0 ? "text-primary" : h2h.gamesDiff < 0 ? "text-destructive" : "text-muted-foreground"}`}>
+          {h2h.gamesDiff > 0 ? `+${h2h.gamesDiff}` : h2h.gamesDiff} games
+        </span>
+      </div>
+    </section>
   );
 }
 

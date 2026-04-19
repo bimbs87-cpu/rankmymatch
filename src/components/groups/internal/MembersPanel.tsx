@@ -8,6 +8,7 @@ import {
   updateMemberRole,
 } from "@/hooks/use-groups";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
+import { PlayerAvatarLink } from "@/components/PlayerProfileViewer";
 import { PlayerClaimsManager } from "@/components/PlayerClaimsManager";
 import { MergeMembersDialog } from "@/components/MergeMembersDialog";
 import { AddPlaceholderPlayerDialog } from "@/components/AddPlaceholderPlayerDialog";

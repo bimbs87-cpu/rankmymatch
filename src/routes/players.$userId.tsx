@@ -98,7 +98,12 @@ function PlayerPublicProfile() {
           <Lock className="h-3 w-3" /> Público
         </span>
       </header>
-      <ProfileBody profile={profile} summary={summary} eloHistory={eloHistory} />
+      <ProfileBody
+        profile={profile}
+        summary={summary}
+        eloHistory={eloHistory}
+        viewerId={user?.id ?? null}
+      />
     </div>
   );
 }

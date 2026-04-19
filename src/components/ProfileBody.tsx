@@ -6,6 +6,7 @@
  * Ranking blocks (current Elo, weighted Elo, best position, form) are ALWAYS visible.
  */
 import type { ReactNode } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { EloEvolutionChart } from "@/components/EloEvolutionChart";
@@ -31,6 +32,7 @@ import {
   Crosshair,
 } from "lucide-react";
 import { abbreviateName } from "@/lib/utils";
+import { loadH2HBetween, type H2HResult } from "@/lib/h2h";
 import type {
   AggregatedProfile,
   AggregatedSummary,
@@ -47,6 +49,8 @@ interface Props {
   footer?: ReactNode;
   /** When true, treat as the user viewing themselves (skip privacy gating) */
   isSelfView?: boolean;
+  /** Logged-in viewer id — when set and != profile, loads H2H comigo block */
+  viewerId?: string | null;
 }
 
 const HAND_LABEL: Record<string, string> = { right: "Destro", left: "Canhoto" };
@@ -90,6 +94,7 @@ export function ProfileBody({
   heroActions,
   footer,
   isSelfView = false,
+  viewerId = null,
 }: Props) {
   const showPersonal = isSelfView || profile.privacy.show_personal;
   const showStats = isSelfView || profile.privacy.show_stats;
@@ -97,6 +102,17 @@ export function ProfileBody({
   const showAchievements = isSelfView || profile.privacy.show_achievements;
 
   const form = formText(summary.formState);
+
+  // H2H "Confronto comigo" — only when there is a different logged-in viewer
+  const [h2h, setH2h] = useState<H2HResult | null>(null);
+  useEffect(() => {
+    if (!viewerId || viewerId === profile.user_id) { setH2h(null); return; }
+    let cancelled = false;
+    loadH2HBetween(viewerId, profile.user_id)
+      .then((r) => { if (!cancelled) setH2h(r); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [viewerId, profile.user_id]);
 
   return (
     <div className="space-y-4 pb-28">
@@ -171,6 +187,38 @@ export function ProfileBody({
             tone="primary"
           />
         </section>
+
+        {/* H2H Confronto comigo — only when viewer != profile and has 1+ match together */}
+        {h2h && h2h.matchesPlayed > 0 ? (
+          <section className="rounded-3xl border border-border bg-card p-4">
+            <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+              <Swords className="h-3 w-3" /> Confronto direto comigo
+            </p>
+            <div className="mt-3 flex items-end justify-between gap-3">
+              <div className="text-center">
+                <p className={`font-display text-3xl font-bold tabular-nums ${h2h.meWins > h2h.themWins ? "text-primary" : "text-foreground"}`}>{h2h.meWins}</p>
+                <p className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">Você</p>
+              </div>
+              <div className="flex flex-col items-center pb-1">
+                <span className="text-[10px] font-bold text-muted-foreground">vs</span>
+                <span className="text-[10px] tabular-nums text-muted-foreground">{h2h.matchesPlayed} {h2h.matchesPlayed === 1 ? "jogo" : "jogos"}</span>
+              </div>
+              <div className="text-center">
+                <p className={`font-display text-3xl font-bold tabular-nums ${h2h.themWins > h2h.meWins ? "text-destructive" : "text-foreground"}`}>{h2h.themWins}</p>
+                <p className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">{abbreviateName(profile.name)}</p>
+              </div>
+            </div>
+            <div className="mt-3 flex items-center justify-between gap-2 border-t border-border/60 pt-2 text-[10px]">
+              <span className="text-muted-foreground">Sets: <span className="font-bold text-foreground tabular-nums">{h2h.setsMe}-{h2h.setsThem}</span></span>
+              <span className={`font-bold tabular-nums ${(h2h.setsMe - h2h.setsThem) > 0 ? "text-primary" : (h2h.setsMe - h2h.setsThem) < 0 ? "text-destructive" : "text-muted-foreground"}`}>
+                {(h2h.setsMe - h2h.setsThem) > 0 ? `+${h2h.setsMe - h2h.setsThem}` : h2h.setsMe - h2h.setsThem} sets
+              </span>
+              <span className={`font-bold tabular-nums ${h2h.gamesDiff > 0 ? "text-primary" : h2h.gamesDiff < 0 ? "text-destructive" : "text-muted-foreground"}`}>
+                {h2h.gamesDiff > 0 ? `+${h2h.gamesDiff}` : h2h.gamesDiff} games
+              </span>
+            </div>
+          </section>
+        ) : null}
 
         {/* Last 10 + best position */}
         <section className="grid grid-cols-1 gap-2 sm:grid-cols-2">
