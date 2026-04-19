@@ -512,13 +512,15 @@ function DashboardPage() {
       const matchIds = events.map((e: any) => e.match_id);
       const roundIds = events.map((e: any) => (e.matches as any)?.round_id).filter(Boolean);
 
-      const [playersRes, roundsRes, setsRes] = await Promise.all([
+      const [playersRes, roundsRes, setsRes, ratingRes] = await Promise.all([
         supabase.from("match_players").select("match_id, team, user_id").in("match_id", matchIds),
         roundIds.length
           ? supabase.from("rounds").select("id, round_number, scheduled_date, group_id, season_id, groups(name)").in("id", [...new Set(roundIds)])
           : Promise.resolve({ data: [] }),
         supabase.from("match_sets").select("match_id, score_team_a, score_team_b, set_number").in("match_id", matchIds).order("set_number"),
+        supabase.from("rating_events").select("match_id, rating_change").in("match_id", matchIds).eq("user_id", user.id),
       ]);
+      const ratingMap = new Map((ratingRes.data || []).map((r: any) => [r.match_id, Number(r.rating_change)]));
 
       // Load partner + opponent profiles
       const otherPlayerIds = new Set<string>();
