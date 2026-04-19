@@ -10,6 +10,7 @@ import {
 
 interface Props {
   groupId: string;
+  onCountChange?: (count: number) => void;
 }
 
 interface DesyncedMatch {
@@ -37,7 +38,7 @@ function fmtDate(d: string | null) {
   }
 }
 
-export function MaintenancePanel({ groupId }: Props) {
+export function MaintenancePanel({ groupId, onCountChange }: Props) {
   const detectFn = useServerFn(detectDesyncedMatchesServerFn);
   const finalizeFn = useServerFn(finalizeDesyncedMatchesServerFn);
   const reopenFn = useServerFn(reopenMatchServerFn);
@@ -58,6 +59,7 @@ export function MaintenancePanel({ groupId }: Props) {
     try {
       const res = await detectFn({ data: { groupId } });
       setDesynced(res.desynced);
+      onCountChange?.(res.desynced.length);
       if (showToast) {
         toast.success(
           res.desynced.length === 0
