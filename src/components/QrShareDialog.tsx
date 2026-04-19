@@ -284,6 +284,20 @@ export function QrShareDialog({ open, onOpenChange, url, playerName, userId, isO
                 onError={() => setOgError(true)}
                 loading="lazy"
               />
+              {isOwner && cacheStatus && (
+                <div
+                  className={`absolute right-2 top-2 rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider shadow ${
+                    cacheStatus === "HIT"
+                      ? "bg-primary text-primary-foreground"
+                      : cacheStatus === "MISS"
+                        ? "bg-amber-500 text-black"
+                        : "bg-muted text-muted-foreground"
+                  }`}
+                  title="Status do cache da imagem OG (visível apenas para o dono do perfil)"
+                >
+                  PNG cache · {cacheStatus}
+                </div>
+              )}
             </div>
           </div>
 
@@ -303,6 +317,16 @@ export function QrShareDialog({ open, onOpenChange, url, playerName, userId, isO
               <Download className="h-3.5 w-3.5" />
               {downloading ? "Gerando…" : "Baixar QR"}
             </button>
+            {canCopyImage && (
+              <button
+                onClick={handleCopyImage}
+                disabled={copyingImg}
+                className="col-span-2 inline-flex items-center justify-center gap-1.5 rounded-full border border-border bg-card px-3 py-2.5 text-xs font-semibold text-foreground transition hover:bg-accent disabled:opacity-60"
+              >
+                {copiedImg ? <Check className="h-3.5 w-3.5" /> : <ImageDown className="h-3.5 w-3.5" />}
+                {copyingImg ? "Copiando…" : copiedImg ? "Imagem copiada" : "Copiar imagem"}
+              </button>
+            )}
             {canNativeShare && (
               <button
                 onClick={handleNativeShare}
