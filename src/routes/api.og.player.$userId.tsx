@@ -287,6 +287,7 @@ function buildFallbackSvg(): string {
     avatarDataUri: null,
     form: "stable",
     tagline: null,
+    accentColor: null,
   });
 }
 
