@@ -588,9 +588,14 @@ export function PlayerAvatarLink({ userId, disabled, children, ariaLabel }: Avat
         e.stopPropagation();
         open(userId);
       }}
-      className="rounded-full transition-transform hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+      className="group relative inline-flex rounded-full transition-transform hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
     >
       {children}
+      {/* Subtle pulsing ring indicator (only visible on hover/focus to avoid clutter) */}
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 rounded-full ring-1 ring-primary/0 transition-all group-hover:ring-2 group-hover:ring-primary/40 group-focus-visible:ring-2 group-focus-visible:ring-primary/60"
+      />
     </button>
   );
 }

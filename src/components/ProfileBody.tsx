@@ -45,6 +45,8 @@ interface Props {
   eloHistory: { date: string; rating: number }[];
   /** Right-side actions on the hero (e.g. edit avatar button) */
   heroActions?: ReactNode;
+  /** Top-right actions over the hero (e.g. share button) */
+  topRightActions?: ReactNode;
   /** Show below header (used by own /profile to render menu) */
   footer?: ReactNode;
   /** When true, treat as the user viewing themselves (skip privacy gating) */
@@ -92,6 +94,7 @@ export function ProfileBody({
   summary,
   eloHistory,
   heroActions,
+  topRightActions,
   footer,
   isSelfView = false,
   viewerId = null,
@@ -119,6 +122,9 @@ export function ProfileBody({
       {/* HERO */}
       <header className="relative overflow-hidden bg-card px-5 pb-7 pt-10">
         <div className="absolute inset-0 bg-gradient-to-br from-primary/15 via-transparent to-transparent" />
+        {topRightActions ? (
+          <div className="absolute right-4 top-4 z-10">{topRightActions}</div>
+        ) : null}
         <div className="relative">
           <div className="flex flex-col items-center text-center">
             <div className="relative mb-3">

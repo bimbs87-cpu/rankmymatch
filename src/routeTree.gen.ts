@@ -31,6 +31,7 @@ import { Route as GroupsGroupIdFeedRouteImport } from './routes/groups.$groupId.
 import { Route as GroupsGroupIdDuelRouteImport } from './routes/groups.$groupId.duel'
 import { Route as GroupsGroupIdSeasonsIndexRouteImport } from './routes/groups.$groupId.seasons.index'
 import { Route as GroupsGroupIdSeasonsSeasonIdRouteImport } from './routes/groups.$groupId.seasons.$seasonId'
+import { Route as ApiOgPlayerUserIdRouteImport } from './routes/api.og.player.$userId'
 import { Route as GroupsGroupIdSeasonsSeasonIdIndexRouteImport } from './routes/groups.$groupId.seasons.$seasonId.index'
 import { Route as GroupsGroupIdSeasonsSeasonIdRoundsRoundIdRouteImport } from './routes/groups.$groupId.seasons.$seasonId.rounds.$roundId'
 
@@ -146,6 +147,11 @@ const GroupsGroupIdSeasonsSeasonIdRoute =
     path: '/$seasonId',
     getParentRoute: () => GroupsGroupIdSeasonsRoute,
   } as any)
+const ApiOgPlayerUserIdRoute = ApiOgPlayerUserIdRouteImport.update({
+  id: '/api/og/player/$userId',
+  path: '/api/og/player/$userId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const GroupsGroupIdSeasonsSeasonIdIndexRoute =
   GroupsGroupIdSeasonsSeasonIdIndexRouteImport.update({
     id: '/',
@@ -180,6 +186,7 @@ export interface FileRoutesByFullPath {
   '/groups/$groupId/feed': typeof GroupsGroupIdFeedRoute
   '/groups/$groupId/seasons': typeof GroupsGroupIdSeasonsRouteWithChildren
   '/groups/$groupId/': typeof GroupsGroupIdIndexRoute
+  '/api/og/player/$userId': typeof ApiOgPlayerUserIdRoute
   '/groups/$groupId/seasons/$seasonId': typeof GroupsGroupIdSeasonsSeasonIdRouteWithChildren
   '/groups/$groupId/seasons/': typeof GroupsGroupIdSeasonsIndexRoute
   '/groups/$groupId/seasons/$seasonId/': typeof GroupsGroupIdSeasonsSeasonIdIndexRoute
@@ -203,6 +210,7 @@ export interface FileRoutesByTo {
   '/groups/$groupId/duel': typeof GroupsGroupIdDuelRoute
   '/groups/$groupId/feed': typeof GroupsGroupIdFeedRoute
   '/groups/$groupId': typeof GroupsGroupIdIndexRoute
+  '/api/og/player/$userId': typeof ApiOgPlayerUserIdRoute
   '/groups/$groupId/seasons': typeof GroupsGroupIdSeasonsIndexRoute
   '/groups/$groupId/seasons/$seasonId': typeof GroupsGroupIdSeasonsSeasonIdIndexRoute
   '/groups/$groupId/seasons/$seasonId/rounds/$roundId': typeof GroupsGroupIdSeasonsSeasonIdRoundsRoundIdRoute
@@ -229,6 +237,7 @@ export interface FileRoutesById {
   '/groups/$groupId/feed': typeof GroupsGroupIdFeedRoute
   '/groups/$groupId/seasons': typeof GroupsGroupIdSeasonsRouteWithChildren
   '/groups/$groupId/': typeof GroupsGroupIdIndexRoute
+  '/api/og/player/$userId': typeof ApiOgPlayerUserIdRoute
   '/groups/$groupId/seasons/$seasonId': typeof GroupsGroupIdSeasonsSeasonIdRouteWithChildren
   '/groups/$groupId/seasons/': typeof GroupsGroupIdSeasonsIndexRoute
   '/groups/$groupId/seasons/$seasonId/': typeof GroupsGroupIdSeasonsSeasonIdIndexRoute
@@ -257,6 +266,7 @@ export interface FileRouteTypes {
     | '/groups/$groupId/feed'
     | '/groups/$groupId/seasons'
     | '/groups/$groupId/'
+    | '/api/og/player/$userId'
     | '/groups/$groupId/seasons/$seasonId'
     | '/groups/$groupId/seasons/'
     | '/groups/$groupId/seasons/$seasonId/'
@@ -280,6 +290,7 @@ export interface FileRouteTypes {
     | '/groups/$groupId/duel'
     | '/groups/$groupId/feed'
     | '/groups/$groupId'
+    | '/api/og/player/$userId'
     | '/groups/$groupId/seasons'
     | '/groups/$groupId/seasons/$seasonId'
     | '/groups/$groupId/seasons/$seasonId/rounds/$roundId'
@@ -305,6 +316,7 @@ export interface FileRouteTypes {
     | '/groups/$groupId/feed'
     | '/groups/$groupId/seasons'
     | '/groups/$groupId/'
+    | '/api/og/player/$userId'
     | '/groups/$groupId/seasons/$seasonId'
     | '/groups/$groupId/seasons/'
     | '/groups/$groupId/seasons/$seasonId/'
@@ -326,6 +338,7 @@ export interface RootRouteChildren {
   InviteCodeRoute: typeof InviteCodeRoute
   PlayersUserIdRoute: typeof PlayersUserIdRoute
   RankingCompareRoute: typeof RankingCompareRoute
+  ApiOgPlayerUserIdRoute: typeof ApiOgPlayerUserIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -484,6 +497,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof GroupsGroupIdSeasonsSeasonIdRouteImport
       parentRoute: typeof GroupsGroupIdSeasonsRoute
     }
+    '/api/og/player/$userId': {
+      id: '/api/og/player/$userId'
+      path: '/api/og/player/$userId'
+      fullPath: '/api/og/player/$userId'
+      preLoaderRoute: typeof ApiOgPlayerUserIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/groups/$groupId/seasons/$seasonId/': {
       id: '/groups/$groupId/seasons/$seasonId/'
       path: '/'
@@ -579,6 +599,7 @@ const rootRouteChildren: RootRouteChildren = {
   InviteCodeRoute: InviteCodeRoute,
   PlayersUserIdRoute: PlayersUserIdRoute,
   RankingCompareRoute: RankingCompareRoute,
+  ApiOgPlayerUserIdRoute: ApiOgPlayerUserIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

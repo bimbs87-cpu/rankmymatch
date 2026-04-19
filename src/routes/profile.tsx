@@ -4,6 +4,7 @@ import { TrophyLoadingBar } from "@/components/TrophyLoadingBar";
 import { supabase } from "@/integrations/supabase/client";
 import { AvatarPickerDialog } from "@/components/AvatarPickerDialog";
 import { ProfileBody } from "@/components/ProfileBody";
+import { ShareProfileButton } from "@/components/ShareProfileButton";
 import {
   loadAggregatedProfile,
   loadAggregatedSummary,
@@ -318,6 +319,9 @@ function ProfilePage() {
         summary={summary}
         eloHistory={eloHistory}
         isSelfView
+        topRightActions={
+          <ShareProfileButton userId={user!.id} playerName={profile.name || "meu perfil"} />
+        }
         heroActions={
           <button
             onClick={() => setAvatarPickerOpen(true)}
