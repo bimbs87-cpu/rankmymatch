@@ -6,6 +6,7 @@ import { BarChart3, Info, ChevronDown, ArrowUp, ArrowDown, Calendar, Layers, Tim
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
+import { PlayerAvatarLink } from "@/components/PlayerProfileViewer";
 import { RankingPlayerDetails } from "@/components/RankingPlayerDetails";
 import { isRivalryGroup } from "@/lib/rivalry";
 import { buildDisplayNames, getCollidingFirstNames } from "@/lib/name-disambiguation";
