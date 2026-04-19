@@ -301,6 +301,7 @@ function PlayerProfileDrawer({
           <DrawerBody
             profile={profile}
             stats={stats}
+            h2h={h2h}
             isMe={!!isMe}
             onViewFull={handleViewFull}
           />
