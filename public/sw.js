@@ -1,8 +1,8 @@
 // Service worker for RankMyMatch.
 // Keeps a pure pass-through fetch handler (required for the PWA install prompt
 // without ever intercepting OAuth) and adds Web Push support for round
-// notifications (lista aberta, registrar resultado, etc).
-const SW_VERSION = "v5-2026-04-19-push";
+// notifications + admin moderation actions (Aprovar/Recusar inline).
+const SW_VERSION = "v6-2026-04-19-actions";
 
 self.addEventListener("install", () => {
   self.skipWaiting();
@@ -24,6 +24,12 @@ self.addEventListener("fetch", () => {
 });
 
 // ---- Web Push ----
+const ADMIN_TYPES = new Set([
+  "join_request",
+  "player_claim",
+  "admin_pending_reminder",
+]);
+
 self.addEventListener("push", (event) => {
   let payload = {};
   try {
@@ -33,6 +39,12 @@ self.addEventListener("push", (event) => {
   }
 
   const title = payload.title || "RankMyMatch";
+  const data = payload.data || {};
+  const isAdminActionable =
+    ADMIN_TYPES.has(payload.type) &&
+    (data.requestId || data.claimId) &&
+    data.kind;
+
   const options = {
     body: payload.body || "",
     icon: payload.icon || "/favicon.ico",
@@ -41,16 +53,65 @@ self.addEventListener("push", (event) => {
     renotify: true,
     data: {
       url: payload.url || "/",
-      ...(payload.data || {}),
+      type: payload.type,
+      ...data,
     },
+    actions: isAdminActionable
+      ? [
+          { action: "approve", title: "✓ Aprovar" },
+          { action: "reject", title: "✗ Recusar" },
+        ]
+      : undefined,
   };
 
   event.waitUntil(self.registration.showNotification(title, options));
 });
 
+async function handleAdminAction(action, data) {
+  const kind = data.kind; // "join_request" | "claim"
+  const id = data.requestId || data.claimId;
+  if (!id || !kind) return;
+
+  try {
+    const res = await fetch("/hooks/admin-action", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ kind, id, action }),
+    });
+    const ok = res.ok;
+    await self.registration.showNotification(
+      ok ? (action === "approve" ? "Aprovado" : "Recusado") : "Falha na ação",
+      {
+        body: ok
+          ? "Solicitação processada com sucesso."
+          : "Não foi possível processar. Abra o app para tentar novamente.",
+        icon: "/favicon.ico",
+        badge: "/favicon.ico",
+        tag: `admin-action-result-${id}`,
+      }
+    );
+  } catch {
+    await self.registration.showNotification("Falha na ação", {
+      body: "Sem conexão. Abra o app para responder.",
+      icon: "/favicon.ico",
+      badge: "/favicon.ico",
+      tag: `admin-action-result-${id}`,
+    });
+  }
+}
+
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  const targetUrl = (event.notification.data && event.notification.data.url) || "/";
+  const data = event.notification.data || {};
+  const action = event.action;
+
+  if (action === "approve" || action === "reject") {
+    event.waitUntil(handleAdminAction(action, data));
+    return;
+  }
+
+  const targetUrl = data.url || "/";
 
   event.waitUntil(
     (async () => {
@@ -58,7 +119,6 @@ self.addEventListener("notificationclick", (event) => {
         type: "window",
         includeUncontrolled: true,
       });
-      // Focus an existing tab if same origin, otherwise open a new one.
       for (const client of allClients) {
         try {
           const u = new URL(client.url);
