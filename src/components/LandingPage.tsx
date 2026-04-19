@@ -213,7 +213,7 @@ export function LandingPage() {
               <span className="block text-foreground">Registre seu</span>
               <span className="block">
                 <span className="bg-gradient-to-r from-primary via-primary to-primary/70 bg-clip-text text-transparent">
-                  grupo ou feirinha
+                  grupo ou feirinos
                 </span>
               </span>
               <span className="block text-foreground">em um só lugar</span>
@@ -277,7 +277,7 @@ export function LandingPage() {
         <div className="mx-auto max-w-7xl px-5 py-14 sm:px-8 sm:py-20">
           <div className="mx-auto max-w-2xl text-center">
             <h2 className="text-2xl font-black tracking-tight sm:text-4xl">
-              Tudo que sua <span className="text-primary">feirinha</span> precisa
+              Tudo que sua <span className="text-primary">feirinos</span> precisa
             </h2>
             <p className="mt-3 text-sm text-muted-foreground sm:text-base">
               Da rodada de quarta-feira ao campeonato anual. Sem planilha, sem confusão.
@@ -356,8 +356,7 @@ export function LandingPage() {
               Bora subir no <span className="text-primary">ranking</span>?
             </h2>
             <p className="mx-auto mt-3 max-w-lg text-sm text-muted-foreground sm:text-base">
-              Junte-se a feirinhas e clubes que já largaram a planilha. Entre com Google e crie seu primeiro grupo
-              agora.
+              Junte-se a feirinos e clubes que já largaram a planilha. Entre com Google e crie seu primeiro grupo agora.
             </p>
             <div className="mt-7 flex justify-center">
               <CTAButton size="lg" />
