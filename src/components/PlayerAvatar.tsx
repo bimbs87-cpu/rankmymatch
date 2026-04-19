@@ -1,4 +1,5 @@
 import { PREMIUM_AVATARS, getAvatarUrl } from "@/lib/avatar-data";
+import noPhotoAvatar from "@/assets/avatars/no-photo.png";
 
 interface PlayerAvatarProps {
   avatarUrl: string | null | undefined;
@@ -20,6 +21,17 @@ const SIZES = {
 export function PlayerAvatar({ avatarUrl, name = "", size = "sm", className = "", dimmed = false }: PlayerAvatarProps) {
   const s = SIZES[size];
   const dimClass = dimmed ? "opacity-40 grayscale" : "";
+
+  // Special "no photo" marker → use the generic silhouette avatar
+  if (avatarUrl === "avatar:no-photo") {
+    return (
+      <img
+        src={noPhotoAvatar}
+        alt=""
+        className={`shrink-0 rounded-full object-cover ${s.container} ${dimClass} ${className}`}
+      />
+    );
+  }
 
   // Premium avatar (avatar:padel-01 or legacy emoji:padel-01)
   const prefix = avatarUrl?.startsWith("avatar:") ? "avatar:" : avatarUrl?.startsWith("emoji:") ? "emoji:" : null;
@@ -45,21 +57,20 @@ export function PlayerAvatar({ avatarUrl, name = "", size = "sm", className = ""
         alt=""
         referrerPolicy="no-referrer"
         className={`shrink-0 rounded-full object-cover ${s.container} ${dimClass} ${className}`}
+        onError={(e) => {
+          // If the remote photo fails (e.g. expired Google URL), swap to the no-photo silhouette
+          (e.currentTarget as HTMLImageElement).src = noPhotoAvatar;
+        }}
       />
     );
   }
 
-  // Fallback initials
-  const initials = name
-    .split(" ")
-    .map((w) => w[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2) || "?";
-
+  // No avatar at all → silhouette (replaces old initials fallback)
   return (
-    <div className={`flex shrink-0 items-center justify-center rounded-full bg-muted font-bold text-foreground ${s.container} ${s.text} ${dimClass} ${className}`}>
-      {initials}
-    </div>
+    <img
+      src={noPhotoAvatar}
+      alt={name ? `Foto de ${name}` : ""}
+      className={`shrink-0 rounded-full object-cover ${s.container} ${dimClass} ${className}`}
+    />
   );
 }
