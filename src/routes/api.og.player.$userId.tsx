@@ -183,7 +183,16 @@ async function fetchAvatarDataUri(url: string | null): Promise<string | null> {
   }
 }
 
-function formBadgeMarkup(form: FormState): { label: string; bg: string; fg: string } {
+function formBadgeMarkup(
+  form: FormState,
+  accent: AccentColor | null,
+): { label: string; bg: string; fg: string } {
+  if (accent) {
+    const palette = ACCENT_PALETTE[accent];
+    const label =
+      form === "rising" ? "▲  EM ALTA" : form === "falling" ? "▼  EM QUEDA" : "•  ESTÁVEL";
+    return { label, bg: palette.bg, fg: palette.fg };
+  }
   if (form === "rising") return { label: "▲  EM ALTA", bg: "#a3ff12", fg: "#0a0e0d" };
   if (form === "falling") return { label: "▼  EM QUEDA", bg: "#ff5570", fg: "#0a0e0d" };
   return { label: "•  ESTÁVEL", bg: "#3a4140", fg: "#e5e7eb" };
@@ -196,11 +205,12 @@ function buildSvg(opts: {
   avatarDataUri: string | null;
   form: FormState;
   tagline: string | null;
+  accentColor: AccentColor | null;
 }): string {
   const name = escapeXml(truncate(opts.name, 24));
   const elo = opts.elo != null ? String(opts.elo) : "—";
   const bestPos = opts.bestPos != null ? `#${opts.bestPos}` : "—";
-  const badge = formBadgeMarkup(opts.form);
+  const badge = formBadgeMarkup(opts.form, opts.accentColor);
   const badgeLabel = escapeXml(badge.label);
   const tagline = opts.tagline ? escapeXml(truncate(opts.tagline, 60)) : null;
 
