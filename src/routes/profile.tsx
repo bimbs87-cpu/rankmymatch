@@ -121,10 +121,16 @@ function ProfilePage() {
   const reload = async () => {
     if (!user) return;
     setLoadingProfile(true);
-    const [p, s, h] = await Promise.all([
+    const [p, s, h, sportsRes] = await Promise.all([
       loadAggregatedProfile(user.id),
       loadAggregatedSummary(user.id),
       loadEloHistory(user.id),
+      // Distinct sports across the user's active groups.
+      supabase
+        .from("group_members")
+        .select("groups(sport)")
+        .eq("user_id", user.id)
+        .eq("status", "active"),
     ]);
     if (p) {
       setProfile(p);
@@ -132,6 +138,13 @@ function ProfilePage() {
     }
     setSummary(s);
     setEloHistory(h);
+    const rows = (sportsRes.data || []) as { groups: { sport: string | null } | null }[];
+    const distinct = Array.from(
+      new Set(rows.map((r) => normalizeSportKey(r.groups?.sport)).filter(Boolean) as SportKey[]),
+    );
+    const sports: SportKey[] = distinct.length ? distinct : ["padel"];
+    setUserSports(sports);
+    setActiveSportTab((prev) => (sports.includes(prev) ? prev : sports[0]));
     setLoadingProfile(false);
   };
 
