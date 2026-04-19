@@ -119,7 +119,36 @@ function RankingPage() {
         if (seasonsError) throw seasonsError;
         if (cancelled) return;
 
-        const availableSeasons = seasonsData || [];
+        const rawSeasons = seasonsData || [];
+
+        // Count matches per season to sort "active" seasons by activity level.
+        // Most-played active seasons appear first in the switcher, so users land
+        // on the temporada they're actually playing in.
+        const seasonIds = rawSeasons.map((s: any) => s.id);
+        const matchCountBySeason = new Map<string, number>();
+        if (seasonIds.length > 0) {
+          const { data: rEvents } = await supabase
+            .from("rating_events")
+            .select("season_id")
+            .in("season_id", seasonIds);
+          for (const ev of rEvents || []) {
+            if (!ev.season_id) continue;
+            matchCountBySeason.set(ev.season_id, (matchCountBySeason.get(ev.season_id) || 0) + 1);
+          }
+        }
+
+        const availableSeasons = [...rawSeasons]
+          .map((s: any) => ({ ...s, _matchCount: matchCountBySeason.get(s.id) || 0 }))
+          .sort((a: any, b: any) => {
+            // Active first, then by match count desc, then by created_at desc
+            const aActive = a.status === "active" ? 1 : 0;
+            const bActive = b.status === "active" ? 1 : 0;
+            if (aActive !== bActive) return bActive - aActive;
+            if (aActive === 1 && bActive === 1) {
+              if (b._matchCount !== a._matchCount) return b._matchCount - a._matchCount;
+            }
+            return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+          });
         setSeasons(availableSeasons);
 
         if (!availableSeasons.length) {

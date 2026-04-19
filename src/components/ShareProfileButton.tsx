@@ -37,7 +37,7 @@ export function ShareProfileButton({ userId, playerName, className, variant = "g
         <Share2 className="h-3.5 w-3.5" />
         <span>Compartilhar</span>
       </button>
-      <QrShareDialog open={open} onOpenChange={setOpen} url={url} playerName={playerName} />
+      <QrShareDialog open={open} onOpenChange={setOpen} url={url} playerName={playerName} userId={userId} />
     </>
   );
 }

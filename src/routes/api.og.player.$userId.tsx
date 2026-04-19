@@ -56,7 +56,7 @@ interface OgData {
   form: FormState;
 }
 
-async function getPlayerOgData(userId: string): Promise<OgData | null> {
+async function getPlayerOgData(userId: string): Promise<{ data: OgData | null; cacheKey: string }> {
   const sb = getSupabaseAdmin();
   const { data: profile } = await sb
     .from("user_profiles")
@@ -64,7 +64,7 @@ async function getPlayerOgData(userId: string): Promise<OgData | null> {
     .eq("user_id", userId)
     .maybeSingle();
 
-  if (!profile) return null;
+  if (!profile) return { data: null, cacheKey: "no-profile" };
 
   const { data: snapshots } = await sb
     .from("ranking_snapshots")
@@ -92,8 +92,9 @@ async function getPlayerOgData(userId: string): Promise<OgData | null> {
     if (positions.length) bestPosition = Math.min(...positions);
   }
 
-  // Form: compare last rating event vs avg of preceding 3 across all groups
+  // Form + cache key derived from last rating event timestamp
   let form: FormState = "stable";
+  let lastEventTs = "init";
   const { data: events } = await sb
     .from("rating_events")
     .select("rating_change, created_at")
@@ -105,13 +106,19 @@ async function getPlayerOgData(userId: string): Promise<OgData | null> {
     if (sumChange > 8) form = "rising";
     else if (sumChange < -8) form = "falling";
   }
+  if (events && events.length > 0) {
+    lastEventTs = String(new Date(events[0].created_at).getTime());
+  }
 
   return {
-    name: profile.nickname?.trim() || profile.name || "Jogador",
-    currentElo,
-    bestPosition,
-    avatarUrl: profile.avatar_url || null,
-    form,
+    data: {
+      name: profile.nickname?.trim() || profile.name || "Jogador",
+      currentElo,
+      bestPosition,
+      avatarUrl: profile.avatar_url || null,
+      form,
+    },
+    cacheKey: lastEventTs,
   };
 }
 
@@ -298,13 +305,43 @@ export const Route = createFileRoute("/api/og/player/$userId")({
         };
 
         try {
-          const data = (await getPlayerOgData(params.userId)) || {
+          const fetched = await getPlayerOgData(params.userId);
+          const data = fetched.data || {
             name: "Jogador",
             currentElo: null,
             bestPosition: null,
             avatarUrl: null,
             form: "stable" as FormState,
           };
+          const cacheKey = fetched.cacheKey;
+
+          // Try Storage cache first (only for default PNG flow). 6h TTL.
+          // Cache key format: og/{userId}_{lastEventTs}.png — changes when player
+          // plays a new match, invalidating stale cards.
+          const wantsCachedPng = !wantSvg;
+          const cacheObjectPath = `og/${params.userId}_${cacheKey}.png`;
+          if (wantsCachedPng) {
+            try {
+              const sb = getSupabaseAdmin();
+              const { data: existing } = await sb.storage
+                .from("og-cache")
+                .download(cacheObjectPath);
+              if (existing) {
+                const buf = await existing.arrayBuffer();
+                return new Response(buf, {
+                  status: 200,
+                  headers: {
+                    "Content-Type": "image/png",
+                    "Cache-Control": "public, max-age=21600, s-maxage=21600",
+                    "X-Cache": "HIT",
+                    ...CORS_HEADERS,
+                  },
+                });
+              }
+            } catch {
+              // ignore — render fresh
+            }
+          }
 
           const avatarDataUri = await fetchAvatarDataUri(data.avatarUrl);
           const svg = buildSvg({
@@ -325,9 +362,27 @@ export const Route = createFileRoute("/api/og/player/$userId")({
           // Default: try PNG, fall back to SVG (unless caller forced PNG).
           const png = await svgToPng(svg);
           if (png) {
+            // Fire-and-forget cache write (don't block response). 6h TTL.
+            try {
+              const sb = getSupabaseAdmin();
+              // upload returns a promise; we await briefly to ensure the request
+              // doesn't get killed before write starts on Workers.
+              await sb.storage.from("og-cache").upload(cacheObjectPath, png as unknown as Blob, {
+                contentType: "image/png",
+                upsert: true,
+                cacheControl: "21600",
+              });
+            } catch (e) {
+              console.error("og cache write failed:", e);
+            }
             return new Response(png as unknown as BodyInit, {
               status: 200,
-              headers: { "Content-Type": "image/png", ...cacheHeaders },
+              headers: {
+                "Content-Type": "image/png",
+                "Cache-Control": "public, max-age=21600, s-maxage=21600",
+                "X-Cache": "MISS",
+                ...CORS_HEADERS,
+              },
             });
           }
 
