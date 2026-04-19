@@ -200,7 +200,7 @@ function AboutDevelopmentPage() {
 
         {/* FOOTER LINK */}
         <div className="flex items-center justify-center gap-2 pt-2 text-[11px] text-muted-foreground">
-          <Github className="h-3 w-3" />
+          <Code2 className="h-3 w-3" />
           <span>RankMyMatch · v0.{new Date().getFullYear() % 100}.{new Date().getMonth() + 1}</span>
         </div>
       </main>
