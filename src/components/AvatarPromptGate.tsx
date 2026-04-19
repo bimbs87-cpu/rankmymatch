@@ -14,7 +14,7 @@ import { useUserProfile } from "@/hooks/use-user-profile";
 import { AvatarPickerDialog } from "@/components/AvatarPickerDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { UserCircle2, AlertCircle, Shuffle } from "lucide-react";
+import { UserCircle2, AlertCircle, Shuffle, Check, X } from "lucide-react";
 import noPhotoAvatar from "@/assets/avatars/no-photo.png";
 import { PREMIUM_AVATARS, getAvatarUrl } from "@/lib/avatar-data";
 
@@ -45,6 +45,8 @@ export function AvatarPromptGate() {
   const [picker, setPicker] = useState(false);
   const [saving, setSaving] = useState(false);
   const [dismissCount, setDismissCount] = useState(0);
+  // Random-preset preview (shown before user confirms saving it)
+  const [randomPreview, setRandomPreview] = useState<{ url: string } | null>(null);
 
   const googlePhoto = user?.user_metadata?.avatar_url || user?.user_metadata?.picture || null;
   const isMandatory = dismissCount >= MAX_SOFT_DISMISSALS;
@@ -135,15 +137,30 @@ export function AvatarPromptGate() {
     await handleSelect(googlePhoto, "google");
   };
 
-  const handleRandomPreset = async () => {
-    const pick = PREMIUM_AVATARS[Math.floor(Math.random() * PREMIUM_AVATARS.length)];
+  /** Pick a random preset and show a preview — does NOT save until confirmed. */
+  const rollRandomPreview = () => {
+    // Avoid rolling the same one twice in a row when possible
+    let pick = PREMIUM_AVATARS[Math.floor(Math.random() * PREMIUM_AVATARS.length)];
+    if (randomPreview && PREMIUM_AVATARS.length > 1) {
+      let attempts = 0;
+      while (getAvatarUrl(pick.id) === randomPreview.url && attempts < 5) {
+        pick = PREMIUM_AVATARS[Math.floor(Math.random() * PREMIUM_AVATARS.length)];
+        attempts++;
+      }
+    }
     const url = getAvatarUrl(pick.id);
     if (!url) {
       toast.error("Não foi possível gerar um avatar aleatório, escolha um da lista");
       setPicker(true);
       return;
     }
-    await handleSelect(url, "emoji");
+    setRandomPreview({ url });
+  };
+
+  const confirmRandomPreview = async () => {
+    if (!randomPreview) return;
+    await handleSelect(randomPreview.url, "emoji");
+    setRandomPreview(null);
   };
 
   if (!open) {
@@ -168,8 +185,12 @@ export function AvatarPromptGate() {
     <>
       <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
         <div className="w-full max-w-sm rounded-3xl border border-border bg-card p-6 text-center shadow-2xl">
-          <div className="mx-auto mb-4 h-20 w-20 overflow-hidden rounded-full border-2 border-primary/30 bg-muted">
-            <img src={noPhotoAvatar} alt="" className="h-full w-full object-cover" />
+          <div className={`mx-auto mb-4 h-20 w-20 overflow-hidden rounded-full border-2 bg-muted ${randomPreview ? "border-primary ring-4 ring-primary/20" : "border-primary/30"}`}>
+            <img
+              src={randomPreview?.url ?? noPhotoAvatar}
+              alt=""
+              className="h-full w-full object-cover"
+            />
           </div>
           <h2 className="font-display text-lg font-bold text-foreground">
             {isMandatory ? "Foto de perfil obrigatória" : "Escolha sua foto de perfil"}
@@ -192,25 +213,61 @@ export function AvatarPromptGate() {
           <div className="mt-5 space-y-2">
             {mandatoryNoGoogle ? (
               <>
-                <button
-                  onClick={handleRandomPreset}
-                  disabled={saving}
-                  className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-3 text-sm font-bold text-primary-foreground hover:opacity-90 disabled:opacity-60"
-                >
-                  <Shuffle className="h-4 w-4" />
-                  Sortear um avatar pra mim
-                </button>
-                <button
-                  onClick={() => setPicker(true)}
-                  disabled={saving}
-                  className="flex w-full items-center justify-center gap-2 rounded-2xl border border-border bg-background py-2.5 text-xs font-bold text-foreground hover:border-primary/50 hover:text-primary disabled:opacity-60"
-                >
-                  <UserCircle2 className="h-4 w-4" />
-                  Escolher da galeria
-                </button>
-                <p className="rounded-xl border border-warning/30 bg-warning/5 p-2 text-[11px] text-warning">
-                  Você precisa carregar um avatar da lista disponível para continuar.
-                </p>
+                {randomPreview ? (
+                  <>
+                    <p className="text-xs font-semibold text-foreground">
+                      Gostou desse? Confirme ou sorteie de novo.
+                    </p>
+                    <button
+                      onClick={confirmRandomPreview}
+                      disabled={saving}
+                      className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-3 text-sm font-bold text-primary-foreground hover:opacity-90 disabled:opacity-60"
+                    >
+                      <Check className="h-4 w-4" />
+                      {saving ? "Salvando..." : "Usar este avatar"}
+                    </button>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        onClick={rollRandomPreview}
+                        disabled={saving}
+                        className="flex items-center justify-center gap-2 rounded-2xl border border-border bg-background py-2.5 text-xs font-bold text-foreground hover:border-primary/50 hover:text-primary disabled:opacity-60"
+                      >
+                        <Shuffle className="h-4 w-4" />
+                        Sortear de novo
+                      </button>
+                      <button
+                        onClick={() => setRandomPreview(null)}
+                        disabled={saving}
+                        className="flex items-center justify-center gap-2 rounded-2xl border border-border bg-background py-2.5 text-xs font-bold text-muted-foreground hover:text-foreground disabled:opacity-60"
+                      >
+                        <X className="h-4 w-4" />
+                        Cancelar
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      onClick={rollRandomPreview}
+                      disabled={saving}
+                      className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-3 text-sm font-bold text-primary-foreground hover:opacity-90 disabled:opacity-60"
+                    >
+                      <Shuffle className="h-4 w-4" />
+                      Sortear um avatar pra mim
+                    </button>
+                    <button
+                      onClick={() => setPicker(true)}
+                      disabled={saving}
+                      className="flex w-full items-center justify-center gap-2 rounded-2xl border border-border bg-background py-2.5 text-xs font-bold text-foreground hover:border-primary/50 hover:text-primary disabled:opacity-60"
+                    >
+                      <UserCircle2 className="h-4 w-4" />
+                      Escolher da galeria
+                    </button>
+                    <p className="rounded-xl border border-warning/30 bg-warning/5 p-2 text-[11px] text-warning">
+                      Você precisa carregar um avatar da lista disponível para continuar.
+                    </p>
+                  </>
+                )}
               </>
             ) : isMandatory && googlePhoto ? (
               <button
