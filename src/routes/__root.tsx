@@ -5,6 +5,7 @@ import { BottomNav } from "@/components/BottomNav";
 import { DesktopNav } from "@/components/DesktopNav";
 import { InstallFlowProvider } from "@/components/InstallFlowProvider";
 import { AvatarPromptGate } from "@/components/AvatarPromptGate";
+import { PlayerProfileViewerProvider } from "@/components/PlayerProfileViewer";
 import { Toaster } from "@/components/ui/sonner";
 import "../styles.css";
 import { useEffect } from "react";
@@ -134,14 +135,16 @@ function RootComponent() {
   return (
     <AuthProvider>
       <UserProfileProvider>
-        <InstallFlowProvider>
-          <div className="mx-auto max-w-lg lg:max-w-7xl lg:px-8 min-h-screen">
-            <AuthDesktopNav />
-            <Outlet />
-          </div>
-          <AuthNav />
-          <Toaster richColors position="top-center" />
-        </InstallFlowProvider>
+        <PlayerProfileViewerProvider>
+          <InstallFlowProvider>
+            <div className="mx-auto max-w-lg lg:max-w-7xl lg:px-8 min-h-screen">
+              <AuthDesktopNav />
+              <Outlet />
+            </div>
+            <AuthNav />
+            <Toaster richColors position="top-center" />
+          </InstallFlowProvider>
+        </PlayerProfileViewerProvider>
       </UserProfileProvider>
     </AuthProvider>
   );
