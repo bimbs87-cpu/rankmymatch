@@ -13,6 +13,7 @@ import { Copy, Check, Share2, X, Download, ImageIcon, ImageDown, RefreshCw } fro
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
 import { invalidateGroupOgCache } from "@/lib/og-cache.functions";
+import { trackShareEvent } from "@/lib/track-share";
 
 interface Props {
   open: boolean;
@@ -44,8 +45,11 @@ export function ShareGroupDialog({ open, onOpenChange, url, groupName, groupId, 
       setOgLoaded(false);
       setOgError(false);
       setCacheStatus(null);
+    } else {
+      // Counts as "share intent" — opening the dialog
+      trackShareEvent(groupId, "preview");
     }
-  }, [open]);
+  }, [open, groupId]);
 
   useEffect(() => {
     if (!open || !isAdmin) return;
@@ -106,6 +110,7 @@ export function ShareGroupDialog({ open, onOpenChange, url, groupName, groupId, 
       await navigator.clipboard.writeText(url);
       setCopied(true);
       toast.success("Link copiado!");
+      void trackShareEvent(groupId, "copy");
       setTimeout(() => setCopied(false), 2000);
     } catch {
       toast.error("Não foi possível copiar");
@@ -120,6 +125,7 @@ export function ShareGroupDialog({ open, onOpenChange, url, groupName, groupId, 
           text: `Veja o grupo ${groupName} no RankMyMatch`,
           url,
         });
+        void trackShareEvent(groupId, "native");
       } catch (err) {
         if ((err as Error).name !== "AbortError") {
           toast.error("Não foi possível compartilhar");
@@ -210,6 +216,7 @@ export function ShareGroupDialog({ open, onOpenChange, url, groupName, groupId, 
       document.body.removeChild(link);
       URL.revokeObjectURL(link.href);
       toast.success("QR Code baixado!");
+      void trackShareEvent(groupId, "qr");
     } catch (e) {
       console.error(e);
       toast.error("Não foi possível baixar o QR");
@@ -238,6 +245,7 @@ export function ShareGroupDialog({ open, onOpenChange, url, groupName, groupId, 
       await navigator.clipboard.write([item]);
       setCopiedImg(true);
       toast.success("Imagem copiada!");
+      void trackShareEvent(groupId, "image");
       setTimeout(() => setCopiedImg(false), 2000);
     } catch (e) {
       console.error(e);
