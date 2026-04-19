@@ -45,6 +45,8 @@ export function AvatarPromptGate() {
   const [picker, setPicker] = useState(false);
   const [saving, setSaving] = useState(false);
   const [dismissCount, setDismissCount] = useState(0);
+  // Random-preset preview (shown before user confirms saving it)
+  const [randomPreview, setRandomPreview] = useState<{ url: string } | null>(null);
 
   const googlePhoto = user?.user_metadata?.avatar_url || user?.user_metadata?.picture || null;
   const isMandatory = dismissCount >= MAX_SOFT_DISMISSALS;
