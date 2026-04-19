@@ -101,7 +101,7 @@ export function useNotifications() {
 }
 
 /**
- * Notify all members of a group except the actor.
+ * Notify all members of a group except the actor (in-app + best-effort push).
  */
 export async function notifyGroupMembers(params: {
   groupId: string;
@@ -110,6 +110,8 @@ export async function notifyGroupMembers(params: {
   title: string;
   body: string;
   data?: Record<string, string | number | boolean | null>;
+  /** Optional URL to open when the push is tapped. Defaults to "/notifications". */
+  url?: string;
 }) {
   const { data: members } = await supabase
     .from("group_members")
@@ -120,8 +122,9 @@ export async function notifyGroupMembers(params: {
 
   if (!members?.length) return;
 
-  const rows = members.map((m) => ({
-    user_id: m.user_id,
+  const userIds = members.map((m) => m.user_id);
+  const rows = userIds.map((uid) => ({
+    user_id: uid,
     group_id: params.groupId,
     type: params.type,
     title: params.title,
@@ -130,4 +133,24 @@ export async function notifyGroupMembers(params: {
   }));
 
   await supabase.from("notifications").insert(rows);
+
+  // Fire-and-forget push (best-effort, never blocks the in-app notification).
+  try {
+    const { sendPushFn } = await import("@/lib/push.functions");
+    void sendPushFn({
+      data: {
+        userIds,
+        payload: {
+          title: params.title,
+          body: params.body,
+          url: params.url || "/notifications",
+          type: params.type,
+          tag: `${params.type}:${params.groupId}`,
+          data: { groupId: params.groupId, ...(params.data || {}) },
+        },
+      },
+    }).catch(() => {});
+  } catch {
+    /* push is optional */
+  }
 }
