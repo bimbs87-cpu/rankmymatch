@@ -481,13 +481,15 @@ function DashboardPage() {
       }
     }
 
-    // 2. Recent matches (via rating_events)
+    // 2. Recent matches (via rating_events) — fetch a wider window then sort by
+    // round date (matches Histórico ordering) since rating_events.created_at
+    // is often identical across a batch and would otherwise be non-deterministic.
     const { data: events } = await supabase
       .from("rating_events")
       .select("*, matches(match_number, winner_team, round_id, status)")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false })
-      .limit(8);
+      .limit(40);
 
     if (events?.length) {
       const matchIds = events.map((e: any) => e.match_id);
