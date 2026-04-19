@@ -612,6 +612,36 @@ function AchievementsCard({ best }: { best: NonNullable<AggregatedSummary["bestP
 
 // ---- atoms ----
 
+function HeroKpi({
+  label,
+  value,
+  sub,
+  tone = "primary",
+}: {
+  label: string;
+  value: string;
+  sub?: string;
+  tone?: "primary" | "destructive" | "muted";
+}) {
+  const subColor =
+    tone === "destructive"
+      ? "text-destructive"
+      : tone === "muted"
+      ? "text-muted-foreground"
+      : "text-primary";
+  return (
+    <div className="min-w-[88px] text-center">
+      <p className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">
+        {label}
+      </p>
+      <p className="font-display text-xl font-bold leading-tight tabular-nums text-foreground">
+        {value}
+      </p>
+      {sub ? <p className={`truncate text-[10px] ${subColor}`}>{sub}</p> : null}
+    </div>
+  );
+}
+
 function BigMetric({
   label,
   value,
