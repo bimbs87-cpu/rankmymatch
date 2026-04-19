@@ -311,11 +311,11 @@ function LoginPage() {
               <p className="mb-3 text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
                 Esportes suportados
               </p>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-nowrap gap-1.5 overflow-x-hidden">
                 {sports.map((sport) => (
                   <span
                     key={sport}
-                    className="rounded-full border border-border/70 bg-background/40 px-3 py-1 text-[11px] font-medium text-foreground/80 backdrop-blur-sm"
+                    className="shrink-0 rounded-full border border-border/70 bg-background/40 px-2 py-1 text-[10px] font-medium text-foreground/80 backdrop-blur-sm sm:px-2.5 sm:text-[11px]"
                   >
                     {sport}
                   </span>
