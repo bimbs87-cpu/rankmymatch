@@ -259,6 +259,12 @@ function PlayerProfileDrawer({
         });
         setLoading(false);
       }
+
+      // Load H2H against viewer when viewer != target and we share at least 1 group
+      if (auth.user?.id && auth.user.id !== userId && sharedGroups > 0) {
+        const h = await loadH2HBetween(auth.user.id, userId).catch(() => null);
+        if (!cancelled) setH2h(h);
+      }
     })();
 
     return () => {
