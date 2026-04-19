@@ -248,7 +248,12 @@ export function MembersPanel({ groupId }: Props) {
     if (!renamingUserId) return;
     if (!renameValue.trim()) { toast.error("Nome obrigatório"); return; }
     setRenameSaving(true);
-    const { error } = await supabase.from("user_profiles").update({ name: renameValue.trim() }).eq("user_id", renamingUserId);
+    // Also clear nickname — admin renames should reset any old test nickname so the
+    // new name surfaces everywhere (UI prefers nickname when present).
+    const { error } = await supabase
+      .from("user_profiles")
+      .update({ name: renameValue.trim(), nickname: null })
+      .eq("user_id", renamingUserId);
     if (error) toast.error("Erro ao salvar");
     else { toast.success("Nome atualizado"); setRenamingUserId(null); refresh(); }
     setRenameSaving(false);
