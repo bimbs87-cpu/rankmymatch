@@ -13,6 +13,16 @@ import { useTheme } from "@/lib/theme";
 import { useInstallFlow } from "@/components/InstallFlowProvider";
 
 export const Route = createFileRoute("/login")({
+  head: () => ({
+    meta: [
+      { title: "Entrar — RankMyMatch" },
+      { name: "description", content: "Acesse sua conta no RankMyMatch e gerencie seus rankings, temporadas e grupos." },
+      { property: "og:title", content: "Entrar no RankMyMatch" },
+      { property: "og:description", content: "Login com Google em segundos." },
+      { name: "robots", content: "noindex, follow" },
+    ],
+    links: [{ rel: "canonical", href: "https://rankmymatch.app/login" }],
+  }),
   component: LoginPage,
 });
 

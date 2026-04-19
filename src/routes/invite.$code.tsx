@@ -9,6 +9,15 @@ import { Users, CheckCircle, XCircle, Loader2, LogIn } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/invite/$code")({
+  head: () => ({
+    meta: [
+      { title: "Convite — RankMyMatch" },
+      { name: "description", content: "Você foi convidado para um grupo no RankMyMatch. Aceite o convite e comece a jogar." },
+      { property: "og:title", content: "Convite para entrar em um grupo — RankMyMatch" },
+      { property: "og:description", content: "Aceite o convite e participe das próximas rodadas." },
+      { name: "robots", content: "noindex, follow" },
+    ],
+  }),
   component: InvitePage,
 });
 

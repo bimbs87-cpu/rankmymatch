@@ -45,6 +45,13 @@ import { useTheme } from "@/lib/theme";
 import { DEFAULT_PRIVACY, parsePrivacy, type PrivacySettings } from "@/components/PlayerProfileViewer";
 
 export const Route = createFileRoute("/profile")({
+  head: () => ({
+    meta: [
+      { title: "Meu Perfil — RankMyMatch" },
+      { name: "description", content: "Gerencie seu perfil, avatar e configurações de privacidade." },
+      { name: "robots", content: "noindex, nofollow" },
+    ],
+  }),
   component: ProfilePage,
 });
 
