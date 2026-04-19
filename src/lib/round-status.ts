@@ -30,7 +30,14 @@ export function deriveRoundStatus(matchStatuses: string[]): RoundStatus {
  * Calls the server function so that admin-only updates always succeed.
  */
 export async function recomputeRoundStatus(roundId: string): Promise<RoundStatus> {
-  const result = await recomputeRoundStatusServerFn({ data: { roundId } });
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session?.access_token) {
+    return recomputeRoundStatusClient(roundId);
+  }
+  const result = await recomputeRoundStatusServerFn({
+    data: { roundId },
+    headers: { authorization: `Bearer ${session.access_token}` },
+  });
   return result.status as RoundStatus;
 }
 
