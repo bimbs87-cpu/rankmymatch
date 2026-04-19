@@ -4,6 +4,8 @@ import { Globe, Lock, Save, Loader2, AlertTriangle, EyeOff, CheckCircle2, Trash2
 import { toast } from "sonner";
 import { GroupImageUpload } from "@/components/GroupImageUpload";
 import { useNavigate } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
+import { invalidateGroupOgCache } from "@/lib/og-cache.functions";
 
 interface Props {
   groupId: string;
