@@ -369,6 +369,17 @@ export function QrShareDialog({ open, onOpenChange, url, playerName, userId, isO
                 Compartilhar
               </button>
             )}
+            {isOwner && (
+              <button
+                onClick={handleClearCache}
+                disabled={clearingCache}
+                className="col-span-2 inline-flex items-center justify-center gap-1.5 rounded-full border border-dashed border-border bg-transparent px-3 py-2 text-[11px] font-semibold text-muted-foreground transition hover:bg-accent hover:text-foreground disabled:opacity-60"
+                title="Apaga o PNG armazenado e força a geração de uma versão nova (útil após trocar avatar)."
+              >
+                <RefreshCw className={`h-3 w-3 ${clearingCache ? "animate-spin" : ""}`} />
+                {clearingCache ? "Limpando…" : "Limpar cache OG"}
+              </button>
+            )}
           </div>
         </div>
       </div>
