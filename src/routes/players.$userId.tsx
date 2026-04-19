@@ -16,16 +16,35 @@ import { useAuth } from "@/hooks/use-auth";
 export const Route = createFileRoute("/players/$userId")({
   head: ({ params }) => {
     const ogImage = `/api/og/player/${params.userId}`;
+    const url = `https://rankmymatch.app/players/${params.userId}`;
     return {
       meta: [
         { title: "Perfil do jogador — RankMyMatch" },
-        { name: "description", content: "Veja o perfil competitivo de um jogador no RankMyMatch." },
+        { name: "description", content: "Veja o perfil competitivo de um jogador no RankMyMatch: Elo, melhor posição e histórico de partidas." },
         { property: "og:title", content: "Perfil competitivo no RankMyMatch" },
         { property: "og:description", content: "Veja Elo, melhor posição e estatísticas deste jogador." },
         { property: "og:image", content: ogImage },
         { property: "og:type", content: "profile" },
+        { property: "og:url", content: url },
         { name: "twitter:card", content: "summary_large_image" },
         { name: "twitter:image", content: ogImage },
+      ],
+      links: [{ rel: "canonical", href: url }],
+      scripts: [
+        {
+          type: "application/ld+json",
+          children: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "ProfilePage",
+            mainEntity: {
+              "@type": "Person",
+              identifier: params.userId,
+              url,
+              image: `https://rankmymatch.app${ogImage}`,
+            },
+            url,
+          }),
+        },
       ],
     };
   },
