@@ -83,9 +83,13 @@ export function usePushSubscription() {
 
       let sub = await reg.pushManager.getSubscription();
       if (!sub) {
+        const keyBytes = urlBase64ToUint8Array(publicKey);
+        // Copy into a fresh ArrayBuffer to satisfy strict DOM typings.
+        const appServerKey = new Uint8Array(keyBytes.length);
+        appServerKey.set(keyBytes);
         sub = await reg.pushManager.subscribe({
           userVisibleOnly: true,
-          applicationServerKey: urlBase64ToUint8Array(publicKey),
+          applicationServerKey: appServerKey.buffer,
         });
       }
 
