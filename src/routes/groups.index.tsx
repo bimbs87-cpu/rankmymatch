@@ -128,7 +128,9 @@ function GroupsIndexPage() {
           <SheetTrigger asChild>
             <button
               aria-label="Abrir lista de grupos"
-              className="relative flex h-9 flex-shrink-0 items-center gap-1.5 rounded-full border border-primary/40 bg-primary/10 pl-2.5 pr-3 text-foreground shadow-sm transition active:scale-95"
+              className={`relative flex h-9 flex-shrink-0 items-center gap-1.5 rounded-full border border-primary/40 bg-primary/10 pl-2.5 pr-3 text-foreground shadow-sm transition active:scale-95 ${
+                mobileNavOpen ? "invisible" : ""
+              }`}
             >
               <Menu className="h-4 w-4 text-primary" />
               <span className="text-[11px] font-bold uppercase tracking-wide text-primary">
