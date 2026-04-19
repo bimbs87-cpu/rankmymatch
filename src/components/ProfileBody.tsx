@@ -346,8 +346,8 @@ export function ProfileBody({
         {/* ACHIEVEMENTS placeholder */}
         {showAchievements ? (
           summary.bestPosition?.pos === 1 ? (
-            <section className="rounded-3xl border border-amber-400/30 bg-amber-500/5 p-4">
-              <h3 className="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-amber-500">
+            <section className="rounded-3xl border border-primary/30 bg-primary/5 p-4">
+              <h3 className="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-primary">
                 <Medal className="h-3.5 w-3.5" /> Conquistas
               </h3>
               <p className="text-sm text-foreground">
