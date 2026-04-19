@@ -45,6 +45,9 @@ type BugReport = {
 const STATUSES = ["open", "in_progress", "resolved", "wont_fix"] as const;
 type Status = (typeof STATUSES)[number];
 
+const PRIORITIES = ["low", "medium", "high", "critical"] as const;
+type Priority = (typeof PRIORITIES)[number];
+
 const STATUS_LABELS: Record<Status, string> = {
   open: "Abertos",
   in_progress: "Em andamento",
@@ -59,12 +62,27 @@ const STATUS_ICONS: Record<Status, React.ReactNode> = {
   wont_fix: <XCircle className="h-3.5 w-3.5" />,
 };
 
+const PRIORITY_LABELS: Record<Priority, string> = {
+  low: "Baixa",
+  medium: "Média",
+  high: "Alta",
+  critical: "Crítica",
+};
+
+const PRIORITY_CLS: Record<Priority, string> = {
+  low: "border-slate-500/30 bg-slate-500/10 text-slate-400",
+  medium: "border-sky-500/30 bg-sky-500/10 text-sky-400",
+  high: "border-amber-500/30 bg-amber-500/10 text-amber-400",
+  critical: "border-destructive/40 bg-destructive/10 text-destructive",
+};
+
 function BugAdminPage() {
   const { user, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const [reports, setReports] = useState<BugReport[] | null>(null);
   const [filter, setFilter] = useState<Status>("open");
+  const [priorityFilter, setPriorityFilter] = useState<Priority | "all">("all");
   const [draftNotes, setDraftNotes] = useState<Record<string, string>>({});
   const [savingId, setSavingId] = useState<string | null>(null);
 
