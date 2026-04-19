@@ -583,6 +583,14 @@ function AdminInboxPage() {
             )}
             Disparar lembrete
           </button>
+          <Link
+            to="/admin/metrics"
+            className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-muted"
+            title="Ver métricas dos últimos 30 dias"
+          >
+            <BarChart3 className="h-3.5 w-3.5" />
+            Métricas
+          </Link>
         </div>
 
         <Tabs value={tab} onValueChange={(v) => setTab(v as "pending" | "history")}>
