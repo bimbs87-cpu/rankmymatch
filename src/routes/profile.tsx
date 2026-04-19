@@ -344,6 +344,32 @@ function ProfilePage() {
             <Save className="h-4 w-4" />{saving ? "Salvando..." : "Salvar alterações"}
           </button>
         </div>
+
+        <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+          <DialogContent className="max-w-2xl border-border bg-card">
+            <DialogHeader>
+              <DialogTitle className="font-display">Pré-visualização do card</DialogTitle>
+              <DialogDescription>
+                Veja como ficará o card antes de salvar. Não usa cache.
+              </DialogDescription>
+            </DialogHeader>
+            {user ? (
+              <div className="overflow-hidden rounded-2xl border border-border bg-background">
+                <img
+                  key={`${editTagline}|${editAccent ?? "none"}|${previewOpen}`}
+                  src={`/api/og/player/${user.id}?tagline=${encodeURIComponent(editTagline.trim().slice(0, 60))}&accent=${editAccent ?? ""}&t=${Date.now()}`}
+                  alt="Pré-visualização do card de compartilhamento"
+                  className="h-auto w-full"
+                  loading="eager"
+                />
+              </div>
+            ) : null}
+            <p className="text-[11px] text-muted-foreground">
+              A imagem leva alguns segundos para renderizar. As alterações só serão persistidas
+              ao clicar em <strong>Salvar alterações</strong>.
+            </p>
+          </DialogContent>
+        </Dialog>
       </div>
     );
   }
