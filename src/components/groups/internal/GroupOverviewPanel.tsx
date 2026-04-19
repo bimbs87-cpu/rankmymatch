@@ -2,13 +2,14 @@ import { Link } from "@tanstack/react-router";
 import {
   Calendar, Clock, MapPin, Trophy, ChevronRight, Users, MessageSquare, Lock,
   CheckCircle2, XCircle, Flame, TrendingUp, Award, Zap, Target, Crown, Sparkles, Activity,
-  HelpCircle,
+  HelpCircle, Share2,
 } from "lucide-react";
 import { useGroupDashboard } from "@/hooks/use-group-dashboard";
 import { useGroupGlobalStats, type RecordHolder } from "@/hooks/use-group-stats";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { GroupRivalriesPanel } from "./GroupRivalriesPanel";
 import { GroupEloEvolutionChart } from "./GroupEloEvolutionChart";
+import { ShareGroupDialog } from "@/components/ShareGroupDialog";
 import { confirmPresence, cancelPresence } from "@/lib/round-actions";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
@@ -22,13 +23,18 @@ interface Props {
   groupName: string;
   groupImage: string | null;
   description: string | null;
+  isAdmin?: boolean;
   onGotoMembers: () => void;
   onGotoResults: () => void;
   /** Open the embedded compare with these two player ids pre-selected. */
   onCompare?: (userIdA: string, userIdB: string) => void;
 }
 
-export function GroupOverviewPanel({ groupId, groupName, groupImage, description, onGotoMembers, onGotoResults, onCompare }: Props) {
+export function GroupOverviewPanel({ groupId, groupName, groupImage, description, isAdmin = false, onGotoMembers, onGotoResults, onCompare }: Props) {
+  const [shareOpen, setShareOpen] = useState(false);
+  const shareUrl = typeof window !== "undefined"
+    ? `${window.location.origin}/groups/${groupId}`
+    : `https://rankmymatch.app/groups/${groupId}`;
   const { user } = useAuth();
   const { data, isLoading, refresh } = useGroupDashboard(groupId);
   const { data: stats, isLoading: statsLoading } = useGroupGlobalStats(groupId);
