@@ -566,7 +566,7 @@ function DashboardPage() {
             group_name: (round?.groups as any)?.name || "",
             season_id: round?.season_id ?? null,
             score_display: scoreDisplay,
-            rating_change: Number(e.rating_change),
+            rating_change: ratingMap.get(e.match_id) ?? 0,
             created_at: e.created_at,
             match_date: round?.scheduled_date || e.created_at,
             partner_name: shortName(partnerProfile),
