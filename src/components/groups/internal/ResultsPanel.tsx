@@ -37,6 +37,7 @@ export function ResultsPanel({ groupId, isAdmin }: Props) {
   const [matchesByRound, setMatchesByRound] = useState<Record<string, any[]>>({});
   const [profileMap, setProfileMap] = useState<Map<string, any>>(new Map());
   const [loadingMatches, setLoadingMatches] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
 
   // Load all matches for the season at once
   useEffect(() => {
@@ -71,7 +72,7 @@ export function ResultsPanel({ groupId, isAdmin }: Props) {
       setLoadingMatches(false);
     })();
     return () => { cancelled = true; };
-  }, [rounds]);
+  }, [rounds, reloadKey]);
 
   const allPlayers = useMemo(() => {
     const set = new Set<string>();
