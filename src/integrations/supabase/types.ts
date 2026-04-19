@@ -520,6 +520,7 @@ export type Database = {
           status: string
           updated_at: string
           visibility: string
+          whatsapp_share_template: string | null
         }
         Insert: {
           created_at?: string
@@ -543,6 +544,7 @@ export type Database = {
           status?: string
           updated_at?: string
           visibility?: string
+          whatsapp_share_template?: string | null
         }
         Update: {
           created_at?: string
@@ -566,6 +568,7 @@ export type Database = {
           status?: string
           updated_at?: string
           visibility?: string
+          whatsapp_share_template?: string | null
         }
         Relationships: []
       }
