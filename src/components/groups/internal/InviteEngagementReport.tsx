@@ -76,6 +76,9 @@ export function InviteEngagementReport({ groupId }: Props) {
   const [period, setPeriod] = useState<Period>("30d");
   const [granularity, setGranularity] = useState<Granularity>("week");
   const [exportFilter, setExportFilter] = useState<StatusFilter>("all");
+  const [useCustomRange, setUseCustomRange] = useState(false);
+  const [customFrom, setCustomFrom] = useState<string>("");
+  const [customTo, setCustomTo] = useState<string>("");
   const [invites, setInvites] = useState<InviteRow[]>([]);
   const [profileMap, setProfileMap] = useState<Map<string, string>>(new Map());
   const [loading, setLoading] = useState(true);
@@ -178,9 +181,19 @@ export function InviteEngagementReport({ groupId }: Props) {
   }, [stats.list, period, granularity]);
 
   const exportCsv = () => {
+    let base = stats.list;
+    if (useCustomRange && (customFrom || customTo)) {
+      const fromTs = customFrom ? new Date(customFrom + "T00:00:00").getTime() : -Infinity;
+      const toTs = customTo ? new Date(customTo + "T23:59:59").getTime() : Infinity;
+      // For custom range, ignore the period filter and use full invites list
+      base = invites.filter((i) => {
+        const t = new Date(i.created_at).getTime();
+        return t >= fromTs && t <= toTs;
+      });
+    }
     const filtered = exportFilter === "all"
-      ? stats.list
-      : stats.list.filter((i) => statusOf(i) === exportFilter);
+      ? base
+      : base.filter((i) => statusOf(i) === exportFilter);
     if (filtered.length === 0) {
       toast.info("Nada para exportar com esse filtro");
       return;
@@ -202,7 +215,10 @@ export function InviteEngagementReport({ groupId }: Props) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `convites-${exportFilter}-${period}-${new Date().toISOString().slice(0, 10)}.csv`;
+    const rangeLabel = useCustomRange && (customFrom || customTo)
+      ? `${customFrom || "inicio"}_${customTo || "hoje"}`
+      : period;
+    a.download = `convites-${exportFilter}-${rangeLabel}-${new Date().toISOString().slice(0, 10)}.csv`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
