@@ -5,6 +5,7 @@ import { createSeason } from "@/lib/season-actions";
 import { createSeasonWithRounds } from "@/hooks/use-season-creation";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
+import { UF_HOLIDAYS, ufHolidaysMatchingDates } from "@/lib/state-holidays";
 
 interface Props {
   groupId: string;
@@ -505,6 +506,12 @@ function HolidayPickerDialog({ generatedDates, excludedDates, onClose, onApply }
   const [customDate, setCustomDate] = useState<string>("");
   const [customLabel, setCustomLabel] = useState<string>("");
   const [customs, setCustoms] = useState<{ iso: string; name: string }[]>([]);
+  const [stateUF, setStateUF] = useState<string>("");
+
+  const stateMatches = useMemo(
+    () => (stateUF ? ufHolidaysMatchingDates(stateUF, generatedDates) : []),
+    [stateUF, generatedDates],
+  );
 
   const toggle = (iso: string) => {
     setSelected((prev) => {
@@ -513,6 +520,33 @@ function HolidayPickerDialog({ generatedDates, excludedDates, onClose, onApply }
       else next.add(iso);
       return next;
     });
+  };
+
+  const addStateBatch = () => {
+    if (!stateUF) {
+      toast.error("Escolha um estado");
+      return;
+    }
+    if (stateMatches.length === 0) {
+      toast.info("Nenhum feriado deste estado coincide com a prévia");
+      return;
+    }
+    // Add as customs (with the holiday name) so they show with proper labels,
+    // and pre-select them.
+    const newOnes = stateMatches.filter(
+      (m) =>
+        !matches.some((b) => b.iso === m.iso) &&
+        !customs.some((c) => c.iso === m.iso),
+    );
+    setCustoms((prev) => [...prev, ...newOnes]);
+    setSelected((prev) => {
+      const next = new Set(prev);
+      for (const m of stateMatches) next.add(m.iso);
+      return next;
+    });
+    toast.success(
+      `${stateMatches.length} feriado${stateMatches.length === 1 ? "" : "s"} de ${stateUF} adicionado${stateMatches.length === 1 ? "" : "s"}`,
+    );
   };
 
   const addCustom = () => {
@@ -604,6 +638,39 @@ function HolidayPickerDialog({ generatedDates, excludedDates, onClose, onApply }
                 })}
               </ul>
             )}
+          </div>
+
+          <div className="rounded-xl border border-dashed border-border bg-background/30 p-3">
+            <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+              Adicionar feriados estaduais (UF)
+            </p>
+            <div className="flex flex-col gap-2">
+              <select
+                value={stateUF}
+                onChange={(e) => setStateUF(e.target.value)}
+                className="w-full rounded-lg border border-border bg-background px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-primary"
+              >
+                <option value="">Escolha um estado…</option>
+                {UF_HOLIDAYS.map((u) => (
+                  <option key={u.uf} value={u.uf}>{u.label}</option>
+                ))}
+              </select>
+              {stateUF && (
+                <p className="text-[10px] text-muted-foreground">
+                  {stateMatches.length === 0
+                    ? `Nenhum feriado de ${stateUF} cai nas datas geradas.`
+                    : `${stateMatches.length} feriado${stateMatches.length === 1 ? "" : "s"} encontrado${stateMatches.length === 1 ? "" : "s"} na prévia.`}
+                </p>
+              )}
+              <button
+                type="button"
+                onClick={addStateBatch}
+                disabled={!stateUF || stateMatches.length === 0}
+                className="self-start rounded-full border border-primary/40 bg-primary/10 px-3 py-1 text-[11px] font-bold text-primary hover:bg-primary/20 disabled:opacity-40"
+              >
+                + Adicionar todos de {stateUF || "UF"}
+              </button>
+            </div>
           </div>
 
           <div className="rounded-xl border border-dashed border-border bg-background/30 p-3">
