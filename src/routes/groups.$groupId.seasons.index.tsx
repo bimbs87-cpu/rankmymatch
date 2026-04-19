@@ -798,7 +798,7 @@ function GroupSeasonsPage() {
                         <div className="flex items-center gap-3">
                           <input
                             type="range"
-                            min={1}
+                            min={0}
                             max={Math.max(1, totalRounds - 1)}
                             value={roundsPlayed}
                             onChange={(e) => setRoundsPlayed(Number(e.target.value))}
@@ -807,7 +807,9 @@ function GroupSeasonsPage() {
                           <span className="w-10 text-center font-display text-lg font-bold text-foreground">{roundsPlayed}</span>
                         </div>
                         <p className="mt-1 text-[10px] text-muted-foreground">
-                          {roundsPlayed} rodada(s) no passado + {totalRounds - roundsPlayed} futuras
+                          {roundsPlayed === 0
+                            ? `Começa hoje · ${totalRounds} rodadas futuras`
+                            : `${roundsPlayed} rodada(s) no passado + ${totalRounds - roundsPlayed} futuras`}
                         </p>
                       </div>
                     </div>
