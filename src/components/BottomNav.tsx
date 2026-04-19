@@ -16,19 +16,20 @@ export function BottomNav() {
   const newReleases = useNewReleasesCount();
 
   return (
-    <nav className="fixed bottom-5 left-4 right-4 z-50 mx-auto max-w-lg lg:hidden">
+    <>
       <Link
         to="/sobre-desenvolvimento"
-        className="absolute -top-3 left-1/2 -translate-x-1/2 z-10 inline-flex items-center gap-1.5 rounded-full border border-border bg-card/95 px-2.5 py-0.5 font-mono text-[9px] font-medium text-muted-foreground shadow-sm backdrop-blur transition-colors hover:text-primary"
+        className="fixed bottom-1 right-2 z-40 inline-flex items-center gap-1 rounded-full bg-transparent px-1.5 py-0.5 font-mono text-[8px] font-medium text-muted-foreground/50 transition-colors hover:text-primary lg:hidden"
         aria-label="Sobre o desenvolvimento"
       >
         {APP_VERSION}
         {newReleases > 0 && (
-          <span className="inline-flex h-3.5 min-w-[14px] items-center justify-center rounded-full bg-primary px-1 font-sans text-[8px] font-bold text-primary-foreground">
+          <span className="inline-flex h-3 min-w-[12px] items-center justify-center rounded-full bg-primary px-1 font-sans text-[7px] font-bold text-primary-foreground">
             {newReleases > 9 ? "9+" : newReleases}
           </span>
         )}
       </Link>
+      <nav className="fixed bottom-5 left-4 right-4 z-50 mx-auto max-w-lg lg:hidden">
       <div className="flex items-end justify-around rounded-full border border-border bg-card/80 px-2 py-2 backdrop-blur-xl">
         {NAV_ITEMS.map((item) => {
           const isActive =
@@ -63,6 +64,7 @@ export function BottomNav() {
           );
         })}
       </div>
-    </nav>
+      </nav>
+    </>
   );
 }
