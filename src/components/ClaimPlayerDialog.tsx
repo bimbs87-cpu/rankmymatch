@@ -87,12 +87,16 @@ export function ClaimPlayerDialog({ open, onOpenChange, groupId, claimerUserId, 
   const handleClaim = async (placeholderUserId: string) => {
     setClaimingId(placeholderUserId);
     try {
-      const { error } = await supabase.from("player_claims").insert({
-        placeholder_user_id: placeholderUserId,
-        claimer_user_id: claimerUserId,
-        group_id: groupId,
-        status: "pending",
-      });
+      const { data: insertedClaim, error } = await supabase
+        .from("player_claims")
+        .insert({
+          placeholder_user_id: placeholderUserId,
+          claimer_user_id: claimerUserId,
+          group_id: groupId,
+          status: "pending",
+        })
+        .select("id")
+        .maybeSingle();
 
       if (error) {
         if (error.message?.includes("duplicate")) {
@@ -119,11 +123,15 @@ export function ClaimPlayerDialog({ open, onOpenChange, groupId, claimerUserId, 
         void notifyGroupAdmins({
           groupId,
           actorId: claimerUserId,
-          type: "player_claim_requested",
+          type: "player_claim",
           title: "Novo pedido de vínculo",
           body: `${claimerName} quer vincular sua conta a ${targetName}.`,
-          url: `/groups/${groupId}`,
-          data: { placeholder_user_id: placeholderUserId },
+          url: `/admin/inbox`,
+          data: {
+            kind: "claim",
+            claimId: insertedClaim?.id || null,
+            placeholder_user_id: placeholderUserId,
+          },
         });
       } catch (notifyErr) {
         console.warn("notifyGroupAdmins (claim) falhou:", notifyErr);

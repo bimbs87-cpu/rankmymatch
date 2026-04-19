@@ -66,6 +66,7 @@ function AdminInboxPage() {
   const [loading, setLoading] = useState(true);
   const [groupFilter, setGroupFilter] = useState<string>("all");
   const [kindFilter, setKindFilter] = useState<"all" | Kind>("all");
+  const [ageFilter, setAgeFilter] = useState<"all" | "old">("all");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState(false);
 
@@ -189,13 +190,23 @@ function AdminInboxPage() {
     return [...m.entries()].map(([id, name]) => ({ id, name }));
   }, [items]);
 
+  const OLD_THRESHOLD_MS = 3 * 24 * 60 * 60 * 1000;
+  const isOld = (createdAt: string) =>
+    Date.now() - new Date(createdAt).getTime() >= OLD_THRESHOLD_MS;
+
   const filtered = useMemo(() => {
     return items.filter(
       (it) =>
         (groupFilter === "all" || it.groupId === groupFilter) &&
-        (kindFilter === "all" || it.kind === kindFilter),
+        (kindFilter === "all" || it.kind === kindFilter) &&
+        (ageFilter === "all" || isOld(it.createdAt)),
     );
-  }, [items, groupFilter, kindFilter]);
+  }, [items, groupFilter, kindFilter, ageFilter]);
+
+  const oldCount = useMemo(
+    () => items.filter((it) => isOld(it.createdAt)).length,
+    [items],
+  );
 
   const toggleSelect = (id: string) => {
     setSelected((prev) => {
@@ -362,6 +373,18 @@ function AdminInboxPage() {
                 <option value="join_request">Entrar no grupo</option>
                 <option value="claim">Vincular jogador</option>
               </select>
+              <select
+                value={ageFilter}
+                onChange={(e) =>
+                  setAgeFilter(e.target.value as "all" | "old")
+                }
+                className="rounded-full border border-border bg-card px-3 py-1.5 text-xs"
+              >
+                <option value="all">Qualquer idade</option>
+                <option value="old">
+                  Antigos (3+ dias){oldCount > 0 ? ` · ${oldCount}` : ""}
+                </option>
+              </select>
             </div>
 
             {/* Bulk bar */}
@@ -404,10 +427,17 @@ function AdminInboxPage() {
               {filtered.map((it) => {
                 const Icon = it.kind === "join_request" ? UserPlus : Link2;
                 const isSelected = selected.has(it.id);
+                const old = isOld(it.createdAt);
                 return (
                   <div
                     key={`${it.kind}-${it.id}`}
-                    className={`rounded-2xl border bg-card p-3 transition-colors ${isSelected ? "border-primary/60" : "border-border"}`}
+                    className={`rounded-2xl border p-3 transition-colors ${
+                      old
+                        ? "border-destructive/50 bg-destructive/5"
+                        : isSelected
+                          ? "border-primary/60 bg-card"
+                          : "border-border bg-card"
+                    }`}
                   >
                     <div className="flex items-start gap-3">
                       <input
@@ -432,8 +462,11 @@ function AdminInboxPage() {
                               ? "Entrar"
                               : "Vincular"}
                           </span>
-                          <span className="text-[10px] text-muted-foreground">
+                          <span
+                            className={`text-[10px] ${old ? "font-bold text-destructive" : "text-muted-foreground"}`}
+                          >
                             · {timeAgo(it.createdAt)}
+                            {old ? " · antigo" : ""}
                           </span>
                         </div>
                         <p className="mt-0.5 text-xs text-muted-foreground">
