@@ -5,7 +5,17 @@
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { getOgCacheStats, type OgCacheStats } from "@/lib/og-cache.functions";
-import { BarChart3, Loader2, TrendingUp, Users } from "lucide-react";
+import { BarChart3, Loader2, TrendingUp, Users, LineChart as LineChartIcon } from "lucide-react";
+import {
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip,
+  CartesianGrid,
+  Legend,
+} from "recharts";
 
 export function OgCacheStatsPanel() {
   const fetchStats = useServerFn(getOgCacheStats);
