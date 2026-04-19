@@ -75,9 +75,11 @@ function ChangelogPage() {
       const { data } = await supabase
         .from("release_notes")
         .select("id, version, title, description, type, released_at")
-        .eq("is_published", true)
-        .order("released_at", { ascending: false });
-      setNotes((data ?? []) as ReleaseNote[]);
+        .eq("is_published", true);
+      const sorted = ((data ?? []) as ReleaseNote[]).sort((a, b) =>
+        compareVersionsDesc(a.version, b.version),
+      );
+      setNotes(sorted);
     })();
   }, []);
 
