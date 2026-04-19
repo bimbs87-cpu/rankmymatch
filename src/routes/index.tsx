@@ -483,18 +483,27 @@ function DashboardPage() {
 
     // 2. Recent matches: rating_events.created_at is unreliable for ordering
     // (batch recalculations rewrite created_at, masking truly recent matches).
-    // Strategy: pull the user's most recent matches via match_players → matches
-    // joined to rounds, ordered by round.scheduled_date desc, then attach rating.
+    // PostgREST does not honor ordering on deeply-nested foreignTable paths
+    // ("matches.rounds"), so we fetch all completed matches for the user and
+    // sort client-side by rounds.scheduled_date desc, then by match_number desc
+    // — exactly the same ordering used by the Histórico page.
     const { data: recentPlayerRows } = await supabase
       .from("match_players")
       .select("match_id, team, matches!inner(id, match_number, winner_team, round_id, status, rounds!inner(id, round_number, scheduled_date, group_id, season_id, groups(name)))")
       .eq("user_id", user.id)
-      .eq("matches.status", "completed")
-      .order("scheduled_date", { ascending: false, foreignTable: "matches.rounds" })
-      .order("match_number", { ascending: false, foreignTable: "matches" })
-      .limit(8);
+      .eq("matches.status", "completed");
 
-    const events = (recentPlayerRows || []).map((row: any) => ({
+    const sortedRows = (recentPlayerRows || [])
+      .map((row: any) => {
+        const sched = row.matches?.rounds?.scheduled_date as string | null | undefined;
+        const ts = sched ? new Date(sched + "T12:00:00").getTime() : 0;
+        return { row, ts, mn: row.matches?.match_number ?? 0 };
+      })
+      .sort((a, b) => (b.ts - a.ts) || (b.mn - a.mn))
+      .slice(0, 8)
+      .map(({ row }) => row);
+
+    const events = sortedRows.map((row: any) => ({
       match_id: row.match_id,
       matches: {
         match_number: row.matches?.match_number,
