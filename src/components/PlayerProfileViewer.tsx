@@ -318,11 +318,13 @@ function PlayerProfileDrawer({
 function DrawerBody({
   profile,
   stats,
+  h2h,
   isMe,
   onViewFull,
 }: {
   profile: QuickProfile;
   stats: QuickStats | null;
+  h2h: H2HResult | null;
   isMe: boolean;
   onViewFull: () => void;
 }) {
