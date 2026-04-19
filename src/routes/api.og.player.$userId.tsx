@@ -42,7 +42,8 @@ function truncate(s: string, max: number): string {
 }
 
 async function getPlayerOgData(userId: string) {
-  const { data: profile } = await supabaseAdmin
+  const sb = getSupabaseAdmin();
+  const { data: profile } = await sb
     .from("user_profiles")
     .select("name, nickname")
     .eq("user_id", userId)
@@ -51,7 +52,7 @@ async function getPlayerOgData(userId: string) {
   if (!profile) return null;
 
   // Latest Elo per season — pick max
-  const { data: snapshots } = await supabaseAdmin
+  const { data: snapshots } = await sb
     .from("ranking_snapshots")
     .select("rating, position, season_id, snapshot_date")
     .eq("user_id", userId)
