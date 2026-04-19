@@ -230,6 +230,7 @@ export function ResultsPanel({ groupId, isAdmin }: Props) {
           formatDate={formatDate}
           groupId={groupId}
           seasonId={seasonId}
+          isAdmin={isAdmin}
         />
       ) : (
         <TimelineView
@@ -255,7 +256,7 @@ function StatCard({ icon: Icon, label, value }: { icon: any; label: string; valu
   );
 }
 
-function RoundsListView({ rounds, matchesByRound, profileMap, formatDate, groupId, seasonId }: any) {
+function RoundsListView({ rounds, matchesByRound, profileMap, formatDate, groupId, seasonId, isAdmin }: any) {
   // Group by status
   const completed = rounds.filter((r: any) => r.status === "completed").sort((a: any, b: any) => (b.scheduled_date || "").localeCompare(a.scheduled_date || ""));
   const upcoming = rounds.filter((r: any) => r.status !== "completed" && r.status !== "cancelled").sort((a: any, b: any) => (a.scheduled_date || "").localeCompare(b.scheduled_date || ""));
@@ -263,9 +264,9 @@ function RoundsListView({ rounds, matchesByRound, profileMap, formatDate, groupI
 
   return (
     <div className="space-y-4">
-      {completed.length > 0 && <Section title="Recentes" count={completed.length}><div className="space-y-2">{completed.map((r: any, i: number) => <RoundRow key={r.id} r={r} matches={matchesByRound[r.id] || []} profileMap={profileMap} formatDate={formatDate} groupId={groupId} seasonId={seasonId} defaultOpen={i === 0} />)}</div></Section>}
-      {upcoming.length > 0 && <Section title="Próximas" count={upcoming.length}><div className="space-y-2">{upcoming.map((r: any) => <RoundRow key={r.id} r={r} matches={matchesByRound[r.id] || []} profileMap={profileMap} formatDate={formatDate} groupId={groupId} seasonId={seasonId} defaultOpen={false} />)}</div></Section>}
-      {cancelled.length > 0 && <Section title="Canceladas" count={cancelled.length}><div className="space-y-2">{cancelled.map((r: any) => <RoundRow key={r.id} r={r} matches={matchesByRound[r.id] || []} profileMap={profileMap} formatDate={formatDate} groupId={groupId} seasonId={seasonId} defaultOpen={false} />)}</div></Section>}
+      {completed.length > 0 && <Section title="Recentes" count={completed.length}><div className="space-y-2">{completed.map((r: any, i: number) => <RoundRow key={r.id} r={r} matches={matchesByRound[r.id] || []} profileMap={profileMap} formatDate={formatDate} groupId={groupId} seasonId={seasonId} isAdmin={isAdmin} defaultOpen={i === 0} />)}</div></Section>}
+      {upcoming.length > 0 && <Section title="Próximas" count={upcoming.length}><div className="space-y-2">{upcoming.map((r: any) => <RoundRow key={r.id} r={r} matches={matchesByRound[r.id] || []} profileMap={profileMap} formatDate={formatDate} groupId={groupId} seasonId={seasonId} isAdmin={isAdmin} defaultOpen={false} />)}</div></Section>}
+      {cancelled.length > 0 && <Section title="Canceladas" count={cancelled.length}><div className="space-y-2">{cancelled.map((r: any) => <RoundRow key={r.id} r={r} matches={matchesByRound[r.id] || []} profileMap={profileMap} formatDate={formatDate} groupId={groupId} seasonId={seasonId} isAdmin={isAdmin} defaultOpen={false} />)}</div></Section>}
     </div>
   );
 }
