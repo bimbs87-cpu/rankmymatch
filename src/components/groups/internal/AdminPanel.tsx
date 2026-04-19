@@ -43,6 +43,7 @@ const SECTIONS: { id: Section; label: string; icon: typeof Settings2; creatorOnl
 export function AdminPanel({ group, isCreator, onSaved, pendingRequestsCount }: Props) {
   const [section, setSection] = useState<Section>("general");
   const [inviteOpen, setInviteOpen] = useState(false);
+  const [desyncedCount, setDesyncedCount] = useState(0);
 
   return (
     <div className="space-y-4">
@@ -57,7 +58,13 @@ export function AdminPanel({ group, isCreator, onSaved, pendingRequestsCount }: 
             {SECTIONS.filter((s) => !s.creatorOnly || isCreator).map((s) => {
               const Icon = s.icon;
               const active = section === s.id;
-              const badge = s.id === "members" ? pendingRequestsCount : 0;
+              const badge =
+                s.id === "members" ? pendingRequestsCount :
+                s.id === "maintenance" ? desyncedCount : 0;
+              const badgeClass =
+                s.id === "maintenance"
+                  ? "bg-warning text-warning-foreground"
+                  : "bg-destructive text-destructive-foreground";
               return (
                 <li key={s.id}>
                   <button
@@ -69,7 +76,7 @@ export function AdminPanel({ group, isCreator, onSaved, pendingRequestsCount }: 
                     <Icon className="h-4 w-4 shrink-0" />
                     <span className="flex-1 truncate">{s.label}</span>
                     {badge > 0 && (
-                      <span className="rounded-full bg-destructive px-1.5 py-0.5 text-[10px] font-bold text-destructive-foreground">{badge}</span>
+                      <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${badgeClass}`}>{badge}</span>
                     )}
                   </button>
                 </li>
@@ -91,7 +98,7 @@ export function AdminPanel({ group, isCreator, onSaved, pendingRequestsCount }: 
           )}
           {section === "engagement" && <InviteEngagementReport groupId={group.id} />}
           {section === "audit" && <AuditPanel groupId={group.id} />}
-          {section === "maintenance" && <MaintenancePanel groupId={group.id} />}
+          {section === "maintenance" && <MaintenancePanel groupId={group.id} onCountChange={setDesyncedCount} />}
           {section === "og-cache" && isCreator && <OgCacheStatsPanel />}
           {section === "advanced" && (
             <AdvancedSection group={group} isCreator={isCreator} onSaved={onSaved} />
