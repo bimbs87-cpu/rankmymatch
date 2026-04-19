@@ -1,18 +1,16 @@
-// Minimal service worker required for PWA install prompt on Chrome/Android.
-// IMPORTANT: never intercept OAuth callbacks — they must go straight to network.
-// Bumping the version string forces old service workers to update.
-const SW_VERSION = "v4-2026-04-17-ios-safe";
+// Service worker for RankMyMatch.
+// Keeps a pure pass-through fetch handler (required for the PWA install prompt
+// without ever intercepting OAuth) and adds Web Push support for round
+// notifications (lista aberta, registrar resultado, etc).
+const SW_VERSION = "v5-2026-04-19-push";
 
 self.addEventListener("install", () => {
-  // Activate immediately, replacing any older version.
   self.skipWaiting();
 });
 
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     (async () => {
-      // Clear ALL caches left behind by previous SW versions — old cached
-      // OAuth/login responses were preventing fresh sign-ins.
       const keys = await caches.keys();
       await Promise.all(keys.map((k) => caches.delete(k)));
       await self.clients.claim();
@@ -20,12 +18,66 @@ self.addEventListener("activate", (event) => {
   );
 });
 
-// Pure pass-through: do NOT call event.respondWith() for ANY request.
-// The only reason this SW exists is so Chrome/Edge will offer the PWA install
-// prompt (which requires a registered SW with a fetch handler). We never
-// want to intercept — especially OAuth callbacks on /~oauth which iOS Safari
-// is extremely sensitive about.
+// Pure pass-through. Never call event.respondWith.
 self.addEventListener("fetch", () => {
-  // Intentionally empty — browser handles the request normally.
   return;
+});
+
+// ---- Web Push ----
+self.addEventListener("push", (event) => {
+  let payload = {};
+  try {
+    payload = event.data ? event.data.json() : {};
+  } catch {
+    payload = { title: "RankMyMatch", body: event.data ? event.data.text() : "" };
+  }
+
+  const title = payload.title || "RankMyMatch";
+  const options = {
+    body: payload.body || "",
+    icon: payload.icon || "/favicon.ico",
+    badge: payload.badge || "/favicon.ico",
+    tag: payload.tag || payload.type || "rankmymatch",
+    renotify: true,
+    data: {
+      url: payload.url || "/",
+      ...(payload.data || {}),
+    },
+  };
+
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const targetUrl = (event.notification.data && event.notification.data.url) || "/";
+
+  event.waitUntil(
+    (async () => {
+      const allClients = await self.clients.matchAll({
+        type: "window",
+        includeUncontrolled: true,
+      });
+      // Focus an existing tab if same origin, otherwise open a new one.
+      for (const client of allClients) {
+        try {
+          const u = new URL(client.url);
+          if (u.origin === self.location.origin) {
+            await client.focus();
+            if ("navigate" in client) {
+              try {
+                await client.navigate(targetUrl);
+              } catch {
+                /* ignore */
+              }
+            }
+            return;
+          }
+        } catch {
+          /* ignore */
+        }
+      }
+      await self.clients.openWindow(targetUrl);
+    })()
+  );
 });
