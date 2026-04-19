@@ -162,7 +162,7 @@ function ProfilePage() {
     setPrivacy(next);
     const { error } = await supabase
       .from("user_profiles")
-      .update({ privacy_settings: next })
+      .update({ privacy_settings: next as unknown as Record<string, boolean> })
       .eq("user_id", user.id);
     if (error) toast.error("Erro ao salvar privacidade");
     else {
@@ -353,7 +353,7 @@ function ProfilePage() {
 
       <AvatarPickerDialog
         open={avatarPickerOpen}
-        onClose={() => setAvatarPickerOpen(false)}
+        onOpenChange={(v) => setAvatarPickerOpen(v)}
         onSelect={handleAvatarSelect}
         currentAvatarUrl={profile.avatar_url}
         googlePhotoUrl={googlePhotoUrl}
