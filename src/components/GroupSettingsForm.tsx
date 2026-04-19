@@ -4,6 +4,8 @@ import { Globe, Lock, Save, Loader2, AlertTriangle, EyeOff, CheckCircle2, Trash2
 import { toast } from "sonner";
 import { GroupImageUpload } from "@/components/GroupImageUpload";
 import { useNavigate } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
+import { invalidateGroupOgCache } from "@/lib/og-cache.functions";
 
 interface Props {
   groupId: string;
@@ -29,6 +31,10 @@ export function GroupSettingsForm({
   onSaved,
 }: Props) {
   const navigate = useNavigate();
+  const invalidateGroupCache = useServerFn(invalidateGroupOgCache);
+  const clearOgCache = () => {
+    invalidateGroupCache({ data: { groupId } }).catch(() => {});
+  };
   const [name, setName] = useState(initName);
   const [description, setDescription] = useState(initDesc || "");
   const initialVis = initVisibility || (initPublic ? "public" : "private");
@@ -58,7 +64,12 @@ export function GroupSettingsForm({
       .eq("id", groupId);
 
     if (error) { toast.error("Erro ao salvar"); }
-    else { toast.success("Grupo atualizado!"); onSaved(); }
+    else {
+      toast.success("Grupo atualizado!");
+      // Name change → invalidate OG cache
+      if (name !== initName) clearOgCache();
+      onSaved();
+    }
     setSaving(false);
   };
 
@@ -70,11 +81,13 @@ export function GroupSettingsForm({
         onUploaded={async (url) => {
           await supabase.from("groups").update({ image_url: url }).eq("id", groupId);
           toast.success("Imagem atualizada!");
+          clearOgCache();
           onSaved();
         }}
         onRemoved={async () => {
           await supabase.from("groups").update({ image_url: null }).eq("id", groupId);
           toast.success("Imagem removida");
+          clearOgCache();
           onSaved();
         }}
       />

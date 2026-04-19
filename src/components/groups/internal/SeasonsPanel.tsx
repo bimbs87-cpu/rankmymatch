@@ -314,6 +314,11 @@ function SeasonStatusActions({ season, onChanged }: { season: any; onChanged: ()
         oldData: { status: season.status, end_date: season.end_date },
         newData: { status: "finished", end_date: patch.end_date ?? season.end_date },
       });
+      // Active season changed → invalidate group OG cache
+      try {
+        const { invalidateGroupOgCache } = await import("@/lib/og-cache.functions");
+        await invalidateGroupOgCache({ data: { groupId: season.group_id } });
+      } catch {}
       onChanged();
     }
     setBusy(false);
@@ -324,7 +329,14 @@ function SeasonStatusActions({ season, onChanged }: { season: any; onChanged: ()
     setBusy(true);
     const { error } = await supabase.from("seasons").update({ status: "active", updated_at: new Date().toISOString() }).eq("id", season.id);
     if (error) toast.error("Erro ao reabrir");
-    else { toast.success("Temporada reaberta"); onChanged(); }
+    else {
+      toast.success("Temporada reaberta");
+      try {
+        const { invalidateGroupOgCache } = await import("@/lib/og-cache.functions");
+        await invalidateGroupOgCache({ data: { groupId: season.group_id } });
+      } catch {}
+      onChanged();
+    }
     setBusy(false);
   };
 
