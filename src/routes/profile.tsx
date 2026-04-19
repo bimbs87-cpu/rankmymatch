@@ -5,6 +5,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { AvatarPickerDialog } from "@/components/AvatarPickerDialog";
 import { ProfileBody } from "@/components/ProfileBody";
 import { ShareProfileButton } from "@/components/ShareProfileButton";
+import { PushOptInCard } from "@/components/PushOptInCard";
+import { PushPreferencesCard } from "@/components/PushPreferencesCard";
 import {
   loadAggregatedProfile,
   loadAggregatedSummary,
@@ -493,26 +495,32 @@ function ProfilePage() {
           </button>
         }
         footer={
-          <div className="space-y-0.5 rounded-3xl border border-border bg-card p-1.5">
-            <MenuItem icon={<Settings className="h-4 w-4 text-muted-foreground" />} label="Editar Perfil" onClick={openEdit} />
-            <MenuItem icon={<Eye className="h-4 w-4 text-muted-foreground" />} label="Privacidade" onClick={() => setPrivacyOpen(true)} />
-            <MenuItem icon={<Award className="h-4 w-4 text-muted-foreground" />} label="Conquistas" onClick={() => toast.info("Em breve!")} />
-            <MenuItemLink to="/history" icon={<History className="h-4 w-4 text-muted-foreground" />} label="Histórico" />
-            <MenuItemLink to="/notifications" icon={<Bell className="h-4 w-4 text-muted-foreground" />} label="Notificações" />
-            <MenuItem
-              icon={resolved === "dark" ? <Moon className="h-4 w-4 text-muted-foreground" /> : <Sun className="h-4 w-4 text-muted-foreground" />}
-              label="Tema"
-              right={<span className="text-xs text-muted-foreground">{theme === "system" ? "Sistema" : theme === "dark" ? "Escuro" : "Claro"}</span>}
-              onClick={cycleTheme}
-            />
-            {canInstall && !isInstalled ? (
-              <MenuItem icon={<Download className="h-4 w-4 text-muted-foreground" />} label={isIos ? "Instalar (iOS)" : "Instalar app"} onClick={startInstall} />
-            ) : null}
-            <button onClick={handleLogout} className="mt-2 flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-destructive transition-colors hover:bg-destructive/10">
-              <LogOut className="h-4 w-4" />
-              <span className="flex-1 text-sm font-medium">Sair da conta</span>
-            </button>
-          </div>
+          <>
+            <div className="mb-3 space-y-3">
+              <PushOptInCard />
+              <PushPreferencesCard />
+            </div>
+            <div className="space-y-0.5 rounded-3xl border border-border bg-card p-1.5">
+              <MenuItem icon={<Settings className="h-4 w-4 text-muted-foreground" />} label="Editar Perfil" onClick={openEdit} />
+              <MenuItem icon={<Eye className="h-4 w-4 text-muted-foreground" />} label="Privacidade" onClick={() => setPrivacyOpen(true)} />
+              <MenuItem icon={<Award className="h-4 w-4 text-muted-foreground" />} label="Conquistas" onClick={() => toast.info("Em breve!")} />
+              <MenuItemLink to="/history" icon={<History className="h-4 w-4 text-muted-foreground" />} label="Histórico" />
+              <MenuItemLink to="/notifications" icon={<Bell className="h-4 w-4 text-muted-foreground" />} label="Notificações" />
+              <MenuItem
+                icon={resolved === "dark" ? <Moon className="h-4 w-4 text-muted-foreground" /> : <Sun className="h-4 w-4 text-muted-foreground" />}
+                label="Tema"
+                right={<span className="text-xs text-muted-foreground">{theme === "system" ? "Sistema" : theme === "dark" ? "Escuro" : "Claro"}</span>}
+                onClick={cycleTheme}
+              />
+              {canInstall && !isInstalled ? (
+                <MenuItem icon={<Download className="h-4 w-4 text-muted-foreground" />} label={isIos ? "Instalar (iOS)" : "Instalar app"} onClick={startInstall} />
+              ) : null}
+              <button onClick={handleLogout} className="mt-2 flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-destructive transition-colors hover:bg-destructive/10">
+                <LogOut className="h-4 w-4" />
+                <span className="flex-1 text-sm font-medium">Sair da conta</span>
+              </button>
+            </div>
+          </>
         }
       />
 

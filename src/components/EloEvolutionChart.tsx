@@ -82,6 +82,18 @@ export function EloEvolutionChart({
     setHoverMarker(null);
   }, [period, points]);
 
+  // If the dataset spans less than 30 days, the period selector is hidden.
+  // Force the filter back to "all" so we always show every point.
+  useEffect(() => {
+    if (points.length < 2) return;
+    const span =
+      new Date(points[points.length - 1].date).getTime() -
+      new Date(points[0].date).getTime();
+    if (span < 30 * 24 * 60 * 60 * 1000 && period !== "all") {
+      setPeriod("all");
+    }
+  }, [points, period]);
+
   const w = size.w;
   const h = size.h;
   // Responsive padding — generous on left for Y labels, room on right for marker labels
@@ -242,20 +254,29 @@ export function EloEvolutionChart({
           <span />
         )}
         <div className="flex items-center gap-1">
-          {PERIOD_LABELS.map((p) => (
-            <button
-              key={p.id}
-              type="button"
-              onClick={() => setPeriod(p.id)}
-              className={`rounded-full px-2.5 py-1 text-[10px] font-semibold transition-colors ${
-                period === p.id
-                  ? "bg-primary/15 text-primary"
-                  : "text-muted-foreground hover:bg-accent hover:text-foreground"
-              }`}
-            >
-              {p.label}
-            </button>
-          ))}
+          {(() => {
+            // Hide selector when filtering would never change anything:
+            // need at least 30 days of span to make 30d/90d/Tudo distinguishable.
+            if (points.length < 2) return null;
+            const oldestTs = new Date(points[0].date).getTime();
+            const newestTs = new Date(points[points.length - 1].date).getTime();
+            const spanMs = newestTs - oldestTs;
+            if (spanMs < 30 * 24 * 60 * 60 * 1000) return null;
+            return PERIOD_LABELS.map((p) => (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => setPeriod(p.id)}
+                className={`rounded-full px-2.5 py-1 text-[10px] font-semibold transition-colors ${
+                  period === p.id
+                    ? "bg-primary/15 text-primary"
+                    : "text-muted-foreground hover:bg-accent hover:text-foreground"
+                }`}
+              >
+                {p.label}
+              </button>
+            ));
+          })()}
         </div>
       </div>
 
