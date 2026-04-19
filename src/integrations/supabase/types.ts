@@ -14,6 +14,21 @@ export type Database = {
   }
   public: {
     Tables: {
+      app_admins: {
+        Row: {
+          created_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       audit_logs: {
         Row: {
           action: string
@@ -102,11 +117,42 @@ export type Database = {
           },
         ]
       }
+      bug_report_votes: {
+        Row: {
+          bug_report_id: string
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          bug_report_id: string
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          bug_report_id?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bug_report_votes_bug_report_id_fkey"
+            columns: ["bug_report_id"]
+            isOneToOne: false
+            referencedRelation: "bug_reports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bug_reports: {
         Row: {
+          admin_notes: string | null
           created_at: string
           description: string
           id: string
+          is_public: boolean
           priority: string
           route: string | null
           screenshot_url: string | null
@@ -117,9 +163,11 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          admin_notes?: string | null
           created_at?: string
           description: string
           id?: string
+          is_public?: boolean
           priority?: string
           route?: string | null
           screenshot_url?: string | null
@@ -130,9 +178,11 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          admin_notes?: string | null
           created_at?: string
           description?: string
           id?: string
+          is_public?: boolean
           priority?: string
           route?: string | null
           screenshot_url?: string | null
@@ -1685,6 +1735,7 @@ export type Database = {
     }
     Functions: {
       get_group_member_count: { Args: { _group_id: string }; Returns: number }
+      is_app_admin: { Args: { _user_id: string }; Returns: boolean }
       is_group_admin: {
         Args: { _group_id: string; _user_id: string }
         Returns: boolean
