@@ -15,6 +15,7 @@ import { usePendingMatch } from "@/hooks/use-pending-matches";
 import { PendingMatchCard } from "@/components/PendingMatchCard";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { InstallBanner } from "@/components/InstallBanner";
+import { PushOptInBanner } from "@/components/PushOptInBanner";
 import { EloEvolutionChart } from "@/components/EloEvolutionChart";
 import { supabase } from "@/integrations/supabase/client";
 import { isPresenceOpen, getPresenceOpenDate, formatPresenceOpenDate } from "@/lib/presence-schedule";
@@ -1278,6 +1279,11 @@ function DashboardPage() {
 
       {/* PWA Install Banner */}
       <InstallBanner />
+
+      {/* Push notification opt-in (discreet, dismissible for 7 days) */}
+      <div className="px-5 pt-3">
+        <PushOptInBanner />
+      </div>
 
       <div className="space-y-5 px-5 pt-5 lg:grid lg:grid-cols-12 lg:grid-rows-[auto_1fr_auto] lg:gap-6 lg:space-y-0">
         {/* Season switcher button — above the ranking card (mobile) / between Ranking and Evolução do Elo (desktop) */}
