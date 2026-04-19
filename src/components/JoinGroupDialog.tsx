@@ -147,7 +147,11 @@ export function JoinGroupDialog({
         insertData.claimed_player_kind = selected.kind;
       }
 
-      const { error } = await supabase.from("group_join_requests").insert(insertData);
+      const { data: insertedReq, error } = await supabase
+        .from("group_join_requests")
+        .insert(insertData)
+        .select("id")
+        .maybeSingle();
       if (error) {
         if (error.message?.includes("duplicate")) {
           toast.error("Você já é membro ou já solicitou.");
@@ -176,8 +180,12 @@ export function JoinGroupDialog({
           type: "join_request",
           title: "Nova solicitação de entrada",
           body,
-          url: `/groups/${groupId}`,
-          data: selected ? { claimed_player_id: selected.user_id } : {},
+          url: `/admin/inbox`,
+          data: {
+            kind: "join_request",
+            requestId: insertedReq?.id || null,
+            ...(selected ? { claimed_player_id: selected.user_id } : {}),
+          },
         });
       } catch (notifyErr) {
         console.warn("notifyGroupAdmins (join) falhou:", notifyErr);
