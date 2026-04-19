@@ -501,6 +501,33 @@ function GroupSeasonsPage() {
             {/* Step 1: Choose type */}
             {step === "type" && (
               <div key="step-type" className={`space-y-3 ${stepDir === "forward" ? "animate-step-forward" : "animate-step-back"}`}>
+                {/* Quick-start preset for in-progress seasons */}
+                <button
+                  onClick={() => {
+                    setIsRetroactive(true);
+                    setStartDate(toISODate(new Date()));
+                    setRoundsPlayed(0);
+                    setDurationType("weekly");
+                    setSelectedDay(new Date().getDay());
+                    goStep("config", "forward");
+                  }}
+                  className="w-full rounded-2xl border border-primary/40 bg-gradient-to-br from-primary/15 to-primary/5 p-4 text-left transition-colors active:scale-[0.99]"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/20">
+                      <Trophy className="h-5 w-5 text-primary" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm font-bold text-foreground">Temporada já em andamento ⚡</p>
+                      <p className="text-xs text-muted-foreground">Começa hoje · permite datas retroativas</p>
+                    </div>
+                  </div>
+                </button>
+
+                <p className="px-1 pt-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  Ou planeje uma nova
+                </p>
+
                 <button
                   onClick={() => handleSelectType("weekly")}
                   className="w-full rounded-2xl border border-border bg-background p-4 text-left transition-colors active:bg-accent/30"
@@ -771,7 +798,7 @@ function GroupSeasonsPage() {
                         <div className="flex items-center gap-3">
                           <input
                             type="range"
-                            min={1}
+                            min={0}
                             max={Math.max(1, totalRounds - 1)}
                             value={roundsPlayed}
                             onChange={(e) => setRoundsPlayed(Number(e.target.value))}
@@ -780,7 +807,9 @@ function GroupSeasonsPage() {
                           <span className="w-10 text-center font-display text-lg font-bold text-foreground">{roundsPlayed}</span>
                         </div>
                         <p className="mt-1 text-[10px] text-muted-foreground">
-                          {roundsPlayed} rodada(s) no passado + {totalRounds - roundsPlayed} futuras
+                          {roundsPlayed === 0
+                            ? `Começa hoje · ${totalRounds} rodadas futuras`
+                            : `${roundsPlayed} rodada(s) no passado + ${totalRounds - roundsPlayed} futuras`}
                         </p>
                       </div>
                     </div>

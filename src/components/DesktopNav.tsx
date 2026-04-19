@@ -5,6 +5,7 @@ import { useAdminPendingCount } from "@/hooks/use-admin-pending-count";
 import { useUserProfile } from "@/hooks/use-user-profile";
 import { useTheme } from "@/lib/theme";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
+import { NotificationsPopover } from "@/components/NotificationsPopover";
 import logoSymbolNeon from "@/assets/logo-symbol-neon.png";
 import logoSymbolBlack from "@/assets/logo-symbol-black.png";
 
@@ -84,18 +85,19 @@ export function DesktopNav() {
               </span>
             </Link>
           )}
-          <Link
-            to="/notifications"
-            className="relative rounded-full border border-border bg-card p-2.5 transition-colors hover:bg-accent"
-            aria-label={totalBadge > 0 ? `${totalBadge} notificações` : "Notificações"}
-          >
-            <Bell className="h-4 w-4 text-muted-foreground" />
-            {unreadCount > 0 && (
-              <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[9px] font-bold text-destructive-foreground">
-                {unreadCount > 9 ? "9+" : unreadCount}
-              </span>
-            )}
-          </Link>
+          <NotificationsPopover>
+            <button
+              aria-label={totalBadge > 0 ? `${totalBadge} notificações` : "Notificações"}
+              className="relative rounded-full border border-border bg-card p-2.5 transition-colors hover:bg-accent"
+            >
+              <Bell className="h-4 w-4 text-muted-foreground" />
+              {unreadCount > 0 && (
+                <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[9px] font-bold text-destructive-foreground">
+                  {unreadCount > 9 ? "9+" : unreadCount}
+                </span>
+              )}
+            </button>
+          </NotificationsPopover>
         </div>
       </div>
     </header>

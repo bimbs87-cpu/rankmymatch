@@ -45,6 +45,7 @@ import {
 } from "@/components/ui/dialog";
 import { useTheme } from "@/lib/theme";
 import { DEFAULT_PRIVACY, parsePrivacy, type PrivacySettings } from "@/components/PlayerProfileViewer";
+import { SPORTS, normalizeSportKey, type SportKey } from "@/lib/sport-shots";
 
 export const Route = createFileRoute("/profile")({
   head: () => ({
@@ -66,17 +67,8 @@ const POSITION_OPTIONS = [
   { value: "left", label: "Esquerda" },
   { value: "right", label: "Direita" },
 ];
-const SHOT_OPTIONS = [
-  { value: "none", label: "Nenhum" },
-  { value: "bandeja", label: "Bandeja" },
-  { value: "vibora", label: "Víbora" },
-  { value: "smash", label: "Smash" },
-  { value: "lob", label: "Lob" },
-  { value: "chiquita", label: "Chiquita" },
-  { value: "rulo", label: "Rulo" },
-  { value: "bajada", label: "Bajada" },
-  { value: "gancho", label: "Gancho" },
-];
+// Shot options are now sport-aware; loaded dynamically based on the user's
+// active sport tab (from `useUserSports` below). See `src/lib/sport-shots.ts`.
 
 type AccentKey = "emerald" | "amber" | "sky" | "rose" | "violet" | "slate";
 const ACCENT_OPTIONS: { key: AccentKey; label: string; cls: string }[] = [
@@ -116,6 +108,11 @@ function ProfilePage() {
   const [editAccent, setEditAccent] = useState<AccentKey | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [privacy, setPrivacy] = useState<PrivacySettings>(DEFAULT_PRIVACY);
+  // Sport-aware shot picker — derived from groups the user belongs to.
+  const [userSports, setUserSports] = useState<SportKey[]>(["padel"]);
+  const [activeSportTab, setActiveSportTab] = useState<SportKey>("padel");
+  const sportConfig = SPORTS[activeSportTab];
+  const hasDoublesSport = userSports.some((s) => !SPORTS[s].isSinglesOnly);
 
   useEffect(() => {
     if (!isAuthenticated && !isLoading) navigate({ to: "/login" });
@@ -124,10 +121,16 @@ function ProfilePage() {
   const reload = async () => {
     if (!user) return;
     setLoadingProfile(true);
-    const [p, s, h] = await Promise.all([
+    const [p, s, h, sportsRes] = await Promise.all([
       loadAggregatedProfile(user.id),
       loadAggregatedSummary(user.id),
       loadEloHistory(user.id),
+      // Distinct sports across the user's active groups.
+      supabase
+        .from("group_members")
+        .select("groups(sport)")
+        .eq("user_id", user.id)
+        .eq("status", "active"),
     ]);
     if (p) {
       setProfile(p);
@@ -135,6 +138,13 @@ function ProfilePage() {
     }
     setSummary(s);
     setEloHistory(h);
+    const rows = (sportsRes.data || []) as { groups: { sport: string | null } | null }[];
+    const distinct = Array.from(
+      new Set(rows.map((r) => normalizeSportKey(r.groups?.sport)).filter(Boolean) as SportKey[]),
+    );
+    const sports: SportKey[] = distinct.length ? distinct : ["padel"];
+    setUserSports(sports);
+    setActiveSportTab((prev) => (sports.includes(prev) ? prev : sports[0]));
     setLoadingProfile(false);
   };
 
@@ -373,23 +383,47 @@ function ProfilePage() {
             <Sparkles className="h-4 w-4" />
             Pré-visualizar card de compartilhamento
           </button>
-          <Field label="Posição preferida">
-            <div className="flex gap-2">
-              {POSITION_OPTIONS.map((o) => (
-                <ToggleBtn key={o.value} active={editPosition === o.value} onClick={() => setEditPosition(o.value)}>{o.label}</ToggleBtn>
-              ))}
-            </div>
-          </Field>
-          <Field label="Golpe matador 💥">
+          {/* Sport tabs — only when user belongs to multiple sports */}
+          {userSports.length > 1 && (
+            <Field label="Esporte (para os campos abaixo)">
+              <div className="flex flex-wrap gap-1.5">
+                {userSports.map((s) => (
+                  <button
+                    key={s}
+                    type="button"
+                    onClick={() => setActiveSportTab(s)}
+                    className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${
+                      activeSportTab === s
+                        ? "border-primary bg-primary/10 text-primary"
+                        : "border-border bg-card text-muted-foreground"
+                    }`}
+                  >
+                    {SPORTS[s].label}
+                  </button>
+                ))}
+              </div>
+            </Field>
+          )}
+          {/* Court side: only for sports played in pairs (padel/beach tennis/pickleball) */}
+          {sportConfig.hasCourtSide && hasDoublesSport && (
+            <Field label="Posição preferida na quadra">
+              <div className="flex gap-2">
+                {POSITION_OPTIONS.map((o) => (
+                  <ToggleBtn key={o.value} active={editPosition === o.value} onClick={() => setEditPosition(o.value)}>{o.label}</ToggleBtn>
+                ))}
+              </div>
+            </Field>
+          )}
+          <Field label={`Golpe matador 💥 · ${sportConfig.label}`}>
             <div className="flex flex-wrap gap-2">
-              {SHOT_OPTIONS.map((o) => (
+              {sportConfig.shots.map((o) => (
                 <Pill key={o.value} active={editKillerShot === o.value} onClick={() => setEditKillerShot(o.value)}>{o.label}</Pill>
               ))}
             </div>
           </Field>
-          <Field label="Ponto fraco 😅">
+          <Field label={`Ponto fraco 😅 · ${sportConfig.label}`}>
             <div className="flex flex-wrap gap-2">
-              {SHOT_OPTIONS.map((o) => (
+              {sportConfig.shots.map((o) => (
                 <Pill key={o.value} active={editWorstShot === o.value} onClick={() => setEditWorstShot(o.value)} tone="destructive">{o.label}</Pill>
               ))}
             </div>

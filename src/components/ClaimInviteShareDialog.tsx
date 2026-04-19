@@ -258,7 +258,9 @@ export function ClaimInviteShareDialog({
       const waUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
       if (navigator.share) {
         try {
-          await navigator.share({ title: `Convite para ${sample.name}`, text: message, url });
+          // IMPORTANT: do NOT pass `url` separately — the link is already in `text`,
+          // and some apps (WhatsApp) append the `url` causing the link to appear twice.
+          await navigator.share({ title: `Convite para ${sample.name}`, text: message });
         } catch {
           window.open(waUrl, "_blank");
         }
