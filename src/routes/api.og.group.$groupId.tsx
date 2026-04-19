@@ -25,9 +25,26 @@ function getSupabaseAdmin() {
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type",
+  "Access-Control-Allow-Methods": "GET, DELETE, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization",
 } as const;
+
+/**
+ * Deletes all cached PNGs for a given group from the og-cache bucket.
+ * Returns the number of removed files. Safe to call repeatedly.
+ */
+async function clearGroupOgCache(groupId: string): Promise<number> {
+  const sb = getSupabaseAdmin();
+  const { data: list } = await sb.storage
+    .from("og-cache")
+    .list("og-group", { limit: 100, search: groupId });
+  const targets = (list || [])
+    .filter((f) => f.name.startsWith(`${groupId}_`))
+    .map((f) => `og-group/${f.name}`);
+  if (targets.length === 0) return 0;
+  await sb.storage.from("og-cache").remove(targets);
+  return targets.length;
+}
 
 function escapeXml(s: string): string {
   return s
