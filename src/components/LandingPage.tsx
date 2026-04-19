@@ -205,7 +205,7 @@ export function LandingPage() {
             <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-border/60 bg-card/40 px-3 py-1 backdrop-blur-sm">
               <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
               <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-                Para feirinha, clube e amigos
+                Para feirinos, clube e amigos
               </span>
             </div>
 
