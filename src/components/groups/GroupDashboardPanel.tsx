@@ -21,6 +21,7 @@ import {
   Check,
   X as XIcon,
   Inbox,
+  Link2,
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
