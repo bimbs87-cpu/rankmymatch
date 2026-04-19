@@ -12,6 +12,7 @@ import { PlayerClaimsManager } from "@/components/PlayerClaimsManager";
 import { GroupCardPreview } from "@/components/groups/GroupCardPreview";
 import { InviteEngagementReport } from "@/components/groups/internal/InviteEngagementReport";
 import { AuditPanel } from "@/components/groups/internal/AuditPanel";
+import { MaintenancePanel } from "@/components/groups/internal/MaintenancePanel";
 import { OgCacheStatsPanel } from "@/components/groups/internal/OgCacheStatsPanel";
 import { useGroupDetail, approveJoinRequest, rejectJoinRequest } from "@/hooks/use-groups";
 import { useAuth } from "@/hooks/use-auth";
