@@ -54,13 +54,14 @@ interface OgData {
   bestPosition: number | null;
   avatarUrl: string | null;
   form: FormState;
+  tagline: string | null;
 }
 
 async function getPlayerOgData(userId: string): Promise<{ data: OgData | null; cacheKey: string }> {
   const sb = getSupabaseAdmin();
   const { data: profile } = await sb
     .from("user_profiles")
-    .select("name, nickname, avatar_url")
+    .select("name, nickname, avatar_url, share_tagline")
     .eq("user_id", userId)
     .maybeSingle();
 
@@ -110,6 +111,12 @@ async function getPlayerOgData(userId: string): Promise<{ data: OgData | null; c
     lastEventTs = String(new Date(events[0].created_at).getTime());
   }
 
+  const tagline = (profile.share_tagline || "").trim() || null;
+  // Hash tagline into cache key so changes invalidate cache
+  const taglineHash = tagline
+    ? Array.from(tagline).reduce((h, c) => ((h << 5) - h + c.charCodeAt(0)) | 0, 0).toString(36)
+    : "n";
+
   return {
     data: {
       name: profile.nickname?.trim() || profile.name || "Jogador",
@@ -117,8 +124,9 @@ async function getPlayerOgData(userId: string): Promise<{ data: OgData | null; c
       bestPosition,
       avatarUrl: profile.avatar_url || null,
       form,
+      tagline,
     },
-    cacheKey: lastEventTs,
+    cacheKey: `${lastEventTs}_${taglineHash}`,
   };
 }
 
@@ -166,12 +174,14 @@ function buildSvg(opts: {
   bestPos: number | null;
   avatarDataUri: string | null;
   form: FormState;
+  tagline: string | null;
 }): string {
   const name = escapeXml(truncate(opts.name, 24));
   const elo = opts.elo != null ? String(opts.elo) : "—";
   const bestPos = opts.bestPos != null ? `#${opts.bestPos}` : "—";
   const badge = formBadgeMarkup(opts.form);
   const badgeLabel = escapeXml(badge.label);
+  const tagline = opts.tagline ? escapeXml(truncate(opts.tagline, 60)) : null;
 
   const avatarBlock = opts.avatarDataUri
     ? `<g transform="translate(80, 200)">
@@ -217,6 +227,11 @@ function buildSvg(opts: {
       <rect width="${badgeLabel.length * 16 + 60}" height="44" rx="22" fill="${badge.bg}"/>
       <text x="30" y="29" font-size="20" font-weight="800" fill="${badge.fg}" letter-spacing="2">${badgeLabel}</text>
     </g>
+    ${
+      tagline
+        ? `<text x="300" y="385" font-size="26" font-style="italic" font-weight="500" fill="#cbd5e1">"${tagline}"</text>`
+        : ""
+    }
 
     <g transform="translate(80, 430)">
       <rect width="500" height="150" rx="24" fill="#1a201f" stroke="#2a312f" stroke-width="2"/>
@@ -240,6 +255,7 @@ function buildFallbackSvg(): string {
     bestPos: null,
     avatarDataUri: null,
     form: "stable",
+    tagline: null,
   });
 }
 
@@ -319,6 +335,49 @@ export const Route = createFileRoute("/api/og/player/$userId")({
           });
         }
       },
+      // Owner-only: deletes the cached PNG so the next render is fresh.
+      // Useful right after avatar/profile changes.
+      DELETE: async ({ params, request }) => {
+        try {
+          const auth = request.headers.get("authorization") || "";
+          const token = auth.startsWith("Bearer ") ? auth.slice(7) : null;
+          if (!token) {
+            return new Response(JSON.stringify({ error: "Missing auth" }), {
+              status: 401,
+              headers: { "Content-Type": "application/json", ...CORS_HEADERS },
+            });
+          }
+          // Validate token with admin client
+          const sb = getSupabaseAdmin();
+          const { data: userResp } = await sb.auth.getUser(token);
+          if (!userResp?.user || userResp.user.id !== params.userId) {
+            return new Response(JSON.stringify({ error: "Forbidden" }), {
+              status: 403,
+              headers: { "Content-Type": "application/json", ...CORS_HEADERS },
+            });
+          }
+          // List and delete all cached files for this user
+          const { data: list } = await sb.storage
+            .from("og-cache")
+            .list("og", { limit: 100, search: params.userId });
+          const targets = (list || [])
+            .filter((f) => f.name.startsWith(`${params.userId}_`))
+            .map((f) => `og/${f.name}`);
+          if (targets.length > 0) {
+            await sb.storage.from("og-cache").remove(targets);
+          }
+          return new Response(JSON.stringify({ deleted: targets.length }), {
+            status: 200,
+            headers: { "Content-Type": "application/json", ...CORS_HEADERS },
+          });
+        } catch (e) {
+          console.error("og DELETE error:", e);
+          return new Response(JSON.stringify({ error: "Internal" }), {
+            status: 500,
+            headers: { "Content-Type": "application/json", ...CORS_HEADERS },
+          });
+        }
+      },
       GET: async ({ params, request }) => {
         const reqUrl = new URL(request.url);
         const formatParam = reqUrl.searchParams.get("format");
@@ -330,6 +389,16 @@ export const Route = createFileRoute("/api/og/player/$userId")({
           ...CORS_HEADERS,
         };
 
+        // Fire-and-forget logger (HIT/MISS) — never blocks the response.
+        const logRender = (status: "HIT" | "MISS") => {
+          try {
+            const sb = getSupabaseAdmin();
+            void sb.from("og_render_events").insert({ user_id: params.userId, status });
+          } catch {
+            // ignore
+          }
+        };
+
         try {
           const fetched = await getPlayerOgData(params.userId);
           const data = fetched.data || {
@@ -338,12 +407,13 @@ export const Route = createFileRoute("/api/og/player/$userId")({
             bestPosition: null,
             avatarUrl: null,
             form: "stable" as FormState,
+            tagline: null,
           };
           const cacheKey = fetched.cacheKey;
 
           // Try Storage cache first (only for default PNG flow). 6h TTL.
-          // Cache key format: og/{userId}_{lastEventTs}.png — changes when player
-          // plays a new match, invalidating stale cards.
+          // Cache key format: og/{userId}_{lastEventTs}_{taglineHash}.png — changes
+          // when player plays a new match OR updates their share tagline.
           const wantsCachedPng = !wantSvg;
           const cacheObjectPath = `og/${params.userId}_${cacheKey}.png`;
           if (wantsCachedPng) {
@@ -354,6 +424,7 @@ export const Route = createFileRoute("/api/og/player/$userId")({
                 .download(cacheObjectPath);
               if (existing) {
                 const buf = await existing.arrayBuffer();
+                logRender("HIT");
                 return new Response(buf, {
                   status: 200,
                   headers: {
@@ -376,6 +447,7 @@ export const Route = createFileRoute("/api/og/player/$userId")({
             bestPos: data.bestPosition,
             avatarDataUri,
             form: data.form,
+            tagline: data.tagline,
           });
 
           if (wantSvg) {
@@ -391,8 +463,6 @@ export const Route = createFileRoute("/api/og/player/$userId")({
             // Fire-and-forget cache write (don't block response). 6h TTL.
             try {
               const sb = getSupabaseAdmin();
-              // upload returns a promise; we await briefly to ensure the request
-              // doesn't get killed before write starts on Workers.
               await sb.storage.from("og-cache").upload(cacheObjectPath, png as unknown as Blob, {
                 contentType: "image/png",
                 upsert: true,
@@ -401,6 +471,7 @@ export const Route = createFileRoute("/api/og/player/$userId")({
             } catch (e) {
               console.error("og cache write failed:", e);
             }
+            logRender("MISS");
             return new Response(png as unknown as BodyInit, {
               status: 200,
               headers: {

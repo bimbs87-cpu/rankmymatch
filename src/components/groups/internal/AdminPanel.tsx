@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import {
   Settings2, Bell, Users, Link2, AlertTriangle, Save, Loader2, Globe, Lock, EyeOff,
-  CheckCircle2, Trash2, BarChart3, ScrollText,
+  CheckCircle2, Trash2, BarChart3, ScrollText, Image as ImageIcon,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,11 +12,12 @@ import { PlayerClaimsManager } from "@/components/PlayerClaimsManager";
 import { GroupCardPreview } from "@/components/groups/GroupCardPreview";
 import { InviteEngagementReport } from "@/components/groups/internal/InviteEngagementReport";
 import { AuditPanel } from "@/components/groups/internal/AuditPanel";
+import { OgCacheStatsPanel } from "@/components/groups/internal/OgCacheStatsPanel";
 import { useGroupDetail, approveJoinRequest, rejectJoinRequest } from "@/hooks/use-groups";
 import { useAuth } from "@/hooks/use-auth";
 import { startRenewalCheckout, salesWhatsAppUrl } from "@/lib/payment-provider";
 
-type Section = "general" | "presence" | "members" | "invites" | "engagement" | "audit" | "advanced";
+type Section = "general" | "presence" | "members" | "invites" | "engagement" | "audit" | "og-cache" | "advanced";
 
 interface Props {
   group: any;
@@ -26,13 +27,14 @@ interface Props {
   pendingRequestsCount: number;
 }
 
-const SECTIONS: { id: Section; label: string; icon: typeof Settings2 }[] = [
+const SECTIONS: { id: Section; label: string; icon: typeof Settings2; creatorOnly?: boolean }[] = [
   { id: "general", label: "Geral", icon: Settings2 },
   { id: "presence", label: "Presença", icon: Bell },
   { id: "members", label: "Membros & vínculos", icon: Users },
   { id: "invites", label: "Convites", icon: Link2 },
   { id: "engagement", label: "Engajamento", icon: BarChart3 },
   { id: "audit", label: "Auditoria", icon: ScrollText },
+  { id: "og-cache", label: "Cache OG", icon: ImageIcon, creatorOnly: true },
   { id: "advanced", label: "Avançado", icon: AlertTriangle },
 ];
 
@@ -50,7 +52,7 @@ export function AdminPanel({ group, isCreator, onSaved, pendingRequestsCount }: 
       <div className="grid gap-4 lg:grid-cols-[220px_1fr]">
         <nav className="rounded-2xl border border-border bg-card p-2 lg:sticky lg:top-4 lg:self-start">
           <ul className="space-y-1">
-            {SECTIONS.map((s) => {
+            {SECTIONS.filter((s) => !s.creatorOnly || isCreator).map((s) => {
               const Icon = s.icon;
               const active = section === s.id;
               const badge = s.id === "members" ? pendingRequestsCount : 0;
@@ -87,6 +89,7 @@ export function AdminPanel({ group, isCreator, onSaved, pendingRequestsCount }: 
           )}
           {section === "engagement" && <InviteEngagementReport groupId={group.id} />}
           {section === "audit" && <AuditPanel groupId={group.id} />}
+          {section === "og-cache" && isCreator && <OgCacheStatsPanel />}
           {section === "advanced" && (
             <AdvancedSection group={group} isCreator={isCreator} onSaved={onSaved} />
           )}

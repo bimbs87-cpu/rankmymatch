@@ -9,8 +9,10 @@
 import { useEffect, useRef, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import QRCode from "qrcode";
-import { Copy, Check, Share2, X, Download, ImageIcon, ImageDown } from "lucide-react";
+import { Copy, Check, Share2, X, Download, ImageIcon, ImageDown, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
+import { useServerFn } from "@tanstack/react-start";
+import { invalidateOwnOgCache } from "@/lib/og-cache.functions";
 
 interface Props {
   open: boolean;
@@ -29,8 +31,11 @@ export function QrShareDialog({ open, onOpenChange, url, playerName, userId, isO
   const [ogError, setOgError] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const [copyingImg, setCopyingImg] = useState(false);
+  const [clearingCache, setClearingCache] = useState(false);
   const [cacheStatus, setCacheStatus] = useState<"HIT" | "MISS" | "UNKNOWN" | null>(null);
+  const [ogVersion, setOgVersion] = useState(0); // bump to force <img> reload after invalidation
   const ogImgRef = useRef<HTMLImageElement>(null);
+  const invalidateOgCache = useServerFn(invalidateOwnOgCache);
 
   useEffect(() => {
     if (!open) {
@@ -48,7 +53,10 @@ export function QrShareDialog({ open, onOpenChange, url, playerName, userId, isO
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch(`/api/og/player/${userId}`, { method: "HEAD", cache: "no-store" });
+        const res = await fetch(`/api/og/player/${userId}?_=${ogVersion}`, {
+          method: "HEAD",
+          cache: "no-store",
+        });
         const v = res.headers.get("X-Cache");
         if (cancelled) return;
         if (v === "HIT" || v === "MISS") setCacheStatus(v);
@@ -60,11 +68,36 @@ export function QrShareDialog({ open, onOpenChange, url, playerName, userId, isO
     return () => {
       cancelled = true;
     };
-  }, [open, isOwner, userId]);
+  }, [open, isOwner, userId, ogVersion]);
 
   if (!open) return null;
 
-  const ogImageUrl = `/api/og/player/${userId}`;
+  const ogImageUrl = ogVersion === 0
+    ? `/api/og/player/${userId}`
+    : `/api/og/player/${userId}?v=${ogVersion}`;
+
+  const handleClearCache = async () => {
+    if (clearingCache) return;
+    setClearingCache(true);
+    try {
+      const res = await invalidateOgCache();
+      toast.success(
+        res.deleted > 0
+          ? `Cache limpo (${res.deleted} arquivo${res.deleted === 1 ? "" : "s"})`
+          : "Nenhum cache para limpar",
+      );
+      // Force <img> reload + HEAD re-poll. Will refetch and trigger MISS.
+      setOgLoaded(false);
+      setOgError(false);
+      setCacheStatus(null);
+      setOgVersion((v) => v + 1);
+    } catch (e) {
+      console.error(e);
+      toast.error("Não foi possível limpar o cache");
+    } finally {
+      setClearingCache(false);
+    }
+  };
 
   const handleCopy = async () => {
     try {
@@ -334,6 +367,17 @@ export function QrShareDialog({ open, onOpenChange, url, playerName, userId, isO
               >
                 <Share2 className="h-3.5 w-3.5" />
                 Compartilhar
+              </button>
+            )}
+            {isOwner && (
+              <button
+                onClick={handleClearCache}
+                disabled={clearingCache}
+                className="col-span-2 inline-flex items-center justify-center gap-1.5 rounded-full border border-dashed border-border bg-transparent px-3 py-2 text-[11px] font-semibold text-muted-foreground transition hover:bg-accent hover:text-foreground disabled:opacity-60"
+                title="Apaga o PNG armazenado e força a geração de uma versão nova (útil após trocar avatar)."
+              >
+                <RefreshCw className={`h-3 w-3 ${clearingCache ? "animate-spin" : ""}`} />
+                {clearingCache ? "Limpando…" : "Limpar cache OG"}
               </button>
             )}
           </div>

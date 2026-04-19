@@ -84,6 +84,7 @@ function ProfilePage() {
   const [editKillerShot, setEditKillerShot] = useState("none");
   const [editWorstShot, setEditWorstShot] = useState("none");
   const [editInstagram, setEditInstagram] = useState("");
+  const [editTagline, setEditTagline] = useState("");
   const [privacy, setPrivacy] = useState<PrivacySettings>(DEFAULT_PRIVACY);
 
   useEffect(() => {
@@ -116,7 +117,7 @@ function ProfilePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
 
-  const openEdit = () => {
+  const openEdit = async () => {
     if (!profile) return;
     setEditName(profile.name || "");
     setEditNickname(profile.nickname || "");
@@ -125,6 +126,17 @@ function ProfilePage() {
     setEditKillerShot(profile.killer_shot || "none");
     setEditWorstShot(profile.worst_shot || "none");
     setEditInstagram(profile.instagram_handle || "");
+    // Tagline isn't on AggregatedProfile — fetch it directly.
+    if (user) {
+      const { data } = await supabase
+        .from("user_profiles")
+        .select("share_tagline")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      setEditTagline(data?.share_tagline || "");
+    } else {
+      setEditTagline("");
+    }
     setEditing(true);
   };
 
@@ -146,6 +158,7 @@ function ProfilePage() {
         killer_shot: editKillerShot,
         worst_shot: editWorstShot,
         instagram_handle: editInstagram.trim().replace(/^@/, "").slice(0, 30) || null,
+        share_tagline: editTagline.trim().slice(0, 60) || null,
       })
       .eq("user_id", user.id);
     if (error) {
@@ -235,6 +248,18 @@ function ProfilePage() {
                 <ToggleBtn key={o.value} active={editHand === o.value} onClick={() => setEditHand(o.value)}>{o.label}</ToggleBtn>
               ))}
             </div>
+          </Field>
+          <Field label="Frase no card de compartilhamento">
+            <input
+              value={editTagline}
+              onChange={(e) => setEditTagline(e.target.value.slice(0, 60))}
+              maxLength={60}
+              placeholder="Ex: Vamos jogar?"
+              className="w-full rounded-2xl border border-border bg-card px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/50 focus:border-primary focus:outline-none"
+            />
+            <p className="mt-1 text-[11px] text-muted-foreground">
+              Aparece como subtítulo no card que vai pro WhatsApp/Instagram. {editTagline.length}/60
+            </p>
           </Field>
           <Field label="Posição preferida">
             <div className="flex gap-2">

@@ -801,6 +801,27 @@ export type Database = {
           },
         ]
       }
+      og_render_events: {
+        Row: {
+          created_at: string
+          id: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          status: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       player_claims: {
         Row: {
           claimer_user_id: string
@@ -1287,6 +1308,7 @@ export type Database = {
           nickname: string | null
           preferred_position: string | null
           privacy_settings: Json
+          share_tagline: string | null
           updated_at: string | null
           user_id: string
           worst_shot: string | null
@@ -1306,6 +1328,7 @@ export type Database = {
           nickname?: string | null
           preferred_position?: string | null
           privacy_settings?: Json
+          share_tagline?: string | null
           updated_at?: string | null
           user_id: string
           worst_shot?: string | null
@@ -1325,6 +1348,7 @@ export type Database = {
           nickname?: string | null
           preferred_position?: string | null
           privacy_settings?: Json
+          share_tagline?: string | null
           updated_at?: string | null
           user_id?: string
           worst_shot?: string | null
