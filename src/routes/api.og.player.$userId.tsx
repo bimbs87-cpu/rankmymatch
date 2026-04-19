@@ -463,7 +463,7 @@ export const Route = createFileRoute("/api/og/player/$userId")({
           // Try Storage cache first (only for default PNG flow). 6h TTL.
           // Cache key format: og/{userId}_{lastEventTs}_{taglineHash}.png — changes
           // when player plays a new match OR updates their share tagline.
-          const wantsCachedPng = !wantSvg;
+          const wantsCachedPng = !wantSvg && !hasPreview;
           const cacheObjectPath = `og/${params.userId}_${cacheKey}.png`;
           if (wantsCachedPng) {
             try {
@@ -497,6 +497,7 @@ export const Route = createFileRoute("/api/og/player/$userId")({
             avatarDataUri,
             form: data.form,
             tagline: data.tagline,
+            accentColor: data.accentColor,
           });
 
           if (wantSvg) {
