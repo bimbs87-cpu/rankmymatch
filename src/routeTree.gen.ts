@@ -22,6 +22,7 @@ import { Route as CompararRouteImport } from './routes/comparar'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as GroupsIndexRouteImport } from './routes/groups.index'
 import { Route as RankingCompareRouteImport } from './routes/ranking_.compare'
+import { Route as PlayersUserIdRouteImport } from './routes/players.$userId'
 import { Route as InviteCodeRouteImport } from './routes/invite.$code'
 import { Route as GroupsGroupIdRouteImport } from './routes/groups.$groupId'
 import { Route as GroupsGroupIdIndexRouteImport } from './routes/groups.$groupId.index'
@@ -98,6 +99,11 @@ const RankingCompareRoute = RankingCompareRouteImport.update({
   path: '/ranking/compare',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PlayersUserIdRoute = PlayersUserIdRouteImport.update({
+  id: '/players/$userId',
+  path: '/players/$userId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const InviteCodeRoute = InviteCodeRouteImport.update({
   id: '/invite/$code',
   path: '/invite/$code',
@@ -167,6 +173,7 @@ export interface FileRoutesByFullPath {
   '/sistema': typeof SistemaRoute
   '/groups/$groupId': typeof GroupsGroupIdRouteWithChildren
   '/invite/$code': typeof InviteCodeRoute
+  '/players/$userId': typeof PlayersUserIdRoute
   '/ranking/compare': typeof RankingCompareRoute
   '/groups/': typeof GroupsIndexRoute
   '/groups/$groupId/duel': typeof GroupsGroupIdDuelRoute
@@ -190,6 +197,7 @@ export interface FileRoutesByTo {
   '/seasons': typeof SeasonsRoute
   '/sistema': typeof SistemaRoute
   '/invite/$code': typeof InviteCodeRoute
+  '/players/$userId': typeof PlayersUserIdRoute
   '/ranking/compare': typeof RankingCompareRoute
   '/groups': typeof GroupsIndexRoute
   '/groups/$groupId/duel': typeof GroupsGroupIdDuelRoute
@@ -214,6 +222,7 @@ export interface FileRoutesById {
   '/sistema': typeof SistemaRoute
   '/groups/$groupId': typeof GroupsGroupIdRouteWithChildren
   '/invite/$code': typeof InviteCodeRoute
+  '/players/$userId': typeof PlayersUserIdRoute
   '/ranking_/compare': typeof RankingCompareRoute
   '/groups/': typeof GroupsIndexRoute
   '/groups/$groupId/duel': typeof GroupsGroupIdDuelRoute
@@ -241,6 +250,7 @@ export interface FileRouteTypes {
     | '/sistema'
     | '/groups/$groupId'
     | '/invite/$code'
+    | '/players/$userId'
     | '/ranking/compare'
     | '/groups/'
     | '/groups/$groupId/duel'
@@ -264,6 +274,7 @@ export interface FileRouteTypes {
     | '/seasons'
     | '/sistema'
     | '/invite/$code'
+    | '/players/$userId'
     | '/ranking/compare'
     | '/groups'
     | '/groups/$groupId/duel'
@@ -287,6 +298,7 @@ export interface FileRouteTypes {
     | '/sistema'
     | '/groups/$groupId'
     | '/invite/$code'
+    | '/players/$userId'
     | '/ranking_/compare'
     | '/groups/'
     | '/groups/$groupId/duel'
@@ -312,6 +324,7 @@ export interface RootRouteChildren {
   SeasonsRoute: typeof SeasonsRoute
   SistemaRoute: typeof SistemaRoute
   InviteCodeRoute: typeof InviteCodeRoute
+  PlayersUserIdRoute: typeof PlayersUserIdRoute
   RankingCompareRoute: typeof RankingCompareRoute
 }
 
@@ -406,6 +419,13 @@ declare module '@tanstack/react-router' {
       path: '/ranking/compare'
       fullPath: '/ranking/compare'
       preLoaderRoute: typeof RankingCompareRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/players/$userId': {
+      id: '/players/$userId'
+      path: '/players/$userId'
+      fullPath: '/players/$userId'
+      preLoaderRoute: typeof PlayersUserIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/invite/$code': {
@@ -557,6 +577,7 @@ const rootRouteChildren: RootRouteChildren = {
   SeasonsRoute: SeasonsRoute,
   SistemaRoute: SistemaRoute,
   InviteCodeRoute: InviteCodeRoute,
+  PlayersUserIdRoute: PlayersUserIdRoute,
   RankingCompareRoute: RankingCompareRoute,
 }
 export const routeTree = rootRouteImport
