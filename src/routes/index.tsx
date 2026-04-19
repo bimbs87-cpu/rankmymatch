@@ -1518,13 +1518,25 @@ function DashboardPage() {
                       }
                     : {};
 
+                  const myShort = (nickname?.trim() || displayName?.trim() || "Você").split(/\s+/)[0];
+                  const myTeamNames = m.partner_name ? `${myShort} & ${m.partner_name}` : myShort;
+                  const oppTeamNames = m.opponent_names.join(" & ");
+                  const winnerClass = "text-primary [text-shadow:0_0_10px_color-mix(in_oklab,var(--primary)_60%,transparent)]";
+                  const loserClass = "text-muted-foreground/60";
+
                   return (
                     <RowTag
                       key={m.id}
                       {...rowProps}
-                      className={`group/row relative flex items-stretch gap-3 px-4 py-1 transition-colors ${
+                      className={`group/row relative grid items-center gap-3 px-4 py-1 transition-colors ${
                         canLink ? "cursor-pointer hover:bg-accent/40" : ""
                       } ${isFirstOfGroup && idx > 0 ? "border-t border-border/50" : ""}`}
+                      style={{
+                        // Fixed columns so "vs" lands at the exact center of the row.
+                        // [date | score | myTeam → vs ← oppTeam | group/round | elo]
+                        gridTemplateColumns:
+                          "56px 72px minmax(0,1fr) auto minmax(0,1fr) 150px 56px",
+                      }}
                     >
                       {/* Same-round connector (left edge) */}
                       {sameAsPrev || sameAsNext ? (
@@ -1535,13 +1547,14 @@ function DashboardPage() {
                           }`}
                         />
                       ) : null}
+
                       {/* Date with colored bar (V/D indicator) */}
-                      <div className="flex shrink-0 items-stretch gap-2">
+                      <div className="flex items-stretch gap-2 self-stretch">
                         <div
                           className={`w-1 rounded-full ${won ? "bg-success" : "bg-destructive"}`}
                           aria-label={won ? "Vitória" : "Derrota"}
                         />
-                        <div className="flex flex-col justify-center min-w-[36px]">
+                        <div className="flex flex-col justify-center min-w-0">
                           {isFirstOfGroup ? (
                             <>
                               <p className="font-display text-base font-bold leading-none text-foreground tabular-nums">
@@ -1558,69 +1571,68 @@ function DashboardPage() {
                       </div>
 
                       {/* Score + match number */}
-                      <div className="shrink-0 flex flex-col justify-center min-w-[60px]">
-                        <div className="flex items-center gap-1.5">
-                          <p className="font-display text-base font-bold text-foreground tabular-nums">
-                            {m.score_display}
-                          </p>
-                          {m.match_number != null && (
-                            <span className="rounded-md bg-muted/60 px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground">
-                              #{m.match_number}
-                            </span>
-                          )}
-                        </div>
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <p className="font-display text-base font-bold text-foreground tabular-nums">
+                          {m.score_display}
+                        </p>
+                        {m.match_number != null && (
+                          <span className="rounded-md bg-muted/60 px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground">
+                            #{m.match_number}
+                          </span>
+                        )}
                       </div>
 
-                      {/* Confronto destacado no centro */}
-                      <div className="min-w-0 flex-1 flex items-center justify-center px-2">
-                        <p className="text-sm truncate text-center">
-                          {(() => {
-                            const myShort = (nickname?.trim() || displayName?.trim() || "Você").split(/\s+/)[0];
-                            const myTeamNames = m.partner_name ? `${myShort} & ${m.partner_name}` : myShort;
-                            const oppTeamNames = m.opponent_names.join(" & ");
-                            const winnerClass = "text-primary [text-shadow:0_0_10px_color-mix(in_oklab,var(--primary)_60%,transparent)]";
-                            const loserClass = "text-muted-foreground/60";
-                            return (
-                              <>
-                                <span className={won ? winnerClass : loserClass}>{myTeamNames}</span>
-                                {oppTeamNames && (
-                                  <>
-                                    <span className="text-muted-foreground mx-2">vs</span>
-                                    <span className={!won ? winnerClass : loserClass}>{oppTeamNames}</span>
-                                  </>
-                                )}
-                              </>
-                            );
-                          })()}
+                      {/* My team — right-aligned, abuts the centered "vs" */}
+                      <div className="min-w-0 text-right">
+                        <p className={`text-sm truncate ${won ? winnerClass : loserClass}`}>
+                          {myTeamNames}
                         </p>
                       </div>
 
-                      {/* Group + Round (clickable hint) */}
-                      <div className="shrink-0 text-right max-w-[160px] flex flex-col justify-center">
-                        {isFirstOfGroup && m.group_name && (
-                          <p className="text-[11px] font-semibold text-foreground/80 truncate">{m.group_name}</p>
-                        )}
-                        {isFirstOfGroup && m.round_number != null && (
-                          <p className="text-[10px] text-muted-foreground inline-flex items-center justify-end gap-0.5">
-                            Rodada {m.round_number}
-                            {canLink && (
-                              <ChevronRight className="h-3 w-3 opacity-0 transition-opacity group-hover/row:opacity-100" />
-                            )}
-                          </p>
-                        )}
+                      {/* "vs" — fixed center column */}
+                      <div className="px-2 text-sm text-muted-foreground select-none">
+                        vs
                       </div>
 
-                      {/* Elo delta */}
-                      {m.rating_change !== null && (
-                        <div className="shrink-0 text-right min-w-[52px] flex flex-col justify-center">
-                          <p className={`font-display text-base font-bold tabular-nums leading-none ${
-                            m.rating_change > 0 ? "text-success" : m.rating_change < 0 ? "text-destructive" : "text-muted-foreground"
-                          }`}>
-                            {m.rating_change > 0 ? "+" : ""}{Math.round(m.rating_change)}
-                          </p>
-                          <p className="mt-0.5 text-[9px] uppercase tracking-wider text-muted-foreground/70 leading-none">Elo</p>
-                        </div>
-                      )}
+                      {/* Opponent team — left-aligned, abuts the centered "vs" */}
+                      <div className="min-w-0 text-left">
+                        <p className={`text-sm truncate ${!won ? winnerClass : loserClass}`}>
+                          {oppTeamNames}
+                        </p>
+                      </div>
+
+                      {/* Group + Round — fixed column so it never displaces "vs" */}
+                      <div className="text-right min-w-0">
+                        {isFirstOfGroup ? (
+                          <>
+                            {m.group_name && (
+                              <p className="text-[11px] font-semibold text-foreground/80 truncate">{m.group_name}</p>
+                            )}
+                            {m.round_number != null && (
+                              <p className="text-[10px] text-muted-foreground inline-flex items-center justify-end gap-0.5">
+                                Rodada {m.round_number}
+                                {canLink && (
+                                  <ChevronRight className="h-3 w-3 opacity-0 transition-opacity group-hover/row:opacity-100" />
+                                )}
+                              </p>
+                            )}
+                          </>
+                        ) : null}
+                      </div>
+
+                      {/* Elo delta — fixed column */}
+                      <div className="text-right min-w-0">
+                        {m.rating_change !== null ? (
+                          <>
+                            <p className={`font-display text-base font-bold tabular-nums leading-none ${
+                              m.rating_change > 0 ? "text-success" : m.rating_change < 0 ? "text-destructive" : "text-muted-foreground"
+                            }`}>
+                              {m.rating_change > 0 ? "+" : ""}{Math.round(m.rating_change)}
+                            </p>
+                            <p className="mt-0.5 text-[9px] uppercase tracking-wider text-muted-foreground/70 leading-none">Elo</p>
+                          </>
+                        ) : null}
+                      </div>
                     </RowTag>
                   );
                 })}
