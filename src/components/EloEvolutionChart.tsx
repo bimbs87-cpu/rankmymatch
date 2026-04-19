@@ -82,6 +82,18 @@ export function EloEvolutionChart({
     setHoverMarker(null);
   }, [period, points]);
 
+  // If the dataset spans less than 30 days, the period selector is hidden.
+  // Force the filter back to "all" so we always show every point.
+  useEffect(() => {
+    if (points.length < 2) return;
+    const span =
+      new Date(points[points.length - 1].date).getTime() -
+      new Date(points[0].date).getTime();
+    if (span < 30 * 24 * 60 * 60 * 1000 && period !== "all") {
+      setPeriod("all");
+    }
+  }, [points, period]);
+
   const w = size.w;
   const h = size.h;
   // Responsive padding — generous on left for Y labels, room on right for marker labels
