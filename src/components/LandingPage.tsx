@@ -182,7 +182,30 @@ export function LandingPage() {
         }}
       />
 
-      {/* === Header === */}
+      {/* === Mobile-only premium background === */}
+      <div
+        aria-hidden
+        className="pointer-events-none fixed inset-0 z-0 lg:hidden"
+        style={{
+          backgroundImage: `
+            radial-gradient(80vw 55vh at 50% -10%, color-mix(in oklab, var(--primary) 30%, transparent), transparent 70%),
+            radial-gradient(70vw 50vh at 110% 35%, color-mix(in oklab, var(--primary) 18%, transparent), transparent 75%),
+            radial-gradient(90vw 60vh at -10% 70%, color-mix(in oklab, var(--primary) 16%, transparent), transparent 75%),
+            radial-gradient(70vw 50vh at 50% 110%, color-mix(in oklab, var(--primary) 24%, transparent), transparent 70%),
+            linear-gradient(180deg, color-mix(in oklab, var(--background) 88%, var(--primary)) 0%, var(--background) 40%, var(--background) 65%, color-mix(in oklab, var(--background) 88%, var(--primary)) 100%)
+          `,
+        }}
+      />
+      <div
+        aria-hidden
+        className="pointer-events-none fixed inset-0 z-0 opacity-[0.12] mix-blend-overlay lg:hidden"
+        style={{
+          backgroundImage:
+            "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.75  0 0 0 0 1  0 0 0 0 0.55  0 0 0 0.55 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>\")",
+          backgroundSize: "260px 260px",
+        }}
+      />
+
       <header className="relative z-20">
         <div className="mx-auto flex max-w-7xl items-center justify-center px-5 pt-6 pb-3 sm:justify-between sm:px-8 sm:pt-4 sm:pb-4">
           <img src={logoSrc} alt="RankMyMatch" className="h-auto w-3/4 max-w-[420px] sm:w-auto sm:h-16 lg:h-20" />
