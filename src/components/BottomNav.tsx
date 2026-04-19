@@ -1,5 +1,6 @@
 import { Link, useLocation } from "@tanstack/react-router";
 import { Home, Users, User, Crown, BarChart3 } from "lucide-react";
+import { APP_VERSION } from "@/lib/app-version";
 
 const NAV_ITEMS = [
   { to: "/", icon: Home, label: "Início" },
@@ -14,6 +15,13 @@ export function BottomNav() {
 
   return (
     <nav className="fixed bottom-5 left-4 right-4 z-50 mx-auto max-w-lg lg:hidden">
+      <Link
+        to="/sobre-desenvolvimento"
+        className="absolute -top-6 left-1/2 -translate-x-1/2 rounded-full border border-border bg-card/90 px-2.5 py-0.5 font-mono text-[9px] font-medium text-muted-foreground shadow-sm backdrop-blur transition-colors hover:text-primary"
+        aria-label="Sobre o desenvolvimento"
+      >
+        {APP_VERSION}
+      </Link>
       <div className="flex items-end justify-around rounded-full border border-border bg-card/80 px-2 py-2 backdrop-blur-xl">
         {NAV_ITEMS.map((item) => {
           const isActive =
