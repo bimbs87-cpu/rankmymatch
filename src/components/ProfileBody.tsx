@@ -241,255 +241,372 @@ export function ProfileBody({
         </div>
       </header>
 
-      <div className="space-y-3 px-5 lg:space-y-4 lg:px-0">
-        {/* HEADLINE METRICS — mobile only (desktop has them inline in hero) */}
-        <section className="grid grid-cols-2 gap-2 lg:hidden">
-          <BigMetric
-            label="Elo médio"
-            value={summary.weightedElo != null ? String(summary.weightedElo) : "—"}
-            sub={
-              summary.trend30d !== 0
-                ? `${summary.trend30d > 0 ? "+" : ""}${summary.trend30d} em 30d`
-                : "estável em 30d"
-            }
-            tone={
-              summary.trend30d > 0
-                ? "primary"
-                : summary.trend30d < 0
-                ? "destructive"
-                : "muted"
-            }
-          />
-          <BigMetric
-            label="Win rate"
-            value={summary.totalMatches > 0 ? `${summary.winRate}%` : "—"}
-            sub={`${summary.totalWins}V • ${summary.totalMatches - summary.totalWins}D`}
-            tone="primary"
-          />
-        </section>
-
-        {/* H2H Confronto comigo — only when viewer != profile and has 1+ match together */}
-        {h2h && h2h.matchesPlayed > 0 ? (
-          <section className="rounded-3xl border border-border bg-card p-4">
-            <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-              <Swords className="h-3 w-3" /> Confronto direto comigo
-            </p>
-            <div className="mt-3 flex items-end justify-between gap-3">
-              <div className="text-center">
-                <p className={`font-display text-3xl font-bold tabular-nums ${h2h.meWins > h2h.themWins ? "text-primary" : "text-foreground"}`}>{h2h.meWins}</p>
-                <p className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">Você</p>
-              </div>
-              <div className="flex flex-col items-center pb-1">
-                <span className="text-[10px] font-bold text-muted-foreground">vs</span>
-                <span className="text-[10px] tabular-nums text-muted-foreground">{h2h.matchesPlayed} {h2h.matchesPlayed === 1 ? "jogo" : "jogos"}</span>
-              </div>
-              <div className="text-center">
-                <p className={`font-display text-3xl font-bold tabular-nums ${h2h.themWins > h2h.meWins ? "text-destructive" : "text-foreground"}`}>{h2h.themWins}</p>
-                <p className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">{abbreviateName(profile.name)}</p>
-              </div>
-            </div>
-            <div className="mt-3 flex items-center justify-between gap-2 border-t border-border/60 pt-2 text-[10px]">
-              <span className="text-muted-foreground">Sets: <span className="font-bold text-foreground tabular-nums">{h2h.setsMe}-{h2h.setsThem}</span></span>
-              <span className={`font-bold tabular-nums ${(h2h.setsMe - h2h.setsThem) > 0 ? "text-primary" : (h2h.setsMe - h2h.setsThem) < 0 ? "text-destructive" : "text-muted-foreground"}`}>
-                {(h2h.setsMe - h2h.setsThem) > 0 ? `+${h2h.setsMe - h2h.setsThem}` : h2h.setsMe - h2h.setsThem} sets
-              </span>
-              <span className={`font-bold tabular-nums ${h2h.gamesDiff > 0 ? "text-primary" : h2h.gamesDiff < 0 ? "text-destructive" : "text-muted-foreground"}`}>
-                {h2h.gamesDiff > 0 ? `+${h2h.gamesDiff}` : h2h.gamesDiff} games
-              </span>
-            </div>
+      <div className="space-y-3 px-5 lg:space-y-0 lg:px-0">
+        {/* MOBILE LINEAR LAYOUT */}
+        <div className="space-y-3 lg:hidden">
+          {/* HEADLINE METRICS — mobile */}
+          <section className="grid grid-cols-2 gap-2">
+            <BigMetric
+              label="Elo médio"
+              value={summary.weightedElo != null ? String(summary.weightedElo) : "—"}
+              sub={
+                summary.trend30d !== 0
+                  ? `${summary.trend30d > 0 ? "+" : ""}${summary.trend30d} em 30d`
+                  : "estável em 30d"
+              }
+              tone={
+                summary.trend30d > 0
+                  ? "primary"
+                  : summary.trend30d < 0
+                  ? "destructive"
+                  : "muted"
+              }
+            />
+            <BigMetric
+              label="Win rate"
+              value={summary.totalMatches > 0 ? `${summary.winRate}%` : "—"}
+              sub={`${summary.totalWins}V • ${summary.totalMatches - summary.totalWins}D`}
+              tone="primary"
+            />
           </section>
-        ) : null}
 
-        {/* Last 10 + best position */}
-        <section className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-          <div className="rounded-3xl border border-border bg-card p-4">
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-              Últimos 10 jogos
-            </p>
-            {summary.last10.length ? (
-              <div className="mt-2 flex gap-1.5">
-                {summary.last10.map((r, i) => (
-                  <span
-                    key={i}
-                    className={`flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-bold ${
-                      r === "W"
-                        ? "bg-primary/20 text-primary"
-                        : "bg-destructive/20 text-destructive"
-                    }`}
-                  >
-                    {r === "W" ? "V" : "D"}
-                  </span>
-                ))}
-              </div>
-            ) : (
-              <p className="mt-2 text-xs text-muted-foreground">Sem jogos recentes</p>
-            )}
-          </div>
+          {h2h && h2h.matchesPlayed > 0 ? <H2HCard h2h={h2h} profileName={profile.name} /> : null}
 
-          {summary.bestPosition ? (
-            <div className="rounded-3xl border border-primary/30 bg-primary/5 p-4">
-              <p className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                <Trophy className="h-3 w-3 text-primary" /> Melhor posição
-              </p>
-              <p className="mt-1 font-display text-2xl font-bold text-foreground">
-                #{summary.bestPosition.pos}
-              </p>
-              <p className="text-xs text-muted-foreground">
-                em <span className="text-foreground">{summary.bestPosition.group}</span>
-                {summary.bestPosition.season ? ` · ${summary.bestPosition.season}` : ""}
-              </p>
-            </div>
-          ) : (
-            <div className="rounded-3xl border border-border bg-card p-4">
-              <p className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                <Trophy className="h-3 w-3" /> Melhor posição
-              </p>
-              <p className="mt-1 text-sm text-muted-foreground">Aguardando ranking</p>
-            </div>
-          )}
-        </section>
+          <section className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            <Last10Card last10={summary.last10} />
+            <BestPositionCard best={summary.bestPosition} />
+          </section>
 
-        {/* PERSONAL */}
-        {showPersonal && (
-          profile.dominant_hand ||
+          {showPersonal &&
+          (profile.dominant_hand ||
             profile.preferred_position ||
             profile.killer_shot ||
-            profile.worst_shot
-        ) ? (
-          <section className="rounded-3xl border border-border bg-card p-4">
-            <h3 className="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
-              <Sparkles className="h-3.5 w-3.5" /> Sobre o atleta
-            </h3>
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-              {profile.dominant_hand ? (
-                <ChipStat icon={<Hand className="h-3 w-3" />} label="Mão" value={HAND_LABEL[profile.dominant_hand] ?? "—"} />
-              ) : null}
-              {profile.preferred_position ? (
-                <ChipStat icon={<MapPin className="h-3 w-3" />} label="Posição" value={POS_LABEL[profile.preferred_position] ?? "—"} />
-              ) : null}
-              {profile.killer_shot && profile.killer_shot !== "none" ? (
-                <ChipStat icon={<Crosshair className="h-3 w-3" />} label="Golpe" value={SHOT_LABEL[profile.killer_shot] ?? profile.killer_shot} tone="primary" />
-              ) : null}
-              {profile.worst_shot && profile.worst_shot !== "none" ? (
-                <ChipStat icon={<Target className="h-3 w-3" />} label="Fraqueza" value={SHOT_LABEL[profile.worst_shot] ?? profile.worst_shot} tone="destructive" />
-              ) : null}
-            </div>
-          </section>
-        ) : null}
+            profile.worst_shot) ? (
+            <AboutAthleteCard profile={profile} />
+          ) : null}
 
-        {/* DETAILED STATS + CHART */}
-        {showStats ? (
-          <>
-            {eloHistory.length > 1 ? (
-              <section className="overflow-hidden rounded-3xl border border-border bg-card p-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                    <Activity className="h-3.5 w-3.5" /> Evolução do Elo
-                  </h3>
-                </div>
-                <div className="mt-2 h-56 w-full overflow-hidden">
-                  <EloEvolutionChart points={eloHistory} defaultPeriod="all" />
-                </div>
+          {showStats ? (
+            <>
+              {eloHistory.length > 1 ? <EloChartCard eloHistory={eloHistory} /> : null}
+              <section className="grid grid-cols-3 gap-2">
+                <SmallStat label="Partidas" value={summary.totalMatches} />
+                <SmallStat label="Sets vencidos" value={summary.totalSetsWon} />
+                <SmallStat
+                  label="Maior streak"
+                  value={summary.maxWinStreak}
+                  icon={<Flame className="h-3 w-3 text-destructive" />}
+                />
               </section>
+            </>
+          ) : (
+            <PrivacyHidden label="Estatísticas detalhadas ocultadas pelo jogador" />
+          )}
+
+          {showGroups && (summary.rival || summary.bestVictim) ? (
+            <RivalsRow rival={summary.rival} bestVictim={summary.bestVictim} />
+          ) : null}
+
+          {showGroups ? (
+            summary.groups.length ? <GroupsCard groups={summary.groups} /> : null
+          ) : (
+            <PrivacyHidden label="Grupos ocultados pelo jogador" />
+          )}
+
+          {showAchievements ? (
+            summary.bestPosition?.pos === 1 ? <AchievementsCard best={summary.bestPosition} /> : null
+          ) : (
+            <PrivacyHidden label="Conquistas ocultadas pelo jogador" />
+          )}
+        </div>
+
+        {/* DESKTOP DENSE GRID */}
+        <div className="hidden lg:grid lg:grid-cols-12 lg:gap-4">
+          {/* LEFT column (8/12) — chart + about + last10/best/h2h */}
+          <div className="space-y-4 lg:col-span-8">
+            {showStats && eloHistory.length > 1 ? (
+              <EloChartCard eloHistory={eloHistory} desktop />
             ) : null}
 
-            <section className="grid grid-cols-3 gap-2">
-              <SmallStat label="Partidas" value={summary.totalMatches} />
-              <SmallStat label="Sets vencidos" value={summary.totalSetsWon} />
-              <SmallStat
-                label="Maior streak"
-                value={summary.maxWinStreak}
-                icon={<Flame className="h-3 w-3 text-destructive" />}
-              />
+            {showPersonal &&
+            (profile.dominant_hand ||
+              profile.preferred_position ||
+              profile.killer_shot ||
+              profile.worst_shot) ? (
+              <AboutAthleteCard profile={profile} />
+            ) : null}
+
+            <section className="grid grid-cols-2 gap-3">
+              <Last10Card last10={summary.last10} />
+              <BestPositionCard best={summary.bestPosition} />
             </section>
-          </>
-        ) : (
-          <PrivacyHidden label="Estatísticas detalhadas ocultadas pelo jogador" />
-        )}
 
-        {/* RIVAL / NEMESIS */}
-        {showGroups && (summary.rival || summary.bestVictim) ? (
-          <section className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-            {summary.rival ? (
-              <RivalCard
-                tone="destructive"
-                title="Rival"
-                subtitle={`${summary.rival.lost}/${summary.rival.faced} derrotas`}
-                user={summary.rival}
-                icon={<Swords className="h-4 w-4" />}
-              />
-            ) : null}
-            {summary.bestVictim ? (
-              <RivalCard
-                tone="primary"
-                title="Vítima preferida"
-                subtitle={`${summary.bestVictim.won}/${summary.bestVictim.faced} vitórias`}
-                user={summary.bestVictim}
-                icon={<Target className="h-4 w-4" />}
-              />
-            ) : null}
-          </section>
-        ) : null}
+            {showStats ? (
+              <section className="grid grid-cols-3 gap-3">
+                <SmallStat label="Partidas" value={summary.totalMatches} />
+                <SmallStat label="Sets vencidos" value={summary.totalSetsWon} />
+                <SmallStat
+                  label="Maior streak"
+                  value={summary.maxWinStreak}
+                  icon={<Flame className="h-3 w-3 text-destructive" />}
+                />
+              </section>
+            ) : (
+              <PrivacyHidden label="Estatísticas detalhadas ocultadas pelo jogador" />
+            )}
 
-        {/* GROUPS */}
-        {showGroups ? (
-          summary.groups.length ? (
-            <section className="rounded-3xl border border-border bg-card p-4">
-              <h3 className="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                <Users className="h-3.5 w-3.5" /> Grupos ({summary.groups.length})
-              </h3>
-              <div className="space-y-1">
-                {summary.groups.map((g) => (
-                  <Link
-                    key={g.id}
-                    to="/groups/$groupId"
-                    params={{ groupId: g.id }}
-                    className="flex items-center gap-3 rounded-2xl px-3 py-2 transition-colors hover:bg-accent"
-                  >
-                    <div className="h-8 w-8 shrink-0 overflow-hidden rounded-full bg-muted/40">
-                      {g.image_url ? (
-                        <img src={g.image_url} alt="" className="h-full w-full object-cover" />
-                      ) : (
-                        <div className="flex h-full w-full items-center justify-center text-xs font-bold text-muted-foreground">
-                          {g.name.charAt(0).toUpperCase()}
-                        </div>
-                      )}
-                    </div>
-                    <span className="flex-1 truncate text-sm font-medium text-foreground">{g.name}</span>
-                    {g.rating != null ? (
-                      <span className="text-xs font-bold tabular-nums text-primary">
-                        {Math.round(g.rating)}
-                      </span>
-                    ) : null}
-                    <span className="text-[10px] text-muted-foreground tabular-nums">{g.matches}j</span>
-                  </Link>
-                ))}
+            {h2h && h2h.matchesPlayed > 0 ? <H2HCard h2h={h2h} profileName={profile.name} /> : null}
+          </div>
+
+          {/* RIGHT column (4/12) — rivals + groups + achievements */}
+          <aside className="space-y-4 lg:col-span-4">
+            {showGroups && (summary.rival || summary.bestVictim) ? (
+              <div className="space-y-3">
+                {summary.rival ? (
+                  <RivalCard
+                    tone="destructive"
+                    title="Rival"
+                    subtitle={`${summary.rival.lost}/${summary.rival.faced} derrotas`}
+                    user={summary.rival}
+                    icon={<Swords className="h-4 w-4" />}
+                  />
+                ) : null}
+                {summary.bestVictim ? (
+                  <RivalCard
+                    tone="primary"
+                    title="Vítima preferida"
+                    subtitle={`${summary.bestVictim.won}/${summary.bestVictim.faced} vitórias`}
+                    user={summary.bestVictim}
+                    icon={<Target className="h-4 w-4" />}
+                  />
+                ) : null}
               </div>
-            </section>
-          ) : null
-        ) : (
-          <PrivacyHidden label="Grupos ocultados pelo jogador" />
-        )}
+            ) : null}
 
-        {/* ACHIEVEMENTS placeholder */}
-        {showAchievements ? (
-          summary.bestPosition?.pos === 1 ? (
-            <section className="rounded-3xl border border-primary/30 bg-primary/5 p-4">
-              <h3 className="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-primary">
-                <Medal className="h-3.5 w-3.5" /> Conquistas
-              </h3>
-              <p className="text-sm text-foreground">
-                🏆 Já foi <span className="font-bold">#1</span> em {summary.bestPosition.group}
-              </p>
-            </section>
-          ) : null
-        ) : (
-          <PrivacyHidden label="Conquistas ocultadas pelo jogador" />
-        )}
+            {showGroups ? (
+              summary.groups.length ? <GroupsCard groups={summary.groups} /> : null
+            ) : (
+              <PrivacyHidden label="Grupos ocultados pelo jogador" />
+            )}
+
+            {showAchievements && summary.bestPosition?.pos === 1 ? (
+              <AchievementsCard best={summary.bestPosition} />
+            ) : null}
+          </aside>
+        </div>
 
         {footer}
       </div>
     </div>
+  );
+}
+
+// ---- shared section components (used by both mobile & desktop) ----
+
+function H2HCard({ h2h, profileName }: { h2h: H2HResult; profileName: string }) {
+  return (
+    <section className="rounded-3xl border border-border bg-card p-4">
+      <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+        <Swords className="h-3 w-3" /> Confronto direto comigo
+      </p>
+      <div className="mt-3 flex items-end justify-between gap-3">
+        <div className="text-center">
+          <p className={`font-display text-3xl font-bold tabular-nums ${h2h.meWins > h2h.themWins ? "text-primary" : "text-foreground"}`}>{h2h.meWins}</p>
+          <p className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">Você</p>
+        </div>
+        <div className="flex flex-col items-center pb-1">
+          <span className="text-[10px] font-bold text-muted-foreground">vs</span>
+          <span className="text-[10px] tabular-nums text-muted-foreground">{h2h.matchesPlayed} {h2h.matchesPlayed === 1 ? "jogo" : "jogos"}</span>
+        </div>
+        <div className="text-center">
+          <p className={`font-display text-3xl font-bold tabular-nums ${h2h.themWins > h2h.meWins ? "text-destructive" : "text-foreground"}`}>{h2h.themWins}</p>
+          <p className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">{abbreviateName(profileName)}</p>
+        </div>
+      </div>
+      <div className="mt-3 flex items-center justify-between gap-2 border-t border-border/60 pt-2 text-[10px]">
+        <span className="text-muted-foreground">Sets: <span className="font-bold text-foreground tabular-nums">{h2h.setsMe}-{h2h.setsThem}</span></span>
+        <span className={`font-bold tabular-nums ${(h2h.setsMe - h2h.setsThem) > 0 ? "text-primary" : (h2h.setsMe - h2h.setsThem) < 0 ? "text-destructive" : "text-muted-foreground"}`}>
+          {(h2h.setsMe - h2h.setsThem) > 0 ? `+${h2h.setsMe - h2h.setsThem}` : h2h.setsMe - h2h.setsThem} sets
+        </span>
+        <span className={`font-bold tabular-nums ${h2h.gamesDiff > 0 ? "text-primary" : h2h.gamesDiff < 0 ? "text-destructive" : "text-muted-foreground"}`}>
+          {h2h.gamesDiff > 0 ? `+${h2h.gamesDiff}` : h2h.gamesDiff} games
+        </span>
+      </div>
+    </section>
+  );
+}
+
+function Last10Card({ last10 }: { last10: ("W" | "L")[] }) {
+  return (
+    <div className="rounded-3xl border border-border bg-card p-4">
+      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+        Últimos 10 jogos
+      </p>
+      {last10.length ? (
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          {last10.map((r, i) => (
+            <span
+              key={i}
+              className={`flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-bold ${
+                r === "W" ? "bg-primary/20 text-primary" : "bg-destructive/20 text-destructive"
+              }`}
+            >
+              {r === "W" ? "V" : "D"}
+            </span>
+          ))}
+        </div>
+      ) : (
+        <p className="mt-2 text-xs text-muted-foreground">Sem jogos recentes</p>
+      )}
+    </div>
+  );
+}
+
+function BestPositionCard({ best }: { best: AggregatedSummary["bestPosition"] }) {
+  if (!best) {
+    return (
+      <div className="rounded-3xl border border-border bg-card p-4">
+        <p className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+          <Trophy className="h-3 w-3" /> Melhor posição
+        </p>
+        <p className="mt-1 text-sm text-muted-foreground">Aguardando ranking</p>
+      </div>
+    );
+  }
+  return (
+    <div className="rounded-3xl border border-primary/30 bg-primary/5 p-4">
+      <p className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+        <Trophy className="h-3 w-3 text-primary" /> Melhor posição
+      </p>
+      <p className="mt-1 font-display text-2xl font-bold text-foreground">#{best.pos}</p>
+      <p className="text-xs text-muted-foreground">
+        em <span className="text-foreground">{best.group}</span>
+        {best.season ? ` · ${best.season}` : ""}
+      </p>
+    </div>
+  );
+}
+
+function AboutAthleteCard({ profile }: { profile: AggregatedProfile }) {
+  return (
+    <section className="rounded-3xl border border-border bg-card p-4">
+      <h3 className="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+        <Sparkles className="h-3.5 w-3.5" /> Sobre o atleta
+      </h3>
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        {profile.dominant_hand ? (
+          <ChipStat icon={<Hand className="h-3 w-3" />} label="Mão" value={HAND_LABEL[profile.dominant_hand] ?? "—"} />
+        ) : null}
+        {profile.preferred_position ? (
+          <ChipStat icon={<MapPin className="h-3 w-3" />} label="Posição" value={POS_LABEL[profile.preferred_position] ?? "—"} />
+        ) : null}
+        {profile.killer_shot && profile.killer_shot !== "none" ? (
+          <ChipStat icon={<Crosshair className="h-3 w-3" />} label="Golpe" value={SHOT_LABEL[profile.killer_shot] ?? profile.killer_shot} tone="primary" />
+        ) : null}
+        {profile.worst_shot && profile.worst_shot !== "none" ? (
+          <ChipStat icon={<Target className="h-3 w-3" />} label="Fraqueza" value={SHOT_LABEL[profile.worst_shot] ?? profile.worst_shot} tone="destructive" />
+        ) : null}
+      </div>
+    </section>
+  );
+}
+
+function EloChartCard({
+  eloHistory,
+  desktop = false,
+}: {
+  eloHistory: { date: string; rating: number }[];
+  desktop?: boolean;
+}) {
+  return (
+    <section className="overflow-hidden rounded-3xl border border-border bg-card p-4">
+      <div className="flex items-center justify-between">
+        <h3 className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+          <Activity className="h-3.5 w-3.5" /> Evolução do Elo
+        </h3>
+      </div>
+      <div className={`mt-2 w-full overflow-hidden ${desktop ? "h-72" : "h-56"}`}>
+        <EloEvolutionChart points={eloHistory} defaultPeriod="all" />
+      </div>
+    </section>
+  );
+}
+
+function RivalsRow({
+  rival,
+  bestVictim,
+}: {
+  rival: AggregatedSummary["rival"];
+  bestVictim: AggregatedSummary["bestVictim"];
+}) {
+  return (
+    <section className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+      {rival ? (
+        <RivalCard
+          tone="destructive"
+          title="Rival"
+          subtitle={`${rival.lost}/${rival.faced} derrotas`}
+          user={rival}
+          icon={<Swords className="h-4 w-4" />}
+        />
+      ) : null}
+      {bestVictim ? (
+        <RivalCard
+          tone="primary"
+          title="Vítima preferida"
+          subtitle={`${bestVictim.won}/${bestVictim.faced} vitórias`}
+          user={bestVictim}
+          icon={<Target className="h-4 w-4" />}
+        />
+      ) : null}
+    </section>
+  );
+}
+
+function GroupsCard({ groups }: { groups: AggregatedSummary["groups"] }) {
+  return (
+    <section className="rounded-3xl border border-border bg-card p-4">
+      <h3 className="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+        <Users className="h-3.5 w-3.5" /> Grupos ({groups.length})
+      </h3>
+      <div className="space-y-1">
+        {groups.map((g) => (
+          <Link
+            key={g.id}
+            to="/groups/$groupId"
+            params={{ groupId: g.id }}
+            className="flex items-center gap-3 rounded-2xl px-3 py-2 transition-colors hover:bg-accent"
+          >
+            <div className="h-8 w-8 shrink-0 overflow-hidden rounded-full bg-muted/40">
+              {g.image_url ? (
+                <img src={g.image_url} alt="" className="h-full w-full object-cover" />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center text-xs font-bold text-muted-foreground">
+                  {g.name.charAt(0).toUpperCase()}
+                </div>
+              )}
+            </div>
+            <span className="flex-1 truncate text-sm font-medium text-foreground">{g.name}</span>
+            {g.rating != null ? (
+              <span className="text-xs font-bold tabular-nums text-primary">{Math.round(g.rating)}</span>
+            ) : null}
+            <span className="text-[10px] text-muted-foreground tabular-nums">{g.matches}j</span>
+          </Link>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function AchievementsCard({ best }: { best: NonNullable<AggregatedSummary["bestPosition"]> }) {
+  return (
+    <section className="rounded-3xl border border-primary/30 bg-primary/5 p-4">
+      <h3 className="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-primary">
+        <Medal className="h-3.5 w-3.5" /> Conquistas
+      </h3>
+      <p className="text-sm text-foreground">
+        🏆 Já foi <span className="font-bold">#1</span> em {best.group}
+      </p>
+    </section>
   );
 }
 
