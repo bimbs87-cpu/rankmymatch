@@ -156,6 +156,33 @@ export function JoinGroupDialog({
         }
         return;
       }
+
+      // Notify admins (in-app + push). Best-effort.
+      try {
+        const { data: requesterProfile } = await supabase
+          .from("user_profiles")
+          .select("name, nickname")
+          .eq("user_id", userId)
+          .maybeSingle();
+        const requesterName =
+          requesterProfile?.nickname || requesterProfile?.name || "Alguém";
+        const body = selected
+          ? `${requesterName} quer entrar e vincular a ${selected.name}.`
+          : `${requesterName} quer entrar no grupo.`;
+        const { notifyGroupAdmins } = await import("@/hooks/use-notifications");
+        void notifyGroupAdmins({
+          groupId,
+          actorId: userId,
+          type: "join_request",
+          title: "Nova solicitação de entrada",
+          body,
+          url: `/groups/${groupId}`,
+          data: selected ? { claimed_player_id: selected.user_id } : {},
+        });
+      } catch (notifyErr) {
+        console.warn("notifyGroupAdmins (join) falhou:", notifyErr);
+      }
+
       toast.success(
         selected
           ? "Solicitação enviada! O admin vai aprovar e vincular seu histórico."

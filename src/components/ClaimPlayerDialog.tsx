@@ -103,6 +103,32 @@ export function ClaimPlayerDialog({ open, onOpenChange, groupId, claimerUserId, 
         return;
       }
 
+      // Notify admins (in-app + push). Best-effort, never blocks UX.
+      try {
+        const target =
+          placeholders.find((p) => p.user_id === placeholderUserId) ||
+          formerMembers.find((p) => p.user_id === placeholderUserId);
+        const { data: claimerProfile } = await supabase
+          .from("user_profiles")
+          .select("name, nickname")
+          .eq("user_id", claimerUserId)
+          .maybeSingle();
+        const claimerName = claimerProfile?.nickname || claimerProfile?.name || "Alguém";
+        const targetName = target?.name || "um jogador";
+        const { notifyGroupAdmins } = await import("@/hooks/use-notifications");
+        void notifyGroupAdmins({
+          groupId,
+          actorId: claimerUserId,
+          type: "player_claim_requested",
+          title: "Novo pedido de vínculo",
+          body: `${claimerName} quer vincular sua conta a ${targetName}.`,
+          url: `/groups/${groupId}`,
+          data: { placeholder_user_id: placeholderUserId },
+        });
+      } catch (notifyErr) {
+        console.warn("notifyGroupAdmins (claim) falhou:", notifyErr);
+      }
+
       toast.success("Reivindicação enviada! Aguarde aprovação do admin.");
       setPendingClaims((prev) => [...prev, placeholderUserId]);
       onClaimed();
