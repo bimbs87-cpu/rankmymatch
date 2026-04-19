@@ -4,6 +4,7 @@ import { TrophyLoadingBar } from "@/components/TrophyLoadingBar";
 import { supabase } from "@/integrations/supabase/client";
 import { AvatarPickerDialog } from "@/components/AvatarPickerDialog";
 import { ProfileBody } from "@/components/ProfileBody";
+import { ShareProfileButton } from "@/components/ShareProfileButton";
 import {
   loadAggregatedProfile,
   loadAggregatedSummary,
@@ -319,13 +320,16 @@ function ProfilePage() {
         eloHistory={eloHistory}
         isSelfView
         heroActions={
-          <button
-            onClick={() => setAvatarPickerOpen(true)}
-            className="flex h-8 w-8 items-center justify-center rounded-full border border-border bg-card text-foreground"
-            aria-label="Trocar avatar"
-          >
-            <Camera className="h-4 w-4" />
-          </button>
+          <div className="flex items-center gap-2">
+            <ShareProfileButton userId={user!.id} playerName={profile.name || "meu perfil"} />
+            <button
+              onClick={() => setAvatarPickerOpen(true)}
+              className="flex h-8 w-8 items-center justify-center rounded-full border border-border bg-card text-foreground"
+              aria-label="Trocar avatar"
+            >
+              <Camera className="h-4 w-4" />
+            </button>
+          </div>
         }
         footer={
           <div className="space-y-0.5 rounded-3xl border border-border bg-card p-1.5">
