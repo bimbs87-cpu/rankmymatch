@@ -154,6 +154,9 @@ function AboutDevelopmentPage() {
         {/* CHANGELOG / RELEASE NOTES */}
         <ReleaseNotesSection />
 
+        {/* PUBLIC BUG LIST WITH UPVOTES */}
+        <PublicBugReportsList />
+
         {/* IN-APP BUG REPORT FORM */}
         <section className="rounded-3xl border border-border bg-card p-5 lg:p-6">
           <div className="mb-4 flex items-start gap-4">
