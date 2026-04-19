@@ -481,15 +481,32 @@ function DashboardPage() {
       }
     }
 
-    // 2. Recent matches (via rating_events) — fetch a wider window then sort by
-    // round date (matches Histórico ordering) since rating_events.created_at
-    // is often identical across a batch and would otherwise be non-deterministic.
-    const { data: events } = await supabase
-      .from("rating_events")
-      .select("*, matches(match_number, winner_team, round_id, status)")
+    // 2. Recent matches: rating_events.created_at is unreliable for ordering
+    // (batch recalculations rewrite created_at, masking truly recent matches).
+    // Strategy: pull the user's most recent matches via match_players → matches
+    // joined to rounds, ordered by round.scheduled_date desc, then attach rating.
+    const { data: recentPlayerRows } = await supabase
+      .from("match_players")
+      .select("match_id, team, matches!inner(id, match_number, winner_team, round_id, status, rounds!inner(id, round_number, scheduled_date, group_id, season_id, groups(name)))")
       .eq("user_id", user.id)
-      .order("created_at", { ascending: false })
-      .limit(40);
+      .eq("matches.status", "completed")
+      .order("scheduled_date", { ascending: false, foreignTable: "matches.rounds" })
+      .order("match_number", { ascending: false, foreignTable: "matches" })
+      .limit(8);
+
+    const events = (recentPlayerRows || []).map((row: any) => ({
+      match_id: row.match_id,
+      matches: {
+        match_number: row.matches?.match_number,
+        winner_team: row.matches?.winner_team,
+        round_id: row.matches?.round_id,
+        status: row.matches?.status,
+      },
+      _round: row.matches?.rounds,
+      _my_team: row.team,
+      created_at: row.matches?.rounds?.scheduled_date || null,
+      rating_change: 0,
+    }));
 
     if (events?.length) {
       const matchIds = events.map((e: any) => e.match_id);
