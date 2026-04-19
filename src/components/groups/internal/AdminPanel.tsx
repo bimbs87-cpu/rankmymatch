@@ -126,6 +126,28 @@ export function AdminPanel({ group, isCreator, onSaved, pendingRequestsCount }: 
   );
 }
 
+/* =============== Share counter pill (last 7 days) =============== */
+function ShareCounterPill({ groupId }: { groupId: string }) {
+  const [count, setCount] = useState<number | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    getRecentShareCount(groupId, 7)
+      .then((c) => { if (!cancelled) setCount(c); })
+      .catch(() => { if (!cancelled) setCount(0); });
+    return () => { cancelled = true; };
+  }, [groupId]);
+  if (count === null) return null;
+  return (
+    <div
+      className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 text-[11px] font-semibold text-foreground"
+      title="Compartilhamentos do grupo nos últimos 7 dias"
+    >
+      <Share2 className="h-3.5 w-3.5 text-primary" />
+      📤 {count} compartilhamento{count === 1 ? "" : "s"} esta semana
+    </div>
+  );
+}
+
 /* =============== GERAL: nome, descrição, imagem, visibilidade =============== */
 function GeneralSection({ group, onSaved }: { group: any; onSaved: () => void }) {
   const [name, setName] = useState(group.name);
