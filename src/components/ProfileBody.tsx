@@ -94,6 +94,7 @@ export function ProfileBody({
   heroActions,
   footer,
   isSelfView = false,
+  viewerId = null,
 }: Props) {
   const showPersonal = isSelfView || profile.privacy.show_personal;
   const showStats = isSelfView || profile.privacy.show_stats;
@@ -101,6 +102,17 @@ export function ProfileBody({
   const showAchievements = isSelfView || profile.privacy.show_achievements;
 
   const form = formText(summary.formState);
+
+  // H2H "Confronto comigo" — only when there is a different logged-in viewer
+  const [h2h, setH2h] = useState<H2HResult | null>(null);
+  useEffect(() => {
+    if (!viewerId || viewerId === profile.user_id) { setH2h(null); return; }
+    let cancelled = false;
+    loadH2HBetween(viewerId, profile.user_id)
+      .then((r) => { if (!cancelled) setH2h(r); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [viewerId, profile.user_id]);
 
   return (
     <div className="space-y-4 pb-28">
