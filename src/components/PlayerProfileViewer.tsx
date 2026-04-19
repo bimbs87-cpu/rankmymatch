@@ -39,6 +39,7 @@ import {
   Swords,
 } from "lucide-react";
 import { abbreviateName } from "@/lib/utils";
+import { loadH2HBetween, type H2HResult } from "@/lib/h2h";
 
 type ViewerContextValue = {
   openProfile: (userId: string) => void;
