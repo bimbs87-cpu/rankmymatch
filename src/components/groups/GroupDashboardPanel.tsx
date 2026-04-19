@@ -387,6 +387,60 @@ export function GroupDashboardPanel({ group, onLeft, onPresenceChanged }: Props)
         </div>
       )}
 
+      {/* Pending player claims (admin only) */}
+      {isAdmin && data.pending_claims.length > 0 && (
+        <div className="rounded-2xl border border-warning/30 bg-warning/5 p-4">
+          <div className="mb-3 flex items-center justify-between">
+            <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-warning">
+              <Link2 className="h-3 w-3" /> Vínculos pendentes
+              <span className="rounded-full bg-warning px-1.5 py-0.5 text-[9px] font-bold text-warning-foreground">
+                {data.pending_claims.length}
+              </span>
+            </p>
+          </div>
+          <ul className="space-y-2">
+            {data.pending_claims.slice(0, 5).map((claim) => (
+              <li
+                key={claim.id}
+                className="flex items-center gap-3 rounded-xl border border-border/60 bg-background/40 p-2.5"
+              >
+                <PlayerAvatar avatarUrl={claim.claimer_avatar} name={claim.claimer_name} size="md" />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-xs font-bold text-foreground">{claim.claimer_name}</p>
+                  <p className="truncate text-[10px] text-muted-foreground">
+                    Quer vincular a <span className="text-foreground">{claim.placeholder_name}</span>
+                  </p>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    onClick={() => handleApproveClaim(claim)}
+                    disabled={resolvingClaim === claim.id}
+                    className="flex h-7 items-center gap-1 rounded-full border border-success/40 bg-success/10 px-2 text-[10px] font-bold text-success hover:bg-success/20 disabled:opacity-50"
+                    title="Aprovar vínculo"
+                  >
+                    <Check className="h-3 w-3" />
+                    Vincular
+                  </button>
+                  <button
+                    onClick={() => handleRejectClaim(claim)}
+                    disabled={resolvingClaim === claim.id}
+                    className="flex h-7 w-7 items-center justify-center rounded-full border border-border bg-background/40 text-muted-foreground hover:border-destructive/40 hover:text-destructive disabled:opacity-50"
+                    title="Recusar"
+                  >
+                    <XIcon className="h-3 w-3" />
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+          {data.pending_claims.length > 5 && (
+            <p className="mt-2 text-center text-[10px] text-muted-foreground">
+              +{data.pending_claims.length - 5} mais
+            </p>
+          )}
+        </div>
+      )}
+
       {/* Top row: Next round + My position */}
       <div className="grid gap-3 lg:grid-cols-2">
         {/* Next round */}
