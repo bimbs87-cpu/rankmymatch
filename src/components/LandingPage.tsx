@@ -213,16 +213,15 @@ export function LandingPage() {
               <span className="block text-foreground">Registre seu</span>
               <span className="block">
                 <span className="bg-gradient-to-r from-primary via-primary to-primary/70 bg-clip-text text-transparent">
-                  grupo ou feirinos
+                  grupo
                 </span>
+                <span className="text-foreground"> em um só lugar.</span>
               </span>
-              <span className="block text-foreground">em um só lugar</span>
             </h1>
 
             <p className="mt-4 max-w-xl text-sm leading-relaxed text-muted-foreground sm:text-base lg:text-lg">
-              <span className="font-semibold text-foreground">Estatísticas avançadas</span>, ranking Elo dinâmico e
-              gestão de temporadas para padel, tênis, beach tennis e mais. Pare de anotar resultado em planilha do
-              WhatsApp.
+              <span className="font-semibold text-foreground">Estatísticas avançadas</span>, ranking Elo, gestão de
+              temporadas para padel, tênis, beach tennis e mais.
             </p>
 
             {/* Mobile-only hero image (between text and CTA) */}
