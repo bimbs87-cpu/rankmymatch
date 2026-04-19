@@ -15,6 +15,12 @@ interface AvatarPickerDialogProps {
   onSelect: (avatarUrl: string, type: "google" | "emoji") => void;
   saving?: boolean;
   googlePhotoUrl?: string | null;
+  /**
+   * When true, only the Google photo option is rendered. Used by
+   * AvatarPromptGate after the user has dismissed the mandatory prompt
+   * 3 times — they must use Google or sign in with one.
+   */
+  googleOnly?: boolean;
 }
 
 export function AvatarPickerDialog({
@@ -24,6 +30,7 @@ export function AvatarPickerDialog({
   onSelect,
   saving,
   googlePhotoUrl,
+  googleOnly = false,
 }: AvatarPickerDialogProps) {
   const [tab, setTab] = useState(SPORT_TABS[0].key);
 
@@ -67,6 +74,13 @@ export function AvatarPickerDialog({
               </div>
             )}
 
+            {googleOnly && (
+              <div className="rounded-xl border border-warning/30 bg-warning/5 p-3 text-[11px] text-warning">
+                Após 3 adiamentos, apenas a foto do Google está disponível como avatar.
+              </div>
+            )}
+
+            {!googleOnly && (
             <div className="flex flex-wrap gap-1.5 sm:gap-2">
               {SPORT_TABS.map((s) => (
                 <button
@@ -83,6 +97,10 @@ export function AvatarPickerDialog({
               ))}
             </div>
 
+            </div>
+            )}
+
+            {!googleOnly && (
             <div className="grid grid-cols-4 gap-2 pb-1 sm:grid-cols-5 sm:gap-2.5">
               {filtered.map((avatar) => {
                 const avatarKey = `avatar:${avatar.id}`;
