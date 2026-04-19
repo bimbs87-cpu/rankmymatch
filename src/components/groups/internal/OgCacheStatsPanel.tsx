@@ -5,7 +5,17 @@
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { getOgCacheStats, type OgCacheStats } from "@/lib/og-cache.functions";
-import { BarChart3, Loader2, TrendingUp, Users } from "lucide-react";
+import { BarChart3, Loader2, TrendingUp, Users, LineChart as LineChartIcon } from "lucide-react";
+import {
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip,
+  CartesianGrid,
+  Legend,
+} from "recharts";
 
 export function OgCacheStatsPanel() {
   const fetchStats = useServerFn(getOgCacheStats);
@@ -71,6 +81,71 @@ export function OgCacheStatsPanel() {
           tone={stats.hitRatePct >= 70 ? "primary" : stats.hitRatePct >= 40 ? "neutral" : "warn"}
           icon={<TrendingUp className="h-3 w-3" />}
         />
+      </div>
+
+      <div className="rounded-3xl border border-border bg-card p-4">
+        <div className="mb-3 flex items-center gap-2">
+          <LineChartIcon className="h-4 w-4 text-muted-foreground" />
+          <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+            Renderizações por dia (últimos 7 dias)
+          </h4>
+        </div>
+        <div className="h-56 w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={stats.daily} margin={{ top: 8, right: 12, left: -12, bottom: 0 }}>
+              <CartesianGrid stroke="hsl(var(--border))" strokeDasharray="3 3" vertical={false} />
+              <XAxis
+                dataKey="date"
+                tickFormatter={(d) =>
+                  new Date(d).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })
+                }
+                stroke="hsl(var(--muted-foreground))"
+                fontSize={10}
+                tickLine={false}
+                axisLine={false}
+              />
+              <YAxis
+                stroke="hsl(var(--muted-foreground))"
+                fontSize={10}
+                tickLine={false}
+                axisLine={false}
+                allowDecimals={false}
+              />
+              <Tooltip
+                contentStyle={{
+                  background: "hsl(var(--card))",
+                  border: "1px solid hsl(var(--border))",
+                  borderRadius: 12,
+                  fontSize: 12,
+                }}
+                labelFormatter={(d) =>
+                  new Date(String(d)).toLocaleDateString("pt-BR", {
+                    weekday: "short",
+                    day: "2-digit",
+                    month: "2-digit",
+                  })
+                }
+              />
+              <Legend wrapperStyle={{ fontSize: 11 }} iconType="line" />
+              <Line
+                type="monotone"
+                dataKey="hit"
+                name="HIT"
+                stroke="#22c55e"
+                strokeWidth={2}
+                dot={{ r: 3 }}
+              />
+              <Line
+                type="monotone"
+                dataKey="miss"
+                name="MISS"
+                stroke="#f59e0b"
+                strokeWidth={2}
+                dot={{ r: 3 }}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
       </div>
 
       <div className="rounded-3xl border border-border bg-card p-4">

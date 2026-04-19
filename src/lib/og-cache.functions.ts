@@ -36,6 +36,7 @@ export interface OgCacheStats {
   totalMiss: number;
   hitRatePct: number; // 0..100
   topPlayers: { user_id: string; name: string; renders: number }[];
+  daily: { date: string; hit: number; miss: number }[];
   windowDays: number;
 }
 
@@ -59,17 +60,33 @@ export const getOgCacheStats = createServerFn({ method: "GET" })
     const since = new Date(Date.now() - 7 * 24 * 3600_000).toISOString();
     const { data: events } = await supabaseAdmin
       .from("og_render_events")
-      .select("user_id, status")
+      .select("user_id, status, created_at")
       .gte("created_at", since)
       .limit(50_000);
 
     let hit = 0;
     let miss = 0;
     const perPlayer = new Map<string, number>();
+    const perDay = new Map<string, { hit: number; miss: number }>();
+
+    // Seed last 7 days (oldest -> newest) with zeros so the chart is continuous
+    const today = new Date();
+    today.setUTCHours(0, 0, 0, 0);
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(today.getTime() - i * 24 * 3600_000);
+      perDay.set(d.toISOString().slice(0, 10), { hit: 0, miss: 0 });
+    }
+
     for (const e of events || []) {
       if (e.status === "HIT") hit++;
       else if (e.status === "MISS") miss++;
       perPlayer.set(e.user_id, (perPlayer.get(e.user_id) || 0) + 1);
+      const day = String(e.created_at).slice(0, 10);
+      const bucket = perDay.get(day);
+      if (bucket) {
+        if (e.status === "HIT") bucket.hit++;
+        else if (e.status === "MISS") bucket.miss++;
+      }
     }
     const total = hit + miss;
     const topIds = Array.from(perPlayer.entries())
@@ -94,11 +111,18 @@ export const getOgCacheStats = createServerFn({ method: "GET" })
       }));
     }
 
+    const daily = Array.from(perDay.entries()).map(([date, v]) => ({
+      date,
+      hit: v.hit,
+      miss: v.miss,
+    }));
+
     return {
       totalHit: hit,
       totalMiss: miss,
       hitRatePct: total > 0 ? Math.round((hit / total) * 100) : 0,
       topPlayers,
+      daily,
       windowDays: 7,
     };
   });

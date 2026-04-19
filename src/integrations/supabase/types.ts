@@ -1308,6 +1308,7 @@ export type Database = {
           nickname: string | null
           preferred_position: string | null
           privacy_settings: Json
+          share_accent_color: string | null
           share_tagline: string | null
           updated_at: string | null
           user_id: string
@@ -1328,6 +1329,7 @@ export type Database = {
           nickname?: string | null
           preferred_position?: string | null
           privacy_settings?: Json
+          share_accent_color?: string | null
           share_tagline?: string | null
           updated_at?: string | null
           user_id: string
@@ -1348,6 +1350,7 @@ export type Database = {
           nickname?: string | null
           preferred_position?: string | null
           privacy_settings?: Json
+          share_accent_color?: string | null
           share_tagline?: string | null
           updated_at?: string | null
           user_id?: string

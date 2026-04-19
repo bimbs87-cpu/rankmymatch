@@ -48,6 +48,16 @@ function truncate(s: string, max: number): string {
 
 type FormState = "rising" | "falling" | "stable";
 
+type AccentColor = "emerald" | "amber" | "sky" | "rose" | "violet" | "slate";
+const ACCENT_PALETTE: Record<AccentColor, { bg: string; fg: string }> = {
+  emerald: { bg: "#a3ff12", fg: "#0a0e0d" },
+  amber: { bg: "#fbbf24", fg: "#0a0e0d" },
+  sky: { bg: "#38bdf8", fg: "#0a0e0d" },
+  rose: { bg: "#fb7185", fg: "#0a0e0d" },
+  violet: { bg: "#a78bfa", fg: "#0a0e0d" },
+  slate: { bg: "#94a3b8", fg: "#0a0e0d" },
+};
+
 interface OgData {
   name: string;
   currentElo: number | null;
@@ -55,13 +65,17 @@ interface OgData {
   avatarUrl: string | null;
   form: FormState;
   tagline: string | null;
+  accentColor: AccentColor | null;
 }
 
-async function getPlayerOgData(userId: string): Promise<{ data: OgData | null; cacheKey: string }> {
+async function getPlayerOgData(
+  userId: string,
+  overrides?: { tagline?: string | null; accentColor?: AccentColor | null },
+): Promise<{ data: OgData | null; cacheKey: string }> {
   const sb = getSupabaseAdmin();
   const { data: profile } = await sb
     .from("user_profiles")
-    .select("name, nickname, avatar_url, share_tagline")
+    .select("name, nickname, avatar_url, share_tagline, share_accent_color")
     .eq("user_id", userId)
     .maybeSingle();
 
@@ -111,11 +125,17 @@ async function getPlayerOgData(userId: string): Promise<{ data: OgData | null; c
     lastEventTs = String(new Date(events[0].created_at).getTime());
   }
 
-  const tagline = (profile.share_tagline || "").trim() || null;
-  // Hash tagline into cache key so changes invalidate cache
+  const rawTagline = overrides && "tagline" in overrides ? overrides.tagline : profile.share_tagline;
+  const tagline = (rawTagline || "").trim() || null;
   const taglineHash = tagline
     ? Array.from(tagline).reduce((h, c) => ((h << 5) - h + c.charCodeAt(0)) | 0, 0).toString(36)
     : "n";
+
+  const rawAccent =
+    overrides && "accentColor" in overrides ? overrides.accentColor : (profile.share_accent_color as AccentColor | null);
+  const accentColor: AccentColor | null =
+    rawAccent && rawAccent in ACCENT_PALETTE ? (rawAccent as AccentColor) : null;
+  const accentKey = accentColor || "n";
 
   return {
     data: {
@@ -125,8 +145,9 @@ async function getPlayerOgData(userId: string): Promise<{ data: OgData | null; c
       avatarUrl: profile.avatar_url || null,
       form,
       tagline,
+      accentColor,
     },
-    cacheKey: `${lastEventTs}_${taglineHash}`,
+    cacheKey: `${lastEventTs}_${taglineHash}_${accentKey}`,
   };
 }
 
@@ -162,7 +183,16 @@ async function fetchAvatarDataUri(url: string | null): Promise<string | null> {
   }
 }
 
-function formBadgeMarkup(form: FormState): { label: string; bg: string; fg: string } {
+function formBadgeMarkup(
+  form: FormState,
+  accent: AccentColor | null,
+): { label: string; bg: string; fg: string } {
+  if (accent) {
+    const palette = ACCENT_PALETTE[accent];
+    const label =
+      form === "rising" ? "▲  EM ALTA" : form === "falling" ? "▼  EM QUEDA" : "•  ESTÁVEL";
+    return { label, bg: palette.bg, fg: palette.fg };
+  }
   if (form === "rising") return { label: "▲  EM ALTA", bg: "#a3ff12", fg: "#0a0e0d" };
   if (form === "falling") return { label: "▼  EM QUEDA", bg: "#ff5570", fg: "#0a0e0d" };
   return { label: "•  ESTÁVEL", bg: "#3a4140", fg: "#e5e7eb" };
@@ -175,11 +205,12 @@ function buildSvg(opts: {
   avatarDataUri: string | null;
   form: FormState;
   tagline: string | null;
+  accentColor: AccentColor | null;
 }): string {
   const name = escapeXml(truncate(opts.name, 24));
   const elo = opts.elo != null ? String(opts.elo) : "—";
   const bestPos = opts.bestPos != null ? `#${opts.bestPos}` : "—";
-  const badge = formBadgeMarkup(opts.form);
+  const badge = formBadgeMarkup(opts.form, opts.accentColor);
   const badgeLabel = escapeXml(badge.label);
   const tagline = opts.tagline ? escapeXml(truncate(opts.tagline, 60)) : null;
 
@@ -256,6 +287,7 @@ function buildFallbackSvg(): string {
     avatarDataUri: null,
     form: "stable",
     tagline: null,
+    accentColor: null,
   });
 }
 
@@ -384,12 +416,22 @@ export const Route = createFileRoute("/api/og/player/$userId")({
         const wantSvg = formatParam === "svg";
         const wantPngOnly = formatParam === "png";
 
+        // Live-preview overrides (skip cache when present)
+        const previewTagline = reqUrl.searchParams.get("tagline");
+        const previewAccentRaw = reqUrl.searchParams.get("accent");
+        const validAccents: AccentColor[] = ["emerald", "amber", "sky", "rose", "violet", "slate"];
+        const previewAccent = validAccents.includes(previewAccentRaw as AccentColor)
+          ? (previewAccentRaw as AccentColor)
+          : null;
+        const hasPreview = previewTagline !== null || previewAccentRaw !== null;
+
         const cacheHeaders = {
-          "Cache-Control": "public, max-age=300, s-maxage=600",
+          "Cache-Control": hasPreview
+            ? "no-store"
+            : "public, max-age=300, s-maxage=600",
           ...CORS_HEADERS,
         };
 
-        // Fire-and-forget logger (HIT/MISS) — never blocks the response.
         const logRender = (status: "HIT" | "MISS") => {
           try {
             const sb = getSupabaseAdmin();
@@ -400,7 +442,13 @@ export const Route = createFileRoute("/api/og/player/$userId")({
         };
 
         try {
-          const fetched = await getPlayerOgData(params.userId);
+          const overrides = hasPreview
+            ? {
+                tagline: previewTagline !== null ? previewTagline : undefined,
+                accentColor: previewAccentRaw !== null ? previewAccent : undefined,
+              }
+            : undefined;
+          const fetched = await getPlayerOgData(params.userId, overrides);
           const data = fetched.data || {
             name: "Jogador",
             currentElo: null,
@@ -408,13 +456,14 @@ export const Route = createFileRoute("/api/og/player/$userId")({
             avatarUrl: null,
             form: "stable" as FormState,
             tagline: null,
+            accentColor: null,
           };
           const cacheKey = fetched.cacheKey;
 
           // Try Storage cache first (only for default PNG flow). 6h TTL.
           // Cache key format: og/{userId}_{lastEventTs}_{taglineHash}.png — changes
           // when player plays a new match OR updates their share tagline.
-          const wantsCachedPng = !wantSvg;
+          const wantsCachedPng = !wantSvg && !hasPreview;
           const cacheObjectPath = `og/${params.userId}_${cacheKey}.png`;
           if (wantsCachedPng) {
             try {
@@ -448,6 +497,7 @@ export const Route = createFileRoute("/api/og/player/$userId")({
             avatarDataUri,
             form: data.form,
             tagline: data.tagline,
+            accentColor: data.accentColor,
           });
 
           if (wantSvg) {
@@ -460,24 +510,27 @@ export const Route = createFileRoute("/api/og/player/$userId")({
           // Default: try PNG, fall back to SVG (unless caller forced PNG).
           const png = await svgToPng(svg);
           if (png) {
-            // Fire-and-forget cache write (don't block response). 6h TTL.
-            try {
-              const sb = getSupabaseAdmin();
-              await sb.storage.from("og-cache").upload(cacheObjectPath, png as unknown as Blob, {
-                contentType: "image/png",
-                upsert: true,
-                cacheControl: "21600",
-              });
-            } catch (e) {
-              console.error("og cache write failed:", e);
+            if (!hasPreview) {
+              try {
+                const sb = getSupabaseAdmin();
+                await sb.storage.from("og-cache").upload(cacheObjectPath, png as unknown as Blob, {
+                  contentType: "image/png",
+                  upsert: true,
+                  cacheControl: "21600",
+                });
+              } catch (e) {
+                console.error("og cache write failed:", e);
+              }
+              logRender("MISS");
             }
-            logRender("MISS");
             return new Response(png as unknown as BodyInit, {
               status: 200,
               headers: {
                 "Content-Type": "image/png",
-                "Cache-Control": "public, max-age=21600, s-maxage=21600",
-                "X-Cache": "MISS",
+                "Cache-Control": hasPreview
+                  ? "no-store"
+                  : "public, max-age=21600, s-maxage=21600",
+                "X-Cache": hasPreview ? "PREVIEW" : "MISS",
                 ...CORS_HEADERS,
               },
             });

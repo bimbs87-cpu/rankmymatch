@@ -21,7 +21,6 @@ import {
   Settings,
   Award,
   History,
-  Shield,
   Camera,
   ArrowLeft,
   Save,
@@ -32,7 +31,16 @@ import {
   Bell,
   Eye,
   EyeOff,
+  Sparkles,
+  X as XIcon,
 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { useTheme } from "@/lib/theme";
 import { DEFAULT_PRIVACY, parsePrivacy, type PrivacySettings } from "@/components/PlayerProfileViewer";
 
@@ -61,6 +69,16 @@ const SHOT_OPTIONS = [
   { value: "gancho", label: "Gancho" },
 ];
 
+type AccentKey = "emerald" | "amber" | "sky" | "rose" | "violet" | "slate";
+const ACCENT_OPTIONS: { key: AccentKey; label: string; cls: string }[] = [
+  { key: "emerald", label: "Neon", cls: "bg-[#a3ff12]" },
+  { key: "amber", label: "Âmbar", cls: "bg-[#fbbf24]" },
+  { key: "sky", label: "Céu", cls: "bg-[#38bdf8]" },
+  { key: "rose", label: "Rosa", cls: "bg-[#fb7185]" },
+  { key: "violet", label: "Violeta", cls: "bg-[#a78bfa]" },
+  { key: "slate", label: "Ardósia", cls: "bg-[#94a3b8]" },
+];
+
 function ProfilePage() {
   const { user, isAuthenticated, isLoading, signOut } = useAuth();
   const navigate = useNavigate();
@@ -85,6 +103,8 @@ function ProfilePage() {
   const [editWorstShot, setEditWorstShot] = useState("none");
   const [editInstagram, setEditInstagram] = useState("");
   const [editTagline, setEditTagline] = useState("");
+  const [editAccent, setEditAccent] = useState<AccentKey | null>(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
   const [privacy, setPrivacy] = useState<PrivacySettings>(DEFAULT_PRIVACY);
 
   useEffect(() => {
@@ -130,12 +150,17 @@ function ProfilePage() {
     if (user) {
       const { data } = await supabase
         .from("user_profiles")
-        .select("share_tagline")
+        .select("share_tagline, share_accent_color")
         .eq("user_id", user.id)
         .maybeSingle();
       setEditTagline(data?.share_tagline || "");
+      const acc = (data as { share_accent_color?: string | null } | null)?.share_accent_color;
+      setEditAccent(
+        acc && ACCENT_OPTIONS.some((o) => o.key === acc) ? (acc as AccentKey) : null,
+      );
     } else {
       setEditTagline("");
+      setEditAccent(null);
     }
     setEditing(true);
   };
@@ -159,7 +184,8 @@ function ProfilePage() {
         worst_shot: editWorstShot,
         instagram_handle: editInstagram.trim().replace(/^@/, "").slice(0, 30) || null,
         share_tagline: editTagline.trim().slice(0, 60) || null,
-      })
+        share_accent_color: editAccent,
+      } as never)
       .eq("user_id", user.id);
     if (error) {
       toast.error("Erro ao salvar perfil");
@@ -261,6 +287,37 @@ function ProfilePage() {
               Aparece como subtítulo no card que vai pro WhatsApp/Instagram. {editTagline.length}/60
             </p>
           </Field>
+          <Field label="Cor de destaque do badge">
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => setEditAccent(null)}
+                className={`flex items-center gap-2 rounded-full border px-3.5 py-2 text-xs font-semibold transition-colors ${editAccent === null ? "border-primary bg-primary/10 text-primary" : "border-border bg-card text-muted-foreground"}`}
+              >
+                Padrão
+              </button>
+              {ACCENT_OPTIONS.map((o) => (
+                <button
+                  key={o.key}
+                  type="button"
+                  onClick={() => setEditAccent(o.key)}
+                  className={`flex items-center gap-2 rounded-full border px-3 py-2 text-xs font-semibold transition-colors ${editAccent === o.key ? "border-primary bg-primary/10 text-foreground ring-2 ring-primary/40" : "border-border bg-card text-muted-foreground"}`}
+                  aria-label={`Cor ${o.label}`}
+                >
+                  <span className={`h-3.5 w-3.5 rounded-full ${o.cls}`} />
+                  {o.label}
+                </button>
+              ))}
+            </div>
+          </Field>
+          <button
+            type="button"
+            onClick={() => setPreviewOpen(true)}
+            className="flex w-full items-center justify-center gap-2 rounded-2xl border border-primary/40 bg-primary/5 py-3 text-sm font-semibold text-primary transition-colors hover:bg-primary/10"
+          >
+            <Sparkles className="h-4 w-4" />
+            Pré-visualizar card de compartilhamento
+          </button>
           <Field label="Posição preferida">
             <div className="flex gap-2">
               {POSITION_OPTIONS.map((o) => (
@@ -287,6 +344,32 @@ function ProfilePage() {
             <Save className="h-4 w-4" />{saving ? "Salvando..." : "Salvar alterações"}
           </button>
         </div>
+
+        <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+          <DialogContent className="max-w-2xl border-border bg-card">
+            <DialogHeader>
+              <DialogTitle className="font-display">Pré-visualização do card</DialogTitle>
+              <DialogDescription>
+                Veja como ficará o card antes de salvar. Não usa cache.
+              </DialogDescription>
+            </DialogHeader>
+            {user ? (
+              <div className="overflow-hidden rounded-2xl border border-border bg-background">
+                <img
+                  key={`${editTagline}|${editAccent ?? "none"}|${previewOpen}`}
+                  src={`/api/og/player/${user.id}?tagline=${encodeURIComponent(editTagline.trim().slice(0, 60))}&accent=${editAccent ?? ""}&t=${Date.now()}`}
+                  alt="Pré-visualização do card de compartilhamento"
+                  className="h-auto w-full"
+                  loading="eager"
+                />
+              </div>
+            ) : null}
+            <p className="text-[11px] text-muted-foreground">
+              A imagem leva alguns segundos para renderizar. As alterações só serão persistidas
+              ao clicar em <strong>Salvar alterações</strong>.
+            </p>
+          </DialogContent>
+        </Dialog>
       </div>
     );
   }
