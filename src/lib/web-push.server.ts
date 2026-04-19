@@ -257,8 +257,8 @@ export async function sendPushToUserIds(
             TTL: "86400",
             Urgency: "normal",
           },
-          // Cast to BodyInit-compatible; ArrayBuffer is fine in Workers
-          body: body.buffer.slice(body.byteOffset, body.byteOffset + body.byteLength),
+          // Materialize a strict ArrayBuffer (BodyInit-compatible).
+          body: toAB(body),
         });
 
         if (res.status === 201 || res.status === 200 || res.status === 202) {
