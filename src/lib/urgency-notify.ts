@@ -46,6 +46,26 @@ export async function notifyUrgentPendingMembers(opts: {
   try {
     await supabase.from("notifications").insert(rows);
     localStorage.setItem(key, String(Date.now()));
+
+    // Fire-and-forget push delivery.
+    try {
+      const { sendPushFn } = await import("@/lib/push.functions");
+      void sendPushFn({
+        data: {
+          userIds: opts.pendingUserIds,
+          payload: {
+            title,
+            body,
+            url: "/notifications",
+            type: "round_urgent",
+            tag: `round_urgent:${opts.roundId}`,
+            data: { roundId: opts.roundId },
+          },
+        },
+      }).catch(() => {});
+    } catch {
+      /* push is optional */
+    }
   } catch {
     // best-effort
   }
