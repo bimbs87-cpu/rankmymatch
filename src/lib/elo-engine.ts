@@ -332,5 +332,12 @@ export async function submitMatchScore(
   seasonId: string,
   sets: { setNumber: number; scoreA: number; scoreB: number }[],
 ) {
-  return submitMatchScoreServerFn({ data: { matchId, seasonId, sets } });
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session?.access_token) {
+    throw new Error("Sessão expirada. Faça login novamente.");
+  }
+  return submitMatchScoreServerFn({
+    data: { matchId, seasonId, sets },
+    headers: { authorization: `Bearer ${session.access_token}` },
+  });
 }
