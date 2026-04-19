@@ -102,6 +102,7 @@ function AdminInboxPage() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState(false);
   const [reminderBusy, setReminderBusy] = useState(false);
+  const [undoBusy, setUndoBusy] = useState<string | null>(null);
   const [tab, setTab] = useState<"pending" | "history">("pending");
 
   useEffect(() => {
