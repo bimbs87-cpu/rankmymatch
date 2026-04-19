@@ -31,6 +31,44 @@ export const invalidateOwnOgCache = createServerFn({ method: "POST" })
     }
   });
 
+/**
+ * Clears all cached OG PNGs for a given group. Admin-only.
+ * Called after a group admin updates logo, name, or active season.
+ */
+export const invalidateGroupOgCache = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { groupId: string }) => {
+    if (!input?.groupId || typeof input.groupId !== "string") {
+      throw new Error("groupId is required");
+    }
+    return { groupId: input.groupId };
+  })
+  .handler(async ({ context, data }) => {
+    const userId = context.userId as string;
+    const { data: isAdmin, error: rpcErr } = await supabaseAdmin.rpc("is_group_admin", {
+      _user_id: userId,
+      _group_id: data.groupId,
+    });
+    if (rpcErr || !isAdmin) {
+      return { deleted: 0, error: "Forbidden" };
+    }
+    try {
+      const { data: list } = await supabaseAdmin.storage
+        .from("og-cache")
+        .list("og-group", { limit: 100, search: data.groupId });
+      const targets = (list || [])
+        .filter((f) => f.name.startsWith(`${data.groupId}_`))
+        .map((f) => `og-group/${f.name}`);
+      if (targets.length > 0) {
+        await supabaseAdmin.storage.from("og-cache").remove(targets);
+      }
+      return { deleted: targets.length, error: null as string | null };
+    } catch (e) {
+      console.error("invalidateGroupOgCache failed:", e);
+      return { deleted: 0, error: "Falha ao limpar o cache do grupo" };
+    }
+  });
+
 export interface OgCacheStats {
   totalHit: number;
   totalMiss: number;
