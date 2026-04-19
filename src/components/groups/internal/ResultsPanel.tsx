@@ -1,12 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useGroupSeasons, useSeasonRounds } from "@/hooks/use-seasons";
 import { TrophyLoadingBar } from "@/components/TrophyLoadingBar";
 import { buildDisplayNames } from "@/lib/name-disambiguation";
+import { reopenMatchServerFn } from "@/lib/match-maintenance.functions";
 import {
   Calendar, Clock, MapPin, ChevronDown, ChevronRight, Trophy, BarChart3,
-  Filter, List, Activity, Users,
+  Filter, List, Activity, Users, Unlock, Loader2,
 } from "lucide-react";
 
 interface Props {
@@ -34,6 +37,7 @@ export function ResultsPanel({ groupId, isAdmin }: Props) {
   const [matchesByRound, setMatchesByRound] = useState<Record<string, any[]>>({});
   const [profileMap, setProfileMap] = useState<Map<string, any>>(new Map());
   const [loadingMatches, setLoadingMatches] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
 
   // Load all matches for the season at once
   useEffect(() => {
@@ -68,7 +72,7 @@ export function ResultsPanel({ groupId, isAdmin }: Props) {
       setLoadingMatches(false);
     })();
     return () => { cancelled = true; };
-  }, [rounds]);
+  }, [rounds, reloadKey]);
 
   const allPlayers = useMemo(() => {
     const set = new Set<string>();
@@ -227,6 +231,8 @@ export function ResultsPanel({ groupId, isAdmin }: Props) {
           formatDate={formatDate}
           groupId={groupId}
           seasonId={seasonId}
+          isAdmin={isAdmin}
+          onReload={() => setReloadKey((k) => k + 1)}
         />
       ) : (
         <TimelineView
@@ -252,7 +258,7 @@ function StatCard({ icon: Icon, label, value }: { icon: any; label: string; valu
   );
 }
 
-function RoundsListView({ rounds, matchesByRound, profileMap, formatDate, groupId, seasonId }: any) {
+function RoundsListView({ rounds, matchesByRound, profileMap, formatDate, groupId, seasonId, isAdmin, onReload }: any) {
   // Group by status
   const completed = rounds.filter((r: any) => r.status === "completed").sort((a: any, b: any) => (b.scheduled_date || "").localeCompare(a.scheduled_date || ""));
   const upcoming = rounds.filter((r: any) => r.status !== "completed" && r.status !== "cancelled").sort((a: any, b: any) => (a.scheduled_date || "").localeCompare(b.scheduled_date || ""));
@@ -260,9 +266,9 @@ function RoundsListView({ rounds, matchesByRound, profileMap, formatDate, groupI
 
   return (
     <div className="space-y-4">
-      {completed.length > 0 && <Section title="Recentes" count={completed.length}><div className="space-y-2">{completed.map((r: any, i: number) => <RoundRow key={r.id} r={r} matches={matchesByRound[r.id] || []} profileMap={profileMap} formatDate={formatDate} groupId={groupId} seasonId={seasonId} defaultOpen={i === 0} />)}</div></Section>}
-      {upcoming.length > 0 && <Section title="Próximas" count={upcoming.length}><div className="space-y-2">{upcoming.map((r: any) => <RoundRow key={r.id} r={r} matches={matchesByRound[r.id] || []} profileMap={profileMap} formatDate={formatDate} groupId={groupId} seasonId={seasonId} defaultOpen={false} />)}</div></Section>}
-      {cancelled.length > 0 && <Section title="Canceladas" count={cancelled.length}><div className="space-y-2">{cancelled.map((r: any) => <RoundRow key={r.id} r={r} matches={matchesByRound[r.id] || []} profileMap={profileMap} formatDate={formatDate} groupId={groupId} seasonId={seasonId} defaultOpen={false} />)}</div></Section>}
+      {completed.length > 0 && <Section title="Recentes" count={completed.length}><div className="space-y-2">{completed.map((r: any, i: number) => <RoundRow key={r.id} r={r} matches={matchesByRound[r.id] || []} profileMap={profileMap} formatDate={formatDate} groupId={groupId} seasonId={seasonId} isAdmin={isAdmin} onReload={onReload} defaultOpen={i === 0} />)}</div></Section>}
+      {upcoming.length > 0 && <Section title="Próximas" count={upcoming.length}><div className="space-y-2">{upcoming.map((r: any) => <RoundRow key={r.id} r={r} matches={matchesByRound[r.id] || []} profileMap={profileMap} formatDate={formatDate} groupId={groupId} seasonId={seasonId} isAdmin={isAdmin} onReload={onReload} defaultOpen={false} />)}</div></Section>}
+      {cancelled.length > 0 && <Section title="Canceladas" count={cancelled.length}><div className="space-y-2">{cancelled.map((r: any) => <RoundRow key={r.id} r={r} matches={matchesByRound[r.id] || []} profileMap={profileMap} formatDate={formatDate} groupId={groupId} seasonId={seasonId} isAdmin={isAdmin} onReload={onReload} defaultOpen={false} />)}</div></Section>}
     </div>
   );
 }
@@ -279,8 +285,10 @@ function Section({ title, count, children }: { title: string; count: number; chi
   );
 }
 
-function RoundRow({ r, matches, formatDate, groupId, seasonId, defaultOpen }: any) {
+function RoundRow({ r, matches, formatDate, groupId, seasonId, isAdmin, onReload, defaultOpen }: any) {
   const [open, setOpen] = useState(defaultOpen);
+  const [reopeningId, setReopeningId] = useState<string | null>(null);
+  const reopenFn = useServerFn(reopenMatchServerFn);
   const isCancelled = r.status === "cancelled";
   const isCompleted = r.status === "completed";
 
@@ -302,6 +310,20 @@ function RoundRow({ r, matches, formatDate, groupId, seasonId, defaultOpen }: an
 
   const statusLabel = isCancelled ? "Cancelada" : isCompleted ? "Encerrada" : r.status === "in_progress" ? "Em jogo" : "Agendada";
   const statusClass = isCancelled ? "bg-destructive/10 text-destructive" : isCompleted ? "bg-success/10 text-success" : r.status === "in_progress" ? "bg-warning/10 text-warning" : "bg-info/10 text-info";
+
+  const handleReopen = async (matchId: string) => {
+    if (!confirm("Reabrir esta partida? Os sets gravados e o impacto no Elo serão apagados — você precisará regravar o placar.")) return;
+    setReopeningId(matchId);
+    try {
+      await reopenFn({ data: { matchId, reason: "Reaberta via Resultados/admin" } });
+      toast.success("Partida reaberta. Regrave o placar normalmente.");
+      onReload?.();
+    } catch (e: any) {
+      toast.error(e?.message || "Erro ao reabrir");
+    } finally {
+      setReopeningId(null);
+    }
+  };
 
   return (
     <div className={`rounded-2xl border border-border bg-card/50 ${isCancelled ? "opacity-50" : ""}`}>
@@ -335,6 +357,7 @@ function RoundRow({ r, matches, formatDate, groupId, seasonId, defaultOpen }: an
                 const sets = (m.match_sets || []).sort((a: any, b: any) => a.set_number - b.set_number);
                 const winA = m.winner_team === "A";
                 const winB = m.winner_team === "B";
+                const canReopen = isAdmin && m.status === "completed";
                 return (
                   <div key={m.id} className="rounded-xl border border-border bg-background/50 p-3">
                     <div className="flex items-center justify-between gap-2 text-xs">
@@ -344,6 +367,19 @@ function RoundRow({ r, matches, formatDate, groupId, seasonId, defaultOpen }: an
                       </span>
                       <span className={`flex-1 truncate text-right font-medium ${winB ? "text-success" : "text-foreground"}`}>{teamPlayers(m, "B") || "—"}</span>
                     </div>
+                    {canReopen && (
+                      <div className="mt-2 flex justify-end">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleReopen(m.id); }}
+                          disabled={reopeningId === m.id}
+                          className="flex items-center gap-1 rounded-full border border-warning/40 bg-warning/10 px-2.5 py-1 text-[10px] font-bold text-warning hover:bg-warning/20 disabled:opacity-50"
+                          title="Apaga sets e Elo desta partida para regravar o placar"
+                        >
+                          {reopeningId === m.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Unlock className="h-3 w-3" />}
+                          Reabrir
+                        </button>
+                      </div>
+                    )}
                   </div>
                 );
               })}

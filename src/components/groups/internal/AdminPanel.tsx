@@ -17,6 +17,8 @@ import { OgCacheStatsPanel } from "@/components/groups/internal/OgCacheStatsPane
 import { useGroupDetail, approveJoinRequest, rejectJoinRequest } from "@/hooks/use-groups";
 import { useAuth } from "@/hooks/use-auth";
 import { startRenewalCheckout, salesWhatsAppUrl } from "@/lib/payment-provider";
+import { useServerFn } from "@tanstack/react-start";
+import { detectDesyncedMatchesServerFn } from "@/lib/match-maintenance.functions";
 
 type Section = "general" | "presence" | "members" | "invites" | "engagement" | "audit" | "maintenance" | "og-cache" | "advanced";
 
@@ -43,6 +45,17 @@ const SECTIONS: { id: Section; label: string; icon: typeof Settings2; creatorOnl
 export function AdminPanel({ group, isCreator, onSaved, pendingRequestsCount }: Props) {
   const [section, setSection] = useState<Section>("general");
   const [inviteOpen, setInviteOpen] = useState(false);
+  const [desyncedCount, setDesyncedCount] = useState(0);
+  const detectFn = useServerFn(detectDesyncedMatchesServerFn);
+
+  // Silent scan on mount so the Maintenance badge is visible without opening the section
+  useEffect(() => {
+    let cancelled = false;
+    detectFn({ data: { groupId: group.id } })
+      .then((res) => { if (!cancelled) setDesyncedCount(res.desynced.length); })
+      .catch(() => { /* silent */ });
+    return () => { cancelled = true; };
+  }, [group.id, detectFn]);
 
   return (
     <div className="space-y-4">
@@ -57,7 +70,13 @@ export function AdminPanel({ group, isCreator, onSaved, pendingRequestsCount }: 
             {SECTIONS.filter((s) => !s.creatorOnly || isCreator).map((s) => {
               const Icon = s.icon;
               const active = section === s.id;
-              const badge = s.id === "members" ? pendingRequestsCount : 0;
+              const badge =
+                s.id === "members" ? pendingRequestsCount :
+                s.id === "maintenance" ? desyncedCount : 0;
+              const badgeClass =
+                s.id === "maintenance"
+                  ? "bg-warning text-warning-foreground"
+                  : "bg-destructive text-destructive-foreground";
               return (
                 <li key={s.id}>
                   <button
@@ -69,7 +88,7 @@ export function AdminPanel({ group, isCreator, onSaved, pendingRequestsCount }: 
                     <Icon className="h-4 w-4 shrink-0" />
                     <span className="flex-1 truncate">{s.label}</span>
                     {badge > 0 && (
-                      <span className="rounded-full bg-destructive px-1.5 py-0.5 text-[10px] font-bold text-destructive-foreground">{badge}</span>
+                      <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${badgeClass}`}>{badge}</span>
                     )}
                   </button>
                 </li>
@@ -91,7 +110,7 @@ export function AdminPanel({ group, isCreator, onSaved, pendingRequestsCount }: 
           )}
           {section === "engagement" && <InviteEngagementReport groupId={group.id} />}
           {section === "audit" && <AuditPanel groupId={group.id} />}
-          {section === "maintenance" && <MaintenancePanel groupId={group.id} />}
+          {section === "maintenance" && <MaintenancePanel groupId={group.id} onCountChange={setDesyncedCount} />}
           {section === "og-cache" && isCreator && <OgCacheStatsPanel />}
           {section === "advanced" && (
             <AdvancedSection group={group} isCreator={isCreator} onSaved={onSaved} />
