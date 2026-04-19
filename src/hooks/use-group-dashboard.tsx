@@ -32,6 +32,16 @@ export interface PendingJoinReq {
   claimed_player_name: string | null;
 }
 
+export interface PendingClaim {
+  id: string;
+  claimer_user_id: string;
+  claimer_name: string;
+  claimer_avatar: string | null;
+  placeholder_user_id: string;
+  placeholder_name: string;
+  created_at: string;
+}
+
 export interface PodiumPlayer {
   user_id: string;
   name: string;
@@ -66,6 +76,7 @@ export interface GroupDashboardData {
   current_season: SeasonInfo | null;
   member_count: number;
   pending_join_requests: PendingJoinReq[];
+  pending_claims: PendingClaim[];
 }
 
 const EMPTY: GroupDashboardData = {
@@ -78,6 +89,7 @@ const EMPTY: GroupDashboardData = {
   current_season: null,
   member_count: 0,
   pending_join_requests: [],
+  pending_claims: [],
 };
 
 export function useGroupDashboard(groupId: string | null) {
