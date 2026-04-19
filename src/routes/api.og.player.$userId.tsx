@@ -416,12 +416,22 @@ export const Route = createFileRoute("/api/og/player/$userId")({
         const wantSvg = formatParam === "svg";
         const wantPngOnly = formatParam === "png";
 
+        // Live-preview overrides (skip cache when present)
+        const previewTagline = reqUrl.searchParams.get("tagline");
+        const previewAccentRaw = reqUrl.searchParams.get("accent");
+        const validAccents: AccentColor[] = ["emerald", "amber", "sky", "rose", "violet", "slate"];
+        const previewAccent = validAccents.includes(previewAccentRaw as AccentColor)
+          ? (previewAccentRaw as AccentColor)
+          : null;
+        const hasPreview = previewTagline !== null || previewAccentRaw !== null;
+
         const cacheHeaders = {
-          "Cache-Control": "public, max-age=300, s-maxage=600",
+          "Cache-Control": hasPreview
+            ? "no-store"
+            : "public, max-age=300, s-maxage=600",
           ...CORS_HEADERS,
         };
 
-        // Fire-and-forget logger (HIT/MISS) — never blocks the response.
         const logRender = (status: "HIT" | "MISS") => {
           try {
             const sb = getSupabaseAdmin();
@@ -432,7 +442,13 @@ export const Route = createFileRoute("/api/og/player/$userId")({
         };
 
         try {
-          const fetched = await getPlayerOgData(params.userId);
+          const overrides = hasPreview
+            ? {
+                tagline: previewTagline !== null ? previewTagline : undefined,
+                accentColor: previewAccentRaw !== null ? previewAccent : undefined,
+              }
+            : undefined;
+          const fetched = await getPlayerOgData(params.userId, overrides);
           const data = fetched.data || {
             name: "Jogador",
             currentElo: null,
@@ -440,6 +456,7 @@ export const Route = createFileRoute("/api/og/player/$userId")({
             avatarUrl: null,
             form: "stable" as FormState,
             tagline: null,
+            accentColor: null,
           };
           const cacheKey = fetched.cacheKey;
 
