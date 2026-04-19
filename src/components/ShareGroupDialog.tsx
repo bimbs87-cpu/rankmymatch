@@ -434,13 +434,71 @@ export function ShareGroupDialog({ open, onOpenChange, url, groupName, groupId, 
                 {copyingImg ? "Copiando…" : copiedImg ? "Imagem copiada" : "Copiar imagem"}
               </button>
             )}
-            <button
-              onClick={handleWhatsApp}
-              className="col-span-2 inline-flex items-center justify-center gap-1.5 rounded-full bg-[#25D366] px-3 py-2.5 text-xs font-semibold text-white transition hover:opacity-90"
-            >
-              <MessageCircle className="h-3.5 w-3.5" />
-              Compartilhar no WhatsApp
-            </button>
+            <div className="col-span-2 space-y-1.5">
+              <button
+                onClick={handleWhatsApp}
+                className="inline-flex w-full items-center justify-center gap-1.5 rounded-full bg-[#25D366] px-3 py-2.5 text-xs font-semibold text-white transition hover:opacity-90"
+              >
+                <MessageCircle className="h-3.5 w-3.5" />
+                Compartilhar no WhatsApp
+              </button>
+              {isAdmin && !waEditing && (
+                <button
+                  onClick={() => { setWaDraft(waTemplate); setWaEditing(true); }}
+                  className="inline-flex w-full items-center justify-center gap-1 rounded-full border border-dashed border-border px-3 py-1.5 text-[10px] font-semibold text-muted-foreground transition hover:bg-accent hover:text-foreground"
+                  title="Personalizar mensagem do WhatsApp para este grupo"
+                >
+                  <Pencil className="h-3 w-3" />
+                  Personalizar mensagem
+                </button>
+              )}
+              {isAdmin && waEditing && (
+                <div className="rounded-2xl border border-border bg-muted/20 p-3 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      Mensagem do WhatsApp
+                    </p>
+                    <button
+                      onClick={handleResetTemplate}
+                      className="text-[10px] font-semibold text-primary hover:underline"
+                    >
+                      Restaurar padrão
+                    </button>
+                  </div>
+                  <textarea
+                    value={waDraft}
+                    onChange={(e) => setWaDraft(e.target.value)}
+                    rows={5}
+                    maxLength={500}
+                    className="w-full resize-none rounded-xl border border-border bg-background px-3 py-2 text-[11px] text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                    placeholder={DEFAULT_WA_TEMPLATE}
+                  />
+                  <p className="text-[10px] text-muted-foreground">
+                    Use <code className="rounded bg-muted px-1">{"{groupName}"}</code> e{" "}
+                    <code className="rounded bg-muted px-1">{"{url}"}</code> como variáveis. {waDraft.length}/500
+                  </p>
+                  <div className="rounded-xl bg-background/60 px-3 py-2 text-[10px] text-muted-foreground whitespace-pre-wrap">
+                    <span className="font-semibold text-foreground">Prévia:</span>{"\n"}
+                    {renderTemplate(waDraft || DEFAULT_WA_TEMPLATE, groupName, url)}
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => { setWaEditing(false); setWaDraft(waTemplate); }}
+                      className="flex-1 rounded-full border border-border px-3 py-1.5 text-[11px] font-semibold text-foreground hover:bg-accent"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      onClick={handleSaveTemplate}
+                      disabled={savingTpl}
+                      className="flex-1 rounded-full bg-primary px-3 py-1.5 text-[11px] font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-60"
+                    >
+                      {savingTpl ? "Salvando…" : "Salvar"}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
             {canNativeShare && (
               <button
                 onClick={handleNativeShare}
