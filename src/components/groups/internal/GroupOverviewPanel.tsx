@@ -11,7 +11,8 @@ import { GroupEloEvolutionChart } from "./GroupEloEvolutionChart";
 import { confirmPresence, cancelPresence } from "@/lib/round-actions";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 interface Props {
   groupId: string;
