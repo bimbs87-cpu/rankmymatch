@@ -591,13 +591,17 @@ export function RivalryDuelPage({ groupId, groupName, seasonId, seasonName }: Pr
           return (
             <div className="flex items-center justify-between">
               <div className="flex flex-col items-center gap-1.5 flex-1 lg:gap-2">
-                <PlayerAvatar
-                  avatarUrl={playerA.avatar_url}
-                  name={playerA.name}
-                  size="lg"
-                  className="ring-2 ring-primary/40"
-                />
-                <p className="text-xs font-bold text-foreground truncate max-w-[110px] lg:text-sm">{displayNameA}</p>
+                <PlayerAvatarLink userId={playerA.user_id} ariaLabel={`Ver perfil de ${playerA.name}`}>
+                  <PlayerAvatar
+                    avatarUrl={playerA.avatar_url}
+                    name={playerA.name}
+                    size="lg"
+                    className="ring-2 ring-primary/40"
+                  />
+                </PlayerAvatarLink>
+                <PlayerNameLink userId={playerA.user_id} className="text-xs font-bold text-foreground truncate max-w-[110px] lg:text-sm">
+                  {displayNameA}
+                </PlayerNameLink>
                 {renderTrend(last5A, last5.length, "primary")}
               </div>
 
@@ -612,13 +616,17 @@ export function RivalryDuelPage({ groupId, groupName, seasonId, seasonName }: Pr
               </div>
 
               <div className="flex flex-col items-center gap-1.5 flex-1 lg:gap-2">
-                <PlayerAvatar
-                  avatarUrl={playerB.avatar_url}
-                  name={playerB.name}
-                  size="lg"
-                  className="ring-2 ring-info/40"
-                />
-                <p className="text-xs font-bold text-foreground truncate max-w-[110px] lg:text-sm">{displayNameB}</p>
+                <PlayerAvatarLink userId={playerB.user_id} ariaLabel={`Ver perfil de ${playerB.name}`}>
+                  <PlayerAvatar
+                    avatarUrl={playerB.avatar_url}
+                    name={playerB.name}
+                    size="lg"
+                    className="ring-2 ring-info/40"
+                  />
+                </PlayerAvatarLink>
+                <PlayerNameLink userId={playerB.user_id} className="text-xs font-bold text-foreground truncate max-w-[110px] lg:text-sm">
+                  {displayNameB}
+                </PlayerNameLink>
                 {renderTrend(last5B, last5.length, "info")}
               </div>
             </div>
