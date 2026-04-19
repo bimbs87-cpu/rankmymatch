@@ -56,7 +56,11 @@ export function AdminPanel({ group, isCreator, onSaved, pendingRequestsCount }: 
   useEffect(() => {
     let cancelled = false;
     detectFn({ data: { groupId: group.id } })
-      .then((res) => { if (!cancelled) setDesyncedCount(res.desynced.length); })
+      .then((res) => {
+        if (cancelled) return;
+        const list = Array.isArray(res?.desynced) ? res.desynced : [];
+        setDesyncedCount(list.length);
+      })
       .catch(() => { /* silent */ });
     return () => { cancelled = true; };
   }, [group.id, detectFn]);
