@@ -14,8 +14,9 @@ import { useUserProfile } from "@/hooks/use-user-profile";
 import { AvatarPickerDialog } from "@/components/AvatarPickerDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { UserCircle2, AlertCircle } from "lucide-react";
+import { UserCircle2, AlertCircle, Shuffle } from "lucide-react";
 import noPhotoAvatar from "@/assets/avatars/no-photo.png";
+import { PREMIUM_AVATARS, getAvatarUrl } from "@/lib/avatar-data";
 
 const DISMISSED_KEY = "rmm-avatar-prompt-dismissed-until";
 const DISMISS_COUNT_KEY = "rmm-avatar-prompt-dismiss-count";
@@ -95,10 +96,14 @@ export function AvatarPromptGate() {
     setOpen(false);
   };
 
+  // In mandatory mode WITHOUT a Google photo, the user is forced to pick a
+  // preset avatar from the gallery (no uploads, no "agora não").
+  const mandatoryNoGoogle = isMandatory && !googlePhoto;
+
   const handleSelect = async (url: string, type: "google" | "emoji") => {
     if (!user) return;
-    // In mandatory mode, only Google photos are accepted (no preset/uploads).
-    if (isMandatory && type !== "google") {
+    // In mandatory mode WITH Google photo, only Google is accepted.
+    if (isMandatory && googlePhoto && type !== "google") {
       toast.error("Após 3 adiamentos, apenas a foto do Google pode ser usada");
       return;
     }
@@ -130,6 +135,17 @@ export function AvatarPromptGate() {
     await handleSelect(googlePhoto, "google");
   };
 
+  const handleRandomPreset = async () => {
+    const pick = PREMIUM_AVATARS[Math.floor(Math.random() * PREMIUM_AVATARS.length)];
+    const url = getAvatarUrl(pick.id);
+    if (!url) {
+      toast.error("Não foi possível gerar um avatar aleatório, escolha um da lista");
+      setPicker(true);
+      return;
+    }
+    await handleSelect(url, "emoji");
+  };
+
   if (!open) {
     return picker && user ? (
       <AvatarPickerDialog
@@ -143,7 +159,7 @@ export function AvatarPromptGate() {
         googlePhotoUrl={googlePhoto}
         onSelect={handleSelect}
         saving={saving}
-        googleOnly={isMandatory}
+        googleOnly={isMandatory && !!googlePhoto}
       />
     ) : null;
   }
@@ -159,9 +175,11 @@ export function AvatarPromptGate() {
             {isMandatory ? "Foto de perfil obrigatória" : "Escolha sua foto de perfil"}
           </h2>
           <p className="mt-1.5 text-sm text-muted-foreground">
-            {isMandatory
-              ? "Você adiou esta etapa 3 vezes. Para continuar usando o app, use sua foto do Google."
-              : "Para ser facilmente reconhecido nas rodadas e no ranking, escolha um avatar agora."}
+            {mandatoryNoGoogle
+              ? "Você adiou esta etapa 3 vezes e sua conta não tem foto do Google. Escolha um avatar da nossa galeria — você é obrigado a selecionar um agora."
+              : isMandatory
+                ? "Você adiou esta etapa 3 vezes. Para continuar usando o app, use sua foto do Google."
+                : "Para ser facilmente reconhecido nas rodadas e no ranking, escolha um avatar agora."}
           </p>
 
           {!isMandatory && dismissCount > 0 && (
@@ -172,7 +190,29 @@ export function AvatarPromptGate() {
           )}
 
           <div className="mt-5 space-y-2">
-            {isMandatory && googlePhoto ? (
+            {mandatoryNoGoogle ? (
+              <>
+                <button
+                  onClick={handleRandomPreset}
+                  disabled={saving}
+                  className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-3 text-sm font-bold text-primary-foreground hover:opacity-90 disabled:opacity-60"
+                >
+                  <Shuffle className="h-4 w-4" />
+                  Sortear um avatar pra mim
+                </button>
+                <button
+                  onClick={() => setPicker(true)}
+                  disabled={saving}
+                  className="flex w-full items-center justify-center gap-2 rounded-2xl border border-border bg-background py-2.5 text-xs font-bold text-foreground hover:border-primary/50 hover:text-primary disabled:opacity-60"
+                >
+                  <UserCircle2 className="h-4 w-4" />
+                  Escolher da galeria
+                </button>
+                <p className="rounded-xl border border-warning/30 bg-warning/5 p-2 text-[11px] text-warning">
+                  Você precisa carregar um avatar da lista disponível para continuar.
+                </p>
+              </>
+            ) : isMandatory && googlePhoto ? (
               <button
                 onClick={handleUseGoogle}
                 disabled={saving}
@@ -192,15 +232,8 @@ export function AvatarPromptGate() {
                 className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-3 text-sm font-bold text-primary-foreground hover:opacity-90"
               >
                 <UserCircle2 className="h-4 w-4" />
-                {isMandatory ? "Escolher foto do Google" : "Escolher avatar"}
+                Escolher avatar
               </button>
-            )}
-
-            {isMandatory && !googlePhoto && (
-              <p className="rounded-xl border border-destructive/30 bg-destructive/5 p-2 text-[11px] text-destructive">
-                Sua conta não tem foto do Google disponível. Faça login novamente com Google
-                ou atualize sua foto de perfil na conta Google.
-              </p>
             )}
 
             {!isMandatory && (
@@ -226,7 +259,7 @@ export function AvatarPromptGate() {
           googlePhotoUrl={googlePhoto}
           onSelect={handleSelect}
           saving={saving}
-          googleOnly={isMandatory}
+          googleOnly={isMandatory && !!googlePhoto}
         />
       )}
     </>
