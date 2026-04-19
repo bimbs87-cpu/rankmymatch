@@ -33,6 +33,7 @@ import { Route as HooksAdminUndoRouteImport } from './routes/hooks.admin-undo'
 import { Route as HooksAdminPendingReminderRouteImport } from './routes/hooks.admin-pending-reminder'
 import { Route as HooksAdminActionRouteImport } from './routes/hooks.admin-action'
 import { Route as GroupsGroupIdRouteImport } from './routes/groups.$groupId'
+import { Route as AdminMetricsRouteImport } from './routes/admin.metrics'
 import { Route as AdminInboxRouteImport } from './routes/admin.inbox'
 import { Route as GroupsGroupIdIndexRouteImport } from './routes/groups.$groupId.index'
 import { Route as GroupsGroupIdSeasonsRouteImport } from './routes/groups.$groupId.seasons'
@@ -169,6 +170,11 @@ const GroupsGroupIdRoute = GroupsGroupIdRouteImport.update({
   path: '/$groupId',
   getParentRoute: () => GroupsRoute,
 } as any)
+const AdminMetricsRoute = AdminMetricsRouteImport.update({
+  id: '/admin/metrics',
+  path: '/admin/metrics',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminInboxRoute = AdminInboxRouteImport.update({
   id: '/admin/inbox',
   path: '/admin/inbox',
@@ -250,6 +256,7 @@ export interface FileRoutesByFullPath {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/sobre-desenvolvimento': typeof SobreDesenvolvimentoRouteWithChildren
   '/admin/inbox': typeof AdminInboxRoute
+  '/admin/metrics': typeof AdminMetricsRoute
   '/groups/$groupId': typeof GroupsGroupIdRouteWithChildren
   '/hooks/admin-action': typeof HooksAdminActionRoute
   '/hooks/admin-pending-reminder': typeof HooksAdminPendingReminderRoute
@@ -287,6 +294,7 @@ export interface FileRoutesByTo {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/sobre-desenvolvimento': typeof SobreDesenvolvimentoRouteWithChildren
   '/admin/inbox': typeof AdminInboxRoute
+  '/admin/metrics': typeof AdminMetricsRoute
   '/hooks/admin-action': typeof HooksAdminActionRoute
   '/hooks/admin-pending-reminder': typeof HooksAdminPendingReminderRoute
   '/hooks/admin-undo': typeof HooksAdminUndoRoute
@@ -323,6 +331,7 @@ export interface FileRoutesById {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/sobre-desenvolvimento': typeof SobreDesenvolvimentoRouteWithChildren
   '/admin/inbox': typeof AdminInboxRoute
+  '/admin/metrics': typeof AdminMetricsRoute
   '/groups/$groupId': typeof GroupsGroupIdRouteWithChildren
   '/hooks/admin-action': typeof HooksAdminActionRoute
   '/hooks/admin-pending-reminder': typeof HooksAdminPendingReminderRoute
@@ -363,6 +372,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/sobre-desenvolvimento'
     | '/admin/inbox'
+    | '/admin/metrics'
     | '/groups/$groupId'
     | '/hooks/admin-action'
     | '/hooks/admin-pending-reminder'
@@ -400,6 +410,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/sobre-desenvolvimento'
     | '/admin/inbox'
+    | '/admin/metrics'
     | '/hooks/admin-action'
     | '/hooks/admin-pending-reminder'
     | '/hooks/admin-undo'
@@ -435,6 +446,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/sobre-desenvolvimento'
     | '/admin/inbox'
+    | '/admin/metrics'
     | '/groups/$groupId'
     | '/hooks/admin-action'
     | '/hooks/admin-pending-reminder'
@@ -474,6 +486,7 @@ export interface RootRouteChildren {
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   SobreDesenvolvimentoRoute: typeof SobreDesenvolvimentoRouteWithChildren
   AdminInboxRoute: typeof AdminInboxRoute
+  AdminMetricsRoute: typeof AdminMetricsRoute
   HooksAdminActionRoute: typeof HooksAdminActionRoute
   HooksAdminPendingReminderRoute: typeof HooksAdminPendingReminderRoute
   HooksAdminUndoRoute: typeof HooksAdminUndoRoute
@@ -656,6 +669,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof GroupsGroupIdRouteImport
       parentRoute: typeof GroupsRoute
     }
+    '/admin/metrics': {
+      id: '/admin/metrics'
+      path: '/admin/metrics'
+      fullPath: '/admin/metrics'
+      preLoaderRoute: typeof AdminMetricsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/inbox': {
       id: '/admin/inbox'
       path: '/admin/inbox'
@@ -833,6 +853,7 @@ const rootRouteChildren: RootRouteChildren = {
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   SobreDesenvolvimentoRoute: SobreDesenvolvimentoRouteWithChildren,
   AdminInboxRoute: AdminInboxRoute,
+  AdminMetricsRoute: AdminMetricsRoute,
   HooksAdminActionRoute: HooksAdminActionRoute,
   HooksAdminPendingReminderRoute: HooksAdminPendingReminderRoute,
   HooksAdminUndoRoute: HooksAdminUndoRoute,
