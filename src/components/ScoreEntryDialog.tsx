@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import { submitMatchScore, previewMatchEloChanges } from "@/lib/elo-engine";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
+import { PlayerAvatarLink, PlayerNameLink } from "@/components/PlayerProfileViewer";
 import { TrophyLoadingBar } from "@/components/TrophyLoadingBar";
 import { X, Save, Trophy, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
