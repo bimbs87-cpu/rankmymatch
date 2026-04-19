@@ -263,19 +263,54 @@ export function InviteEngagementReport({ groupId }: Props) {
       </div>
 
       {/* Period selector */}
-      <div className="flex flex-wrap gap-1.5">
+      <div className="flex flex-wrap items-center gap-1.5">
         {PERIOD_OPTS.map((p) => (
           <button
             key={p.id}
-            onClick={() => setPeriod(p.id)}
+            onClick={() => { setPeriod(p.id); setUseCustomRange(false); }}
             className={`rounded-full px-3 py-1 text-[11px] font-semibold transition-colors ${
-              period === p.id ? "bg-primary text-primary-foreground" : "bg-muted/40 text-muted-foreground hover:bg-muted"
+              period === p.id && !useCustomRange ? "bg-primary text-primary-foreground" : "bg-muted/40 text-muted-foreground hover:bg-muted"
             }`}
           >
             {p.label}
           </button>
         ))}
+        <button
+          onClick={() => setUseCustomRange((v) => !v)}
+          className={`rounded-full px-3 py-1 text-[11px] font-semibold transition-colors ${
+            useCustomRange ? "bg-primary text-primary-foreground" : "bg-muted/40 text-muted-foreground hover:bg-muted"
+          }`}
+          title="Definir intervalo customizado para a exportação"
+        >
+          📅 Customizado
+        </button>
       </div>
+
+      {useCustomRange && (
+        <div className="flex flex-wrap items-end gap-2 rounded-2xl border border-dashed border-border bg-muted/10 p-3">
+          <div className="flex flex-col gap-0.5">
+            <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">De</label>
+            <input
+              type="date"
+              value={customFrom}
+              onChange={(e) => setCustomFrom(e.target.value)}
+              className="rounded-lg border border-border bg-background px-2 py-1 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+            />
+          </div>
+          <div className="flex flex-col gap-0.5">
+            <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Até</label>
+            <input
+              type="date"
+              value={customTo}
+              onChange={(e) => setCustomTo(e.target.value)}
+              className="rounded-lg border border-border bg-background px-2 py-1 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+            />
+          </div>
+          <p className="text-[10px] text-muted-foreground flex-1 min-w-[140px]">
+            Aplica apenas à exportação CSV. Os gráficos continuam refletindo o período selecionado acima.
+          </p>
+        </div>
+      )}
 
       {loading ? (
         <div className="flex items-center justify-center py-10">
