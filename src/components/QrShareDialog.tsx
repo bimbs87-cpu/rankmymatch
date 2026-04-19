@@ -9,7 +9,7 @@
 import { useEffect, useRef, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import QRCode from "qrcode";
-import { Copy, Check, Share2, X, Download, ImageIcon } from "lucide-react";
+import { Copy, Check, Share2, X, Download, ImageIcon, ImageDown } from "lucide-react";
 import { toast } from "sonner";
 
 interface Props {
@@ -18,22 +18,49 @@ interface Props {
   url: string;
   playerName: string;
   userId: string;
+  /** Quando true, mostra selo "PNG cache HIT/MISS" sobre a prévia da OG (debug). */
+  isOwner?: boolean;
 }
 
-export function QrShareDialog({ open, onOpenChange, url, playerName, userId }: Props) {
+export function QrShareDialog({ open, onOpenChange, url, playerName, userId, isOwner = false }: Props) {
   const [copied, setCopied] = useState(false);
+  const [copiedImg, setCopiedImg] = useState(false);
   const [ogLoaded, setOgLoaded] = useState(false);
   const [ogError, setOgError] = useState(false);
   const [downloading, setDownloading] = useState(false);
+  const [copyingImg, setCopyingImg] = useState(false);
+  const [cacheStatus, setCacheStatus] = useState<"HIT" | "MISS" | "UNKNOWN" | null>(null);
   const ogImgRef = useRef<HTMLImageElement>(null);
 
   useEffect(() => {
     if (!open) {
       setCopied(false);
+      setCopiedImg(false);
       setOgLoaded(false);
       setOgError(false);
+      setCacheStatus(null);
     }
   }, [open]);
+
+  // Para o selo HIT/MISS, fazemos um HEAD à própria OG (não bloqueia o <img>)
+  useEffect(() => {
+    if (!open || !isOwner) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`/api/og/player/${userId}`, { method: "HEAD", cache: "no-store" });
+        const v = res.headers.get("X-Cache");
+        if (cancelled) return;
+        if (v === "HIT" || v === "MISS") setCacheStatus(v);
+        else setCacheStatus("UNKNOWN");
+      } catch {
+        if (!cancelled) setCacheStatus("UNKNOWN");
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [open, isOwner, userId]);
 
   if (!open) return null;
 
@@ -69,99 +96,124 @@ export function QrShareDialog({ open, onOpenChange, url, playerName, userId }: P
   };
 
   /**
-   * Generates a 600x680 branded PNG: QR (256px) + RankMyMatch wordmark below
-   * + player name. Triggers a download. Uses canvas + qrcode lib (separate
-   * from QRCodeSVG above so we get a clean PNG without DOM serialization).
+   * Builds the branded PNG (QR + RankMyMatch wordmark + player name) as a Blob.
+   * Reused for download and "copy image to clipboard".
    */
+  const buildQrPngBlob = async (): Promise<Blob> => {
+    const QR_SIZE = 512;
+    const PADDING = 44;
+    const FOOTER_H = 200;
+    const W = QR_SIZE + PADDING * 2;
+    const H = QR_SIZE + PADDING * 2 + FOOTER_H;
+
+    const canvas = document.createElement("canvas");
+    canvas.width = W;
+    canvas.height = H;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("canvas not supported");
+
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, W, H);
+
+    const qrCanvas = document.createElement("canvas");
+    await QRCode.toCanvas(qrCanvas, url, {
+      width: QR_SIZE,
+      margin: 0,
+      errorCorrectionLevel: "H",
+      color: { dark: "#0a0e0d", light: "#ffffff" },
+    });
+    ctx.drawImage(qrCanvas, PADDING, PADDING, QR_SIZE, QR_SIZE);
+
+    const centerX = W / 2;
+    const centerY = PADDING + QR_SIZE / 2;
+    const logoR = QR_SIZE * 0.09;
+    ctx.fillStyle = "#ffffff";
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, logoR + 8, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#a3ff12";
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, logoR, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#0a0e0d";
+    ctx.font = `800 ${Math.round(logoR * 1.4)}px Inter, system-ui, sans-serif`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("R", centerX, centerY + 2);
+
+    const footerTop = PADDING * 2 + QR_SIZE;
+    ctx.fillStyle = "#0a0e0d";
+    ctx.font = "800 38px Inter, system-ui, sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "top";
+    ctx.fillText("RANKMYMATCH", centerX, footerTop + 12);
+
+    ctx.fillStyle = "#4b5563";
+    ctx.font = "500 26px Inter, system-ui, sans-serif";
+    const truncatedName = playerName.length > 28 ? playerName.slice(0, 27) + "…" : playerName;
+    ctx.fillText(truncatedName, centerX, footerTop + 70);
+
+    ctx.fillStyle = "#9ca3af";
+    ctx.font = "500 20px Inter, system-ui, sans-serif";
+    ctx.fillText("Aponte a câmera para ver o perfil", centerX, footerTop + 120);
+
+    return await new Promise<Blob>((resolve, reject) => {
+      canvas.toBlob((blob) => {
+        if (!blob) reject(new Error("Falha ao gerar imagem"));
+        else resolve(blob);
+      }, "image/png");
+    });
+  };
+
   const handleDownloadQr = async () => {
     if (downloading) return;
     setDownloading(true);
     try {
-      const QR_SIZE = 512;
-      const PADDING = 44;
-      const FOOTER_H = 200;
-      const W = QR_SIZE + PADDING * 2;
-      const H = QR_SIZE + PADDING * 2 + FOOTER_H;
-
-      const canvas = document.createElement("canvas");
-      canvas.width = W;
-      canvas.height = H;
-      const ctx = canvas.getContext("2d");
-      if (!ctx) throw new Error("canvas not supported");
-
-      // Background
-      ctx.fillStyle = "#ffffff";
-      ctx.fillRect(0, 0, W, H);
-
-      // Render QR to a temp canvas
-      const qrCanvas = document.createElement("canvas");
-      await QRCode.toCanvas(qrCanvas, url, {
-        width: QR_SIZE,
-        margin: 0,
-        errorCorrectionLevel: "H",
-        color: { dark: "#0a0e0d", light: "#ffffff" },
-      });
-      ctx.drawImage(qrCanvas, PADDING, PADDING, QR_SIZE, QR_SIZE);
-
-      // Center logo badge (rally green circle with "R") — small, ~14% of QR
-      const centerX = W / 2;
-      const centerY = PADDING + QR_SIZE / 2;
-      const logoR = QR_SIZE * 0.09;
-      // White ring
-      ctx.fillStyle = "#ffffff";
-      ctx.beginPath();
-      ctx.arc(centerX, centerY, logoR + 8, 0, Math.PI * 2);
-      ctx.fill();
-      // Green disc
-      ctx.fillStyle = "#a3ff12";
-      ctx.beginPath();
-      ctx.arc(centerX, centerY, logoR, 0, Math.PI * 2);
-      ctx.fill();
-      // "R"
-      ctx.fillStyle = "#0a0e0d";
-      ctx.font = `800 ${Math.round(logoR * 1.4)}px Inter, system-ui, sans-serif`;
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.fillText("R", centerX, centerY + 2);
-
-      // Footer: brand + player name
-      const footerTop = PADDING * 2 + QR_SIZE;
-      ctx.fillStyle = "#0a0e0d";
-      ctx.font = "800 38px Inter, system-ui, sans-serif";
-      ctx.textAlign = "center";
-      ctx.textBaseline = "top";
-      ctx.fillText("RANKMYMATCH", centerX, footerTop + 12);
-
-      ctx.fillStyle = "#4b5563";
-      ctx.font = "500 26px Inter, system-ui, sans-serif";
-      const truncatedName = playerName.length > 28 ? playerName.slice(0, 27) + "…" : playerName;
-      ctx.fillText(truncatedName, centerX, footerTop + 70);
-
-      ctx.fillStyle = "#9ca3af";
-      ctx.font = "500 20px Inter, system-ui, sans-serif";
-      ctx.fillText("Aponte a câmera para ver o perfil", centerX, footerTop + 120);
-
-      // Trigger download
-      canvas.toBlob((blob) => {
-        if (!blob) {
-          toast.error("Falha ao gerar imagem");
-          setDownloading(false);
-          return;
-        }
-        const link = document.createElement("a");
-        link.href = URL.createObjectURL(blob);
-        link.download = `rankmymatch-${playerName.toLowerCase().replace(/\s+/g, "-")}.png`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(link.href);
-        toast.success("QR Code baixado!");
-        setDownloading(false);
-      }, "image/png");
+      const blob = await buildQrPngBlob();
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = `rankmymatch-${playerName.toLowerCase().replace(/\s+/g, "-")}.png`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(link.href);
+      toast.success("QR Code baixado!");
     } catch (e) {
       console.error(e);
       toast.error("Não foi possível baixar o QR");
+    } finally {
       setDownloading(false);
+    }
+  };
+
+  const canCopyImage =
+    typeof navigator !== "undefined" &&
+    typeof window !== "undefined" &&
+    "clipboard" in navigator &&
+    typeof (navigator.clipboard as Clipboard | undefined)?.write === "function" &&
+    typeof (window as unknown as { ClipboardItem?: unknown }).ClipboardItem !== "undefined";
+
+  const handleCopyImage = async () => {
+    if (copyingImg) return;
+    if (!canCopyImage) {
+      toast.error("Seu navegador não suporta copiar imagens");
+      return;
+    }
+    setCopyingImg(true);
+    try {
+      // Safari requires the ClipboardItem to be created synchronously around
+      // the blob promise — passing the promise directly is the safe pattern.
+      const blobPromise = buildQrPngBlob();
+      const item = new ClipboardItem({ "image/png": blobPromise });
+      await navigator.clipboard.write([item]);
+      setCopiedImg(true);
+      toast.success("Imagem copiada!");
+      setTimeout(() => setCopiedImg(false), 2000);
+    } catch (e) {
+      console.error(e);
+      toast.error("Não foi possível copiar a imagem");
+    } finally {
+      setCopyingImg(false);
     }
   };
 
@@ -232,6 +284,20 @@ export function QrShareDialog({ open, onOpenChange, url, playerName, userId }: P
                 onError={() => setOgError(true)}
                 loading="lazy"
               />
+              {isOwner && cacheStatus && (
+                <div
+                  className={`absolute right-2 top-2 rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider shadow ${
+                    cacheStatus === "HIT"
+                      ? "bg-primary text-primary-foreground"
+                      : cacheStatus === "MISS"
+                        ? "bg-amber-500 text-black"
+                        : "bg-muted text-muted-foreground"
+                  }`}
+                  title="Status do cache da imagem OG (visível apenas para o dono do perfil)"
+                >
+                  PNG cache · {cacheStatus}
+                </div>
+              )}
             </div>
           </div>
 
@@ -251,6 +317,16 @@ export function QrShareDialog({ open, onOpenChange, url, playerName, userId }: P
               <Download className="h-3.5 w-3.5" />
               {downloading ? "Gerando…" : "Baixar QR"}
             </button>
+            {canCopyImage && (
+              <button
+                onClick={handleCopyImage}
+                disabled={copyingImg}
+                className="col-span-2 inline-flex items-center justify-center gap-1.5 rounded-full border border-border bg-card px-3 py-2.5 text-xs font-semibold text-foreground transition hover:bg-accent disabled:opacity-60"
+              >
+                {copiedImg ? <Check className="h-3.5 w-3.5" /> : <ImageDown className="h-3.5 w-3.5" />}
+                {copyingImg ? "Copiando…" : copiedImg ? "Imagem copiada" : "Copiar imagem"}
+              </button>
+            )}
             {canNativeShare && (
               <button
                 onClick={handleNativeShare}

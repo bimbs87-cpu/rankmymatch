@@ -293,6 +293,32 @@ export const Route = createFileRoute("/api/og/player/$userId")({
     handlers: {
       OPTIONS: async () =>
         new Response(null, { status: 204, headers: CORS_HEADERS }),
+      // Lightweight cache probe — used by the share dialog to display
+      // a "PNG cache HIT/MISS" badge without re-rendering the image.
+      HEAD: async ({ params }) => {
+        try {
+          const fetched = await getPlayerOgData(params.userId);
+          const cacheKey = fetched.cacheKey;
+          const cacheObjectPath = `og/${params.userId}_${cacheKey}.png`;
+          const sb = getSupabaseAdmin();
+          const { data: existing } = await sb.storage
+            .from("og-cache")
+            .download(cacheObjectPath);
+          return new Response(null, {
+            status: 200,
+            headers: {
+              "Content-Type": "image/png",
+              "X-Cache": existing ? "HIT" : "MISS",
+              ...CORS_HEADERS,
+            },
+          });
+        } catch {
+          return new Response(null, {
+            status: 200,
+            headers: { "X-Cache": "MISS", ...CORS_HEADERS },
+          });
+        }
+      },
       GET: async ({ params, request }) => {
         const reqUrl = new URL(request.url);
         const formatParam = reqUrl.searchParams.get("format");

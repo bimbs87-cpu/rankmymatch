@@ -7,6 +7,7 @@
 import { useState } from "react";
 import { Share2 } from "lucide-react";
 import { QrShareDialog } from "@/components/QrShareDialog";
+import { useAuth } from "@/hooks/use-auth";
 
 interface Props {
   userId: string;
@@ -17,6 +18,8 @@ interface Props {
 
 export function ShareProfileButton({ userId, playerName, className, variant = "ghost" }: Props) {
   const [open, setOpen] = useState(false);
+  const { user } = useAuth();
+  const isOwner = !!user && user.id === userId;
   const url =
     typeof window !== "undefined"
       ? `${window.location.origin}/players/${userId}`
@@ -37,7 +40,14 @@ export function ShareProfileButton({ userId, playerName, className, variant = "g
         <Share2 className="h-3.5 w-3.5" />
         <span>Compartilhar</span>
       </button>
-      <QrShareDialog open={open} onOpenChange={setOpen} url={url} playerName={playerName} userId={userId} />
+      <QrShareDialog
+        open={open}
+        onOpenChange={setOpen}
+        url={url}
+        playerName={playerName}
+        userId={userId}
+        isOwner={isOwner}
+      />
     </>
   );
 }
