@@ -1,4 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { LandingPage } from "@/components/LandingPage";
 import { abbreviateName } from "@/lib/utils";
 import logoSymbolNeon from "@/assets/logo-symbol-neon.png";
 import logoSymbolBlack from "@/assets/logo-symbol-black.png";
@@ -70,6 +71,30 @@ function CardSpinner({ label = "Carregando..." }: { label?: string }) {
 }
 
 export const Route = createFileRoute("/")({
+  head: () => ({
+    meta: [
+      { title: "RankMyMatch — Ranking Elo, temporadas e estatísticas para sua feirinha" },
+      {
+        name: "description",
+        content:
+          "Registre seu grupo ou feirinha em um só lugar. Ranking Elo dinâmico, rodadas automáticas e estatísticas avançadas para padel, tênis, beach tennis e mais. Entre com Google em 1 clique.",
+      },
+      { property: "og:title", content: "RankMyMatch — Ranking, temporadas e estatísticas" },
+      {
+        property: "og:description",
+        content:
+          "Pare de anotar resultado em planilha do WhatsApp. Ranking Elo, rodadas e estatísticas para sua feirinha em 1 clique.",
+      },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:title", content: "RankMyMatch — Ranking para sua feirinha" },
+      {
+        name: "twitter:description",
+        content: "Ranking Elo, rodadas e estatísticas em 1 clique. Entre com Google.",
+      },
+    ],
+    links: [{ rel: "canonical", href: "https://rankmymatch.app/" }],
+  }),
   component: DashboardPage,
 });
 
@@ -179,11 +204,11 @@ function DashboardPage() {
   const { user, isAuthenticated, isLoading } = authData;
 
   const navigate = useNavigate();
-  useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      navigate({ to: "/login" });
-    }
-  }, [isLoading, isAuthenticated, navigate]);
+  // Non-authenticated visitors (e.g. from ads) see the marketing landing page
+  // instead of being redirected to /login. /login is still available directly.
+  if (!isLoading && !isAuthenticated) {
+    return <LandingPage />;
+  }
 
   let groupsData: ReturnType<typeof useMyGroups>;
   try {
