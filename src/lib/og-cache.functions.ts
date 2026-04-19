@@ -42,8 +42,14 @@ export interface OgCacheStats {
 
 export const getOgCacheStats = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }): Promise<OgCacheStats> => {
+  .inputValidator((input: { days?: number } | undefined) => {
+    const d = input?.days ?? 7;
+    const days = d === 7 || d === 30 || d === 90 ? d : 7;
+    return { days };
+  })
+  .handler(async ({ context, data }): Promise<OgCacheStats> => {
     const userId = context.userId as string;
+    const windowDays = data.days;
 
     // Authorization: must be a creator of at least one group
     const { data: creatorMemberships } = await supabaseAdmin
@@ -57,7 +63,7 @@ export const getOgCacheStats = createServerFn({ method: "GET" })
       throw new Error("Forbidden: not a group creator");
     }
 
-    const since = new Date(Date.now() - 7 * 24 * 3600_000).toISOString();
+    const since = new Date(Date.now() - windowDays * 24 * 3600_000).toISOString();
     const { data: events } = await supabaseAdmin
       .from("og_render_events")
       .select("user_id, status, created_at")
@@ -69,10 +75,10 @@ export const getOgCacheStats = createServerFn({ method: "GET" })
     const perPlayer = new Map<string, number>();
     const perDay = new Map<string, { hit: number; miss: number }>();
 
-    // Seed last 7 days (oldest -> newest) with zeros so the chart is continuous
+    // Seed the requested window (oldest -> newest) with zeros so the chart is continuous
     const today = new Date();
     today.setUTCHours(0, 0, 0, 0);
-    for (let i = 6; i >= 0; i--) {
+    for (let i = windowDays - 1; i >= 0; i--) {
       const d = new Date(today.getTime() - i * 24 * 3600_000);
       perDay.set(d.toISOString().slice(0, 10), { hit: 0, miss: 0 });
     }
@@ -123,6 +129,6 @@ export const getOgCacheStats = createServerFn({ method: "GET" })
       hitRatePct: total > 0 ? Math.round((hit / total) * 100) : 0,
       topPlayers,
       daily,
-      windowDays: 7,
+      windowDays,
     };
   });
