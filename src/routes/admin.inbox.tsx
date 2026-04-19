@@ -64,6 +64,8 @@ interface ResolvedItem {
   resolvedByName: string | null;
 }
 
+const UNDO_WINDOW_MS = 24 * 60 * 60 * 1000;
+
 const OLD_THRESHOLD_MS = 3 * 24 * 60 * 60 * 1000;
 const CRITICAL_THRESHOLD_MS = 7 * 24 * 60 * 60 * 1000;
 
