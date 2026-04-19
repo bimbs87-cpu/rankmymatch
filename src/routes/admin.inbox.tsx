@@ -497,6 +497,43 @@ function AdminInboxPage() {
     }
   };
 
+  const handleUndo = async (r: ResolvedItem) => {
+    if (r.kind === "claim" && r.status === "approved") {
+      toast.error(
+        "Vínculos aprovados são irreversíveis (dados já foram mesclados).",
+      );
+      return;
+    }
+    const ageMs = Date.now() - new Date(r.resolvedAt).getTime();
+    if (ageMs > UNDO_WINDOW_MS) {
+      toast.error("Janela de 24h para desfazer expirou.");
+      return;
+    }
+    const label =
+      r.status === "approved" ? "aprovação" : "recusa";
+    if (!window.confirm(`Desfazer ${label} de ${r.requesterName}?`)) return;
+    setUndoBusy(r.id);
+    try {
+      const res = await fetch("/hooks/admin-undo", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ kind: r.kind, id: r.id }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json?.error || `HTTP ${res.status}`);
+      toast.success("Ação desfeita · solicitação voltou para Pendentes");
+      setResolved((prev) => prev.filter((x) => x.id !== r.id));
+      void refreshCount();
+      void loadAll();
+    } catch (err) {
+      console.error(err);
+      toast.error(err instanceof Error ? err.message : "Falha ao desfazer");
+    } finally {
+      setUndoBusy(null);
+    }
+  };
+
   if (authLoading || loading) {
     return (
       <div className="min-h-screen bg-background pb-32 lg:pb-12">
