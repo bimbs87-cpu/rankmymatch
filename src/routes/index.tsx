@@ -878,14 +878,8 @@ function DashboardPage() {
     setPullDistance(0);
   }, [pullDistance, handleRefresh]);
 
-  if (isLoading) {
-    return <TrophyLoadingBar />;
-  }
-
-  if (!isAuthenticated) {
-    // Redirect handled by useEffect above; show loader to avoid flicker.
-    return <TrophyLoadingBar />;
-  }
+  // Auth gating handled by IndexRoute wrapper; DashboardPage is only rendered
+  // when the user is authenticated.
 
   const headerDisplayName = abbreviateName(displayName);
   const headerAvatarUrl = profileAvatarUrl;
