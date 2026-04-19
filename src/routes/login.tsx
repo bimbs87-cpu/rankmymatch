@@ -307,8 +307,8 @@ function LoginPage() {
               ))}
             </div>
 
-            <div className="mb-5">
-              <p className="mb-3 text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+            <div className="mb-3 lg:mb-5">
+              <p className="mb-2 text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground lg:text-[11px]">
                 Esportes suportados
               </p>
               <div className="flex flex-nowrap gap-1.5 overflow-x-hidden">
