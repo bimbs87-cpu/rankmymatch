@@ -21,7 +21,6 @@ import {
   Settings,
   Award,
   History,
-  Shield,
   Camera,
   ArrowLeft,
   Save,
@@ -32,7 +31,16 @@ import {
   Bell,
   Eye,
   EyeOff,
+  Sparkles,
+  X as XIcon,
 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { useTheme } from "@/lib/theme";
 import { DEFAULT_PRIVACY, parsePrivacy, type PrivacySettings } from "@/components/PlayerProfileViewer";
 
