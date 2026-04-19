@@ -287,6 +287,37 @@ function ProfilePage() {
               Aparece como subtítulo no card que vai pro WhatsApp/Instagram. {editTagline.length}/60
             </p>
           </Field>
+          <Field label="Cor de destaque do badge">
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => setEditAccent(null)}
+                className={`flex items-center gap-2 rounded-full border px-3.5 py-2 text-xs font-semibold transition-colors ${editAccent === null ? "border-primary bg-primary/10 text-primary" : "border-border bg-card text-muted-foreground"}`}
+              >
+                Padrão
+              </button>
+              {ACCENT_OPTIONS.map((o) => (
+                <button
+                  key={o.key}
+                  type="button"
+                  onClick={() => setEditAccent(o.key)}
+                  className={`flex items-center gap-2 rounded-full border px-3 py-2 text-xs font-semibold transition-colors ${editAccent === o.key ? "border-primary bg-primary/10 text-foreground ring-2 ring-primary/40" : "border-border bg-card text-muted-foreground"}`}
+                  aria-label={`Cor ${o.label}`}
+                >
+                  <span className={`h-3.5 w-3.5 rounded-full ${o.cls}`} />
+                  {o.label}
+                </button>
+              ))}
+            </div>
+          </Field>
+          <button
+            type="button"
+            onClick={() => setPreviewOpen(true)}
+            className="flex w-full items-center justify-center gap-2 rounded-2xl border border-primary/40 bg-primary/5 py-3 text-sm font-semibold text-primary transition-colors hover:bg-primary/10"
+          >
+            <Sparkles className="h-4 w-4" />
+            Pré-visualizar card de compartilhamento
+          </button>
           <Field label="Posição preferida">
             <div className="flex gap-2">
               {POSITION_OPTIONS.map((o) => (
