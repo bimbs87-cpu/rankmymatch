@@ -272,6 +272,14 @@ export function GroupOverviewPanel({ groupId, groupName, groupImage, description
           </ul>
         </div>
       )}
+      {/* Mobile floating share FAB — one-tap access on phones */}
+      <button
+        onClick={() => setShareOpen(true)}
+        aria-label="Compartilhar grupo"
+        className="lg:hidden fixed bottom-24 right-4 z-30 flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-[0_8px_24px_-6px_hsl(var(--primary)/0.55)] transition-transform active:scale-95 hover:scale-105"
+      >
+        <Share2 className="h-5 w-5" />
+      </button>
     </div>
   );
 }

@@ -13,6 +13,8 @@ import { InviteLinkDialog } from "@/components/InviteLinkDialog";
 import { PlayerClaimsManager } from "@/components/PlayerClaimsManager";
 import { GroupCardPreview } from "@/components/groups/GroupCardPreview";
 import { InviteEngagementReport } from "@/components/groups/internal/InviteEngagementReport";
+import { TopSharers } from "@/components/groups/internal/TopSharers";
+import { ShareChannelsChart } from "@/components/groups/internal/ShareChannelsChart";
 import { AuditPanel } from "@/components/groups/internal/AuditPanel";
 import { MaintenancePanel } from "@/components/groups/internal/MaintenancePanel";
 import { OgCacheStatsPanel } from "@/components/groups/internal/OgCacheStatsPanel";
@@ -113,7 +115,13 @@ export function AdminPanel({ group, isCreator, onSaved, pendingRequestsCount }: 
               setInviteOpen={setInviteOpen}
             />
           )}
-          {section === "engagement" && <InviteEngagementReport groupId={group.id} />}
+          {section === "engagement" && (
+            <div className="space-y-4">
+              <InviteEngagementReport groupId={group.id} />
+              <ShareChannelsChart groupId={group.id} />
+              <TopSharers groupId={group.id} />
+            </div>
+          )}
           {section === "audit" && <AuditPanel groupId={group.id} />}
           {section === "maintenance" && <MaintenancePanel groupId={group.id} onCountChange={setDesyncedCount} />}
           {section === "og-cache" && isCreator && <OgCacheStatsPanel />}

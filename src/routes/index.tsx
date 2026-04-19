@@ -15,6 +15,7 @@ import { usePendingMatch } from "@/hooks/use-pending-matches";
 import { PendingMatchCard } from "@/components/PendingMatchCard";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { InstallBanner } from "@/components/InstallBanner";
+import { InstallIconButton } from "@/components/InstallIconButton";
 import { PushOptInBanner } from "@/components/PushOptInBanner";
 import { EloEvolutionChart } from "@/components/EloEvolutionChart";
 import { supabase } from "@/integrations/supabase/client";
@@ -1231,9 +1232,14 @@ function DashboardPage() {
             <Link
               to="/profile"
               aria-label="Abrir perfil"
-              className="rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-primary transition-transform active:scale-95"
+              className="group rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-primary transition-transform active:scale-95"
             >
-              <PlayerAvatar avatarUrl={headerAvatarUrl} name={headerDisplayName} size="lg" className="border border-border !h-11 !w-11" />
+              <PlayerAvatar
+                avatarUrl={headerAvatarUrl}
+                name={headerDisplayName}
+                size="lg"
+                className="border border-border !h-11 !w-11 transition-all duration-200 group-hover:scale-105 group-hover:border-primary group-hover:shadow-[0_0_0_3px_hsl(var(--primary)/0.18),0_0_18px_hsl(var(--primary)/0.35)]"
+              />
             </Link>
             <div>
               <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Olá,</p>
@@ -1271,6 +1277,7 @@ function DashboardPage() {
 
           <div className="flex items-center gap-2">
             <img src={resolvedTheme === "light" ? logoSymbolBlack : logoSymbolNeon} alt="RankMyMatch" className="h-7 w-7" />
+            <InstallIconButton />
             <Link to="/notifications" className="relative rounded-full border border-border bg-card p-2.5 transition-colors hover:bg-accent">
               <Bell className="h-4 w-4 text-muted-foreground" />
               {unreadCount > 0 && (
