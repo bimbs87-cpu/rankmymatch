@@ -417,7 +417,7 @@ export function DualEloChart({
 
           {hovered && (
             <div
-              className="pointer-events-none absolute rounded-xl border border-border bg-popover px-3 py-2 text-popover-foreground shadow-lg"
+              className="pointer-events-none absolute rounded-xl border border-border bg-popover px-3 py-2 text-popover-foreground shadow-lg animate-fade-in"
               style={{
                 left: `${(tooltipLeft / w) * 100}%`,
                 top: `${(tooltipTop / h) * 100}%`,

@@ -38,6 +38,7 @@ import { ClaimPlayerDialog } from "@/components/ClaimPlayerDialog";
 import { MergeMembersDialog } from "@/components/MergeMembersDialog";
 import { SearchUserDialog } from "@/components/SearchUserDialog";
 import { JoinGroupDialog } from "@/components/JoinGroupDialog";
+import { ShareGroupDialog } from "@/components/ShareGroupDialog";
 
 import {
   GroupInternalSidebar,
