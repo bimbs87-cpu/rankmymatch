@@ -215,27 +215,35 @@ function RootComponent() {
               }}
             />
 
-            {/* Desktop: subtle full-coverage grid + soft neon glows (login-style) */}
+            {/* Desktop: login-style background — soft neon auras + grid + vignette */}
             <div
               aria-hidden
               className="pointer-events-none fixed inset-0 z-0 hidden lg:block"
               style={{
                 backgroundImage: `
-                  radial-gradient(60vw 60vw at 12% 8%, color-mix(in oklab, var(--primary) 12%, transparent), transparent 65%),
+                  radial-gradient(60vw 60vw at 12% 8%, color-mix(in oklab, var(--primary) 14%, transparent), transparent 65%),
                   radial-gradient(55vw 55vw at 92% 92%, color-mix(in oklab, var(--primary) 8%, transparent), transparent 70%),
-                  radial-gradient(40vw 40vw at 88% 12%, color-mix(in oklab, var(--primary) 6%, transparent), transparent 70%)
+                  radial-gradient(40vw 40vw at 88% 12%, color-mix(in oklab, var(--primary) 5%, transparent), transparent 70%)
                 `,
               }}
             />
             <div
               aria-hidden
-              className="pointer-events-none fixed inset-0 z-0 hidden opacity-[0.06] lg:block"
+              className="pointer-events-none fixed inset-0 z-0 hidden opacity-[0.05] lg:block"
               style={{
                 backgroundImage:
                   "linear-gradient(to right, currentColor 1px, transparent 1px), linear-gradient(to bottom, currentColor 1px, transparent 1px)",
                 backgroundSize: "56px 56px",
-                maskImage: "radial-gradient(ellipse at center, black 40%, transparent 90%)",
-                WebkitMaskImage: "radial-gradient(ellipse at center, black 40%, transparent 90%)",
+                maskImage: "radial-gradient(ellipse at center, black 30%, transparent 75%)",
+                WebkitMaskImage: "radial-gradient(ellipse at center, black 30%, transparent 75%)",
+              }}
+            />
+            <div
+              aria-hidden
+              className="pointer-events-none fixed inset-0 z-0 hidden lg:block"
+              style={{
+                background:
+                  "radial-gradient(ellipse at center, transparent 60%, color-mix(in oklab, var(--background) 70%, transparent) 100%)",
               }}
             />
 
