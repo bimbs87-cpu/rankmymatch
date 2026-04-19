@@ -7,6 +7,8 @@ import { InstallFlowProvider } from "@/components/InstallFlowProvider";
 import { AvatarPromptGate } from "@/components/AvatarPromptGate";
 import { PlayerProfileViewerProvider } from "@/components/PlayerProfileViewer";
 import { Toaster } from "@/components/ui/sonner";
+import { ROOT_META, ROOT_JSONLD } from "@/lib/seo-meta";
+import { ROOT_LINKS } from "@/lib/pwa-links";
 import "../styles.css";
 import { useEffect } from "react";
 
