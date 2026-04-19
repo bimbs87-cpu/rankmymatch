@@ -1,4 +1,4 @@
-import { LayoutGrid, Users, BarChart3, Trophy, MessageSquare, Settings2, ChevronLeft, X, GitCompare } from "lucide-react";
+import { LayoutGrid, Users, BarChart3, Trophy, MessageSquare, Settings2, ChevronLeft, X, GitCompare, Share2 } from "lucide-react";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Link } from "@tanstack/react-router";
 
@@ -35,6 +35,8 @@ interface Props {
   view: GroupView;
   onSelect: (v: GroupView) => void;
   badges?: SidebarBadges;
+  /** Called when the user taps the "Compartilhar grupo" shortcut. */
+  onShareClick?: () => void;
 }
 
 export function GroupInternalSidebar({
@@ -45,6 +47,7 @@ export function GroupInternalSidebar({
   view,
   onSelect,
   badges = {},
+  onShareClick,
 }: Props) {
   const items = ITEMS.filter((i) => !i.adminOnly || isAdmin);
 
@@ -110,6 +113,18 @@ export function GroupInternalSidebar({
             );
           })}
         </ul>
+
+        {onShareClick && (
+          <div className="mt-3 border-t border-border/50 pt-3">
+            <button
+              onClick={onShareClick}
+              className="group flex w-full items-center gap-3 rounded-xl border border-dashed border-primary/30 px-3 py-2.5 text-left text-sm font-semibold text-primary transition-colors hover:bg-primary/10"
+            >
+              <Share2 className="h-4 w-4" />
+              <span className="flex-1 truncate">Compartilhar grupo</span>
+            </button>
+          </div>
+        )}
       </nav>
     </div>
   );
