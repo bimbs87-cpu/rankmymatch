@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router";
 import {
   Calendar, Clock, MapPin, Trophy, ChevronRight, Users, MessageSquare, Lock,
   CheckCircle2, XCircle, Flame, TrendingUp, Award, Zap, Target, Crown, Sparkles, Activity,
+  HelpCircle,
 } from "lucide-react";
 import { useGroupDashboard } from "@/hooks/use-group-dashboard";
 import { useGroupGlobalStats, type RecordHolder } from "@/hooks/use-group-stats";
@@ -11,8 +12,10 @@ import { GroupEloEvolutionChart } from "./GroupEloEvolutionChart";
 import { confirmPresence, cancelPresence } from "@/lib/round-actions";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { notifyUrgentPendingMembers } from "@/lib/urgency-notify";
 
 interface Props {
   groupId: string;
