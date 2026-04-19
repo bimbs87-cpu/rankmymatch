@@ -45,6 +45,7 @@ import {
 } from "@/components/ui/dialog";
 import { useTheme } from "@/lib/theme";
 import { DEFAULT_PRIVACY, parsePrivacy, type PrivacySettings } from "@/components/PlayerProfileViewer";
+import { SPORTS, normalizeSportKey, type SportKey } from "@/lib/sport-shots";
 
 export const Route = createFileRoute("/profile")({
   head: () => ({
