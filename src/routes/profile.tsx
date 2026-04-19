@@ -319,17 +319,17 @@ function ProfilePage() {
         summary={summary}
         eloHistory={eloHistory}
         isSelfView
+        topRightActions={
+          <ShareProfileButton userId={user!.id} playerName={profile.name || "meu perfil"} />
+        }
         heroActions={
-          <div className="flex items-center gap-2">
-            <ShareProfileButton userId={user!.id} playerName={profile.name || "meu perfil"} />
-            <button
-              onClick={() => setAvatarPickerOpen(true)}
-              className="flex h-8 w-8 items-center justify-center rounded-full border border-border bg-card text-foreground"
-              aria-label="Trocar avatar"
-            >
-              <Camera className="h-4 w-4" />
-            </button>
-          </div>
+          <button
+            onClick={() => setAvatarPickerOpen(true)}
+            className="flex h-8 w-8 items-center justify-center rounded-full border border-border bg-card text-foreground"
+            aria-label="Trocar avatar"
+          >
+            <Camera className="h-4 w-4" />
+          </button>
         }
         footer={
           <div className="space-y-0.5 rounded-3xl border border-border bg-card p-1.5">
