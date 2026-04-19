@@ -274,6 +274,50 @@ export const Route = createFileRoute("/api/og/group/$groupId")({
   server: {
     handlers: {
       OPTIONS: async () => new Response(null, { status: 204, headers: CORS_HEADERS }),
+      DELETE: async ({ params, request }) => {
+        // Auth: caller must be a group admin. We re-validate using the user's JWT
+        // (NOT service role) by reading the Authorization header.
+        try {
+          const authHeader = request.headers.get("Authorization") || "";
+          const token = authHeader.replace(/^Bearer\s+/i, "");
+          if (!token) {
+            return new Response(JSON.stringify({ error: "Unauthorized" }), {
+              status: 401,
+              headers: { "Content-Type": "application/json", ...CORS_HEADERS },
+            });
+          }
+          const sb = getSupabaseAdmin();
+          const { data: userRes } = await sb.auth.getUser(token);
+          const uid = userRes?.user?.id;
+          if (!uid) {
+            return new Response(JSON.stringify({ error: "Unauthorized" }), {
+              status: 401,
+              headers: { "Content-Type": "application/json", ...CORS_HEADERS },
+            });
+          }
+          const { data: isAdmin } = await sb.rpc("is_group_admin", {
+            _user_id: uid,
+            _group_id: params.groupId,
+          });
+          if (!isAdmin) {
+            return new Response(JSON.stringify({ error: "Forbidden" }), {
+              status: 403,
+              headers: { "Content-Type": "application/json", ...CORS_HEADERS },
+            });
+          }
+          const deleted = await clearGroupOgCache(params.groupId);
+          return new Response(JSON.stringify({ deleted }), {
+            status: 200,
+            headers: { "Content-Type": "application/json", ...CORS_HEADERS },
+          });
+        } catch (err) {
+          console.error("og/group DELETE error:", err);
+          return new Response(JSON.stringify({ error: "Internal error" }), {
+            status: 500,
+            headers: { "Content-Type": "application/json", ...CORS_HEADERS },
+          });
+        }
+      },
       GET: async ({ params, request }) => {
         const reqUrl = new URL(request.url);
         const formatParam = reqUrl.searchParams.get("format");
