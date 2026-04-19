@@ -41,8 +41,8 @@ export function OgCacheStatsPanel() {
             totalMiss: res?.totalMiss ?? 0,
             hitRatePct: res?.hitRatePct ?? 0,
             daily: Array.isArray(res?.daily) ? res.daily : [],
-            topUsers: Array.isArray((res as any)?.topUsers) ? (res as any).topUsers : [],
-          } as OgCacheStats;
+            topPlayers: Array.isArray(res?.topPlayers) ? res.topPlayers : [],
+          };
           setStats(safe);
         }
       } catch (e) {
