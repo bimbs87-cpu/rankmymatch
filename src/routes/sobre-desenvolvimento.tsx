@@ -46,9 +46,32 @@ const SUPPORT_WHATSAPP = "https://wa.me/?text=" + encodeURIComponent(
 const SUPPORT_EMAIL = "mailto:contato@rankmymatch.app?subject=Bug%20no%20RankMyMatch&body=Ol%C3%A1%21%20Encontrei%20algo%20no%20RankMyMatch%3A%0A%0A-%20O%20que%20aconteceu%3A%0A-%20Onde%20estava%20%28tela%2Fgrupo%29%3A%0A-%20O%20que%20esperava%3A";
 
 function AboutDevelopmentPage() {
+  const { user } = useAuth();
+  const [isAdmin, setIsAdmin] = useState(false);
+
   useEffect(() => {
     markReleasesSeen();
   }, []);
+
+  useEffect(() => {
+    if (!user) {
+      setIsAdmin(false);
+      return;
+    }
+    let active = true;
+    (async () => {
+      const { data } = await supabase
+        .from("app_admins")
+        .select("user_id")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (active) setIsAdmin(!!data);
+    })();
+    return () => {
+      active = false;
+    };
+  }, [user]);
+
   return (
     <div className="min-h-screen bg-background pb-28">
       {/* Header */}
@@ -63,6 +86,15 @@ function AboutDevelopmentPage() {
         <h1 className="flex-1 font-display text-lg font-bold text-foreground">
           Sobre o desenvolvimento
         </h1>
+        {isAdmin && (
+          <Link
+            to="/sobre-desenvolvimento/admin"
+            className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-primary transition-colors hover:bg-primary/20"
+          >
+            <ShieldAlert className="h-3 w-3" />
+            Triagem
+          </Link>
+        )}
       </header>
 
       <main className="mx-auto w-full max-w-5xl space-y-5 px-5 lg:px-6">
