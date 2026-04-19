@@ -254,20 +254,20 @@ function LoginPage() {
           </div>
 
           {/* Feature list — visible on mobile, hidden on desktop */}
-          <div className="mt-3 space-y-2 lg:hidden">
+          <div className="mt-2.5 space-y-1.5 lg:hidden">
             {features.map((f) => (
               <div
                 key={f.title}
-                className="flex items-center gap-3 rounded-2xl border border-border/60 bg-card/40 px-3 py-2 backdrop-blur-sm"
+                className="flex items-center gap-2.5 rounded-2xl border border-border/60 bg-card/40 px-2.5 py-1.5 backdrop-blur-sm"
               >
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                  <f.icon className="h-4 w-4" />
+                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                  <f.icon className="h-3.5 w-3.5" />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-[12px] font-semibold leading-tight text-foreground">
+                  <p className="text-[11.5px] font-semibold leading-tight text-foreground">
                     {f.title}
                   </p>
-                  <p className="text-[10.5px] leading-tight text-muted-foreground">
+                  <p className="text-[10px] leading-tight text-muted-foreground">
                     {f.desc}
                   </p>
                 </div>
