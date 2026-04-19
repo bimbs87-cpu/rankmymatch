@@ -6,6 +6,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
+import { PlayerAvatarLink, PlayerNameLink } from "@/components/PlayerProfileViewer";
 import { DualEloChart } from "@/components/DualEloChart";
 import { computeDuelMedals } from "@/lib/duel-medals";
 import { buildMedalsTimeline } from "@/lib/duel-medals-timeline";

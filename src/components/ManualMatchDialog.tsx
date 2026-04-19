@@ -443,12 +443,14 @@ export function ManualMatchDialog({ roundId, groupId, matchFormat = "doubles", o
     const sizeMap = { sm: "sm" as const, md: "md" as const, lg: "lg" as const };
     const av = getAvatar(uid);
     return (
-      <SharedPlayerAvatar
-        avatarUrl={av || null}
-        name={getDisplayName(uid)}
-        size={sizeMap[size]}
-        className="ring-2 ring-border"
-      />
+      <PlayerAvatarLink userId={uid} ariaLabel={`Ver perfil de ${getDisplayName(uid)}`}>
+        <SharedPlayerAvatar
+          avatarUrl={av || null}
+          name={getDisplayName(uid)}
+          size={sizeMap[size]}
+          className="ring-2 ring-border"
+        />
+      </PlayerAvatarLink>
     );
   };
 
