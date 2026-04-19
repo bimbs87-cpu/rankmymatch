@@ -23,6 +23,7 @@ import { Route as GroupsRouteImport } from './routes/groups'
 import { Route as CompararRouteImport } from './routes/comparar'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as GroupsIndexRouteImport } from './routes/groups.index'
+import { Route as SobreDesenvolvimentoAdminRouteImport } from './routes/sobre-desenvolvimento.admin'
 import { Route as RankingCompareRouteImport } from './routes/ranking_.compare'
 import { Route as PlayersUserIdRouteImport } from './routes/players.$userId'
 import { Route as InviteCodeRouteImport } from './routes/invite.$code'
@@ -110,6 +111,12 @@ const GroupsIndexRoute = GroupsIndexRouteImport.update({
   path: '/',
   getParentRoute: () => GroupsRoute,
 } as any)
+const SobreDesenvolvimentoAdminRoute =
+  SobreDesenvolvimentoAdminRouteImport.update({
+    id: '/admin',
+    path: '/admin',
+    getParentRoute: () => SobreDesenvolvimentoRoute,
+  } as any)
 const RankingCompareRoute = RankingCompareRouteImport.update({
   id: '/ranking_/compare',
   path: '/ranking/compare',
@@ -209,12 +216,13 @@ export interface FileRoutesByFullPath {
   '/seasons': typeof SeasonsRoute
   '/sistema': typeof SistemaRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
-  '/sobre-desenvolvimento': typeof SobreDesenvolvimentoRoute
+  '/sobre-desenvolvimento': typeof SobreDesenvolvimentoRouteWithChildren
   '/groups/$groupId': typeof GroupsGroupIdRouteWithChildren
   '/hooks/presence-window-opened': typeof HooksPresenceWindowOpenedRoute
   '/invite/$code': typeof InviteCodeRoute
   '/players/$userId': typeof PlayersUserIdRoute
   '/ranking/compare': typeof RankingCompareRoute
+  '/sobre-desenvolvimento/admin': typeof SobreDesenvolvimentoAdminRoute
   '/groups/': typeof GroupsIndexRoute
   '/api/push/vapid-public-key': typeof ApiPushVapidPublicKeyRoute
   '/groups/$groupId/duel': typeof GroupsGroupIdDuelRoute
@@ -240,11 +248,12 @@ export interface FileRoutesByTo {
   '/seasons': typeof SeasonsRoute
   '/sistema': typeof SistemaRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
-  '/sobre-desenvolvimento': typeof SobreDesenvolvimentoRoute
+  '/sobre-desenvolvimento': typeof SobreDesenvolvimentoRouteWithChildren
   '/hooks/presence-window-opened': typeof HooksPresenceWindowOpenedRoute
   '/invite/$code': typeof InviteCodeRoute
   '/players/$userId': typeof PlayersUserIdRoute
   '/ranking/compare': typeof RankingCompareRoute
+  '/sobre-desenvolvimento/admin': typeof SobreDesenvolvimentoAdminRoute
   '/groups': typeof GroupsIndexRoute
   '/api/push/vapid-public-key': typeof ApiPushVapidPublicKeyRoute
   '/groups/$groupId/duel': typeof GroupsGroupIdDuelRoute
@@ -270,12 +279,13 @@ export interface FileRoutesById {
   '/seasons': typeof SeasonsRoute
   '/sistema': typeof SistemaRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
-  '/sobre-desenvolvimento': typeof SobreDesenvolvimentoRoute
+  '/sobre-desenvolvimento': typeof SobreDesenvolvimentoRouteWithChildren
   '/groups/$groupId': typeof GroupsGroupIdRouteWithChildren
   '/hooks/presence-window-opened': typeof HooksPresenceWindowOpenedRoute
   '/invite/$code': typeof InviteCodeRoute
   '/players/$userId': typeof PlayersUserIdRoute
   '/ranking_/compare': typeof RankingCompareRoute
+  '/sobre-desenvolvimento/admin': typeof SobreDesenvolvimentoAdminRoute
   '/groups/': typeof GroupsIndexRoute
   '/api/push/vapid-public-key': typeof ApiPushVapidPublicKeyRoute
   '/groups/$groupId/duel': typeof GroupsGroupIdDuelRoute
@@ -310,6 +320,7 @@ export interface FileRouteTypes {
     | '/invite/$code'
     | '/players/$userId'
     | '/ranking/compare'
+    | '/sobre-desenvolvimento/admin'
     | '/groups/'
     | '/api/push/vapid-public-key'
     | '/groups/$groupId/duel'
@@ -340,6 +351,7 @@ export interface FileRouteTypes {
     | '/invite/$code'
     | '/players/$userId'
     | '/ranking/compare'
+    | '/sobre-desenvolvimento/admin'
     | '/groups'
     | '/api/push/vapid-public-key'
     | '/groups/$groupId/duel'
@@ -370,6 +382,7 @@ export interface FileRouteTypes {
     | '/invite/$code'
     | '/players/$userId'
     | '/ranking_/compare'
+    | '/sobre-desenvolvimento/admin'
     | '/groups/'
     | '/api/push/vapid-public-key'
     | '/groups/$groupId/duel'
@@ -397,7 +410,7 @@ export interface RootRouteChildren {
   SeasonsRoute: typeof SeasonsRoute
   SistemaRoute: typeof SistemaRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
-  SobreDesenvolvimentoRoute: typeof SobreDesenvolvimentoRoute
+  SobreDesenvolvimentoRoute: typeof SobreDesenvolvimentoRouteWithChildren
   HooksPresenceWindowOpenedRoute: typeof HooksPresenceWindowOpenedRoute
   InviteCodeRoute: typeof InviteCodeRoute
   PlayersUserIdRoute: typeof PlayersUserIdRoute
@@ -506,6 +519,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/groups/'
       preLoaderRoute: typeof GroupsIndexRouteImport
       parentRoute: typeof GroupsRoute
+    }
+    '/sobre-desenvolvimento/admin': {
+      id: '/sobre-desenvolvimento/admin'
+      path: '/admin'
+      fullPath: '/sobre-desenvolvimento/admin'
+      preLoaderRoute: typeof SobreDesenvolvimentoAdminRouteImport
+      parentRoute: typeof SobreDesenvolvimentoRoute
     }
     '/ranking_/compare': {
       id: '/ranking_/compare'
@@ -685,6 +705,17 @@ const GroupsRouteChildren: GroupsRouteChildren = {
 const GroupsRouteWithChildren =
   GroupsRoute._addFileChildren(GroupsRouteChildren)
 
+interface SobreDesenvolvimentoRouteChildren {
+  SobreDesenvolvimentoAdminRoute: typeof SobreDesenvolvimentoAdminRoute
+}
+
+const SobreDesenvolvimentoRouteChildren: SobreDesenvolvimentoRouteChildren = {
+  SobreDesenvolvimentoAdminRoute: SobreDesenvolvimentoAdminRoute,
+}
+
+const SobreDesenvolvimentoRouteWithChildren =
+  SobreDesenvolvimentoRoute._addFileChildren(SobreDesenvolvimentoRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   CompararRoute: CompararRoute,
@@ -698,7 +729,7 @@ const rootRouteChildren: RootRouteChildren = {
   SeasonsRoute: SeasonsRoute,
   SistemaRoute: SistemaRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
-  SobreDesenvolvimentoRoute: SobreDesenvolvimentoRoute,
+  SobreDesenvolvimentoRoute: SobreDesenvolvimentoRouteWithChildren,
   HooksPresenceWindowOpenedRoute: HooksPresenceWindowOpenedRoute,
   InviteCodeRoute: InviteCodeRoute,
   PlayersUserIdRoute: PlayersUserIdRoute,
