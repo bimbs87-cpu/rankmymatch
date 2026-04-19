@@ -9,7 +9,7 @@
 import { useEffect, useRef, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import QRCode from "qrcode";
-import { Copy, Check, Share2, X, Download, ImageIcon, ImageDown, RefreshCw } from "lucide-react";
+import { Copy, Check, Share2, X, Download, ImageIcon, ImageDown, RefreshCw, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
 import { invalidateGroupOgCache } from "@/lib/og-cache.functions";
