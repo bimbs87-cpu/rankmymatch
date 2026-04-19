@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
-import { ArrowLeft, Sparkles, Wrench, Rocket, Loader2 } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { ArrowLeft, Sparkles, Wrench, Rocket, Loader2, Search, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { markReleasesSeen } from "@/hooks/use-new-releases";
 
@@ -67,6 +67,7 @@ function formatDate(iso: string) {
 function ChangelogPage() {
   const [notes, setNotes] = useState<ReleaseNote[] | null>(null);
   const [filter, setFilter] = useState<"all" | "feature" | "improvement" | "fix">("all");
+  const [query, setQuery] = useState("");
 
   useEffect(() => {
     markReleasesSeen();
@@ -80,7 +81,17 @@ function ChangelogPage() {
     })();
   }, []);
 
-  const filtered = (notes ?? []).filter((n) => filter === "all" || n.type === filter);
+  const normalizedQuery = query.trim().toLowerCase();
+  const filtered = useMemo(
+    () =>
+      (notes ?? []).filter((n) => {
+        if (filter !== "all" && n.type !== filter) return false;
+        if (!normalizedQuery) return true;
+        const haystack = `${n.title} ${n.description ?? ""} ${n.version}`.toLowerCase();
+        return haystack.includes(normalizedQuery);
+      }),
+    [notes, filter, normalizedQuery],
+  );
 
   // Group by month for organization
   const grouped = filtered.reduce(
@@ -133,6 +144,27 @@ function ChangelogPage() {
       </header>
 
       <main className="mx-auto w-full max-w-4xl space-y-4 px-5 lg:px-6">
+        {/* Search */}
+        <div className="relative">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Buscar por palavra-chave (ex: ranking, push, duelo...)"
+            className="w-full rounded-full border border-border bg-card py-2.5 pl-10 pr-10 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+          />
+          {query && (
+            <button
+              onClick={() => setQuery("")}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              aria-label="Limpar busca"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+
         {/* Filter tabs */}
         <div className="flex flex-wrap gap-2">
           {FILTERS.map((f) => (
