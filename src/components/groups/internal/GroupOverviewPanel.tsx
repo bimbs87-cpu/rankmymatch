@@ -435,25 +435,52 @@ function NextRoundCard({ data, isLoading, groupId, busy, onPresence }: NextRound
                   )}
                 </button>
               </PopoverTrigger>
-              <PopoverContent align="start" className="w-64 p-0">
-                <div className="border-b border-border px-3 py-2 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                  Confirmados ({data.next_round.confirmed_all.length})
-                </div>
-                <ul className="max-h-64 overflow-y-auto divide-y divide-border/60">
-                  {data.next_round.confirmed_all.map((p) => (
-                    <li key={p.user_id} className="flex items-center gap-2 px-3 py-1.5">
-                      <PlayerAvatar avatarUrl={p.avatar_url} name={p.name} size="sm" />
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-xs font-semibold text-foreground">{p.name}</p>
-                        {p.confirmed_at && (
-                          <p className="text-[10px] text-muted-foreground">
-                            {new Date(p.confirmed_at).toLocaleString("pt-BR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}
-                          </p>
-                        )}
-                      </div>
-                    </li>
-                  ))}
-                </ul>
+              <PopoverContent align="start" className="w-72 p-0">
+                <Tabs defaultValue="confirmed" className="w-full">
+                  <TabsList className="grid w-full grid-cols-3 rounded-none rounded-t-md h-9">
+                    <TabsTrigger value="confirmed" className="text-[10px] gap-1">
+                      <CheckCircle2 className="h-3 w-3" />
+                      <span>{data.next_round.confirmed_all.length}</span>
+                    </TabsTrigger>
+                    <TabsTrigger value="pending" className="text-[10px] gap-1">
+                      <HelpCircle className="h-3 w-3" />
+                      <span>{data.next_round.pending_all.length}</span>
+                    </TabsTrigger>
+                    <TabsTrigger value="declined" className="text-[10px] gap-1">
+                      <XCircle className="h-3 w-3" />
+                      <span>{data.next_round.declined_all.length}</span>
+                    </TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="confirmed" className="mt-0">
+                    <PresenceList
+                      empty="Ninguém confirmou ainda"
+                      items={data.next_round.confirmed_all.map((p) => ({
+                        ...p,
+                        meta: p.confirmed_at
+                          ? new Date(p.confirmed_at).toLocaleString("pt-BR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })
+                          : null,
+                      }))}
+                    />
+                  </TabsContent>
+                  <TabsContent value="pending" className="mt-0">
+                    <PresenceList
+                      empty="Todos já responderam"
+                      items={data.next_round.pending_all.map((p) => ({ ...p, meta: "Sem resposta" }))}
+                    />
+                  </TabsContent>
+                  <TabsContent value="declined" className="mt-0">
+                    <PresenceList
+                      empty="Ninguém recusou"
+                      items={data.next_round.declined_all.map((p) => ({
+                        ...p,
+                        meta: p.confirmed_at
+                          ? new Date(p.confirmed_at).toLocaleString("pt-BR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })
+                          : null,
+                      }))}
+                    />
+                  </TabsContent>
+                </Tabs>
               </PopoverContent>
             </Popover>
           )}
