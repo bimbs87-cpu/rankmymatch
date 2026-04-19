@@ -17,6 +17,8 @@ export interface NextRoundInfo {
   presence_opens_at: string | null;
   confirmed_avatars: { user_id: string; name: string; avatar_url: string | null }[];
   confirmed_all: { user_id: string; name: string; avatar_url: string | null; confirmed_at: string | null }[];
+  declined_all: { user_id: string; name: string; avatar_url: string | null; confirmed_at: string | null }[];
+  pending_all: { user_id: string; name: string; avatar_url: string | null }[];
 }
 
 export interface PendingJoinReq {
