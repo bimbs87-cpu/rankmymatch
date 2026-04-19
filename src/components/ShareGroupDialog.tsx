@@ -287,10 +287,41 @@ export function ShareGroupDialog({ open, onOpenChange, url, groupName, groupId, 
   };
 
   const handleWhatsApp = () => {
-    const message = `🎾 Confira o grupo *${groupName}* no RankMyMatch!\n\nRanking, rodadas e estatísticas em tempo real.\n\n${url}`;
+    const message = renderTemplate(waTemplate, groupName, url);
     const wa = `https://wa.me/?text=${encodeURIComponent(message)}`;
     window.open(wa, "_blank", "noopener,noreferrer");
     void trackShareEvent(groupId, "whatsapp");
+  };
+
+  const handleSaveTemplate = async () => {
+    if (savingTpl) return;
+    const trimmed = waDraft.trim();
+    if (!trimmed) {
+      toast.error("Mensagem não pode ficar vazia");
+      return;
+    }
+    if (trimmed.length > 500) {
+      toast.error("Máximo 500 caracteres");
+      return;
+    }
+    setSavingTpl(true);
+    const valueToSave = trimmed === DEFAULT_WA_TEMPLATE ? null : trimmed;
+    const { error } = await supabase
+      .from("groups")
+      .update({ whatsapp_share_template: valueToSave } as never)
+      .eq("id", groupId);
+    setSavingTpl(false);
+    if (error) {
+      toast.error("Não foi possível salvar");
+      return;
+    }
+    setWaTemplate(trimmed);
+    setWaEditing(false);
+    toast.success("Mensagem do WhatsApp salva!");
+  };
+
+  const handleResetTemplate = () => {
+    setWaDraft(DEFAULT_WA_TEMPLATE);
   };
 
   const canNativeShare = typeof navigator !== "undefined" && "share" in navigator;
