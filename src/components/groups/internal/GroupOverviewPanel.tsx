@@ -531,3 +531,33 @@ function NextRoundCard({ data, isLoading, groupId, busy, onPresence }: NextRound
     </div>
   );
 }
+
+interface PresenceListItem {
+  user_id: string;
+  name: string;
+  avatar_url: string | null;
+  meta?: string | null;
+}
+
+function PresenceList({ items, empty }: { items: PresenceListItem[]; empty: string }) {
+  if (!items.length) {
+    return (
+      <div className="px-3 py-6 text-center text-[11px] text-muted-foreground">
+        {empty}
+      </div>
+    );
+  }
+  return (
+    <ul className="max-h-64 overflow-y-auto divide-y divide-border/60">
+      {items.map((p) => (
+        <li key={p.user_id} className="flex items-center gap-2 px-3 py-1.5">
+          <PlayerAvatar avatarUrl={p.avatar_url} name={p.name} size="sm" />
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-xs font-semibold text-foreground">{p.name}</p>
+            {p.meta && <p className="truncate text-[10px] text-muted-foreground">{p.meta}</p>}
+          </div>
+        </li>
+      ))}
+    </ul>
+  );
+}
