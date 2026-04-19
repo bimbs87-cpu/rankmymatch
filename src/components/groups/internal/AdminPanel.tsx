@@ -35,6 +35,7 @@ const SECTIONS: { id: Section; label: string; icon: typeof Settings2; creatorOnl
   { id: "invites", label: "Convites", icon: Link2 },
   { id: "engagement", label: "Engajamento", icon: BarChart3 },
   { id: "audit", label: "Auditoria", icon: ScrollText },
+  { id: "maintenance", label: "Manutenção", icon: Wrench },
   { id: "og-cache", label: "Cache OG", icon: ImageIcon, creatorOnly: true },
   { id: "advanced", label: "Avançado", icon: AlertTriangle },
 ];
