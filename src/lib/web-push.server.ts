@@ -229,10 +229,25 @@ export async function sendPushToUserIds(
     return { sent: 0, failed: 0 };
   }
 
+  // Respect per-user, per-event-type preferences. Default = ON when no row.
+  let allowedUserIds = userIds;
+  if (payload.type) {
+    const { data: prefs } = await supabaseAdmin
+      .from("push_notification_preferences")
+      .select("user_id, enabled")
+      .in("user_id", userIds)
+      .eq("event_type", payload.type);
+    const optedOut = new Set(
+      (prefs || []).filter((p) => p.enabled === false).map((p) => p.user_id),
+    );
+    allowedUserIds = userIds.filter((u) => !optedOut.has(u));
+  }
+  if (!allowedUserIds.length) return { sent: 0, failed: 0 };
+
   const { data: subs, error } = await supabaseAdmin
     .from("push_subscriptions")
     .select("id, endpoint, p256dh, auth, failure_count")
-    .in("user_id", userIds);
+    .in("user_id", allowedUserIds);
 
   if (error || !subs?.length) return { sent: 0, failed: 0 };
 
