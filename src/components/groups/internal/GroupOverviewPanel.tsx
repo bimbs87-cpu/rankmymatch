@@ -39,6 +39,8 @@ export function GroupOverviewPanel({ groupId, groupName, groupImage, description
   const { user } = useAuth();
   const { data, isLoading, refresh } = useGroupDashboard(groupId);
   const { data: stats, isLoading: statsLoading } = useGroupGlobalStats(groupId);
+  const { data: topSharer } = useTopSharer(groupId);
+  const isTopSharer = !!user && !!topSharer && topSharer.user_id === user.id && topSharer.count >= 2;
   const [busy, setBusy] = useState(false);
 
   const handlePresence = async (status: "confirmed" | "declined") => {
