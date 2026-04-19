@@ -2,13 +2,14 @@ import { Link } from "@tanstack/react-router";
 import {
   Calendar, Clock, MapPin, Trophy, ChevronRight, Users, MessageSquare, Lock,
   CheckCircle2, XCircle, Flame, TrendingUp, Award, Zap, Target, Crown, Sparkles, Activity,
-  HelpCircle,
+  HelpCircle, Share2,
 } from "lucide-react";
 import { useGroupDashboard } from "@/hooks/use-group-dashboard";
 import { useGroupGlobalStats, type RecordHolder } from "@/hooks/use-group-stats";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { GroupRivalriesPanel } from "./GroupRivalriesPanel";
 import { GroupEloEvolutionChart } from "./GroupEloEvolutionChart";
+import { ShareGroupDialog } from "@/components/ShareGroupDialog";
 import { confirmPresence, cancelPresence } from "@/lib/round-actions";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
@@ -22,13 +23,18 @@ interface Props {
   groupName: string;
   groupImage: string | null;
   description: string | null;
+  isAdmin?: boolean;
   onGotoMembers: () => void;
   onGotoResults: () => void;
   /** Open the embedded compare with these two player ids pre-selected. */
   onCompare?: (userIdA: string, userIdB: string) => void;
 }
 
-export function GroupOverviewPanel({ groupId, groupName, groupImage, description, onGotoMembers, onGotoResults, onCompare }: Props) {
+export function GroupOverviewPanel({ groupId, groupName, groupImage, description, isAdmin = false, onGotoMembers, onGotoResults, onCompare }: Props) {
+  const [shareOpen, setShareOpen] = useState(false);
+  const shareUrl = typeof window !== "undefined"
+    ? `${window.location.origin}/groups/${groupId}`
+    : `https://rankmymatch.app/groups/${groupId}`;
   const { user } = useAuth();
   const { data, isLoading, refresh } = useGroupDashboard(groupId);
   const { data: stats, isLoading: statsLoading } = useGroupGlobalStats(groupId);
@@ -62,8 +68,20 @@ export function GroupOverviewPanel({ groupId, groupName, groupImage, description
           <div className="h-20 bg-gradient-to-br from-primary/20 to-primary/5" />
         )}
         <div className="px-5 pb-5 -mt-4 relative">
-          <h1 className="font-display text-xl font-bold text-foreground">{groupName}</h1>
-          {description && <p className="mt-1 text-sm text-muted-foreground">{description}</p>}
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0 flex-1">
+              <h1 className="font-display text-xl font-bold text-foreground">{groupName}</h1>
+              {description && <p className="mt-1 text-sm text-muted-foreground">{description}</p>}
+            </div>
+            <button
+              onClick={() => setShareOpen(true)}
+              className="shrink-0 inline-flex items-center gap-1.5 rounded-full border border-border bg-background/80 px-3 py-1.5 text-[11px] font-semibold text-foreground backdrop-blur transition hover:bg-accent"
+              aria-label="Compartilhar grupo"
+            >
+              <Share2 className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Compartilhar</span>
+            </button>
+          </div>
           <div className="mt-3 flex flex-wrap gap-2 text-[11px]">
             <span className="rounded-full bg-muted/60 px-2.5 py-1 text-muted-foreground">
               {data.member_count} membros
@@ -81,6 +99,15 @@ export function GroupOverviewPanel({ groupId, groupName, groupImage, description
           </div>
         </div>
       </div>
+
+      <ShareGroupDialog
+        open={shareOpen}
+        onOpenChange={setShareOpen}
+        url={shareUrl}
+        groupName={groupName}
+        groupId={groupId}
+        isAdmin={isAdmin}
+      />
 
       {/* Linha compacta: 2 KPIs combinados + Próxima rodada + Sua posição (sempre 4 colunas) */}
       <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">

@@ -237,7 +237,7 @@ export function DualEloChart({
   const hovered = hoverIdx != null ? data[hoverIdx] : null;
   const hoveredInfo = hovered?.matchId ? matchInfo?.[hovered.matchId] : null;
   const tooltipX = hovered != null && hoverIdx != null ? xFor(hoverIdx) : 0;
-  const tooltipBoxW = 180;
+  const tooltipBoxW = Math.min(180, Math.max(140, w - 16));
   const tooltipBoxH = 88;
   const tooltipLeft = Math.max(4, Math.min(w - tooltipBoxW - 4, tooltipX - tooltipBoxW / 2));
   const tooltipTop = 8;
@@ -417,7 +417,7 @@ export function DualEloChart({
 
           {hovered && (
             <div
-              className="pointer-events-none absolute rounded-xl border border-border bg-popover px-3 py-2 text-popover-foreground shadow-lg"
+              className="pointer-events-none absolute rounded-xl border border-border bg-popover px-3 py-2 text-popover-foreground shadow-lg animate-fade-in"
               style={{
                 left: `${(tooltipLeft / w) * 100}%`,
                 top: `${(tooltipTop / h) * 100}%`,
