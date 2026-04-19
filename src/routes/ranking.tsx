@@ -549,22 +549,12 @@ function RankingPage() {
       ) : null}
 
       {showSwitcher && seasons.length > 1 && (
-        <div className="mx-5 mt-2 rounded-2xl border border-border bg-card/95 backdrop-blur-xl overflow-hidden shadow-lg lg:hidden">
-          {seasons.map((s: any) => (
-            <button
-              key={s.id}
-              onClick={() => { setSelectedSeasonId(s.id); setShowSwitcher(false); }}
-              className={`flex w-full items-center justify-between px-4 py-3 text-left text-sm transition-colors border-b border-border/50 last:border-b-0 ${
-                selectedSeasonId === s.id ? "bg-primary/10 text-primary font-semibold" : "text-foreground hover:bg-accent/50"
-              }`}
-            >
-              <div>
-                <p className="font-medium">{s.groups?.name}</p>
-                <p className="text-[11px] text-muted-foreground">{s.name}</p>
-              </div>
-              {selectedSeasonId === s.id && <div className="h-2 w-2 rounded-full bg-primary" />}
-            </button>
-          ))}
+        <div className="mx-5 mt-2 rounded-2xl border border-border bg-card/95 backdrop-blur-xl overflow-hidden shadow-lg lg:hidden max-h-[60vh] overflow-y-auto">
+          <SeasonSwitcherList
+            seasons={seasons}
+            selectedId={selectedSeasonId}
+            onSelect={(id) => { setSelectedSeasonId(id); setShowSwitcher(false); }}
+          />
         </div>
       )}
 
