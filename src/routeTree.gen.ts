@@ -25,6 +25,7 @@ import { Route as GroupsIndexRouteImport } from './routes/groups.index'
 import { Route as RankingCompareRouteImport } from './routes/ranking_.compare'
 import { Route as PlayersUserIdRouteImport } from './routes/players.$userId'
 import { Route as InviteCodeRouteImport } from './routes/invite.$code'
+import { Route as HooksPresenceWindowOpenedRouteImport } from './routes/hooks.presence-window-opened'
 import { Route as GroupsGroupIdRouteImport } from './routes/groups.$groupId'
 import { Route as GroupsGroupIdIndexRouteImport } from './routes/groups.$groupId.index'
 import { Route as GroupsGroupIdSeasonsRouteImport } from './routes/groups.$groupId.seasons'
@@ -118,6 +119,12 @@ const InviteCodeRoute = InviteCodeRouteImport.update({
   path: '/invite/$code',
   getParentRoute: () => rootRouteImport,
 } as any)
+const HooksPresenceWindowOpenedRoute =
+  HooksPresenceWindowOpenedRouteImport.update({
+    id: '/hooks/presence-window-opened',
+    path: '/hooks/presence-window-opened',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const GroupsGroupIdRoute = GroupsGroupIdRouteImport.update({
   id: '/$groupId',
   path: '/$groupId',
@@ -197,6 +204,7 @@ export interface FileRoutesByFullPath {
   '/sistema': typeof SistemaRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/groups/$groupId': typeof GroupsGroupIdRouteWithChildren
+  '/hooks/presence-window-opened': typeof HooksPresenceWindowOpenedRoute
   '/invite/$code': typeof InviteCodeRoute
   '/players/$userId': typeof PlayersUserIdRoute
   '/ranking/compare': typeof RankingCompareRoute
@@ -225,6 +233,7 @@ export interface FileRoutesByTo {
   '/seasons': typeof SeasonsRoute
   '/sistema': typeof SistemaRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/hooks/presence-window-opened': typeof HooksPresenceWindowOpenedRoute
   '/invite/$code': typeof InviteCodeRoute
   '/players/$userId': typeof PlayersUserIdRoute
   '/ranking/compare': typeof RankingCompareRoute
@@ -254,6 +263,7 @@ export interface FileRoutesById {
   '/sistema': typeof SistemaRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/groups/$groupId': typeof GroupsGroupIdRouteWithChildren
+  '/hooks/presence-window-opened': typeof HooksPresenceWindowOpenedRoute
   '/invite/$code': typeof InviteCodeRoute
   '/players/$userId': typeof PlayersUserIdRoute
   '/ranking_/compare': typeof RankingCompareRoute
@@ -286,6 +296,7 @@ export interface FileRouteTypes {
     | '/sistema'
     | '/sitemap.xml'
     | '/groups/$groupId'
+    | '/hooks/presence-window-opened'
     | '/invite/$code'
     | '/players/$userId'
     | '/ranking/compare'
@@ -314,6 +325,7 @@ export interface FileRouteTypes {
     | '/seasons'
     | '/sistema'
     | '/sitemap.xml'
+    | '/hooks/presence-window-opened'
     | '/invite/$code'
     | '/players/$userId'
     | '/ranking/compare'
@@ -342,6 +354,7 @@ export interface FileRouteTypes {
     | '/sistema'
     | '/sitemap.xml'
     | '/groups/$groupId'
+    | '/hooks/presence-window-opened'
     | '/invite/$code'
     | '/players/$userId'
     | '/ranking_/compare'
@@ -372,6 +385,7 @@ export interface RootRouteChildren {
   SeasonsRoute: typeof SeasonsRoute
   SistemaRoute: typeof SistemaRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
+  HooksPresenceWindowOpenedRoute: typeof HooksPresenceWindowOpenedRoute
   InviteCodeRoute: typeof InviteCodeRoute
   PlayersUserIdRoute: typeof PlayersUserIdRoute
   RankingCompareRoute: typeof RankingCompareRoute
@@ -492,6 +506,13 @@ declare module '@tanstack/react-router' {
       path: '/invite/$code'
       fullPath: '/invite/$code'
       preLoaderRoute: typeof InviteCodeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/hooks/presence-window-opened': {
+      id: '/hooks/presence-window-opened'
+      path: '/hooks/presence-window-opened'
+      fullPath: '/hooks/presence-window-opened'
+      preLoaderRoute: typeof HooksPresenceWindowOpenedRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/groups/$groupId': {
@@ -657,6 +678,7 @@ const rootRouteChildren: RootRouteChildren = {
   SeasonsRoute: SeasonsRoute,
   SistemaRoute: SistemaRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
+  HooksPresenceWindowOpenedRoute: HooksPresenceWindowOpenedRoute,
   InviteCodeRoute: InviteCodeRoute,
   PlayersUserIdRoute: PlayersUserIdRoute,
   RankingCompareRoute: RankingCompareRoute,
