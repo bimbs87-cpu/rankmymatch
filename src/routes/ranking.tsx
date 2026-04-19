@@ -485,22 +485,12 @@ function RankingPage() {
                 <ChevronDown className={`h-3.5 w-3.5 text-muted-foreground transition-transform ${showSwitcher ? "rotate-180" : ""}`} />
               </button>
               {showSwitcher && (
-                <div className="absolute right-0 top-full mt-2 w-72 rounded-2xl border border-border bg-card/95 backdrop-blur-xl overflow-hidden shadow-xl z-20">
-                  {seasons.map((s: any) => (
-                    <button
-                      key={s.id}
-                      onClick={() => { setSelectedSeasonId(s.id); setShowSwitcher(false); }}
-                      className={`flex w-full items-center justify-between px-4 py-3 text-left text-sm transition-colors border-b border-border/50 last:border-b-0 ${
-                        selectedSeasonId === s.id ? "bg-primary/10 text-primary font-semibold" : "text-foreground hover:bg-accent/50"
-                      }`}
-                    >
-                      <div>
-                        <p className="font-medium">{s.groups?.name}</p>
-                        <p className="text-[11px] text-muted-foreground">{s.name}</p>
-                      </div>
-                      {selectedSeasonId === s.id && <div className="h-2 w-2 rounded-full bg-primary" />}
-                    </button>
-                  ))}
+                <div className="absolute right-0 top-full mt-2 w-72 rounded-2xl border border-border bg-card/95 backdrop-blur-xl overflow-hidden shadow-xl z-20 max-h-[70vh] overflow-y-auto">
+                  <SeasonSwitcherList
+                    seasons={seasons}
+                    selectedId={selectedSeasonId}
+                    onSelect={(id) => { setSelectedSeasonId(id); setShowSwitcher(false); }}
+                  />
                 </div>
               )}
             </div>
@@ -559,22 +549,12 @@ function RankingPage() {
       ) : null}
 
       {showSwitcher && seasons.length > 1 && (
-        <div className="mx-5 mt-2 rounded-2xl border border-border bg-card/95 backdrop-blur-xl overflow-hidden shadow-lg lg:hidden">
-          {seasons.map((s: any) => (
-            <button
-              key={s.id}
-              onClick={() => { setSelectedSeasonId(s.id); setShowSwitcher(false); }}
-              className={`flex w-full items-center justify-between px-4 py-3 text-left text-sm transition-colors border-b border-border/50 last:border-b-0 ${
-                selectedSeasonId === s.id ? "bg-primary/10 text-primary font-semibold" : "text-foreground hover:bg-accent/50"
-              }`}
-            >
-              <div>
-                <p className="font-medium">{s.groups?.name}</p>
-                <p className="text-[11px] text-muted-foreground">{s.name}</p>
-              </div>
-              {selectedSeasonId === s.id && <div className="h-2 w-2 rounded-full bg-primary" />}
-            </button>
-          ))}
+        <div className="mx-5 mt-2 rounded-2xl border border-border bg-card/95 backdrop-blur-xl overflow-hidden shadow-lg lg:hidden max-h-[60vh] overflow-y-auto">
+          <SeasonSwitcherList
+            seasons={seasons}
+            selectedId={selectedSeasonId}
+            onSelect={(id) => { setSelectedSeasonId(id); setShowSwitcher(false); }}
+          />
         </div>
       )}
 
@@ -1075,5 +1055,58 @@ function RankingPage() {
         </div>
       )}
     </div>
+  );
+}
+
+/**
+ * Renders the season switcher list grouped by status: active seasons first,
+ * then a soft divider, then finished seasons. Used by both desktop and mobile.
+ */
+function SeasonSwitcherList({
+  seasons,
+  selectedId,
+  onSelect,
+}: {
+  seasons: any[];
+  selectedId: string | null;
+  onSelect: (id: string) => void;
+}) {
+  const active = seasons.filter((s) => s.status === "active");
+  const finished = seasons.filter((s) => s.status !== "active");
+
+  const renderItem = (s: any) => (
+    <button
+      key={s.id}
+      onClick={() => onSelect(s.id)}
+      className={`flex w-full items-center justify-between px-4 py-3 text-left text-sm transition-colors border-b border-border/40 last:border-b-0 ${
+        selectedId === s.id ? "bg-primary/10 text-primary font-semibold" : "text-foreground hover:bg-accent/50"
+      }`}
+    >
+      <div className="min-w-0">
+        <p className="font-medium truncate">{s.groups?.name}</p>
+        <p className="text-[11px] text-muted-foreground truncate">{s.name}</p>
+      </div>
+      {selectedId === s.id && <div className="ml-2 h-2 w-2 shrink-0 rounded-full bg-primary" />}
+    </button>
+  );
+
+  return (
+    <>
+      {active.length > 0 && (
+        <>
+          <p className="px-4 pt-3 pb-1 text-[10px] font-bold uppercase tracking-wider text-primary/80">Em andamento</p>
+          {active.map(renderItem)}
+        </>
+      )}
+      {active.length > 0 && finished.length > 0 && (
+        <div className="my-1 border-t border-border/60" />
+      )}
+      {finished.length > 0 && (
+        <>
+          <p className="px-4 pt-3 pb-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Encerradas</p>
+          {finished.map(renderItem)}
+        </>
+      )}
+    </>
   );
 }
