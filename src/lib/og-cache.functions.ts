@@ -42,8 +42,14 @@ export interface OgCacheStats {
 
 export const getOgCacheStats = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }): Promise<OgCacheStats> => {
+  .inputValidator((input: { days?: number } | undefined) => {
+    const d = input?.days ?? 7;
+    const days = d === 7 || d === 30 || d === 90 ? d : 7;
+    return { days };
+  })
+  .handler(async ({ context, data }): Promise<OgCacheStats> => {
     const userId = context.userId as string;
+    const windowDays = data.days;
 
     // Authorization: must be a creator of at least one group
     const { data: creatorMemberships } = await supabaseAdmin
@@ -57,7 +63,7 @@ export const getOgCacheStats = createServerFn({ method: "GET" })
       throw new Error("Forbidden: not a group creator");
     }
 
-    const since = new Date(Date.now() - 7 * 24 * 3600_000).toISOString();
+    const since = new Date(Date.now() - windowDays * 24 * 3600_000).toISOString();
     const { data: events } = await supabaseAdmin
       .from("og_render_events")
       .select("user_id, status, created_at")
