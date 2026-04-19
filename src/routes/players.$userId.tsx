@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { ArrowLeft, Lock } from "lucide-react";
 import { TrophyLoadingBar } from "@/components/TrophyLoadingBar";
 import { ProfileBody } from "@/components/ProfileBody";
+import { ShareProfileButton } from "@/components/ShareProfileButton";
 import {
   loadAggregatedProfile,
   loadAggregatedSummary,
@@ -13,12 +14,21 @@ import {
 import { useAuth } from "@/hooks/use-auth";
 
 export const Route = createFileRoute("/players/$userId")({
-  head: () => ({
-    meta: [
-      { title: "Perfil do jogador — RankMyMatch" },
-      { name: "description", content: "Veja o perfil competitivo de um jogador no RankMyMatch." },
-    ],
-  }),
+  head: ({ params }) => {
+    const ogImage = `/api/og/player/${params.userId}`;
+    return {
+      meta: [
+        { title: "Perfil do jogador — RankMyMatch" },
+        { name: "description", content: "Veja o perfil competitivo de um jogador no RankMyMatch." },
+        { property: "og:title", content: "Perfil competitivo no RankMyMatch" },
+        { property: "og:description", content: "Veja Elo, melhor posição e estatísticas deste jogador." },
+        { property: "og:image", content: ogImage },
+        { property: "og:type", content: "profile" },
+        { name: "twitter:card", content: "summary_large_image" },
+        { name: "twitter:image", content: ogImage },
+      ],
+    };
+  },
   component: PlayerPublicProfile,
   errorComponent: ({ error }) => (
     <div className="min-h-screen bg-background px-5 pb-28 pt-10 text-center">
