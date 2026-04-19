@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { ScoreEntryDialog } from "@/components/ScoreEntryDialog";
 import { ManualMatchDialog } from "@/components/ManualMatchDialog";
 import { isRivalryGroup } from "@/lib/rivalry";
+import { notifyGroupMembers } from "@/hooks/use-notifications";
 import {
   ArrowLeft,
   Check,
@@ -448,6 +449,19 @@ function RoundDetailPage() {
           new_data: { presence_force_open_at: nowIso },
           reason: "Admin reabriu lista de presenças antecipadamente",
         } as any).then(() => {});
+      }
+      // Notify members + push (lista aberta)
+      if (user) {
+        const roundLabel = round.round_number ? `Rodada ${round.round_number}` : "rodada";
+        void notifyGroupMembers({
+          groupId,
+          actorId: user.id,
+          type: "presence_open",
+          title: "📣 Lista de presença aberta",
+          body: `A lista da ${roundLabel} foi aberta. Confirme sua presença!`,
+          url: `/groups/${groupId}/seasons/${seasonId}/rounds/${roundId}`,
+          data: { roundId, seasonId },
+        }).catch(() => {});
       }
       toast.success("Lista de presenças reaberta para todos");
       refresh();
