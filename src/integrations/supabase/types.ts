@@ -1286,6 +1286,7 @@ export type Database = {
           name: string
           nickname: string | null
           preferred_position: string | null
+          privacy_settings: Json
           updated_at: string | null
           user_id: string
           worst_shot: string | null
@@ -1304,6 +1305,7 @@ export type Database = {
           name?: string
           nickname?: string | null
           preferred_position?: string | null
+          privacy_settings?: Json
           updated_at?: string | null
           user_id: string
           worst_shot?: string | null
@@ -1322,6 +1324,7 @@ export type Database = {
           name?: string
           nickname?: string | null
           preferred_position?: string | null
+          privacy_settings?: Json
           updated_at?: string | null
           user_id?: string
           worst_shot?: string | null
