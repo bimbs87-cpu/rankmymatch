@@ -392,9 +392,31 @@ function ComparePage() {
             season_id: e.season_id,
           }));
           const eloRatings: number[] = eloSeries.map((p: { rating: number }) => p.rating);
-          const eloCurrent = eloRatings.length ? eloRatings[eloRatings.length - 1] : 1000;
-          const eloPeak = eloRatings.length ? Math.max(...eloRatings) : 1000;
-          const eloLow = eloRatings.length ? Math.min(...eloRatings) : 1000;
+
+          // Fallback: when rating_events are unavailable (e.g., RLS blocks non-members
+          // from reading rating_events on a public group), derive ELO from snapshot ratings.
+          // Snapshots are ordered with the most recent season first via seasonOrderMap.
+          let eloCurrent: number;
+          let eloPeak: number;
+          let eloLow: number;
+          if (eloRatings.length) {
+            eloCurrent = eloRatings[eloRatings.length - 1];
+            eloPeak = Math.max(...eloRatings);
+            eloLow = Math.min(...eloRatings);
+          } else if (seasonStats.length) {
+            const snapRatings = seasonStats.map((s) => Number(s.rating)).filter((n) => Number.isFinite(n));
+            // seasons array is built from `userSnaps` which preserves ranking_snapshots row order;
+            // pick the snapshot whose season_id appears first in the seasons list (= most recent season).
+            const latestSeasonId = seasonIds[0];
+            const latestSnap = seasonStats.find((s) => s.season_id === latestSeasonId) || seasonStats[0];
+            eloCurrent = latestSnap ? Number(latestSnap.rating) : 1000;
+            eloPeak = snapRatings.length ? Math.max(...snapRatings) : 1000;
+            eloLow = snapRatings.length ? Math.min(...snapRatings) : 1000;
+          } else {
+            eloCurrent = 1000;
+            eloPeak = 1000;
+            eloLow = 1000;
+          }
 
           // Streaks based on rating_change sign
           let streakMax = 0;
@@ -431,7 +453,11 @@ function ComparePage() {
             .filter((p: any) => p.user_id === uid && completedRoundIds.has(p.round_id) && (p.status === "confirmed" || p.status === "present"))
             .map((p: any) => p.round_id);
           for (const rid of signaledPresent) playedRoundIds.add(rid);
-          const roundsPresent = playedRoundIds.size;
+          // Fallback: when rating_events are blocked by RLS, matchPlayers may be empty
+          // (it's keyed off matchIdsFromEvents). Use career matches_played as a lower bound.
+          const roundsPresent = playedRoundIds.size > 0
+            ? playedRoundIds.size
+            : Math.min(career.matches_played, completedRoundIds.size);
           const roundsTotal = completedRoundIds.size;
 
           return {
