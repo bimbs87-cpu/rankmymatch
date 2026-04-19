@@ -1057,3 +1057,56 @@ function RankingPage() {
     </div>
   );
 }
+
+/**
+ * Renders the season switcher list grouped by status: active seasons first,
+ * then a soft divider, then finished seasons. Used by both desktop and mobile.
+ */
+function SeasonSwitcherList({
+  seasons,
+  selectedId,
+  onSelect,
+}: {
+  seasons: any[];
+  selectedId: string | null;
+  onSelect: (id: string) => void;
+}) {
+  const active = seasons.filter((s) => s.status === "active");
+  const finished = seasons.filter((s) => s.status !== "active");
+
+  const renderItem = (s: any) => (
+    <button
+      key={s.id}
+      onClick={() => onSelect(s.id)}
+      className={`flex w-full items-center justify-between px-4 py-3 text-left text-sm transition-colors border-b border-border/40 last:border-b-0 ${
+        selectedId === s.id ? "bg-primary/10 text-primary font-semibold" : "text-foreground hover:bg-accent/50"
+      }`}
+    >
+      <div className="min-w-0">
+        <p className="font-medium truncate">{s.groups?.name}</p>
+        <p className="text-[11px] text-muted-foreground truncate">{s.name}</p>
+      </div>
+      {selectedId === s.id && <div className="ml-2 h-2 w-2 shrink-0 rounded-full bg-primary" />}
+    </button>
+  );
+
+  return (
+    <>
+      {active.length > 0 && (
+        <>
+          <p className="px-4 pt-3 pb-1 text-[10px] font-bold uppercase tracking-wider text-primary/80">Em andamento</p>
+          {active.map(renderItem)}
+        </>
+      )}
+      {active.length > 0 && finished.length > 0 && (
+        <div className="my-1 border-t border-border/60" />
+      )}
+      {finished.length > 0 && (
+        <>
+          <p className="px-4 pt-3 pb-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Encerradas</p>
+          {finished.map(renderItem)}
+        </>
+      )}
+    </>
+  );
+}
