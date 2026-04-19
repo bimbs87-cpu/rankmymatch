@@ -103,6 +103,7 @@ function ProfilePage() {
   const [editWorstShot, setEditWorstShot] = useState("none");
   const [editInstagram, setEditInstagram] = useState("");
   const [editTagline, setEditTagline] = useState("");
+  const [taglineTruncated, setTaglineTruncated] = useState(false);
   const [editAccent, setEditAccent] = useState<AccentKey | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [privacy, setPrivacy] = useState<PrivacySettings>(DEFAULT_PRIVACY);
