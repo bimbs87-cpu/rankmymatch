@@ -485,22 +485,12 @@ function RankingPage() {
                 <ChevronDown className={`h-3.5 w-3.5 text-muted-foreground transition-transform ${showSwitcher ? "rotate-180" : ""}`} />
               </button>
               {showSwitcher && (
-                <div className="absolute right-0 top-full mt-2 w-72 rounded-2xl border border-border bg-card/95 backdrop-blur-xl overflow-hidden shadow-xl z-20">
-                  {seasons.map((s: any) => (
-                    <button
-                      key={s.id}
-                      onClick={() => { setSelectedSeasonId(s.id); setShowSwitcher(false); }}
-                      className={`flex w-full items-center justify-between px-4 py-3 text-left text-sm transition-colors border-b border-border/50 last:border-b-0 ${
-                        selectedSeasonId === s.id ? "bg-primary/10 text-primary font-semibold" : "text-foreground hover:bg-accent/50"
-                      }`}
-                    >
-                      <div>
-                        <p className="font-medium">{s.groups?.name}</p>
-                        <p className="text-[11px] text-muted-foreground">{s.name}</p>
-                      </div>
-                      {selectedSeasonId === s.id && <div className="h-2 w-2 rounded-full bg-primary" />}
-                    </button>
-                  ))}
+                <div className="absolute right-0 top-full mt-2 w-72 rounded-2xl border border-border bg-card/95 backdrop-blur-xl overflow-hidden shadow-xl z-20 max-h-[70vh] overflow-y-auto">
+                  <SeasonSwitcherList
+                    seasons={seasons}
+                    selectedId={selectedSeasonId}
+                    onSelect={(id) => { setSelectedSeasonId(id); setShowSwitcher(false); }}
+                  />
                 </div>
               )}
             </div>
