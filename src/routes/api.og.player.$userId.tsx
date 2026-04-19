@@ -48,6 +48,16 @@ function truncate(s: string, max: number): string {
 
 type FormState = "rising" | "falling" | "stable";
 
+type AccentColor = "emerald" | "amber" | "sky" | "rose" | "violet" | "slate";
+const ACCENT_PALETTE: Record<AccentColor, { bg: string; fg: string }> = {
+  emerald: { bg: "#a3ff12", fg: "#0a0e0d" },
+  amber: { bg: "#fbbf24", fg: "#0a0e0d" },
+  sky: { bg: "#38bdf8", fg: "#0a0e0d" },
+  rose: { bg: "#fb7185", fg: "#0a0e0d" },
+  violet: { bg: "#a78bfa", fg: "#0a0e0d" },
+  slate: { bg: "#94a3b8", fg: "#0a0e0d" },
+};
+
 interface OgData {
   name: string;
   currentElo: number | null;
@@ -55,13 +65,17 @@ interface OgData {
   avatarUrl: string | null;
   form: FormState;
   tagline: string | null;
+  accentColor: AccentColor | null;
 }
 
-async function getPlayerOgData(userId: string): Promise<{ data: OgData | null; cacheKey: string }> {
+async function getPlayerOgData(
+  userId: string,
+  overrides?: { tagline?: string | null; accentColor?: AccentColor | null },
+): Promise<{ data: OgData | null; cacheKey: string }> {
   const sb = getSupabaseAdmin();
   const { data: profile } = await sb
     .from("user_profiles")
-    .select("name, nickname, avatar_url, share_tagline")
+    .select("name, nickname, avatar_url, share_tagline, share_accent_color")
     .eq("user_id", userId)
     .maybeSingle();
 
