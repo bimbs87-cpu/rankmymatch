@@ -1025,6 +1025,7 @@ export type Database = {
           rating_after: number
           rating_before: number
           rating_change: number
+          recomputed_at: string | null
           season_id: string | null
           user_id: string
         }
@@ -1040,6 +1041,7 @@ export type Database = {
           rating_after: number
           rating_before: number
           rating_change: number
+          recomputed_at?: string | null
           season_id?: string | null
           user_id: string
         }
@@ -1055,6 +1057,7 @@ export type Database = {
           rating_after?: number
           rating_before?: number
           rating_change?: number
+          recomputed_at?: string | null
           season_id?: string | null
           user_id?: string
         }
