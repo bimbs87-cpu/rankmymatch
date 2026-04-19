@@ -5,6 +5,7 @@ const SITE = "https://rankmymatch.app";
 
 const STATIC_ROUTES: Array<{ path: string; changefreq: string; priority: string }> = [
   { path: "/", changefreq: "daily", priority: "1.0" },
+  { path: "/landing", changefreq: "weekly", priority: "0.9" },
   { path: "/sistema", changefreq: "monthly", priority: "0.8" },
   { path: "/comparar", changefreq: "weekly", priority: "0.7" },
   { path: "/ranking-info", changefreq: "monthly", priority: "0.6" },
