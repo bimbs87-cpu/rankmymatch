@@ -64,7 +64,12 @@ export function GroupSettingsForm({
       .eq("id", groupId);
 
     if (error) { toast.error("Erro ao salvar"); }
-    else { toast.success("Grupo atualizado!"); onSaved(); }
+    else {
+      toast.success("Grupo atualizado!");
+      // Name change → invalidate OG cache
+      if (name !== initName) clearOgCache();
+      onSaved();
+    }
     setSaving(false);
   };
 
@@ -76,11 +81,13 @@ export function GroupSettingsForm({
         onUploaded={async (url) => {
           await supabase.from("groups").update({ image_url: url }).eq("id", groupId);
           toast.success("Imagem atualizada!");
+          clearOgCache();
           onSaved();
         }}
         onRemoved={async () => {
           await supabase.from("groups").update({ image_url: null }).eq("id", groupId);
           toast.success("Imagem removida");
+          clearOgCache();
           onSaved();
         }}
       />
