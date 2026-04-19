@@ -66,17 +66,8 @@ const POSITION_OPTIONS = [
   { value: "left", label: "Esquerda" },
   { value: "right", label: "Direita" },
 ];
-const SHOT_OPTIONS = [
-  { value: "none", label: "Nenhum" },
-  { value: "bandeja", label: "Bandeja" },
-  { value: "vibora", label: "Víbora" },
-  { value: "smash", label: "Smash" },
-  { value: "lob", label: "Lob" },
-  { value: "chiquita", label: "Chiquita" },
-  { value: "rulo", label: "Rulo" },
-  { value: "bajada", label: "Bajada" },
-  { value: "gancho", label: "Gancho" },
-];
+// Shot options are now sport-aware; loaded dynamically based on the user's
+// active sport tab (from `useUserSports` below). See `src/lib/sport-shots.ts`.
 
 type AccentKey = "emerald" | "amber" | "sky" | "rose" | "violet" | "slate";
 const ACCENT_OPTIONS: { key: AccentKey; label: string; cls: string }[] = [
