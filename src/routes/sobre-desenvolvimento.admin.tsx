@@ -338,6 +338,27 @@ function BugAdminPage() {
                       </button>
                     ))}
                   </div>
+                  <div className="mt-3">
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                      Prioridade
+                    </label>
+                    <div className="mt-1 flex flex-wrap gap-1.5">
+                      {PRIORITIES.map((p) => (
+                        <button
+                          key={p}
+                          onClick={() => updateReport(r.id, { priority: p })}
+                          disabled={savingId === r.id}
+                          className={`rounded-full border px-2.5 py-1 text-[11px] font-bold transition-colors ${
+                            r.priority === p
+                              ? PRIORITY_CLS[p] + " ring-1 ring-current"
+                              : "border-border bg-background text-foreground hover:bg-accent"
+                          } disabled:opacity-50`}
+                        >
+                          {PRIORITY_LABELS[p]}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                   <label className="flex items-center gap-2 pt-2 text-xs text-foreground">
                     <input
                       type="checkbox"
