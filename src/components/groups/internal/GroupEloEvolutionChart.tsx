@@ -195,7 +195,7 @@ export function GroupEloEvolutionChart({ groupId }: Props) {
         .slice(0, 6)
     : [];
 
-  const tooltipBoxW = 180;
+  const tooltipBoxW = Math.min(180, Math.max(140, w - 16));
   const tooltipLeft = Math.max(4, Math.min(w - tooltipBoxW - 4, tooltipX - tooltipBoxW / 2));
 
   return (
@@ -353,7 +353,7 @@ export function GroupEloEvolutionChart({ groupId }: Props) {
 
             {hovered && sortedHover.length > 0 && (
               <div
-                className="pointer-events-none absolute rounded-xl border border-border bg-popover px-3 py-2 text-popover-foreground shadow-lg"
+                className="pointer-events-none absolute rounded-xl border border-border bg-popover px-3 py-2 text-popover-foreground shadow-lg animate-fade-in"
                 style={{
                   left: `${(tooltipLeft / w) * 100}%`,
                   top: `8px`,

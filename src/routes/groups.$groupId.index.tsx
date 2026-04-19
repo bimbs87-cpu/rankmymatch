@@ -469,6 +469,7 @@ function GroupDetailPage() {
                 groupName={group.name}
                 groupImage={group.image_url}
                 description={group.description}
+                isAdmin={isAdmin}
                 onGotoMembers={() => handleSelectView("members")}
                 onGotoResults={() => handleSelectView("results")}
                 onCompare={handleCompareFromOverview}
@@ -651,6 +652,12 @@ function NonMemberView({
   joinDialog: React.ReactNode;
   claimDialog: React.ReactNode;
 }) {
+  const [shareOpen, setShareOpen] = useState(false);
+  const shareUrl = typeof window !== "undefined"
+    ? `${window.location.origin}/groups/${groupId}`
+    : `https://rankmymatch.app/groups/${groupId}`;
+  const isPublic = group.visibility === "public" || group.is_public;
+
   return (
     <div className="min-h-screen bg-background pb-28">
       {group.image_url && (
@@ -693,8 +700,28 @@ function NonMemberView({
             </div>
             <p className="text-xs text-muted-foreground">{memberCount} membros ativos</p>
           </div>
+          {isPublic && (
+            <button
+              onClick={() => setShareOpen(true)}
+              className="flex h-9 w-9 items-center justify-center rounded-full border border-border bg-card transition hover:bg-accent"
+              aria-label="Compartilhar grupo"
+              title="Compartilhar grupo"
+            >
+              <Share2 className="h-4 w-4 text-muted-foreground" />
+            </button>
+          )}
         </div>
       </header>
+
+      {isPublic && (
+        <ShareGroupDialog
+          open={shareOpen}
+          onOpenChange={setShareOpen}
+          url={shareUrl}
+          groupName={group.name}
+          groupId={groupId}
+        />
+      )}
 
       {group.description && (
         <div className="px-5 pb-4">
