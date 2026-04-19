@@ -250,7 +250,7 @@ async function getResvg(): Promise<typeof import("@resvg/resvg-wasm") | null> {
       const mod = await import("@resvg/resvg-wasm");
       // Fetch wasm asset and initialize. The .wasm file is shipped with the
       // package; resolve via dynamic import URL on supported runtimes.
-      // @ts-expect-error — vite supports ?url import for wasm
+      // @ts-ignore — vite supports ?url import for wasm
       const wasmUrl = (await import("@resvg/resvg-wasm/index_bg.wasm?url")).default as string;
       const wasmRes = await fetch(wasmUrl);
       if (!wasmRes.ok) throw new Error("wasm fetch failed");
@@ -325,7 +325,7 @@ export const Route = createFileRoute("/api/og/player/$userId")({
           // Default: try PNG, fall back to SVG (unless caller forced PNG).
           const png = await svgToPng(svg);
           if (png) {
-            return new Response(png, {
+            return new Response(png as unknown as BodyInit, {
               status: 200,
               headers: { "Content-Type": "image/png", ...cacheHeaders },
             });
