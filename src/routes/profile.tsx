@@ -383,23 +383,47 @@ function ProfilePage() {
             <Sparkles className="h-4 w-4" />
             Pré-visualizar card de compartilhamento
           </button>
-          <Field label="Posição preferida">
-            <div className="flex gap-2">
-              {POSITION_OPTIONS.map((o) => (
-                <ToggleBtn key={o.value} active={editPosition === o.value} onClick={() => setEditPosition(o.value)}>{o.label}</ToggleBtn>
-              ))}
-            </div>
-          </Field>
-          <Field label="Golpe matador 💥">
+          {/* Sport tabs — only when user belongs to multiple sports */}
+          {userSports.length > 1 && (
+            <Field label="Esporte (para os campos abaixo)">
+              <div className="flex flex-wrap gap-1.5">
+                {userSports.map((s) => (
+                  <button
+                    key={s}
+                    type="button"
+                    onClick={() => setActiveSportTab(s)}
+                    className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${
+                      activeSportTab === s
+                        ? "border-primary bg-primary/10 text-primary"
+                        : "border-border bg-card text-muted-foreground"
+                    }`}
+                  >
+                    {SPORTS[s].label}
+                  </button>
+                ))}
+              </div>
+            </Field>
+          )}
+          {/* Court side: only for sports played in pairs (padel/beach tennis/pickleball) */}
+          {sportConfig.hasCourtSide && hasDoublesSport && (
+            <Field label="Posição preferida na quadra">
+              <div className="flex gap-2">
+                {POSITION_OPTIONS.map((o) => (
+                  <ToggleBtn key={o.value} active={editPosition === o.value} onClick={() => setEditPosition(o.value)}>{o.label}</ToggleBtn>
+                ))}
+              </div>
+            </Field>
+          )}
+          <Field label={`Golpe matador 💥 · ${sportConfig.label}`}>
             <div className="flex flex-wrap gap-2">
-              {SHOT_OPTIONS.map((o) => (
+              {sportConfig.shots.map((o) => (
                 <Pill key={o.value} active={editKillerShot === o.value} onClick={() => setEditKillerShot(o.value)}>{o.label}</Pill>
               ))}
             </div>
           </Field>
-          <Field label="Ponto fraco 😅">
+          <Field label={`Ponto fraco 😅 · ${sportConfig.label}`}>
             <div className="flex flex-wrap gap-2">
-              {SHOT_OPTIONS.map((o) => (
+              {sportConfig.shots.map((o) => (
                 <Pill key={o.value} active={editWorstShot === o.value} onClick={() => setEditWorstShot(o.value)} tone="destructive">{o.label}</Pill>
               ))}
             </div>
