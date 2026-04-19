@@ -1,0 +1,1 @@
+ALTER TABLE public.groups ADD COLUMN whatsapp_share_template text;
