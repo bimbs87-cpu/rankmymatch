@@ -5,7 +5,7 @@
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { getOgCacheStats, type OgCacheStats } from "@/lib/og-cache.functions";
-import { BarChart3, Loader2, TrendingUp, Users, LineChart as LineChartIcon } from "lucide-react";
+import { BarChart3, Loader2, TrendingUp, Users, LineChart as LineChartIcon, Download } from "lucide-react";
 import {
   ResponsiveContainer,
   LineChart,
@@ -17,18 +17,22 @@ import {
   Legend,
 } from "recharts";
 
+type RangeKey = 7 | 30 | 90;
+
 export function OgCacheStatsPanel() {
   const fetchStats = useServerFn(getOgCacheStats);
   const [stats, setStats] = useState<OgCacheStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [range, setRange] = useState<RangeKey>(7);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       setLoading(true);
+      setError(null);
       try {
-        const res = await fetchStats();
+        const res = await fetchStats({ data: { days: range } });
         if (!cancelled) setStats(res);
       } catch (e) {
         if (!cancelled) setError("Falha ao carregar estatísticas");
@@ -40,9 +44,24 @@ export function OgCacheStatsPanel() {
     return () => {
       cancelled = true;
     };
-  }, [fetchStats]);
+  }, [fetchStats, range]);
 
-  if (loading) {
+  function exportCsv() {
+    if (!stats) return;
+    const header = "date,hit,miss\n";
+    const rows = stats.daily.map((d) => `${d.date},${d.hit},${d.miss}`).join("\n");
+    const blob = new Blob([header + rows + "\n"], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `daily.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  if (loading && !stats) {
     return (
       <div className="flex items-center justify-center rounded-3xl border border-border bg-card p-8 text-sm text-muted-foreground">
         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
