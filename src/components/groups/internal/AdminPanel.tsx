@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import {
   Settings2, Bell, Users, Link2, AlertTriangle, Save, Loader2, Globe, Lock, EyeOff,
-  CheckCircle2, Trash2, BarChart3, ScrollText, Image as ImageIcon,
+  CheckCircle2, Trash2, BarChart3, ScrollText, Image as ImageIcon, Wrench,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,12 +12,13 @@ import { PlayerClaimsManager } from "@/components/PlayerClaimsManager";
 import { GroupCardPreview } from "@/components/groups/GroupCardPreview";
 import { InviteEngagementReport } from "@/components/groups/internal/InviteEngagementReport";
 import { AuditPanel } from "@/components/groups/internal/AuditPanel";
+import { MaintenancePanel } from "@/components/groups/internal/MaintenancePanel";
 import { OgCacheStatsPanel } from "@/components/groups/internal/OgCacheStatsPanel";
 import { useGroupDetail, approveJoinRequest, rejectJoinRequest } from "@/hooks/use-groups";
 import { useAuth } from "@/hooks/use-auth";
 import { startRenewalCheckout, salesWhatsAppUrl } from "@/lib/payment-provider";
 
-type Section = "general" | "presence" | "members" | "invites" | "engagement" | "audit" | "og-cache" | "advanced";
+type Section = "general" | "presence" | "members" | "invites" | "engagement" | "audit" | "maintenance" | "og-cache" | "advanced";
 
 interface Props {
   group: any;
@@ -34,6 +35,7 @@ const SECTIONS: { id: Section; label: string; icon: typeof Settings2; creatorOnl
   { id: "invites", label: "Convites", icon: Link2 },
   { id: "engagement", label: "Engajamento", icon: BarChart3 },
   { id: "audit", label: "Auditoria", icon: ScrollText },
+  { id: "maintenance", label: "Manutenção", icon: Wrench },
   { id: "og-cache", label: "Cache OG", icon: ImageIcon, creatorOnly: true },
   { id: "advanced", label: "Avançado", icon: AlertTriangle },
 ];
@@ -89,6 +91,7 @@ export function AdminPanel({ group, isCreator, onSaved, pendingRequestsCount }: 
           )}
           {section === "engagement" && <InviteEngagementReport groupId={group.id} />}
           {section === "audit" && <AuditPanel groupId={group.id} />}
+          {section === "maintenance" && <MaintenancePanel groupId={group.id} />}
           {section === "og-cache" && isCreator && <OgCacheStatsPanel />}
           {section === "advanced" && (
             <AdvancedSection group={group} isCreator={isCreator} onSaved={onSaved} />
