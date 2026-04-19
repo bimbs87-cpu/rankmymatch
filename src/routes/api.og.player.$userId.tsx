@@ -56,7 +56,7 @@ interface OgData {
   form: FormState;
 }
 
-async function getPlayerOgData(userId: string): Promise<OgData | null> {
+async function getPlayerOgData(userId: string): Promise<{ data: OgData | null; cacheKey: string }> {
   const sb = getSupabaseAdmin();
   const { data: profile } = await sb
     .from("user_profiles")
@@ -64,7 +64,7 @@ async function getPlayerOgData(userId: string): Promise<OgData | null> {
     .eq("user_id", userId)
     .maybeSingle();
 
-  if (!profile) return null;
+  if (!profile) return { data: null, cacheKey: "no-profile" };
 
   const { data: snapshots } = await sb
     .from("ranking_snapshots")
@@ -92,8 +92,9 @@ async function getPlayerOgData(userId: string): Promise<OgData | null> {
     if (positions.length) bestPosition = Math.min(...positions);
   }
 
-  // Form: compare last rating event vs avg of preceding 3 across all groups
+  // Form + cache key derived from last rating event timestamp
   let form: FormState = "stable";
+  let lastEventTs = "init";
   const { data: events } = await sb
     .from("rating_events")
     .select("rating_change, created_at")
@@ -105,13 +106,19 @@ async function getPlayerOgData(userId: string): Promise<OgData | null> {
     if (sumChange > 8) form = "rising";
     else if (sumChange < -8) form = "falling";
   }
+  if (events && events.length > 0) {
+    lastEventTs = String(new Date(events[0].created_at).getTime());
+  }
 
   return {
-    name: profile.nickname?.trim() || profile.name || "Jogador",
-    currentElo,
-    bestPosition,
-    avatarUrl: profile.avatar_url || null,
-    form,
+    data: {
+      name: profile.nickname?.trim() || profile.name || "Jogador",
+      currentElo,
+      bestPosition,
+      avatarUrl: profile.avatar_url || null,
+      form,
+    },
+    cacheKey: lastEventTs,
   };
 }
 
