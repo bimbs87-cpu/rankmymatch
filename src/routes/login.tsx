@@ -203,7 +203,7 @@ function LoginPage() {
               <img
                 src={logoSquareNeon}
                 alt="RankMyMatch"
-                className="relative h-28 w-auto object-contain sm:h-36 lg:h-56 animate-float"
+                className="relative h-20 w-auto object-contain sm:h-32 lg:h-56 animate-float"
                 style={{
                   filter:
                     "drop-shadow(0 8px 24px color-mix(in oklab, var(--primary) 25%, transparent))",
