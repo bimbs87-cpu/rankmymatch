@@ -573,37 +573,28 @@ function SeasonRoundsInline({ groupId, seasonId, isAdmin }: { groupId: string; s
 
   const createExtraRound = async () => {
     if (!extraDate) { toast.error("Selecione uma data"); return; }
+    if (!user) { toast.error("Faça login primeiro"); return; }
     setCreatingExtra(true);
-    const { data: group } = await supabase
-      .from("groups")
-      .select("match_format, max_players")
-      .eq("id", groupId)
-      .single();
-    if (!group) {
-      toast.error("Erro ao carregar grupo");
-      setCreatingExtra(false);
-      return;
-    }
-    const nextNumber = rounds.length
-      ? Math.max(...rounds.map((r) => r.round_number || 0)) + 1
-      : 1;
-    const { error } = await supabase.from("rounds").insert({
-      group_id: groupId,
-      season_id: seasonId,
-      round_number: nextNumber,
-      scheduled_date: extraDate,
-      status: "scheduled",
-      match_format: group.match_format,
-      max_players: group.max_players,
-    });
-    if (error) toast.error("Erro ao criar rodada extra");
-    else {
-      toast.success(`Rodada ${nextNumber} criada`);
+    try {
+      await createExtraRoundFn({
+        groupId,
+        seasonId,
+        actorId: user.id,
+        scheduledDate: extraDate,
+        scheduledTime: extraTime || null,
+        location: extraLocation || null,
+      });
+      toast.success("Rodada extra criada");
       setShowExtraForm(false);
       setExtraDate("");
+      setExtraTime("");
+      setExtraLocation("");
       refresh();
+    } catch (err: any) {
+      toast.error(err?.message || "Erro ao criar rodada extra");
+    } finally {
+      setCreatingExtra(false);
     }
-    setCreatingExtra(false);
   };
 
   const extraRoundUI = isAdmin && (
@@ -614,10 +605,27 @@ function SeasonRoundsInline({ groupId, seasonId, isAdmin }: { groupId: string; s
             <h4 className="text-xs font-semibold text-foreground">Nova rodada extra</h4>
             <p className="text-[11px] text-muted-foreground">Adicione uma rodada fora do calendário (ex: feriado).</p>
           </div>
+          <div className="grid grid-cols-2 gap-2">
+            <input
+              type="date"
+              value={extraDate}
+              onChange={(e) => setExtraDate(e.target.value)}
+              placeholder="Data"
+              className="rounded-lg border border-border bg-background px-2 py-1.5 text-xs"
+            />
+            <input
+              type="time"
+              value={extraTime}
+              onChange={(e) => setExtraTime(e.target.value)}
+              placeholder="Horário (opcional)"
+              className="rounded-lg border border-border bg-background px-2 py-1.5 text-xs"
+            />
+          </div>
           <input
-            type="date"
-            value={extraDate}
-            onChange={(e) => setExtraDate(e.target.value)}
+            type="text"
+            value={extraLocation}
+            onChange={(e) => setExtraLocation(e.target.value)}
+            placeholder="Local (opcional)"
             className="w-full rounded-lg border border-border bg-background px-2 py-1.5 text-xs"
           />
           <div className="flex gap-2">
