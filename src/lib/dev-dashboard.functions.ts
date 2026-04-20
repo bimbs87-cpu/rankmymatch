@@ -309,8 +309,8 @@ export const getDevDashboard = createServerFn({ method: "GET" })
       utmSources: toArr(sourceCount),
       utmCampaigns: toArr(campaignCount),
       referrers: toArr(referrerCount),
-      tracked: acqRows?.length ?? 0,
-      untracked: authUsers.length - (acqRows?.length ?? 0),
+      tracked: acqRows.length,
+      untracked: authUsers.length - acqRows.length,
     };
 
     // Enriquecer signups com canal de aquisição (override do origin antigo se houver dado real)
