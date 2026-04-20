@@ -1196,12 +1196,9 @@ function DashboardPage() {
           </div>
           <div className="mt-3 flex gap-2">
             <Link
-              to="/groups/$groupId/seasons/$seasonId/rounds/$roundId"
-              params={{
-                groupId: nextMatch.group_id,
-                seasonId: nextMatch.season_id || "",
-                roundId: nextMatch.round_id,
-              }}
+              to="/groups/$groupId"
+              params={{ groupId: nextMatch.group_id }}
+              search={{ view: "seasons", season: nextMatch.season_id || "", round: nextMatch.round_id } as any}
               className={`flex flex-1 items-center justify-center gap-1.5 rounded-2xl px-3 py-2 text-xs font-semibold transition-colors ${
                 showRegister
                   ? "bg-primary text-primary-foreground active:bg-primary/90"
@@ -1562,12 +1559,9 @@ function DashboardPage() {
                   const RowTag: any = canLink ? Link : "div";
                   const rowProps: any = canLink
                     ? {
-                        to: "/groups/$groupId/seasons/$seasonId/rounds/$roundId",
-                        params: {
-                          groupId: m.group_id!,
-                          seasonId: m.season_id!,
-                          roundId: m.round_id!,
-                        },
+                        to: "/groups/$groupId",
+                        params: { groupId: m.group_id! },
+                        search: { view: "seasons", season: m.season_id!, round: m.round_id! },
                         title: m.round_number != null ? `Abrir rodada ${m.round_number}` : "Abrir rodada",
                       }
                     : {};
@@ -1730,12 +1724,9 @@ function DashboardPage() {
                           priority: 1,
                           node: (
                             <Link
-                              to="/groups/$groupId/seasons/$seasonId/rounds/$roundId"
-                              params={{
-                                groupId: nextMatch.group_id,
-                                seasonId: nextMatch.season_id || "",
-                                roundId: nextMatch.round_id,
-                              }}
+                              to="/groups/$groupId"
+                              params={{ groupId: nextMatch.group_id }}
+                              search={{ view: "seasons", season: nextMatch.season_id || "", round: nextMatch.round_id } as any}
                               className="flex items-center gap-2 rounded-2xl border border-warning/30 bg-warning/5 px-3 py-2 text-xs font-semibold text-warning transition-colors hover:bg-warning/10"
                             >
                               <Calendar className="h-4 w-4 shrink-0" />
@@ -1752,12 +1743,9 @@ function DashboardPage() {
                           priority: 2,
                           node: (
                             <Link
-                              to="/groups/$groupId/seasons/$seasonId/rounds/$roundId"
-                              params={{
-                                groupId: pendingMatch?.group_id || nextMatch!.group_id,
-                                seasonId: pendingMatch?.season_id || nextMatch?.season_id || "",
-                                roundId: pendingMatch?.round_id || nextMatch!.round_id,
-                              }}
+                              to="/groups/$groupId"
+                              params={{ groupId: pendingMatch?.group_id || nextMatch!.group_id }}
+                              search={{ view: "seasons", season: pendingMatch?.season_id || nextMatch?.season_id || "", round: pendingMatch?.round_id || nextMatch!.round_id } as any}
                               className="flex items-center gap-2 rounded-2xl bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
                             >
                               <Trophy className="h-4 w-4 shrink-0" />
@@ -1970,8 +1958,9 @@ function DashboardPage() {
                   return (
                     <Link
                       key={r.id}
-                      to="/groups/$groupId/seasons/$seasonId/rounds/$roundId"
-                      params={{ groupId: r.group_id, seasonId: r.season_id || "", roundId: r.id }}
+                      to="/groups/$groupId"
+                      params={{ groupId: r.group_id }}
+                      search={{ view: "seasons", season: r.season_id || "", round: r.id } as any}
                       className="flex items-center gap-3 px-4 py-2.5 transition-colors hover:bg-accent/30"
                     >
                       <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ring-1 ${
@@ -2316,8 +2305,9 @@ function DashboardPage() {
                 const RowTag: any = canLink ? Link : "div";
                 const rowProps: any = canLink
                   ? {
-                      to: "/groups/$groupId/seasons/$seasonId/rounds/$roundId",
-                      params: { groupId: m.group_id!, seasonId: m.season_id!, roundId: m.round_id! },
+                      to: "/groups/$groupId",
+                      params: { groupId: m.group_id! },
+                      search: { view: "seasons", season: m.season_id!, round: m.round_id! },
                       role: "button",
                       "aria-label": `Ver rodada ${m.round_number ?? ""} — ${winnerLabel}`,
                     }
@@ -2426,8 +2416,9 @@ function DashboardPage() {
                 {upcomingRounds.slice(0, 3).map((r) => (
                   <Link
                     key={r.id}
-                    to="/groups/$groupId/seasons/$seasonId/rounds/$roundId"
-                    params={{ groupId: r.group_id, seasonId: r.season_id || "", roundId: r.id }}
+                    to="/groups/$groupId"
+                    params={{ groupId: r.group_id }}
+                    search={{ view: "seasons", season: r.season_id || "", round: r.id } as any}
                     className="flex items-center gap-2.5 rounded-xl border border-border bg-card px-3 py-2 transition-colors active:bg-accent/30"
                   >
                     <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${
