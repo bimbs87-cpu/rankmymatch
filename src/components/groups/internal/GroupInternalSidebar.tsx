@@ -2,7 +2,7 @@ import { LayoutGrid, Users, Settings2, ChevronLeft, X, GitCompare, Share2, Troph
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Link } from "@tanstack/react-router";
 
-export type GroupView = "overview" | "members" | "seasons" | "compare" | "admin";
+export type GroupView = "overview" | "members" | "seasons" | "compare" | "ranking" | "admin";
 
 export interface SidebarBadges {
   pendingRequests?: number;
@@ -23,6 +23,7 @@ const ITEMS: Item[] = [
   { id: "overview", label: "Visão geral", shortLabel: "Visão", icon: LayoutGrid },
   { id: "members", label: "Membros", shortLabel: "", icon: Users },
   { id: "seasons", label: "Agenda e resultados", shortLabel: "", icon: ListChecks },
+  { id: "ranking", label: "Ranking", shortLabel: "", icon: Trophy },
   { id: "compare", label: "Comparar", shortLabel: "", icon: GitCompare, needsCompare: true },
   { id: "admin", label: "Admin", icon: Settings2, adminOnly: true },
 ];
