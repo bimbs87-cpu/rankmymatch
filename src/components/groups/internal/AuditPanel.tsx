@@ -315,9 +315,16 @@ export function AuditPanel({ groupId }: Props) {
   }, [groupId]);
 
   const actions = useMemo(() => Array.from(new Set(rows.map((r) => r.action))).sort(), [rows]);
-  const filtered = useMemo(
-    () => (filter === "all" ? rows : rows.filter((r) => r.action === filter)),
-    [filter, rows],
+  const NUDGE_ACTIONS = new Set(["round_nudge", "round_nudge_cooldown_reset"]);
+  const isNudgeFilter = filter === "__nudges__";
+  const filtered = useMemo(() => {
+    if (filter === "all") return rows;
+    if (isNudgeFilter) return rows.filter((r) => NUDGE_ACTIONS.has(r.action));
+    return rows.filter((r) => r.action === filter);
+  }, [filter, rows, isNudgeFilter]);
+  const nudgeCount = useMemo(
+    () => rows.filter((r) => NUDGE_ACTIONS.has(r.action)).length,
+    [rows],
   );
 
   return (
