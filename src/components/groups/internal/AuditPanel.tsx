@@ -726,9 +726,20 @@ export function AuditPanel({ groupId }: Props) {
                 ? sorted[(sorted.length - 1) / 2]
                 : (sorted[sorted.length / 2 - 1] + sorted[sorted.length / 2]) / 2;
             const medianLabel = median >= 10 ? `${Math.round(median)}h` : `${median.toFixed(1)}h`;
+            // p90: linear interpolation on sorted responded values
+            const p90 = (() => {
+              if (sorted.length === 0) return 0;
+              if (sorted.length === 1) return sorted[0];
+              const rank = 0.9 * (sorted.length - 1);
+              const lo = Math.floor(rank);
+              const hi = Math.ceil(rank);
+              const frac = rank - lo;
+              return sorted[lo] + (sorted[hi] - sorted[lo]) * frac;
+            })();
+            const p90Label = p90 >= 10 ? `${Math.round(p90)}h` : `${p90.toFixed(1)}h`;
             const total = responseTimes.length;
             const responded = nonZero.length;
-            const tooltip = `${responded} de ${total} cutucadas tiveram resposta. Mediana: ${medianLabel}. Verde <1h · Amarelo 1-6h · Vermelho >6h`;
+            const tooltip = `${responded} de ${total} cutucadas tiveram resposta. Mediana: ${medianLabel} · p90: ${p90Label}. Verde <1h · Amarelo 1-6h · Vermelho >6h`;
             return (
               <div>
                 <div className="mb-1 flex items-center justify-between gap-2">
@@ -762,7 +773,7 @@ export function AuditPanel({ groupId }: Props) {
                     );
                   })()}
                 </div>
-                <Sparkline values={responseTimes} unit="h" />
+                <Sparkline values={responseTimes} unit="h" medianLine={median > 0 ? median : undefined} />
               </div>
             );
           })()}
