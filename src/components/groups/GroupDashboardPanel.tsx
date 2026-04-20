@@ -728,17 +728,68 @@ export function GroupDashboardPanel({ group, onLeft, onPresenceChanged }: Props)
                     {data.next_round.presence_is_open &&
                       data.next_round.pending_all &&
                       data.next_round.pending_all.length > 0 && (
-                        <button
-                          onClick={handleNudgePending}
-                          disabled={nudging}
-                          className="flex items-center gap-1 rounded-full border border-warning/40 bg-warning/10 px-2.5 py-1 text-[10px] font-bold text-warning transition-colors hover:bg-warning/20 disabled:opacity-50"
-                          title={`Cutucar ${data.next_round.pending_all.length} membro(s) sem resposta`}
-                        >
-                          <BellIcon className="h-3 w-3" />
-                          {nudging
-                            ? "Cutucando…"
-                            : `Cutucar pendentes (${data.next_round.pending_all.length})`}
-                        </button>
+                        <Popover open={nudgePopoverOpen} onOpenChange={setNudgePopoverOpen}>
+                          <PopoverTrigger asChild>
+                            <button
+                              disabled={nudging || nudgeOnCooldown}
+                              className="flex items-center gap-1 rounded-full border border-warning/40 bg-warning/10 px-2.5 py-1 text-[10px] font-bold text-warning transition-colors hover:bg-warning/20 disabled:opacity-50"
+                              title={
+                                nudgeOnCooldown
+                                  ? `Aguarde ${cooldownLabel} para cutucar novamente`
+                                  : `Cutucar ${data.next_round.pending_all.length} membro(s) sem resposta`
+                              }
+                            >
+                              <BellIcon className="h-3 w-3" />
+                              {nudging
+                                ? "Cutucando…"
+                                : nudgeOnCooldown
+                                  ? `Cutucar (aguarde ${cooldownLabel})`
+                                  : `Cutucar pendentes (${data.next_round.pending_all.length})`}
+                            </button>
+                          </PopoverTrigger>
+                          <PopoverContent align="end" className="w-64 p-2">
+                            <div className="mb-2 px-1 text-[11px] font-semibold text-foreground">
+                              Cutucar quem?
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => handleNudgePending(false)}
+                              disabled={nudging}
+                              className="flex w-full items-start gap-2 rounded-md p-2 text-left text-xs transition-colors hover:bg-muted/60 disabled:opacity-50"
+                            >
+                              <BellIcon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-warning" />
+                              <div>
+                                <div className="font-bold text-foreground">
+                                  Só sem resposta ({data.next_round.pending_all.length})
+                                </div>
+                                <div className="text-[10px] text-muted-foreground">
+                                  Lembrete pra quem ainda não confirmou nem recusou.
+                                </div>
+                              </div>
+                            </button>
+                            {data.next_round.declined_all && data.next_round.declined_all.length > 0 && (
+                              <button
+                                type="button"
+                                onClick={() => handleNudgePending(true)}
+                                disabled={nudging}
+                                className="mt-1 flex w-full items-start gap-2 rounded-md p-2 text-left text-xs transition-colors hover:bg-muted/60 disabled:opacity-50"
+                              >
+                                <BellIcon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-destructive" />
+                                <div>
+                                  <div className="font-bold text-foreground">
+                                    + Quem recusou ({data.next_round.declined_all.length})
+                                  </div>
+                                  <div className="text-[10px] text-muted-foreground">
+                                    Inclui também quem disse "Não vou" — útil quando abre vaga.
+                                  </div>
+                                </div>
+                              </button>
+                            )}
+                            <div className="mt-2 border-t border-border/60 px-1 pt-1.5 text-[10px] text-muted-foreground">
+                              Cooldown de 1h por rodada após enviar.
+                            </div>
+                          </PopoverContent>
+                        </Popover>
                       )}
                     <button
                       onClick={handleToggleForceOpen}
