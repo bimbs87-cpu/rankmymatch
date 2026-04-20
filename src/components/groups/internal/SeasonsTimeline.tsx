@@ -60,7 +60,7 @@ export function SeasonsTimeline({ seasons, onSelect }: Props) {
   >([]);
 
   const [selectedMarker, setSelectedMarker] = useState<EventMarker | null>(null);
-  const [podium, setPodium] = useState<{ userId: string; name: string; avatarUrl: string | null; value: number; subtitle?: string }[] | null>(null);
+  const [podium, setPodium] = useState<{ userId: string; name: string; avatarUrl: string | null; value: number; subtitle?: string; eloDelta?: number | null }[] | null>(null);
   const [podiumLoading, setPodiumLoading] = useState(false);
   const openProfile = useViewPlayerProfile();
 
@@ -140,6 +140,16 @@ export function SeasonsTimeline({ seasons, onSelect }: Props) {
           const profMap = new Map(
             (profs || []).map((p) => [p.user_id, { name: p.nickname || p.name || "Jogador", avatarUrl: p.avatar_url ?? null }]),
           );
+          // Sum Elo deltas of this round's matches for the top-3 users.
+          const { data: evs } = await supabase
+            .from("rating_events")
+            .select("user_id, rating_change")
+            .in("match_id", matchIds)
+            .in("user_id", ids);
+          const eloMap = new Map<string, number>();
+          for (const ev of evs || []) {
+            eloMap.set(ev.user_id, (eloMap.get(ev.user_id) || 0) + Number(ev.rating_change || 0));
+          }
           if (cancelled) return;
           setPodium(
             top.map(([uid, v]) => ({
@@ -148,6 +158,7 @@ export function SeasonsTimeline({ seasons, onSelect }: Props) {
               avatarUrl: profMap.get(uid)?.avatarUrl ?? null,
               value: v,
               subtitle: `${v} vitória${v !== 1 ? "s" : ""}`,
+              eloDelta: eloMap.has(uid) ? eloMap.get(uid)! : null,
             })),
           );
         } else if (selectedMarker.type === "season_finished" && selectedMarker.seasonId) {
@@ -471,8 +482,24 @@ export function SeasonsTimeline({ seasons, onSelect }: Props) {
                             {p.name}
                           </span>
                         </button>
-                        <span className="shrink-0 text-[10px] tabular-nums text-muted-foreground">
-                          {p.subtitle}
+                        <span className="flex shrink-0 items-center gap-1.5 text-[10px] tabular-nums text-muted-foreground">
+                          <span>{p.subtitle}</span>
+                          {typeof p.eloDelta === "number" && (
+                            <span
+                              className={
+                                "rounded-full px-1.5 py-0.5 text-[9px] font-bold " +
+                                (p.eloDelta > 0
+                                  ? "bg-success/15 text-success"
+                                  : p.eloDelta < 0
+                                    ? "bg-destructive/15 text-destructive"
+                                    : "bg-muted text-muted-foreground")
+                              }
+                              title="Variação de Elo na rodada"
+                            >
+                              {p.eloDelta > 0 ? "+" : ""}
+                              {Math.round(p.eloDelta)}
+                            </span>
+                          )}
                         </span>
                       </li>
                     );
