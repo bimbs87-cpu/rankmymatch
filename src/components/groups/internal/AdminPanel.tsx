@@ -18,13 +18,14 @@ import { ShareChannelsChart } from "@/components/groups/internal/ShareChannelsCh
 import { AuditPanel } from "@/components/groups/internal/AuditPanel";
 import { MaintenancePanel } from "@/components/groups/internal/MaintenancePanel";
 import { OgCacheStatsPanel } from "@/components/groups/internal/OgCacheStatsPanel";
+import { ApprovalHistoryPanel } from "@/components/groups/internal/ApprovalHistoryPanel";
 import { useGroupDetail, approveJoinRequest, rejectJoinRequest } from "@/hooks/use-groups";
 import { useAuth } from "@/hooks/use-auth";
 import { startRenewalCheckout, salesWhatsAppUrl } from "@/lib/payment-provider";
 import { useServerFn } from "@tanstack/react-start";
 import { detectDesyncedMatchesServerFn } from "@/lib/match-maintenance.functions";
 
-type Section = "general" | "presence" | "members" | "invites" | "engagement" | "audit" | "maintenance" | "og-cache" | "advanced";
+type Section = "general" | "presence" | "members" | "invites" | "approvals" | "engagement" | "audit" | "maintenance" | "og-cache" | "advanced";
 
 interface Props {
   group: any;
