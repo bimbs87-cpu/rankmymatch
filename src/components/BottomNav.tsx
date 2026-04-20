@@ -105,7 +105,7 @@ export function BottomNav() {
               >
                 <GroupsNavMenu
                   groups={myGroups.map((g) => ({ id: g.id, name: g.name }))}
-                  panelClassName="absolute bottom-full left-1/2 z-[60] mb-2 w-72 max-h-[60vh] -translate-x-1/2 overflow-y-auto rounded-2xl border border-border bg-popover p-2 shadow-2xl ring-1 ring-black/40 animate-fade-in"
+                  panelClassName="pointer-events-auto max-h-[60vh] overflow-y-auto rounded-2xl border border-border bg-popover p-2 shadow-2xl ring-1 ring-black/40 animate-fade-in"
                   renderTrigger={({ onClick, badge, badgeLoading, nextRound }) => (
                     <div className="relative flex flex-col items-center">
                       <button type="button" onClick={onClick} className={baseClasses} aria-label="Grupos">

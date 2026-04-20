@@ -76,7 +76,7 @@ export function DesktopNav() {
                   >
                     <GroupsNavMenu
                       groups={myGroups.map((g) => ({ id: g.id, name: g.name }))}
-                      panelClassName="absolute left-1/2 top-full z-[60] mt-2 w-72 max-h-[70vh] -translate-x-1/2 overflow-y-auto rounded-2xl border border-border bg-popover p-2 shadow-2xl ring-1 ring-black/40 animate-fade-in"
+                      panelClassName="pointer-events-auto max-h-[70vh] overflow-y-auto rounded-2xl border border-border bg-popover p-2 shadow-2xl ring-1 ring-black/40 animate-fade-in"
                       renderTrigger={({ onClick, badge, badgeLoading, open }) => (
                         <button
                           type="button"

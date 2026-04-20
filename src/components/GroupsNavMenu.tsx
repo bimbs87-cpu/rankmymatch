@@ -1,6 +1,7 @@
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
 import { ChevronDown, Users, Trophy, UserSquare2, Compass, CheckCircle2, CalendarClock, Clock, X as XIcon } from "lucide-react";
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { useGroupPendingTasks } from "@/hooks/use-group-pending-tasks";
 import { useAllGroupsPending } from "@/hooks/use-all-groups-pending";
 import { useNextRound, type PresenceStatus } from "@/hooks/use-next-round";
@@ -32,7 +33,9 @@ interface Props {
  */
 export function GroupsNavMenu({ groups, renderTrigger, panelClassName }: Props) {
   const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
+  const [panelPosition, setPanelPosition] = useState<{ top: number; left: number; width: number } | null>(null);
+  const triggerRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
 
   // Extract the active group id from the URL: /groups/{uuid}/...
@@ -66,10 +69,51 @@ export function GroupsNavMenu({ groups, renderTrigger, panelClassName }: Props) 
   // Next scheduled round of the primary group (used in the popover shortcut).
   const { round: nextRound, presence: nextPresence, confirmedAt: nextConfirmedAt } = useNextRound(primaryId || null);
 
+  useLayoutEffect(() => {
+    if (!open) {
+      setPanelPosition(null);
+      return;
+    }
+
+    const updatePosition = () => {
+      const triggerEl = triggerRef.current;
+      const panelEl = panelRef.current;
+      if (!triggerEl || !panelEl) return;
+
+      const triggerRect = triggerEl.getBoundingClientRect();
+      const panelRect = panelEl.getBoundingClientRect();
+      const viewportPadding = 12;
+      const gap = 8;
+      const width = Math.min(panelRect.width || 288, window.innerWidth - viewportPadding * 2);
+      const left = Math.min(
+        Math.max(viewportPadding, triggerRect.left + triggerRect.width / 2 - width / 2),
+        window.innerWidth - width - viewportPadding,
+      );
+      const spaceBelow = window.innerHeight - triggerRect.bottom;
+      const top =
+        spaceBelow >= panelRect.height + gap
+          ? triggerRect.bottom + gap
+          : Math.max(viewportPadding, triggerRect.top - panelRect.height - gap);
+
+      setPanelPosition({ top, left, width });
+    };
+
+    updatePosition();
+    window.addEventListener("resize", updatePosition);
+    window.addEventListener("scroll", updatePosition, true);
+
+    return () => {
+      window.removeEventListener("resize", updatePosition);
+      window.removeEventListener("scroll", updatePosition, true);
+    };
+  }, [open]);
+
   useEffect(() => {
     if (!open) return;
     const onClick = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+      const target = e.target as Node;
+      if (panelRef.current?.contains(target) || triggerRef.current?.contains(target)) return;
+      setOpen(false);
     };
     const onEsc = (e: KeyboardEvent) => {
       if (e.key === "Escape") setOpen(false);
@@ -121,18 +165,29 @@ export function GroupsNavMenu({ groups, renderTrigger, panelClassName }: Props) 
 
   // 2+ groups → popover with quick shortcuts + group list.
   const otherGroups = orderedGroups.slice(1);
+  const portalTarget = typeof document !== "undefined" ? document.body : null;
 
   return (
-    <div ref={ref} className="relative isolate">
+    <div ref={triggerRef} className="relative isolate">
       {renderTrigger({ onClick: () => setOpen((v) => !v), badge: globalPending, badgeLoading: globalLoading, open })}
 
-      {open && (
+      {open && portalTarget && createPortal(
         <div
+          ref={panelRef}
           role="menu"
-          style={{ backgroundColor: "var(--popover)", opacity: 1 }}
+          style={{
+            position: "fixed",
+            top: panelPosition?.top ?? 12,
+            left: panelPosition?.left ?? 12,
+            width: panelPosition?.width ?? 288,
+            zIndex: 9999,
+            backgroundColor: "var(--popover)",
+            opacity: 1,
+            visibility: panelPosition ? "visible" : "hidden",
+          }}
           className={
             panelClassName ??
-            "absolute right-0 top-full z-[60] mt-2 w-72 max-h-[70vh] overflow-y-auto rounded-2xl border border-border bg-card p-2 shadow-2xl ring-1 ring-black/20 backdrop-blur-none animate-fade-in"
+            "pointer-events-auto max-h-[70vh] overflow-y-auto rounded-2xl border border-border bg-popover p-2 shadow-2xl ring-1 ring-black/40 backdrop-blur-none animate-fade-in"
           }
         >
           <p className="px-2 pb-1 pt-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
@@ -263,7 +318,8 @@ export function GroupsNavMenu({ groups, renderTrigger, panelClassName }: Props) 
               <span>Ver todos / Explorar</span>
             </Link>
           </div>
-        </div>
+        </div>,
+        portalTarget,
       )}
     </div>
   );
