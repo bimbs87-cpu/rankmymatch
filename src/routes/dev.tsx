@@ -1,6 +1,5 @@
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ArrowLeft, Loader2, Users, Boxes, Trophy, Activity, ShieldCheck, ExternalLink } from "lucide-react";
 import {
   LineChart,
@@ -54,12 +53,30 @@ export const Route = createFileRoute("/dev")({
   component: DevDashboardPage,
 });
 
+type DashboardPayload = Awaited<ReturnType<typeof getDevDashboard>>;
+
 function DevDashboardPage() {
-  const { data, isLoading, error } = useQuery({
-    queryKey: ["dev-dashboard"],
-    queryFn: () => getDevDashboard(),
-    staleTime: 60_000,
-  });
+  const [data, setData] = useState<DashboardPayload | null>(null);
+  const [error, setError] = useState<Error | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    setIsLoading(true);
+    getDevDashboard()
+      .then((res) => {
+        if (!cancelled) setData(res);
+      })
+      .catch((err) => {
+        if (!cancelled) setError(err instanceof Error ? err : new Error(String(err)));
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   if (isLoading) {
     return (

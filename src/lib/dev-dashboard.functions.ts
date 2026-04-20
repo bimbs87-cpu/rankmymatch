@@ -2,15 +2,15 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
-/** Verifica se o caller é app_admin. Throw 403 caso contrário. */
+/** Verifica se o caller é app_admin. Throw caso contrário. */
 async function ensureAppAdmin(userId: string) {
   const { data, error } = await supabaseAdmin
     .from("app_admins")
     .select("user_id")
     .eq("user_id", userId)
     .maybeSingle();
-  if (error) throw new Response(`DB error: ${error.message}`, { status: 500 });
-  if (!data) throw new Response("Forbidden", { status: 403 });
+  if (error) throw new Error(`DB error: ${error.message}`);
+  if (!data) throw new Error("Forbidden: not an app admin");
 }
 
 type SignupRow = {
@@ -34,7 +34,7 @@ export const getDevDashboard = createServerFn({ method: "GET" })
     // ===== auth.users (paginado, pega até 1000 — suficiente por enquanto) =====
     const { data: usersPage, error: usersErr } =
       await supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 1000 });
-    if (usersErr) throw new Response(usersErr.message, { status: 500 });
+    if (usersErr) throw new Error(usersErr.message);
     const authUsers = usersPage?.users ?? [];
 
     const userIds = authUsers.map((u) => u.id);
