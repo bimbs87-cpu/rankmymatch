@@ -4,6 +4,7 @@ import { Trophy, ExternalLink, AlertCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { PlayerAvatarLink } from "@/components/PlayerProfileViewer";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
+import { GroupEloEvolutionChart } from "@/components/groups/internal/GroupEloEvolutionChart";
 
 interface RankingRow {
   user_id: string;
