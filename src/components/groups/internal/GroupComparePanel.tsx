@@ -372,7 +372,7 @@ export function GroupComparePanel({ groupId, initialPick, onConsumeInitial }: Pa
 
   // (No more inline iframe view — openCompare() does a full-page navigation.)
   return (
-    <div className="space-y-5">
+    <div className="flex flex-col gap-5">
       <div className="flex items-center gap-3">
         <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/15 text-primary">
           <BarChart3 className="h-5 w-5" />
