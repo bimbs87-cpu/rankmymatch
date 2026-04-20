@@ -128,6 +128,9 @@ export async function notifyUsers(
   params: NotifyParams,
   defaultUrl = "/notifications",
 ): Promise<PushResult> {
-  const targets = Array.from(new Set(userIds.filter((u) => u && u !== params.actorId)));
+  const filtered = params.includeActor
+    ? userIds.filter((u) => !!u)
+    : userIds.filter((u) => u && u !== params.actorId);
+  const targets = Array.from(new Set(filtered));
   return fanout(targets, params, defaultUrl);
 }
