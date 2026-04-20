@@ -1303,17 +1303,25 @@ function DashboardPage() {
               // Active group = group of the next upcoming match if any,
               // otherwise the user's first group. Sends user straight into
               // /history filtered by that group.
-              const activeGroupId = nextMatch?.group_id || myGroups[0]?.id;
-              if (!activeGroupId) return null;
+              const activeGroup =
+                myGroups.find((g) => g.id === nextMatch?.group_id) || myGroups[0];
+              if (!activeGroup) return null;
+              const shortName =
+                activeGroup.name.length > 14
+                  ? activeGroup.name.slice(0, 13) + "…"
+                  : activeGroup.name;
               return (
                 <Link
                   to="/history"
-                  search={{ group: activeGroupId }}
-                  aria-label="Histórico do grupo ativo"
-                  title="Histórico do grupo ativo"
-                  className="rounded-full border border-border bg-card p-2.5 transition-colors hover:bg-accent"
+                  search={{ group: activeGroup.id }}
+                  aria-label={`Histórico de ${activeGroup.name}`}
+                  title={`Histórico de ${activeGroup.name}`}
+                  className="flex flex-col items-center gap-0.5 rounded-2xl border border-border bg-card px-2.5 py-1.5 transition-colors hover:bg-accent"
                 >
                   <History className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-[9px] font-medium uppercase tracking-wider text-muted-foreground leading-none max-w-[70px] truncate">
+                    {shortName}
+                  </span>
                 </Link>
               );
             })()}
