@@ -1372,3 +1372,97 @@ function Stat({ label, value, tone }: { label: string; value: string; tone: "suc
     </div>
   );
 }
+
+/**
+ * Mini Elo chart for the round: shows the average rating trajectory of the
+ * players involved across the season, with a marker on the round's day.
+ */
+function RoundEloMiniTimeline({
+  seasonId,
+  scheduledDate,
+  matchPlayerIds,
+  visible,
+}: {
+  seasonId: string;
+  scheduledDate: string | null;
+  matchPlayerIds: string[];
+  visible: boolean;
+}) {
+  const [points, setPoints] = useState<{ date: string; avg: number }[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!visible || !matchPlayerIds.length) { setLoading(false); return; }
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      const { data } = await supabase
+        .from("rating_events")
+        .select("created_at, rating_after, user_id")
+        .eq("season_id", seasonId)
+        .in("user_id", matchPlayerIds)
+        .order("created_at", { ascending: true });
+      if (cancelled) return;
+      // Bucket per day, average rating_after across the involved players (last value of the day per user)
+      const byDayUser = new Map<string, Map<string, number>>();
+      for (const ev of (data || [])) {
+        const day = String((ev as any).created_at).slice(0, 10);
+        if (!byDayUser.has(day)) byDayUser.set(day, new Map());
+        byDayUser.get(day)!.set((ev as any).user_id, Number((ev as any).rating_after) || 0);
+      }
+      // Carry-forward across days for missing users
+      const days = [...byDayUser.keys()].sort();
+      const lastByUser = new Map<string, number>();
+      const out: { date: string; avg: number }[] = [];
+      for (const d of days) {
+        const m = byDayUser.get(d)!;
+        for (const [uid, r] of m) lastByUser.set(uid, r);
+        const vals = matchPlayerIds.map((u) => lastByUser.get(u)).filter((v): v is number => typeof v === "number");
+        if (vals.length) out.push({ date: d, avg: vals.reduce((a, b) => a + b, 0) / vals.length });
+      }
+      setPoints(out);
+      setLoading(false);
+    })();
+    return () => { cancelled = true; };
+  }, [seasonId, visible, matchPlayerIds.join(","), scheduledDate]);
+
+  if (!visible || loading || points.length < 2) return null;
+
+  const w = 280, h = 60, pad = 4;
+  const min = Math.min(...points.map((p) => p.avg));
+  const max = Math.max(...points.map((p) => p.avg));
+  const range = Math.max(1, max - min);
+  const xs = (i: number) => pad + (i / (points.length - 1)) * (w - 2 * pad);
+  const ys = (v: number) => h - pad - ((v - min) / range) * (h - 2 * pad);
+  const path = points.map((p, i) => `${i === 0 ? "M" : "L"}${xs(i).toFixed(1)},${ys(p.avg).toFixed(1)}`).join(" ");
+  const todayIdx = scheduledDate ? points.findIndex((p) => p.date === scheduledDate) : -1;
+  const last = points[points.length - 1];
+  const first = points[0];
+  const dayDelta = todayIdx > 0 ? points[todayIdx].avg - points[todayIdx - 1].avg : 0;
+
+  return (
+    <div className="rounded-xl border border-border bg-card/40 p-2.5">
+      <div className="mb-1 flex items-center justify-between text-[10px]">
+        <span className="font-bold uppercase tracking-wider text-muted-foreground">Elo médio (jogadores da rodada)</span>
+        {todayIdx >= 0 && dayDelta !== 0 && (
+          <span className={`font-bold tabular-nums ${dayDelta > 0 ? "text-success" : "text-destructive"}`}>
+            {dayDelta > 0 ? "+" : ""}{Math.round(dayDelta)} no dia
+          </span>
+        )}
+      </div>
+      <svg viewBox={`0 0 ${w} ${h}`} className="w-full h-12" preserveAspectRatio="none">
+        <path d={path} fill="none" stroke="hsl(var(--primary))" strokeWidth="1.5" />
+        {todayIdx >= 0 && (
+          <>
+            <line x1={xs(todayIdx)} y1={pad} x2={xs(todayIdx)} y2={h - pad} stroke="hsl(var(--warning))" strokeDasharray="2 2" strokeWidth="1" />
+            <circle cx={xs(todayIdx)} cy={ys(points[todayIdx].avg)} r="2.5" fill="hsl(var(--warning))" />
+          </>
+        )}
+      </svg>
+      <div className="mt-1 flex items-center justify-between text-[9px] text-muted-foreground tabular-nums">
+        <span>{Math.round(first.avg)}</span>
+        <span>{Math.round(last.avg)}</span>
+      </div>
+    </div>
+  );
+}
