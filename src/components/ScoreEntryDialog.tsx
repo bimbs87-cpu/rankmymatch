@@ -389,9 +389,154 @@ export function ScoreEntryDialog({
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center px-4 pb-24 sm:pb-6">
-      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={submitting ? undefined : onClose} />
+  // Player (non-admin) submits a pending result for admin approval.
+  const handleSubmitPending = async () => {
+    if (!matchState.canSubmit) {
+      toast.error("Corrija os placares antes de enviar");
+      return;
+    }
+    setSubmitting(true);
+    try {
+      await submitPendingResult({
+        matchId,
+        sets: sets.map((s, i) => ({ setNumber: i + 1, scoreA: s.scoreA, scoreB: s.scoreB })),
+      });
+      // Notify group admins (push + in-app)
+      try {
+        const { data: round } = await supabase
+          .from("matches")
+          .select("round_id, rounds:rounds!inner(group_id)")
+          .eq("id", matchId)
+          .maybeSingle();
+        const groupId = (round?.rounds as unknown as { group_id: string } | null)?.group_id || null;
+        const roundId = (round?.round_id as string | null) || null;
+        if (groupId) {
+          const { data: admins } = await supabase
+            .from("group_members")
+            .select("user_id")
+            .eq("group_id", groupId)
+            .eq("status", "active")
+            .in("role", ["creator", "admin"]);
+          const targetIds = (admins || []).map((a) => a.user_id);
+          if (targetIds.length) {
+            const { notifyUsers } = await import("@/lib/notify");
+            const { data: u } = await supabase.auth.getUser();
+            const actorId = u?.user?.id || "";
+            void notifyUsers(targetIds, {
+              groupId,
+              actorId,
+              type: "result_pending",
+              title: "Resultado aguardando aprovação ⏳",
+              body: `${playerAName} vs ${playerBName}: ${sets.map((s) => `${s.scoreA}-${s.scoreB}`).join(" • ")}`,
+              data: { matchId, seasonId, roundId },
+              url: roundId ? `/groups/${groupId}/seasons/${seasonId}/rounds/${roundId}` : `/groups/${groupId}`,
+            }).catch(() => {});
+          }
+        }
+      } catch {
+        /* best-effort */
+      }
+      toast.success("Resultado enviado para aprovação do admin");
+      await refreshPending();
+      onSaved();
+      onClose();
+    } catch (e: any) {
+      toast.error(e?.message || "Erro ao enviar resultado");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // Admin approves the pending result (with current sets — admin may have edited).
+  const handleApprovePending = async () => {
+    if (!pending) return;
+    if (!matchState.canSubmit) {
+      toast.error("Corrija os placares antes de aprovar");
+      return;
+    }
+    setSubmitting(true);
+    try {
+      await waitForNextPaint();
+      await approvePendingResult({
+        pendingId: pending.id,
+        matchId,
+        seasonId,
+        sets: sets.map((s, i) => ({ setNumber: i + 1, scoreA: s.scoreA, scoreB: s.scoreB })),
+      });
+      // Notify the submitter that their result was approved
+      try {
+        const { data: round } = await supabase
+          .from("matches")
+          .select("round_id, rounds:rounds!inner(group_id)")
+          .eq("id", matchId)
+          .maybeSingle();
+        const groupId = (round?.rounds as unknown as { group_id: string } | null)?.group_id || null;
+        const roundId = (round?.round_id as string | null) || null;
+        if (groupId && pending.submitted_by) {
+          const { notifyUsers } = await import("@/lib/notify");
+          const { data: u } = await supabase.auth.getUser();
+          void notifyUsers([pending.submitted_by], {
+            groupId,
+            actorId: u?.user?.id || "",
+            type: "result_approved",
+            title: "Seu resultado foi aprovado ✅",
+            body: `${playerAName} vs ${playerBName}: ${sets.map((s) => `${s.scoreA}-${s.scoreB}`).join(" • ")}`,
+            data: { matchId, seasonId, roundId },
+            url: roundId ? `/groups/${groupId}/seasons/${seasonId}/rounds/${roundId}` : `/groups/${groupId}`,
+          }).catch(() => {});
+        }
+      } catch {
+        /* best-effort */
+      }
+      toast.success("Resultado aprovado e ranking atualizado!");
+      onSaved();
+      onClose();
+    } catch (e: any) {
+      toast.error(e?.message || "Erro ao aprovar resultado");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleRejectPending = async () => {
+    if (!pending) return;
+    if (!confirm("Rejeitar este resultado? O jogador poderá reenviar.")) return;
+    setSubmitting(true);
+    try {
+      await rejectPendingResult(pending.id);
+      // Notify submitter
+      try {
+        const { data: round } = await supabase
+          .from("matches")
+          .select("round_id, rounds:rounds!inner(group_id)")
+          .eq("id", matchId)
+          .maybeSingle();
+        const groupId = (round?.rounds as unknown as { group_id: string } | null)?.group_id || null;
+        const roundId = (round?.round_id as string | null) || null;
+        if (groupId && pending.submitted_by) {
+          const { notifyUsers } = await import("@/lib/notify");
+          const { data: u } = await supabase.auth.getUser();
+          void notifyUsers([pending.submitted_by], {
+            groupId,
+            actorId: u?.user?.id || "",
+            type: "result_rejected",
+            title: "Seu resultado foi rejeitado",
+            body: "O admin pediu revisão do placar. Confira a partida.",
+            data: { matchId, seasonId, roundId },
+            url: roundId ? `/groups/${groupId}/seasons/${seasonId}/rounds/${roundId}` : `/groups/${groupId}`,
+          }).catch(() => {});
+        }
+      } catch { /* best-effort */ }
+      toast.success("Resultado rejeitado");
+      await refreshPending();
+      onSaved();
+      onClose();
+    } catch (e: any) {
+      toast.error(e?.message || "Erro ao rejeitar");
+    } finally {
+      setSubmitting(false);
+    }
+  };
       <div className="relative w-full max-w-lg rounded-3xl border border-border bg-card p-6 pb-8 sm:pb-6 animate-in zoom-in-95 fade-in-0 duration-200 max-h-[calc(100vh-8rem)] overflow-y-auto sm:max-h-[85vh]">
         {submitting && (
           <div className="fixed inset-0 z-[60] flex items-center justify-center bg-background/85 px-6 backdrop-blur-md">
