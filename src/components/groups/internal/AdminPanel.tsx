@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import {
   Settings2, Bell, Users, Link2, AlertTriangle, Save, Loader2, Globe, Lock, EyeOff,
-  CheckCircle2, Trash2, BarChart3, ScrollText, Image as ImageIcon, Wrench, Share2, ClipboardCheck,
+  CheckCircle2, Trash2, BarChart3, ScrollText, Image as ImageIcon, Wrench, Share2, ClipboardCheck, Send,
 } from "lucide-react";
 import { GroupOgCoverUpload } from "@/components/GroupOgCoverUpload";
 import { getRecentShareCount } from "@/lib/track-share";
