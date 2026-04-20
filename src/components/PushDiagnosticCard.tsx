@@ -182,6 +182,7 @@ export function PushDiagnosticCard() {
                       });
                       const sent = (res as { sent?: number })?.sent ?? 0;
                       const failed = (res as { failed?: number })?.failed ?? 0;
+                      recordHistory({ ts: Date.now(), sent, failed });
                       if (sent > 0) {
                         toast.success(`Push enviado pra ${sent} dispositivo${sent > 1 ? "s" : ""}.`);
                       } else {
@@ -192,7 +193,9 @@ export function PushDiagnosticCard() {
                         );
                       }
                     } catch (err) {
-                      toast.error(`Falha ao enviar: ${(err as Error)?.message || "erro desconhecido"}`);
+                      const message = (err as Error)?.message || "erro desconhecido";
+                      recordHistory({ ts: Date.now(), sent: 0, failed: 0, error: message });
+                      toast.error(`Falha ao enviar: ${message}`);
                     }
                   }}
                   className="inline-flex items-center gap-2 rounded-full border border-primary/40 bg-primary/10 px-4 py-2 text-xs font-bold text-primary transition hover:bg-primary/20"
