@@ -4,7 +4,7 @@ import { TrophyLoadingBar } from "@/components/TrophyLoadingBar";
 import { useGroupDetail } from "@/hooks/use-groups";
 import { useSeasonRounds } from "@/hooks/use-seasons";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, Calendar, MapPin, Clock, X, Pencil, Ban, Settings, ChevronRight } from "lucide-react";
+import { ArrowLeft, Calendar, MapPin, Clock, X, Pencil, Ban, Settings, ChevronRight, Plus } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 
@@ -22,6 +22,9 @@ function SeasonDetailPage() {
   const [editDates, setEditDates] = useState<Record<string, string>>({});
   const [editingRoundId, setEditingRoundId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [creatingExtra, setCreatingExtra] = useState(false);
+  const [extraDate, setExtraDate] = useState("");
+  const [showExtraForm, setShowExtraForm] = useState(false);
 
   useEffect(() => {
     supabase
@@ -108,6 +111,51 @@ function SeasonDetailPage() {
       refresh();
     }
     setSaving(false);
+  };
+
+  const handleCreateExtraRound = async () => {
+    if (!extraDate) {
+      toast.error("Selecione uma data");
+      return;
+    }
+    setCreatingExtra(true);
+
+    // Fetch group defaults for match_format / max_players
+    const { data: group } = await supabase
+      .from("groups")
+      .select("id, match_format, max_players")
+      .eq("id", groupId)
+      .single();
+
+    if (!group) {
+      toast.error("Erro ao carregar grupo");
+      setCreatingExtra(false);
+      return;
+    }
+
+    const nextNumber = rounds.length
+      ? Math.max(...rounds.map((r) => r.round_number || 0)) + 1
+      : 1;
+
+    const { error } = await supabase.from("rounds").insert({
+      group_id: groupId,
+      season_id: seasonId,
+      round_number: nextNumber,
+      scheduled_date: extraDate,
+      status: "scheduled",
+      match_format: group.match_format,
+      max_players: group.max_players,
+    });
+
+    if (error) {
+      toast.error("Erro ao criar rodada extra");
+    } else {
+      toast.success(`Rodada ${nextNumber} criada`);
+      setShowExtraForm(false);
+      setExtraDate("");
+      refresh();
+    }
+    setCreatingExtra(false);
   };
 
   if (isLoading) {
@@ -284,6 +332,48 @@ function SeasonDetailPage() {
               )}
             </div>
           ))
+        )}
+
+        {isAdmin && (
+          <div className="pt-2">
+            {showExtraForm ? (
+              <div className="rounded-2xl border border-primary/30 bg-card/50 p-4 space-y-3">
+                <div>
+                  <h4 className="text-sm font-semibold text-foreground">Nova rodada extra</h4>
+                  <p className="text-xs text-muted-foreground">Adicione uma rodada fora do calendário regular (ex: feriado, jogo extra).</p>
+                </div>
+                <input
+                  type="date"
+                  value={extraDate}
+                  onChange={(e) => setExtraDate(e.target.value)}
+                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                />
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleCreateExtraRound}
+                    disabled={creatingExtra || !extraDate}
+                    className="flex-1 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground disabled:opacity-50"
+                  >
+                    {creatingExtra ? "Criando..." : "Criar rodada"}
+                  </button>
+                  <button
+                    onClick={() => { setShowExtraForm(false); setExtraDate(""); }}
+                    className="rounded-lg bg-muted px-3 py-2 text-xs font-semibold text-muted-foreground"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                onClick={() => setShowExtraForm(true)}
+                className="flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-border bg-card/30 px-4 py-3 text-sm font-semibold text-muted-foreground transition-colors hover:border-primary/50 hover:text-primary"
+              >
+                <Plus className="h-4 w-4" />
+                Adicionar rodada extra
+              </button>
+            )}
+          </div>
         )}
       </div>
     </div>
