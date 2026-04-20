@@ -28,17 +28,21 @@ export function PushPreferencesCard() {
   const [soundOn, setSoundOn] = useState(true);
 
   useEffect(() => {
-    if (typeof localStorage === "undefined") return;
-    setSoundOn(localStorage.getItem(ROUND_SOUND_KEY) !== "off");
+    setSoundOn(isRoundSoundEnabled());
   }, []);
 
   function toggleSound() {
     const next = !soundOn;
     setSoundOn(next);
-    try {
-      localStorage.setItem(ROUND_SOUND_KEY, next ? "on" : "off");
-    } catch {
-      // ignore storage errors
+    setRoundSoundEnabled(next);
+  }
+
+  function testSound() {
+    vibrateRoundAlert();
+    const ok = playRoundBeep();
+    if (!ok) {
+      // Audio context may be blocked until first user gesture — but onClick is one,
+      // so this only happens if the browser doesn't support Web Audio.
     }
   }
 
