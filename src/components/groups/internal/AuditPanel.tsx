@@ -275,6 +275,44 @@ function DiffView({ row }: { row: AuditRow }) {
   return <GenericDiff oldData={row.old_data} newData={row.new_data} />;
 }
 
+/** Tiny inline SVG sparkline for nudge recipients trend. */
+function Sparkline({ values }: { values: number[] }) {
+  if (values.length < 2) return null;
+  const w = 200;
+  const h = 32;
+  const pad = 2;
+  const max = Math.max(...values, 1);
+  const min = Math.min(...values, 0);
+  const range = Math.max(1, max - min);
+  const stepX = (w - pad * 2) / (values.length - 1);
+  const points = values.map((v, i) => {
+    const x = pad + i * stepX;
+    const y = h - pad - ((v - min) / range) * (h - pad * 2);
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  });
+  const path = `M ${points.join(" L ")}`;
+  const half = Math.floor(values.length / 2);
+  const a = values.slice(0, half).reduce((s, n) => s + n, 0) / Math.max(1, half);
+  const b = values.slice(half).reduce((s, n) => s + n, 0) / Math.max(1, values.length - half);
+  const trendingDown = b < a;
+  const stroke = trendingDown ? "hsl(var(--success))" : "hsl(var(--warning))";
+  return (
+    <div className="flex items-center gap-2">
+      <svg width="100%" height={h} viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" className="flex-1">
+        <path d={path} fill="none" stroke={stroke} strokeWidth={1.5} strokeLinejoin="round" strokeLinecap="round" />
+        {values.map((v, i) => {
+          const x = pad + i * stepX;
+          const y = h - pad - ((v - min) / range) * (h - pad * 2);
+          return <circle key={i} cx={x} cy={y} r={1.8} fill={stroke} />;
+        })}
+      </svg>
+      <span className={`text-[10px] font-bold tabular-nums ${trendingDown ? "text-success" : "text-warning"}`}>
+        {trendingDown ? "↓" : "↑"} {Math.abs(Math.round(b - a))}
+      </span>
+    </div>
+  );
+}
+
 export function AuditPanel({ groupId }: Props) {
   const [rows, setRows] = useState<AuditRow[]>([]);
   const [loading, setLoading] = useState(true);

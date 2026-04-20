@@ -365,8 +365,12 @@ export function GroupDashboardPanel({ group, onLeft, onPresenceChanged }: Props)
     if (!user || !data.next_round) return;
     setPresenceLoading(true);
     try {
-      await cancelPresence(data.next_round.id, user.id);
+      const result = await cancelPresence(data.next_round.id, user.id);
       toast.success("Presença recusada");
+      if (result.promotedUserId) {
+        const who = result.promotedName || "alguém da lista de espera";
+        toast(`Sua vaga foi para ${who}`, { description: "Auto-promoção da lista de espera" });
+      }
       await refresh();
       onPresenceChanged?.();
     } catch (e) {
