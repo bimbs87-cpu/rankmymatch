@@ -1,8 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { LandingPage } from "@/components/LandingPage";
 import { abbreviateName } from "@/lib/utils";
-import logoSymbolNeon from "@/assets/logo-symbol-neon.png";
-import logoSymbolBlack from "@/assets/logo-symbol-black.png";
 import logoHorizontalDark from "@/assets/logo-horizontal-dark.png";
 import logoHorizontalLight from "@/assets/logo-horizontal-light.png";
 import { useTheme } from "@/lib/theme";
@@ -18,7 +16,7 @@ import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { InstallBanner } from "@/components/InstallBanner";
 
 import { NotificationsPopover } from "@/components/NotificationsPopover";
-import { GroupSwitcherPopover } from "@/components/GroupSwitcherPopover";
+
 import { PushOptInBanner } from "@/components/PushOptInBanner";
 import { EloEvolutionChart } from "@/components/EloEvolutionChart";
 import { supabase } from "@/integrations/supabase/client";
@@ -1299,7 +1297,6 @@ function DashboardPage() {
           </nav>
 
           <div className="flex items-center gap-2">
-            <img src={resolvedTheme === "light" ? logoSymbolBlack : logoSymbolNeon} alt="RankMyMatch" className="h-7 w-7" />
             {(() => {
               // Active group = group of the next upcoming match if any,
               // otherwise the user's first group. Open it goes straight into
@@ -1311,28 +1308,19 @@ function DashboardPage() {
                 activeGroup.name.length > 14
                   ? activeGroup.name.slice(0, 13) + "…"
                   : activeGroup.name;
-              const otherGroups = myGroups.filter((g) => g.id !== activeGroup.id);
               return (
-                <>
-                  <Link
-                    to="/groups/$groupId"
-                    params={{ groupId: activeGroup.id }}
-                    aria-label={`Abrir grupo ${activeGroup.name}`}
-                    title={`Abrir grupo ${activeGroup.name}`}
-                    className="flex flex-col items-center gap-0.5 rounded-2xl border border-border bg-card px-2.5 py-1.5 transition-colors hover:bg-accent hover:border-primary/40"
-                  >
-                    <Users className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-[9px] font-medium uppercase tracking-wider text-muted-foreground leading-none max-w-[70px] truncate">
-                      {shortName}
-                    </span>
-                  </Link>
-                  {otherGroups.length > 0 && (
-                    <GroupSwitcherPopover
-                      groups={otherGroups}
-                      activeGroupId={activeGroup.id}
-                    />
-                  )}
-                </>
+                <Link
+                  to="/groups/$groupId"
+                  params={{ groupId: activeGroup.id }}
+                  aria-label={`Abrir grupo ${activeGroup.name}`}
+                  title={`Abrir grupo ${activeGroup.name}`}
+                  className="flex flex-col items-center gap-0.5 rounded-2xl border border-border bg-card px-2.5 py-1.5 transition-colors hover:bg-accent hover:border-primary/40"
+                >
+                  <Users className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-[9px] font-medium uppercase tracking-wider text-muted-foreground leading-none max-w-[70px] truncate">
+                    {shortName}
+                  </span>
+                </Link>
               );
             })()}
             <NotificationsPopover>
