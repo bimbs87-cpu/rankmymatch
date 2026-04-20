@@ -3,7 +3,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { usePushSubscription } from "@/hooks/use-push-subscription";
 import { PUSH_EVENT_TYPES, usePushPreferences } from "@/hooks/use-push-preferences";
-import { BellRing, BellOff, CheckCircle2, XCircle, Smartphone, AlertTriangle } from "lucide-react";
+import { sendPushFn } from "@/lib/push.functions";
+import { toast } from "sonner";
+import { BellRing, BellOff, CheckCircle2, XCircle, Smartphone, AlertTriangle, Send } from "lucide-react";
 
 interface SubRow {
   id: string;
@@ -103,14 +105,52 @@ export function PushDiagnosticCard() {
                 Ativar pushs neste dispositivo
               </button>
             ) : (
-              <button
-                onClick={() => unsubscribe()}
-                disabled={busy}
-                className="inline-flex items-center gap-2 rounded-full border border-border bg-background px-4 py-2 text-xs font-semibold text-foreground transition hover:bg-accent disabled:opacity-60"
-              >
-                <BellOff className="h-3.5 w-3.5" />
-                Desativar neste dispositivo
-              </button>
+              <>
+                <button
+                  onClick={() => unsubscribe()}
+                  disabled={busy}
+                  className="inline-flex items-center gap-2 rounded-full border border-border bg-background px-4 py-2 text-xs font-semibold text-foreground transition hover:bg-accent disabled:opacity-60"
+                >
+                  <BellOff className="h-3.5 w-3.5" />
+                  Desativar neste dispositivo
+                </button>
+                <button
+                  onClick={async () => {
+                    if (!user) return;
+                    try {
+                      const res = await sendPushFn({
+                        data: {
+                          userIds: [user.id],
+                          payload: {
+                            title: "🧪 Push de teste",
+                            body: "Se você está lendo isso, a entrega tá funcionando!",
+                            url: "/sistema",
+                            type: "test",
+                            tag: `test:${user.id}`,
+                          },
+                        },
+                      });
+                      const sent = (res as { sent?: number })?.sent ?? 0;
+                      const failed = (res as { failed?: number })?.failed ?? 0;
+                      if (sent > 0) {
+                        toast.success(`Push enviado pra ${sent} dispositivo${sent > 1 ? "s" : ""}.`);
+                      } else {
+                        toast.warning(
+                          failed > 0
+                            ? `Nenhum push entregue (${failed} falha${failed > 1 ? "s" : ""}). Verifique permissões.`
+                            : "Nenhum dispositivo elegível recebeu o push.",
+                        );
+                      }
+                    } catch (err) {
+                      toast.error(`Falha ao enviar: ${(err as Error)?.message || "erro desconhecido"}`);
+                    }
+                  }}
+                  className="inline-flex items-center gap-2 rounded-full border border-primary/40 bg-primary/10 px-4 py-2 text-xs font-bold text-primary transition hover:bg-primary/20"
+                >
+                  <Send className="h-3.5 w-3.5" />
+                  Enviar push de teste pra mim
+                </button>
+              </>
             )}
             {status === "denied" && (
               <span className="inline-flex items-center gap-1.5 text-[11px] text-destructive">
