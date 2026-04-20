@@ -12,6 +12,9 @@ import { buildDisplayNames, getCollidingFirstNames } from "@/lib/name-disambigua
 import { abbreviateName } from "@/lib/utils";
 
 export const Route = createFileRoute("/ranking")({
+  validateSearch: (search: Record<string, unknown>): { group?: string } => ({
+    group: typeof search.group === "string" ? search.group : undefined,
+  }),
   head: () => ({
     meta: [
       { title: "Ranking — RankMyMatch" },
@@ -61,6 +64,8 @@ function LoadingBar({ progress, label }: { progress: number; label: string }) {
 function RankingPage() {
   const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
+  const search = Route.useSearch();
+  const requestedGroupId = search.group;
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
       navigate({ to: "/login" });
@@ -169,25 +174,49 @@ function RankingPage() {
           return;
         }
 
+        const requestedGroupSeasons = requestedGroupId
+          ? availableSeasons.filter((season: any) => season.group_id === requestedGroupId)
+          : availableSeasons;
+
+        if (requestedGroupId && requestedGroupSeasons.length === 0) {
+          setSelectedSeasonId(null);
+          setRankings([]);
+          setTotalRounds(0);
+          setCompletedRounds(0);
+          setTotalSets(0);
+          return;
+        }
+
         setLoadProgress(22);
         setLoadLabel("Selecionando temporada...");
 
         let nextSeasonId = selectedSeasonId;
-        if (!nextSeasonId || !availableSeasons.some((season: any) => season.id === nextSeasonId)) {
-          const { data: lastEvent, error: lastEventError } = await supabase
-            .from("rating_events")
-            .select("season_id")
-            .eq("user_id", user.id)
-            .order("created_at", { ascending: false })
-            .limit(1);
+        const selectedSeasonRecord = nextSeasonId
+          ? availableSeasons.find((season: any) => season.id === nextSeasonId)
+          : null;
+        const selectedSeasonMatchesRequestedGroup =
+          !requestedGroupId || selectedSeasonRecord?.group_id === requestedGroupId;
 
-          if (lastEventError) throw lastEventError;
-          if (cancelled) return;
+        if (!nextSeasonId || !selectedSeasonRecord || !selectedSeasonMatchesRequestedGroup) {
+          if (requestedGroupId) {
+            const activeRequestedSeason = requestedGroupSeasons.find((season: any) => season.status === "active");
+            nextSeasonId = activeRequestedSeason?.id || requestedGroupSeasons[0].id;
+          } else {
+            const { data: lastEvent, error: lastEventError } = await supabase
+              .from("rating_events")
+              .select("season_id")
+              .eq("user_id", user.id)
+              .order("created_at", { ascending: false })
+              .limit(1);
 
-          const lastSeasonId = lastEvent?.[0]?.season_id;
-          const matchedSeason = lastSeasonId ? availableSeasons.find((season: any) => season.id === lastSeasonId) : null;
-          const activeSeason = availableSeasons.find((season: any) => season.status === "active");
-          nextSeasonId = matchedSeason?.id || activeSeason?.id || availableSeasons[0].id;
+            if (lastEventError) throw lastEventError;
+            if (cancelled) return;
+
+            const lastSeasonId = lastEvent?.[0]?.season_id;
+            const matchedSeason = lastSeasonId ? availableSeasons.find((season: any) => season.id === lastSeasonId) : null;
+            const activeSeason = availableSeasons.find((season: any) => season.status === "active");
+            nextSeasonId = matchedSeason?.id || activeSeason?.id || availableSeasons[0].id;
+          }
           setSelectedSeasonId(nextSeasonId);
         }
 
@@ -445,7 +474,7 @@ function RankingPage() {
     return () => {
       cancelled = true;
     };
-  }, [authLoading, groupsLoading, isAuthenticated, user?.id, groups, selectedSeasonId]);
+  }, [authLoading, groupsLoading, isAuthenticated, user?.id, groups, selectedSeasonId, requestedGroupId]);
 
   useEffect(() => {
     setExpandedUserId(null);

@@ -115,6 +115,21 @@ export function DesktopNav() {
                 );
               }
 
+              if (item.to === "/ranking" && activeGroup) {
+                return (
+                  <Link
+                    key={item.to}
+                    to="/ranking"
+                    search={{ group: activeGroup.id }}
+                    activeOptions={{ exact: true }}
+                    className={baseClasses}
+                  >
+                    <Icon className="h-4 w-4" />
+                    <span>{item.label}</span>
+                  </Link>
+                );
+              }
+
               return (
                 <Link
                   key={item.to}
