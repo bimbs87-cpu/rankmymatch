@@ -113,6 +113,51 @@ function SeasonDetailPage() {
     setSaving(false);
   };
 
+  const handleCreateExtraRound = async () => {
+    if (!extraDate) {
+      toast.error("Selecione uma data");
+      return;
+    }
+    setCreatingExtra(true);
+
+    // Fetch group defaults for match_format / max_players
+    const { data: group } = await supabase
+      .from("groups")
+      .select("id, match_format, max_players")
+      .eq("id", groupId)
+      .single();
+
+    if (!group) {
+      toast.error("Erro ao carregar grupo");
+      setCreatingExtra(false);
+      return;
+    }
+
+    const nextNumber = rounds.length
+      ? Math.max(...rounds.map((r) => r.round_number || 0)) + 1
+      : 1;
+
+    const { error } = await supabase.from("rounds").insert({
+      group_id: groupId,
+      season_id: seasonId,
+      round_number: nextNumber,
+      scheduled_date: extraDate,
+      status: "scheduled",
+      match_format: group.match_format,
+      max_players: group.max_players,
+    });
+
+    if (error) {
+      toast.error("Erro ao criar rodada extra");
+    } else {
+      toast.success(`Rodada ${nextNumber} criada`);
+      setShowExtraForm(false);
+      setExtraDate("");
+      refresh();
+    }
+    setCreatingExtra(false);
+  };
+
   if (isLoading) {
     return <TrophyLoadingBar />;
   }
