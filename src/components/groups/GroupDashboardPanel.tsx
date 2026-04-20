@@ -931,36 +931,7 @@ function MatchStartCountdown({
   useEffect(() => {
     if (!isImminent || alertedRef.current) return;
     alertedRef.current = true;
-    try {
-      if (typeof navigator !== "undefined" && "vibrate" in navigator) {
-        navigator.vibrate?.([120, 60, 120]);
-      }
-      const soundOn =
-        typeof localStorage === "undefined"
-          ? true
-          : localStorage.getItem("rmm.roundAlertSound") !== "off";
-      if (!soundOn) return;
-      const AudioCtx =
-        (window as any).AudioContext || (window as any).webkitAudioContext;
-      if (AudioCtx) {
-        const ctx = new AudioCtx();
-        const o = ctx.createOscillator();
-        const g = ctx.createGain();
-        o.type = "sine";
-        o.frequency.value = 880;
-        g.gain.value = 0.0001;
-        o.connect(g);
-        g.connect(ctx.destination);
-        const t = ctx.currentTime;
-        g.gain.exponentialRampToValueAtTime(0.08, t + 0.04);
-        g.gain.exponentialRampToValueAtTime(0.0001, t + 0.35);
-        o.start(t);
-        o.stop(t + 0.4);
-        setTimeout(() => ctx.close().catch(() => {}), 700);
-      }
-    } catch {
-      // best-effort
-    }
+    playRoundAlert();
   }, [isImminent]);
 
   if (!scheduledDate || Number.isNaN(target)) return null;
