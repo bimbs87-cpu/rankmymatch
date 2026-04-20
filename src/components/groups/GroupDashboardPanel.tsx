@@ -198,6 +198,31 @@ export function GroupDashboardPanel({ group, onLeft, onPresenceChanged }: Props)
     }
   }
 
+  async function handleToggleForceOpen() {
+    if (!data.next_round) return;
+    const isCurrentlyForceOpen =
+      !!data.next_round.presence_force_open_at &&
+      new Date(data.next_round.presence_force_open_at) <= new Date();
+    setPresenceLoading(true);
+    try {
+      const patch = isCurrentlyForceOpen
+        ? { presence_force_open_at: null }
+        : { presence_force_open_at: new Date().toISOString() };
+      const { error } = await supabase
+        .from("rounds")
+        .update(patch as any)
+        .eq("id", data.next_round.id);
+      if (error) throw error;
+      toast.success(isCurrentlyForceOpen ? "Lista de presença fechada" : "Lista de presença aberta");
+      await refresh();
+      onPresenceChanged?.();
+    } catch (e: any) {
+      toast.error(e?.message || "Não foi possível alterar");
+    } finally {
+      setPresenceLoading(false);
+    }
+  }
+
   async function handleLeave() {
     if (!user) return;
     setLeaving(true);
@@ -533,6 +558,33 @@ export function GroupDashboardPanel({ group, onLeft, onPresenceChanged }: Props)
                   </span>
                 )}
               </div>
+              {isAdmin && (
+                <div className="mt-2 flex items-center justify-between gap-2 rounded-xl border border-dashed border-border/60 bg-background/30 px-2.5 py-1.5">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                    Admin
+                  </span>
+                  <button
+                    onClick={handleToggleForceOpen}
+                    disabled={presenceLoading}
+                    className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold transition-colors disabled:opacity-50 ${
+                      data.next_round.presence_force_open_at &&
+                      new Date(data.next_round.presence_force_open_at) <= new Date()
+                        ? "border border-destructive/40 bg-destructive/10 text-destructive hover:bg-destructive/20"
+                        : "border border-primary/40 bg-primary/10 text-primary hover:bg-primary/20"
+                    }`}
+                    title={
+                      data.next_round.presence_force_open_at
+                        ? "Fechar lista manualmente"
+                        : "Abrir lista agora (antes do prazo)"
+                    }
+                  >
+                    {data.next_round.presence_force_open_at &&
+                    new Date(data.next_round.presence_force_open_at) <= new Date()
+                      ? "Fechar lista"
+                      : "Abrir lista agora"}
+                  </button>
+                </div>
+              )}
             </div>
           ) : (
             <div className="py-4 text-center">

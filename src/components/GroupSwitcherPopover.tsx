@@ -61,8 +61,8 @@ export function GroupSwitcherPopover({ groups, activeGroupId }: Props) {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        aria-label="Trocar de grupo"
-        title="Trocar de grupo"
+        aria-label="Menu direto do grupo"
+        title="Menu direto do grupo"
         aria-expanded={open}
         className="flex items-center gap-0.5 rounded-2xl border border-border bg-card px-2 py-2 text-muted-foreground transition-colors hover:bg-accent hover:border-primary/40"
       >
@@ -76,7 +76,7 @@ export function GroupSwitcherPopover({ groups, activeGroupId }: Props) {
           className="absolute right-0 top-full z-50 mt-2 w-64 max-h-[60vh] overflow-y-auto rounded-2xl border border-border bg-popover p-2 shadow-xl animate-fade-in"
         >
           <p className="px-2 pb-1 pt-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-            Trocar de grupo
+            Menu direto do grupo
           </p>
           <ul className="space-y-0.5">
             {groups.map((g) => (

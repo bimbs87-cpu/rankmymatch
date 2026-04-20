@@ -48,6 +48,18 @@ function GroupsIndexPage() {
     }
   }, [myLoading, myGroups.length, view]);
 
+  // Desktop: when selected group is a rivalry duel group, jump to its dedicated /duel page
+  // (mirrors the mobile behavior so admins/players land in the same context).
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (window.innerWidth < 1024) return;
+    if (view !== "group" || !selectedId) return;
+    const sel = myGroups.find((g) => g.id === selectedId) as any;
+    if (sel && sel.match_format === "singles" && sel.singles_group_type === "rivalry") {
+      navigate({ to: "/groups/$groupId/duel", params: { groupId: selectedId } });
+    }
+  }, [selectedId, myGroups, view, navigate]);
+
   const sidebarGroups = useMemo(
     () =>
       myGroups.map((g) => ({
