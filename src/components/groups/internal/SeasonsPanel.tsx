@@ -12,6 +12,7 @@ import { SeasonFinalRanking } from "./SeasonFinalRanking";
 import { QuickCreateSeasonDialog } from "./QuickCreateSeasonDialog";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { PlayerAvatarLink } from "@/components/PlayerProfileViewer";
+import { GroupSummaryCards } from "./GroupSummaryCards";
 
 function useSeasonProgress(seasonId: string, totalRounds: number | null) {
   const [completed, setCompleted] = useState(0);
@@ -112,9 +113,9 @@ export function SeasonsPanel({ groupId, isAdmin }: Props) {
     <div className="space-y-5">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="font-display text-xl font-bold text-foreground">Temporadas</h2>
+          <h2 className="font-display text-xl font-bold text-foreground">Agenda completa</h2>
           <p className="text-xs text-muted-foreground">
-            {seasons.length} {seasons.length === 1 ? "temporada criada" : "temporadas criadas"}
+            Visão geral do grupo, temporadas e rodadas
           </p>
         </div>
         {isAdmin && (
