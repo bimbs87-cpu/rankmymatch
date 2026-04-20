@@ -969,13 +969,14 @@ function RoundExpandedDetails({
     confirmed: 0, declined: 0, pending: 0, max: 0,
   });
   const [matchesData, setMatchesData] = useState<any[]>([]);
-  const [eloDeltas, setEloDeltas] = useState<Record<string, Record<string, number>>>({}); // matchId -> userId -> delta
+  const [eloDeltas, setEloDeltas] = useState<Record<string, Record<string, { delta: number; before: number; after: number }>>>({});
   const [confirmedPlayers, setConfirmedPlayers] = useState<{ user_id: string; name: string; avatar_url: string | null }[]>([]);
   const [confirmedIds, setConfirmedIds] = useState<string[]>([]);
   const [myStatus, setMyStatus] = useState<"confirmed" | "declined" | "absent" | null>(null);
   const [groupFormat, setGroupFormat] = useState<"singles" | "doubles">("doubles");
   const [setsPerMatch, setSetsPerMatch] = useState<number>(3);
   const [setsMode, setSetsMode] = useState<"fixed" | "flexible" | "unlimited">("fixed");
+  const [scheduledDate, setScheduledDate] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
