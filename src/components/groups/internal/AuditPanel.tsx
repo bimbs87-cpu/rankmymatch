@@ -333,6 +333,14 @@ function Sparkline({
   // Avoid label overlap when p90 and median land close to each other.
   const p90LabelAnchor = medianY !== null && p90Y !== null && Math.abs(p90Y - medianY) < 10 ? "start" : "end";
   const p90LabelX = p90LabelAnchor === "start" ? pad : w - pad;
+  // Zone band Y boundaries (only meaningful for response-time sparklines, where unit==="h")
+  const showZones = unit === "h";
+  const yForVal = (v: number) => h - pad - ((v - min) / range) * (h - pad * 2);
+  const clampY = (y: number) => Math.max(pad, Math.min(h - pad, y));
+  const greenTop = showZones ? clampY(yForVal(1)) : 0;
+  const yellowTop = showZones ? clampY(yForVal(6)) : 0;
+  const yellowBottom = showZones ? clampY(yForVal(1)) : 0;
+  const redBottom = showZones ? clampY(yForVal(6)) : 0;
   return (
     <div className="flex items-center gap-2">
       <svg width="100%" height={h} viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" className="flex-1">
