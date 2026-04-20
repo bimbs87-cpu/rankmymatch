@@ -811,7 +811,7 @@ function SeasonRoundsInline({ groupId, seasonId, isAdmin, initialRoundId }: { gr
                   {isAdmin && !completed && (
                     <button
                       type="button"
-                      onClick={(e) => { e.stopPropagation(); sendRoundPush(r); }}
+                      onClick={(e) => { e.stopPropagation(); openPushDialog(r); }}
                       className="flex h-7 items-center gap-1 rounded-full border border-border bg-card px-2 text-[10px] font-semibold text-muted-foreground hover:border-primary/40 hover:text-primary"
                       title="Enviar push de lembrete (a partir de 12h antes)"
                     >
@@ -877,6 +877,76 @@ function SeasonRoundsInline({ groupId, seasonId, isAdmin, initialRoundId }: { gr
         );
       })}
       {extraRoundUI}
+
+      {pushTargetRound && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-4 sm:items-center" onClick={() => !sendingPush && setPushTargetRound(null)}>
+          <div className="w-full max-w-md rounded-2xl border border-border bg-card p-4 shadow-xl space-y-3" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-start justify-between gap-2">
+              <div>
+                <h3 className="font-display text-sm font-bold text-foreground">Enviar push manual</h3>
+                <p className="text-[11px] text-muted-foreground">
+                  Rodada {pushTargetRound.round_number} · você também receberá uma cópia para confirmar a entrega.
+                </p>
+              </div>
+              <button
+                onClick={() => setPushTargetRound(null)}
+                disabled={sendingPush}
+                className="flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground hover:bg-accent"
+                aria-label="Fechar"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div>
+              <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                Mensagem
+              </label>
+              <textarea
+                value={pushMessage}
+                onChange={(e) => setPushMessage(e.target.value.slice(0, 240))}
+                rows={3}
+                placeholder="Ex.: Quadra trocada para Central Pádel"
+                className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+              />
+              <p className="mt-1 text-[10px] text-muted-foreground tabular-nums">{pushMessage.length}/240</p>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              {[
+                "Confirme presença!",
+                "Quadra trocada — confira o local",
+                "Horário ajustado — veja a rodada",
+                "Faltam jogadores, confirmem!",
+              ].map((preset) => (
+                <button
+                  key={preset}
+                  type="button"
+                  onClick={() => setPushMessage(preset)}
+                  className="rounded-lg border border-border bg-muted/30 px-2 py-1.5 text-[10px] font-semibold text-muted-foreground hover:border-primary/40 hover:text-primary"
+                >
+                  {preset}
+                </button>
+              ))}
+            </div>
+            <div className="flex gap-2 pt-1">
+              <button
+                onClick={() => setPushTargetRound(null)}
+                disabled={sendingPush}
+                className="flex-1 rounded-lg border border-border bg-muted px-3 py-2 text-xs font-semibold text-muted-foreground"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={confirmSendPush}
+                disabled={sendingPush || !pushMessage.trim()}
+                className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-xs font-bold text-primary-foreground disabled:opacity-50"
+              >
+                <Bell className="h-3.5 w-3.5" />
+                {sendingPush ? "Enviando…" : "Enviar"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
