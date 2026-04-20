@@ -544,6 +544,10 @@ function SeasonRoundsInline({ groupId, seasonId, isAdmin, initialRoundId }: { gr
   const [extraTime, setExtraTime] = useState("");
   const [extraLocation, setExtraLocation] = useState("");
   const [creatingExtra, setCreatingExtra] = useState(false);
+  // Manual push dialog state
+  const [pushTargetRound, setPushTargetRound] = useState<any | null>(null);
+  const [pushMessage, setPushMessage] = useState("");
+  const [sendingPush, setSendingPush] = useState(false);
 
   // Pre-fill defaults (group's regular time/location) from the most recent round
   useEffect(() => {
