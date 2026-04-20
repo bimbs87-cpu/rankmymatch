@@ -350,6 +350,63 @@ export function AuditPanel({ groupId }: Props) {
         }
         setActorNames(map);
       }
+
+      // Compute avg response time per nudge: time between nudge and next round_presence change
+      // for that round, capped at next nudge for same round (or 24h).
+      const nudges = list
+        .filter((r) => r.action === "round_nudge" && r.entity_type === "round" && r.entity_id)
+        .slice()
+        // chronological asc
+        .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+      const roundIds = Array.from(new Set(nudges.map((n) => n.entity_id as string)));
+      const roundMeta: Record<string, { round_number: number | null; scheduled_date: string | null }> = {};
+      const responseHours: number[] = [];
+      if (roundIds.length > 0) {
+        const { data: rds } = await supabase
+          .from("rounds")
+          .select("id, round_number, scheduled_date")
+          .in("id", roundIds);
+        for (const r of rds || []) {
+          roundMeta[r.id] = { round_number: r.round_number, scheduled_date: r.scheduled_date };
+        }
+        const { data: presences } = await supabase
+          .from("round_presence")
+          .select("round_id, updated_at, status")
+          .in("round_id", roundIds)
+          .neq("status", "pending")
+          .order("updated_at", { ascending: true });
+        // Index presence updates per round
+        const presByRound = new Map<string, { ts: number }[]>();
+        for (const p of presences || []) {
+          const arr = presByRound.get(p.round_id) || [];
+          arr.push({ ts: new Date(p.updated_at).getTime() });
+          presByRound.set(p.round_id, arr);
+        }
+        // Group nudges by round to find "next nudge" boundary
+        const nudgesByRound = new Map<string, number[]>();
+        for (const n of nudges) {
+          const arr = nudgesByRound.get(n.entity_id as string) || [];
+          arr.push(new Date(n.created_at).getTime());
+          nudgesByRound.set(n.entity_id as string, arr);
+        }
+        for (const n of nudges) {
+          const ts = new Date(n.created_at).getTime();
+          const sameRoundNudges = nudgesByRound.get(n.entity_id as string) || [];
+          const nextNudge = sameRoundNudges.find((t) => t > ts) ?? ts + 24 * 3600 * 1000;
+          const pres = presByRound.get(n.entity_id as string) || [];
+          const responses = pres.filter((p) => p.ts > ts && p.ts <= nextNudge);
+          if (responses.length === 0) {
+            responseHours.push(0);
+          } else {
+            const avgMs =
+              responses.reduce((s, p) => s + (p.ts - ts), 0) / responses.length;
+            responseHours.push(Math.max(0, Math.round((avgMs / (3600 * 1000)) * 10) / 10));
+          }
+        }
+      }
+      if (cancelled) return;
+      setResponseTimes(responseHours.slice(-10));
+      setRoundMovements(roundMeta);
       setLoading(false);
     };
     load();
