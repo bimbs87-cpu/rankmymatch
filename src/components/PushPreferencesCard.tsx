@@ -1,12 +1,17 @@
-import { Bell, Volume2 } from "lucide-react";
+import { Bell, Play, Volume2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import {
   PUSH_EVENT_TYPES,
   usePushPreferences,
 } from "@/hooks/use-push-preferences";
 import { usePushSubscription } from "@/hooks/use-push-subscription";
-
-const ROUND_SOUND_KEY = "rmm.roundAlertSound";
+import {
+  ROUND_SOUND_KEY,
+  isRoundSoundEnabled,
+  playRoundBeep,
+  setRoundSoundEnabled,
+  vibrateRoundAlert,
+} from "@/lib/round-alert-sound";
 
 /**
  * Per-event push preferences. Lives on /profile.
