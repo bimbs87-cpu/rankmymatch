@@ -54,11 +54,30 @@ export const Route = createFileRoute("/dev")({
 });
 
 function DevDashboardPage() {
-  const { data, isLoading, error } = useQuery({
-    queryKey: ["dev-dashboard"],
-    queryFn: () => getDevDashboard(),
-    staleTime: 60_000,
-  });
+type DashboardPayload = Awaited<ReturnType<typeof getDevDashboard>>;
+
+function DevDashboardPage() {
+  const [data, setData] = useState<DashboardPayload | null>(null);
+  const [error, setError] = useState<Error | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    setIsLoading(true);
+    getDevDashboard()
+      .then((res) => {
+        if (!cancelled) setData(res);
+      })
+      .catch((err) => {
+        if (!cancelled) setError(err instanceof Error ? err : new Error(String(err)));
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   if (isLoading) {
     return (
