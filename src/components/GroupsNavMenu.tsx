@@ -277,3 +277,21 @@ function OtherGroupItem({
     </li>
   );
 }
+
+const WEEKDAYS = ["dom", "seg", "ter", "qua", "qui", "sex", "sáb"];
+function formatNextRound(date: string | null, time: string | null): string {
+  if (!date) return "";
+  // date is YYYY-MM-DD; parse as local to avoid TZ shift
+  const [y, m, d] = date.split("-").map((n) => parseInt(n, 10));
+  const dt = new Date(y, (m || 1) - 1, d || 1);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const diffDays = Math.round((dt.getTime() - today.getTime()) / 86400000);
+  let dayLabel: string;
+  if (diffDays === 0) dayLabel = "hoje";
+  else if (diffDays === 1) dayLabel = "amanhã";
+  else if (diffDays > 1 && diffDays < 7) dayLabel = WEEKDAYS[dt.getDay()];
+  else dayLabel = `${String(d).padStart(2, "0")}/${String(m).padStart(2, "0")}`;
+  const t = time ? time.slice(0, 5) : "";
+  return t ? `${dayLabel} · ${t}` : dayLabel;
+}
