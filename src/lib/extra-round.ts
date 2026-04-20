@@ -89,7 +89,8 @@ export async function createExtraRound(params: {
   // Re-sequence so the extra round lands in its chronological position
   await renumberSeasonRounds(seasonId);
 
-  // Best-effort push notification
+  // Best-effort push notification — capture the result so the UI can toast it.
+  let push: import("@/lib/notify").PushResult | null = null;
   try {
     const formatted = new Date(scheduledDate + "T00:00:00").toLocaleDateString("pt-BR", {
       weekday: "short",
@@ -97,7 +98,7 @@ export async function createExtraRound(params: {
       month: "short",
     });
     const timeText = scheduledTime ? ` às ${scheduledTime.slice(0, 5)}` : "";
-    await notifyGroupMembers({
+    push = await notifyGroupMembers({
       groupId,
       actorId,
       type: "extra_round_created",
@@ -111,5 +112,5 @@ export async function createExtraRound(params: {
     /* push is optional */
   }
 
-  return created.id;
+  return { roundId: created.id, push };
 }

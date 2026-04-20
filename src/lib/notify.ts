@@ -23,8 +23,23 @@ type NotifyParams = {
   tag?: string;
 };
 
-async function fanout(userIds: string[], params: NotifyParams, defaultUrl: string) {
-  if (!userIds.length) return;
+export type PushResult = { sent: number; failed: number; error?: string; targets: number };
+
+/** Build a human-readable suffix for toasts based on a push result. */
+export function describePushResult(push: PushResult | null | undefined): string {
+  if (!push) return "Push não enviado";
+  if (push.targets === 0) return "Sem destinatários para o push";
+  if (push.error) return `Falha no push: ${push.error}`;
+  if (push.sent === 0) return "Nenhum push entregue (sem dispositivos inscritos)";
+  return `${push.sent} push enviado${push.sent === 1 ? "" : "s"}${push.failed ? ` · ${push.failed} falha${push.failed === 1 ? "" : "s"}` : ""}`;
+}
+
+async function fanout(
+  userIds: string[],
+  params: NotifyParams,
+  defaultUrl: string,
+): Promise<PushResult> {
+  if (!userIds.length) return { sent: 0, failed: 0, targets: 0 };
 
   const rows = userIds.map((uid) => ({
     user_id: uid,
@@ -37,10 +52,10 @@ async function fanout(userIds: string[], params: NotifyParams, defaultUrl: strin
 
   await supabase.from("notifications").insert(rows);
 
-  // Fire-and-forget push (best-effort, never blocks the in-app notification).
+  // Best-effort push — awaited so callers can surface success/failure in toasts.
   try {
     const { sendPushFn } = await import("@/lib/push.functions");
-    void sendPushFn({
+    const res = (await sendPushFn({
       data: {
         userIds,
         payload: {
@@ -52,9 +67,15 @@ async function fanout(userIds: string[], params: NotifyParams, defaultUrl: strin
           data: { groupId: params.groupId, ...(params.data || {}) },
         },
       },
-    }).catch(() => {});
-  } catch {
-    /* push is optional */
+    })) as { sent?: number; failed?: number; error?: string };
+    return {
+      sent: res?.sent ?? 0,
+      failed: res?.failed ?? 0,
+      error: res?.error,
+      targets: userIds.length,
+    };
+  } catch (err: any) {
+    return { sent: 0, failed: userIds.length, error: err?.message || "push_failed", targets: userIds.length };
   }
 }
 
@@ -62,7 +83,7 @@ async function fanout(userIds: string[], params: NotifyParams, defaultUrl: strin
  * Notify only the active admins/creators of a group (in-app + best-effort push).
  * Used for moderation events: join requests, player claims, etc.
  */
-export async function notifyGroupAdmins(params: NotifyParams) {
+export async function notifyGroupAdmins(params: NotifyParams): Promise<PushResult> {
   const { data: admins } = await supabase
     .from("group_members")
     .select("user_id")
@@ -71,13 +92,13 @@ export async function notifyGroupAdmins(params: NotifyParams) {
     .in("role", ["creator", "admin"])
     .neq("user_id", params.actorId);
 
-  await fanout((admins || []).map((a) => a.user_id), params, "/admin/inbox");
+  return fanout((admins || []).map((a) => a.user_id), params, "/admin/inbox");
 }
 
 /**
  * Notify all members of a group except the actor (in-app + best-effort push).
  */
-export async function notifyGroupMembers(params: NotifyParams) {
+export async function notifyGroupMembers(params: NotifyParams): Promise<PushResult> {
   const { data: members } = await supabase
     .from("group_members")
     .select("user_id")
@@ -85,7 +106,7 @@ export async function notifyGroupMembers(params: NotifyParams) {
     .eq("status", "active")
     .neq("user_id", params.actorId);
 
-  await fanout((members || []).map((m) => m.user_id), params, "/notifications");
+  return fanout((members || []).map((m) => m.user_id), params, "/notifications");
 }
 
 /**
@@ -97,7 +118,7 @@ export async function notifyUsers(
   userIds: string[],
   params: NotifyParams,
   defaultUrl = "/notifications",
-) {
+): Promise<PushResult> {
   const targets = Array.from(new Set(userIds.filter((u) => u && u !== params.actorId)));
-  await fanout(targets, params, defaultUrl);
+  return fanout(targets, params, defaultUrl);
 }

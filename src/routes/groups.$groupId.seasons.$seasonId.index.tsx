@@ -127,7 +127,7 @@ function SeasonDetailPage() {
     }
     setCreatingExtra(true);
     try {
-      await createExtraRoundFn({
+      const result = await createExtraRoundFn({
         groupId,
         seasonId,
         actorId: user.id,
@@ -135,7 +135,8 @@ function SeasonDetailPage() {
         scheduledTime: extraTime || null,
         location: extraLocation || null,
       });
-      toast.success("Rodada extra criada");
+      const { describePushResult } = await import("@/lib/notify");
+      toast.success("Rodada extra criada", { description: describePushResult(result.push) });
       setShowExtraForm(false);
       setExtraDate("");
       setExtraTime("");
