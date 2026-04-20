@@ -349,6 +349,24 @@ export async function adminPromoteFromWaitlist(
   } catch {
     // ignore
   }
+
+  // Audit log for manual promotion (mirrors waitlist_auto_promoted)
+  try {
+    const { logAudit } = await import("@/lib/audit-log");
+    void logAudit({
+      groupId,
+      action: "waitlist_manual_promoted",
+      entityType: "round",
+      entityId: roundId,
+      newData: {
+        promoted_user_id: waitlistUserId,
+        displaced_user_id: lastConfirmed.user_id,
+        round_number: roundNumber,
+      },
+    });
+  } catch {
+    // ignore
+  }
 }
 
 // Build singles pairings ordered by Elo (King of the Court).
