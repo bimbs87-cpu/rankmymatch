@@ -418,14 +418,27 @@ export function AuditPanel({ groupId }: Props) {
   const actions = useMemo(() => Array.from(new Set(rows.map((r) => r.action))).sort(), [rows]);
   const NUDGE_ACTIONS = new Set(["round_nudge", "round_nudge_cooldown_reset"]);
   const WAITLIST_ACTIONS = new Set(["waitlist_auto_promoted", "waitlist_manual_promoted"]);
+  const ROUND_MOV_ACTIONS = new Set([
+    "round_nudge",
+    "round_nudge_cooldown_reset",
+    "waitlist_auto_promoted",
+    "waitlist_manual_promoted",
+    "presence_force_open",
+    "presence_force_open_undo",
+  ]);
   const isNudgeFilter = filter === "__nudges__";
   const isWaitlistFilter = filter === "__waitlist__";
+  const isRoundMovFilter = filter === "__round_movements__";
   const filtered = useMemo(() => {
     if (filter === "all") return rows;
     if (isNudgeFilter) return rows.filter((r) => NUDGE_ACTIONS.has(r.action));
     if (isWaitlistFilter) return rows.filter((r) => WAITLIST_ACTIONS.has(r.action));
+    if (isRoundMovFilter)
+      return rows.filter(
+        (r) => ROUND_MOV_ACTIONS.has(r.action) && r.entity_type === "round" && r.entity_id,
+      );
     return rows.filter((r) => r.action === filter);
-  }, [filter, rows, isNudgeFilter, isWaitlistFilter]);
+  }, [filter, rows, isNudgeFilter, isWaitlistFilter, isRoundMovFilter]);
   const nudgeCount = useMemo(
     () => rows.filter((r) => NUDGE_ACTIONS.has(r.action)).length,
     [rows],
