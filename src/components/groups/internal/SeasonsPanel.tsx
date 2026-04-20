@@ -757,7 +757,7 @@ function SeasonRoundsInline({ groupId, seasonId, isAdmin, initialRoundId }: { gr
         const smartStatus = getStatus(r);
         const isExpanded = expandedId === r.id;
         return (
-          <div key={r.id} className={`rounded-xl border border-border bg-card/40 ${cancelled ? "opacity-50" : ""}`}>
+          <div key={r.id} id={`round-${r.id}`} className={`rounded-xl border border-border bg-card/40 ${cancelled ? "opacity-50" : ""}`}>
             {!cancelled ? (
               <div className="flex w-full items-center justify-between gap-3 p-3 hover:bg-accent/30">
                 <button
