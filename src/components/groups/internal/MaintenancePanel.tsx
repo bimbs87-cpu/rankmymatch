@@ -336,6 +336,76 @@ export function MaintenancePanel({ groupId, onCountChange }: Props) {
         )}
       </section>
 
+      {/* === Invalid scheduled_date rounds === */}
+      <section className="space-y-3 rounded-2xl border border-border bg-muted/10 p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h4 className="flex items-center gap-2 text-sm font-bold text-foreground">
+              <Calendar className="h-4 w-4" /> Datas de rodada inválidas
+            </h4>
+            <p className="mt-0.5 text-[11px] text-muted-foreground">
+              Detecta rodadas com <span className="font-mono">scheduled_date</span> anterior a 2010
+              (ex.: ano 0002 por erro de digitação). Ao corrigir, a data passa a ser a de criação da rodada,
+              o que conserta a ordem cronológica do gráfico de Elo.
+            </p>
+          </div>
+          <button
+            onClick={() => scanDates(true)}
+            disabled={scanningDates}
+            className="flex items-center gap-1.5 rounded-lg border border-border bg-background px-2.5 py-1.5 text-[11px] font-bold text-foreground hover:border-primary/50 hover:text-primary disabled:opacity-50"
+          >
+            {scanningDates ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <RefreshCw className="h-3.5 w-3.5" />
+            )}
+            Escanear
+          </button>
+        </div>
+
+        {badDates.length === 0 ? (
+          <div className="flex items-center gap-2 rounded-xl border border-dashed border-success/30 bg-success/5 p-3 text-xs text-success">
+            <CheckCircle2 className="h-4 w-4" />
+            Nenhuma rodada com data inválida.
+          </div>
+        ) : (
+          <>
+            <ul className="space-y-1.5">
+              {badDates.map((r) => (
+                <li
+                  key={r.roundId}
+                  className="flex items-center justify-between gap-3 rounded-lg border border-border bg-background/40 px-3 py-2 text-[11px]"
+                >
+                  <span className="font-bold text-foreground">
+                    Rodada {r.roundNumber ?? "?"}
+                  </span>
+                  <span className="text-muted-foreground">
+                    Data atual:{" "}
+                    <span className="font-mono text-warning">{r.scheduledDate ?? "—"}</span>
+                    {" → "}
+                    <span className="font-mono text-success">
+                      {r.createdAt.slice(0, 10)}
+                    </span>
+                  </span>
+                </li>
+              ))}
+            </ul>
+            <button
+              onClick={fixAllDates}
+              disabled={fixingDates}
+              className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-[11px] font-bold text-primary-foreground hover:opacity-90 disabled:opacity-50"
+            >
+              {fixingDates ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <CheckCircle2 className="h-3.5 w-3.5" />
+              )}
+              Corrigir todas ({badDates.length})
+            </button>
+          </>
+        )}
+      </section>
+
       {/* === Reopen by ID === */}
       <section className="space-y-3 rounded-2xl border border-border bg-muted/10 p-4">
         <div>
