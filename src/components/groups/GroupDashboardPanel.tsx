@@ -46,8 +46,9 @@ import {
 import type { Tables } from "@/integrations/supabase/types";
 import { playRoundAlert } from "@/lib/round-alert-sound";
 import { sendPushFn } from "@/lib/push.functions";
-import { Bell as BellIcon } from "lucide-react";
+import { Bell as BellIcon, RotateCcw, AlertTriangle } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { logAudit } from "@/lib/audit-log";
 
 type Group = Tables<"groups"> & {
   member_count?: number;
@@ -204,11 +205,45 @@ export function GroupDashboardPanel({ group, onLeft, onPresenceChanged }: Props)
       toast.success(
         `Cutucada enviada para ${targetIds.length} membro${targetIds.length > 1 ? "s" : ""}`
       );
+
+      // Audit log (best-effort)
+      void logAudit({
+        groupId: group.id,
+        action: "round_nudge",
+        entityType: "round",
+        entityId: data.next_round.id,
+        newData: {
+          mode: includeDeclined ? "pending+declined" : "pending_only",
+          recipients_count: targetIds.length,
+          pending_count: pendingIds.length,
+          declined_count: declinedIds.length,
+          round_number: data.next_round.round_number ?? null,
+        },
+      });
     } catch (e: any) {
       toast.error(e?.message || "Não foi possível cutucar agora");
     } finally {
       setNudging(false);
     }
+  }
+
+  function handleResetNudgeCooldown() {
+    if (!data.next_round) return;
+    try {
+      localStorage.removeItem(`rmm.nudge.cooldown.${data.next_round.id}`);
+    } catch {
+      // ignore
+    }
+    setNudgeCooldownUntil(null);
+    setNudgeNowTs(Date.now());
+    toast.success("Cooldown resetado — pode cutucar novamente");
+    void logAudit({
+      groupId: group.id,
+      action: "round_nudge_cooldown_reset",
+      entityType: "round",
+      entityId: data.next_round.id,
+      newData: { round_number: data.next_round.round_number ?? null },
+    });
   }
 
 
@@ -652,6 +687,19 @@ export function GroupDashboardPanel({ group, onLeft, onPresenceChanged }: Props)
                   </div>
                 )}
               </div>
+              {/* Capacity reached warning */}
+              {data.next_round.confirmed_count >= data.next_round.max_players && (
+                <div className="flex items-start gap-2 rounded-xl border border-warning/40 bg-warning/10 px-3 py-2 text-[11px]">
+                  <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-warning" />
+                  <div className="leading-snug">
+                    <span className="font-bold text-warning">Rodada lotada</span>{" "}
+                    <span className="text-muted-foreground">
+                      ({data.next_round.confirmed_count}/{data.next_round.max_players}).
+                      Novas confirmações entram em <span className="font-semibold text-foreground">lista de espera</span> e jogam se alguém desistir.
+                    </span>
+                  </div>
+                </div>
+              )}
               {/* Response rate progress bar — % of active members who responded */}
               <ResponseProgressBar
                 confirmed={data.next_round.confirmed_all?.length ?? data.next_round.confirmed_count}
@@ -792,6 +840,16 @@ export function GroupDashboardPanel({ group, onLeft, onPresenceChanged }: Props)
                           </PopoverContent>
                         </Popover>
                       )}
+                    {data.next_round.presence_is_open && nudgeOnCooldown && (
+                      <button
+                        onClick={handleResetNudgeCooldown}
+                        className="flex h-6 w-6 items-center justify-center rounded-full border border-border bg-background/40 text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary"
+                        title="Resetar cooldown de cutucadas (1h)"
+                        aria-label="Resetar cooldown"
+                      >
+                        <RotateCcw className="h-3 w-3" />
+                      </button>
+                    )}
                     <button
                       onClick={handleToggleForceOpen}
                       disabled={presenceLoading}
