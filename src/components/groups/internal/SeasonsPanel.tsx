@@ -380,7 +380,7 @@ function SeasonAccordion({
       {expanded && (
         <div className="border-t border-border bg-background/40">
           <SeasonFinalRanking seasonId={season.id} isActive={isActive} />
-          <SeasonRoundsInline groupId={groupId} seasonId={season.id} isAdmin={isAdmin} />
+          <SeasonRoundsInline groupId={groupId} seasonId={season.id} isAdmin={isAdmin} initialRoundId={initialRoundId} />
           {isAdmin && <SeasonStatusActions season={season} onChanged={onChanged} />}
         </div>
       )}
@@ -520,7 +520,7 @@ function SeasonStatusActions({ season, onChanged }: { season: any; onChanged: ()
   );
 }
 
-function SeasonRoundsInline({ groupId, seasonId, isAdmin }: { groupId: string; seasonId: string; isAdmin: boolean }) {
+function SeasonRoundsInline({ groupId, seasonId, isAdmin, initialRoundId }: { groupId: string; seasonId: string; isAdmin: boolean; initialRoundId?: string }) {
   const { user } = useAuth();
   const { rounds, isLoading, refresh } = useSeasonRounds(seasonId);
   const [editing, setEditing] = useState(false);
