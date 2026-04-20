@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Loader2, ScrollText, Download, ChevronDown, ChevronUp } from "lucide-react";
+import { Loader2, ScrollText, Download, ChevronDown, ChevronUp, Clock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 interface Props {
@@ -667,19 +667,29 @@ export function AuditPanel({ groupId }: Props) {
               <Sparkline values={nudgeStats.pendingPctSparkline} unit="%" />
             </div>
           )}
-          {responseTimes.length >= 2 && (
-            <div>
-              <div className="mb-1 flex items-center justify-between">
-                <p className="text-[9px] font-bold uppercase tracking-wider text-warning/80">
-                  Tempo médio de resposta (h) — últimas {responseTimes.length}
-                </p>
-                <p className="text-[9px] text-muted-foreground">
-                  ↓ menor = galera reagindo mais rápido
-                </p>
+          {responseTimes.length >= 2 && (() => {
+            const nonZero = responseTimes.filter((v) => v > 0);
+            const avg = nonZero.length > 0
+              ? nonZero.reduce((s, n) => s + n, 0) / nonZero.length
+              : 0;
+            const avgLabel = avg >= 10 ? `${Math.round(avg)}h` : `${avg.toFixed(1)}h`;
+            return (
+              <div>
+                <div className="mb-1 flex items-center justify-between gap-2">
+                  <p className="text-[9px] font-bold uppercase tracking-wider text-warning/80">
+                    Tempo médio de resposta (h) — últimas {responseTimes.length}
+                  </p>
+                  <span
+                    className="flex items-center gap-1 rounded-full border border-warning/40 bg-warning/10 px-2 py-0.5 text-[10px] font-bold tabular-nums text-warning"
+                    title="Tempo médio geral, ignorando cutucadas sem resposta"
+                  >
+                    <Clock className="h-2.5 w-2.5" /> Média geral: {avgLabel}
+                  </span>
+                </div>
+                <Sparkline values={responseTimes} unit="h" />
               </div>
-              <Sparkline values={responseTimes} unit="h" />
-            </div>
-          )}
+            );
+          })()}
         </div>
       )}
 
