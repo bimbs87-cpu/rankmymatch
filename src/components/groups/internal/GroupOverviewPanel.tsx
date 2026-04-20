@@ -2,7 +2,7 @@ import { Link } from "@tanstack/react-router";
 import {
   Calendar, Clock, MapPin, Trophy, ChevronRight, Users, MessageSquare, Lock,
   CheckCircle2, XCircle, Flame, TrendingUp, Award, Zap, Target, Crown, Sparkles, Activity,
-  HelpCircle, Share2,
+  HelpCircle, Share2, BellOff,
 } from "lucide-react";
 import { useGroupDashboard } from "@/hooks/use-group-dashboard";
 import { useGroupGlobalStats, type RecordHolder } from "@/hooks/use-group-stats";
