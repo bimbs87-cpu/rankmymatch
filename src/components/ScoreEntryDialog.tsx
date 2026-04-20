@@ -3,9 +3,15 @@ import { submitMatchScore, previewMatchEloChanges } from "@/lib/elo-engine";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { PlayerAvatarLink, PlayerNameLink } from "@/components/PlayerProfileViewer";
 import { TrophyLoadingBar } from "@/components/TrophyLoadingBar";
-import { X, Save, Trophy, AlertCircle } from "lucide-react";
+import { X, Save, Trophy, AlertCircle, Send, Check, ThumbsDown, Clock } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  submitPendingResult,
+  approvePendingResult,
+  rejectPendingResult,
+  useMatchPendingResult,
+} from "@/lib/pending-results";
 
 interface Props {
   matchId: string;
@@ -22,6 +28,10 @@ interface Props {
    */
   setsMode?: "fixed" | "flexible" | "unlimited";
   isSingles?: boolean;
+  /** Whether the current user is an admin of the group. Non-admin players
+   * submit a pending result that admins must approve. Defaults to true to
+   * preserve previous behavior in callers that have not yet been updated. */
+  isAdmin?: boolean;
   onClose: () => void;
   onSaved: () => void;
 }
@@ -50,6 +60,7 @@ export function ScoreEntryDialog({
   setsPerMatch = 3,
   setsMode,
   isSingles = false,
+  isAdmin = true,
   onClose,
   onSaved,
 }: Props) {
@@ -64,8 +75,16 @@ export function ScoreEntryDialog({
     : isFlexibleSets
     ? FLEX_CAP
     : setsPerMatch;
+
+  // Pending result for this match (if any). Admins see "approve/edit/reject".
+  const { pending, refresh: refreshPending } = useMatchPendingResult(matchId);
+
+  // Initial sets: prefer existing official sets; otherwise prefill from
+  // pending submission so the admin sees what the player proposed.
   const initialSets = existingSets?.length
     ? existingSets.map((s) => ({ scoreA: s.scoreA, scoreB: s.scoreB }))
+    : pending?.sets?.length
+    ? pending.sets.map((s) => ({ scoreA: s.scoreA, scoreB: s.scoreB }))
     : [{ scoreA: 0, scoreB: 0 }];
 
   const [sets, setSets] = useState<{ scoreA: number; scoreB: number }[]>(initialSets);
@@ -73,6 +92,30 @@ export function ScoreEntryDialog({
   const [saveStep, setSaveStep] = useState(0);
   const [saveStepLabel, setSaveStepLabel] = useState("");
   const [playerStats, setPlayerStats] = useState<Record<string, { rating: number; matchesPlayed: number }>>({});
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [userEdited, setUserEdited] = useState(false);
+
+  useEffect(() => {
+    void supabase.auth.getUser().then(({ data }) => {
+      setCurrentUserId(data?.user?.id ?? null);
+    });
+  }, []);
+
+  const isPlayerInMatch = useMemo(() => {
+    if (!currentUserId) return false;
+    return [...teamA, ...teamB].some((p) => p.userId === currentUserId);
+  }, [currentUserId, teamA, teamB]);
+
+  // When a pending result arrives async (and no official sets), prefill the
+  // form so the admin sees what the player proposed — unless the user has
+  // already started editing.
+  useEffect(() => {
+    if (userEdited) return;
+    if (existingSets?.length) return;
+    if (pending?.sets?.length) {
+      setSets(pending.sets.map((s) => ({ scoreA: s.scoreA, scoreB: s.scoreB })));
+    }
+  }, [pending, existingSets, userEdited]);
 
   // Load current rating snapshots for preview of Elo deltas while typing
   useEffect(() => {
@@ -136,6 +179,7 @@ export function ScoreEntryDialog({
   }, [submitting]);
 
   const updateScore = (setIndex: number, team: "A" | "B", value: number) => {
+    setUserEdited(true);
     setSets((prev) =>
       prev.map((s, i) =>
         i === setIndex
@@ -147,12 +191,14 @@ export function ScoreEntryDialog({
 
   const addSet = () => {
     if (sets.length < maxSets) {
+      setUserEdited(true);
       setSets([...sets, { scoreA: 0, scoreB: 0 }]);
     }
   };
 
   const removeLastSet = () => {
     if (sets.length > 1) {
+      setUserEdited(true);
       setSets(sets.slice(0, -1));
     }
   };
@@ -338,6 +384,155 @@ export function ScoreEntryDialog({
       onClose();
     } catch (e: any) {
       toast.error(e.message || "Erro ao salvar placar");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // Player (non-admin) submits a pending result for admin approval.
+  const handleSubmitPending = async () => {
+    if (!matchState.canSubmit) {
+      toast.error("Corrija os placares antes de enviar");
+      return;
+    }
+    setSubmitting(true);
+    try {
+      await submitPendingResult({
+        matchId,
+        sets: sets.map((s, i) => ({ setNumber: i + 1, scoreA: s.scoreA, scoreB: s.scoreB })),
+      });
+      // Notify group admins (push + in-app)
+      try {
+        const { data: round } = await supabase
+          .from("matches")
+          .select("round_id, rounds:rounds!inner(group_id)")
+          .eq("id", matchId)
+          .maybeSingle();
+        const groupId = (round?.rounds as unknown as { group_id: string } | null)?.group_id || null;
+        const roundId = (round?.round_id as string | null) || null;
+        if (groupId) {
+          const { data: admins } = await supabase
+            .from("group_members")
+            .select("user_id")
+            .eq("group_id", groupId)
+            .eq("status", "active")
+            .in("role", ["creator", "admin"]);
+          const targetIds = (admins || []).map((a) => a.user_id);
+          if (targetIds.length) {
+            const { notifyUsers } = await import("@/lib/notify");
+            const { data: u } = await supabase.auth.getUser();
+            const actorId = u?.user?.id || "";
+            void notifyUsers(targetIds, {
+              groupId,
+              actorId,
+              type: "result_pending",
+              title: "Resultado aguardando aprovação ⏳",
+              body: `${playerAName} vs ${playerBName}: ${sets.map((s) => `${s.scoreA}-${s.scoreB}`).join(" • ")}`,
+              data: { matchId, seasonId, roundId },
+              url: roundId ? `/groups/${groupId}/seasons/${seasonId}/rounds/${roundId}` : `/groups/${groupId}`,
+            }).catch(() => {});
+          }
+        }
+      } catch {
+        /* best-effort */
+      }
+      toast.success("Resultado enviado para aprovação do admin");
+      await refreshPending();
+      onSaved();
+      onClose();
+    } catch (e: any) {
+      toast.error(e?.message || "Erro ao enviar resultado");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // Admin approves the pending result (with current sets — admin may have edited).
+  const handleApprovePending = async () => {
+    if (!pending) return;
+    if (!matchState.canSubmit) {
+      toast.error("Corrija os placares antes de aprovar");
+      return;
+    }
+    setSubmitting(true);
+    try {
+      await waitForNextPaint();
+      await approvePendingResult({
+        pendingId: pending.id,
+        matchId,
+        seasonId,
+        sets: sets.map((s, i) => ({ setNumber: i + 1, scoreA: s.scoreA, scoreB: s.scoreB })),
+      });
+      // Notify the submitter that their result was approved
+      try {
+        const { data: round } = await supabase
+          .from("matches")
+          .select("round_id, rounds:rounds!inner(group_id)")
+          .eq("id", matchId)
+          .maybeSingle();
+        const groupId = (round?.rounds as unknown as { group_id: string } | null)?.group_id || null;
+        const roundId = (round?.round_id as string | null) || null;
+        if (groupId && pending.submitted_by) {
+          const { notifyUsers } = await import("@/lib/notify");
+          const { data: u } = await supabase.auth.getUser();
+          void notifyUsers([pending.submitted_by], {
+            groupId,
+            actorId: u?.user?.id || "",
+            type: "result_approved",
+            title: "Seu resultado foi aprovado ✅",
+            body: `${playerAName} vs ${playerBName}: ${sets.map((s) => `${s.scoreA}-${s.scoreB}`).join(" • ")}`,
+            data: { matchId, seasonId, roundId },
+            url: roundId ? `/groups/${groupId}/seasons/${seasonId}/rounds/${roundId}` : `/groups/${groupId}`,
+          }).catch(() => {});
+        }
+      } catch {
+        /* best-effort */
+      }
+      toast.success("Resultado aprovado e ranking atualizado!");
+      onSaved();
+      onClose();
+    } catch (e: any) {
+      toast.error(e?.message || "Erro ao aprovar resultado");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleRejectPending = async () => {
+    if (!pending) return;
+    if (!confirm("Rejeitar este resultado? O jogador poderá reenviar.")) return;
+    setSubmitting(true);
+    try {
+      await rejectPendingResult(pending.id);
+      // Notify submitter
+      try {
+        const { data: round } = await supabase
+          .from("matches")
+          .select("round_id, rounds:rounds!inner(group_id)")
+          .eq("id", matchId)
+          .maybeSingle();
+        const groupId = (round?.rounds as unknown as { group_id: string } | null)?.group_id || null;
+        const roundId = (round?.round_id as string | null) || null;
+        if (groupId && pending.submitted_by) {
+          const { notifyUsers } = await import("@/lib/notify");
+          const { data: u } = await supabase.auth.getUser();
+          void notifyUsers([pending.submitted_by], {
+            groupId,
+            actorId: u?.user?.id || "",
+            type: "result_rejected",
+            title: "Seu resultado foi rejeitado",
+            body: "O admin pediu revisão do placar. Confira a partida.",
+            data: { matchId, seasonId, roundId },
+            url: roundId ? `/groups/${groupId}/seasons/${seasonId}/rounds/${roundId}` : `/groups/${groupId}`,
+          }).catch(() => {});
+        }
+      } catch { /* best-effort */ }
+      toast.success("Resultado rejeitado");
+      await refreshPending();
+      onSaved();
+      onClose();
+    } catch (e: any) {
+      toast.error(e?.message || "Erro ao rejeitar");
     } finally {
       setSubmitting(false);
     }
@@ -555,14 +750,68 @@ export function ScoreEntryDialog({
             </p>
           )}
 
-          <button
-            onClick={handleSubmit}
-            disabled={!matchState.canSubmit || submitting}
-            className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-3.5 text-sm font-bold text-primary-foreground disabled:opacity-50"
-          >
-            <Save className="h-4 w-4" />
-            {submitting ? "Salvando resultado..." : "Salvar Placar e Calcular Elo"}
-          </button>
+          {/* Pending banner: visible to admins when there is a pending submission */}
+          {pending && isAdmin && (
+            <div className="mt-4 flex items-start gap-2 rounded-2xl border border-warning/30 bg-warning/5 p-3">
+              <Clock className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
+              <p className="text-xs text-foreground/80">
+                Resultado enviado para aprovação. Edite os sets se necessário e aprove,
+                ou rejeite para o jogador reenviar.
+              </p>
+            </div>
+          )}
+
+          {/* Action buttons: depend on admin/pending state */}
+          {isAdmin ? (
+            pending ? (
+              <div className="mt-4 grid grid-cols-2 gap-2">
+                <button
+                  onClick={handleRejectPending}
+                  disabled={submitting}
+                  className="flex items-center justify-center gap-2 rounded-2xl border border-destructive/30 bg-destructive/10 py-3.5 text-sm font-bold text-destructive disabled:opacity-50"
+                >
+                  <ThumbsDown className="h-4 w-4" />
+                  Rejeitar
+                </button>
+                <button
+                  onClick={handleApprovePending}
+                  disabled={!matchState.canSubmit || submitting}
+                  className="flex items-center justify-center gap-2 rounded-2xl bg-primary py-3.5 text-sm font-bold text-primary-foreground disabled:opacity-50"
+                >
+                  <Check className="h-4 w-4" />
+                  {submitting ? "Aprovando..." : "Aprovar"}
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={handleSubmit}
+                disabled={!matchState.canSubmit || submitting}
+                className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-3.5 text-sm font-bold text-primary-foreground disabled:opacity-50"
+              >
+                <Save className="h-4 w-4" />
+                {submitting ? "Salvando resultado..." : "Salvar Placar e Calcular Elo"}
+              </button>
+            )
+          ) : isPlayerInMatch ? (
+            <button
+              onClick={handleSubmitPending}
+              disabled={!matchState.canSubmit || submitting || (!!pending && pending.submitted_by !== currentUserId)}
+              className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-3.5 text-sm font-bold text-primary-foreground disabled:opacity-50"
+            >
+              <Send className="h-4 w-4" />
+              {submitting
+                ? "Enviando..."
+                : pending
+                ? pending.submitted_by === currentUserId
+                  ? "Reenviar para aprovação"
+                  : "Aguardando aprovação do admin"
+                : "Enviar para aprovação do admin"}
+            </button>
+          ) : (
+            <p className="mt-4 rounded-2xl border border-dashed border-border bg-muted/10 py-3 text-center text-xs text-muted-foreground">
+              Apenas jogadores da partida ou admins podem lançar o resultado.
+            </p>
+          )}
         </div>
       </div>
     </div>

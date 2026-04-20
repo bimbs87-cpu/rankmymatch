@@ -79,15 +79,13 @@ export function PendingMatchCard({ match, onScoreSaved, showGroupName = true, is
 
         {/* Actions */}
         <div className="flex gap-2">
-          {isAdmin && (
-            <button
-              onClick={() => setScoring(true)}
-              className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-primary py-2.5 text-xs font-bold text-primary-foreground active:scale-[0.98]"
-            >
-              <Edit3 className="h-3.5 w-3.5" />
-              Lançar resultado
-            </button>
-          )}
+          <button
+            onClick={() => setScoring(true)}
+            className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-primary py-2.5 text-xs font-bold text-primary-foreground active:scale-[0.98]"
+          >
+            <Edit3 className="h-3.5 w-3.5" />
+            {isAdmin ? "Lançar resultado" : "Enviar resultado"}
+          </button>
           <Link
             to="/groups/$groupId/seasons/$seasonId/rounds/$roundId"
             params={{
@@ -95,7 +93,7 @@ export function PendingMatchCard({ match, onScoreSaved, showGroupName = true, is
               seasonId: match.season_id,
               roundId: match.round_id,
             }}
-            className={`flex items-center justify-center gap-1.5 rounded-xl border border-border py-2.5 text-xs font-semibold text-muted-foreground active:bg-accent/30 ${isAdmin ? "px-4" : "flex-1"}`}
+            className="flex items-center justify-center gap-1.5 rounded-xl border border-border px-4 py-2.5 text-xs font-semibold text-muted-foreground active:bg-accent/30"
           >
             Ver rodada
             <ChevronRight className="h-3 w-3" />
@@ -114,6 +112,7 @@ export function PendingMatchCard({ match, onScoreSaved, showGroupName = true, is
           setsPerMatch={match.sets_per_match}
           setsMode={(match as any).sets_mode || "fixed"}
           isSingles={match.group_match_format === "singles"}
+          isAdmin={isAdmin}
           onClose={() => setScoring(false)}
           onSaved={() => { setScoring(false); onScoreSaved(); }}
         />

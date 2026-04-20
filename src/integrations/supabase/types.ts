@@ -959,6 +959,53 @@ export type Database = {
         }
         Relationships: []
       }
+      pending_match_results: {
+        Row: {
+          created_at: string
+          id: string
+          match_id: string
+          review_note: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          sets: Json
+          status: string
+          submitted_by: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          match_id: string
+          review_note?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          sets: Json
+          status?: string
+          submitted_by: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          match_id?: string
+          review_note?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          sets?: Json
+          status?: string
+          submitted_by?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pending_match_results_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "matches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       player_claims: {
         Row: {
           claimer_user_id: string
