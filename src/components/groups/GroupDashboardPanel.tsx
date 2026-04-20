@@ -525,6 +525,26 @@ export function GroupDashboardPanel({ group, onLeft, onPresenceChanged }: Props)
                   </span>
                   /{data.next_round.max_players} confirmados
                 </div>
+                {data.next_round.confirmed_avatars && data.next_round.confirmed_avatars.length > 0 && (
+                  <div className="flex -space-x-1.5">
+                    {data.next_round.confirmed_avatars.slice(0, 5).map((p) => (
+                      <button
+                        key={p.user_id}
+                        type="button"
+                        onClick={() => openProfile(p.user_id)}
+                        title={p.name}
+                        className="rounded-full ring-2 ring-card transition-transform hover:z-10 hover:scale-110"
+                      >
+                        <PlayerAvatar avatarUrl={p.avatar_url} name={p.name} size="sm" />
+                      </button>
+                    ))}
+                    {data.next_round.confirmed_count > 5 && (
+                      <span className="flex h-6 w-6 items-center justify-center rounded-full bg-muted text-[9px] font-bold text-muted-foreground ring-2 ring-card">
+                        +{data.next_round.confirmed_count - 5}
+                      </span>
+                    )}
+                  </div>
+                )}
                 {data.next_round.presence_is_open ? (
                   <div className="flex items-center gap-1.5">
                     <button
