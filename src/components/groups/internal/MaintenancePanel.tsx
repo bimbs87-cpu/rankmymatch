@@ -156,6 +156,7 @@ export function MaintenancePanel({ groupId, onCountChange }: Props) {
   useEffect(() => {
     if (authLoading) return;
     void scan(false);
+    void scanDates(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [groupId, authLoading, session?.access_token]);
 
