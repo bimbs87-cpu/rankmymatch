@@ -40,6 +40,46 @@ function bytesToB64u(bytes: Uint8Array | ArrayBuffer): string {
   return btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 
+function readDerLength(bytes: Uint8Array, offset: number): { length: number; nextOffset: number } {
+  const first = bytes[offset];
+  if ((first & 0x80) === 0) {
+    return { length: first, nextOffset: offset + 1 };
+  }
+  const count = first & 0x7f;
+  let length = 0;
+  for (let i = 0; i < count; i++) {
+    length = (length << 8) | bytes[offset + 1 + i];
+  }
+  return { length, nextOffset: offset + 1 + count };
+}
+
+function derToJoseEs256Signature(der: Uint8Array): Uint8Array {
+  if (der[0] !== 0x30) {
+    throw new Error("Invalid DER ECDSA signature");
+  }
+
+  const sequence = readDerLength(der, 1);
+  let offset = sequence.nextOffset;
+
+  const readInteger = (): Uint8Array => {
+    if (der[offset] !== 0x02) throw new Error("Invalid DER integer");
+    const len = readDerLength(der, offset + 1);
+    const start = len.nextOffset;
+    const end = start + len.length;
+    offset = end;
+    let value = der.slice(start, end);
+    while (value.length > 0 && value[0] === 0) value = value.slice(1);
+    if (value.length > 32) value = value.slice(value.length - 32);
+    const out = new Uint8Array(32);
+    out.set(value, 32 - value.length);
+    return out;
+  };
+
+  const r = readInteger();
+  const s = readInteger();
+  return concatBytes(r, s);
+}
+
 function concatBytes(...parts: Uint8Array[]): Uint8Array {
   const total = parts.reduce((n, p) => n + p.length, 0);
   const out = new Uint8Array(total);
@@ -110,7 +150,7 @@ async function buildVapidAuthHeader(
     key,
     TEXT.encode(signingInput),
   );
-  const sigB64 = bytesToB64u(new Uint8Array(sigBuf));
+  const sigB64 = bytesToB64u(derToJoseEs256Signature(new Uint8Array(sigBuf)));
   const jwt = `${signingInput}.${sigB64}`;
   return `vapid t=${jwt}, k=${publicKeyB64u}`;
 }
@@ -218,7 +258,7 @@ interface SubscriptionRow {
 export async function sendPushToUserIds(
   userIds: string[],
   payload: PushPayload,
-): Promise<{ sent: number; failed: number }> {
+) : Promise<{ sent: number; failed: number; error?: string }> {
   if (!userIds.length) return { sent: 0, failed: 0 };
 
   const pubKey = process.env.VAPID_PUBLIC_KEY;
@@ -249,12 +289,17 @@ export async function sendPushToUserIds(
     .select("id, endpoint, p256dh, auth, failure_count")
     .in("user_id", allowedUserIds);
 
-  if (error || !subs?.length) return { sent: 0, failed: 0 };
+  if (error) {
+    console.error("[push] subscription lookup failed", error);
+    return { sent: 0, failed: 0, error: "subscription_lookup_failed" };
+  }
+  if (!subs?.length) return { sent: 0, failed: 0 };
 
   const payloadBytes = TEXT.encode(JSON.stringify(payload));
 
   let sent = 0;
   let failed = 0;
+  let lastError: string | undefined;
   await Promise.all(
     (subs as SubscriptionRow[]).map(async (s) => {
       try {
@@ -286,8 +331,15 @@ export async function sendPushToUserIds(
           // Endpoint gone — drop it
           await supabaseAdmin.from("push_subscriptions").delete().eq("id", s.id);
           failed += 1;
+          lastError = `endpoint_gone_${res.status}`;
         } else {
           failed += 1;
+          lastError = `push_service_${res.status}`;
+          console.error("[push] provider rejected notification", {
+            subscriptionId: s.id,
+            status: res.status,
+            endpointHost: url.host,
+          });
           await supabaseAdmin
             .from("push_subscriptions")
             .update({ failure_count: s.failure_count + 1 })
@@ -296,9 +348,10 @@ export async function sendPushToUserIds(
       } catch (err) {
         console.error("[push] send failed", err);
         failed += 1;
+        lastError = err instanceof Error ? err.message : "push_send_failed";
       }
     }),
   );
 
-  return { sent, failed };
+  return { sent, failed, error: sent === 0 && failed > 0 ? lastError || "push_delivery_failed" : undefined };
 }

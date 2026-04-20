@@ -25,6 +25,16 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
   return out;
 }
 
+async function getPushRegistration(): Promise<ServiceWorkerRegistration | null> {
+  if (!("serviceWorker" in navigator)) return null;
+  const existing =
+    (await navigator.serviceWorker.getRegistration()) ||
+    (await navigator.serviceWorker.getRegistration("/"));
+  if (existing) return existing;
+  await navigator.serviceWorker.register("/sw.js", { updateViaCache: "none" });
+  return navigator.serviceWorker.ready;
+}
+
 export function usePushSubscription() {
   const { user } = useAuth();
   const [status, setStatus] = useState<PushStatus>("default");
@@ -47,7 +57,7 @@ export function usePushSubscription() {
 
     (async () => {
       try {
-        const reg = await navigator.serviceWorker.getRegistration("/sw.js");
+        const reg = await getPushRegistration();
         if (!reg) {
           setIsSubscribed(false);
           return;
@@ -64,12 +74,8 @@ export function usePushSubscription() {
     if (!supported || !user) return false;
     setBusy(true);
     try {
-      // Make sure SW is registered (no-op if already)
-      let reg = await navigator.serviceWorker.getRegistration("/sw.js");
-      if (!reg) {
-        reg = await navigator.serviceWorker.register("/sw.js");
-      }
-      await navigator.serviceWorker.ready;
+      const reg = await getPushRegistration();
+      if (!reg) throw new Error("Service worker indisponível");
 
       const perm = await Notification.requestPermission();
       setStatus(perm as PushStatus);
@@ -102,7 +108,7 @@ export function usePushSubscription() {
       const auth = json.keys?.auth;
       if (!endpoint || !p256dh || !auth) throw new Error("Subscription inválida");
 
-      await supabase
+      const { error } = await supabase
         .from("push_subscriptions")
         .upsert(
           {
@@ -116,6 +122,7 @@ export function usePushSubscription() {
           },
           { onConflict: "user_id,endpoint" }
         );
+      if (error) throw error;
 
       setIsSubscribed(true);
       return true;
@@ -131,16 +138,17 @@ export function usePushSubscription() {
     if (!supported || !user) return;
     setBusy(true);
     try {
-      const reg = await navigator.serviceWorker.getRegistration("/sw.js");
+      const reg = await getPushRegistration();
       const sub = await reg?.pushManager.getSubscription();
       if (sub) {
         const endpoint = sub.endpoint;
         await sub.unsubscribe().catch(() => {});
-        await supabase
+        const { error } = await supabase
           .from("push_subscriptions")
           .delete()
           .eq("user_id", user.id)
           .eq("endpoint", endpoint);
+        if (error) throw error;
       }
       setIsSubscribed(false);
     } finally {
