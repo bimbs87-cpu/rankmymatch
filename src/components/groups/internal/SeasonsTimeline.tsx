@@ -407,7 +407,7 @@ export function SeasonsTimeline({ seasons, onSelect }: Props) {
 
         return (
           <div
-            className="fixed inset-0 z-50 flex items-end justify-center bg-background/60 p-4 backdrop-blur-sm sm:items-center"
+            className="fixed inset-0 z-[100] flex items-end justify-center bg-background/60 p-4 pb-28 backdrop-blur-sm sm:items-center sm:pb-4"
             onClick={() => setSelected(null)}
           >
             <div
