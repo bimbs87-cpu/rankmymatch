@@ -319,6 +319,10 @@ export function AuditPanel({ groupId }: Props) {
   const [filter, setFilter] = useState<string>("all");
   const [actorNames, setActorNames] = useState<Record<string, string>>({});
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const [responseTimes, setResponseTimes] = useState<number[]>([]);
+  const [roundMovements, setRoundMovements] = useState<
+    Record<string, { round_number: number | null; scheduled_date: string | null }>
+  >({});
 
   useEffect(() => {
     let cancelled = false;
