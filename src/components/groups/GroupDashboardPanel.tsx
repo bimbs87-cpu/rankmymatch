@@ -700,17 +700,53 @@ export function GroupDashboardPanel({ group, onLeft, onPresenceChanged }: Props)
                   </div>
                 )}
               </div>
-              {/* Capacity reached warning */}
+              {/* Capacity reached warning + waiting list */}
               {data.next_round.confirmed_count >= data.next_round.max_players && (
-                <div className="flex items-start gap-2 rounded-xl border border-warning/40 bg-warning/10 px-3 py-2 text-[11px]">
-                  <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-warning" />
-                  <div className="leading-snug">
-                    <span className="font-bold text-warning">Rodada lotada</span>{" "}
-                    <span className="text-muted-foreground">
-                      ({data.next_round.confirmed_count}/{data.next_round.max_players}).
-                      Novas confirmações entram em <span className="font-semibold text-foreground">lista de espera</span> e jogam se alguém desistir.
-                    </span>
+                <div className="space-y-2">
+                  <div className="flex items-start gap-2 rounded-xl border border-warning/40 bg-warning/10 px-3 py-2 text-[11px]">
+                    <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-warning" />
+                    <div className="leading-snug">
+                      <span className="font-bold text-warning">Rodada lotada</span>{" "}
+                      <span className="text-muted-foreground">
+                        ({data.next_round.confirmed_count}/{data.next_round.max_players}).
+                        Novas confirmações entram em <span className="font-semibold text-foreground">lista de espera</span> e jogam se alguém desistir.
+                      </span>
+                    </div>
                   </div>
+                  {(() => {
+                    const sortedAsc = [...(data.next_round.confirmed_all ?? [])].sort(
+                      (a, b) =>
+                        new Date(a.confirmed_at || 0).getTime() -
+                        new Date(b.confirmed_at || 0).getTime(),
+                    );
+                    const waitlist = sortedAsc.slice(data.next_round.max_players);
+                    if (waitlist.length === 0) return null;
+                    return (
+                      <div className="flex items-center gap-2 rounded-xl border border-dashed border-border/60 bg-background/30 px-3 py-2">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                          Lista de espera ({waitlist.length})
+                        </span>
+                        <div className="flex -space-x-1.5">
+                          {waitlist.slice(0, 6).map((p, i) => (
+                            <button
+                              key={p.user_id}
+                              type="button"
+                              onClick={() => openProfile(p.user_id)}
+                              title={`${p.name} · ${i + 1}º na espera`}
+                              className="rounded-full ring-2 ring-card transition-transform hover:z-10 hover:scale-110"
+                            >
+                              <PlayerAvatar avatarUrl={p.avatar_url} name={p.name} size="sm" />
+                            </button>
+                          ))}
+                          {waitlist.length > 6 && (
+                            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-muted text-[9px] font-bold text-muted-foreground ring-2 ring-card">
+                              +{waitlist.length - 6}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </div>
               )}
               {/* Response rate progress bar — % of active members who responded */}
