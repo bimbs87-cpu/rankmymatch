@@ -87,13 +87,22 @@ function AboutDevelopmentPage() {
           Sobre o desenvolvimento
         </h1>
         {isAdmin && (
-          <Link
-            to="/sobre-desenvolvimento/admin"
-            className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-primary transition-colors hover:bg-primary/20"
-          >
-            <ShieldAlert className="h-3 w-3" />
-            Triagem
-          </Link>
+          <div className="flex items-center gap-1.5">
+            <Link
+              to="/sobre-desenvolvimento/admin"
+              className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-primary transition-colors hover:bg-primary/20"
+            >
+              <ShieldAlert className="h-3 w-3" />
+              Triagem
+            </Link>
+            <Link
+              to="/sobre-desenvolvimento/changelog-admin"
+              className="inline-flex items-center gap-1.5 rounded-full border border-sky-500/30 bg-sky-500/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-sky-400 transition-colors hover:bg-sky-500/20"
+            >
+              <Sparkles className="h-3 w-3" />
+              Changelog
+            </Link>
+          </div>
         )}
       </header>
 
