@@ -83,6 +83,19 @@ function RootShell({ children }: { children: React.ReactNode }) {
 }
 
 function RootComponent() {
+  const router = useRouter();
+
+  useEffect(() => {
+    // Track initial pageview + every SPA navigation for GA4
+    trackPageview(window.location.pathname + window.location.search);
+    const unsub = router.subscribe("onResolved", () => {
+      trackPageview(window.location.pathname + window.location.search);
+    });
+    return () => {
+      unsub();
+    };
+  }, [router]);
+
   useEffect(() => {
     const isInIframe = (() => {
       try { return window.self !== window.top; } catch { return true; }
