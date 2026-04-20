@@ -219,9 +219,16 @@ function SeasonDetailPage() {
                       </span>
                     </div>
                     <div>
-                      <span className="text-sm font-semibold text-foreground">
-                        Rodada {r.round_number}
-                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-sm font-semibold text-foreground">
+                          Rodada {r.round_number}
+                        </span>
+                        {(r as any).is_extra && (
+                          <span className="rounded-full bg-warning/15 px-1.5 py-0.5 text-[9px] font-bold uppercase text-warning" title="Rodada extra (fora do calendário regular)">
+                            Extra
+                          </span>
+                        )}
+                      </div>
                       <div className="flex items-center gap-2 text-xs text-muted-foreground">
                         <Calendar className="h-3 w-3" />
                         <span>{editingRoundId === r.id ? editDates[r.id] || r.scheduled_date : formatDate(r.scheduled_date)}</span>
