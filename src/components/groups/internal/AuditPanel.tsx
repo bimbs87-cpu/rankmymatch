@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Loader2, ScrollText, Download, ChevronDown, ChevronUp, Clock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 interface Props {
   groupId: string;
@@ -332,9 +333,30 @@ function Sparkline({
   // Avoid label overlap when p90 and median land close to each other.
   const p90LabelAnchor = medianY !== null && p90Y !== null && Math.abs(p90Y - medianY) < 10 ? "start" : "end";
   const p90LabelX = p90LabelAnchor === "start" ? pad : w - pad;
+  // Zone band Y boundaries (only meaningful for response-time sparklines, where unit==="h")
+  const showZones = unit === "h";
+  const yForVal = (v: number) => h - pad - ((v - min) / range) * (h - pad * 2);
+  const clampY = (y: number) => Math.max(pad, Math.min(h - pad, y));
+  const greenTop = showZones ? clampY(yForVal(1)) : 0;
+  const yellowTop = showZones ? clampY(yForVal(6)) : 0;
+  const yellowBottom = showZones ? clampY(yForVal(1)) : 0;
+  const redBottom = showZones ? clampY(yForVal(6)) : 0;
   return (
     <div className="flex items-center gap-2">
       <svg width="100%" height={h} viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" className="flex-1">
+        {showZones && (
+          <>
+            {greenTop < h - pad && (
+              <rect x={pad} y={greenTop} width={w - pad * 2} height={(h - pad) - greenTop} fill="hsl(var(--success))" opacity={0.08} />
+            )}
+            {yellowTop < yellowBottom && (
+              <rect x={pad} y={yellowTop} width={w - pad * 2} height={yellowBottom - yellowTop} fill="hsl(var(--warning))" opacity={0.08} />
+            )}
+            {redBottom > pad && (
+              <rect x={pad} y={pad} width={w - pad * 2} height={redBottom - pad} fill="hsl(var(--destructive))" opacity={0.08} />
+            )}
+          </>
+        )}
         {medianY !== null && (
           <>
             <line
@@ -408,6 +430,9 @@ export function AuditPanel({ groupId }: Props) {
   const [actorNames, setActorNames] = useState<Record<string, string>>({});
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [responseTimes, setResponseTimes] = useState<number[]>([]);
+  const [slowResponders, setSlowResponders] = useState<
+    Array<{ userId: string; hours: number; roundNumber: number | null; nudgeAt: number }>
+  >([]);
   const [roundMovements, setRoundMovements] = useState<
     Record<string, { round_number: number | null; scheduled_date: string | null }>
   >({});
@@ -459,15 +484,15 @@ export function AuditPanel({ groupId }: Props) {
         }
         const { data: presences } = await supabase
           .from("round_presence")
-          .select("round_id, updated_at, status")
+          .select("round_id, user_id, updated_at, status")
           .in("round_id", roundIds)
           .neq("status", "pending")
           .order("updated_at", { ascending: true });
-        // Index presence updates per round
-        const presByRound = new Map<string, { ts: number }[]>();
+        // Index presence updates per round (with user)
+        const presByRound = new Map<string, { ts: number; userId: string }[]>();
         for (const p of presences || []) {
           const arr = presByRound.get(p.round_id) || [];
-          arr.push({ ts: new Date(p.updated_at).getTime() });
+          arr.push({ ts: new Date(p.updated_at).getTime(), userId: p.user_id });
           presByRound.set(p.round_id, arr);
         }
         // Group nudges by round to find "next nudge" boundary
@@ -477,11 +502,13 @@ export function AuditPanel({ groupId }: Props) {
           arr.push(new Date(n.created_at).getTime());
           nudgesByRound.set(n.entity_id as string, arr);
         }
+        const slow: Array<{ userId: string; hours: number; roundNumber: number | null; nudgeAt: number }> = [];
         for (const n of nudges) {
           const ts = new Date(n.created_at).getTime();
-          const sameRoundNudges = nudgesByRound.get(n.entity_id as string) || [];
+          const roundId = n.entity_id as string;
+          const sameRoundNudges = nudgesByRound.get(roundId) || [];
           const nextNudge = sameRoundNudges.find((t) => t > ts) ?? ts + 24 * 3600 * 1000;
-          const pres = presByRound.get(n.entity_id as string) || [];
+          const pres = presByRound.get(roundId) || [];
           const responses = pres.filter((p) => p.ts > ts && p.ts <= nextNudge);
           if (responses.length === 0) {
             responseHours.push(0);
@@ -489,8 +516,39 @@ export function AuditPanel({ groupId }: Props) {
             const avgMs =
               responses.reduce((s, p) => s + (p.ts - ts), 0) / responses.length;
             responseHours.push(Math.max(0, Math.round((avgMs / (3600 * 1000)) * 10) / 10));
+            // Capture per-recipient slow responses (>6h) for outlier popover
+            for (const r of responses) {
+              const hours = (r.ts - ts) / (3600 * 1000);
+              if (hours > 6) {
+                slow.push({
+                  userId: r.userId,
+                  hours: Math.round(hours * 10) / 10,
+                  roundNumber: roundMeta[roundId]?.round_number ?? null,
+                  nudgeAt: ts,
+                });
+              }
+            }
           }
         }
+        // Resolve names for slow responders not already in actorNames map
+        const slowIds = Array.from(new Set(slow.map((s) => s.userId))).filter((id) => !ids.includes(id));
+        if (slowIds.length > 0) {
+          const { data: extraProfs } = await supabase
+            .from("user_profiles")
+            .select("user_id, name")
+            .in("user_id", slowIds);
+          if (cancelled) return;
+          const extra: Record<string, string> = {};
+          for (const p of (extraProfs || []) as { user_id: string; name: string }[]) {
+            extra[p.user_id] = p.name;
+          }
+          if (Object.keys(extra).length > 0) {
+            setActorNames((prev) => ({ ...prev, ...extra }));
+          }
+        }
+        if (cancelled) return;
+        // Sort slowest first, keep top 20
+        setSlowResponders(slow.sort((a, b) => b.hours - a.hours).slice(0, 20));
       }
       if (cancelled) return;
       setResponseTimes(responseHours.slice(-10));
@@ -792,12 +850,59 @@ export function AuditPanel({ groupId }: Props) {
                   </p>
                   <div className="flex items-center gap-1">
                     {slowCount > 0 && (
-                      <span
-                        className="flex cursor-help items-center gap-1 rounded-full border border-destructive/40 bg-destructive/10 px-1.5 py-0.5 text-[10px] font-bold tabular-nums text-destructive"
-                        title={`${slowCount} cutucada${slowCount !== 1 ? "s" : ""} com resposta acima de 6h (outliers)`}
-                      >
-                        🐌 {slowCount} lenta{slowCount !== 1 ? "s" : ""}
-                      </span>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <button
+                            type="button"
+                            className="flex cursor-pointer items-center gap-1 rounded-full border border-destructive/40 bg-destructive/10 px-1.5 py-0.5 text-[10px] font-bold tabular-nums text-destructive transition hover:bg-destructive/20"
+                            title={`${slowCount} cutucada${slowCount !== 1 ? "s" : ""} com resposta acima de 6h. Clique para ver quem.`}
+                          >
+                            🐌 {slowCount} lenta{slowCount !== 1 ? "s" : ""}
+                          </button>
+                        </PopoverTrigger>
+                        <PopoverContent align="end" className="w-72 p-0">
+                          <div className="border-b border-border bg-destructive/5 px-3 py-2">
+                            <p className="text-[11px] font-bold text-destructive">🐌 Respostas lentas (&gt;6h)</p>
+                            <p className="text-[10px] text-muted-foreground">
+                              {slowResponders.length === 0
+                                ? "Nenhum detalhe disponível."
+                                : `${slowResponders.length} resposta${slowResponders.length !== 1 ? "s" : ""} de destinatários — ordenado da mais lenta.`}
+                            </p>
+                          </div>
+                          <ul className="max-h-64 divide-y divide-border overflow-y-auto">
+                            {slowResponders.length === 0 ? (
+                              <li className="px-3 py-3 text-[11px] text-muted-foreground">
+                                Sem dados detalhados disponíveis.
+                              </li>
+                            ) : (
+                              slowResponders.map((s, i) => {
+                                const name = actorNames[s.userId] || "Usuário";
+                                const hLabel = s.hours >= 10 ? `${Math.round(s.hours)}h` : `${s.hours.toFixed(1)}h`;
+                                const tone =
+                                  s.hours > 24
+                                    ? "text-destructive"
+                                    : s.hours > 12
+                                      ? "text-destructive/80"
+                                      : "text-warning";
+                                return (
+                                  <li key={`${s.userId}-${s.nudgeAt}-${i}`} className="flex items-center justify-between gap-2 px-3 py-2">
+                                    <div className="min-w-0 flex-1">
+                                      <p className="truncate text-[11px] font-semibold text-foreground">{name}</p>
+                                      <p className="text-[9px] text-muted-foreground">
+                                        {s.roundNumber != null ? `Rodada #${s.roundNumber}` : "Rodada"} · cutucada{" "}
+                                        {new Date(s.nudgeAt).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })}
+                                      </p>
+                                    </div>
+                                    <span className={`shrink-0 rounded-full border border-destructive/40 bg-destructive/10 px-1.5 py-0.5 text-[10px] font-bold tabular-nums ${tone}`}>
+                                      {hLabel}
+                                    </span>
+                                  </li>
+                                );
+                              })
+                            )}
+                          </ul>
+                        </PopoverContent>
+                      </Popover>
                     )}
                     {(() => {
                       const tone =
