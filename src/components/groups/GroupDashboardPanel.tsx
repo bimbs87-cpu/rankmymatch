@@ -205,11 +205,45 @@ export function GroupDashboardPanel({ group, onLeft, onPresenceChanged }: Props)
       toast.success(
         `Cutucada enviada para ${targetIds.length} membro${targetIds.length > 1 ? "s" : ""}`
       );
+
+      // Audit log (best-effort)
+      void logAudit({
+        groupId: group.id,
+        action: "round_nudge",
+        entityType: "round",
+        entityId: data.next_round.id,
+        newData: {
+          mode: includeDeclined ? "pending+declined" : "pending_only",
+          recipients_count: targetIds.length,
+          pending_count: pendingIds.length,
+          declined_count: declinedIds.length,
+          round_number: data.next_round.round_number ?? null,
+        },
+      });
     } catch (e: any) {
       toast.error(e?.message || "Não foi possível cutucar agora");
     } finally {
       setNudging(false);
     }
+  }
+
+  function handleResetNudgeCooldown() {
+    if (!data.next_round) return;
+    try {
+      localStorage.removeItem(`rmm.nudge.cooldown.${data.next_round.id}`);
+    } catch {
+      // ignore
+    }
+    setNudgeCooldownUntil(null);
+    setNudgeNowTs(Date.now());
+    toast.success("Cooldown resetado — pode cutucar novamente");
+    void logAudit({
+      groupId: group.id,
+      action: "round_nudge_cooldown_reset",
+      entityType: "round",
+      entityId: data.next_round.id,
+      newData: { round_number: data.next_round.round_number ?? null },
+    });
   }
 
 
