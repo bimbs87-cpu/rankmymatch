@@ -481,7 +481,7 @@ export function GroupComparePanel({ groupId, initialPick, onConsumeInitial }: Pa
       )}
 
       {/* Picker */}
-      <section>
+      <section className="order-1 lg:order-none">
         <div className="flex items-center justify-between mb-2">
           <p className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground">
             Selecione 2 a 4 jogadores
