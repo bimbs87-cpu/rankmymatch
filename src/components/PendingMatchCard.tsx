@@ -40,8 +40,9 @@ export function PendingMatchCard({ match, onScoreSaved, showGroupName = true, is
               )}
             </div>
           </div>
-          <span className="rounded-full bg-warning/10 px-2 py-0.5 text-[10px] font-semibold text-warning">
-            Aguardando resultado
+          <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold inline-flex items-center gap-1 ${hasPending ? "bg-info/10 text-info" : "bg-warning/10 text-warning"}`}>
+            {hasPending && <Clock className="h-3 w-3" />}
+            {hasPending ? "Aguardando aprovação" : "Aguardando resultado"}
           </span>
         </div>
 
