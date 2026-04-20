@@ -23,7 +23,7 @@ import {
   Inbox,
   Link2,
 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { useViewPlayerProfile } from "@/components/PlayerProfileViewer";
