@@ -549,6 +549,13 @@ export function GroupDashboardPanel({ group, onLeft, onPresenceChanged }: Props)
                   </div>
                 )}
               </div>
+              {/* Response rate progress bar — % of active members who responded */}
+              <ResponseProgressBar
+                confirmed={data.next_round.confirmed_all?.length ?? data.next_round.confirmed_count}
+                declined={data.next_round.declined_all?.length ?? 0}
+                pending={data.next_round.pending_all?.length ?? 0}
+                memberCount={data.member_count}
+              />
               {/* Pending row — members who haven't responded yet, in a dimmed tone */}
               {data.next_round.pending_all && data.next_round.pending_all.length > 0 && (
                 <div className="flex items-center gap-2 opacity-60">
