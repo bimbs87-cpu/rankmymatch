@@ -313,6 +313,65 @@ export function PushDiagnosticCard() {
             Mesmo com as preferências ligadas, é preciso ter pelo menos 1 dispositivo inscrito acima.
           </p>
         </div>
+
+        {/* Test push history (last 5, persisted in localStorage) */}
+        <div className="mt-6">
+          <div className="mb-2 flex items-center justify-between">
+            <h3 className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground inline-flex items-center gap-1.5">
+              <History className="h-3 w-3" /> Histórico de testes (últimos {MAX_HISTORY})
+            </h3>
+            {history.length > 0 && (
+              <button
+                onClick={() => {
+                  setHistory([]);
+                  saveHistory([]);
+                }}
+                className="text-[10px] font-semibold text-muted-foreground hover:text-foreground"
+              >
+                Limpar
+              </button>
+            )}
+          </div>
+          {history.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-border bg-muted/10 px-4 py-4 text-center text-xs text-muted-foreground">
+              Nenhum teste registrado ainda. Clique em "Enviar push de teste pra mim" acima.
+            </div>
+          ) : (
+            <ul className="space-y-1.5">
+              {history.map((h) => {
+                const ok = h.sent > 0;
+                const errored = !!h.error;
+                return (
+                  <li
+                    key={h.ts}
+                    className="flex items-center gap-3 rounded-xl border border-border bg-background/40 px-3 py-2"
+                  >
+                    {errored ? (
+                      <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-destructive" />
+                    ) : ok ? (
+                      <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-success" />
+                    ) : (
+                      <XCircle className="h-3.5 w-3.5 shrink-0 text-warning" />
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-[11px] font-semibold text-foreground">
+                        {errored
+                          ? `Erro: ${h.error}`
+                          : ok
+                            ? `Entregue a ${h.sent} dispositivo${h.sent > 1 ? "s" : ""}`
+                            : "Nenhum dispositivo recebeu"}
+                        {!errored && h.failed > 0 && (
+                          <span className="ml-1 text-destructive">· {h.failed} falha{h.failed > 1 ? "s" : ""}</span>
+                        )}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground">{formatRelative(h.ts)}</p>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
       </div>
     </section>
   );
