@@ -8,7 +8,7 @@ import { useRoundDetail, confirmPresence, cancelPresence, drawTeams, deleteMatch
 import { supabase } from "@/integrations/supabase/client";
 import { ScoreEntryDialog } from "@/components/ScoreEntryDialog";
 import { ManualMatchDialog } from "@/components/ManualMatchDialog";
-import { MatchPendingApproval } from "@/components/MatchPendingApproval";
+import { MatchPendingApproval, PendingAwareSubmitButton } from "@/components/MatchPendingApproval";
 import { isRivalryGroup } from "@/lib/rivalry";
 import { notifyGroupMembers } from "@/hooks/use-notifications";
 import {
