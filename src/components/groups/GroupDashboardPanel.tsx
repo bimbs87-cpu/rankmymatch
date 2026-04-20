@@ -107,7 +107,53 @@ export function GroupDashboardPanel({ group, onLeft, onPresenceChanged }: Props)
   const [leaving, setLeaving] = useState(false);
   const [resolvingReq, setResolvingReq] = useState<string | null>(null);
   const [resolvingClaim, setResolvingClaim] = useState<string | null>(null);
+  const [nudging, setNudging] = useState(false);
   const openProfile = useViewPlayerProfile();
+
+  async function handleNudgePending() {
+    if (!data.next_round || !data.next_round.pending_all?.length) return;
+    setNudging(true);
+    try {
+      const pendingIds = data.next_round.pending_all.map((p) => p.user_id);
+      const roundLabel = data.next_round.round_number
+        ? `Rodada ${data.next_round.round_number}`
+        : "Próxima rodada";
+      const title = `📣 ${roundLabel}: confirme presença!`;
+      const body = `Faltam ${pendingIds.length} resposta${pendingIds.length > 1 ? "s" : ""} para a lista. Toque para responder.`;
+
+      // In-app notifications (members → RLS allows when group_id matches)
+      const rows = pendingIds.map((uid) => ({
+        user_id: uid,
+        group_id: group.id,
+        type: "round_nudge",
+        title,
+        body,
+        data: { roundId: data.next_round!.id },
+      }));
+      await supabase.from("notifications").insert(rows);
+
+      // Push (best-effort, gated server-side by shared-group rule)
+      void sendPushFn({
+        data: {
+          userIds: pendingIds,
+          payload: {
+            title,
+            body,
+            url: `/groups/${group.id}`,
+            type: "round_nudge",
+            tag: `round_nudge:${data.next_round.id}`,
+            data: { roundId: data.next_round.id },
+          },
+        },
+      }).catch(() => {});
+
+      toast.success(`Cutucada enviada para ${pendingIds.length} membro${pendingIds.length > 1 ? "s" : ""}`);
+    } catch (e: any) {
+      toast.error(e?.message || "Não foi possível cutucar agora");
+    } finally {
+      setNudging(false);
+    }
+  }
 
   async function handleApproveClaim(claim: typeof data.pending_claims[number]) {
     if (!user) return;
