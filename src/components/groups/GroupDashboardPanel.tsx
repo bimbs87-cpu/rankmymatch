@@ -572,8 +572,8 @@ export function GroupDashboardPanel({ group, onLeft, onPresenceChanged }: Props)
                   </div>
                 </div>
               )}
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <span className="hidden">{/* spacer to keep next block grouping */}</span>
+              <div className="flex flex-wrap items-center justify-end gap-2">
+
                 {data.next_round.presence_is_open ? (
                   <div className="flex items-center gap-1.5">
                     <button
@@ -926,6 +926,8 @@ function MatchStartCountdown({
 
   // Discrete alert (sound + vibration) once per session when entering the
   // imminent state, so users with the tab open on mobile get a gentle nudge.
+  // The sound can be disabled in Profile → Push preferences (saved to
+  // localStorage); vibration always fires when supported.
   useEffect(() => {
     if (!isImminent || alertedRef.current) return;
     alertedRef.current = true;
@@ -933,6 +935,11 @@ function MatchStartCountdown({
       if (typeof navigator !== "undefined" && "vibrate" in navigator) {
         navigator.vibrate?.([120, 60, 120]);
       }
+      const soundOn =
+        typeof localStorage === "undefined"
+          ? true
+          : localStorage.getItem("rmm.roundAlertSound") !== "off";
+      if (!soundOn) return;
       const AudioCtx =
         (window as any).AudioContext || (window as any).webkitAudioContext;
       if (AudioCtx) {
