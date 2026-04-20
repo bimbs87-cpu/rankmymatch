@@ -2,12 +2,10 @@ import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 export interface GroupRecentDeltas {
-  // Last 30 days vs previous 30 days
   rounds_30d: number;
   matches_30d: number;
   new_active_players_30d: number;
   finished_seasons_30d: number;
-  // Total seasons created in last 30 days (vs nothing — informational only)
   new_seasons_30d: number;
 }
 
@@ -19,13 +17,12 @@ const EMPTY: GroupRecentDeltas = {
   new_seasons_30d: 0,
 };
 
-const MS_30D = 30 * 24 * 60 * 60 * 1000;
-
 /**
- * Computes simple "in the last 30 days" counters used as deltas
- * on the Agenda completa summary cards.
+ * Computes "in the last N days" counters used as deltas
+ * on the Agenda completa summary cards. The window is configurable (default 30 days).
+ * Field names keep the `_30d` suffix for back-compat but represent the chosen window.
  */
-export function useGroupRecentDeltas(groupId: string | null) {
+export function useGroupRecentDeltas(groupId: string | null, windowDays: number = 30) {
   const [data, setData] = useState<GroupRecentDeltas>(EMPTY);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -37,37 +34,34 @@ export function useGroupRecentDeltas(groupId: string | null) {
     }
     setIsLoading(true);
     try {
-      const since = new Date(Date.now() - MS_30D).toISOString();
+      const windowMs = windowDays * 24 * 60 * 60 * 1000;
+      const since = new Date(Date.now() - windowMs).toISOString();
 
-
-      // Rounds in last 30d (by scheduled_date if available, else created_at)
       const { data: rounds } = await supabase
         .from("rounds")
         .select("id, scheduled_date, created_at, status")
         .eq("group_id", groupId);
-      let rounds30 = 0;
+      let roundsW = 0;
       const recentRoundIds: string[] = [];
       for (const r of rounds || []) {
         const ts = r.scheduled_date
           ? new Date(r.scheduled_date + "T12:00:00").getTime()
           : new Date(r.created_at).getTime();
-        if (ts >= Date.now() - MS_30D) {
-          rounds30 += 1;
+        if (ts >= Date.now() - windowMs) {
+          roundsW += 1;
           recentRoundIds.push(r.id);
         }
       }
 
-      // Matches in last 30d (matches whose round falls in the window)
-      let matches30 = 0;
+      let matchesW = 0;
       if (recentRoundIds.length) {
         const { count } = await supabase
           .from("matches")
           .select("id", { count: "exact", head: true })
           .in("round_id", recentRoundIds);
-        matches30 = count ?? 0;
+        matchesW = count ?? 0;
       }
 
-      // New active members joined in last 30d
       const { count: newPlayers } = await supabase
         .from("group_members")
         .select("id", { count: "exact", head: true })
@@ -75,30 +69,28 @@ export function useGroupRecentDeltas(groupId: string | null) {
         .eq("status", "active")
         .gte("joined_at", since);
 
-      // Seasons finished in last 30d (status != active && updated_at recent)
-      // Approximation: seasons not active AND updated within window.
       const { data: recentSeasons } = await supabase
         .from("seasons")
         .select("id, status, end_date, updated_at, created_at")
         .eq("group_id", groupId);
-      let finished30 = 0;
-      let new30 = 0;
+      let finishedW = 0;
+      let newW = 0;
       for (const s of recentSeasons || []) {
         if (s.status !== "active") {
           const t = s.end_date
             ? new Date(s.end_date + "T12:00:00").getTime()
             : new Date(s.updated_at).getTime();
-          if (t >= Date.now() - MS_30D) finished30 += 1;
+          if (t >= Date.now() - windowMs) finishedW += 1;
         }
-        if (new Date(s.created_at).getTime() >= Date.now() - MS_30D) new30 += 1;
+        if (new Date(s.created_at).getTime() >= Date.now() - windowMs) newW += 1;
       }
 
       setData({
-        rounds_30d: rounds30,
-        matches_30d: matches30,
+        rounds_30d: roundsW,
+        matches_30d: matchesW,
         new_active_players_30d: newPlayers ?? 0,
-        finished_seasons_30d: finished30,
-        new_seasons_30d: new30,
+        finished_seasons_30d: finishedW,
+        new_seasons_30d: newW,
       });
     } catch (err) {
       console.error("Erro ao carregar deltas recentes:", err);
@@ -106,7 +98,7 @@ export function useGroupRecentDeltas(groupId: string | null) {
     } finally {
       setIsLoading(false);
     }
-  }, [groupId]);
+  }, [groupId, windowDays]);
 
   useEffect(() => {
     refresh();

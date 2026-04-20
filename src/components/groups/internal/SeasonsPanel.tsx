@@ -75,7 +75,16 @@ export function SeasonsPanel({ groupId, isAdmin }: Props) {
   const [quickCreateOpen, setQuickCreateOpen] = useState(false);
   const [groupFormat, setGroupFormat] = useState<string>("doubles");
   const [groupFixedDay, setGroupFixedDay] = useState<number | null>(null);
-  const [filter, setFilter] = useState<SeasonFilter>("all");
+  const filterStorageKey = `agenda-filter:${groupId}`;
+  const [filter, setFilterState] = useState<SeasonFilter>(() => {
+    if (typeof window === "undefined") return "all";
+    const saved = window.localStorage.getItem(filterStorageKey);
+    return saved === "active" || saved === "finished" || saved === "all" ? saved : "all";
+  });
+  const setFilter = (f: SeasonFilter) => {
+    setFilterState(f);
+    try { window.localStorage.setItem(filterStorageKey, f); } catch {}
+  };
 
   // Realtime: refresh when any round in this group changes (status flips, etc.)
   useEffect(() => {
