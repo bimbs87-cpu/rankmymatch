@@ -141,7 +141,7 @@ export function SeasonsPanel({ groupId, isAdmin }: Props) {
     <div className="space-y-5">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="font-display text-xl font-bold text-foreground">Agenda completa</h2>
+          <h2 className="font-display text-xl font-bold text-foreground">Agenda e resultados</h2>
           <p className="text-xs text-muted-foreground">
             Visão geral do grupo, temporadas e rodadas
           </p>

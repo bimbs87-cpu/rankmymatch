@@ -101,7 +101,7 @@ export function GroupSwitcherPopover({ groups, activeGroupId, activeGroupName }:
                     className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-accent"
                   >
                     <Trophy className="h-3.5 w-3.5 shrink-0 text-primary" />
-                    <span>Agenda completa</span>
+                    <span>Agenda e resultados</span>
                   </Link>
                 </li>
                 <li>
