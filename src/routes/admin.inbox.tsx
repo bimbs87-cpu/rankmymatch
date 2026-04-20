@@ -452,13 +452,21 @@ function AdminInboxPage() {
     if (!user) return;
     if (it.kind === "join_request") {
       await approveJoinRequest(it.id, it.groupId, it.requesterUserId, user.id);
-    } else {
+    } else if (it.kind === "claim") {
       const { error } = await supabase.rpc("merge_placeholder_player", {
         _placeholder_user_id: it.targetPlayerId!,
         _real_user_id: it.requesterUserId,
         _group_id: it.groupId,
       });
       if (error) throw error;
+    } else if (it.kind === "match_result") {
+      const { approvePendingResult } = await import("@/lib/pending-results");
+      await approvePendingResult({
+        pendingId: it.id,
+        matchId: it.matchId!,
+        seasonId: it.seasonId!,
+        sets: it.sets || [],
+      });
     }
   };
 
@@ -466,7 +474,7 @@ function AdminInboxPage() {
     if (!user) return;
     if (it.kind === "join_request") {
       await rejectJoinRequest(it.id, user.id);
-    } else {
+    } else if (it.kind === "claim") {
       const { error } = await supabase
         .from("player_claims")
         .update({
