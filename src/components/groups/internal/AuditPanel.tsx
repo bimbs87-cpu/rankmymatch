@@ -276,7 +276,7 @@ function DiffView({ row }: { row: AuditRow }) {
 }
 
 /** Tiny inline SVG sparkline for nudge recipients trend. */
-function Sparkline({ values }: { values: number[] }) {
+function Sparkline({ values, unit = "" }: { values: number[]; unit?: string }) {
   if (values.length < 2) return null;
   const w = 200;
   const h = 32;
@@ -307,7 +307,7 @@ function Sparkline({ values }: { values: number[] }) {
         })}
       </svg>
       <span className={`text-[10px] font-bold tabular-nums ${trendingDown ? "text-success" : "text-warning"}`}>
-        {trendingDown ? "↓" : "↑"} {Math.abs(Math.round(b - a))}
+        {trendingDown ? "↓" : "↑"} {Math.abs(Math.round(b - a))}{unit}
       </span>
     </div>
   );
