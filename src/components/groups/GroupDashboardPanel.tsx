@@ -198,6 +198,31 @@ export function GroupDashboardPanel({ group, onLeft, onPresenceChanged }: Props)
     }
   }
 
+  async function handleToggleForceOpen() {
+    if (!data.next_round) return;
+    const isCurrentlyForceOpen =
+      !!data.next_round.presence_force_open_at &&
+      new Date(data.next_round.presence_force_open_at) <= new Date();
+    setPresenceLoading(true);
+    try {
+      const patch = isCurrentlyForceOpen
+        ? { presence_force_open_at: null }
+        : { presence_force_open_at: new Date().toISOString() };
+      const { error } = await supabase
+        .from("rounds")
+        .update(patch as any)
+        .eq("id", data.next_round.id);
+      if (error) throw error;
+      toast.success(isCurrentlyForceOpen ? "Lista de presença fechada" : "Lista de presença aberta");
+      await refresh();
+      onPresenceChanged?.();
+    } catch (e: any) {
+      toast.error(e?.message || "Não foi possível alterar");
+    } finally {
+      setPresenceLoading(false);
+    }
+  }
+
   async function handleLeave() {
     if (!user) return;
     setLeaving(true);
