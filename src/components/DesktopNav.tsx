@@ -7,13 +7,14 @@ import { useMyGroups } from "@/hooks/use-groups";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { NotificationsPopover } from "@/components/NotificationsPopover";
 import { GroupSwitcherPopover } from "@/components/GroupSwitcherPopover";
+import { GroupsNavMenu } from "@/components/GroupsNavMenu";
 
 const NAV_ITEMS = [
-  { to: "/" as const, icon: Home, label: "Início" },
-  { to: "/profile" as const, icon: User, label: "Perfil" },
-  { to: "/ranking" as const, icon: Crown, label: "Ranking" },
-  { to: "/groups" as const, icon: Users, label: "Grupos" },
-  { to: "/comparar" as const, icon: BarChart3, label: "Comparar" },
+  { to: "/" as const, icon: Home, label: "Início", isGroups: false },
+  { to: "/profile" as const, icon: User, label: "Perfil", isGroups: false },
+  { to: "/ranking" as const, icon: Crown, label: "Ranking", isGroups: false },
+  { to: "/groups" as const, icon: Users, label: "Grupos", isGroups: true },
+  { to: "/comparar" as const, icon: BarChart3, label: "Comparar", isGroups: false },
 ];
 
 export function DesktopNav() {
