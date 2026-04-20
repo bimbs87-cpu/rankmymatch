@@ -888,32 +888,12 @@ function MatchStartCountdown({
     return () => clearInterval(id);
   }, []);
 
-  if (!scheduledDate) return null;
-  const target = new Date(`${scheduledDate}T${scheduledTime || "00:00"}`).getTime();
-  if (Number.isNaN(target)) return null;
-
-  const diffMs = target - now;
-  // Hide if past or > 7 days away
-  if (diffMs <= -60 * 60 * 1000) return null;
-  if (diffMs > 7 * 24 * 60 * 60 * 1000) return null;
-
-  let label: string;
-  if (diffMs <= 0) label = "começa agora";
-  else {
-    const totalMin = Math.round(diffMs / 60000);
-    if (totalMin < 60) label = `em ${totalMin}min`;
-    else if (totalMin < 60 * 24) {
-      const h = Math.floor(totalMin / 60);
-      const m = totalMin % 60;
-      label = m > 0 ? `em ${h}h${String(m).padStart(2, "0")}` : `em ${h}h`;
-    } else {
-      const days = Math.round(totalMin / (60 * 24));
-      label = days === 1 ? "amanhã" : `em ${days} dias`;
-    }
-  }
-
-  const isWarning = diffMs > 0 && diffMs <= 2 * 60 * 60 * 1000;
-  const isImminent = diffMs > -60 * 1000 && diffMs <= 10 * 60 * 1000;
+  const target = scheduledDate
+    ? new Date(`${scheduledDate}T${scheduledTime || "00:00"}`).getTime()
+    : NaN;
+  const diffMs = Number.isNaN(target) ? Number.POSITIVE_INFINITY : target - now;
+  const isImminent =
+    !Number.isNaN(target) && diffMs > -60 * 1000 && diffMs <= 10 * 60 * 1000;
 
   // Discrete alert (sound + vibration) once per session when entering the
   // imminent state, so users with the tab open on mobile get a gentle nudge.
@@ -936,7 +916,6 @@ function MatchStartCountdown({
         o.connect(g);
         g.connect(ctx.destination);
         const t = ctx.currentTime;
-        // Soft envelope: fade in, hold ~140ms, fade out
         g.gain.exponentialRampToValueAtTime(0.08, t + 0.04);
         g.gain.exponentialRampToValueAtTime(0.0001, t + 0.35);
         o.start(t);
@@ -944,10 +923,31 @@ function MatchStartCountdown({
         setTimeout(() => ctx.close().catch(() => {}), 700);
       }
     } catch {
-      // ignore — best-effort discrete alert
+      // best-effort
     }
   }, [isImminent]);
 
+  if (!scheduledDate || Number.isNaN(target)) return null;
+  // Hide if past or > 7 days away
+  if (diffMs <= -60 * 60 * 1000) return null;
+  if (diffMs > 7 * 24 * 60 * 60 * 1000) return null;
+
+  let label: string;
+  if (diffMs <= 0) label = "começa agora";
+  else {
+    const totalMin = Math.round(diffMs / 60000);
+    if (totalMin < 60) label = `em ${totalMin}min`;
+    else if (totalMin < 60 * 24) {
+      const h = Math.floor(totalMin / 60);
+      const m = totalMin % 60;
+      label = m > 0 ? `em ${h}h${String(m).padStart(2, "0")}` : `em ${h}h`;
+    } else {
+      const days = Math.round(totalMin / (60 * 24));
+      label = days === 1 ? "amanhã" : `em ${days} dias`;
+    }
+  }
+
+  const isWarning = diffMs > 0 && diffMs <= 2 * 60 * 60 * 1000;
   const tone = isImminent
     ? "border-warning/60 bg-warning/15 text-warning animate-pulse"
     : isWarning
