@@ -91,8 +91,7 @@ export function GroupInternalSidebar({
             const Icon = item.icon;
             const active = view === item.id;
             const badgeCount =
-              item.id === "admin" ? badges.pendingRequests :
-              item.id === "feed" ? badges.newComments : undefined;
+              item.id === "admin" ? badges.pendingRequests : undefined;
             const dot =
               item.id === "overview" && badges.pendingPresence;
             return (
@@ -189,8 +188,7 @@ export function GroupInternalFloatingTabs({ isAdmin, view, onSelect, badges = {}
             const Icon = item.icon;
             const active = view === item.id;
             const badgeCount =
-              item.id === "admin" ? badges.pendingRequests :
-              item.id === "feed" ? badges.newComments : undefined;
+              item.id === "admin" ? badges.pendingRequests : undefined;
             const dot = item.id === "overview" && badges.pendingPresence;
             return (
               <li key={item.id} className="shrink-0">

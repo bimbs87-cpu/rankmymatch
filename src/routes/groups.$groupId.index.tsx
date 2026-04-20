@@ -128,7 +128,6 @@ function GroupDetailPage() {
   const [rankingData, setRankingData] = useState<
     Record<string, { rating: number; position: number | null; matches_played: number; matches_won: number }>
   >({});
-  const [commentCount, setCommentCount] = useState(0);
   const [isPremium, setIsPremium] = useState(false);
   const [premiumDaysLeft, setPremiumDaysLeft] = useState<number | null>(null);
 
@@ -207,17 +206,6 @@ function GroupDetailPage() {
         setPlaceholderUserIds(new Set((data || []).map((p) => p.user_id)));
       });
   }, [members]);
-
-  useEffect(() => {
-    supabase
-      .from("comments")
-      .select("id", { count: "exact", head: true })
-      .eq("group_id", groupId)
-      .is("parent_id", null)
-      .then(({ count }) => {
-        setCommentCount(count ?? 0);
-      });
-  }, [groupId]);
 
   const hasPlaceholders = placeholderUserIds.size > 0;
   const activeMembers = useMemo(
@@ -342,7 +330,6 @@ function GroupDetailPage() {
   // Member view
   const badges: SidebarBadges = {
     pendingRequests: pendingRequests.length,
-    newComments: commentCount,
   };
 
   const memberShareUrl = typeof window !== "undefined"
@@ -485,22 +472,6 @@ function GroupDetailPage() {
                 initialPick={pendingCompareIds}
                 onConsumeInitial={() => setPendingCompareIds(null)}
               />
-            )}
-
-            {view === "feed" && (
-              <div className="rounded-2xl border border-border bg-card p-8 text-center">
-                <p className="text-sm text-muted-foreground">
-                  O feed completo está em uma página dedicada para melhor experiência.
-                </p>
-                <Link
-                  to="/groups/$groupId/feed"
-                  params={{ groupId }}
-                  className="mt-3 inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-xs font-bold text-primary-foreground"
-                >
-                  Abrir feed do grupo
-                  <ChevronRight className="h-3.5 w-3.5" />
-                </Link>
-              </div>
             )}
 
             {view === "admin" && isAdmin && (
