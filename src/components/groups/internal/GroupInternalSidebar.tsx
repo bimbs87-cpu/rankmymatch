@@ -179,7 +179,7 @@ interface FloatingTabsProps {
 export function GroupInternalFloatingTabs({ isAdmin, view, onSelect, badges = {} }: FloatingTabsProps) {
   const items = ITEMS.filter((i) => !i.adminOnly || isAdmin);
   return (
-    <div className="sticky top-0 z-40 -mx-px border-b border-border/60 bg-background/85 px-3 pb-2.5 pt-2 backdrop-blur-xl lg:hidden">
+    <div className="fixed inset-x-0 top-0 z-40 border-b border-border/60 bg-background/85 px-3 pb-2.5 pt-[max(0.5rem,env(safe-area-inset-top))] backdrop-blur-xl lg:hidden">
       {/* Context label — makes it clear this is the group's internal menu */}
       <div className="mb-1.5 flex items-center justify-between px-1">
         <span className="text-[9px] font-bold uppercase tracking-[0.14em] text-muted-foreground/80">
