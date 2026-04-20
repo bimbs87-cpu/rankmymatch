@@ -18,6 +18,7 @@ import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { InstallBanner } from "@/components/InstallBanner";
 
 import { NotificationsPopover } from "@/components/NotificationsPopover";
+import { GroupSwitcherPopover } from "@/components/GroupSwitcherPopover";
 import { PushOptInBanner } from "@/components/PushOptInBanner";
 import { EloEvolutionChart } from "@/components/EloEvolutionChart";
 import { supabase } from "@/integrations/supabase/client";

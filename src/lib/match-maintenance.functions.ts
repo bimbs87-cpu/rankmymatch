@@ -137,15 +137,19 @@ export const finalizeDesyncedMatchesServerFn = createServerFn({ method: "POST" }
           continue;
         }
 
-        // Update match -> completed
-        await supabaseAdmin
+        // Update match -> completed (use 'normal' to satisfy DB CHECK constraint)
+        const { error: updErr } = await supabaseAdmin
           .from("matches")
           .update({
             status: "completed",
             winner_team: winner,
-            result_type: sets.length === 1 ? "single_set" : sets.length === 2 ? "straight" : "tiebreak",
+            result_type: "normal",
           })
           .eq("id", matchId);
+        if (updErr) {
+          results.push({ matchId, ok: false, reason: `Falha ao finalizar: ${updErr.message}` });
+          continue;
+        }
 
         // Process Elo only if no rating_events exist yet for this match
         const players = (match.match_players || []) as { user_id: string; team: string }[];
