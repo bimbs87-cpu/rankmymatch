@@ -35,7 +35,7 @@ export const Route = createFileRoute("/admin/inbox")({
   component: AdminInboxPage,
 });
 
-type Kind = "join_request" | "claim";
+type Kind = "join_request" | "claim" | "match_result";
 
 interface PendingItem {
   id: string;
@@ -49,6 +49,12 @@ interface PendingItem {
   targetPlayerName: string | null;
   message: string | null;
   createdAt: string;
+  /** match_result extras (kind === "match_result") */
+  matchId?: string;
+  seasonId?: string;
+  matchNumber?: number | null;
+  roundNumber?: number | null;
+  sets?: { setNumber: number; scoreA: number; scoreB: number }[];
 }
 
 interface ResolvedItem {
