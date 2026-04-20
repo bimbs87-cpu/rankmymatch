@@ -494,7 +494,7 @@ export function SeasonsTimeline({ seasons, onSelect }: Props) {
                 <p className="text-center text-[10px] text-muted-foreground">Carregando…</p>
               ) : !podium || podium.length === 0 ? (
                 <p className="text-center text-[10px] text-muted-foreground">
-                  {selectedMarker.type === "big_round"
+                  {selectedMarker.type === "round"
                     ? "Sem placar registrado"
                     : "Sem ranking final disponível"}
                 </p>
