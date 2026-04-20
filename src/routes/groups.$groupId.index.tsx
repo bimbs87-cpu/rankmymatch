@@ -410,6 +410,7 @@ function GroupDetailPage() {
           {/* Floating tabs (mobile only) — sticky just below topbar, never covers cover image initially */}
           <GroupInternalFloatingTabs
             isAdmin={isAdmin}
+            memberCount={memberCount}
             view={view}
             onSelect={handleSelectView}
             badges={sidebarProps.badges}
