@@ -135,7 +135,7 @@ export const submitMatchScoreServerFn = createServerFn({ method: "POST" })
       .update({
         status: "completed",
         winner_team: winnerTeam,
-        result_type: sets.length === 1 ? "single_set" : sets.length === 2 ? "straight" : "tiebreak",
+        result_type: "normal",
       })
       .eq("id", matchId)
       .select("id, status")
