@@ -5,7 +5,48 @@ import { usePushSubscription } from "@/hooks/use-push-subscription";
 import { PUSH_EVENT_TYPES, usePushPreferences } from "@/hooks/use-push-preferences";
 import { sendPushFn } from "@/lib/push.functions";
 import { toast } from "sonner";
-import { BellRing, BellOff, CheckCircle2, XCircle, Smartphone, AlertTriangle, Send } from "lucide-react";
+import { BellRing, BellOff, CheckCircle2, XCircle, Smartphone, AlertTriangle, Send, History } from "lucide-react";
+
+const TEST_HISTORY_KEY = "push_test_history_v1";
+const MAX_HISTORY = 5;
+
+interface TestHistoryEntry {
+  ts: number;
+  sent: number;
+  failed: number;
+  error?: string;
+}
+
+function loadHistory(): TestHistoryEntry[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = localStorage.getItem(TEST_HISTORY_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.slice(0, MAX_HISTORY) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveHistory(entries: TestHistoryEntry[]) {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(TEST_HISTORY_KEY, JSON.stringify(entries.slice(0, MAX_HISTORY)));
+  } catch {
+    /* quota / private mode — ignore */
+  }
+}
+
+function formatRelative(ts: number): string {
+  const diff = Date.now() - ts;
+  const min = Math.floor(diff / 60000);
+  if (min < 1) return "agora";
+  if (min < 60) return `há ${min} min`;
+  const hr = Math.floor(min / 60);
+  if (hr < 24) return `há ${hr}h`;
+  return new Date(ts).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
+}
 
 interface SubRow {
   id: string;
@@ -27,6 +68,15 @@ export function PushDiagnosticCard() {
   const { isEnabled, toggle, loading: prefsLoading } = usePushPreferences();
   const [subs, setSubs] = useState<SubRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [history, setHistory] = useState<TestHistoryEntry[]>(() => loadHistory());
+
+  const recordHistory = (entry: TestHistoryEntry) => {
+    setHistory((prev) => {
+      const next = [entry, ...prev].slice(0, MAX_HISTORY);
+      saveHistory(next);
+      return next;
+    });
+  };
 
   useEffect(() => {
     if (!user) {
