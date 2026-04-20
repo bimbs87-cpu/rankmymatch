@@ -113,20 +113,26 @@ export function GroupDashboardPanel({ group, onLeft, onPresenceChanged }: Props)
   const [nudgeCooldownUntil, setNudgeCooldownUntil] = useState<number | null>(null);
   const [nudgeNowTs, setNudgeNowTs] = useState(Date.now());
   const [nudgePopoverOpen, setNudgePopoverOpen] = useState(false);
+  const [nudgeUsedCount, setNudgeUsedCount] = useState(0);
   const openProfile = useViewPlayerProfile();
 
   const NUDGE_COOLDOWN_MS = 60 * 60 * 1000; // 1h
+  const NUDGE_MAX_PER_ROUND = 3;
 
-  // Load cooldown from localStorage when round changes
+  // Load cooldown + usage count from localStorage when round changes
   useEffect(() => {
     const rid = data.next_round?.id;
     if (!rid || typeof localStorage === "undefined") {
       setNudgeCooldownUntil(null);
+      setNudgeUsedCount(0);
       return;
     }
     const raw = localStorage.getItem(`rmm.nudge.cooldown.${rid}`);
     const ts = raw ? Number(raw) : 0;
     setNudgeCooldownUntil(ts && ts > Date.now() ? ts : null);
+    const usedRaw = localStorage.getItem(`rmm.nudge.used.${rid}`);
+    const used = usedRaw ? Number(usedRaw) : 0;
+    setNudgeUsedCount(Number.isFinite(used) && used > 0 ? used : 0);
   }, [data.next_round?.id]);
 
   // Tick every 30s while a cooldown is active so the label updates
@@ -146,6 +152,10 @@ export function GroupDashboardPanel({ group, onLeft, onPresenceChanged }: Props)
 
   async function handleNudgePending(includeDeclined: boolean) {
     if (!data.next_round) return;
+    if (nudgeUsedCount >= NUDGE_MAX_PER_ROUND) {
+      toast.error(`Limite de ${NUDGE_MAX_PER_ROUND} cutucadas por rodada atingido`);
+      return;
+    }
     const pendingIds = data.next_round.pending_all?.map((p) => p.user_id) ?? [];
     const declinedIds = includeDeclined
       ? data.next_round.declined_all?.map((p) => p.user_id) ?? []
@@ -192,18 +202,21 @@ export function GroupDashboardPanel({ group, onLeft, onPresenceChanged }: Props)
         },
       }).catch(() => {});
 
-      // Save cooldown per round
+      // Save cooldown + bump usage count per round
       const until = Date.now() + NUDGE_COOLDOWN_MS;
+      const newUsed = nudgeUsedCount + 1;
       try {
         localStorage.setItem(`rmm.nudge.cooldown.${data.next_round.id}`, String(until));
+        localStorage.setItem(`rmm.nudge.used.${data.next_round.id}`, String(newUsed));
       } catch {
         // ignore
       }
       setNudgeCooldownUntil(until);
       setNudgeNowTs(Date.now());
+      setNudgeUsedCount(newUsed);
 
       toast.success(
-        `Cutucada enviada para ${targetIds.length} membro${targetIds.length > 1 ? "s" : ""}`
+        `Cutucada enviada para ${targetIds.length} membro${targetIds.length > 1 ? "s" : ""} (${newUsed}/${NUDGE_MAX_PER_ROUND})`
       );
 
       // Audit log (best-effort)
@@ -687,17 +700,53 @@ export function GroupDashboardPanel({ group, onLeft, onPresenceChanged }: Props)
                   </div>
                 )}
               </div>
-              {/* Capacity reached warning */}
+              {/* Capacity reached warning + waiting list */}
               {data.next_round.confirmed_count >= data.next_round.max_players && (
-                <div className="flex items-start gap-2 rounded-xl border border-warning/40 bg-warning/10 px-3 py-2 text-[11px]">
-                  <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-warning" />
-                  <div className="leading-snug">
-                    <span className="font-bold text-warning">Rodada lotada</span>{" "}
-                    <span className="text-muted-foreground">
-                      ({data.next_round.confirmed_count}/{data.next_round.max_players}).
-                      Novas confirmações entram em <span className="font-semibold text-foreground">lista de espera</span> e jogam se alguém desistir.
-                    </span>
+                <div className="space-y-2">
+                  <div className="flex items-start gap-2 rounded-xl border border-warning/40 bg-warning/10 px-3 py-2 text-[11px]">
+                    <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-warning" />
+                    <div className="leading-snug">
+                      <span className="font-bold text-warning">Rodada lotada</span>{" "}
+                      <span className="text-muted-foreground">
+                        ({data.next_round.confirmed_count}/{data.next_round.max_players}).
+                        Novas confirmações entram em <span className="font-semibold text-foreground">lista de espera</span> e jogam se alguém desistir.
+                      </span>
+                    </div>
                   </div>
+                  {(() => {
+                    const sortedAsc = [...(data.next_round.confirmed_all ?? [])].sort(
+                      (a, b) =>
+                        new Date(a.confirmed_at || 0).getTime() -
+                        new Date(b.confirmed_at || 0).getTime(),
+                    );
+                    const waitlist = sortedAsc.slice(data.next_round.max_players);
+                    if (waitlist.length === 0) return null;
+                    return (
+                      <div className="flex items-center gap-2 rounded-xl border border-dashed border-border/60 bg-background/30 px-3 py-2">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                          Lista de espera ({waitlist.length})
+                        </span>
+                        <div className="flex -space-x-1.5">
+                          {waitlist.slice(0, 6).map((p, i) => (
+                            <button
+                              key={p.user_id}
+                              type="button"
+                              onClick={() => openProfile(p.user_id)}
+                              title={`${p.name} · ${i + 1}º na espera`}
+                              className="rounded-full ring-2 ring-card transition-transform hover:z-10 hover:scale-110"
+                            >
+                              <PlayerAvatar avatarUrl={p.avatar_url} name={p.name} size="sm" />
+                            </button>
+                          ))}
+                          {waitlist.length > 6 && (
+                            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-muted text-[9px] font-bold text-muted-foreground ring-2 ring-card">
+                              +{waitlist.length - 6}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </div>
               )}
               {/* Response rate progress bar — % of active members who responded */}
@@ -777,68 +826,88 @@ export function GroupDashboardPanel({ group, onLeft, onPresenceChanged }: Props)
                     {data.next_round.presence_is_open &&
                       data.next_round.pending_all &&
                       data.next_round.pending_all.length > 0 && (
-                        <Popover open={nudgePopoverOpen} onOpenChange={setNudgePopoverOpen}>
-                          <PopoverTrigger asChild>
-                            <button
-                              disabled={nudging || nudgeOnCooldown}
-                              className="flex items-center gap-1 rounded-full border border-warning/40 bg-warning/10 px-2.5 py-1 text-[10px] font-bold text-warning transition-colors hover:bg-warning/20 disabled:opacity-50"
-                              title={
-                                nudgeOnCooldown
-                                  ? `Aguarde ${cooldownLabel} para cutucar novamente`
-                                  : `Cutucar ${data.next_round.pending_all.length} membro(s) sem resposta`
-                              }
-                            >
-                              <BellIcon className="h-3 w-3" />
-                              {nudging
-                                ? "Cutucando…"
-                                : nudgeOnCooldown
-                                  ? `Cutucar (aguarde ${cooldownLabel})`
-                                  : `Cutucar pendentes (${data.next_round.pending_all.length})`}
-                            </button>
-                          </PopoverTrigger>
-                          <PopoverContent align="end" className="w-64 p-2">
-                            <div className="mb-2 px-1 text-[11px] font-semibold text-foreground">
-                              Cutucar quem?
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => handleNudgePending(false)}
-                              disabled={nudging}
-                              className="flex w-full items-start gap-2 rounded-md p-2 text-left text-xs transition-colors hover:bg-muted/60 disabled:opacity-50"
-                            >
-                              <BellIcon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-warning" />
-                              <div>
-                                <div className="font-bold text-foreground">
-                                  Só sem resposta ({data.next_round.pending_all.length})
-                                </div>
-                                <div className="text-[10px] text-muted-foreground">
-                                  Lembrete pra quem ainda não confirmou nem recusou.
-                                </div>
+                        <div className="flex items-center gap-1.5">
+                          <Popover open={nudgePopoverOpen} onOpenChange={setNudgePopoverOpen}>
+                            <PopoverTrigger asChild>
+                              <button
+                                disabled={
+                                  nudging || nudgeOnCooldown || nudgeUsedCount >= NUDGE_MAX_PER_ROUND
+                                }
+                                className="flex items-center gap-1 rounded-full border border-warning/40 bg-warning/10 px-2.5 py-1 text-[10px] font-bold text-warning transition-colors hover:bg-warning/20 disabled:opacity-50"
+                                title={
+                                  nudgeUsedCount >= NUDGE_MAX_PER_ROUND
+                                    ? `Limite de ${NUDGE_MAX_PER_ROUND} cutucadas por rodada atingido`
+                                    : nudgeOnCooldown
+                                      ? `Aguarde ${cooldownLabel} para cutucar novamente`
+                                      : `Cutucar ${data.next_round.pending_all.length} membro(s) sem resposta`
+                                }
+                              >
+                                <BellIcon className="h-3 w-3" />
+                                {nudging
+                                  ? "Cutucando…"
+                                  : nudgeUsedCount >= NUDGE_MAX_PER_ROUND
+                                    ? "Limite atingido"
+                                    : nudgeOnCooldown
+                                      ? `Cutucar (aguarde ${cooldownLabel})`
+                                      : `Cutucar pendentes (${data.next_round.pending_all.length})`}
+                              </button>
+                            </PopoverTrigger>
+                            <PopoverContent align="end" className="w-64 p-2">
+                              <div className="mb-2 px-1 text-[11px] font-semibold text-foreground">
+                                Cutucar quem?
                               </div>
-                            </button>
-                            {data.next_round.declined_all && data.next_round.declined_all.length > 0 && (
                               <button
                                 type="button"
-                                onClick={() => handleNudgePending(true)}
+                                onClick={() => handleNudgePending(false)}
                                 disabled={nudging}
-                                className="mt-1 flex w-full items-start gap-2 rounded-md p-2 text-left text-xs transition-colors hover:bg-muted/60 disabled:opacity-50"
+                                className="flex w-full items-start gap-2 rounded-md p-2 text-left text-xs transition-colors hover:bg-muted/60 disabled:opacity-50"
                               >
-                                <BellIcon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-destructive" />
+                                <BellIcon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-warning" />
                                 <div>
                                   <div className="font-bold text-foreground">
-                                    + Quem recusou ({data.next_round.declined_all.length})
+                                    Só sem resposta ({data.next_round.pending_all.length})
                                   </div>
                                   <div className="text-[10px] text-muted-foreground">
-                                    Inclui também quem disse "Não vou" — útil quando abre vaga.
+                                    Lembrete pra quem ainda não confirmou nem recusou.
                                   </div>
                                 </div>
                               </button>
-                            )}
-                            <div className="mt-2 border-t border-border/60 px-1 pt-1.5 text-[10px] text-muted-foreground">
-                              Cooldown de 1h por rodada após enviar.
-                            </div>
-                          </PopoverContent>
-                        </Popover>
+                              {data.next_round.declined_all && data.next_round.declined_all.length > 0 && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleNudgePending(true)}
+                                  disabled={nudging}
+                                  className="mt-1 flex w-full items-start gap-2 rounded-md p-2 text-left text-xs transition-colors hover:bg-muted/60 disabled:opacity-50"
+                                >
+                                  <BellIcon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-destructive" />
+                                  <div>
+                                    <div className="font-bold text-foreground">
+                                      + Quem recusou ({data.next_round.declined_all.length})
+                                    </div>
+                                    <div className="text-[10px] text-muted-foreground">
+                                      Inclui também quem disse "Não vou" — útil quando abre vaga.
+                                    </div>
+                                  </div>
+                                </button>
+                              )}
+                              <div className="mt-2 border-t border-border/60 px-1 pt-1.5 text-[10px] text-muted-foreground">
+                                Cooldown de 1h e máx. {NUDGE_MAX_PER_ROUND} cutucadas por rodada.
+                              </div>
+                            </PopoverContent>
+                          </Popover>
+                          <span
+                            className={`text-[9px] font-bold tabular-nums ${
+                              nudgeUsedCount >= NUDGE_MAX_PER_ROUND
+                                ? "text-destructive"
+                                : nudgeUsedCount > 0
+                                  ? "text-warning"
+                                  : "text-muted-foreground/60"
+                            }`}
+                            title={`${nudgeUsedCount} de ${NUDGE_MAX_PER_ROUND} cutucadas usadas nesta rodada`}
+                          >
+                            {nudgeUsedCount}/{NUDGE_MAX_PER_ROUND}
+                          </span>
+                        </div>
                       )}
                     {data.next_round.presence_is_open && nudgeOnCooldown && (
                       <button

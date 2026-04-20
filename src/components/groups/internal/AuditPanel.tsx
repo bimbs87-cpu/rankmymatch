@@ -28,6 +28,13 @@ const ACTION_LABELS: Record<string, string> = {
   round_created: "Criou rodada",
   round_deleted: "Excluiu rodada",
   match_score_edited: "Editou placar",
+  round_nudge: "Cutucou pendentes",
+  round_nudge_cooldown_reset: "Resetou cooldown de cutucadas",
+};
+
+const NUDGE_MODE_LABELS: Record<string, string> = {
+  pending_only: "Só sem resposta",
+  "pending+declined": "Sem resposta + quem recusou",
 };
 
 function fmtDate(iso: string) {
@@ -197,7 +204,62 @@ function GenericDiff({ oldData, newData }: { oldData: any; newData: any }) {
   );
 }
 
+function NudgeDetail({ row }: { row: AuditRow }) {
+  const d = row.new_data || {};
+  const recipients = d.recipients_count ?? 0;
+  const pending = d.pending_count ?? 0;
+  const declined = d.declined_count ?? 0;
+  const mode = d.mode ? NUDGE_MODE_LABELS[d.mode] || d.mode : null;
+  const roundNum = d.round_number;
+  return (
+    <div className="grid gap-2 sm:grid-cols-2">
+      <div className="rounded-lg border border-warning/40 bg-warning/5 p-2">
+        <p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-warning">
+          Destinatários
+        </p>
+        <p className="text-2xl font-bold tabular-nums text-foreground">{recipients}</p>
+        <p className="mt-1 text-[10px] text-muted-foreground">
+          {pending} sem resposta · {declined} recusados
+        </p>
+      </div>
+      <div className="rounded-lg border border-border bg-muted/20 p-2 text-[11px]">
+        <div className="mb-1 flex items-center justify-between">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+            Detalhes
+          </span>
+        </div>
+        {mode && (
+          <p className="text-foreground">
+            <span className="text-muted-foreground">Modo:</span> {mode}
+          </p>
+        )}
+        {roundNum != null && (
+          <p className="text-foreground">
+            <span className="text-muted-foreground">Rodada:</span> #{roundNum}
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function NudgeResetDetail({ row }: { row: AuditRow }) {
+  const d = row.new_data || {};
+  return (
+    <div className="rounded-lg border border-border bg-muted/20 p-2 text-[11px] text-foreground">
+      <span className="text-muted-foreground">Rodada:</span>{" "}
+      {d.round_number != null ? `#${d.round_number}` : "—"} · cooldown manual zerado.
+    </div>
+  );
+}
+
 function DiffView({ row }: { row: AuditRow }) {
+  if (row.action === "round_nudge") {
+    return <NudgeDetail row={row} />;
+  }
+  if (row.action === "round_nudge_cooldown_reset") {
+    return <NudgeResetDetail row={row} />;
+  }
   if (row.old_data == null && row.new_data == null) {
     return (
       <p className="rounded-lg border border-dashed border-border bg-muted/10 p-2 text-center text-[11px] text-muted-foreground">
