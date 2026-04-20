@@ -63,16 +63,22 @@ function DevDashboardPage() {
   useEffect(() => {
     let cancelled = false;
     setIsLoading(true);
-    getDevDashboard()
-      .then((res) => {
+    (async () => {
+      try {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+        if (!session) throw new Error("Sessão não encontrada");
+        const res = await getDevDashboard({
+          headers: { authorization: `Bearer ${session.access_token}` },
+        });
         if (!cancelled) setData(res);
-      })
-      .catch((err) => {
+      } catch (err) {
         if (!cancelled) setError(err instanceof Error ? err : new Error(String(err)));
-      })
-      .finally(() => {
+      } finally {
         if (!cancelled) setIsLoading(false);
-      });
+      }
+    })();
     return () => {
       cancelled = true;
     };

@@ -29,13 +29,30 @@ type SignupRow = {
 export const getDevDashboard = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    console.log("[getDevDashboard] start, userId=", context.userId);
     await ensureAppAdmin(context.userId);
+    console.log("[getDevDashboard] admin OK, listing users...");
 
     // ===== auth.users (paginado, pega até 1000 — suficiente por enquanto) =====
-    const { data: usersPage, error: usersErr } =
-      await supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 1000 });
-    if (usersErr) throw new Error(usersErr.message);
-    const authUsers = usersPage?.users ?? [];
+    let authUsers: Array<{
+      id: string;
+      email?: string | null;
+      created_at: string;
+      last_sign_in_at?: string | null;
+      user_metadata?: Record<string, unknown>;
+    }> = [];
+    try {
+      const { data: usersPage, error: usersErr } =
+        await supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 1000 });
+      if (usersErr) throw new Error(usersErr.message);
+      authUsers = (usersPage?.users ?? []) as typeof authUsers;
+      console.log("[getDevDashboard] listUsers OK, count=", authUsers.length);
+    } catch (e) {
+      console.error("[getDevDashboard] listUsers FAILED:", e);
+      throw new Error(
+        `auth.admin.listUsers failed: ${e instanceof Error ? e.message : String(e)}`
+      );
+    }
 
     const userIds = authUsers.map((u) => u.id);
 
