@@ -3,9 +3,15 @@ import { submitMatchScore, previewMatchEloChanges } from "@/lib/elo-engine";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { PlayerAvatarLink, PlayerNameLink } from "@/components/PlayerProfileViewer";
 import { TrophyLoadingBar } from "@/components/TrophyLoadingBar";
-import { X, Save, Trophy, AlertCircle } from "lucide-react";
+import { X, Save, Trophy, AlertCircle, Send, Check, ThumbsDown, Clock } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  submitPendingResult,
+  approvePendingResult,
+  rejectPendingResult,
+  useMatchPendingResult,
+} from "@/lib/pending-results";
 
 interface Props {
   matchId: string;
@@ -22,6 +28,10 @@ interface Props {
    */
   setsMode?: "fixed" | "flexible" | "unlimited";
   isSingles?: boolean;
+  /** Whether the current user is an admin of the group. Non-admin players
+   * submit a pending result that admins must approve. Defaults to true to
+   * preserve previous behavior in callers that have not yet been updated. */
+  isAdmin?: boolean;
   onClose: () => void;
   onSaved: () => void;
 }
