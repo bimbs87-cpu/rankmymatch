@@ -23,10 +23,11 @@ import {
   Inbox,
   Link2,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { useGroupDashboard } from "@/hooks/use-group-dashboard";
+import { Clock } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import { confirmPresence, cancelPresence } from "@/lib/round-actions";
