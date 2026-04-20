@@ -4,7 +4,7 @@ import { useGroupDetail } from "@/hooks/use-groups";
 import { useGroupSeasons } from "@/hooks/use-seasons";
 import { createSeasonWithRounds } from "@/hooks/use-season-creation";
 import { isRivalryGroup } from "@/lib/rivalry";
-import { ArrowLeft, Plus, Trophy, X, Calendar, Pencil, MoreVertical, EyeOff, CheckCircle2, Trash2, Edit3 } from "lucide-react";
+import { ArrowLeft, Plus, Trophy, X, Calendar, Pencil, MoreVertical, EyeOff, CheckCircle2, Trash2, Edit3, History as HistoryIcon } from "lucide-react";
 import { TrophyLoadingBar } from "@/components/TrophyLoadingBar";
 import { WizardStepper } from "@/components/ui/wizard-stepper";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -371,7 +371,26 @@ function GroupSeasonsPage() {
                       <Trophy className="h-5 w-5 text-primary" />
                     </div>
                     <div>
-                      <span className="text-sm font-semibold text-foreground">{s.name}</span>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="text-sm font-semibold text-foreground">{s.name}</span>
+                        {(() => {
+                          // Heuristic: a season is "retroactive" when its start_date
+                          // is in the past relative to its created_at date.
+                          if (!s.start_date) return null;
+                          const start = new Date(s.start_date + "T00:00:00").getTime();
+                          const created = new Date(s.created_at).setHours(0, 0, 0, 0);
+                          if (start >= created) return null;
+                          return (
+                            <span
+                              title="Temporada criada com data retroativa"
+                              className="inline-flex items-center gap-1 rounded-full border border-primary/30 bg-primary/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-primary"
+                            >
+                              <HistoryIcon className="h-2.5 w-2.5" />
+                              Retroativa
+                            </span>
+                          );
+                        })()}
+                      </div>
                       <div className="flex items-center gap-2 text-xs text-muted-foreground">
                         <span className={`inline-block h-1.5 w-1.5 rounded-full ${s.status === "active" ? "bg-success" : "bg-muted-foreground"}`} />
                         <span className="capitalize">{s.status === "active" ? "Ativa" : s.status === "finished" ? "Encerrada" : s.status}</span>
