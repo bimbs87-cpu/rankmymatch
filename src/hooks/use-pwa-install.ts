@@ -36,6 +36,14 @@ export function usePwaInstall() {
       setIsInstalled(true);
       setJustInstalled(true);
       setDeferredPrompt(null);
+      // GA4 event — PWA installed
+      try {
+        void import("@/lib/analytics").then(({ trackEvent }) =>
+          trackEvent("pwa_installed", { platform: "web" }),
+        );
+      } catch {
+        /* ignore */
+      }
     });
 
     return () => {

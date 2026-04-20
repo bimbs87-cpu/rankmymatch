@@ -18,6 +18,14 @@ export type ShareChannel = "copy" | "native" | "qr" | "image" | "whatsapp" | "pr
 
 export async function trackShareEvent(groupId: string, channel: ShareChannel): Promise<void> {
   if (!groupId) return;
+  // GA4 event (best-effort, non-blocking)
+  try {
+    void import("@/lib/analytics").then(({ trackEvent }) =>
+      trackEvent("share_group", { group_id: groupId, channel }),
+    );
+  } catch {
+    /* ignore */
+  }
   try {
     const { data: auth } = await supabase.auth.getUser();
     const userId = auth?.user?.id ?? null;

@@ -113,6 +113,15 @@ export async function confirmPresence(roundId: string, userId: string) {
     if (insertError) throw insertError;
   }
 
+  // GA4 event — presence confirmed
+  try {
+    void import("@/lib/analytics").then(({ trackEvent }) =>
+      trackEvent("presence_confirmed", { round_id: roundId }),
+    );
+  } catch {
+    /* ignore */
+  }
+
   // Fan-out notification: let other already-confirmed players know someone joined.
   // Best-effort, never blocks UX.
   try {
