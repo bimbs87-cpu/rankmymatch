@@ -308,49 +308,69 @@ export function GroupEloEvolutionChart({ groupId, defaultFilter = "all" }: Props
               {/* Season boundary markers (only when viewing all seasons) */}
               {filter === "all" &&
                 data.seasonBoundaries.length > 1 &&
-                data.seasonBoundaries.slice(1).map((b) => {
-                  const x = xForTs(b.ts);
-                  if (x < padL || x > w - padR) return null;
-                  const labelText =
-                    b.seasonName.length > 18 ? b.seasonName.slice(0, 17) + "…" : b.seasonName;
-                  const labelW = Math.min(120, labelText.length * 5.5 + 10);
-                  const labelX = Math.min(w - padR - labelW - 2, x + 3);
-                  return (
-                    <g key={`sb-${b.seasonId}`}>
-                      <line
-                        x1={x}
-                        x2={x}
-                        y1={padT}
-                        y2={padT + innerH}
-                        stroke="var(--primary)"
-                        strokeOpacity="0.45"
-                        strokeWidth="1"
-                        strokeDasharray="4 4"
-                      />
-                      <rect
-                        x={labelX}
-                        y={padT + 2}
-                        width={labelW}
-                        height={14}
-                        rx={3}
-                        fill="var(--primary)"
-                        fillOpacity="0.12"
-                        stroke="var(--primary)"
-                        strokeOpacity="0.35"
-                      />
-                      <text
-                        x={labelX + 5}
-                        y={padT + 12}
-                        fontSize="9"
-                        fill="var(--primary)"
-                        fontFamily="ui-sans-serif, system-ui, sans-serif"
-                        fontWeight={600}
-                      >
-                        {labelText}
-                      </text>
-                    </g>
-                  );
-                })}
+                (() => {
+                  const labelH = 14;
+                  const gap = 2;
+                  const placed: { x: number; y: number; w: number }[] = [];
+                  return data.seasonBoundaries.slice(1).map((b) => {
+                    const x = xForTs(b.ts);
+                    if (x < padL || x > w - padR) return null;
+                    const labelText =
+                      b.seasonName.length > 14 ? b.seasonName.slice(0, 13) + "…" : b.seasonName;
+                    const labelW = Math.min(110, labelText.length * 5.5 + 10);
+                    const labelX = Math.min(w - padR - labelW - 2, x + 3);
+                    // Find a y row with no horizontal collision
+                    let row = 0;
+                    while (
+                      placed.some(
+                        (p) =>
+                          p.y === padT + 2 + row * (labelH + gap) &&
+                          labelX < p.x + p.w + 4 &&
+                          labelX + labelW + 4 > p.x,
+                      )
+                    ) {
+                      row++;
+                      if (row > 4) break;
+                    }
+                    const labelY = padT + 2 + row * (labelH + gap);
+                    placed.push({ x: labelX, y: labelY, w: labelW });
+                    return (
+                      <g key={`sb-${b.seasonId}`}>
+                        <line
+                          x1={x}
+                          x2={x}
+                          y1={padT}
+                          y2={padT + innerH}
+                          stroke="var(--primary)"
+                          strokeOpacity="0.45"
+                          strokeWidth="1"
+                          strokeDasharray="4 4"
+                        />
+                        <rect
+                          x={labelX}
+                          y={labelY}
+                          width={labelW}
+                          height={labelH}
+                          rx={3}
+                          fill="var(--primary)"
+                          fillOpacity="0.18"
+                          stroke="var(--primary)"
+                          strokeOpacity="0.4"
+                        />
+                        <text
+                          x={labelX + 5}
+                          y={labelY + 10}
+                          fontSize="9"
+                          fill="var(--primary)"
+                          fontFamily="ui-sans-serif, system-ui, sans-serif"
+                          fontWeight={600}
+                        >
+                          {labelText}
+                        </text>
+                      </g>
+                    );
+                  });
+                })()}
 
               {/* Lines */}
               {visibleSeries.map((s) => {
