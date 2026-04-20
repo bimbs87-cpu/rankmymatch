@@ -280,18 +280,22 @@ function Sparkline({
   values,
   unit = "",
   medianLine,
+  p90Line,
 }: {
   values: number[];
   unit?: string;
   /** Optional value to draw as a horizontal dashed reference line (e.g. median). */
   medianLine?: number;
+  /** Optional value to draw as a red dashed reference line (e.g. p90). */
+  p90Line?: number;
 }) {
   if (values.length < 2) return null;
   const w = 200;
   const h = 32;
   const pad = 2;
-  const max = Math.max(...values, 1, medianLine ?? -Infinity);
-  const min = Math.min(...values, 0, medianLine ?? Infinity);
+  const refs = [medianLine, p90Line].filter((v): v is number => typeof v === "number");
+  const max = Math.max(...values, 1, ...refs);
+  const min = Math.min(...values, 0, ...refs);
   const range = Math.max(1, max - min);
   const stepX = (w - pad * 2) / (values.length - 1);
   const points = values.map((v, i) => {
@@ -315,6 +319,19 @@ function Sparkline({
         ? `${Math.round(medianLine)}${unit}`
         : `${medianLine.toFixed(1)}${unit}`
       : "";
+  const p90Y =
+    typeof p90Line === "number"
+      ? h - pad - ((p90Line - min) / range) * (h - pad * 2)
+      : null;
+  const p90Label =
+    typeof p90Line === "number"
+      ? p90Line >= 10
+        ? `${Math.round(p90Line)}${unit}`
+        : `${p90Line.toFixed(1)}${unit}`
+      : "";
+  // Avoid label overlap when p90 and median land close to each other.
+  const p90LabelAnchor = medianY !== null && p90Y !== null && Math.abs(p90Y - medianY) < 10 ? "start" : "end";
+  const p90LabelX = p90LabelAnchor === "start" ? pad : w - pad;
   return (
     <div className="flex items-center gap-2">
       <svg width="100%" height={h} viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" className="flex-1">
@@ -341,6 +358,32 @@ function Sparkline({
               opacity={0.85}
             >
               {`med ${medianLabel}`}
+            </text>
+          </>
+        )}
+        {p90Y !== null && (
+          <>
+            <line
+              x1={pad}
+              x2={w - pad}
+              y1={p90Y}
+              y2={p90Y}
+              stroke="hsl(var(--destructive))"
+              strokeWidth={1}
+              strokeDasharray="3 3"
+              opacity={0.7}
+            >
+              <title>{`p90: ${p90Label}`}</title>
+            </line>
+            <text
+              x={p90LabelX}
+              y={Math.max(8, p90Y - 2)}
+              textAnchor={p90LabelAnchor}
+              fontSize={8}
+              fill="hsl(var(--destructive))"
+              opacity={0.9}
+            >
+              {`p90 ${p90Label}`}
             </text>
           </>
         )}
@@ -739,6 +782,7 @@ export function AuditPanel({ groupId }: Props) {
             const p90Label = p90 >= 10 ? `${Math.round(p90)}h` : `${p90.toFixed(1)}h`;
             const total = responseTimes.length;
             const responded = nonZero.length;
+            const slowCount = nonZero.filter((v) => v > 6).length;
             const tooltip = `${responded} de ${total} cutucadas tiveram resposta. Mediana: ${medianLabel} · p90: ${p90Label}. Verde <1h · Amarelo 1-6h · Vermelho >6h`;
             return (
               <div>
@@ -746,34 +790,49 @@ export function AuditPanel({ groupId }: Props) {
                   <p className="text-[9px] font-bold uppercase tracking-wider text-warning/80">
                     Tempo médio de resposta (h) — últimas {responseTimes.length}
                   </p>
-                  {(() => {
-                    const tone =
-                      avg <= 0
-                        ? "muted"
-                        : avg < 1
-                          ? "success"
-                          : avg <= 6
-                            ? "warning"
-                            : "destructive";
-                    const toneCls =
-                      tone === "success"
-                        ? "border-success/40 bg-success/10 text-success"
-                        : tone === "warning"
-                          ? "border-warning/40 bg-warning/10 text-warning"
-                          : tone === "destructive"
-                            ? "border-destructive/40 bg-destructive/10 text-destructive"
-                            : "border-border bg-muted/40 text-muted-foreground";
-                    return (
+                  <div className="flex items-center gap-1">
+                    {slowCount > 0 && (
                       <span
-                        className={`flex cursor-help items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-bold tabular-nums ${toneCls}`}
-                        title={tooltip}
+                        className="flex cursor-help items-center gap-1 rounded-full border border-destructive/40 bg-destructive/10 px-1.5 py-0.5 text-[10px] font-bold tabular-nums text-destructive"
+                        title={`${slowCount} cutucada${slowCount !== 1 ? "s" : ""} com resposta acima de 6h (outliers)`}
                       >
-                        <Clock className="h-2.5 w-2.5" /> Média geral: {avgLabel}
+                        🐌 {slowCount} lenta{slowCount !== 1 ? "s" : ""}
                       </span>
-                    );
-                  })()}
+                    )}
+                    {(() => {
+                      const tone =
+                        avg <= 0
+                          ? "muted"
+                          : avg < 1
+                            ? "success"
+                            : avg <= 6
+                              ? "warning"
+                              : "destructive";
+                      const toneCls =
+                        tone === "success"
+                          ? "border-success/40 bg-success/10 text-success"
+                          : tone === "warning"
+                            ? "border-warning/40 bg-warning/10 text-warning"
+                            : tone === "destructive"
+                              ? "border-destructive/40 bg-destructive/10 text-destructive"
+                              : "border-border bg-muted/40 text-muted-foreground";
+                      return (
+                        <span
+                          className={`flex cursor-help items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-bold tabular-nums ${toneCls}`}
+                          title={tooltip}
+                        >
+                          <Clock className="h-2.5 w-2.5" /> Média geral: {avgLabel}
+                        </span>
+                      );
+                    })()}
+                  </div>
                 </div>
-                <Sparkline values={responseTimes} unit="h" medianLine={median > 0 ? median : undefined} />
+                <Sparkline
+                  values={responseTimes}
+                  unit="h"
+                  medianLine={median > 0 ? median : undefined}
+                  p90Line={p90 > 0 ? p90 : undefined}
+                />
               </div>
             );
           })()}
