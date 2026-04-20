@@ -66,18 +66,18 @@ export async function createExtraRound(params: {
     .eq("season_id", seasonId);
   const tempNumber = (existing || []).reduce((m, r) => Math.max(m, r.round_number || 0), 0) + 1;
 
-  const insertPayload: Record<string, unknown> = {
+  const insertPayload = {
     group_id: groupId,
     season_id: seasonId,
     round_number: tempNumber,
     scheduled_date: scheduledDate,
-    status: "scheduled",
+    status: "scheduled" as const,
     match_format: group.match_format,
     max_players: group.max_players,
     is_extra: true,
+    ...(scheduledTime ? { scheduled_time: scheduledTime } : {}),
+    ...(location && location.trim() ? { location: location.trim() } : {}),
   };
-  if (scheduledTime) insertPayload.scheduled_time = scheduledTime;
-  if (location && location.trim()) insertPayload.location = location.trim();
 
   const { data: created, error } = await supabase
     .from("rounds")
