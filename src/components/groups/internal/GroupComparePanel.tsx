@@ -372,7 +372,7 @@ export function GroupComparePanel({ groupId, initialPick, onConsumeInitial }: Pa
 
   // (No more inline iframe view — openCompare() does a full-page navigation.)
   return (
-    <div className="space-y-5">
+    <div className="flex flex-col gap-5">
       <div className="flex items-center gap-3">
         <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/15 text-primary">
           <BarChart3 className="h-5 w-5" />
@@ -389,11 +389,11 @@ export function GroupComparePanel({ groupId, initialPick, onConsumeInitial }: Pa
 
       {/* Suggestions */}
       {suggestions.length > 0 && (
-        <section>
+        <section className="order-2 lg:order-none">
           <p className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground mb-2 flex items-center gap-1.5">
             <Sparkles className="h-3 w-3" /> Sugestões
           </p>
-          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
             {suggestions.map((s) => (
               <button
                 key={s.key}
@@ -481,7 +481,7 @@ export function GroupComparePanel({ groupId, initialPick, onConsumeInitial }: Pa
       )}
 
       {/* Picker */}
-      <section>
+      <section className="order-1 lg:order-none">
         <div className="flex items-center justify-between mb-2">
           <p className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground">
             Selecione 2 a 4 jogadores
