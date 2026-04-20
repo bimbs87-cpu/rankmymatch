@@ -111,6 +111,13 @@ function GroupDetailPage() {
   const { pendingMatch, refresh: refreshPending } = usePendingMatch(groupId);
 
   const [view, setView] = useState<GroupView>(search.view || "overview");
+  const [scrolled, setScrolled] = useState(false);
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 4);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
   const [memberShareOpen, setMemberShareOpen] = useState(false);
   const [pendingCompareIds, setPendingCompareIds] = useState<string[] | null>(null);
 
