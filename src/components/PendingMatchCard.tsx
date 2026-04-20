@@ -88,7 +88,7 @@ export function PendingMatchCard({ match, onScoreSaved, showGroupName = true, is
             className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-primary py-2.5 text-xs font-bold text-primary-foreground active:scale-[0.98]"
           >
             <Edit3 className="h-3.5 w-3.5" />
-            {isAdmin ? "Lançar resultado" : "Enviar resultado"}
+            {hasPending ? (isAdmin ? "Revisar e aprovar" : "Editar envio") : (isAdmin ? "Lançar resultado" : "Enviar resultado")}
           </button>
           <Link
             to="/groups/$groupId/seasons/$seasonId/rounds/$roundId"
