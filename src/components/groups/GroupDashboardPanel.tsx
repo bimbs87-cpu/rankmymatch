@@ -26,6 +26,7 @@ import {
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
+import { useViewPlayerProfile } from "@/components/PlayerProfileViewer";
 import { useGroupDashboard } from "@/hooks/use-group-dashboard";
 import { Clock } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
