@@ -106,8 +106,6 @@ export function useGroupRecentDeltas(groupId: string | null) {
     } finally {
       setIsLoading(false);
     }
-    // sinceDate intentionally unused outside (avoid lint warn by referencing)
-    void sinceDate;
   }, [groupId]);
 
   useEffect(() => {
