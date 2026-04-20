@@ -64,5 +64,10 @@ export const sendPushFn = createServerFn({ method: "POST" })
     }
 
     if (!allowed.length) return { sent: 0, failed: 0 };
-    return sendPushToUserIds(allowed, payload);
+    try {
+      return await sendPushToUserIds(allowed, payload);
+    } catch (err) {
+      console.error("[sendPushFn] delivery failed:", err);
+      return { sent: 0, failed: allowed.length, error: "push_failed" };
+    }
   });
