@@ -22,6 +22,9 @@ function SeasonDetailPage() {
   const [editDates, setEditDates] = useState<Record<string, string>>({});
   const [editingRoundId, setEditingRoundId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [creatingExtra, setCreatingExtra] = useState(false);
+  const [extraDate, setExtraDate] = useState("");
+  const [showExtraForm, setShowExtraForm] = useState(false);
 
   useEffect(() => {
     supabase
