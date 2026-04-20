@@ -114,7 +114,28 @@ export function GroupDashboardPanel({ group, onLeft, onPresenceChanged }: Props)
   const [nudgeNowTs, setNudgeNowTs] = useState(Date.now());
   const [nudgePopoverOpen, setNudgePopoverOpen] = useState(false);
   const [nudgeUsedCount, setNudgeUsedCount] = useState(0);
+  const [promotingUserId, setPromotingUserId] = useState<string | null>(null);
   const openProfile = useViewPlayerProfile();
+
+  async function handlePromoteFromWaitlist(userId: string) {
+    if (!data.next_round) return;
+    setPromotingUserId(userId);
+    try {
+      await adminPromoteFromWaitlist(
+        data.next_round.id,
+        group.id,
+        userId,
+        data.next_round.round_number ?? null,
+      );
+      toast.success("Jogador promovido da lista de espera");
+      await refresh();
+      onPresenceChanged?.();
+    } catch (e: any) {
+      toast.error(e?.message || "Não foi possível promover");
+    } finally {
+      setPromotingUserId(null);
+    }
+  }
 
   const NUDGE_COOLDOWN_MS = 60 * 60 * 1000; // 1h
   const NUDGE_MAX_PER_ROUND = 3;
