@@ -111,6 +111,13 @@ export function InviteLinkDialog({ open, onOpenChange, groupId, isAdmin }: Invit
       toast.error("Erro ao criar link");
     } else {
       toast.success("Link criado!");
+      void import("@/lib/analytics").then(({ trackEvent }) =>
+        trackEvent("invite_created", {
+          group_id: groupId,
+          max_uses: maxUses || null,
+          expires_in_hours: expirationHours,
+        }),
+      );
       setShowOptions(false);
       setExpirationHours(null);
       setMaxUses(0);
