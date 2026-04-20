@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
-import { ChevronDown, Users, Trophy, UserSquare2, Compass, CheckCircle2, CalendarClock, Clock, X as XIcon } from "lucide-react";
+import { ChevronDown, Users, Trophy, UserSquare2, Compass, CheckCircle2, CalendarClock, Clock, LayoutDashboard, X as XIcon } from "lucide-react";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { useGroupPendingTasks } from "@/hooks/use-group-pending-tasks";
@@ -219,6 +219,18 @@ export function GroupsNavMenu({ groups, renderTrigger, panelClassName }: Props) 
                 )}
               </div>
               <ul className="space-y-0.5">
+                <li>
+                  <Link
+                    to="/groups/$groupId"
+                    params={{ groupId: primaryId }}
+                    search={{ view: "overview" } as any}
+                    onClick={() => setOpen(false)}
+                    className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-accent"
+                  >
+                    <LayoutDashboard className="h-3.5 w-3.5 shrink-0 text-primary" />
+                    <span>Visão geral</span>
+                  </Link>
+                </li>
                 {nextRound && (
                   <li>
                     <Link
