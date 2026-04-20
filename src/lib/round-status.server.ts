@@ -14,12 +14,17 @@ function derive(statuses: string[]): RoundStatus {
  * that have already validated authorization.
  */
 export async function recomputeRoundStatusInternal(roundId: string): Promise<RoundStatus> {
-  const { data: matches } = await supabaseAdmin
+  const { data: matches, error: selErr } = await supabaseAdmin
     .from("matches")
     .select("status")
     .eq("round_id", roundId);
+  if (selErr) throw new Error(`Falha ao ler partidas: ${selErr.message}`);
   const status = derive((matches || []).map((m) => m.status));
-  await supabaseAdmin.from("rounds").update({ status }).eq("id", roundId);
+  const { error: updErr } = await supabaseAdmin
+    .from("rounds")
+    .update({ status })
+    .eq("id", roundId);
+  if (updErr) throw new Error(`Falha ao atualizar status da rodada: ${updErr.message}`);
   return status;
 }
 
