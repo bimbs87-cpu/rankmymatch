@@ -110,7 +110,7 @@ export function DesktopNav() {
                     className={baseClasses}
                   >
                     <Icon className="h-4 w-4" />
-                    <span>{item.label}</span>
+                    <span>Duelo</span>
                   </Link>
                 );
               }

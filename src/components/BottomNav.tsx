@@ -61,6 +61,7 @@ export function BottomNav() {
               (item.to !== "/" && location.pathname.startsWith(item.to));
           const Icon = item.icon;
           const isRanking = item.to === "/ranking";
+          const label = isRanking && shouldOpenDuelFromRanking ? "Duelo" : item.label;
 
           const renderInner = (badge = 0, badgeLoading = false) => (
             <>
@@ -83,7 +84,7 @@ export function BottomNav() {
                   ) : null}
                 </div>
               )}
-              <span>{item.label}</span>
+              <span>{label}</span>
             </>
           );
 
