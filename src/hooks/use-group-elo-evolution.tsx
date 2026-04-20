@@ -15,14 +15,23 @@ export interface SeasonOption {
   status: string;
 }
 
+export interface SeasonBoundary {
+  /** Timestamp of the first match in this season (used as the marker x-position). */
+  ts: number;
+  seasonId: string;
+  seasonName: string;
+}
+
 export interface GroupEloEvolution {
   series: PlayerEloLine[];
   minTs: number;
   maxTs: number;
   seasons: SeasonOption[];
+  /** Boundaries between seasons in chronological order. Empty unless filter='all'. */
+  seasonBoundaries: SeasonBoundary[];
 }
 
-const EMPTY: GroupEloEvolution = { series: [], minTs: 0, maxTs: 0, seasons: [] };
+const EMPTY: GroupEloEvolution = { series: [], minTs: 0, maxTs: 0, seasons: [], seasonBoundaries: [] };
 
 export type SeasonFilter = "all" | "active" | string; // string = season id
 
