@@ -430,9 +430,11 @@ export function AuditPanel({ groupId }: Props) {
   const [actorNames, setActorNames] = useState<Record<string, string>>({});
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [responseTimes, setResponseTimes] = useState<number[]>([]);
+  const [responseTimeLabels, setResponseTimeLabels] = useState<Array<number | null>>([]);
   const [slowResponders, setSlowResponders] = useState<
     Array<{ userId: string; hours: number; roundNumber: number | null; nudgeAt: number }>
   >([]);
+  const [slowGroupedExpanded, setSlowGroupedExpanded] = useState<Record<string, boolean>>({});
   const [roundMovements, setRoundMovements] = useState<
     Record<string, { round_number: number | null; scheduled_date: string | null }>
   >({});
@@ -503,6 +505,7 @@ export function AuditPanel({ groupId }: Props) {
           nudgesByRound.set(n.entity_id as string, arr);
         }
         const slow: Array<{ userId: string; hours: number; roundNumber: number | null; nudgeAt: number }> = [];
+        const responseLabels: Array<number | null> = [];
         for (const n of nudges) {
           const ts = new Date(n.created_at).getTime();
           const roundId = n.entity_id as string;
@@ -510,6 +513,7 @@ export function AuditPanel({ groupId }: Props) {
           const nextNudge = sameRoundNudges.find((t) => t > ts) ?? ts + 24 * 3600 * 1000;
           const pres = presByRound.get(roundId) || [];
           const responses = pres.filter((p) => p.ts > ts && p.ts <= nextNudge);
+          responseLabels.push(roundMeta[roundId]?.round_number ?? null);
           if (responses.length === 0) {
             responseHours.push(0);
           } else {
