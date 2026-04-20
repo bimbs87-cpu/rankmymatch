@@ -253,12 +253,25 @@ export const getDevDashboard = createServerFn({ method: "GET" })
       .slice(-12);
 
     // ===== Aquisição (UTM / invite / direct) =====
-    const { data: acqRows } = await supabaseAdmin
+    type AcqRow = {
+      user_id: string;
+      utm_source: string | null;
+      utm_medium: string | null;
+      utm_campaign: string | null;
+      invite_code: string | null;
+      referrer: string | null;
+      landing_path: string | null;
+      created_at: string;
+    };
+    const { data: acqRowsRaw } = await (supabaseAdmin as unknown as {
+      from: (t: string) => { select: (cols: string) => Promise<{ data: AcqRow[] | null }> };
+    })
       .from("user_acquisition")
       .select("user_id, utm_source, utm_medium, utm_campaign, invite_code, referrer, landing_path, created_at");
+    const acqRows: AcqRow[] = acqRowsRaw ?? [];
 
-    const acqByUser = new Map<string, (typeof acqRows extends Array<infer R> ? R : never)>();
-    (acqRows ?? []).forEach((a) => acqByUser.set(a.user_id, a));
+    const acqByUser = new Map<string, AcqRow>();
+    acqRows.forEach((a) => acqByUser.set(a.user_id, a));
 
     // Breakdown por canal
     const channelCount = new Map<string, number>();
