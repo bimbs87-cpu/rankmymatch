@@ -270,6 +270,7 @@ export function SeasonsPanel({ groupId, isAdmin, initialSeasonId, initialRoundId
                     expanded={expandedId === s.id}
                     onToggle={() => setExpandedId(expandedId === s.id ? null : s.id)}
                     onChanged={refresh}
+                    initialRoundId={expandedId === s.id ? initialRoundId : undefined}
                   />
                 </div>
               ))}
@@ -290,9 +291,9 @@ export function SeasonsPanel({ groupId, isAdmin, initialSeasonId, initialRoundId
 }
 
 function SeasonAccordion({
-  season, groupId, isAdmin, expanded, onToggle, onChanged,
+  season, groupId, isAdmin, expanded, onToggle, onChanged, initialRoundId,
 }: {
-  season: any; groupId: string; isAdmin: boolean; expanded: boolean; onToggle: () => void; onChanged: () => void;
+  season: any; groupId: string; isAdmin: boolean; expanded: boolean; onToggle: () => void; onChanged: () => void; initialRoundId?: string;
 }) {
   const isActive = season.status === "active";
   const [editingName, setEditingName] = useState(false);
