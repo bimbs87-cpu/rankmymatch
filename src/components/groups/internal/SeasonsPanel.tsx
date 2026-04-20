@@ -17,7 +17,6 @@ import { GroupSummaryCards } from "./GroupSummaryCards";
 import { SeasonsTimeline } from "./SeasonsTimeline";
 import { createExtraRound as createExtraRoundFn } from "@/lib/extra-round";
 import { ScoreEntryDialog } from "@/components/ScoreEntryDialog";
-import { Trophy as TrophyIcon } from "lucide-react";
 
 type SeasonFilter = "all" | "active" | "finished";
 
