@@ -429,6 +429,7 @@ function SeasonRoundsInline({ groupId, seasonId, isAdmin }: { groupId: string; s
   const [editingRoundId, setEditingRoundId] = useState<string | null>(null);
   const [editDates, setEditDates] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const today = new Date().toISOString().slice(0, 10);
 
@@ -493,13 +494,15 @@ function SeasonRoundsInline({ groupId, seasonId, isAdmin }: { groupId: string; s
         const cancelled = r.status === "cancelled";
         const completed = r.status === "completed";
         const smartStatus = getStatus(r);
+        const isExpanded = expandedId === r.id;
         return (
           <div key={r.id} className={`rounded-xl border border-border bg-card/40 ${cancelled ? "opacity-50" : ""}`}>
             {!cancelled ? (
-              <Link
-                to="/groups/$groupId/seasons/$seasonId/rounds/$roundId"
-                params={{ groupId, seasonId, roundId: r.id }}
-                className="flex items-center justify-between gap-3 p-3 hover:bg-accent/30"
+              <button
+                type="button"
+                onClick={() => setExpandedId(isExpanded ? null : r.id)}
+                className="flex w-full items-center justify-between gap-3 p-3 text-left hover:bg-accent/30"
+                aria-expanded={isExpanded}
               >
                 <div className="flex items-center gap-2.5 min-w-0">
                   <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">
@@ -518,9 +521,9 @@ function SeasonRoundsInline({ groupId, seasonId, isAdmin }: { groupId: string; s
                   <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${statusClass(smartStatus)}`}>
                     {statusLabel(smartStatus)}
                   </span>
-                  <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
+                  <ChevronDown className={`h-3.5 w-3.5 text-muted-foreground transition-transform ${isExpanded ? "rotate-180" : ""}`} />
                 </div>
-              </Link>
+              </button>
             ) : (
               <div className="flex items-center justify-between gap-3 p-3">
                 <div className="flex items-center gap-2.5">
@@ -533,6 +536,10 @@ function SeasonRoundsInline({ groupId, seasonId, isAdmin }: { groupId: string; s
                   {statusLabel(r.status)}
                 </span>
               </div>
+            )}
+
+            {isExpanded && !cancelled && (
+              <RoundExpandedDetails groupId={groupId} seasonId={seasonId} roundId={r.id} />
             )}
 
             {editing && !cancelled && !completed && (
@@ -563,6 +570,80 @@ function SeasonRoundsInline({ groupId, seasonId, isAdmin }: { groupId: string; s
           </div>
         );
       })}
+    </div>
+  );
+}
+
+function RoundExpandedDetails({ groupId, seasonId, roundId }: { groupId: string; seasonId: string; roundId: string }) {
+  const [presence, setPresence] = useState<{ confirmed: number; declined: number; pending: number; max: number }>({
+    confirmed: 0, declined: 0, pending: 0, max: 0,
+  });
+  const [matches, setMatches] = useState<number>(0);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      const [{ data: round }, { data: pres }, { data: ms }, { data: members }] = await Promise.all([
+        supabase.from("rounds").select("max_players, group_id").eq("id", roundId).maybeSingle(),
+        supabase.from("round_presence").select("status").eq("round_id", roundId),
+        supabase.from("matches").select("id").eq("round_id", roundId),
+        supabase.from("group_members").select("user_id").eq("group_id", groupId).eq("status", "active"),
+      ]);
+      if (cancelled) return;
+      const confirmed = (pres || []).filter((p) => p.status === "confirmed").length;
+      const declined = (pres || []).filter((p) => p.status === "declined" || p.status === "absent").length;
+      const respondedCount = (pres || []).length;
+      const pending = Math.max(0, (members?.length || 0) - respondedCount);
+      setPresence({
+        confirmed,
+        declined,
+        pending,
+        max: round?.max_players || 0,
+      });
+      setMatches((ms || []).length);
+      setLoading(false);
+    })();
+    return () => { cancelled = true; };
+  }, [roundId, groupId]);
+
+  return (
+    <div className="border-t border-border bg-background/40 p-3">
+      {loading ? (
+        <div className="text-[11px] text-muted-foreground">Carregando…</div>
+      ) : (
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+          <Stat label="Confirmados" value={`${presence.confirmed}/${presence.max || "—"}`} tone="success" />
+          <Stat label="Recusados" value={String(presence.declined)} tone="muted" />
+          <Stat label="Sem resposta" value={String(presence.pending)} tone="warning" />
+          <Stat label="Partidas" value={String(matches)} tone="primary" />
+        </div>
+      )}
+      <div className="mt-2 flex justify-end">
+        <Link
+          to="/groups/$groupId/seasons/$seasonId/rounds/$roundId"
+          params={{ groupId, seasonId, roundId }}
+          className="flex items-center gap-1 rounded-full border border-border bg-card px-3 py-1 text-[11px] font-semibold text-foreground hover:border-primary/40"
+        >
+          Abrir página completa <ChevronRight className="h-3 w-3" />
+        </Link>
+      </div>
+    </div>
+  );
+}
+
+function Stat({ label, value, tone }: { label: string; value: string; tone: "success" | "muted" | "warning" | "primary" }) {
+  const toneClass = {
+    success: "text-success",
+    muted: "text-muted-foreground",
+    warning: "text-warning",
+    primary: "text-primary",
+  }[tone];
+  return (
+    <div className="rounded-lg border border-border/60 bg-card/40 p-2">
+      <p className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground">{label}</p>
+      <p className={`mt-0.5 font-display text-base font-bold tabular-nums ${toneClass}`}>{value}</p>
     </div>
   );
 }
