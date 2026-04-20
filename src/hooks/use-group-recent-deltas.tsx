@@ -38,7 +38,7 @@ export function useGroupRecentDeltas(groupId: string | null) {
     setIsLoading(true);
     try {
       const since = new Date(Date.now() - MS_30D).toISOString();
-      const sinceDate = since.slice(0, 10);
+
 
       // Rounds in last 30d (by scheduled_date if available, else created_at)
       const { data: rounds } = await supabase
