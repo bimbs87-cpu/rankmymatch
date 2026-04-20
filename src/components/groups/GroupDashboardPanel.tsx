@@ -109,21 +109,64 @@ export function GroupDashboardPanel({ group, onLeft, onPresenceChanged }: Props)
   const [resolvingReq, setResolvingReq] = useState<string | null>(null);
   const [resolvingClaim, setResolvingClaim] = useState<string | null>(null);
   const [nudging, setNudging] = useState(false);
+  const [nudgeCooldownUntil, setNudgeCooldownUntil] = useState<number | null>(null);
+  const [nudgeNowTs, setNudgeNowTs] = useState(Date.now());
+  const [nudgePopoverOpen, setNudgePopoverOpen] = useState(false);
   const openProfile = useViewPlayerProfile();
 
-  async function handleNudgePending() {
-    if (!data.next_round || !data.next_round.pending_all?.length) return;
+  const NUDGE_COOLDOWN_MS = 60 * 60 * 1000; // 1h
+
+  // Load cooldown from localStorage when round changes
+  useEffect(() => {
+    const rid = data.next_round?.id;
+    if (!rid || typeof localStorage === "undefined") {
+      setNudgeCooldownUntil(null);
+      return;
+    }
+    const raw = localStorage.getItem(`rmm.nudge.cooldown.${rid}`);
+    const ts = raw ? Number(raw) : 0;
+    setNudgeCooldownUntil(ts && ts > Date.now() ? ts : null);
+  }, [data.next_round?.id]);
+
+  // Tick every 30s while a cooldown is active so the label updates
+  useEffect(() => {
+    if (!nudgeCooldownUntil) return;
+    const id = setInterval(() => setNudgeNowTs(Date.now()), 30_000);
+    return () => clearInterval(id);
+  }, [nudgeCooldownUntil]);
+
+  const cooldownRemainingMs = nudgeCooldownUntil ? nudgeCooldownUntil - nudgeNowTs : 0;
+  const nudgeOnCooldown = cooldownRemainingMs > 0;
+  const cooldownLabel = (() => {
+    if (!nudgeOnCooldown) return null;
+    const mins = Math.ceil(cooldownRemainingMs / 60000);
+    return mins >= 60 ? "1h" : `${mins}min`;
+  })();
+
+  async function handleNudgePending(includeDeclined: boolean) {
+    if (!data.next_round) return;
+    const pendingIds = data.next_round.pending_all?.map((p) => p.user_id) ?? [];
+    const declinedIds = includeDeclined
+      ? data.next_round.declined_all?.map((p) => p.user_id) ?? []
+      : [];
+    const targetIds = [...new Set([...pendingIds, ...declinedIds])];
+    if (!targetIds.length) {
+      toast.info("Ninguém para cutucar");
+      return;
+    }
+    setNudgePopoverOpen(false);
     setNudging(true);
     try {
-      const pendingIds = data.next_round.pending_all.map((p) => p.user_id);
       const roundLabel = data.next_round.round_number
         ? `Rodada ${data.next_round.round_number}`
         : "Próxima rodada";
       const title = `📣 ${roundLabel}: confirme presença!`;
-      const body = `Faltam ${pendingIds.length} resposta${pendingIds.length > 1 ? "s" : ""} para a lista. Toque para responder.`;
+      const body = includeDeclined
+        ? `Tem vaga abrindo? Reconsidere a presença na lista. Toque para responder.`
+        : `Faltam ${targetIds.length} resposta${targetIds.length > 1 ? "s" : ""} para a lista. Toque para responder.`;
 
       // In-app notifications (members → RLS allows when group_id matches)
-      const rows = pendingIds.map((uid) => ({
+      const rows = targetIds.map((uid) => ({
         user_id: uid,
         group_id: group.id,
         type: "round_nudge",
@@ -136,7 +179,7 @@ export function GroupDashboardPanel({ group, onLeft, onPresenceChanged }: Props)
       // Push (best-effort, gated server-side by shared-group rule)
       void sendPushFn({
         data: {
-          userIds: pendingIds,
+          userIds: targetIds,
           payload: {
             title,
             body,
@@ -148,13 +191,26 @@ export function GroupDashboardPanel({ group, onLeft, onPresenceChanged }: Props)
         },
       }).catch(() => {});
 
-      toast.success(`Cutucada enviada para ${pendingIds.length} membro${pendingIds.length > 1 ? "s" : ""}`);
+      // Save cooldown per round
+      const until = Date.now() + NUDGE_COOLDOWN_MS;
+      try {
+        localStorage.setItem(`rmm.nudge.cooldown.${data.next_round.id}`, String(until));
+      } catch {
+        // ignore
+      }
+      setNudgeCooldownUntil(until);
+      setNudgeNowTs(Date.now());
+
+      toast.success(
+        `Cutucada enviada para ${targetIds.length} membro${targetIds.length > 1 ? "s" : ""}`
+      );
     } catch (e: any) {
       toast.error(e?.message || "Não foi possível cutucar agora");
     } finally {
       setNudging(false);
     }
   }
+
 
   async function handleApproveClaim(claim: typeof data.pending_claims[number]) {
     if (!user) return;
