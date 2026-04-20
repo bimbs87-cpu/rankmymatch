@@ -63,11 +63,14 @@ export function useAllGroupsPending(groupIds: string[]) {
     void refresh();
   }, [refresh]);
 
-  // Realtime: refetch on changes to any of the source tables
+  // Realtime: refetch on changes to any of the source tables.
+  // Use a unique per-mount channel name to avoid StrictMode collisions
+  // ("cannot add postgres_changes callbacks ... after subscribe()").
   useEffect(() => {
     if (groupIds.length === 0) return;
+    const channelName = `all-groups-pending-${Math.random().toString(36).slice(2, 10)}`;
     const ch = supabase
-      .channel(`all-groups-pending-${key}`)
+      .channel(channelName)
       .on("postgres_changes" as never, { event: "*", schema: "public", table: "group_join_requests" }, () => void refresh())
       .on("postgres_changes" as never, { event: "*", schema: "public", table: "player_claims" }, () => void refresh())
       .on("postgres_changes" as never, { event: "*", schema: "public", table: "pending_match_results" }, () => void refresh())
