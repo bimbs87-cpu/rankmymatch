@@ -676,12 +676,9 @@ export function GroupDashboardPanel({ group, onLeft, onPresenceChanged }: Props)
             </p>
             {data.next_round && (
               <Link
-                to="/groups/$groupId/seasons/$seasonId/rounds/$roundId"
-                params={{
-                  groupId: group.id,
-                  seasonId: data.current_season?.id || "",
-                  roundId: data.next_round.id,
-                }}
+                to="/groups/$groupId"
+                params={{ groupId: group.id }}
+                search={{ view: "seasons", season: data.current_season?.id || "", round: data.next_round.id }}
                 className="text-[10px] font-bold text-primary hover:underline"
               >
                 Ver rodada →

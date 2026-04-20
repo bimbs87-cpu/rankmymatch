@@ -69,11 +69,15 @@ function RoundsProgress({ seasonId, totalRounds, seasonStatus }: { seasonId: str
 interface Props {
   groupId: string;
   isAdmin: boolean;
+  /** Auto-expand this season on mount (e.g. deep-link from dashboard). */
+  initialSeasonId?: string;
+  /** Auto-expand this round inside the season (works with initialSeasonId). */
+  initialRoundId?: string;
 }
 
-export function SeasonsPanel({ groupId, isAdmin }: Props) {
+export function SeasonsPanel({ groupId, isAdmin, initialSeasonId, initialRoundId }: Props) {
   const { seasons, isLoading, refresh } = useGroupSeasons(groupId);
-  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(initialSeasonId ?? null);
   const [quickCreateOpen, setQuickCreateOpen] = useState(false);
   const [groupFormat, setGroupFormat] = useState<string>("doubles");
   const [groupFixedDay, setGroupFixedDay] = useState<number | null>(null);
@@ -87,6 +91,16 @@ export function SeasonsPanel({ groupId, isAdmin }: Props) {
     setFilterState(f);
     try { window.localStorage.setItem(filterStorageKey, f); } catch {}
   };
+
+  // When a deep-link arrives (initialSeasonId/round), expand that season and scroll to it.
+  useEffect(() => {
+    if (initialSeasonId) {
+      setExpandedId(initialSeasonId);
+      requestAnimationFrame(() => {
+        document.getElementById(`season-${initialSeasonId}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+    }
+  }, [initialSeasonId, initialRoundId]);
 
   // Realtime: refresh when any round in this group changes (status flips, etc.)
   useEffect(() => {
@@ -235,6 +249,7 @@ export function SeasonsPanel({ groupId, isAdmin }: Props) {
                     expanded={expandedId === s.id}
                     onToggle={() => setExpandedId(expandedId === s.id ? null : s.id)}
                     onChanged={refresh}
+                    initialRoundId={expandedId === s.id ? initialRoundId : undefined}
                   />
                 </div>
               ))}
@@ -255,6 +270,7 @@ export function SeasonsPanel({ groupId, isAdmin }: Props) {
                     expanded={expandedId === s.id}
                     onToggle={() => setExpandedId(expandedId === s.id ? null : s.id)}
                     onChanged={refresh}
+                    initialRoundId={expandedId === s.id ? initialRoundId : undefined}
                   />
                 </div>
               ))}
@@ -275,9 +291,9 @@ export function SeasonsPanel({ groupId, isAdmin }: Props) {
 }
 
 function SeasonAccordion({
-  season, groupId, isAdmin, expanded, onToggle, onChanged,
+  season, groupId, isAdmin, expanded, onToggle, onChanged, initialRoundId,
 }: {
-  season: any; groupId: string; isAdmin: boolean; expanded: boolean; onToggle: () => void; onChanged: () => void;
+  season: any; groupId: string; isAdmin: boolean; expanded: boolean; onToggle: () => void; onChanged: () => void; initialRoundId?: string;
 }) {
   const isActive = season.status === "active";
   const [editingName, setEditingName] = useState(false);
@@ -364,7 +380,7 @@ function SeasonAccordion({
       {expanded && (
         <div className="border-t border-border bg-background/40">
           <SeasonFinalRanking seasonId={season.id} isActive={isActive} />
-          <SeasonRoundsInline groupId={groupId} seasonId={season.id} isAdmin={isAdmin} />
+          <SeasonRoundsInline groupId={groupId} seasonId={season.id} isAdmin={isAdmin} initialRoundId={initialRoundId} />
           {isAdmin && <SeasonStatusActions season={season} onChanged={onChanged} />}
         </div>
       )}
@@ -504,14 +520,24 @@ function SeasonStatusActions({ season, onChanged }: { season: any; onChanged: ()
   );
 }
 
-function SeasonRoundsInline({ groupId, seasonId, isAdmin }: { groupId: string; seasonId: string; isAdmin: boolean }) {
+function SeasonRoundsInline({ groupId, seasonId, isAdmin, initialRoundId }: { groupId: string; seasonId: string; isAdmin: boolean; initialRoundId?: string }) {
   const { user } = useAuth();
   const { rounds, isLoading, refresh } = useSeasonRounds(seasonId);
   const [editing, setEditing] = useState(false);
   const [editingRoundId, setEditingRoundId] = useState<string | null>(null);
   const [editDates, setEditDates] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
-  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(initialRoundId ?? null);
+
+  // Auto-expand + scroll when a deep-link round arrives.
+  useEffect(() => {
+    if (initialRoundId) {
+      setExpandedId(initialRoundId);
+      requestAnimationFrame(() => {
+        document.getElementById(`round-${initialRoundId}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+      });
+    }
+  }, [initialRoundId]);
   const [showExtraForm, setShowExtraForm] = useState(false);
   const [extraDate, setExtraDate] = useState("");
   const [extraTime, setExtraTime] = useState("");
@@ -731,7 +757,7 @@ function SeasonRoundsInline({ groupId, seasonId, isAdmin }: { groupId: string; s
         const smartStatus = getStatus(r);
         const isExpanded = expandedId === r.id;
         return (
-          <div key={r.id} className={`rounded-xl border border-border bg-card/40 ${cancelled ? "opacity-50" : ""}`}>
+          <div key={r.id} id={`round-${r.id}`} className={`rounded-xl border border-border bg-card/40 ${cancelled ? "opacity-50" : ""}`}>
             {!cancelled ? (
               <div className="flex w-full items-center justify-between gap-3 p-3 hover:bg-accent/30">
                 <button
@@ -834,50 +860,60 @@ function SeasonRoundsInline({ groupId, seasonId, isAdmin }: { groupId: string; s
 }
 
 function RoundExpandedDetails({ groupId, seasonId, roundId }: { groupId: string; seasonId: string; roundId: string }) {
+  const { user } = useAuth();
   const [presence, setPresence] = useState<{ confirmed: number; declined: number; pending: number; max: number }>({
     confirmed: 0, declined: 0, pending: 0, max: 0,
   });
-  const [matches, setMatches] = useState<number>(0);
+  const [matchesData, setMatchesData] = useState<any[]>([]);
   const [confirmedPlayers, setConfirmedPlayers] = useState<{ user_id: string; name: string; avatar_url: string | null }[]>([]);
+  const [myStatus, setMyStatus] = useState<"confirmed" | "declined" | "absent" | null>(null);
   const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       setLoading(true);
       const [{ data: round }, { data: pres }, { data: ms }, { data: members }] = await Promise.all([
-        supabase.from("rounds").select("max_players, group_id").eq("id", roundId).maybeSingle(),
+        supabase.from("rounds").select("max_players, group_id, status, scheduled_date, scheduled_time").eq("id", roundId).maybeSingle(),
         supabase.from("round_presence").select("user_id, status, confirmed_at").eq("round_id", roundId),
-        supabase.from("matches").select("id").eq("round_id", roundId),
+        supabase.from("matches").select("id, status, match_number, winner_team, match_players(user_id, team), match_sets(set_number, score_team_a, score_team_b)").eq("round_id", roundId).order("match_number", { ascending: true }),
         supabase.from("group_members").select("user_id").eq("group_id", groupId).eq("status", "active"),
       ]);
       if (cancelled) return;
       const confirmedRows = (pres || []).filter((p) => p.status === "confirmed");
       const declined = (pres || []).filter((p) => p.status === "declined" || p.status === "absent").length;
       const respondedCount = (pres || []).length;
-      const pending = Math.max(0, (members?.length || 0) - respondedCount);
+      const pendingCount = Math.max(0, (members?.length || 0) - respondedCount);
       setPresence({
         confirmed: confirmedRows.length,
         declined,
-        pending,
+        pending: pendingCount,
         max: round?.max_players || 0,
       });
-      setMatches((ms || []).length);
+      setMatchesData(ms || []);
 
-      // Load profiles for up to 8 confirmed players (most recent first).
+      const mine = user ? (pres || []).find((p) => p.user_id === user.id) : null;
+      setMyStatus((mine?.status as any) ?? null);
+
       const sorted = [...confirmedRows].sort(
         (a, b) => new Date(b.confirmed_at || 0).getTime() - new Date(a.confirmed_at || 0).getTime()
-      ).slice(0, 8);
-      if (sorted.length) {
-        const ids = sorted.map((p) => p.user_id);
+      );
+      const allIds = new Set<string>(sorted.map((p) => p.user_id));
+      // Also include profile names for match players to show winners.
+      for (const m of (ms || [])) {
+        for (const mp of ((m as any).match_players || [])) allIds.add(mp.user_id);
+      }
+      if (allIds.size) {
         const { data: profs } = await supabase
           .from("user_profiles")
           .select("user_id, name, nickname, avatar_url")
-          .in("user_id", ids);
+          .in("user_id", Array.from(allIds));
         if (cancelled) return;
         const map = new Map((profs || []).map((p) => [p.user_id, p]));
         setConfirmedPlayers(
-          sorted.map((p) => {
+          sorted.slice(0, 12).map((p) => {
             const prof = map.get(p.user_id);
             return {
               user_id: p.user_id,
@@ -886,40 +922,93 @@ function RoundExpandedDetails({ groupId, seasonId, roundId }: { groupId: string;
             };
           })
         );
+        // attach profiles to matches
+        setMatchesData((prev) => prev.map((m: any) => ({
+          ...m,
+          match_players: (m.match_players || []).map((mp: any) => ({ ...mp, profile: map.get(mp.user_id) })),
+        })));
       } else {
         setConfirmedPlayers([]);
       }
       setLoading(false);
     })();
     return () => { cancelled = true; };
-  }, [roundId, groupId]);
+  }, [roundId, groupId, user, reloadKey]);
+
+  const handleConfirm = async () => {
+    if (!user) return;
+    setBusy(true);
+    try {
+      const { confirmPresence } = await import("@/hooks/use-seasons");
+      await confirmPresence(roundId, user.id);
+      toast.success("Presença confirmada!");
+      setReloadKey((k) => k + 1);
+    } catch (e: any) {
+      toast.error(e?.message || "Erro ao confirmar");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleCancel = async () => {
+    if (!user) return;
+    setBusy(true);
+    try {
+      const { cancelPresence } = await import("@/hooks/use-seasons");
+      await cancelPresence(roundId, user.id);
+      toast.success("Presença cancelada");
+      setReloadKey((k) => k + 1);
+    } catch (e: any) {
+      toast.error(e?.message || "Erro ao cancelar");
+    } finally {
+      setBusy(false);
+    }
+  };
 
   return (
-    <div className="border-t border-border bg-background/40 p-3">
+    <div className="border-t border-border bg-background/40 p-3 space-y-3">
       {loading ? (
         <div className="text-[11px] text-muted-foreground">Carregando…</div>
       ) : (
         <>
+          {/* Presence confirm/cancel button (inline, no need to leave Agenda) */}
+          {user && (
+            <div>
+              {myStatus === "confirmed" ? (
+                <button
+                  onClick={handleCancel}
+                  disabled={busy}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl border border-destructive/30 bg-destructive/10 py-2 text-xs font-semibold text-destructive disabled:opacity-50"
+                >
+                  Cancelar presença
+                </button>
+              ) : (
+                <button
+                  onClick={handleConfirm}
+                  disabled={busy}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-2 text-xs font-bold text-primary-foreground disabled:opacity-50"
+                >
+                  Confirmar presença
+                </button>
+              )}
+            </div>
+          )}
+
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
             <Stat label="Confirmados" value={`${presence.confirmed}/${presence.max || "—"}`} tone="success" />
             <Stat label="Recusados" value={String(presence.declined)} tone="muted" />
             <Stat label="Sem resposta" value={String(presence.pending)} tone="warning" />
-            <Stat label="Partidas" value={String(matches)} tone="primary" />
+            <Stat label="Partidas" value={String(matchesData.length)} tone="primary" />
           </div>
 
           {confirmedPlayers.length > 0 && (
-            <div className="mt-3">
+            <div>
               <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
                 Confirmados
               </p>
               <div className="flex flex-wrap items-center gap-1.5">
                 {confirmedPlayers.map((p) => (
-                  <div
-                    key={p.user_id}
-                    title={p.name}
-                    aria-label={p.name}
-                    className="group/avatar relative"
-                  >
+                  <div key={p.user_id} title={p.name} className="group/avatar relative">
                     <PlayerAvatarLink userId={p.user_id} ariaLabel={`Ver perfil de ${p.name}`}>
                       <PlayerAvatar avatarUrl={p.avatar_url} name={p.name} size="md" className="ring-1 ring-success/40 cursor-pointer transition-transform hover:scale-110" />
                     </PlayerAvatarLink>
@@ -936,17 +1025,47 @@ function RoundExpandedDetails({ groupId, seasonId, roundId }: { groupId: string;
               </div>
             </div>
           )}
+
+          {/* Matches summary (read-only) */}
+          {matchesData.length > 0 && (
+            <div>
+              <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                Partidas
+              </p>
+              <div className="space-y-1.5">
+                {matchesData.map((m: any) => {
+                  const teamA = (m.match_players || []).filter((mp: any) => mp.team === "A");
+                  const teamB = (m.match_players || []).filter((mp: any) => mp.team === "B");
+                  const sets = (m.match_sets || []).slice().sort((a: any, b: any) => a.set_number - b.set_number);
+                  const nameOf = (mp: any) => (mp.profile?.nickname || mp.profile?.name || "Jogador");
+                  return (
+                    <div key={m.id} className="rounded-lg border border-border bg-card/40 px-2 py-1.5 text-[11px]">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="min-w-0 flex-1 truncate">
+                          <span className={m.winner_team === "A" ? "font-bold text-primary" : "text-foreground"}>{teamA.map(nameOf).join(" / ") || "—"}</span>
+                          <span className="text-muted-foreground"> vs </span>
+                          <span className={m.winner_team === "B" ? "font-bold text-primary" : "text-foreground"}>{teamB.map(nameOf).join(" / ") || "—"}</span>
+                        </div>
+                        <div className="flex items-center gap-1 shrink-0">
+                          {sets.length > 0 ? sets.map((s: any) => (
+                            <span key={s.set_number} className="rounded bg-muted px-1.5 py-0.5 font-display font-bold tabular-nums">
+                              {s.score_team_a}-{s.score_team_b}
+                            </span>
+                          )) : (
+                            <span className="rounded-full bg-info/10 px-1.5 py-0.5 text-[9px] font-semibold text-info">
+                              {m.status === "scheduled" ? "Agendada" : "Em andamento"}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </>
       )}
-      <div className="mt-2 flex justify-end">
-        <Link
-          to="/groups/$groupId/seasons/$seasonId/rounds/$roundId"
-          params={{ groupId, seasonId, roundId }}
-          className="flex items-center gap-1 rounded-full border border-border bg-card px-3 py-1 text-[11px] font-semibold text-foreground hover:border-primary/40"
-        >
-          Abrir página completa <ChevronRight className="h-3 w-3" />
-        </Link>
-      </div>
     </div>
   );
 }

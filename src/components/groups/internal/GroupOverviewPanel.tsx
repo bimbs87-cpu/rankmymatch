@@ -532,8 +532,9 @@ function NextRoundCard({ data, isLoading, groupId, busy, onPresence }: NextRound
         </h3>
         {data.next_round && (
           <Link
-            to="/groups/$groupId/seasons/$seasonId/rounds/$roundId"
-            params={{ groupId, seasonId: data.current_season?.id || "", roundId: data.next_round.id }}
+            to="/groups/$groupId"
+            params={{ groupId }}
+            search={{ view: "seasons", season: data.current_season?.id || "", round: data.next_round.id }}
             className="text-[10px] font-semibold text-primary"
           >
             Abrir →
