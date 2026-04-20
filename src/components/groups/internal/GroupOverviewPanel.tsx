@@ -669,27 +669,27 @@ function NextRoundCard({ data, isLoading, groupId, busy, onPresence }: NextRound
                   disabled={busy}
                   onClick={() => onPresence("confirmed")}
                   aria-label="Confirmar presença"
-                  className={`flex flex-1 items-center justify-center gap-1.5 rounded-full px-3 py-2 text-xs font-bold transition-colors disabled:opacity-50 active:scale-95 ${
+                  className={`flex min-w-0 flex-1 items-center justify-center gap-1 rounded-full px-1.5 py-1.5 text-[11px] font-bold transition-colors disabled:opacity-50 active:scale-95 ${
                     data.next_round.presence_status === "confirmed"
                       ? "bg-success text-success-foreground"
                       : "border border-success/40 bg-success/10 text-success hover:bg-success/20"
                   }`}
                 >
-                  <CheckCircle2 className="h-3.5 w-3.5" />
-                  {data.next_round.presence_status === "confirmed" ? "Confirmado" : "Vou"}
+                  <CheckCircle2 className="h-3 w-3 shrink-0" />
+                  <span className="truncate">{data.next_round.presence_status === "confirmed" ? "Confirmado" : "Vou"}</span>
                 </button>
                 <button
                   disabled={busy}
                   onClick={() => onPresence("declined")}
                   aria-label="Recusar presença"
-                  className={`flex flex-1 items-center justify-center gap-1.5 rounded-full px-3 py-2 text-xs font-bold transition-colors disabled:opacity-50 active:scale-95 ${
+                  className={`flex min-w-0 flex-1 items-center justify-center gap-1 rounded-full px-1.5 py-1.5 text-[11px] font-bold transition-colors disabled:opacity-50 active:scale-95 ${
                     data.next_round.presence_status === "declined"
                       ? "bg-destructive text-destructive-foreground"
                       : "border border-destructive/40 bg-destructive/10 text-destructive hover:bg-destructive/20"
                   }`}
                 >
-                  <XCircle className="h-3.5 w-3.5" />
-                  {data.next_round.presence_status === "declined" ? "Recusado" : "Não vou"}
+                  <XCircle className="h-3 w-3 shrink-0" />
+                  <span className="truncate">{data.next_round.presence_status === "declined" ? "Recusado" : "Não vou"}</span>
                 </button>
               </div>
             ) : (
