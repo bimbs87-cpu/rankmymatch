@@ -1128,6 +1128,30 @@ function RoundExpandedDetails({
     }
   };
 
+  const hasUnstartedMatches = matchesData.length > 0
+    && matchesData.every((m: any) => (m.match_sets || []).length === 0 && m.status !== "completed" && m.status !== "in_progress");
+
+  const handleRedrawTeams = async () => {
+    if (!user) return;
+    if (!hasUnstartedMatches) return;
+    if (!window.confirm("Apagar todos os times atuais e sortear novamente?")) return;
+    setBusy(true);
+    try {
+      const matchIds = matchesData.map((m: any) => m.id);
+      await supabase.from("match_players").delete().in("match_id", matchIds);
+      await supabase.from("matches").delete().in("id", matchIds);
+      const { drawTeams } = await import("@/lib/round-actions");
+      await drawTeams(roundId, confirmedIds, user.id);
+      toast.success("Times sorteados novamente");
+      setReloadKey((k) => k + 1);
+      onChanged();
+    } catch (e: any) {
+      toast.error(e?.message || "Erro ao resortear");
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const scoringMatch = scoringMatchId ? matchesData.find((m) => m.id === scoringMatchId) : null;
 
   return (
