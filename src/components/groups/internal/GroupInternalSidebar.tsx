@@ -19,9 +19,9 @@ interface Item {
 
 const ITEMS: Item[] = [
   { id: "overview", label: "Visão geral", shortLabel: "Visão", icon: LayoutGrid },
-  { id: "members", label: "Membros", icon: Users },
-  { id: "seasons", label: "Agenda e resultados", shortLabel: "Agenda", icon: CalendarDays },
-  { id: "compare", label: "Comparar", icon: GitCompare },
+  { id: "members", label: "Membros", shortLabel: "", icon: Users },
+  { id: "seasons", label: "Agenda e resultados", shortLabel: "", icon: CalendarDays },
+  { id: "compare", label: "Comparar", shortLabel: "", icon: GitCompare },
   { id: "admin", label: "Admin", icon: Settings2, adminOnly: true },
 ];
 
