@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { PlayerAvatarLink } from "@/components/PlayerProfileViewer";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { GroupEloEvolutionChart } from "@/components/groups/internal/GroupEloEvolutionChart";
+import { GroupEloHighlights } from "@/components/groups/internal/GroupEloHighlights";
 
 interface RankingRow {
   user_id: string;
@@ -96,6 +97,8 @@ export function GroupRankingPanel({ groupId }: Props) {
           <ExternalLink className="h-3 w-3" />
         </Link>
       </header>
+
+      <GroupEloHighlights groupId={groupId} />
 
       <GroupEloEvolutionChart groupId={groupId} defaultFilter="active" />
 
