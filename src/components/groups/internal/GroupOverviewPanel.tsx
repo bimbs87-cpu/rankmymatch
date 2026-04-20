@@ -549,7 +549,10 @@ function NextRoundCard({ data, isLoading, groupId, busy, onPresence }: NextRound
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-warning opacity-70" />
                 <span className="relative inline-flex h-2 w-2 rounded-full bg-warning" />
               </span>
-              <span className="truncate">Você ainda não respondeu</span>
+              <span className="truncate">
+                Você ainda não respondeu
+                {urgency && <span className="ml-1 opacity-90">· faltam ~{urgency.hours}h</span>}
+              </span>
             </div>
           )}
 
