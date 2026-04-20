@@ -17,14 +17,6 @@ import {
 } from "@/lib/pending-results";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
-import {
-  useMatchPendingResult,
-  approvePendingResult,
-  rejectPendingResult,
-} from "@/lib/pending-results";
-import { useAuth } from "@/hooks/use-auth";
-import { supabase } from "@/integrations/supabase/client";
-import { useEffect } from "react";
 
 interface Props {
   matchId: string;
