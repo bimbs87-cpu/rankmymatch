@@ -98,6 +98,93 @@ export function SeasonsTimeline({ seasons, onSelect }: Props) {
     return () => { cancelled = true; };
   }, [groupId]);
 
+  // Load top-3 podium when a marker is selected
+  useEffect(() => {
+    let cancelled = false;
+    setPodium(null);
+    if (!selectedMarker) return;
+    (async () => {
+      setPodiumLoading(true);
+      try {
+        if (selectedMarker.type === "big_round" && selectedMarker.roundId) {
+          const { data: ms } = await supabase
+            .from("matches")
+            .select("id, winner_team")
+            .eq("round_id", selectedMarker.roundId);
+          const matchIds = (ms || []).map((m) => m.id);
+          if (matchIds.length === 0) return;
+          const { data: mps } = await supabase
+            .from("match_players")
+            .select("user_id, team, match_id")
+            .in("match_id", matchIds);
+          const wins = new Map<string, number>();
+          const winnersByMatch = new Map<string, string | null>(
+            (ms || []).map((m) => [m.id, m.winner_team]),
+          );
+          for (const mp of mps || []) {
+            const w = winnersByMatch.get(mp.match_id);
+            if (w && w === mp.team) {
+              wins.set(mp.user_id, (wins.get(mp.user_id) || 0) + 1);
+            }
+          }
+          const top = [...wins.entries()].sort((a, b) => b[1] - a[1]).slice(0, 3);
+          if (top.length === 0) return;
+          const ids = top.map(([uid]) => uid);
+          const { data: profs } = await supabase
+            .from("user_profiles")
+            .select("user_id, name, nickname")
+            .in("user_id", ids);
+          const nameMap = new Map(
+            (profs || []).map((p) => [p.user_id, p.nickname || p.name || "Jogador"]),
+          );
+          if (cancelled) return;
+          setPodium(
+            top.map(([uid, v]) => ({
+              name: nameMap.get(uid) || "Jogador",
+              value: v,
+              subtitle: `${v} vitória${v !== 1 ? "s" : ""}`,
+            })),
+          );
+        } else if (selectedMarker.type === "season_finished" && selectedMarker.seasonId) {
+          const { data: snaps } = await supabase
+            .from("ranking_snapshots")
+            .select("user_id, rating, position, snapshot_date")
+            .eq("season_id", selectedMarker.seasonId)
+            .order("snapshot_date", { ascending: false })
+            .limit(200);
+          if (!snaps?.length) return;
+          // Take latest snapshot date
+          const latestDate = snaps[0].snapshot_date;
+          const latest = snaps.filter((s) => s.snapshot_date === latestDate);
+          const top = [...latest]
+            .sort((a, b) => (a.position ?? 999) - (b.position ?? 999) || b.rating - a.rating)
+            .slice(0, 3);
+          const ids = top.map((s) => s.user_id);
+          const { data: profs } = await supabase
+            .from("user_profiles")
+            .select("user_id, name, nickname")
+            .in("user_id", ids);
+          const nameMap = new Map(
+            (profs || []).map((p) => [p.user_id, p.nickname || p.name || "Jogador"]),
+          );
+          if (cancelled) return;
+          setPodium(
+            top.map((s) => ({
+              name: nameMap.get(s.user_id) || "Jogador",
+              value: Math.round(s.rating),
+              subtitle: `${Math.round(s.rating)} pts`,
+            })),
+          );
+        }
+      } finally {
+        if (!cancelled) setPodiumLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedMarker]);
+
   const { bars, ticks, rangeLabel, markers } = useMemo(() => {
     if (!seasons.length) return { bars: [], ticks: [], rangeLabel: "", markers: [] as EventMarker[] };
 
