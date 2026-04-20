@@ -145,14 +145,14 @@ export function useGroupDashboard(groupId: string | null) {
       // Next round (scheduled / open / in_progress) for the group
       const { data: nextRounds } = await supabase
         .from("rounds")
-        .select("id, scheduled_date, scheduled_time, location, status, round_number, max_players")
+        .select("id, scheduled_date, scheduled_time, location, status, round_number, max_players, presence_force_open_at")
         .eq("group_id", groupId)
         .in("status", ["scheduled", "open", "in_progress", "presence_open"])
         .order("scheduled_date", { ascending: true, nullsFirst: false })
         .limit(1);
       let nextRound: NextRoundInfo | null = null;
       if (nextRounds?.[0]) {
-        const r = nextRounds[0];
+        const r = nextRounds[0] as typeof nextRounds[0] & { presence_force_open_at: string | null };
         const { data: presences } = await supabase
           .from("round_presence")
           .select("user_id, status, confirmed_at")
@@ -161,7 +161,10 @@ export function useGroupDashboard(groupId: string | null) {
         const declinedList = (presences || []).filter((p) => p.status === "declined");
         const confirmed = confirmedList.length;
         const mine = user ? (presences || []).find((p) => p.user_id === user.id) : null;
-        const open = isPresenceOpen(presenceCfg, r.scheduled_date, r.scheduled_time, r.id);
+        // Force-open override (admin manually opened the list)
+        const forcedOpen = !!r.presence_force_open_at && new Date(r.presence_force_open_at) <= new Date();
+        const scheduledOpen = isPresenceOpen(presenceCfg, r.scheduled_date, r.scheduled_time, r.id);
+        const open = forcedOpen || scheduledOpen;
         const opensAt = open ? null : getPresenceOpenDate(presenceCfg, r.scheduled_date, r.scheduled_time, r.id);
 
         // Active members of the group → derive "pending" = members with no confirmed/declined record
