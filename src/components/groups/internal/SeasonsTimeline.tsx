@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useViewPlayerProfile } from "@/components/PlayerProfileViewer";
 
 interface Season {
   id: string;
@@ -58,8 +59,9 @@ export function SeasonsTimeline({ seasons, onSelect }: Props) {
   >([]);
 
   const [selectedMarker, setSelectedMarker] = useState<EventMarker | null>(null);
-  const [podium, setPodium] = useState<{ name: string; value: number; subtitle?: string }[] | null>(null);
+  const [podium, setPodium] = useState<{ userId: string; name: string; value: number; subtitle?: string }[] | null>(null);
   const [podiumLoading, setPodiumLoading] = useState(false);
+  const openProfile = useViewPlayerProfile();
 
   useEffect(() => {
     let cancelled = false;
@@ -140,6 +142,7 @@ export function SeasonsTimeline({ seasons, onSelect }: Props) {
           if (cancelled) return;
           setPodium(
             top.map(([uid, v]) => ({
+              userId: uid,
               name: nameMap.get(uid) || "Jogador",
               value: v,
               subtitle: `${v} vitória${v !== 1 ? "s" : ""}`,
@@ -170,6 +173,7 @@ export function SeasonsTimeline({ seasons, onSelect }: Props) {
           if (cancelled) return;
           setPodium(
             top.map((s) => ({
+              userId: s.user_id,
               name: nameMap.get(s.user_id) || "Jogador",
               value: Math.round(s.rating),
               subtitle: `${Math.round(s.rating)} pts`,
@@ -449,10 +453,20 @@ export function SeasonsTimeline({ seasons, onSelect }: Props) {
                         key={i}
                         className="flex items-center justify-between gap-2 rounded-lg bg-background/40 px-2 py-1"
                       >
-                        <span className="flex min-w-0 items-center gap-1.5 truncate text-[11px]">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openProfile(p.userId);
+                          }}
+                          className="flex min-w-0 items-center gap-1.5 truncate text-left text-[11px] hover:text-primary"
+                          title={`Ver perfil de ${p.name}`}
+                        >
                           <span className="shrink-0">{medal}</span>
-                          <span className="truncate font-bold text-foreground">{p.name}</span>
-                        </span>
+                          <span className="truncate font-bold text-foreground hover:text-primary">
+                            {p.name}
+                          </span>
+                        </button>
                         <span className="shrink-0 text-[10px] tabular-nums text-muted-foreground">
                           {p.subtitle}
                         </span>
