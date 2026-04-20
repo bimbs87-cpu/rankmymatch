@@ -733,13 +733,13 @@ function SeasonRoundsInline({ groupId, seasonId, isAdmin }: { groupId: string; s
         return (
           <div key={r.id} className={`rounded-xl border border-border bg-card/40 ${cancelled ? "opacity-50" : ""}`}>
             {!cancelled ? (
-              <button
-                type="button"
-                onClick={() => setExpandedId(isExpanded ? null : r.id)}
-                className="flex w-full items-center justify-between gap-3 p-3 text-left hover:bg-accent/30"
-                aria-expanded={isExpanded}
-              >
-                <div className="flex items-center gap-2.5 min-w-0">
+              <div className="flex w-full items-center justify-between gap-3 p-3 hover:bg-accent/30">
+                <button
+                  type="button"
+                  onClick={() => setExpandedId(isExpanded ? null : r.id)}
+                  className="flex flex-1 min-w-0 items-center gap-2.5 text-left"
+                  aria-expanded={isExpanded}
+                >
                   <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">
                     <span className="font-display text-xs font-bold text-primary">R{r.round_number || "?"}</span>
                   </div>
@@ -758,14 +758,30 @@ function SeasonRoundsInline({ groupId, seasonId, isAdmin }: { groupId: string; s
                       {r.location && <span className="flex items-center gap-1 truncate max-w-[10rem]"><MapPin className="h-3 w-3" />{r.location}</span>}
                     </div>
                   </div>
-                </div>
+                </button>
                 <div className="flex items-center gap-2 shrink-0">
+                  {isAdmin && !completed && (
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); sendRoundPush(r); }}
+                      className="flex h-7 items-center gap-1 rounded-full border border-border bg-card px-2 text-[10px] font-semibold text-muted-foreground hover:border-primary/40 hover:text-primary"
+                      title="Enviar push de lembrete (a partir de 12h antes)"
+                    >
+                      <Bell className="h-3 w-3" /> Push
+                    </button>
+                  )}
                   <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${statusClass(smartStatus)}`}>
                     {statusLabel(smartStatus)}
                   </span>
-                  <ChevronDown className={`h-3.5 w-3.5 text-muted-foreground transition-transform ${isExpanded ? "rotate-180" : ""}`} />
+                  <button
+                    type="button"
+                    onClick={() => setExpandedId(isExpanded ? null : r.id)}
+                    aria-label={isExpanded ? "Recolher" : "Expandir"}
+                  >
+                    <ChevronDown className={`h-3.5 w-3.5 text-muted-foreground transition-transform ${isExpanded ? "rotate-180" : ""}`} />
+                  </button>
                 </div>
-              </button>
+              </div>
             ) : (
               <div className="flex items-center justify-between gap-3 p-3">
                 <div className="flex items-center gap-2.5">
