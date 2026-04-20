@@ -366,7 +366,7 @@ export function ScoreEntryDialog({
                 : `Time ${result.winnerTeam} venceu ${result.setsA}x${result.setsB}. Confira o resultado!`,
               data: { matchId, seasonId, roundId: roundIdForNotify },
               url: roundIdForNotify
-                ? `/groups/${groupIdForNotify}/seasons/${seasonId}/rounds/${roundIdForNotify}`
+                ? `/groups/${groupIdForNotify}?view=seasons&season=${seasonId}&round=${roundIdForNotify}`
                 : `/groups/${groupIdForNotify}`,
             }).catch(() => {});
           }
@@ -432,7 +432,7 @@ export function ScoreEntryDialog({
               title: "Resultado aguardando aprovação ⏳",
               body: `${playerAName} vs ${playerBName}: ${sets.map((s) => `${s.scoreA}-${s.scoreB}`).join(" • ")}`,
               data: { matchId, seasonId, roundId },
-              url: roundId ? `/groups/${groupId}/seasons/${seasonId}/rounds/${roundId}` : `/groups/${groupId}`,
+              url: roundId ? `/groups/${groupId}?view=seasons&season=${seasonId}&round=${roundId}` : `/groups/${groupId}`,
             }).catch(() => {});
           }
         }
@@ -488,7 +488,7 @@ export function ScoreEntryDialog({
             title: "Seu resultado foi aprovado ✅",
             body: `${playerAName} vs ${playerBName}: ${sets.map((s) => `${s.scoreA}-${s.scoreB}`).join(" • ")}`,
             data: { matchId, seasonId, roundId },
-            url: roundId ? `/groups/${groupId}/seasons/${seasonId}/rounds/${roundId}` : `/groups/${groupId}`,
+            url: roundId ? `/groups/${groupId}?view=seasons&season=${seasonId}&round=${roundId}` : `/groups/${groupId}`,
           }).catch(() => {});
         }
       } catch {
@@ -529,7 +529,7 @@ export function ScoreEntryDialog({
             title: "Seu resultado foi rejeitado",
             body: "O admin pediu revisão do placar. Confira a partida.",
             data: { matchId, seasonId, roundId },
-            url: roundId ? `/groups/${groupId}/seasons/${seasonId}/rounds/${roundId}` : `/groups/${groupId}`,
+            url: roundId ? `/groups/${groupId}?view=seasons&season=${seasonId}&round=${roundId}` : `/groups/${groupId}`,
           }).catch(() => {});
         }
       } catch { /* best-effort */ }
