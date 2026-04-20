@@ -13,7 +13,7 @@ import { ShareGroupDialog } from "@/components/ShareGroupDialog";
 import { confirmPresence, cancelPresence } from "@/lib/round-actions";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { notifyUrgentPendingMembers } from "@/lib/urgency-notify";
@@ -393,6 +393,17 @@ interface NextRoundCardProps {
 }
 
 function NextRoundCard({ data, isLoading, groupId, busy, onPresence }: NextRoundCardProps) {
+  const presenceButtonsRef = useRef<HTMLDivElement | null>(null);
+  const handleScrollToButtons = () => {
+    const el = presenceButtonsRef.current;
+    if (!el) return;
+    el.scrollIntoView({ behavior: "smooth", block: "center" });
+    // Brief highlight pulse for visual feedback
+    el.classList.add("ring-2", "ring-warning", "ring-offset-2", "ring-offset-card", "rounded-full");
+    window.setTimeout(() => {
+      el.classList.remove("ring-2", "ring-warning", "ring-offset-2", "ring-offset-card", "rounded-full");
+    }, 1200);
+  };
   const urgency = useMemo(() => {
     const r = data.next_round;
     if (!r || !r.scheduled_date) return null;
@@ -549,14 +560,21 @@ function NextRoundCard({ data, isLoading, groupId, busy, onPresence }: NextRound
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-warning opacity-70" />
                 <span className="relative inline-flex h-2 w-2 rounded-full bg-warning" />
               </span>
-              <span className="truncate">
+              <span className="flex-1 truncate">
                 Você ainda não respondeu
                 {urgency && <span className="ml-1 opacity-90">· faltam ~{urgency.hours}h</span>}
               </span>
+              <button
+                type="button"
+                onClick={handleScrollToButtons}
+                className="shrink-0 rounded-full bg-warning px-2 py-0.5 text-[10px] font-bold text-warning-foreground transition hover:scale-[1.03] active:scale-95"
+              >
+                Responder agora
+              </button>
             </div>
           )}
 
-          <div className="mt-2">
+          <div className="mt-2" ref={presenceButtonsRef}>
             {data.next_round.presence_is_open ? (
               <div className="flex gap-1.5">
                 <button

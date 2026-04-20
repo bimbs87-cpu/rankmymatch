@@ -5,7 +5,48 @@ import { usePushSubscription } from "@/hooks/use-push-subscription";
 import { PUSH_EVENT_TYPES, usePushPreferences } from "@/hooks/use-push-preferences";
 import { sendPushFn } from "@/lib/push.functions";
 import { toast } from "sonner";
-import { BellRing, BellOff, CheckCircle2, XCircle, Smartphone, AlertTriangle, Send } from "lucide-react";
+import { BellRing, BellOff, CheckCircle2, XCircle, Smartphone, AlertTriangle, Send, History } from "lucide-react";
+
+const TEST_HISTORY_KEY = "push_test_history_v1";
+const MAX_HISTORY = 5;
+
+interface TestHistoryEntry {
+  ts: number;
+  sent: number;
+  failed: number;
+  error?: string;
+}
+
+function loadHistory(): TestHistoryEntry[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = localStorage.getItem(TEST_HISTORY_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.slice(0, MAX_HISTORY) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveHistory(entries: TestHistoryEntry[]) {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(TEST_HISTORY_KEY, JSON.stringify(entries.slice(0, MAX_HISTORY)));
+  } catch {
+    /* quota / private mode — ignore */
+  }
+}
+
+function formatRelative(ts: number): string {
+  const diff = Date.now() - ts;
+  const min = Math.floor(diff / 60000);
+  if (min < 1) return "agora";
+  if (min < 60) return `há ${min} min`;
+  const hr = Math.floor(min / 60);
+  if (hr < 24) return `há ${hr}h`;
+  return new Date(ts).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
+}
 
 interface SubRow {
   id: string;
@@ -27,6 +68,15 @@ export function PushDiagnosticCard() {
   const { isEnabled, toggle, loading: prefsLoading } = usePushPreferences();
   const [subs, setSubs] = useState<SubRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [history, setHistory] = useState<TestHistoryEntry[]>(() => loadHistory());
+
+  const recordHistory = (entry: TestHistoryEntry) => {
+    setHistory((prev) => {
+      const next = [entry, ...prev].slice(0, MAX_HISTORY);
+      saveHistory(next);
+      return next;
+    });
+  };
 
   useEffect(() => {
     if (!user) {
@@ -132,6 +182,7 @@ export function PushDiagnosticCard() {
                       });
                       const sent = (res as { sent?: number })?.sent ?? 0;
                       const failed = (res as { failed?: number })?.failed ?? 0;
+                      recordHistory({ ts: Date.now(), sent, failed });
                       if (sent > 0) {
                         toast.success(`Push enviado pra ${sent} dispositivo${sent > 1 ? "s" : ""}.`);
                       } else {
@@ -142,7 +193,9 @@ export function PushDiagnosticCard() {
                         );
                       }
                     } catch (err) {
-                      toast.error(`Falha ao enviar: ${(err as Error)?.message || "erro desconhecido"}`);
+                      const message = (err as Error)?.message || "erro desconhecido";
+                      recordHistory({ ts: Date.now(), sent: 0, failed: 0, error: message });
+                      toast.error(`Falha ao enviar: ${message}`);
                     }
                   }}
                   className="inline-flex items-center gap-2 rounded-full border border-primary/40 bg-primary/10 px-4 py-2 text-xs font-bold text-primary transition hover:bg-primary/20"
@@ -259,6 +312,65 @@ export function PushDiagnosticCard() {
           <p className="mt-2 text-[10px] text-muted-foreground">
             Mesmo com as preferências ligadas, é preciso ter pelo menos 1 dispositivo inscrito acima.
           </p>
+        </div>
+
+        {/* Test push history (last 5, persisted in localStorage) */}
+        <div className="mt-6">
+          <div className="mb-2 flex items-center justify-between">
+            <h3 className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground inline-flex items-center gap-1.5">
+              <History className="h-3 w-3" /> Histórico de testes (últimos {MAX_HISTORY})
+            </h3>
+            {history.length > 0 && (
+              <button
+                onClick={() => {
+                  setHistory([]);
+                  saveHistory([]);
+                }}
+                className="text-[10px] font-semibold text-muted-foreground hover:text-foreground"
+              >
+                Limpar
+              </button>
+            )}
+          </div>
+          {history.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-border bg-muted/10 px-4 py-4 text-center text-xs text-muted-foreground">
+              Nenhum teste registrado ainda. Clique em "Enviar push de teste pra mim" acima.
+            </div>
+          ) : (
+            <ul className="space-y-1.5">
+              {history.map((h) => {
+                const ok = h.sent > 0;
+                const errored = !!h.error;
+                return (
+                  <li
+                    key={h.ts}
+                    className="flex items-center gap-3 rounded-xl border border-border bg-background/40 px-3 py-2"
+                  >
+                    {errored ? (
+                      <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-destructive" />
+                    ) : ok ? (
+                      <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-success" />
+                    ) : (
+                      <XCircle className="h-3.5 w-3.5 shrink-0 text-warning" />
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-[11px] font-semibold text-foreground">
+                        {errored
+                          ? `Erro: ${h.error}`
+                          : ok
+                            ? `Entregue a ${h.sent} dispositivo${h.sent > 1 ? "s" : ""}`
+                            : "Nenhum dispositivo recebeu"}
+                        {!errored && h.failed > 0 && (
+                          <span className="ml-1 text-destructive">· {h.failed} falha{h.failed > 1 ? "s" : ""}</span>
+                        )}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground">{formatRelative(h.ts)}</p>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
         </div>
       </div>
     </section>
