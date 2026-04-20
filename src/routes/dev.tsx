@@ -436,8 +436,8 @@ function RetentionTab({ cohorts }: { cohorts: DashboardData["cohorts"] }) {
         <CardHeader>
           <CardTitle className="text-base">Retenção por cohort semanal</CardTitle>
           <p className="text-xs text-muted-foreground">
-            ⚠️ Aproximação baseada em <code>last_sign_in_at</code>. Para retenção precisa por
-            evento, seria necessário um log de sessões.
+            Baseado em <code>user_sessions</code> (log diário). Para usuários antigos sem sessões
+            registradas, faz fallback para <code>last_sign_in_at</code>.
           </p>
         </CardHeader>
         <CardContent>
