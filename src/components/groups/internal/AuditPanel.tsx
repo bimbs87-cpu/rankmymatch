@@ -667,9 +667,6 @@ export function AuditPanel({ groupId }: Props) {
               <Sparkline values={nudgeStats.pendingPctSparkline} unit="%" />
             </div>
           )}
-        </div>
-      )}
-
           {responseTimes.length >= 2 && (
             <div>
               <div className="mb-1 flex items-center justify-between">
