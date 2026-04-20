@@ -111,7 +111,6 @@ function GroupDetailPage() {
   const { pendingMatch, refresh: refreshPending } = usePendingMatch(groupId);
 
   const [view, setView] = useState<GroupView>(search.view || "overview");
-  const [drawerOpen, setDrawerOpen] = useState(false);
   const [memberShareOpen, setMemberShareOpen] = useState(false);
   const [pendingCompareIds, setPendingCompareIds] = useState<string[] | null>(null);
 
