@@ -12,7 +12,6 @@ import {
   ChevronRight,
   AlertTriangle,
   LogOut,
-  Menu,
   Crown,
 } from "lucide-react";
 
@@ -42,7 +41,7 @@ import { ShareGroupDialog } from "@/components/ShareGroupDialog";
 
 import {
   GroupInternalSidebar,
-  GroupInternalSidebarDrawer,
+  GroupInternalFloatingTabs,
   type GroupView,
   type SidebarBadges,
 } from "@/components/groups/internal/GroupInternalSidebar";
