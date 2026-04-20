@@ -21,6 +21,12 @@ type NotifyParams = {
    * Defaults to `${type}:${groupId}` when omitted.
    */
   tag?: string;
+  /**
+   * When true, the actor (admin sending the push) also receives the notification
+   * + push. Useful for manual reminders so the admin gets visual confirmation
+   * of delivery on their own device. Defaults to false.
+   */
+  includeActor?: boolean;
 };
 
 export type PushResult = { sent: number; failed: number; error?: string; targets: number };
@@ -30,7 +36,7 @@ export function describePushResult(push: PushResult | null | undefined): string 
   if (!push) return "Push não enviado";
   if (push.targets === 0) return "Sem destinatários para o push";
   if (push.error) return `Falha no push: ${push.error}`;
-  if (push.sent === 0) return "Nenhum push entregue (sem dispositivos inscritos)";
+  if (push.sent === 0) return `Nenhum dispositivo ativo entre ${push.targets} destinatário${push.targets === 1 ? "" : "s"} (instalem o app/permitam notificações)`;
   return `${push.sent} push enviado${push.sent === 1 ? "" : "s"}${push.failed ? ` · ${push.failed} falha${push.failed === 1 ? "" : "s"}` : ""}`;
 }
 
@@ -99,12 +105,15 @@ export async function notifyGroupAdmins(params: NotifyParams): Promise<PushResul
  * Notify all members of a group except the actor (in-app + best-effort push).
  */
 export async function notifyGroupMembers(params: NotifyParams): Promise<PushResult> {
-  const { data: members } = await supabase
+  let query = supabase
     .from("group_members")
     .select("user_id")
     .eq("group_id", params.groupId)
-    .eq("status", "active")
-    .neq("user_id", params.actorId);
+    .eq("status", "active");
+  if (!params.includeActor) {
+    query = query.neq("user_id", params.actorId);
+  }
+  const { data: members } = await query;
 
   return fanout((members || []).map((m) => m.user_id), params, "/notifications");
 }

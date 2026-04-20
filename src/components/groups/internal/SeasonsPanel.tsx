@@ -544,6 +544,10 @@ function SeasonRoundsInline({ groupId, seasonId, isAdmin, initialRoundId }: { gr
   const [extraTime, setExtraTime] = useState("");
   const [extraLocation, setExtraLocation] = useState("");
   const [creatingExtra, setCreatingExtra] = useState(false);
+  // Manual push dialog state
+  const [pushTargetRound, setPushTargetRound] = useState<any | null>(null);
+  const [pushMessage, setPushMessage] = useState("");
+  const [sendingPush, setSendingPush] = useState(false);
 
   // Pre-fill defaults (group's regular time/location) from the most recent round
   useEffect(() => {
@@ -626,10 +630,10 @@ function SeasonRoundsInline({ groupId, seasonId, isAdmin, initialRoundId }: { gr
   };
 
   /**
-   * Manually trigger a push reminder for a round (admin only).
-   * Allowed from 12h before the scheduled start. No cooldown for now (test mode).
+   * Open the manual push dialog (admin). Validates the 12h window first.
+   * The actual send happens from the dialog, with a custom message.
    */
-  const sendRoundPush = async (r: any) => {
+  const openPushDialog = (r: any) => {
     if (!user) return;
     if (!r.scheduled_date) { toast.error("Rodada sem data agendada"); return; }
     const eventTs = new Date(`${r.scheduled_date}T${(r.scheduled_time || "00:00:00").slice(0, 8)}`).getTime();
@@ -640,30 +644,47 @@ function SeasonRoundsInline({ groupId, seasonId, isAdmin, initialRoundId }: { gr
       });
       return;
     }
+    const formatted = new Date(r.scheduled_date + "T00:00:00").toLocaleDateString("pt-BR", {
+      weekday: "short", day: "2-digit", month: "short",
+    });
+    const timeText = r.scheduled_time ? ` às ${r.scheduled_time.slice(0, 5)}` : "";
+    setPushMessage(`Rodada ${r.round_number} ${formatted}${timeText}. Confirme presença!`);
+    setPushTargetRound(r);
+  };
+
+  const confirmSendPush = async () => {
+    if (!user || !pushTargetRound) return;
+    const r = pushTargetRound;
+    const message = pushMessage.trim();
+    if (!message) { toast.error("Mensagem não pode estar vazia"); return; }
+    setSendingPush(true);
     try {
       const { data: group } = await supabase.from("groups").select("name").eq("id", groupId).single();
       const { notifyGroupMembers, describePushResult } = await import("@/lib/notify");
-      const formatted = new Date(r.scheduled_date + "T00:00:00").toLocaleDateString("pt-BR", {
-        weekday: "short", day: "2-digit", month: "short",
-      });
-      const timeText = r.scheduled_time ? ` às ${r.scheduled_time.slice(0, 5)}` : "";
       const push = await notifyGroupMembers({
         groupId,
         actorId: user.id,
         type: "round_reminder",
-        title: `Lembrete: ${group?.name || "Rodada"}`,
-        body: `Rodada ${r.round_number} ${formatted}${timeText}. Confirme presença!`,
+        title: `${group?.name || "Rodada"} · Rodada ${r.round_number}`,
+        body: message,
         url: `/groups/${groupId}?view=seasons&season=${seasonId}&round=${r.id}`,
         data: { roundId: r.id, seasonId, groupId },
         tag: `round_reminder:${r.id}:${Date.now()}`,
+        includeActor: true, // admin also receives confirmation push
       });
-      if (push.error || push.sent === 0) {
+      if (push.error) {
+        toast.error("Falha ao enviar push", { description: describePushResult(push) });
+      } else if (push.sent === 0) {
         toast.warning("Push enviado com problemas", { description: describePushResult(push) });
       } else {
         toast.success("Push enviado", { description: describePushResult(push) });
       }
+      setPushTargetRound(null);
+      setPushMessage("");
     } catch (err: any) {
       toast.error(err?.message || "Erro ao enviar push");
+    } finally {
+      setSendingPush(false);
     }
   };
 
@@ -790,7 +811,7 @@ function SeasonRoundsInline({ groupId, seasonId, isAdmin, initialRoundId }: { gr
                   {isAdmin && !completed && (
                     <button
                       type="button"
-                      onClick={(e) => { e.stopPropagation(); sendRoundPush(r); }}
+                      onClick={(e) => { e.stopPropagation(); openPushDialog(r); }}
                       className="flex h-7 items-center gap-1 rounded-full border border-border bg-card px-2 text-[10px] font-semibold text-muted-foreground hover:border-primary/40 hover:text-primary"
                       title="Enviar push de lembrete (a partir de 12h antes)"
                     >
@@ -856,6 +877,76 @@ function SeasonRoundsInline({ groupId, seasonId, isAdmin, initialRoundId }: { gr
         );
       })}
       {extraRoundUI}
+
+      {pushTargetRound && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-4 sm:items-center" onClick={() => !sendingPush && setPushTargetRound(null)}>
+          <div className="w-full max-w-md rounded-2xl border border-border bg-card p-4 shadow-xl space-y-3" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-start justify-between gap-2">
+              <div>
+                <h3 className="font-display text-sm font-bold text-foreground">Enviar push manual</h3>
+                <p className="text-[11px] text-muted-foreground">
+                  Rodada {pushTargetRound.round_number} · você também receberá uma cópia para confirmar a entrega.
+                </p>
+              </div>
+              <button
+                onClick={() => setPushTargetRound(null)}
+                disabled={sendingPush}
+                className="flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground hover:bg-accent"
+                aria-label="Fechar"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div>
+              <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                Mensagem
+              </label>
+              <textarea
+                value={pushMessage}
+                onChange={(e) => setPushMessage(e.target.value.slice(0, 240))}
+                rows={3}
+                placeholder="Ex.: Quadra trocada para Central Pádel"
+                className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+              />
+              <p className="mt-1 text-[10px] text-muted-foreground tabular-nums">{pushMessage.length}/240</p>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              {[
+                "Confirme presença!",
+                "Quadra trocada — confira o local",
+                "Horário ajustado — veja a rodada",
+                "Faltam jogadores, confirmem!",
+              ].map((preset) => (
+                <button
+                  key={preset}
+                  type="button"
+                  onClick={() => setPushMessage(preset)}
+                  className="rounded-lg border border-border bg-muted/30 px-2 py-1.5 text-[10px] font-semibold text-muted-foreground hover:border-primary/40 hover:text-primary"
+                >
+                  {preset}
+                </button>
+              ))}
+            </div>
+            <div className="flex gap-2 pt-1">
+              <button
+                onClick={() => setPushTargetRound(null)}
+                disabled={sendingPush}
+                className="flex-1 rounded-lg border border-border bg-muted px-3 py-2 text-xs font-semibold text-muted-foreground"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={confirmSendPush}
+                disabled={sendingPush || !pushMessage.trim()}
+                className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-xs font-bold text-primary-foreground disabled:opacity-50"
+              >
+                <Bell className="h-3.5 w-3.5" />
+                {sendingPush ? "Enviando…" : "Enviar"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -878,13 +969,14 @@ function RoundExpandedDetails({
     confirmed: 0, declined: 0, pending: 0, max: 0,
   });
   const [matchesData, setMatchesData] = useState<any[]>([]);
-  const [eloDeltas, setEloDeltas] = useState<Record<string, Record<string, number>>>({}); // matchId -> userId -> delta
+  const [eloDeltas, setEloDeltas] = useState<Record<string, Record<string, { delta: number; before: number; after: number }>>>({});
   const [confirmedPlayers, setConfirmedPlayers] = useState<{ user_id: string; name: string; avatar_url: string | null }[]>([]);
   const [confirmedIds, setConfirmedIds] = useState<string[]>([]);
   const [myStatus, setMyStatus] = useState<"confirmed" | "declined" | "absent" | null>(null);
   const [groupFormat, setGroupFormat] = useState<"singles" | "doubles">("doubles");
   const [setsPerMatch, setSetsPerMatch] = useState<number>(3);
   const [setsMode, setSetsMode] = useState<"fixed" | "flexible" | "unlimited">("fixed");
+  const [scheduledDate, setScheduledDate] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
@@ -934,23 +1026,27 @@ function RoundExpandedDetails({
         for (const mp of ((m as any).match_players || [])) allIds.add(mp.user_id);
       }
 
-      // Fetch Elo deltas for all completed matches in this round
-      let deltaMap: Record<string, Record<string, number>> = {};
+      // Fetch Elo before/after for all completed matches in this round
+      let deltaMap: Record<string, Record<string, { delta: number; before: number; after: number }>> = {};
       if (matchIds.length) {
         const { data: events } = await supabase
           .from("rating_events")
-          .select("match_id, user_id, rating_change")
+          .select("match_id, user_id, rating_change, rating_before, rating_after")
           .in("match_id", matchIds);
         for (const ev of (events || [])) {
           const mid = (ev as any).match_id as string;
           const uid = (ev as any).user_id as string;
-          const delta = Number((ev as any).rating_change) || 0;
           if (!deltaMap[mid]) deltaMap[mid] = {};
-          deltaMap[mid][uid] = delta;
+          deltaMap[mid][uid] = {
+            delta: Number((ev as any).rating_change) || 0,
+            before: Number((ev as any).rating_before) || 0,
+            after: Number((ev as any).rating_after) || 0,
+          };
         }
       }
       if (cancelled) return;
       setEloDeltas(deltaMap);
+      setScheduledDate(round?.scheduled_date ?? null);
 
       if (allIds.size) {
         const { data: profs } = await supabase
@@ -1032,6 +1128,30 @@ function RoundExpandedDetails({
     }
   };
 
+  const hasUnstartedMatches = matchesData.length > 0
+    && matchesData.every((m: any) => (m.match_sets || []).length === 0 && m.status !== "completed" && m.status !== "in_progress");
+
+  const handleRedrawTeams = async () => {
+    if (!user) return;
+    if (!hasUnstartedMatches) return;
+    if (!window.confirm("Apagar todos os times atuais e sortear novamente?")) return;
+    setBusy(true);
+    try {
+      const matchIds = matchesData.map((m: any) => m.id);
+      await supabase.from("match_players").delete().in("match_id", matchIds);
+      await supabase.from("matches").delete().in("id", matchIds);
+      const { drawTeams } = await import("@/lib/round-actions");
+      await drawTeams(roundId, confirmedIds, user.id);
+      toast.success("Times sorteados novamente");
+      setReloadKey((k) => k + 1);
+      onChanged();
+    } catch (e: any) {
+      toast.error(e?.message || "Erro ao resortear");
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const scoringMatch = scoringMatchId ? matchesData.find((m) => m.id === scoringMatchId) : null;
 
   return (
@@ -1094,7 +1214,7 @@ function RoundExpandedDetails({
             </div>
           )}
 
-          {/* Admin: sortear times when there are no matches yet */}
+      {/* Admin: sortear times when there are no matches yet */}
           {isAdmin && matchesData.length === 0 && (
             <button
               onClick={handleDrawTeams}
@@ -1105,7 +1225,27 @@ function RoundExpandedDetails({
             </button>
           )}
 
-          {/* Matches summary with inline result entry + Elo deltas */}
+          {/* Admin: resortear times when matches exist but no result entered */}
+          {isAdmin && hasUnstartedMatches && (
+            <button
+              onClick={handleRedrawTeams}
+              disabled={busy || confirmedIds.length < (groupFormat === "singles" ? 2 : 4)}
+              className="flex w-full items-center justify-center gap-2 rounded-xl border border-warning/30 bg-warning/10 py-2 text-xs font-bold text-warning hover:bg-warning/20 disabled:opacity-50"
+              title="Apaga os times atuais (nenhum resultado lançado) e sorteia novamente"
+            >
+              <RotateCcw className="h-3.5 w-3.5" /> Resortear times
+            </button>
+          )}
+
+          {/* Mini Elo timeline of the day */}
+          <RoundEloMiniTimeline
+            seasonId={seasonId}
+            scheduledDate={scheduledDate}
+            matchPlayerIds={Array.from(new Set(matchesData.flatMap((m: any) => (m.match_players || []).map((mp: any) => mp.user_id))))}
+            visible={matchesData.some((m: any) => (m.match_sets || []).length > 0)}
+          />
+
+          {/* Matches summary with inline result entry + Elo before/after */}
           {matchesData.length > 0 && (
             <div>
               <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
@@ -1121,18 +1261,20 @@ function RoundExpandedDetails({
                   const renderTeam = (team: any[], side: "A" | "B") => (
                     <span className={m.winner_team === side ? "font-bold text-primary" : "text-foreground"}>
                       {team.length === 0 ? "—" : team.map((mp) => {
-                        const d = deltas[mp.user_id];
+                        const ev = deltas[mp.user_id];
                         return (
-                          <span key={mp.user_id} className="inline-flex items-baseline gap-0.5 mr-1">
+                          <span key={mp.user_id} className="inline-flex items-baseline gap-1 mr-1">
                             <span>{nameOf(mp)}</span>
-                            {typeof d === "number" && d !== 0 && (
-                              <span className={`text-[9px] font-bold tabular-nums ${d > 0 ? "text-success" : "text-destructive"}`}>
-                                {d > 0 ? "+" : ""}{Math.round(d)}
+                            {ev && ev.delta !== 0 && (
+                              <span className="inline-flex items-baseline gap-0.5 text-[9px] font-bold tabular-nums">
+                                <span className="text-muted-foreground">{Math.round(ev.before)}</span>
+                                <span className={ev.delta > 0 ? "text-success" : "text-destructive"}>→{Math.round(ev.after)}</span>
+                                <span className={`${ev.delta > 0 ? "text-success" : "text-destructive"}`}>({ev.delta > 0 ? "+" : ""}{Math.round(ev.delta)})</span>
                               </span>
                             )}
                           </span>
                         );
-                      }).reduce((acc: any, el: any, i: number, arr: any[]) => i === 0 ? [el] : [...acc, <span key={`sep${i}`} className="text-muted-foreground">/ </span>, el], [] as any)}
+                      }).reduce((acc: any, el: any, i: number) => i === 0 ? [el] : [...acc, <span key={`sep${i}`} className="text-muted-foreground">/ </span>, el], [] as any)}
                     </span>
                   );
                   const iAmInMatch = !!user && (m.match_players || []).some((mp: any) => mp.user_id === user.id);
@@ -1227,6 +1369,100 @@ function Stat({ label, value, tone }: { label: string; value: string; tone: "suc
     <div className="rounded-lg border border-border/60 bg-card/40 p-2">
       <p className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground">{label}</p>
       <p className={`mt-0.5 font-display text-base font-bold tabular-nums ${toneClass}`}>{value}</p>
+    </div>
+  );
+}
+
+/**
+ * Mini Elo chart for the round: shows the average rating trajectory of the
+ * players involved across the season, with a marker on the round's day.
+ */
+function RoundEloMiniTimeline({
+  seasonId,
+  scheduledDate,
+  matchPlayerIds,
+  visible,
+}: {
+  seasonId: string;
+  scheduledDate: string | null;
+  matchPlayerIds: string[];
+  visible: boolean;
+}) {
+  const [points, setPoints] = useState<{ date: string; avg: number }[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!visible || !matchPlayerIds.length) { setLoading(false); return; }
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      const { data } = await supabase
+        .from("rating_events")
+        .select("created_at, rating_after, user_id")
+        .eq("season_id", seasonId)
+        .in("user_id", matchPlayerIds)
+        .order("created_at", { ascending: true });
+      if (cancelled) return;
+      // Bucket per day, average rating_after across the involved players (last value of the day per user)
+      const byDayUser = new Map<string, Map<string, number>>();
+      for (const ev of (data || [])) {
+        const day = String((ev as any).created_at).slice(0, 10);
+        if (!byDayUser.has(day)) byDayUser.set(day, new Map());
+        byDayUser.get(day)!.set((ev as any).user_id, Number((ev as any).rating_after) || 0);
+      }
+      // Carry-forward across days for missing users
+      const days = [...byDayUser.keys()].sort();
+      const lastByUser = new Map<string, number>();
+      const out: { date: string; avg: number }[] = [];
+      for (const d of days) {
+        const m = byDayUser.get(d)!;
+        for (const [uid, r] of m) lastByUser.set(uid, r);
+        const vals = matchPlayerIds.map((u) => lastByUser.get(u)).filter((v): v is number => typeof v === "number");
+        if (vals.length) out.push({ date: d, avg: vals.reduce((a, b) => a + b, 0) / vals.length });
+      }
+      setPoints(out);
+      setLoading(false);
+    })();
+    return () => { cancelled = true; };
+  }, [seasonId, visible, matchPlayerIds.join(","), scheduledDate]);
+
+  if (!visible || loading || points.length < 2) return null;
+
+  const w = 280, h = 60, pad = 4;
+  const min = Math.min(...points.map((p) => p.avg));
+  const max = Math.max(...points.map((p) => p.avg));
+  const range = Math.max(1, max - min);
+  const xs = (i: number) => pad + (i / (points.length - 1)) * (w - 2 * pad);
+  const ys = (v: number) => h - pad - ((v - min) / range) * (h - 2 * pad);
+  const path = points.map((p, i) => `${i === 0 ? "M" : "L"}${xs(i).toFixed(1)},${ys(p.avg).toFixed(1)}`).join(" ");
+  const todayIdx = scheduledDate ? points.findIndex((p) => p.date === scheduledDate) : -1;
+  const last = points[points.length - 1];
+  const first = points[0];
+  const dayDelta = todayIdx > 0 ? points[todayIdx].avg - points[todayIdx - 1].avg : 0;
+
+  return (
+    <div className="rounded-xl border border-border bg-card/40 p-2.5">
+      <div className="mb-1 flex items-center justify-between text-[10px]">
+        <span className="font-bold uppercase tracking-wider text-muted-foreground">Elo médio (jogadores da rodada)</span>
+        {todayIdx >= 0 && dayDelta !== 0 && (
+          <span className={`font-bold tabular-nums ${dayDelta > 0 ? "text-success" : "text-destructive"}`}>
+            {dayDelta > 0 ? "+" : ""}{Math.round(dayDelta)} no dia
+          </span>
+        )}
+      </div>
+      <svg viewBox={`0 0 ${w} ${h}`} className="w-full h-12" preserveAspectRatio="none">
+        <path d={path} fill="none" stroke="hsl(var(--primary))" strokeWidth="1.5" />
+        {todayIdx >= 0 && (
+          <>
+            <line x1={xs(todayIdx)} y1={pad} x2={xs(todayIdx)} y2={h - pad} stroke="hsl(var(--warning))" strokeDasharray="2 2" strokeWidth="1" />
+            <circle cx={xs(todayIdx)} cy={ys(points[todayIdx].avg)} r="2.5" fill="hsl(var(--warning))" />
+          </>
+        )}
+      </svg>
+      <div className="mt-1 flex items-center justify-between text-[9px] text-muted-foreground tabular-nums">
+        <span>{Math.round(first.avg)}</span>
+        <span>{Math.round(last.avg)}</span>
+      </div>
     </div>
   );
 }
