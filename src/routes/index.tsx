@@ -1299,7 +1299,24 @@ function DashboardPage() {
 
           <div className="flex items-center gap-2">
             <img src={resolvedTheme === "light" ? logoSymbolBlack : logoSymbolNeon} alt="RankMyMatch" className="h-7 w-7" />
-            <InstallIconButton />
+            {(() => {
+              // Active group = group of the next upcoming match if any,
+              // otherwise the user's first group. Sends user straight into
+              // /history filtered by that group.
+              const activeGroupId = nextMatch?.group_id || myGroups[0]?.id;
+              if (!activeGroupId) return null;
+              return (
+                <Link
+                  to="/history"
+                  search={{ group: activeGroupId }}
+                  aria-label="Histórico do grupo ativo"
+                  title="Histórico do grupo ativo"
+                  className="rounded-full border border-border bg-card p-2.5 transition-colors hover:bg-accent"
+                >
+                  <History className="h-4 w-4 text-muted-foreground" />
+                </Link>
+              );
+            })()}
             <NotificationsPopover>
               <button
                 aria-label={unreadCount > 0 ? `${unreadCount} notificações` : "Notificações"}
