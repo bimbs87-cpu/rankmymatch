@@ -15,6 +15,7 @@ import {
   AlertTriangle,
   Undo2,
   BarChart3,
+  Trophy,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
