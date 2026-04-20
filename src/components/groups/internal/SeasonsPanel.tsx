@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { useGroupSeasons } from "@/hooks/use-seasons";
 import { useSeasonRounds } from "@/hooks/use-rounds";
+import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { SeasonFinalRanking } from "./SeasonFinalRanking";
@@ -14,6 +15,7 @@ import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { PlayerAvatarLink } from "@/components/PlayerProfileViewer";
 import { GroupSummaryCards } from "./GroupSummaryCards";
 import { SeasonsTimeline } from "./SeasonsTimeline";
+import { createExtraRound as createExtraRoundFn } from "@/lib/extra-round";
 
 type SeasonFilter = "all" | "active" | "finished";
 
