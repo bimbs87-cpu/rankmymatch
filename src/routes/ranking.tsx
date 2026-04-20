@@ -8,7 +8,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { PlayerAvatarLink } from "@/components/PlayerProfileViewer";
 import { RankingPlayerDetails } from "@/components/RankingPlayerDetails";
-import { isRivalryGroup } from "@/lib/rivalry";
 import { buildDisplayNames, getCollidingFirstNames } from "@/lib/name-disambiguation";
 import { abbreviateName } from "@/lib/utils";
 
@@ -485,19 +484,6 @@ function RankingPage() {
 
   const getDisplayName = (entry: RankingEntry) =>
     displayNameMap.get(entry.user_id) || entry.profile?.nickname || abbreviateName(entry.profile?.name || "Jogador");
-
-  const rivalryGroups = groups.filter((g: any) => isRivalryGroup(g));
-  const onlyRivalryGroups = groups.length > 0 && groups.every((g: any) => isRivalryGroup(g));
-
-  // Redirect to the duel page ONLY when the user has exclusively 1x1 (rivalry)
-  // groups — in that case a list-style ranking never makes sense. If the user
-  // has any non-rivalry group, keep the standard ranking with podium and let
-  // them switch seasons via the selector (including rivalry seasons).
-  useEffect(() => {
-    if (isPageLoading || !onlyRivalryGroups || rivalryGroups.length === 0) return;
-    navigate({ to: "/groups/$groupId/duel", params: { groupId: rivalryGroups[0].id }, replace: true });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [onlyRivalryGroups, rivalryGroups.map((g) => g.id).join(","), isPageLoading]);
 
   return (
     <div className="min-h-screen bg-background pb-28 lg:pb-8">

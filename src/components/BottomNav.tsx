@@ -7,6 +7,7 @@ import { useMyGroups } from "@/hooks/use-groups";
 import { GroupsNavMenu } from "@/components/GroupsNavMenu";
 import { SafeBoundary } from "@/components/SafeBoundary";
 import { Skeleton } from "@/components/ui/skeleton";
+import { isRivalryGroup } from "@/lib/rivalry";
 
 const NAV_ITEMS = [
   { to: "/", icon: Home, label: "Início" },
@@ -21,6 +22,9 @@ export function BottomNav() {
   const newReleases = useNewReleasesCount();
   const { count: adminPending } = useAdminPendingCount();
   const { groups: myGroups } = useMyGroups();
+  const activeGroupId = location.pathname.match(/^\/groups\/([0-9a-f-]{36})/i)?.[1] ?? null;
+  const activeGroup = myGroups.find((group) => group.id === activeGroupId) ?? null;
+  const shouldOpenDuelFromRanking = !!activeGroup && activeGroup.match_format === "singles" && (isRivalryGroup(activeGroup) || activeGroup.member_count <= 2);
 
   return (
     <>
@@ -51,9 +55,10 @@ export function BottomNav() {
       <nav className="fixed bottom-5 left-4 right-4 z-50 mx-auto max-w-lg lg:hidden">
       <div className="flex items-end justify-around rounded-full border border-border bg-card/80 px-2 py-2 backdrop-blur-xl">
         {NAV_ITEMS.map((item: any) => {
-          const isActive =
-            location.pathname === item.to ||
-            (item.to !== "/" && location.pathname.startsWith(item.to));
+          const isActive = item.to === "/ranking"
+            ? location.pathname === "/ranking" || (shouldOpenDuelFromRanking && location.pathname === `/groups/${activeGroup?.id}/duel`)
+            : location.pathname === item.to ||
+              (item.to !== "/" && location.pathname.startsWith(item.to));
           const Icon = item.icon;
           const isRanking = item.to === "/ranking";
 
@@ -128,6 +133,14 @@ export function BottomNav() {
                   )}
                 />
               </SafeBoundary>
+            );
+          }
+
+          if (isRanking && shouldOpenDuelFromRanking && activeGroup) {
+            return (
+              <Link key={item.to} to="/groups/$groupId/duel" params={{ groupId: activeGroup.id }} className={baseClasses}>
+                {renderInner()}
+              </Link>
             );
           }
 

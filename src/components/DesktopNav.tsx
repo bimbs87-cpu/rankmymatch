@@ -1,4 +1,4 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useLocation } from "@tanstack/react-router";
 import { Home, User, Crown, Users, Bell, BarChart3 } from "lucide-react";
 import { useNotifications } from "@/hooks/use-notifications";
 import { useAdminPendingCount } from "@/hooks/use-admin-pending-count";
@@ -9,6 +9,7 @@ import { NotificationsPopover } from "@/components/NotificationsPopover";
 import { GroupSwitcherPopover } from "@/components/GroupSwitcherPopover";
 import { GroupsNavMenu } from "@/components/GroupsNavMenu";
 import { SafeBoundary } from "@/components/SafeBoundary";
+import { isRivalryGroup } from "@/lib/rivalry";
 
 const NAV_ITEMS = [
   { to: "/" as const, icon: Home, label: "Início", isGroups: false },
@@ -19,15 +20,18 @@ const NAV_ITEMS = [
 ];
 
 export function DesktopNav() {
+  const location = useLocation();
   const { unreadCount } = useNotifications();
   const { count: adminPending } = useAdminPendingCount();
   const totalBadge = unreadCount + adminPending;
   const { displayName, nickname, avatarUrl } = useUserProfile();
   const { groups: myGroups } = useMyGroups();
   const headerName = nickname || displayName || "Você";
-  const activeGroup = myGroups[0];
+  const activeGroupIdFromPath = location.pathname.match(/^\/groups\/([0-9a-f-]{36})/i)?.[1] ?? null;
+  const activeGroup = myGroups.find((group) => group.id === activeGroupIdFromPath) ?? myGroups[0];
   const activeGroupId = activeGroup?.id ?? "";
   const activeGroupName = activeGroup?.name ?? "";
+  const shouldOpenDuelFromRanking = !!activeGroup && activeGroup.match_format === "singles" && (isRivalryGroup(activeGroup) || activeGroup.member_count <= 2);
 
   return (
     <header className="hidden lg:block z-40 -mx-8 px-8 pt-6 pb-3 bg-background border-b border-border/40">
@@ -93,6 +97,21 @@ export function DesktopNav() {
                       )}
                     />
                   </SafeBoundary>
+                );
+              }
+
+              if (item.to === "/ranking" && shouldOpenDuelFromRanking && activeGroup) {
+                return (
+                  <Link
+                    key={item.to}
+                    to="/groups/$groupId/duel"
+                    params={{ groupId: activeGroup.id }}
+                    activeOptions={{ exact: true }}
+                    className={baseClasses}
+                  >
+                    <Icon className="h-4 w-4" />
+                    <span>{item.label}</span>
+                  </Link>
                 );
               }
 
