@@ -21,6 +21,12 @@ type NotifyParams = {
    * Defaults to `${type}:${groupId}` when omitted.
    */
   tag?: string;
+  /**
+   * When true, the actor (admin sending the push) also receives the notification
+   * + push. Useful for manual reminders so the admin gets visual confirmation
+   * of delivery on their own device. Defaults to false.
+   */
+  includeActor?: boolean;
 };
 
 export type PushResult = { sent: number; failed: number; error?: string; targets: number };
