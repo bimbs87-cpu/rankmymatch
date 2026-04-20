@@ -97,6 +97,9 @@ export function GroupRankingPanel({ groupId }: Props) {
         </Link>
       </header>
 
+      <GroupEloEvolutionChart groupId={groupId} />
+
+
       {loading ? (
         <div className="rounded-2xl border border-border bg-card p-6 text-center text-sm text-muted-foreground">
           Carregando ranking…
