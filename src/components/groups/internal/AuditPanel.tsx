@@ -532,6 +532,19 @@ export function AuditPanel({ groupId }: Props) {
               <Sparkline values={nudgeStats.sparkline} />
             </div>
           )}
+          {nudgeStats.pendingPctSparkline.length >= 2 && (
+            <div>
+              <div className="mb-1 flex items-center justify-between">
+                <p className="text-[9px] font-bold uppercase tracking-wider text-warning/80">
+                  % pendentes por cutucada (últimas {nudgeStats.pendingPctSparkline.length})
+                </p>
+                <p className="text-[9px] text-muted-foreground">
+                  ↓ menos % = galera mais responsiva
+                </p>
+              </div>
+              <Sparkline values={nudgeStats.pendingPctSparkline} unit="%" />
+            </div>
+          )}
         </div>
       )}
 
