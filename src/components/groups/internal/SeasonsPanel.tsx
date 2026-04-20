@@ -13,6 +13,9 @@ import { QuickCreateSeasonDialog } from "./QuickCreateSeasonDialog";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { PlayerAvatarLink } from "@/components/PlayerProfileViewer";
 import { GroupSummaryCards } from "./GroupSummaryCards";
+import { SeasonsTimeline } from "./SeasonsTimeline";
+
+type SeasonFilter = "all" | "active" | "finished";
 
 function useSeasonProgress(seasonId: string, totalRounds: number | null) {
   const [completed, setCompleted] = useState(0);
@@ -72,6 +75,7 @@ export function SeasonsPanel({ groupId, isAdmin }: Props) {
   const [quickCreateOpen, setQuickCreateOpen] = useState(false);
   const [groupFormat, setGroupFormat] = useState<string>("doubles");
   const [groupFixedDay, setGroupFixedDay] = useState<number | null>(null);
+  const [filter, setFilter] = useState<SeasonFilter>("all");
 
   // Realtime: refresh when any round in this group changes (status flips, etc.)
   useEffect(() => {
@@ -108,6 +112,21 @@ export function SeasonsPanel({ groupId, isAdmin }: Props) {
 
   const active = seasons.filter((s) => s.status === "active");
   const finished = seasons.filter((s) => s.status !== "active");
+  const showActive = filter === "all" || filter === "active";
+  const showFinished = filter === "all" || filter === "finished";
+
+  const handleTimelineSelect = (sid: string) => {
+    setExpandedId(sid);
+    // ensure visible under current filter
+    const s = seasons.find((x) => x.id === sid);
+    if (s) {
+      if (s.status === "active" && filter === "finished") setFilter("all");
+      if (s.status !== "active" && filter === "active") setFilter("all");
+    }
+    requestAnimationFrame(() => {
+      document.getElementById(`season-${sid}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+  };
 
   return (
     <div className="space-y-5">
