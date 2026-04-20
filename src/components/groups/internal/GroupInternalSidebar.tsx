@@ -15,15 +15,25 @@ interface Item {
   shortLabel?: string;
   icon: typeof LayoutGrid;
   adminOnly?: boolean;
+  /** When true, only show if there are at least 3 members in the group. */
+  needsCompare?: boolean;
 }
 
 const ITEMS: Item[] = [
   { id: "overview", label: "Visão geral", shortLabel: "Visão", icon: LayoutGrid },
   { id: "members", label: "Membros", shortLabel: "", icon: Users },
   { id: "seasons", label: "Agenda e resultados", shortLabel: "", icon: ListChecks },
-  { id: "compare", label: "Comparar", shortLabel: "", icon: GitCompare },
+  { id: "compare", label: "Comparar", shortLabel: "", icon: GitCompare, needsCompare: true },
   { id: "admin", label: "Admin", icon: Settings2, adminOnly: true },
 ];
+
+function filterItems(isAdmin: boolean, memberCount: number) {
+  return ITEMS.filter((i) => {
+    if (i.adminOnly && !isAdmin) return false;
+    if (i.needsCompare && memberCount < 3) return false;
+    return true;
+  });
+}
 
 interface Props {
   groupName: string;
