@@ -505,6 +505,7 @@ function SeasonStatusActions({ season, onChanged }: { season: any; onChanged: ()
 }
 
 function SeasonRoundsInline({ groupId, seasonId, isAdmin }: { groupId: string; seasonId: string; isAdmin: boolean }) {
+  const { user } = useAuth();
   const { rounds, isLoading, refresh } = useSeasonRounds(seasonId);
   const [editing, setEditing] = useState(false);
   const [editingRoundId, setEditingRoundId] = useState<string | null>(null);
@@ -513,7 +514,20 @@ function SeasonRoundsInline({ groupId, seasonId, isAdmin }: { groupId: string; s
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [showExtraForm, setShowExtraForm] = useState(false);
   const [extraDate, setExtraDate] = useState("");
+  const [extraTime, setExtraTime] = useState("");
+  const [extraLocation, setExtraLocation] = useState("");
   const [creatingExtra, setCreatingExtra] = useState(false);
+
+  // Pre-fill defaults (group's regular time/location) from the most recent round
+  useEffect(() => {
+    if (!showExtraForm || !rounds.length) return;
+    const latest = [...rounds].reverse().find((r) => r.scheduled_time || r.location);
+    if (latest) {
+      if (latest.scheduled_time && !extraTime) setExtraTime(latest.scheduled_time.slice(0, 5));
+      if (latest.location && !extraLocation) setExtraLocation(latest.location);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showExtraForm]);
 
   const today = new Date().toISOString().slice(0, 10);
 
