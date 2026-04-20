@@ -405,6 +405,39 @@ export function AuditPanel({ groupId }: Props) {
         )}
       </div>
 
+      {isNudgeFilter && nudgeStats.total > 0 && (
+        <div className="grid gap-2 rounded-xl border border-warning/30 bg-warning/5 p-3 sm:grid-cols-3">
+          <div>
+            <p className="text-[9px] font-bold uppercase tracking-wider text-warning/80">
+              Total de destinatários
+            </p>
+            <p className="mt-0.5 text-xl font-bold tabular-nums text-foreground">
+              {nudgeStats.recipients}
+            </p>
+            <p className="text-[10px] text-muted-foreground">
+              em {nudgeStats.total} cutucada{nudgeStats.total !== 1 ? "s" : ""}
+            </p>
+          </div>
+          <div>
+            <p className="text-[9px] font-bold uppercase tracking-wider text-warning/80">
+              Pendentes vs recusados
+            </p>
+            <p className="mt-0.5 text-xl font-bold tabular-nums text-foreground">
+              {nudgeStats.pendingPct}% / {nudgeStats.declinedPct}%
+            </p>
+            <p className="text-[10px] text-muted-foreground">média acumulada</p>
+          </div>
+          <div>
+            <p className="text-[9px] font-bold uppercase tracking-wider text-warning/80">
+              Última cutucada
+            </p>
+            <p className="mt-0.5 text-sm font-bold tabular-nums text-foreground">
+              {nudgeStats.lastAt ? fmtDate(nudgeStats.lastAt) : "—"}
+            </p>
+          </div>
+        </div>
+      )}
+
       {loading ? (
         <div className="flex items-center justify-center py-10">
           <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
