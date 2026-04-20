@@ -36,6 +36,9 @@ export function describePushResult(push: PushResult | null | undefined): string 
   if (!push) return "Push não enviado";
   if (push.targets === 0) return "Sem destinatários para o push";
   if (push.error) return `Falha no push: ${push.error}`;
+  if (push.sent === 0 && push.failed > 0) {
+    return `Nenhum push entregue · ${push.failed} falha${push.failed === 1 ? "" : "s"} no provedor`;
+  }
   if (push.sent === 0) return `Nenhum dispositivo ativo entre ${push.targets} destinatário${push.targets === 1 ? "" : "s"} (instalem o app/permitam notificações)`;
   return `${push.sent} push enviado${push.sent === 1 ? "" : "s"}${push.failed ? ` · ${push.failed} falha${push.failed === 1 ? "" : "s"}` : ""}`;
 }
