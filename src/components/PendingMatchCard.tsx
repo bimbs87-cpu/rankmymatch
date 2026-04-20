@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { Swords, ChevronRight, Edit3 } from "lucide-react";
+import { Swords, ChevronRight, Edit3, Clock } from "lucide-react";
 import { ScoreEntryDialog } from "@/components/ScoreEntryDialog";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { PlayerAvatarLink } from "@/components/PlayerProfileViewer";
+import { useMatchPendingResult } from "@/lib/pending-results";
 import type { PendingMatch } from "@/hooks/use-pending-matches";
 
 interface Props {
@@ -15,7 +16,9 @@ interface Props {
 
 export function PendingMatchCard({ match, onScoreSaved, showGroupName = true, isAdmin = false }: Props) {
   const [scoring, setScoring] = useState(false);
+  const { pending } = useMatchPendingResult(match.id);
   const isSingles = match.group_match_format === "singles";
+  const hasPending = !!pending;
 
   const playerAName = match.teamA[0]?.nickname || match.teamA[0]?.name || "Jogador A";
   const playerBName = match.teamB[0]?.nickname || match.teamB[0]?.name || "Jogador B";
@@ -37,8 +40,9 @@ export function PendingMatchCard({ match, onScoreSaved, showGroupName = true, is
               )}
             </div>
           </div>
-          <span className="rounded-full bg-warning/10 px-2 py-0.5 text-[10px] font-semibold text-warning">
-            Aguardando resultado
+          <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold inline-flex items-center gap-1 ${hasPending ? "bg-info/10 text-info" : "bg-warning/10 text-warning"}`}>
+            {hasPending && <Clock className="h-3 w-3" />}
+            {hasPending ? "Aguardando aprovação" : "Aguardando resultado"}
           </span>
         </div>
 
@@ -84,7 +88,7 @@ export function PendingMatchCard({ match, onScoreSaved, showGroupName = true, is
             className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-primary py-2.5 text-xs font-bold text-primary-foreground active:scale-[0.98]"
           >
             <Edit3 className="h-3.5 w-3.5" />
-            {isAdmin ? "Lançar resultado" : "Enviar resultado"}
+            {hasPending ? (isAdmin ? "Revisar e aprovar" : "Editar envio") : (isAdmin ? "Lançar resultado" : "Enviar resultado")}
           </button>
           <Link
             to="/groups/$groupId/seasons/$seasonId/rounds/$roundId"

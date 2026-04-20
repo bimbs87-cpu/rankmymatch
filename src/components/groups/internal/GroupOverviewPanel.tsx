@@ -121,6 +121,8 @@ export function GroupOverviewPanel({ groupId, groupName, groupImage, description
         isAdmin={isAdmin}
       />
 
+      {isAdmin && <AdminPendingBadges groupId={groupId} onGotoResults={onGotoResults} />}
+
       {/* Linha compacta: 2 KPIs combinados + Próxima rodada + Sua posição (sempre 4 colunas) */}
       <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
         <DualKpiCard
