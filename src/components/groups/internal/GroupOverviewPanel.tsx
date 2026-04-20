@@ -597,7 +597,7 @@ function NextRoundCard({ data, isLoading, groupId, busy, onPresence }: NextRound
           )}
 
           {/* Aviso "Você ainda não respondeu" — destaca no mobile quando lista aberta + pendente */}
-          {data.next_round.presence_is_open && data.next_round.presence_status === "pending" && (
+          {data.next_round.presence_is_open && data.next_round.presence_status === "pending" && !isSnoozed && (
             <div className="mt-2 flex items-center gap-1.5 rounded-lg border border-warning/40 bg-warning/10 px-2 py-1.5 text-[10px] font-bold text-warning animate-in fade-in">
               <span className="relative flex h-2 w-2 shrink-0">
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-warning opacity-70" />
@@ -613,6 +613,14 @@ function NextRoundCard({ data, isLoading, groupId, busy, onPresence }: NextRound
                 className="shrink-0 rounded-full bg-warning px-2 py-0.5 text-[10px] font-bold text-warning-foreground transition hover:scale-[1.03] active:scale-95"
               >
                 Responder agora
+              </button>
+              <button
+                type="button"
+                onClick={handleSnooze}
+                title="Ocultar por 1 hora"
+                className="shrink-0 rounded-full border border-warning/40 bg-card/40 px-2 py-0.5 text-[10px] font-semibold text-warning transition hover:bg-card/70 active:scale-95"
+              >
+                Lembrar depois
               </button>
             </div>
           )}
