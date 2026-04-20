@@ -1,7 +1,9 @@
 import { Link, useLocation } from "@tanstack/react-router";
-import { ChevronDown, Users, Trophy, UserSquare2, Compass, CheckCircle2 } from "lucide-react";
+import { ChevronDown, Users, Trophy, UserSquare2, Compass, CheckCircle2, CalendarClock } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useGroupPendingTasks } from "@/hooks/use-group-pending-tasks";
+import { useAllGroupsPending } from "@/hooks/use-all-groups-pending";
+import { useNextRound } from "@/hooks/use-next-round";
 
 interface GroupItem {
   id: string;
@@ -52,6 +54,15 @@ export function GroupsNavMenu({ groups, renderTrigger, panelClassName }: Props) 
   const { counts } = useGroupPendingTasks(primaryId || null, !!primaryId && orderedGroups.length > 1);
   const memberPending = counts.joinRequests + counts.playerClaims;
 
+  // Aggregated badge across ALL groups (so the BottomNav/DesktopNav "Grupos"
+  // trigger reflects every group where the user has pending admin tasks, not
+  // only the primary one).
+  const allGroupIds = useMemo(() => groups.map((g) => g.id), [groups]);
+  const globalPending = useAllGroupsPending(allGroupIds);
+
+  // Next scheduled round of the primary group (used in the popover shortcut).
+  const { round: nextRound } = useNextRound(primaryId || null);
+
   useEffect(() => {
     if (!open) return;
     const onClick = (e: MouseEvent) => {
@@ -81,7 +92,7 @@ export function GroupsNavMenu({ groups, renderTrigger, panelClassName }: Props) 
   if (orderedGroups.length === 1) {
     return (
       <Link to="/groups/$groupId" params={{ groupId: primaryId }} className="contents">
-        {renderTrigger({ onClick: () => {}, badge: memberPending, open: false })}
+        {renderTrigger({ onClick: () => {}, badge: globalPending, open: false })}
       </Link>
     );
   }
@@ -91,7 +102,7 @@ export function GroupsNavMenu({ groups, renderTrigger, panelClassName }: Props) 
 
   return (
     <div ref={ref} className="relative contents">
-      {renderTrigger({ onClick: () => setOpen((v) => !v), badge: memberPending, open })}
+      {renderTrigger({ onClick: () => setOpen((v) => !v), badge: globalPending, open })}
 
       {open && (
         <div
@@ -130,6 +141,28 @@ export function GroupsNavMenu({ groups, renderTrigger, panelClassName }: Props) 
                 )}
               </div>
               <ul className="space-y-0.5">
+                {nextRound && (
+                  <li>
+                    <Link
+                      to="/groups/$groupId/seasons/$seasonId/rounds/$roundId"
+                      params={{
+                        groupId: primaryId,
+                        seasonId: nextRound.season_id ?? "",
+                        roundId: nextRound.id,
+                      }}
+                      onClick={() => setOpen(false)}
+                      className="flex items-center justify-between gap-2 rounded-lg bg-success/10 px-2 py-1.5 text-xs font-semibold text-foreground ring-1 ring-success/30 transition-colors hover:bg-success/20"
+                    >
+                      <span className="flex items-center gap-2">
+                        <CalendarClock className="h-3.5 w-3.5 shrink-0 text-success" />
+                        <span>Próxima rodada</span>
+                      </span>
+                      <span className="text-[10px] font-bold text-success">
+                        {formatNextRound(nextRound.scheduled_date, nextRound.scheduled_time)}
+                      </span>
+                    </Link>
+                  </li>
+                )}
                 <li>
                   <Link
                     to="/groups/$groupId"
@@ -243,4 +276,22 @@ function OtherGroupItem({
       </Link>
     </li>
   );
+}
+
+const WEEKDAYS = ["dom", "seg", "ter", "qua", "qui", "sex", "sáb"];
+function formatNextRound(date: string | null, time: string | null): string {
+  if (!date) return "";
+  // date is YYYY-MM-DD; parse as local to avoid TZ shift
+  const [y, m, d] = date.split("-").map((n) => parseInt(n, 10));
+  const dt = new Date(y, (m || 1) - 1, d || 1);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const diffDays = Math.round((dt.getTime() - today.getTime()) / 86400000);
+  let dayLabel: string;
+  if (diffDays === 0) dayLabel = "hoje";
+  else if (diffDays === 1) dayLabel = "amanhã";
+  else if (diffDays > 1 && diffDays < 7) dayLabel = WEEKDAYS[dt.getDay()];
+  else dayLabel = `${String(d).padStart(2, "0")}/${String(m).padStart(2, "0")}`;
+  const t = time ? time.slice(0, 5) : "";
+  return t ? `${dayLabel} · ${t}` : dayLabel;
 }
