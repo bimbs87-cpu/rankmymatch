@@ -98,6 +98,8 @@ export function GroupRankingPanel({ groupId }: Props) {
         </Link>
       </header>
 
+      <GroupEloHighlights groupId={groupId} />
+
       <GroupEloEvolutionChart groupId={groupId} defaultFilter="active" />
 
 
