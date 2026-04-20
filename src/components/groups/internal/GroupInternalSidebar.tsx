@@ -19,9 +19,9 @@ interface Item {
 
 const ITEMS: Item[] = [
   { id: "overview", label: "Visão geral", shortLabel: "Visão", icon: LayoutGrid },
-  { id: "members", label: "Membros", icon: Users },
-  { id: "seasons", label: "Agenda e resultados", shortLabel: "Agenda", icon: CalendarDays },
-  { id: "compare", label: "Comparar", icon: GitCompare },
+  { id: "members", label: "Membros", shortLabel: "", icon: Users },
+  { id: "seasons", label: "Agenda e resultados", shortLabel: "", icon: CalendarDays },
+  { id: "compare", label: "Comparar", shortLabel: "", icon: GitCompare },
   { id: "admin", label: "Admin", icon: Settings2, adminOnly: true },
 ];
 
@@ -201,7 +201,7 @@ export function GroupInternalFloatingTabs({ isAdmin, view, onSelect, badges = {}
                   }`}
                 >
                   <Icon className="h-3.5 w-3.5 shrink-0" />
-                  <span className="truncate">{item.shortLabel ?? item.label}</span>
+                  {(item.shortLabel ?? item.label) && <span className="truncate">{item.shortLabel ?? item.label}</span>}
                   {dot && <span className="ml-0.5 h-1.5 w-1.5 rounded-full bg-warning" />}
                   {badgeCount && badgeCount > 0 ? (
                     <span className="ml-0.5 inline-flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-destructive px-1 text-[9px] font-bold text-destructive-foreground">
