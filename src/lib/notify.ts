@@ -105,12 +105,15 @@ export async function notifyGroupAdmins(params: NotifyParams): Promise<PushResul
  * Notify all members of a group except the actor (in-app + best-effort push).
  */
 export async function notifyGroupMembers(params: NotifyParams): Promise<PushResult> {
-  const { data: members } = await supabase
+  let query = supabase
     .from("group_members")
     .select("user_id")
     .eq("group_id", params.groupId)
-    .eq("status", "active")
-    .neq("user_id", params.actorId);
+    .eq("status", "active");
+  if (!params.includeActor) {
+    query = query.neq("user_id", params.actorId);
+  }
+  const { data: members } = await query;
 
   return fanout((members || []).map((m) => m.user_id), params, "/notifications");
 }
