@@ -13,6 +13,9 @@ import { QuickCreateSeasonDialog } from "./QuickCreateSeasonDialog";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { PlayerAvatarLink } from "@/components/PlayerProfileViewer";
 import { GroupSummaryCards } from "./GroupSummaryCards";
+import { SeasonsTimeline } from "./SeasonsTimeline";
+
+type SeasonFilter = "all" | "active" | "finished";
 
 function useSeasonProgress(seasonId: string, totalRounds: number | null) {
   const [completed, setCompleted] = useState(0);
@@ -72,6 +75,7 @@ export function SeasonsPanel({ groupId, isAdmin }: Props) {
   const [quickCreateOpen, setQuickCreateOpen] = useState(false);
   const [groupFormat, setGroupFormat] = useState<string>("doubles");
   const [groupFixedDay, setGroupFixedDay] = useState<number | null>(null);
+  const [filter, setFilter] = useState<SeasonFilter>("all");
 
   // Realtime: refresh when any round in this group changes (status flips, etc.)
   useEffect(() => {
@@ -108,6 +112,21 @@ export function SeasonsPanel({ groupId, isAdmin }: Props) {
 
   const active = seasons.filter((s) => s.status === "active");
   const finished = seasons.filter((s) => s.status !== "active");
+  const showActive = filter === "all" || filter === "active";
+  const showFinished = filter === "all" || filter === "finished";
+
+  const handleTimelineSelect = (sid: string) => {
+    setExpandedId(sid);
+    // ensure visible under current filter
+    const s = seasons.find((x) => x.id === sid);
+    if (s) {
+      if (s.status === "active" && filter === "finished") setFilter("all");
+      if (s.status !== "active" && filter === "active") setFilter("all");
+    }
+    requestAnimationFrame(() => {
+      document.getElementById(`season-${sid}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+  };
 
   return (
     <div className="space-y-5">
@@ -131,6 +150,41 @@ export function SeasonsPanel({ groupId, isAdmin }: Props) {
 
       {/* Group-wide summary cards (totais do grupo todo) */}
       <GroupSummaryCards groupId={groupId} />
+
+      {/* Mini timeline showing season spans */}
+      {seasons.length > 0 && (
+        <SeasonsTimeline seasons={seasons as any} onSelect={handleTimelineSelect} />
+      )}
+
+      {/* Quick filter chips */}
+      {seasons.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2">
+          {([
+            { key: "all", label: "Todas", count: seasons.length },
+            { key: "active", label: "Em andamento", count: active.length },
+            { key: "finished", label: "Encerradas", count: finished.length },
+          ] as { key: SeasonFilter; label: string; count: number }[]).map((opt) => {
+            const isOn = filter === opt.key;
+            return (
+              <button
+                key={opt.key}
+                type="button"
+                onClick={() => setFilter(opt.key)}
+                className={`flex items-center gap-1.5 rounded-full border px-3 py-1 text-[11px] font-bold transition-all ${
+                  isOn
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : "border-border bg-card/40 text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {opt.label}
+                <span className={`tabular-nums ${isOn ? "opacity-90" : "opacity-60"}`}>
+                  {opt.count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {quickCreateOpen && (
         <QuickCreateSeasonDialog
@@ -156,43 +210,53 @@ export function SeasonsPanel({ groupId, isAdmin }: Props) {
         </div>
       ) : (
         <>
-          {active.length > 0 && (
+          {showActive && active.length > 0 && (
             <section className="space-y-2">
               <h3 className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-success">
                 <CircleDot className="h-3 w-3" /> Em andamento
               </h3>
               {active.map((s) => (
-                <SeasonAccordion
-                  key={s.id}
-                  season={s}
-                  groupId={groupId}
-                  isAdmin={isAdmin}
-                  expanded={expandedId === s.id}
-                  onToggle={() => setExpandedId(expandedId === s.id ? null : s.id)}
-                  onChanged={refresh}
-                />
+                <div key={s.id} id={`season-${s.id}`}>
+                  <SeasonAccordion
+                    season={s}
+                    groupId={groupId}
+                    isAdmin={isAdmin}
+                    expanded={expandedId === s.id}
+                    onToggle={() => setExpandedId(expandedId === s.id ? null : s.id)}
+                    onChanged={refresh}
+                  />
+                </div>
               ))}
             </section>
           )}
 
-          {finished.length > 0 && (
+          {showFinished && finished.length > 0 && (
             <section className="space-y-2">
               <h3 className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
                 <CheckCircle2 className="h-3 w-3" /> Encerradas
               </h3>
               {finished.map((s) => (
-                <SeasonAccordion
-                  key={s.id}
-                  season={s}
-                  groupId={groupId}
-                  isAdmin={isAdmin}
-                  expanded={expandedId === s.id}
-                  onToggle={() => setExpandedId(expandedId === s.id ? null : s.id)}
-                  onChanged={refresh}
-                />
+                <div key={s.id} id={`season-${s.id}`}>
+                  <SeasonAccordion
+                    season={s}
+                    groupId={groupId}
+                    isAdmin={isAdmin}
+                    expanded={expandedId === s.id}
+                    onToggle={() => setExpandedId(expandedId === s.id ? null : s.id)}
+                    onChanged={refresh}
+                  />
+                </div>
               ))}
             </section>
           )}
+
+          {((showActive && active.length === 0) || (showFinished && finished.length === 0)) &&
+            !(showActive && active.length > 0) &&
+            !(showFinished && finished.length > 0) && (
+              <div className="rounded-2xl border border-dashed border-border bg-muted/10 py-8 text-center text-xs text-muted-foreground">
+                Nenhuma temporada nesse filtro.
+              </div>
+            )}
         </>
       )}
     </div>
