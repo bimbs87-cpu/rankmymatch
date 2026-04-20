@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { Swords, ChevronRight, Edit3 } from "lucide-react";
+import { Swords, ChevronRight, Edit3, Clock } from "lucide-react";
 import { ScoreEntryDialog } from "@/components/ScoreEntryDialog";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { PlayerAvatarLink } from "@/components/PlayerProfileViewer";
+import { useMatchPendingResult } from "@/lib/pending-results";
 import type { PendingMatch } from "@/hooks/use-pending-matches";
 
 interface Props {
@@ -15,7 +16,9 @@ interface Props {
 
 export function PendingMatchCard({ match, onScoreSaved, showGroupName = true, isAdmin = false }: Props) {
   const [scoring, setScoring] = useState(false);
+  const { pending } = useMatchPendingResult(match.id);
   const isSingles = match.group_match_format === "singles";
+  const hasPending = !!pending;
 
   const playerAName = match.teamA[0]?.nickname || match.teamA[0]?.name || "Jogador A";
   const playerBName = match.teamB[0]?.nickname || match.teamB[0]?.name || "Jogador B";
