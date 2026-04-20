@@ -389,11 +389,11 @@ export function GroupComparePanel({ groupId, initialPick, onConsumeInitial }: Pa
 
       {/* Suggestions */}
       {suggestions.length > 0 && (
-        <section>
+        <section className="order-2 lg:order-none">
           <p className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground mb-2 flex items-center gap-1.5">
             <Sparkles className="h-3 w-3" /> Sugestões
           </p>
-          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
             {suggestions.map((s) => (
               <button
                 key={s.key}
