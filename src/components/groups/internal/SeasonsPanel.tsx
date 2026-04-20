@@ -509,6 +509,9 @@ function SeasonRoundsInline({ groupId, seasonId, isAdmin }: { groupId: string; s
   const [editDates, setEditDates] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [showExtraForm, setShowExtraForm] = useState(false);
+  const [extraDate, setExtraDate] = useState("");
+  const [creatingExtra, setCreatingExtra] = useState(false);
 
   const today = new Date().toISOString().slice(0, 10);
 
@@ -552,8 +555,94 @@ function SeasonRoundsInline({ groupId, seasonId, isAdmin }: { groupId: string; s
     setSaving(false);
   };
 
+  const createExtraRound = async () => {
+    if (!extraDate) { toast.error("Selecione uma data"); return; }
+    setCreatingExtra(true);
+    const { data: group } = await supabase
+      .from("groups")
+      .select("match_format, max_players")
+      .eq("id", groupId)
+      .single();
+    if (!group) {
+      toast.error("Erro ao carregar grupo");
+      setCreatingExtra(false);
+      return;
+    }
+    const nextNumber = rounds.length
+      ? Math.max(...rounds.map((r) => r.round_number || 0)) + 1
+      : 1;
+    const { error } = await supabase.from("rounds").insert({
+      group_id: groupId,
+      season_id: seasonId,
+      round_number: nextNumber,
+      scheduled_date: extraDate,
+      status: "scheduled",
+      match_format: group.match_format,
+      max_players: group.max_players,
+    });
+    if (error) toast.error("Erro ao criar rodada extra");
+    else {
+      toast.success(`Rodada ${nextNumber} criada`);
+      setShowExtraForm(false);
+      setExtraDate("");
+      refresh();
+    }
+    setCreatingExtra(false);
+  };
+
+  const extraRoundUI = isAdmin && (
+    <div className="pt-1">
+      {showExtraForm ? (
+        <div className="rounded-xl border border-primary/30 bg-card/50 p-3 space-y-2">
+          <div>
+            <h4 className="text-xs font-semibold text-foreground">Nova rodada extra</h4>
+            <p className="text-[11px] text-muted-foreground">Adicione uma rodada fora do calendário (ex: feriado).</p>
+          </div>
+          <input
+            type="date"
+            value={extraDate}
+            onChange={(e) => setExtraDate(e.target.value)}
+            className="w-full rounded-lg border border-border bg-background px-2 py-1.5 text-xs"
+          />
+          <div className="flex gap-2">
+            <button
+              onClick={createExtraRound}
+              disabled={creatingExtra || !extraDate}
+              className="flex-1 rounded-lg bg-primary px-2.5 py-1.5 text-[11px] font-semibold text-primary-foreground disabled:opacity-50"
+            >
+              {creatingExtra ? "Criando..." : "Criar rodada"}
+            </button>
+            <button
+              onClick={() => { setShowExtraForm(false); setExtraDate(""); }}
+              className="rounded-lg bg-muted px-2.5 py-1.5 text-[11px]"
+            >
+              Cancelar
+            </button>
+          </div>
+        </div>
+      ) : (
+        <button
+          onClick={() => setShowExtraForm(true)}
+          className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-dashed border-border bg-card/30 px-3 py-2 text-[11px] font-semibold text-muted-foreground hover:border-primary/50 hover:text-primary"
+        >
+          <PlusCircle className="h-3.5 w-3.5" />
+          Adicionar rodada extra
+        </button>
+      )}
+    </div>
+  );
+
   if (isLoading) return <div className="p-4 text-xs text-muted-foreground">Carregando rodadas…</div>;
-  if (!rounds.length) return <div className="p-4 text-xs text-muted-foreground">Nenhuma rodada criada.</div>;
+  if (!rounds.length) {
+    return (
+      <div className="space-y-2 p-3">
+        <div className="rounded-xl border border-dashed border-border bg-muted/10 p-3 text-center text-xs text-muted-foreground">
+          Nenhuma rodada criada.
+        </div>
+        {extraRoundUI}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-2 p-3">
