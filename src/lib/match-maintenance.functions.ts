@@ -57,7 +57,12 @@ export const detectDesyncedMatchesServerFn = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => DetectInput.parse(input))
   .handler(async ({ data, context }) => {
     const { groupId } = data;
-    await ensureGroupAdmin(context.userId, groupId);
+    // Non-admins (or non-members) viewing the group may briefly mount AdminPanel
+    // which silently calls this. Return empty instead of throwing to avoid a
+    // [object Response] crash bubbling to the global error reporter.
+    if (!(await isGroupAdmin(context.userId, groupId))) {
+      return { desynced: [] };
+    }
 
     // Pull all scheduled matches in this group with their sets.
     const { data: matches, error } = await supabaseAdmin
