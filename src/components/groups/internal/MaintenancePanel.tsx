@@ -46,6 +46,8 @@ export function MaintenancePanel({ groupId, onCountChange }: Props) {
   const detectFn = useServerFn(detectDesyncedMatchesServerFn);
   const finalizeFn = useServerFn(finalizeDesyncedMatchesServerFn);
   const reopenFn = useServerFn(reopenMatchServerFn);
+  const detectDatesFn = useServerFn(detectInvalidRoundDatesServerFn);
+  const fixDatesFn = useServerFn(fixInvalidRoundDatesServerFn);
 
   const [loading, setLoading] = useState(true);
   const [scanning, setScanning] = useState(false);
@@ -58,7 +60,60 @@ export function MaintenancePanel({ groupId, onCountChange }: Props) {
   const [reopenReason, setReopenReason] = useState("");
   const [reopening, setReopening] = useState(false);
 
-  const scan = async (showToast = false) => {
+  // Invalid scheduled_date rounds
+  interface BadDateRound {
+    roundId: string;
+    roundNumber: number | null;
+    scheduledDate: string | null;
+    createdAt: string;
+  }
+  const [badDates, setBadDates] = useState<BadDateRound[]>([]);
+  const [scanningDates, setScanningDates] = useState(false);
+  const [fixingDates, setFixingDates] = useState(false);
+
+  const scanDates = async (showToast = false) => {
+    if (!session?.access_token) return;
+    setScanningDates(true);
+    try {
+      const res = await detectDatesFn({
+        data: { groupId },
+        headers: { authorization: `Bearer ${session.access_token}` },
+      });
+      const list = Array.isArray(res?.rounds) ? res.rounds : [];
+      setBadDates(list);
+      if (showToast) {
+        toast.success(
+          list.length === 0
+            ? "Nenhuma data de rodada inválida"
+            : `${list.length} rodada(s) com data inválida`,
+        );
+      }
+    } catch (e: any) {
+      toast.error(e?.message || "Erro ao escanear datas");
+    } finally {
+      setScanningDates(false);
+    }
+  };
+
+  const fixAllDates = async () => {
+    if (!session?.access_token || badDates.length === 0) return;
+    setFixingDates(true);
+    try {
+      const res = await fixDatesFn({
+        data: { groupId, roundIds: badDates.map((r) => r.roundId) },
+        headers: { authorization: `Bearer ${session.access_token}` },
+      });
+      toast.success(
+        `${res.okCount} rodada(s) corrigida(s)${res.failCount ? `, ${res.failCount} falha(s)` : ""}`,
+      );
+      await scanDates(false);
+    } catch (e: any) {
+      toast.error(e?.message || "Erro ao corrigir datas");
+    } finally {
+      setFixingDates(false);
+    }
+  };
+
     if (!session?.access_token) {
       if (!authLoading && showToast) toast.error("Faça login novamente");
       setDesynced([]);
