@@ -489,22 +489,15 @@ function RankingPage() {
   const rivalryGroups = groups.filter((g: any) => isRivalryGroup(g));
   const onlyRivalryGroups = groups.length > 0 && groups.every((g: any) => isRivalryGroup(g));
 
-  // When the selected season belongs to a rivalry (1x1) group — or the user
-  // only has rivalry groups — redirect to the dedicated /duel report. A
-  // 2-player ranking list is meaningless; the duel view shows H2H, streaks,
-  // and Elo evolution which is what users actually want.
+  // Redirect to the duel page ONLY when the user has exclusively 1x1 (rivalry)
+  // groups — in that case a list-style ranking never makes sense. If the user
+  // has any non-rivalry group, keep the standard ranking with podium and let
+  // them switch seasons via the selector (including rivalry seasons).
   useEffect(() => {
-    if (isPageLoading || rivalryGroups.length === 0) return;
-    const selected = seasons.find((s: any) => s.id === selectedSeasonId);
-    const selectedRivalry = selected
-      ? rivalryGroups.find((g: any) => g.id === selected.group_id)
-      : null;
-    const target = selectedRivalry || (onlyRivalryGroups ? rivalryGroups[0] : null);
-    if (target) {
-      navigate({ to: "/groups/$groupId/duel", params: { groupId: target.id }, replace: true });
-    }
+    if (isPageLoading || !onlyRivalryGroups || rivalryGroups.length === 0) return;
+    navigate({ to: "/groups/$groupId/duel", params: { groupId: rivalryGroups[0].id }, replace: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rivalryGroups.map((g) => g.id).join(","), onlyRivalryGroups, selectedSeasonId, seasons.length, isPageLoading]);
+  }, [onlyRivalryGroups, rivalryGroups.map((g) => g.id).join(","), isPageLoading]);
 
   return (
     <div className="min-h-screen bg-background pb-28 lg:pb-8">
