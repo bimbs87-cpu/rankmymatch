@@ -310,6 +310,30 @@ function OtherGroupItem({
   );
 }
 
+function PresencePill({ status }: { status: PresenceStatus }) {
+  if (status === "confirmed") {
+    return (
+      <span title="Você confirmou presença" className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-success/20 text-success">
+        <CheckCircle2 className="h-2.5 w-2.5" />
+      </span>
+    );
+  }
+  if (status === "declined") {
+    return (
+      <span title="Você marcou ausência" className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-destructive/20 text-destructive">
+        <XIcon className="h-2.5 w-2.5" />
+      </span>
+    );
+  }
+  if (status === "pending") {
+    return (
+      <span title="Sua presença está pendente" className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-warning/20 text-warning">
+        <Clock className="h-2.5 w-2.5" />
+      </span>
+    );
+  }
+  return null;
+}
 const WEEKDAYS = ["dom", "seg", "ter", "qua", "qui", "sex", "sáb"];
 function formatNextRound(date: string | null, time: string | null): string {
   if (!date) return "";
