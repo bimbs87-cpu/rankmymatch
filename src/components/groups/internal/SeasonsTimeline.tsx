@@ -20,13 +20,16 @@ interface Props {
   onSelect?: (seasonId: string) => void;
 }
 
+type RoundStatus = "completed" | "scheduled" | "cancelled" | "in_progress";
+
 interface EventMarker {
   ts: number;
   left: number;
-  type: "big_round" | "season_finished";
+  type: "round" | "season_finished";
+  status?: RoundStatus;
   label: string;
   detail: string;
-  // For big_round: link to the round page
+  // For round: link to the round page
   roundId?: string;
   roundNumber?: number | null;
   matches?: number;
@@ -36,28 +39,23 @@ interface EventMarker {
   groupId?: string;
 }
 
-const STORAGE_KEY = "agenda-timeline-min-matches";
+interface RoundRow {
+  ts: number;
+  status: RoundStatus;
+  matches: number;
+  roundId: string;
+  roundNumber: number | null;
+  seasonId: string | null;
+}
 
 /**
- * Mini horizontal timeline of seasons with event markers (big rounds, season closures).
- * The "big round" threshold is configurable and persisted in localStorage.
+ * Mini horizontal timeline of seasons with markers for every round
+ * (concluída/agendada/cancelada). Tooltip per marker; click opens podium/details.
  */
 export function SeasonsTimeline({ seasons, onSelect }: Props) {
   const groupId = seasons[0]?.group_id;
 
-  const [minMatches, setMinMatchesState] = useState<number>(() => {
-    if (typeof window === "undefined") return 4;
-    const saved = Number(window.localStorage.getItem(STORAGE_KEY));
-    return Number.isFinite(saved) && saved >= 1 && saved <= 20 ? saved : 4;
-  });
-  const setMinMatches = (n: number) => {
-    setMinMatchesState(n);
-    try { window.localStorage.setItem(STORAGE_KEY, String(n)); } catch {}
-  };
-
-  const [bigRounds, setBigRounds] = useState<
-    { ts: number; matches: number; roundId: string; roundNumber: number | null; seasonId: string | null }[]
-  >([]);
+  const [allRounds, setAllRounds] = useState<RoundRow[]>([]);
 
   const [selectedMarker, setSelectedMarker] = useState<EventMarker | null>(null);
   const [podium, setPodium] = useState<{ userId: string; name: string; avatarUrl: string | null; value: number; subtitle?: string; eloDelta?: number | null }[] | null>(null);
@@ -72,31 +70,33 @@ export function SeasonsTimeline({ seasons, onSelect }: Props) {
         .from("rounds")
         .select("id, scheduled_date, created_at, status, round_number, season_id")
         .eq("group_id", groupId)
-        .eq("status", "completed");
+        .in("status", ["completed", "scheduled", "cancelled", "in_progress"]);
       if (!rounds?.length) {
-        if (!cancelled) setBigRounds([]);
+        if (!cancelled) setAllRounds([]);
         return;
       }
-      const ids = rounds.map((r) => r.id);
-      const { data: matches } = await supabase
-        .from("matches")
-        .select("round_id")
-        .in("round_id", ids);
+      const completedIds = rounds.filter((r) => r.status === "completed").map((r) => r.id);
       const counts = new Map<string, number>();
-      for (const m of matches || []) {
-        counts.set(m.round_id, (counts.get(m.round_id) || 0) + 1);
-      }
-      const out: { ts: number; matches: number; roundId: string; roundNumber: number | null; seasonId: string | null }[] = [];
-      for (const r of rounds) {
-        const n = counts.get(r.id) || 0;
-        if (n >= 1) {
-          const ts = r.scheduled_date
-            ? new Date(r.scheduled_date + "T12:00:00").getTime()
-            : new Date(r.created_at).getTime();
-          out.push({ ts, matches: n, roundId: r.id, roundNumber: r.round_number ?? null, seasonId: r.season_id ?? null });
+      if (completedIds.length) {
+        const { data: matches } = await supabase
+          .from("matches")
+          .select("round_id")
+          .in("round_id", completedIds);
+        for (const m of matches || []) {
+          counts.set(m.round_id, (counts.get(m.round_id) || 0) + 1);
         }
       }
-      if (!cancelled) setBigRounds(out);
+      const out: RoundRow[] = rounds.map((r) => ({
+        ts: r.scheduled_date
+          ? new Date(r.scheduled_date + "T12:00:00").getTime()
+          : new Date(r.created_at).getTime(),
+        status: r.status as RoundStatus,
+        matches: counts.get(r.id) || 0,
+        roundId: r.id,
+        roundNumber: r.round_number ?? null,
+        seasonId: r.season_id ?? null,
+      }));
+      if (!cancelled) setAllRounds(out);
     })();
     return () => { cancelled = true; };
   }, [groupId]);
