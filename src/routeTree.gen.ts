@@ -47,7 +47,6 @@ import { Route as GroupsGroupIdSeasonsSeasonIdRouteImport } from './routes/group
 import { Route as ApiOgPlayerUserIdRouteImport } from './routes/api.og.player.$userId'
 import { Route as ApiOgGroupGroupIdRouteImport } from './routes/api.og.group.$groupId'
 import { Route as GroupsGroupIdSeasonsSeasonIdIndexRouteImport } from './routes/groups.$groupId.seasons.$seasonId.index'
-import { Route as GroupsGroupIdSeasonsSeasonIdRoundsRoundIdRouteImport } from './routes/groups.$groupId.seasons.$seasonId.rounds.$roundId'
 
 const SobreDesenvolvimentoRoute = SobreDesenvolvimentoRouteImport.update({
   id: '/sobre-desenvolvimento',
@@ -246,12 +245,6 @@ const GroupsGroupIdSeasonsSeasonIdIndexRoute =
     path: '/',
     getParentRoute: () => GroupsGroupIdSeasonsSeasonIdRoute,
   } as any)
-const GroupsGroupIdSeasonsSeasonIdRoundsRoundIdRoute =
-  GroupsGroupIdSeasonsSeasonIdRoundsRoundIdRouteImport.update({
-    id: '/rounds/$roundId',
-    path: '/rounds/$roundId',
-    getParentRoute: () => GroupsGroupIdSeasonsSeasonIdRoute,
-  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -292,7 +285,6 @@ export interface FileRoutesByFullPath {
   '/groups/$groupId/seasons/$seasonId': typeof GroupsGroupIdSeasonsSeasonIdRouteWithChildren
   '/groups/$groupId/seasons/': typeof GroupsGroupIdSeasonsIndexRoute
   '/groups/$groupId/seasons/$seasonId/': typeof GroupsGroupIdSeasonsSeasonIdIndexRoute
-  '/groups/$groupId/seasons/$seasonId/rounds/$roundId': typeof GroupsGroupIdSeasonsSeasonIdRoundsRoundIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -329,7 +321,6 @@ export interface FileRoutesByTo {
   '/api/og/player/$userId': typeof ApiOgPlayerUserIdRoute
   '/groups/$groupId/seasons': typeof GroupsGroupIdSeasonsIndexRoute
   '/groups/$groupId/seasons/$seasonId': typeof GroupsGroupIdSeasonsSeasonIdIndexRoute
-  '/groups/$groupId/seasons/$seasonId/rounds/$roundId': typeof GroupsGroupIdSeasonsSeasonIdRoundsRoundIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -371,7 +362,6 @@ export interface FileRoutesById {
   '/groups/$groupId/seasons/$seasonId': typeof GroupsGroupIdSeasonsSeasonIdRouteWithChildren
   '/groups/$groupId/seasons/': typeof GroupsGroupIdSeasonsIndexRoute
   '/groups/$groupId/seasons/$seasonId/': typeof GroupsGroupIdSeasonsSeasonIdIndexRoute
-  '/groups/$groupId/seasons/$seasonId/rounds/$roundId': typeof GroupsGroupIdSeasonsSeasonIdRoundsRoundIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -414,7 +404,6 @@ export interface FileRouteTypes {
     | '/groups/$groupId/seasons/$seasonId'
     | '/groups/$groupId/seasons/'
     | '/groups/$groupId/seasons/$seasonId/'
-    | '/groups/$groupId/seasons/$seasonId/rounds/$roundId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -451,7 +440,6 @@ export interface FileRouteTypes {
     | '/api/og/player/$userId'
     | '/groups/$groupId/seasons'
     | '/groups/$groupId/seasons/$seasonId'
-    | '/groups/$groupId/seasons/$seasonId/rounds/$roundId'
   id:
     | '__root__'
     | '/'
@@ -492,7 +480,6 @@ export interface FileRouteTypes {
     | '/groups/$groupId/seasons/$seasonId'
     | '/groups/$groupId/seasons/'
     | '/groups/$groupId/seasons/$seasonId/'
-    | '/groups/$groupId/seasons/$seasonId/rounds/$roundId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -794,27 +781,17 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof GroupsGroupIdSeasonsSeasonIdIndexRouteImport
       parentRoute: typeof GroupsGroupIdSeasonsSeasonIdRoute
     }
-    '/groups/$groupId/seasons/$seasonId/rounds/$roundId': {
-      id: '/groups/$groupId/seasons/$seasonId/rounds/$roundId'
-      path: '/rounds/$roundId'
-      fullPath: '/groups/$groupId/seasons/$seasonId/rounds/$roundId'
-      preLoaderRoute: typeof GroupsGroupIdSeasonsSeasonIdRoundsRoundIdRouteImport
-      parentRoute: typeof GroupsGroupIdSeasonsSeasonIdRoute
-    }
   }
 }
 
 interface GroupsGroupIdSeasonsSeasonIdRouteChildren {
   GroupsGroupIdSeasonsSeasonIdIndexRoute: typeof GroupsGroupIdSeasonsSeasonIdIndexRoute
-  GroupsGroupIdSeasonsSeasonIdRoundsRoundIdRoute: typeof GroupsGroupIdSeasonsSeasonIdRoundsRoundIdRoute
 }
 
 const GroupsGroupIdSeasonsSeasonIdRouteChildren: GroupsGroupIdSeasonsSeasonIdRouteChildren =
   {
     GroupsGroupIdSeasonsSeasonIdIndexRoute:
       GroupsGroupIdSeasonsSeasonIdIndexRoute,
-    GroupsGroupIdSeasonsSeasonIdRoundsRoundIdRoute:
-      GroupsGroupIdSeasonsSeasonIdRoundsRoundIdRoute,
   }
 
 const GroupsGroupIdSeasonsSeasonIdRouteWithChildren =

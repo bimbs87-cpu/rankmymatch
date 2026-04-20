@@ -496,12 +496,9 @@ export function SeasonsTimeline({ seasons, onSelect }: Props) {
 
               <div className="mt-3 flex justify-end">
                 <Link
-                  to="/groups/$groupId/seasons/$seasonId/rounds/$roundId"
-                  params={{
-                    groupId: selected.groupId,
-                    seasonId: selected.seasonId,
-                    roundId: selected.roundId,
-                  }}
+                  to="/groups/$groupId"
+                  params={{ groupId: selected.groupId }}
+                  search={{ view: "seasons", season: selected.seasonId, round: selected.roundId } as any}
                   onClick={() => setSelected(null)}
                   className="rounded-lg bg-primary px-3 py-1.5 text-[11px] font-bold text-primary-foreground hover:opacity-90"
                 >

@@ -91,12 +91,9 @@ export function PendingMatchCard({ match, onScoreSaved, showGroupName = true, is
             {hasPending ? (isAdmin ? "Revisar e aprovar" : "Editar envio") : (isAdmin ? "Lançar resultado" : "Enviar resultado")}
           </button>
           <Link
-            to="/groups/$groupId/seasons/$seasonId/rounds/$roundId"
-            params={{
-              groupId: match.group_id,
-              seasonId: match.season_id,
-              roundId: match.round_id,
-            }}
+            to="/groups/$groupId"
+            params={{ groupId: match.group_id }}
+            search={{ view: "seasons", season: match.season_id, round: match.round_id } as any}
             className="flex items-center justify-center gap-1.5 rounded-xl border border-border px-4 py-2.5 text-xs font-semibold text-muted-foreground active:bg-accent/30"
           >
             Ver rodada

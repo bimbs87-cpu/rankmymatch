@@ -209,8 +209,9 @@ function SeasonDetailPage() {
             <div key={r.id} className={`rounded-2xl border border-border bg-card/50 transition-colors ${r.status === "cancelled" ? "opacity-50" : ""}`}>
               {r.status !== "cancelled" ? (
                 <Link
-                  to="/groups/$groupId/seasons/$seasonId/rounds/$roundId"
-                  params={{ groupId, seasonId, roundId: r.id }}
+                  to="/groups/$groupId"
+                  params={{ groupId }}
+                  search={{ view: "seasons", season: seasonId, round: r.id } as any}
                   className="flex items-center justify-between p-4 active:bg-accent/30"
                 >
                   <div className="flex items-center gap-3">

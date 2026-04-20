@@ -104,7 +104,7 @@ export async function createExtraRound(params: {
       type: "extra_round_created",
       title: `Rodada extra em ${group.name}`,
       body: `Nova rodada extra ${formatted}${timeText}. Confirme presença!`,
-      url: `/groups/${groupId}/seasons/${seasonId}/rounds/${created.id}`,
+      url: `/groups/${groupId}?view=seasons&season=${seasonId}&round=${created.id}`,
       data: { roundId: created.id, seasonId, groupId },
       tag: `extra_round:${created.id}`,
     });

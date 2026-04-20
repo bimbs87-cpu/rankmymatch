@@ -16,6 +16,7 @@ import { PlayerAvatarLink } from "@/components/PlayerProfileViewer";
 import { GroupSummaryCards } from "./GroupSummaryCards";
 import { SeasonsTimeline } from "./SeasonsTimeline";
 import { createExtraRound as createExtraRoundFn } from "@/lib/extra-round";
+import { ScoreEntryDialog } from "@/components/ScoreEntryDialog";
 
 type SeasonFilter = "all" | "active" | "finished";
 
@@ -652,7 +653,7 @@ function SeasonRoundsInline({ groupId, seasonId, isAdmin, initialRoundId }: { gr
         type: "round_reminder",
         title: `Lembrete: ${group?.name || "Rodada"}`,
         body: `Rodada ${r.round_number} ${formatted}${timeText}. Confirme presença!`,
-        url: `/groups/${groupId}/seasons/${seasonId}/rounds/${r.id}`,
+        url: `/groups/${groupId}?view=seasons&season=${seasonId}&round=${r.id}`,
         data: { roundId: r.id, seasonId, groupId },
         tag: `round_reminder:${r.id}:${Date.now()}`,
       });
@@ -823,7 +824,7 @@ function SeasonRoundsInline({ groupId, seasonId, isAdmin, initialRoundId }: { gr
             )}
 
             {isExpanded && !cancelled && (
-              <RoundExpandedDetails groupId={groupId} seasonId={seasonId} roundId={r.id} />
+              <RoundExpandedDetails groupId={groupId} seasonId={seasonId} roundId={r.id} isAdmin={isAdmin} onChanged={refresh} />
             )}
 
             {editing && !cancelled && !completed && (
@@ -859,27 +860,47 @@ function SeasonRoundsInline({ groupId, seasonId, isAdmin, initialRoundId }: { gr
   );
 }
 
-function RoundExpandedDetails({ groupId, seasonId, roundId }: { groupId: string; seasonId: string; roundId: string }) {
+function RoundExpandedDetails({
+  groupId,
+  seasonId,
+  roundId,
+  isAdmin,
+  onChanged,
+}: {
+  groupId: string;
+  seasonId: string;
+  roundId: string;
+  isAdmin: boolean;
+  onChanged: () => void;
+}) {
   const { user } = useAuth();
   const [presence, setPresence] = useState<{ confirmed: number; declined: number; pending: number; max: number }>({
     confirmed: 0, declined: 0, pending: 0, max: 0,
   });
   const [matchesData, setMatchesData] = useState<any[]>([]);
+  const [eloDeltas, setEloDeltas] = useState<Record<string, Record<string, number>>>({}); // matchId -> userId -> delta
   const [confirmedPlayers, setConfirmedPlayers] = useState<{ user_id: string; name: string; avatar_url: string | null }[]>([]);
+  const [confirmedIds, setConfirmedIds] = useState<string[]>([]);
   const [myStatus, setMyStatus] = useState<"confirmed" | "declined" | "absent" | null>(null);
+  const [groupFormat, setGroupFormat] = useState<"singles" | "doubles">("doubles");
+  const [setsPerMatch, setSetsPerMatch] = useState<number>(3);
+  const [setsMode, setSetsMode] = useState<"fixed" | "flexible" | "unlimited">("fixed");
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
+  const [scoringMatchId, setScoringMatchId] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       setLoading(true);
-      const [{ data: round }, { data: pres }, { data: ms }, { data: members }] = await Promise.all([
-        supabase.from("rounds").select("max_players, group_id, status, scheduled_date, scheduled_time").eq("id", roundId).maybeSingle(),
+      const [{ data: round }, { data: pres }, { data: ms }, { data: members }, { data: season }, { data: group }] = await Promise.all([
+        supabase.from("rounds").select("max_players, group_id, status, scheduled_date, scheduled_time, match_format").eq("id", roundId).maybeSingle(),
         supabase.from("round_presence").select("user_id, status, confirmed_at").eq("round_id", roundId),
         supabase.from("matches").select("id, status, match_number, winner_team, match_players(user_id, team), match_sets(set_number, score_team_a, score_team_b)").eq("round_id", roundId).order("match_number", { ascending: true }),
         supabase.from("group_members").select("user_id").eq("group_id", groupId).eq("status", "active"),
+        supabase.from("seasons").select("sets_per_match, sets_mode, match_format").eq("id", seasonId).maybeSingle(),
+        supabase.from("groups").select("match_format").eq("id", groupId).maybeSingle(),
       ]);
       if (cancelled) return;
       const confirmedRows = (pres || []).filter((p) => p.status === "confirmed");
@@ -894,17 +915,43 @@ function RoundExpandedDetails({ groupId, seasonId, roundId }: { groupId: string;
       });
       setMatchesData(ms || []);
 
+      const fmt = (round?.match_format || season?.match_format || group?.match_format || "doubles") as string;
+      setGroupFormat(fmt === "singles" || fmt === "1v1" ? "singles" : "doubles");
+      if (season?.sets_per_match) setSetsPerMatch(season.sets_per_match);
+      if (season?.sets_mode) setSetsMode(season.sets_mode as any);
+
       const mine = user ? (pres || []).find((p) => p.user_id === user.id) : null;
       setMyStatus((mine?.status as any) ?? null);
 
       const sorted = [...confirmedRows].sort(
         (a, b) => new Date(b.confirmed_at || 0).getTime() - new Date(a.confirmed_at || 0).getTime()
       );
+      setConfirmedIds(sorted.map((p) => p.user_id));
       const allIds = new Set<string>(sorted.map((p) => p.user_id));
-      // Also include profile names for match players to show winners.
+      const matchIds: string[] = [];
       for (const m of (ms || [])) {
+        matchIds.push((m as any).id);
         for (const mp of ((m as any).match_players || [])) allIds.add(mp.user_id);
       }
+
+      // Fetch Elo deltas for all completed matches in this round
+      let deltaMap: Record<string, Record<string, number>> = {};
+      if (matchIds.length) {
+        const { data: events } = await supabase
+          .from("rating_events")
+          .select("match_id, user_id, rating_change")
+          .in("match_id", matchIds);
+        for (const ev of (events || [])) {
+          const mid = (ev as any).match_id as string;
+          const uid = (ev as any).user_id as string;
+          const delta = Number((ev as any).rating_change) || 0;
+          if (!deltaMap[mid]) deltaMap[mid] = {};
+          deltaMap[mid][uid] = delta;
+        }
+      }
+      if (cancelled) return;
+      setEloDeltas(deltaMap);
+
       if (allIds.size) {
         const { data: profs } = await supabase
           .from("user_profiles")
@@ -922,7 +969,6 @@ function RoundExpandedDetails({ groupId, seasonId, roundId }: { groupId: string;
             };
           })
         );
-        // attach profiles to matches
         setMatchesData((prev) => prev.map((m: any) => ({
           ...m,
           match_players: (m.match_players || []).map((mp: any) => ({ ...mp, profile: map.get(mp.user_id) })),
@@ -933,7 +979,7 @@ function RoundExpandedDetails({ groupId, seasonId, roundId }: { groupId: string;
       setLoading(false);
     })();
     return () => { cancelled = true; };
-  }, [roundId, groupId, user, reloadKey]);
+  }, [roundId, groupId, seasonId, user, reloadKey]);
 
   const handleConfirm = async () => {
     if (!user) return;
@@ -965,13 +1011,35 @@ function RoundExpandedDetails({ groupId, seasonId, roundId }: { groupId: string;
     }
   };
 
+  const handleDrawTeams = async () => {
+    if (!user) return;
+    const minPlayers = groupFormat === "singles" ? 2 : 4;
+    if (confirmedIds.length < minPlayers) {
+      toast.error(`Mínimo ${minPlayers} jogadores confirmados`);
+      return;
+    }
+    setBusy(true);
+    try {
+      const { drawTeams } = await import("@/lib/round-actions");
+      await drawTeams(roundId, confirmedIds, user.id);
+      toast.success("Times sorteados");
+      setReloadKey((k) => k + 1);
+      onChanged();
+    } catch (e: any) {
+      toast.error(e?.message || "Erro ao sortear");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const scoringMatch = scoringMatchId ? matchesData.find((m) => m.id === scoringMatchId) : null;
+
   return (
     <div className="border-t border-border bg-background/40 p-3 space-y-3">
       {loading ? (
         <div className="text-[11px] text-muted-foreground">Carregando…</div>
       ) : (
         <>
-          {/* Presence confirm/cancel button (inline, no need to leave Agenda) */}
           {user && (
             <div>
               {myStatus === "confirmed" ? (
@@ -1026,7 +1094,18 @@ function RoundExpandedDetails({ groupId, seasonId, roundId }: { groupId: string;
             </div>
           )}
 
-          {/* Matches summary (read-only) */}
+          {/* Admin: sortear times when there are no matches yet */}
+          {isAdmin && matchesData.length === 0 && (
+            <button
+              onClick={handleDrawTeams}
+              disabled={busy || confirmedIds.length < (groupFormat === "singles" ? 2 : 4)}
+              className="flex w-full items-center justify-center gap-2 rounded-xl border border-primary/30 bg-primary/10 py-2 text-xs font-bold text-primary hover:bg-primary/20 disabled:opacity-50"
+            >
+              Sortear times ({confirmedIds.length} confirmados)
+            </button>
+          )}
+
+          {/* Matches summary with inline result entry + Elo deltas */}
           {matchesData.length > 0 && (
             <div>
               <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
@@ -1038,13 +1117,34 @@ function RoundExpandedDetails({ groupId, seasonId, roundId }: { groupId: string;
                   const teamB = (m.match_players || []).filter((mp: any) => mp.team === "B");
                   const sets = (m.match_sets || []).slice().sort((a: any, b: any) => a.set_number - b.set_number);
                   const nameOf = (mp: any) => (mp.profile?.nickname || mp.profile?.name || "Jogador");
+                  const deltas = eloDeltas[m.id] || {};
+                  const renderTeam = (team: any[], side: "A" | "B") => (
+                    <span className={m.winner_team === side ? "font-bold text-primary" : "text-foreground"}>
+                      {team.length === 0 ? "—" : team.map((mp) => {
+                        const d = deltas[mp.user_id];
+                        return (
+                          <span key={mp.user_id} className="inline-flex items-baseline gap-0.5 mr-1">
+                            <span>{nameOf(mp)}</span>
+                            {typeof d === "number" && d !== 0 && (
+                              <span className={`text-[9px] font-bold tabular-nums ${d > 0 ? "text-success" : "text-destructive"}`}>
+                                {d > 0 ? "+" : ""}{Math.round(d)}
+                              </span>
+                            )}
+                          </span>
+                        );
+                      }).reduce((acc: any, el: any, i: number, arr: any[]) => i === 0 ? [el] : [...acc, <span key={`sep${i}`} className="text-muted-foreground">/ </span>, el], [] as any)}
+                    </span>
+                  );
+                  const iAmInMatch = !!user && (m.match_players || []).some((mp: any) => mp.user_id === user.id);
+                  const canEnterScore = isAdmin || iAmInMatch;
+                  const showEnterBtn = canEnterScore && m.status !== "completed";
                   return (
-                    <div key={m.id} className="rounded-lg border border-border bg-card/40 px-2 py-1.5 text-[11px]">
+                    <div key={m.id} className="rounded-lg border border-border bg-card/40 px-2 py-1.5 text-[11px] space-y-1">
                       <div className="flex items-center justify-between gap-2">
                         <div className="min-w-0 flex-1 truncate">
-                          <span className={m.winner_team === "A" ? "font-bold text-primary" : "text-foreground"}>{teamA.map(nameOf).join(" / ") || "—"}</span>
+                          {renderTeam(teamA, "A")}
                           <span className="text-muted-foreground"> vs </span>
-                          <span className={m.winner_team === "B" ? "font-bold text-primary" : "text-foreground"}>{teamB.map(nameOf).join(" / ") || "—"}</span>
+                          {renderTeam(teamB, "B")}
                         </div>
                         <div className="flex items-center gap-1 shrink-0">
                           {sets.length > 0 ? sets.map((s: any) => (
@@ -1058,12 +1158,58 @@ function RoundExpandedDetails({ groupId, seasonId, roundId }: { groupId: string;
                           )}
                         </div>
                       </div>
+                      {showEnterBtn && (
+                        <button
+                          onClick={() => setScoringMatchId(m.id)}
+                          className="flex w-full items-center justify-center gap-1 rounded-md border border-primary/30 bg-primary/5 py-1 text-[10px] font-semibold text-primary hover:bg-primary/10"
+                        >
+                          <Trophy className="h-3 w-3" />
+                          {sets.length > 0 ? "Editar resultado" : (isAdmin ? "Lançar resultado" : "Enviar resultado")}
+                        </button>
+                      )}
                     </div>
                   );
                 })}
               </div>
             </div>
           )}
+
+          {scoringMatch && (() => {
+            const teamA = (scoringMatch.match_players || []).filter((mp: any) => mp.team === "A").map((mp: any) => ({
+              name: mp.profile?.nickname || mp.profile?.name || "Jogador",
+              avatarUrl: mp.profile?.avatar_url || undefined,
+              userId: mp.user_id,
+            }));
+            const teamB = (scoringMatch.match_players || []).filter((mp: any) => mp.team === "B").map((mp: any) => ({
+              name: mp.profile?.nickname || mp.profile?.name || "Jogador",
+              avatarUrl: mp.profile?.avatar_url || undefined,
+              userId: mp.user_id,
+            }));
+            const existingSets = (scoringMatch.match_sets || [])
+              .slice()
+              .sort((a: any, b: any) => a.set_number - b.set_number)
+              .map((s: any) => ({ setNumber: s.set_number, scoreA: s.score_team_a, scoreB: s.score_team_b }));
+            return (
+              <ScoreEntryDialog
+                matchId={scoringMatch.id}
+                seasonId={seasonId}
+                matchNumber={scoringMatch.match_number || 1}
+                teamA={teamA}
+                teamB={teamB}
+                existingSets={existingSets}
+                setsPerMatch={setsPerMatch}
+                setsMode={setsMode}
+                isSingles={groupFormat === "singles"}
+                isAdmin={isAdmin}
+                onClose={() => setScoringMatchId(null)}
+                onSaved={() => {
+                  setScoringMatchId(null);
+                  setReloadKey((k) => k + 1);
+                  onChanged();
+                }}
+              />
+            );
+          })()}
         </>
       )}
     </div>

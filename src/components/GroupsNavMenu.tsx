@@ -234,12 +234,9 @@ export function GroupsNavMenu({ groups, renderTrigger, panelClassName }: Props) 
                 {nextRound && (
                   <li>
                     <Link
-                      to="/groups/$groupId/seasons/$seasonId/rounds/$roundId"
-                      params={{
-                        groupId: primaryId,
-                        seasonId: nextRound.season_id ?? "",
-                        roundId: nextRound.id,
-                      }}
+                      to="/groups/$groupId"
+                      params={{ groupId: primaryId }}
+                      search={{ view: "seasons", season: nextRound.season_id ?? "", round: nextRound.id } as any}
                       onClick={() => setOpen(false)}
                       className="flex items-center justify-between gap-2 rounded-lg bg-success/10 px-2 py-1.5 text-xs font-semibold text-foreground ring-1 ring-success/30 transition-colors hover:bg-success/20"
                     >

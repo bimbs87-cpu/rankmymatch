@@ -1402,8 +1402,9 @@ function RecentMeetings({
                   <li key={m.match_id} className="bg-background/0 transition hover:bg-background/40">
                     {canLink ? (
                       <Link
-                        to="/groups/$groupId/seasons/$seasonId/rounds/$roundId"
-                        params={{ groupId, seasonId: m.season_id, roundId: m.round_id }}
+                        to="/groups/$groupId"
+                        params={{ groupId }}
+                        search={{ view: "seasons", season: m.season_id, round: m.round_id } as any}
                         className="block transition active:bg-accent/40 hover:bg-accent/20"
                       >
                         {inner}
