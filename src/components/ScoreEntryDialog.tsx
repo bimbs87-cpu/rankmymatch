@@ -380,6 +380,9 @@ export function ScoreEntryDialog({
           ? `${winnerName} venceu por ${result.setsA} set${result.setsA > 1 ? "s" : ""} a ${result.setsB}!`
           : `Partida finalizada! Time ${result.winnerTeam} venceu ${result.setsA}-${result.setsB}`
       );
+      void import("@/lib/analytics").then(({ trackConversion }) =>
+        trackConversion("register_match", { match_id: matchId, season_id: seasonId, mode: isSingles ? "singles" : "doubles", source: "admin_save" }),
+      );
       onSaved();
       onClose();
     } catch (e: any) {
@@ -437,6 +440,9 @@ export function ScoreEntryDialog({
         /* best-effort */
       }
       toast.success("Resultado enviado para aprovação do admin");
+      void import("@/lib/analytics").then(({ trackConversion }) =>
+        trackConversion("register_match", { match_id: matchId, season_id: seasonId, source: "player_pending" }),
+      );
       await refreshPending();
       onSaved();
       onClose();

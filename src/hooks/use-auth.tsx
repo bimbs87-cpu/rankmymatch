@@ -67,8 +67,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, nextSession) => {
+      (event, nextSession) => {
         syncAuthState(nextSession);
+
+        // Detect first-time signup → fire conversion ONCE per user
+        if (event === "SIGNED_IN" && nextSession?.user) {
+          try {
+            const u = nextSession.user;
+            const created = u.created_at ? new Date(u.created_at).getTime() : 0;
+            const lastSignIn = u.last_sign_in_at ? new Date(u.last_sign_in_at).getTime() : 0;
+            const isFirstSignIn = created && lastSignIn && Math.abs(lastSignIn - created) < 60_000;
+            const flagKey = `rmm-signup-tracked-${u.id}`;
+            if (isFirstSignIn && typeof window !== "undefined" && !window.localStorage.getItem(flagKey)) {
+              window.localStorage.setItem(flagKey, "1");
+              void import("@/lib/analytics").then(({ trackConversion }) => {
+                trackConversion("sign_up", { method: "google" });
+              });
+            }
+          } catch {
+            /* analytics best-effort */
+          }
+        }
       }
     );
 

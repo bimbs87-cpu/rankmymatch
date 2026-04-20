@@ -1,5 +1,6 @@
-import { Outlet, Link, createRootRoute, HeadContent, Scripts } from "@tanstack/react-router";
+import { Outlet, Link, createRootRoute, HeadContent, Scripts, useRouter } from "@tanstack/react-router";
 import { AuthProvider, useAuth } from "@/hooks/use-auth";
+import { trackPageview } from "@/lib/analytics";
 import { UserProfileProvider } from "@/hooks/use-user-profile";
 import { BottomNav } from "@/components/BottomNav";
 import { DesktopNav } from "@/components/DesktopNav";
@@ -82,6 +83,19 @@ function RootShell({ children }: { children: React.ReactNode }) {
 }
 
 function RootComponent() {
+  const router = useRouter();
+
+  useEffect(() => {
+    // Track initial pageview + every SPA navigation for GA4
+    trackPageview(window.location.pathname + window.location.search);
+    const unsub = router.subscribe("onResolved", () => {
+      trackPageview(window.location.pathname + window.location.search);
+    });
+    return () => {
+      unsub();
+    };
+  }, [router]);
+
   useEffect(() => {
     const isInIframe = (() => {
       try { return window.self !== window.top; } catch { return true; }
