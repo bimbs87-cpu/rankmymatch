@@ -288,3 +288,92 @@ export const reopenMatchServerFn = createServerFn({ method: "POST" })
 
     return { ok: true };
   });
+
+// ---------- INVALID SCHEDULED_DATE ----------
+// Rounds whose scheduled_date is unrealistic (e.g. accidental year 0002 from a
+// typo in a date input) break chronological sorting in charts. We treat anything
+// older than 2010-01-01 as invalid and offer to clear it (fall back to created_at).
+const MIN_VALID_DATE = "2010-01-01";
+
+const InvalidDatesInput = z.object({ groupId: z.string().uuid() });
+
+export const detectInvalidRoundDatesServerFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => InvalidDatesInput.parse(input))
+  .handler(async ({ data, context }) => {
+    const { groupId } = data;
+    await ensureGroupAdmin(context.userId, groupId);
+
+    const { data: rounds, error } = await supabaseAdmin
+      .from("rounds")
+      .select("id, round_number, scheduled_date, created_at")
+      .eq("group_id", groupId)
+      .lt("scheduled_date", MIN_VALID_DATE)
+      .order("scheduled_date", { ascending: true });
+    if (error) throw new Error(error.message);
+
+    return {
+      rounds: (rounds || []).map((r) => ({
+        roundId: r.id as string,
+        roundNumber: r.round_number ?? null,
+        scheduledDate: r.scheduled_date as string | null,
+        createdAt: r.created_at as string,
+      })),
+    };
+  });
+
+const FixInvalidDatesInput = z.object({
+  groupId: z.string().uuid(),
+  roundIds: z.array(z.string().uuid()).min(1).max(500),
+});
+
+export const fixInvalidRoundDatesServerFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => FixInvalidDatesInput.parse(input))
+  .handler(async ({ data, context }) => {
+    const { groupId, roundIds } = data;
+    await ensureGroupAdmin(context.userId, groupId);
+
+    // Fetch the rounds (so we can use created_at as the fallback date) and
+    // make sure they all belong to this group.
+    const { data: rounds, error } = await supabaseAdmin
+      .from("rounds")
+      .select("id, group_id, scheduled_date, created_at")
+      .in("id", roundIds);
+    if (error) throw new Error(error.message);
+
+    const eligible = (rounds || []).filter(
+      (r) =>
+        r.group_id === groupId &&
+        (!r.scheduled_date || r.scheduled_date < MIN_VALID_DATE),
+    );
+
+    let okCount = 0;
+    const failed: { roundId: string; reason: string }[] = [];
+    for (const r of eligible) {
+      const fallback = (r.created_at || new Date().toISOString()).slice(0, 10);
+      const { error: updErr } = await supabaseAdmin
+        .from("rounds")
+        .update({ scheduled_date: fallback })
+        .eq("id", r.id);
+      if (updErr) failed.push({ roundId: r.id, reason: updErr.message });
+      else okCount++;
+    }
+
+    try {
+      await supabaseAdmin.from("audit_logs").insert({
+        user_id: context.userId,
+        group_id: groupId,
+        action: "round_date_fixed",
+        entity_type: "round",
+        entity_id: null,
+        reason: "Manutenção: corrigir scheduled_date inválido (< 2010)",
+        new_data: { fixed: eligible.map((r) => r.id), okCount, failCount: failed.length } as never,
+        old_data: null,
+      });
+    } catch {
+      // ignore
+    }
+
+    return { okCount, failCount: failed.length, failed };
+  });
