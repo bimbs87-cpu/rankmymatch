@@ -163,37 +163,48 @@ export function GroupsNavMenu({ groups, renderTrigger, panelClassName }: Props) 
                     </Link>
                   </li>
                 )}
-                <li>
-                  <Link
-                    to="/groups/$groupId"
-                    params={{ groupId: primaryId }}
-                    search={{ view: "seasons" } as any}
-                    onClick={() => setOpen(false)}
-                    className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-accent"
-                  >
-                    <Trophy className="h-3.5 w-3.5 shrink-0 text-primary" />
-                    <span>Agenda completa</span>
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    to="/groups/$groupId"
-                    params={{ groupId: primaryId }}
-                    search={{ view: "members" } as any}
-                    onClick={() => setOpen(false)}
-                    className="flex items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-accent"
-                  >
-                    <span className="flex items-center gap-2">
-                      <UserSquare2 className="h-3.5 w-3.5 shrink-0 text-primary" />
-                      <span>Membros</span>
-                    </span>
-                    {memberPending > 0 && (
-                      <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[9px] font-bold text-destructive-foreground">
-                        {memberPending > 9 ? "9+" : memberPending}
-                      </span>
-                    )}
-                  </Link>
-                </li>
+                {!primaryIsActive && (
+                  <>
+                    <li>
+                      <Link
+                        to="/groups/$groupId"
+                        params={{ groupId: primaryId }}
+                        search={{ view: "seasons" } as any}
+                        onClick={() => setOpen(false)}
+                        className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-accent"
+                      >
+                        <Trophy className="h-3.5 w-3.5 shrink-0 text-primary" />
+                        <span>Agenda completa</span>
+                      </Link>
+                    </li>
+                    <li>
+                      <Link
+                        to="/groups/$groupId"
+                        params={{ groupId: primaryId }}
+                        search={{ view: "members" } as any}
+                        onClick={() => setOpen(false)}
+                        className="flex items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-accent"
+                      >
+                        <span className="flex items-center gap-2">
+                          <UserSquare2 className="h-3.5 w-3.5 shrink-0 text-primary" />
+                          <span>Membros</span>
+                        </span>
+                        {memberPending > 0 && (
+                          <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[9px] font-bold text-destructive-foreground">
+                            {memberPending > 9 ? "9+" : memberPending}
+                          </span>
+                        )}
+                      </Link>
+                    </li>
+                  </>
+                )}
+                {primaryIsActive && !nextRound && (
+                  <li>
+                    <p className="px-2 py-1 text-[10px] italic text-muted-foreground">
+                      Você já está neste grupo. Use a lista abaixo para alternar.
+                    </p>
+                  </li>
+                )}
               </ul>
             </div>
           )}
