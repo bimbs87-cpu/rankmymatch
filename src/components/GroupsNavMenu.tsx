@@ -1,6 +1,6 @@
-import { Link } from "@tanstack/react-router";
-import { ChevronDown, Users, Trophy, UserSquare2, Compass } from "lucide-react";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { Link, useLocation } from "@tanstack/react-router";
+import { ChevronDown, Users, Trophy, UserSquare2, Compass, CheckCircle2 } from "lucide-react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useGroupPendingTasks } from "@/hooks/use-group-pending-tasks";
 
 interface GroupItem {
@@ -21,25 +21,35 @@ interface Props {
 }
 
 /**
- * Shared "Grupos" menu that powers both the BottomNav (mobile) and DesktopNav.
- *
- * Behavior:
- * - 0 groups → trigger acts as a plain Link to /groups (Explorar / Criar UI lives there).
- * - 1 group  → trigger acts as a plain Link straight into that group (no popover —
- *              avoids an unnecessary extra click for users with a single group).
- * - 2+ groups → trigger opens a popover listing the user's groups with quick
- *              shortcuts (Agenda / Membros) for the first one and direct
- *              navigation to the others. Mirrors the in-group switcher popover.
+ * Shared "Grupos" menu for BottomNav (mobile) + DesktopNav.
+ * Detects the active /groups/{id} from the URL so the popover always promotes
+ * the group the user is currently inside (instead of always group #0).
  */
 export function GroupsNavMenu({ groups, renderTrigger, panelClassName }: Props) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const location = useLocation();
 
-  // Use the first group as the "active context" for shortcuts (matches the
-  // in-app convention used by GroupSwitcherPopover).
-  const primary = groups[0];
+  // Extract the active group id from the URL: /groups/{uuid}/...
+  const activeGroupId = useMemo(() => {
+    const m = location.pathname.match(/^\/groups\/([0-9a-f-]{36})/i);
+    return m?.[1] ?? null;
+  }, [location.pathname]);
+
+  // Reorder so the active group (if any) is "primary"; otherwise keep order.
+  const orderedGroups = useMemo(() => {
+    if (!activeGroupId) return groups;
+    const idx = groups.findIndex((g) => g.id === activeGroupId);
+    if (idx <= 0) return groups;
+    const copy = [...groups];
+    const [active] = copy.splice(idx, 1);
+    return [active, ...copy];
+  }, [groups, activeGroupId]);
+
+  const primary = orderedGroups[0];
   const primaryId = primary?.id ?? "";
-  const { counts } = useGroupPendingTasks(primaryId || null, !!primaryId && groups.length > 1);
+  const primaryIsActive = !!activeGroupId && primaryId === activeGroupId;
+  const { counts } = useGroupPendingTasks(primaryId || null, !!primaryId && orderedGroups.length > 1);
   const memberPending = counts.joinRequests + counts.playerClaims;
 
   useEffect(() => {
@@ -59,7 +69,7 @@ export function GroupsNavMenu({ groups, renderTrigger, panelClassName }: Props) 
   }, [open]);
 
   // 0 groups → plain link to the groups index (where Explore / Create live).
-  if (groups.length === 0) {
+  if (orderedGroups.length === 0) {
     return (
       <Link to="/groups" className="contents">
         {renderTrigger({ onClick: () => {}, badge: 0, open: false })}
@@ -68,7 +78,7 @@ export function GroupsNavMenu({ groups, renderTrigger, panelClassName }: Props) 
   }
 
   // 1 group → bypass popover, go straight to it.
-  if (groups.length === 1) {
+  if (orderedGroups.length === 1) {
     return (
       <Link to="/groups/$groupId" params={{ groupId: primaryId }} className="contents">
         {renderTrigger({ onClick: () => {}, badge: memberPending, open: false })}
@@ -77,7 +87,7 @@ export function GroupsNavMenu({ groups, renderTrigger, panelClassName }: Props) 
   }
 
   // 2+ groups → popover with quick shortcuts + group list.
-  const otherGroups = groups.slice(1);
+  const otherGroups = orderedGroups.slice(1);
 
   return (
     <div ref={ref} className="relative contents">
@@ -96,10 +106,29 @@ export function GroupsNavMenu({ groups, renderTrigger, panelClassName }: Props) 
           </p>
 
           {primary && (
-            <div className="mb-2 rounded-xl border border-primary/20 bg-primary/5 p-1.5">
-              <p className="px-1.5 pb-1 text-[10px] font-semibold text-primary truncate" title={primary.name}>
-                {primary.name}
-              </p>
+            <div
+              className={`mb-2 rounded-xl p-1.5 ${
+                primaryIsActive
+                  ? "border-2 border-success/60 bg-success/10 ring-1 ring-success/30"
+                  : "border border-primary/20 bg-primary/5"
+              }`}
+            >
+              <div className="flex items-center justify-between gap-2 px-1.5 pb-1">
+                <p
+                  className={`truncate text-[10px] font-semibold ${
+                    primaryIsActive ? "text-success" : "text-primary"
+                  }`}
+                  title={primary.name}
+                >
+                  {primary.name}
+                </p>
+                {primaryIsActive && (
+                  <span className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-success/20 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-success">
+                    <CheckCircle2 className="h-2.5 w-2.5" />
+                    Atual
+                  </span>
+                )}
+              </div>
               <ul className="space-y-0.5">
                 <li>
                   <Link
@@ -143,7 +172,12 @@ export function GroupsNavMenu({ groups, renderTrigger, panelClassName }: Props) 
               </p>
               <ul className="space-y-0.5">
                 {otherGroups.map((g) => (
-                  <OtherGroupItem key={g.id} group={g} onNavigate={() => setOpen(false)} />
+                  <OtherGroupItem
+                    key={g.id}
+                    group={g}
+                    isActive={g.id === activeGroupId}
+                    onNavigate={() => setOpen(false)}
+                  />
                 ))}
               </ul>
             </>
@@ -165,7 +199,15 @@ export function GroupsNavMenu({ groups, renderTrigger, panelClassName }: Props) 
   );
 }
 
-function OtherGroupItem({ group, onNavigate }: { group: GroupItem; onNavigate: () => void }) {
+function OtherGroupItem({
+  group,
+  isActive,
+  onNavigate,
+}: {
+  group: GroupItem;
+  isActive: boolean;
+  onNavigate: () => void;
+}) {
   const { counts, loading } = useGroupPendingTasks(group.id, true);
   const total = counts.total;
 
@@ -175,11 +217,20 @@ function OtherGroupItem({ group, onNavigate }: { group: GroupItem; onNavigate: (
         to="/groups/$groupId"
         params={{ groupId: group.id }}
         onClick={onNavigate}
-        className="flex items-center justify-between gap-2 rounded-xl px-2.5 py-2 text-xs font-medium text-foreground transition-colors hover:bg-accent"
+        className={`flex items-center justify-between gap-2 rounded-xl px-2.5 py-2 text-xs font-medium transition-colors hover:bg-accent ${
+          isActive
+            ? "bg-success/10 text-success ring-1 ring-success/40"
+            : "text-foreground"
+        }`}
       >
         <span className="flex min-w-0 items-center gap-2">
-          <Users className="h-3.5 w-3.5 shrink-0 text-primary" />
+          <Users className={`h-3.5 w-3.5 shrink-0 ${isActive ? "text-success" : "text-primary"}`} />
           <span className="truncate">{group.name}</span>
+          {isActive && (
+            <span className="ml-1 inline-flex shrink-0 items-center rounded-full bg-success/20 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-success">
+              Atual
+            </span>
+          )}
         </span>
         {!loading && total > 0 && (
           <span
