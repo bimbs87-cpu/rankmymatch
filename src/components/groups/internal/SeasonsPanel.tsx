@@ -527,7 +527,17 @@ function SeasonRoundsInline({ groupId, seasonId, isAdmin, initialRoundId }: { gr
   const [editingRoundId, setEditingRoundId] = useState<string | null>(null);
   const [editDates, setEditDates] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
-  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(initialRoundId ?? null);
+
+  // Auto-expand + scroll when a deep-link round arrives.
+  useEffect(() => {
+    if (initialRoundId) {
+      setExpandedId(initialRoundId);
+      requestAnimationFrame(() => {
+        document.getElementById(`round-${initialRoundId}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+      });
+    }
+  }, [initialRoundId]);
   const [showExtraForm, setShowExtraForm] = useState(false);
   const [extraDate, setExtraDate] = useState("");
   const [extraTime, setExtraTime] = useState("");
