@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate, useRouter } from "@tanstack/react-router";
 import { useAuth } from "@/hooks/use-auth";
 import { TrophyLoadingBar } from "@/components/TrophyLoadingBar";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
@@ -8,6 +8,7 @@ import { useRoundDetail, confirmPresence, cancelPresence, drawTeams, deleteMatch
 import { supabase } from "@/integrations/supabase/client";
 import { ScoreEntryDialog } from "@/components/ScoreEntryDialog";
 import { ManualMatchDialog } from "@/components/ManualMatchDialog";
+import { MatchPendingApproval, PendingAwareSubmitButton } from "@/components/MatchPendingApproval";
 import { isRivalryGroup } from "@/lib/rivalry";
 import { notifyGroupMembers } from "@/hooks/use-notifications";
 import {
@@ -45,7 +46,17 @@ export const Route = createFileRoute(
 function RoundDetailPage() {
   const { groupId, seasonId, roundId } = Route.useParams();
   const navigate = useNavigate();
+  const router = useRouter();
   const { user } = useAuth();
+
+  // Smart back: prefer real history (came from dashboard), else fall back to season page.
+  const handleBack = () => {
+    if (typeof window !== "undefined" && window.history.length > 1) {
+      router.history.back();
+    } else {
+      navigate({ to: "/groups/$groupId/seasons/$seasonId", params: { groupId, seasonId } });
+    }
+  };
   const { group, memberCount, members, isAdmin } = useGroupDetail(groupId);
   const { round, presences, matches, myPresence, confirmedCount, isLoading, refresh } =
     useRoundDetail(roundId);
@@ -403,14 +414,19 @@ function RoundDetailPage() {
   const effectiveConfirmedCount = confirmedPlayers.length;
 
   const isSingles = group?.match_format === "singles";
+  // Real per-round cap = simultaneous_courts * (4 doubles | 2 singles), bounded by member count.
+  const courtsCount = (group as any)?.simultaneous_courts || 1;
+  const courtCapacity = courtsCount * (isSingles ? 2 : 4);
   const singlesCapacity = Math.min(
     round.max_players || 2,
+    courtCapacity,
     group?.max_players || Number.POSITIVE_INFINITY,
     memberCount > 0 ? memberCount : Number.POSITIVE_INFINITY,
     rivalry ? 2 : Number.POSITIVE_INFINITY,
   );
   const doublesCapacity = Math.min(
     round.max_players,
+    courtCapacity,
     memberCount > 0 ? memberCount : Number.POSITIVE_INFINITY,
   );
   const displayCapacity = isSingles ? singlesCapacity : doublesCapacity;
@@ -559,13 +575,13 @@ function RoundDetailPage() {
       {/* Header */}
       <header className="px-5 pb-4 pt-6">
         <div className="flex items-center gap-3">
-          <Link
-            to="/groups/$groupId/seasons/$seasonId"
-            params={{ groupId, seasonId }}
+          <button
+            onClick={handleBack}
             className="flex h-9 w-9 items-center justify-center rounded-full border border-border bg-card"
+            aria-label="Voltar"
           >
             <ArrowLeft className="h-4 w-4 text-foreground" />
-          </Link>
+          </button>
           <div className="flex-1">
             <h1 className="font-display text-lg font-bold text-foreground">
               Rodada {round.round_number}
@@ -917,14 +933,22 @@ function RoundDetailPage() {
                       );
                     })()}
 
+                    {/* Inline pending approval (admin sees Approve/Reject; players see status) */}
                     {match.status !== "completed" && (
-                      <button
+                      <MatchPendingApproval
+                        matchId={match.id}
+                        seasonId={seasonId}
+                        isAdmin={isAdmin}
+                        onResolved={refresh}
+                      />
+                    )}
+
+                    {match.status !== "completed" && (
+                      <PendingAwareSubmitButton
+                        matchId={match.id}
+                        isAdmin={isAdmin}
                         onClick={() => setScoringMatch(match)}
-                        className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-primary/10 py-2 text-xs font-semibold text-primary"
-                      >
-                        <Edit3 className="h-3.5 w-3.5" />
-                        Registrar Placar
-                      </button>
+                      />
                     )}
 
                     {match.status === "completed" && (

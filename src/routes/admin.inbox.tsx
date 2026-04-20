@@ -35,7 +35,7 @@ export const Route = createFileRoute("/admin/inbox")({
   component: AdminInboxPage,
 });
 
-type Kind = "join_request" | "claim";
+type Kind = "join_request" | "claim" | "match_result";
 
 interface PendingItem {
   id: string;
@@ -49,6 +49,12 @@ interface PendingItem {
   targetPlayerName: string | null;
   message: string | null;
   createdAt: string;
+  /** match_result extras (kind === "match_result") */
+  matchId?: string;
+  seasonId?: string;
+  matchNumber?: number | null;
+  roundNumber?: number | null;
+  sets?: { setNumber: number; scoreA: number; scoreB: number }[];
 }
 
 interface ResolvedItem {
@@ -119,7 +125,25 @@ function AdminInboxPage() {
     }
     setLoading(true);
     try {
-      const [reqsRes, claimsRes, groupsRes] = await Promise.all([
+      // Fetch matches in admin groups (needed to scope pending_match_results
+      // and to attach round/match metadata for display).
+      const { data: groupMatches } = await supabase
+        .from("matches")
+        .select("id, match_number, round_id, rounds!inner(id, round_number, season_id, group_id)")
+        .in("rounds.group_id", adminGroupIds);
+
+      const matchMeta = new Map<string, { matchNumber: number | null; roundNumber: number | null; seasonId: string | null; groupId: string }>();
+      for (const m of (groupMatches || []) as any[]) {
+        matchMeta.set(m.id, {
+          matchNumber: m.match_number,
+          roundNumber: m.rounds?.round_number ?? null,
+          seasonId: m.rounds?.season_id ?? null,
+          groupId: m.rounds?.group_id,
+        });
+      }
+      const matchIds = [...matchMeta.keys()];
+
+      const [reqsRes, claimsRes, groupsRes, prRes] = await Promise.all([
         supabase
           .from("group_join_requests")
           .select("id, group_id, user_id, claimed_player_id, message, created_at")
@@ -131,10 +155,18 @@ function AdminInboxPage() {
           .in("group_id", adminGroupIds)
           .eq("status", "pending"),
         supabase.from("groups").select("id, name").in("id", adminGroupIds),
+        matchIds.length
+          ? supabase
+              .from("pending_match_results")
+              .select("id, match_id, submitted_by, sets, created_at")
+              .in("match_id", matchIds)
+              .eq("status", "pending")
+          : Promise.resolve({ data: [] as any[] }),
       ]);
 
       const reqs = reqsRes.data || [];
       const claims = claimsRes.data || [];
+      const prs = (prRes.data || []) as any[];
       const groupNames = new Map(
         (groupsRes.data || []).map((g) => [g.id, g.name as string]),
       );
@@ -148,6 +180,7 @@ function AdminInboxPage() {
         userIds.add(c.claimer_user_id);
         userIds.add(c.placeholder_user_id);
       }
+      for (const p of prs) userIds.add(p.submitted_by);
 
       const profileMap = new Map<
         string,
@@ -203,6 +236,30 @@ function AdminInboxPage() {
             createdAt: c.created_at,
           };
         }),
+        ...prs
+          .filter((p) => matchMeta.has(p.match_id))
+          .map((p): PendingItem => {
+            const meta = matchMeta.get(p.match_id)!;
+            const requester = profileMap.get(p.submitted_by);
+            return {
+              id: p.id,
+              kind: "match_result",
+              groupId: meta.groupId,
+              groupName: groupNames.get(meta.groupId) || "Grupo",
+              requesterUserId: p.submitted_by,
+              requesterName: requester?.name || "Jogador",
+              requesterAvatarUrl: requester?.avatar_url || null,
+              targetPlayerId: null,
+              targetPlayerName: null,
+              message: null,
+              createdAt: p.created_at,
+              matchId: p.match_id,
+              seasonId: meta.seasonId || undefined,
+              matchNumber: meta.matchNumber,
+              roundNumber: meta.roundNumber,
+              sets: (p.sets || []) as { setNumber: number; scoreA: number; scoreB: number }[],
+            };
+          }),
       ].sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
 
       setItems(merged);
@@ -395,13 +452,21 @@ function AdminInboxPage() {
     if (!user) return;
     if (it.kind === "join_request") {
       await approveJoinRequest(it.id, it.groupId, it.requesterUserId, user.id);
-    } else {
+    } else if (it.kind === "claim") {
       const { error } = await supabase.rpc("merge_placeholder_player", {
         _placeholder_user_id: it.targetPlayerId!,
         _real_user_id: it.requesterUserId,
         _group_id: it.groupId,
       });
       if (error) throw error;
+    } else if (it.kind === "match_result") {
+      const { approvePendingResult } = await import("@/lib/pending-results");
+      await approvePendingResult({
+        pendingId: it.id,
+        matchId: it.matchId!,
+        seasonId: it.seasonId!,
+        sets: it.sets || [],
+      });
     }
   };
 
@@ -409,7 +474,7 @@ function AdminInboxPage() {
     if (!user) return;
     if (it.kind === "join_request") {
       await rejectJoinRequest(it.id, user.id);
-    } else {
+    } else if (it.kind === "claim") {
       const { error } = await supabase
         .from("player_claims")
         .update({
@@ -649,6 +714,7 @@ function AdminInboxPage() {
                     <option value="all">Todos os tipos</option>
                     <option value="join_request">Entrar no grupo</option>
                     <option value="claim">Vincular jogador</option>
+                    <option value="match_result">Aprovar placar</option>
                   </select>
                   <select
                     value={ageFilter}
