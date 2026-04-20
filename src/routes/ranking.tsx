@@ -526,27 +526,7 @@ function RankingPage() {
           )}
         </div>
         <div className="flex items-center gap-2">
-          {selectedSeason && seasons.length > 1 && (
-            <div className="hidden lg:block relative">
-              <button
-                onClick={() => setShowSwitcher(!showSwitcher)}
-                className="flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-accent"
-              >
-                <Layers className="h-3.5 w-3.5 text-primary" />
-                <span className="max-w-[220px] truncate">{(selectedSeason as any).groups?.name} • {selectedSeason.name}</span>
-                <ChevronDown className={`h-3.5 w-3.5 text-muted-foreground transition-transform ${showSwitcher ? "rotate-180" : ""}`} />
-              </button>
-              {showSwitcher && (
-                <div className="absolute right-0 top-full mt-2 w-72 rounded-2xl border border-border bg-card/95 backdrop-blur-xl overflow-hidden shadow-xl z-20 max-h-[70vh] overflow-y-auto">
-                  <SeasonSwitcherList
-                    seasons={seasons}
-                    selectedId={selectedSeasonId}
-                    onSelect={(id) => { setSelectedSeasonId(id); setShowSwitcher(false); }}
-                  />
-                </div>
-              )}
-            </div>
-          )}
+
           {selectedSeason && rankings.length >= 2 && (
             <button
               onClick={() => {
