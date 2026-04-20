@@ -398,12 +398,55 @@ function NextRoundCard({ data, isLoading, groupId, busy, onPresence }: NextRound
     const el = presenceButtonsRef.current;
     if (!el) return;
     el.scrollIntoView({ behavior: "smooth", block: "center" });
-    // Brief highlight pulse for visual feedback
     el.classList.add("ring-2", "ring-warning", "ring-offset-2", "ring-offset-card", "rounded-full");
     window.setTimeout(() => {
       el.classList.remove("ring-2", "ring-warning", "ring-offset-2", "ring-offset-card", "rounded-full");
     }, 1200);
   };
+
+  // "Lembrar depois" — snooze the pending banner for 1h per round (localStorage)
+  const roundId = data.next_round?.id || null;
+  const snoozeKey = roundId ? `pending_snooze_v1:${roundId}` : null;
+  const [snoozedUntil, setSnoozedUntil] = useState<number | null>(() => {
+    if (typeof window === "undefined" || !snoozeKey) return null;
+    const raw = window.localStorage.getItem(snoozeKey);
+    const n = raw ? parseInt(raw, 10) : 0;
+    return n && n > Date.now() ? n : null;
+  });
+  // Re-read whenever the round changes
+  useEffect(() => {
+    if (typeof window === "undefined" || !snoozeKey) {
+      setSnoozedUntil(null);
+      return;
+    }
+    const raw = window.localStorage.getItem(snoozeKey);
+    const n = raw ? parseInt(raw, 10) : 0;
+    setSnoozedUntil(n && n > Date.now() ? n : null);
+  }, [snoozeKey]);
+  // Auto-clear when snooze expires
+  useEffect(() => {
+    if (!snoozedUntil) return;
+    const ms = snoozedUntil - Date.now();
+    if (ms <= 0) {
+      setSnoozedUntil(null);
+      return;
+    }
+    const t = window.setTimeout(() => setSnoozedUntil(null), ms + 100);
+    return () => window.clearTimeout(t);
+  }, [snoozedUntil]);
+  const handleSnooze = () => {
+    if (!snoozeKey) return;
+    const until = Date.now() + 60 * 60 * 1000;
+    try {
+      window.localStorage.setItem(snoozeKey, String(until));
+    } catch {
+      /* ignore quota */
+    }
+    setSnoozedUntil(until);
+    toast("Banner ocultado por 1h", { description: "Voltamos a lembrar você depois." });
+  };
+  const isSnoozed = !!snoozedUntil && snoozedUntil > Date.now();
+
   const urgency = useMemo(() => {
     const r = data.next_round;
     if (!r || !r.scheduled_date) return null;
