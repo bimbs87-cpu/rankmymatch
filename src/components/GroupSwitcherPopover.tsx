@@ -40,6 +40,22 @@ export function GroupSwitcherPopover({ groups, activeGroupId }: Props) {
 
   if (groups.length === 0) return null;
 
+  // Single group: render direct link to that group (no popover).
+  if (groups.length === 1) {
+    const only = groups[0];
+    return (
+      <Link
+        to="/groups/$groupId"
+        params={{ groupId: only.id }}
+        aria-label={`Abrir grupo ${only.name}`}
+        title={`Abrir grupo ${only.name}`}
+        className="flex items-center gap-1 rounded-2xl border border-border bg-card px-2 py-2 text-muted-foreground transition-colors hover:bg-accent hover:border-primary/40"
+      >
+        <Users className="h-4 w-4" />
+      </Link>
+    );
+  }
+
   return (
     <div ref={ref} className="relative">
       <button
