@@ -558,6 +558,33 @@ export function GroupDashboardPanel({ group, onLeft, onPresenceChanged }: Props)
                   </span>
                 )}
               </div>
+              {isAdmin && (
+                <div className="mt-2 flex items-center justify-between gap-2 rounded-xl border border-dashed border-border/60 bg-background/30 px-2.5 py-1.5">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                    Admin
+                  </span>
+                  <button
+                    onClick={handleToggleForceOpen}
+                    disabled={presenceLoading}
+                    className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold transition-colors disabled:opacity-50 ${
+                      data.next_round.presence_force_open_at &&
+                      new Date(data.next_round.presence_force_open_at) <= new Date()
+                        ? "border border-destructive/40 bg-destructive/10 text-destructive hover:bg-destructive/20"
+                        : "border border-primary/40 bg-primary/10 text-primary hover:bg-primary/20"
+                    }`}
+                    title={
+                      data.next_round.presence_force_open_at
+                        ? "Fechar lista manualmente"
+                        : "Abrir lista agora (antes do prazo)"
+                    }
+                  >
+                    {data.next_round.presence_force_open_at &&
+                    new Date(data.next_round.presence_force_open_at) <= new Date()
+                      ? "Fechar lista"
+                      : "Abrir lista agora"}
+                  </button>
+                </div>
+              )}
             </div>
           ) : (
             <div className="py-4 text-center">
