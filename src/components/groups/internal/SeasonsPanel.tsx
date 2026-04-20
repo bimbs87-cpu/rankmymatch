@@ -630,10 +630,10 @@ function SeasonRoundsInline({ groupId, seasonId, isAdmin, initialRoundId }: { gr
   };
 
   /**
-   * Manually trigger a push reminder for a round (admin only).
-   * Allowed from 12h before the scheduled start. No cooldown for now (test mode).
+   * Open the manual push dialog (admin). Validates the 12h window first.
+   * The actual send happens from the dialog, with a custom message.
    */
-  const sendRoundPush = async (r: any) => {
+  const openPushDialog = (r: any) => {
     if (!user) return;
     if (!r.scheduled_date) { toast.error("Rodada sem data agendada"); return; }
     const eventTs = new Date(`${r.scheduled_date}T${(r.scheduled_time || "00:00:00").slice(0, 8)}`).getTime();
@@ -644,30 +644,47 @@ function SeasonRoundsInline({ groupId, seasonId, isAdmin, initialRoundId }: { gr
       });
       return;
     }
+    const formatted = new Date(r.scheduled_date + "T00:00:00").toLocaleDateString("pt-BR", {
+      weekday: "short", day: "2-digit", month: "short",
+    });
+    const timeText = r.scheduled_time ? ` às ${r.scheduled_time.slice(0, 5)}` : "";
+    setPushMessage(`Rodada ${r.round_number} ${formatted}${timeText}. Confirme presença!`);
+    setPushTargetRound(r);
+  };
+
+  const confirmSendPush = async () => {
+    if (!user || !pushTargetRound) return;
+    const r = pushTargetRound;
+    const message = pushMessage.trim();
+    if (!message) { toast.error("Mensagem não pode estar vazia"); return; }
+    setSendingPush(true);
     try {
       const { data: group } = await supabase.from("groups").select("name").eq("id", groupId).single();
       const { notifyGroupMembers, describePushResult } = await import("@/lib/notify");
-      const formatted = new Date(r.scheduled_date + "T00:00:00").toLocaleDateString("pt-BR", {
-        weekday: "short", day: "2-digit", month: "short",
-      });
-      const timeText = r.scheduled_time ? ` às ${r.scheduled_time.slice(0, 5)}` : "";
       const push = await notifyGroupMembers({
         groupId,
         actorId: user.id,
         type: "round_reminder",
-        title: `Lembrete: ${group?.name || "Rodada"}`,
-        body: `Rodada ${r.round_number} ${formatted}${timeText}. Confirme presença!`,
+        title: `${group?.name || "Rodada"} · Rodada ${r.round_number}`,
+        body: message,
         url: `/groups/${groupId}?view=seasons&season=${seasonId}&round=${r.id}`,
         data: { roundId: r.id, seasonId, groupId },
         tag: `round_reminder:${r.id}:${Date.now()}`,
+        includeActor: true, // admin also receives confirmation push
       });
-      if (push.error || push.sent === 0) {
+      if (push.error) {
+        toast.error("Falha ao enviar push", { description: describePushResult(push) });
+      } else if (push.sent === 0) {
         toast.warning("Push enviado com problemas", { description: describePushResult(push) });
       } else {
         toast.success("Push enviado", { description: describePushResult(push) });
       }
+      setPushTargetRound(null);
+      setPushMessage("");
     } catch (err: any) {
       toast.error(err?.message || "Erro ao enviar push");
+    } finally {
+      setSendingPush(false);
     }
   };
 
