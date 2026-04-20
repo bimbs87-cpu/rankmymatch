@@ -276,13 +276,22 @@ function DiffView({ row }: { row: AuditRow }) {
 }
 
 /** Tiny inline SVG sparkline for nudge recipients trend. */
-function Sparkline({ values, unit = "" }: { values: number[]; unit?: string }) {
+function Sparkline({
+  values,
+  unit = "",
+  medianLine,
+}: {
+  values: number[];
+  unit?: string;
+  /** Optional value to draw as a horizontal dashed reference line (e.g. median). */
+  medianLine?: number;
+}) {
   if (values.length < 2) return null;
   const w = 200;
   const h = 32;
   const pad = 2;
-  const max = Math.max(...values, 1);
-  const min = Math.min(...values, 0);
+  const max = Math.max(...values, 1, medianLine ?? -Infinity);
+  const min = Math.min(...values, 0, medianLine ?? Infinity);
   const range = Math.max(1, max - min);
   const stepX = (w - pad * 2) / (values.length - 1);
   const points = values.map((v, i) => {
@@ -296,9 +305,45 @@ function Sparkline({ values, unit = "" }: { values: number[]; unit?: string }) {
   const b = values.slice(half).reduce((s, n) => s + n, 0) / Math.max(1, values.length - half);
   const trendingDown = b < a;
   const stroke = trendingDown ? "hsl(var(--success))" : "hsl(var(--warning))";
+  const medianY =
+    typeof medianLine === "number"
+      ? h - pad - ((medianLine - min) / range) * (h - pad * 2)
+      : null;
+  const medianLabel =
+    typeof medianLine === "number"
+      ? medianLine >= 10
+        ? `${Math.round(medianLine)}${unit}`
+        : `${medianLine.toFixed(1)}${unit}`
+      : "";
   return (
     <div className="flex items-center gap-2">
       <svg width="100%" height={h} viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" className="flex-1">
+        {medianY !== null && (
+          <>
+            <line
+              x1={pad}
+              x2={w - pad}
+              y1={medianY}
+              y2={medianY}
+              stroke="hsl(var(--muted-foreground))"
+              strokeWidth={1}
+              strokeDasharray="3 3"
+              opacity={0.6}
+            >
+              <title>{`Mediana: ${medianLabel}`}</title>
+            </line>
+            <text
+              x={w - pad}
+              y={Math.max(8, medianY - 2)}
+              textAnchor="end"
+              fontSize={8}
+              fill="hsl(var(--muted-foreground))"
+              opacity={0.85}
+            >
+              {`med ${medianLabel}`}
+            </text>
+          </>
+        )}
         <path d={path} fill="none" stroke={stroke} strokeWidth={1.5} strokeLinejoin="round" strokeLinecap="round" />
         {values.map((v, i) => {
           const x = pad + i * stepX;
