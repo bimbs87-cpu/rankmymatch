@@ -254,8 +254,20 @@ function ProfilePage() {
   };
 
   const handleLogout = async () => {
-    await signOut();
-    navigate({ to: "/login" });
+    // Navigate to /login FIRST so the profile page unmounts before the
+    // session is cleared. Otherwise the profile component re-renders with
+    // user=null and any in-flight queries throw, triggering the global
+    // "Something went wrong" boundary briefly before redirect lands.
+    try {
+      await navigate({ to: "/login" });
+    } catch {
+      // ignore navigation errors
+    }
+    try {
+      await signOut();
+    } catch (err) {
+      console.error("Erro ao sair da conta:", err);
+    }
   };
 
   // Edit mode
