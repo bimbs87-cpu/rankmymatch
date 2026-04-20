@@ -1,10 +1,11 @@
 import { Link, useLocation } from "@tanstack/react-router";
-import { Home, Users, User, Crown, BarChart3, Inbox } from "lucide-react";
+import { Home, Users, User, Crown, BarChart3, Inbox, CalendarClock } from "lucide-react";
 import { APP_VERSION } from "@/lib/app-version";
 import { useNewReleasesCount } from "@/hooks/use-new-releases";
 import { useAdminPendingCount } from "@/hooks/use-admin-pending-count";
 import { useMyGroups } from "@/hooks/use-groups";
 import { GroupsNavMenu } from "@/components/GroupsNavMenu";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const NAV_ITEMS = [
   { to: "/", icon: Home, label: "Início" },
@@ -55,7 +56,7 @@ export function BottomNav() {
           const Icon = item.icon;
           const isRanking = item.to === "/ranking";
 
-          const renderInner = (badge = 0) => (
+          const renderInner = (badge = 0, badgeLoading = false, nextRound?: { id: string; seasonId: string; label: string; presence: string } | null) => (
             <>
               {isRanking ? (
                 <div className="flex h-12 w-12 -mt-7 mb-0.5 items-center justify-center rounded-full border border-border bg-muted shadow-lg text-foreground">
@@ -67,14 +68,25 @@ export function BottomNav() {
                     className={`h-5 w-5 transition-all duration-200 ${isActive ? "scale-110" : ""}`}
                     strokeWidth={isActive ? 2.5 : 1.5}
                   />
-                  {badge > 0 && (
+                  {badgeLoading ? (
+                    <Skeleton className="absolute -right-1.5 -top-1 h-3.5 w-3.5 rounded-full" />
+                  ) : badge > 0 ? (
                     <span className="absolute -right-1.5 -top-1 flex h-3.5 min-w-[14px] items-center justify-center rounded-full bg-destructive px-1 text-[8px] font-bold text-destructive-foreground">
                       {badge > 9 ? "9+" : badge}
                     </span>
-                  )}
+                  ) : null}
                 </div>
               )}
               <span>{item.label}</span>
+              {nextRound && item.isGroups && (
+                <span className="mt-0.5 inline-flex items-center gap-0.5 rounded-full bg-success/15 px-1.5 py-0.5 text-[8px] font-bold text-success leading-none">
+                  <CalendarClock className="h-2 w-2" />
+                  {nextRound.label}
+                  {nextRound.presence === "confirmed" && <span aria-hidden>✓</span>}
+                  {nextRound.presence === "pending" && <span aria-hidden>⏳</span>}
+                  {nextRound.presence === "declined" && <span aria-hidden>✗</span>}
+                </span>
+              )}
             </>
           );
 
@@ -88,9 +100,9 @@ export function BottomNav() {
                 key={item.to}
                 groups={myGroups.map((g) => ({ id: g.id, name: g.name }))}
                 panelClassName="absolute bottom-full left-1/2 z-50 mb-2 w-72 max-h-[60vh] -translate-x-1/2 overflow-y-auto rounded-2xl border border-border bg-popover p-2 shadow-xl animate-fade-in"
-                renderTrigger={({ onClick, badge }) => (
+                renderTrigger={({ onClick, badge, badgeLoading, nextRound }) => (
                   <button type="button" onClick={onClick} className={baseClasses} aria-label="Grupos">
-                    {renderInner(badge)}
+                    {renderInner(badge, badgeLoading, nextRound)}
                   </button>
                 )}
               />
