@@ -447,6 +447,39 @@ export function AuditPanel({ groupId }: Props) {
     () => rows.filter((r) => WAITLIST_ACTIONS.has(r.action)).length,
     [rows],
   );
+  const roundMovCount = useMemo(
+    () =>
+      rows.filter(
+        (r) => ROUND_MOV_ACTIONS.has(r.action) && r.entity_type === "round" && r.entity_id,
+      ).length,
+    [rows],
+  );
+
+  // Grouped by round for "Movimentações da rodada" view
+  const movementsByRound = useMemo(() => {
+    if (!isRoundMovFilter) return [] as { roundId: string; events: AuditRow[] }[];
+    const groups = new Map<string, AuditRow[]>();
+    for (const r of filtered) {
+      const k = r.entity_id as string;
+      const arr = groups.get(k) || [];
+      arr.push(r);
+      groups.set(k, arr);
+    }
+    // Sort events ASC inside each round (chronological story)
+    const out = Array.from(groups.entries()).map(([roundId, events]) => ({
+      roundId,
+      events: events.slice().sort(
+        (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
+      ),
+    }));
+    // Sort rounds DESC by most recent event
+    out.sort((a, b) => {
+      const lastA = a.events[a.events.length - 1].created_at;
+      const lastB = b.events[b.events.length - 1].created_at;
+      return new Date(lastB).getTime() - new Date(lastA).getTime();
+    });
+    return out;
+  }, [filtered, isRoundMovFilter]);
 
   // Aggregated stats for "Só cutucadas" filter — only round_nudge entries (not cooldown resets)
   const nudgeStats = useMemo(() => {
