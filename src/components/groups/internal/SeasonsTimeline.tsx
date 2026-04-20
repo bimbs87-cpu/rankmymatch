@@ -434,8 +434,75 @@ export function SeasonsTimeline({ seasons, onSelect }: Props) {
         </span>
       </div>
 
-      {/* Rich popover modal for selected marker */}
-      {selectedMarker && (
+      {/* Detail popover for selected marker */}
+      {selectedMarker && (() => {
+        const isScheduledLike =
+          selectedMarker.type === "round" &&
+          (selectedMarker.status === "scheduled" || selectedMarker.status === "in_progress");
+
+        // Mini-popover for scheduled/in-progress rounds: no podium, just essentials.
+        if (isScheduledLike) {
+          const dateStr = new Date(selectedMarker.ts).toLocaleDateString("pt-BR", {
+            weekday: "short",
+            day: "2-digit",
+            month: "short",
+          });
+          return (
+            <div
+              className="fixed inset-0 z-50 flex items-end justify-center bg-background/40 p-4 backdrop-blur-sm sm:items-center"
+              onClick={() => setSelectedMarker(null)}
+            >
+              <div
+                className="w-full max-w-xs rounded-2xl border border-border bg-card p-3 shadow-xl"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-1.5">
+                    <span
+                      className={`inline-block h-2 w-2 rounded-full ${
+                        selectedMarker.status === "in_progress" ? "bg-warning" : "bg-muted-foreground/70"
+                      }`}
+                    />
+                    <h4 className="text-xs font-bold text-foreground">
+                      {selectedMarker.status === "in_progress" ? "Rodada em andamento" : "Rodada agendada"}
+                    </h4>
+                  </div>
+                  <button
+                    onClick={() => setSelectedMarker(null)}
+                    className="rounded-md p-0.5 text-muted-foreground hover:bg-accent"
+                    aria-label="Fechar"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+                <p className="mb-3 text-[11px] tabular-nums text-muted-foreground">
+                  {selectedMarker.roundNumber != null && (
+                    <span className="font-bold text-foreground">Rodada #{selectedMarker.roundNumber}</span>
+                  )}
+                  {selectedMarker.roundNumber != null && " · "}
+                  {dateStr}
+                </p>
+                {selectedMarker.groupId && selectedMarker.seasonId && selectedMarker.roundId && (
+                  <Link
+                    to="/groups/$groupId/seasons/$seasonId/rounds/$roundId"
+                    params={{
+                      groupId: selectedMarker.groupId,
+                      seasonId: selectedMarker.seasonId,
+                      roundId: selectedMarker.roundId,
+                    }}
+                    onClick={() => setSelectedMarker(null)}
+                    className="block w-full rounded-lg bg-primary py-1.5 text-center text-[11px] font-bold text-primary-foreground hover:opacity-90"
+                  >
+                    Abrir rodada
+                  </Link>
+                )}
+              </div>
+            </div>
+          );
+        }
+
+        // Rich modal for completed rounds + finished seasons (with podium).
+        return (
         <div
           className="fixed inset-0 z-50 flex items-end justify-center bg-background/60 p-4 backdrop-blur-sm sm:items-center"
           onClick={() => setSelectedMarker(null)}
@@ -581,7 +648,8 @@ export function SeasonsTimeline({ seasons, onSelect }: Props) {
             </div>
           </div>
         </div>
-      )}
+        );
+      })()}
     </div>
   );
 }

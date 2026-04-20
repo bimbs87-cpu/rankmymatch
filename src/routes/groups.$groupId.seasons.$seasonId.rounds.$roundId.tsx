@@ -63,6 +63,70 @@ function RoundDetailPage() {
   const [scoringMatch, setScoringMatch] = useState<any>(null);
   const [showManualMatch, setShowManualMatch] = useState(false);
   const [seasonData, setSeasonData] = useState<any>(null);
+  const [creatingDuelMatch, setCreatingDuelMatch] = useState(false);
+
+  /**
+   * Rivalry "Lançar resultado" handler — works for admin AND non-admin.
+   * Creates a 1×1 match between the 2 group members (if it doesn't exist)
+   * and opens ScoreEntryDialog. Non-admin submissions land in
+   * pending_match_results (handled inside ScoreEntryDialog via isAdmin prop).
+   */
+  const handleRivalryStartScore = async (a: any, b: any) => {
+    if (creatingDuelMatch) return;
+    setCreatingDuelMatch(true);
+    try {
+      // Confirm both players' presence so they appear as match players
+      const { data: existingPresence } = await supabase
+        .from("round_presence")
+        .select("user_id")
+        .eq("round_id", roundId)
+        .in("user_id", [a.user_id, b.user_id]);
+      const presentIds = new Set((existingPresence || []).map((p) => p.user_id));
+      const presenceRows = [a.user_id, b.user_id]
+        .filter((uid) => !presentIds.has(uid))
+        .map((uid) => ({ round_id: roundId, user_id: uid, status: "confirmed", confirmed_at: new Date().toISOString() }));
+      if (presenceRows.length) {
+        await supabase.from("round_presence").upsert(presenceRows, { onConflict: "round_id,user_id" });
+      }
+
+      // Create the match
+      const { data: match, error: matchErr } = await supabase
+        .from("matches")
+        .insert({
+          round_id: roundId,
+          match_format: "singles",
+          match_number: 1,
+          status: "scheduled",
+          created_by: user?.id,
+        })
+        .select()
+        .single();
+      if (matchErr || !match) throw matchErr || new Error("Falha ao criar partida");
+
+      // Add the two match_players (team A / team B)
+      await supabase.from("match_players").insert([
+        { match_id: match.id, user_id: a.user_id, team: "A" },
+        { match_id: match.id, user_id: b.user_id, team: "B" },
+      ]);
+
+      // Reload round so the dialog can render with the new match
+      await refresh();
+
+      // Open ScoreEntryDialog for the freshly-created match
+      setScoringMatch({
+        ...match,
+        match_players: [
+          { user_id: a.user_id, team: "A", profile: a.profile },
+          { user_id: b.user_id, team: "B", profile: b.profile },
+        ],
+        match_sets: [],
+      });
+    } catch (e: any) {
+      toast.error(e?.message || "Erro ao iniciar lançamento de resultado");
+    } finally {
+      setCreatingDuelMatch(false);
+    }
+  };
 
   const rivalry = isRivalryGroup(group);
 
@@ -882,9 +946,22 @@ function RoundDetailPage() {
                     <span className="text-base font-bold text-foreground">{themLabel}</span>
                   </div>
                 </div>
+                <button
+                  type="button"
+                  onClick={() => handleRivalryStartScore(a, b)}
+                  disabled={creatingDuelMatch}
+                  className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-2.5 text-xs font-bold text-primary-foreground hover:opacity-90 disabled:opacity-60"
+                >
+                  <Swords className="h-3.5 w-3.5" />
+                  {creatingDuelMatch
+                    ? "Preparando..."
+                    : isAdmin
+                      ? "Lançar resultado"
+                      : "Lançar resultado (admin aprovará)"}
+                </button>
                 {!isAdmin && (
-                  <p className="mt-4 text-center text-[11px] text-muted-foreground">
-                    Aguardando admin lançar o resultado.
+                  <p className="mt-2 text-center text-[10px] text-muted-foreground">
+                    Seu placar ficará pendente até o admin aprovar.
                   </p>
                 )}
               </div>
