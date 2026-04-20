@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { useGroupSeasons } from "@/hooks/use-seasons";
 import { useSeasonRounds } from "@/hooks/use-rounds";
+import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { SeasonFinalRanking } from "./SeasonFinalRanking";
@@ -14,6 +15,7 @@ import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { PlayerAvatarLink } from "@/components/PlayerProfileViewer";
 import { GroupSummaryCards } from "./GroupSummaryCards";
 import { SeasonsTimeline } from "./SeasonsTimeline";
+import { createExtraRound as createExtraRoundFn } from "@/lib/extra-round";
 
 type SeasonFilter = "all" | "active" | "finished";
 
@@ -503,6 +505,7 @@ function SeasonStatusActions({ season, onChanged }: { season: any; onChanged: ()
 }
 
 function SeasonRoundsInline({ groupId, seasonId, isAdmin }: { groupId: string; seasonId: string; isAdmin: boolean }) {
+  const { user } = useAuth();
   const { rounds, isLoading, refresh } = useSeasonRounds(seasonId);
   const [editing, setEditing] = useState(false);
   const [editingRoundId, setEditingRoundId] = useState<string | null>(null);
@@ -511,7 +514,20 @@ function SeasonRoundsInline({ groupId, seasonId, isAdmin }: { groupId: string; s
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [showExtraForm, setShowExtraForm] = useState(false);
   const [extraDate, setExtraDate] = useState("");
+  const [extraTime, setExtraTime] = useState("");
+  const [extraLocation, setExtraLocation] = useState("");
   const [creatingExtra, setCreatingExtra] = useState(false);
+
+  // Pre-fill defaults (group's regular time/location) from the most recent round
+  useEffect(() => {
+    if (!showExtraForm || !rounds.length) return;
+    const latest = [...rounds].reverse().find((r) => r.scheduled_time || r.location);
+    if (latest) {
+      if (latest.scheduled_time && !extraTime) setExtraTime(latest.scheduled_time.slice(0, 5));
+      if (latest.location && !extraLocation) setExtraLocation(latest.location);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showExtraForm]);
 
   const today = new Date().toISOString().slice(0, 10);
 
@@ -557,37 +573,28 @@ function SeasonRoundsInline({ groupId, seasonId, isAdmin }: { groupId: string; s
 
   const createExtraRound = async () => {
     if (!extraDate) { toast.error("Selecione uma data"); return; }
+    if (!user) { toast.error("Faça login primeiro"); return; }
     setCreatingExtra(true);
-    const { data: group } = await supabase
-      .from("groups")
-      .select("match_format, max_players")
-      .eq("id", groupId)
-      .single();
-    if (!group) {
-      toast.error("Erro ao carregar grupo");
-      setCreatingExtra(false);
-      return;
-    }
-    const nextNumber = rounds.length
-      ? Math.max(...rounds.map((r) => r.round_number || 0)) + 1
-      : 1;
-    const { error } = await supabase.from("rounds").insert({
-      group_id: groupId,
-      season_id: seasonId,
-      round_number: nextNumber,
-      scheduled_date: extraDate,
-      status: "scheduled",
-      match_format: group.match_format,
-      max_players: group.max_players,
-    });
-    if (error) toast.error("Erro ao criar rodada extra");
-    else {
-      toast.success(`Rodada ${nextNumber} criada`);
+    try {
+      await createExtraRoundFn({
+        groupId,
+        seasonId,
+        actorId: user.id,
+        scheduledDate: extraDate,
+        scheduledTime: extraTime || null,
+        location: extraLocation || null,
+      });
+      toast.success("Rodada extra criada");
       setShowExtraForm(false);
       setExtraDate("");
+      setExtraTime("");
+      setExtraLocation("");
       refresh();
+    } catch (err: any) {
+      toast.error(err?.message || "Erro ao criar rodada extra");
+    } finally {
+      setCreatingExtra(false);
     }
-    setCreatingExtra(false);
   };
 
   const extraRoundUI = isAdmin && (
@@ -598,10 +605,27 @@ function SeasonRoundsInline({ groupId, seasonId, isAdmin }: { groupId: string; s
             <h4 className="text-xs font-semibold text-foreground">Nova rodada extra</h4>
             <p className="text-[11px] text-muted-foreground">Adicione uma rodada fora do calendário (ex: feriado).</p>
           </div>
+          <div className="grid grid-cols-2 gap-2">
+            <input
+              type="date"
+              value={extraDate}
+              onChange={(e) => setExtraDate(e.target.value)}
+              placeholder="Data"
+              className="rounded-lg border border-border bg-background px-2 py-1.5 text-xs"
+            />
+            <input
+              type="time"
+              value={extraTime}
+              onChange={(e) => setExtraTime(e.target.value)}
+              placeholder="Horário (opcional)"
+              className="rounded-lg border border-border bg-background px-2 py-1.5 text-xs"
+            />
+          </div>
           <input
-            type="date"
-            value={extraDate}
-            onChange={(e) => setExtraDate(e.target.value)}
+            type="text"
+            value={extraLocation}
+            onChange={(e) => setExtraLocation(e.target.value)}
+            placeholder="Local (opcional)"
             className="w-full rounded-lg border border-border bg-background px-2 py-1.5 text-xs"
           />
           <div className="flex gap-2">
@@ -613,7 +637,7 @@ function SeasonRoundsInline({ groupId, seasonId, isAdmin }: { groupId: string; s
               {creatingExtra ? "Criando..." : "Criar rodada"}
             </button>
             <button
-              onClick={() => { setShowExtraForm(false); setExtraDate(""); }}
+              onClick={() => { setShowExtraForm(false); setExtraDate(""); setExtraTime(""); setExtraLocation(""); }}
               className="rounded-lg bg-muted px-2.5 py-1.5 text-[11px]"
             >
               Cancelar
@@ -677,7 +701,14 @@ function SeasonRoundsInline({ groupId, seasonId, isAdmin }: { groupId: string; s
                     <span className="font-display text-xs font-bold text-primary">R{r.round_number || "?"}</span>
                   </div>
                   <div className="min-w-0">
-                    <span className="text-sm font-semibold text-foreground">Rodada {r.round_number}</span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-sm font-semibold text-foreground">Rodada {r.round_number}</span>
+                      {(r as any).is_extra && (
+                        <span className="rounded-full bg-warning/15 px-1.5 py-0.5 text-[9px] font-bold uppercase text-warning" title="Rodada extra (fora do calendário regular)">
+                          Extra
+                        </span>
+                      )}
+                    </div>
                     <div className="flex flex-wrap items-center gap-x-2 text-[11px] text-muted-foreground">
                       <span className="flex items-center gap-1"><Calendar className="h-3 w-3" />{formatDate(r.scheduled_date)}</span>
                       {r.scheduled_time && <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{r.scheduled_time.slice(0, 5)}</span>}
