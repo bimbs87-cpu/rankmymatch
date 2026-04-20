@@ -50,6 +50,7 @@ import { MembersPanel } from "@/components/groups/internal/MembersPanel";
 
 import { SeasonsPanel } from "@/components/groups/internal/SeasonsPanel";
 import { GroupComparePanel } from "@/components/groups/internal/GroupComparePanel";
+import { GroupRankingPanel } from "@/components/groups/internal/GroupRankingPanel";
 import { AdminPanel } from "@/components/groups/internal/AdminPanel";
 
 export const Route = createFileRoute("/groups/$groupId/")({
@@ -474,6 +475,8 @@ function GroupDetailPage() {
             {view === "members" && <MembersPanel groupId={groupId} />}
 
             {view === "seasons" && <SeasonsPanel groupId={groupId} isAdmin={isAdmin} />}
+
+            {view === "ranking" && <GroupRankingPanel groupId={groupId} />}
 
             {view === "compare" && (
               <GroupComparePanel
