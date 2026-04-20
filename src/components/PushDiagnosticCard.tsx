@@ -440,7 +440,10 @@ export function PushDiagnosticCard() {
                           <span className="ml-1 text-destructive">· {h.failed} falha{h.failed > 1 ? "s" : ""}</span>
                         )}
                       </p>
-                      <p className="text-[10px] text-muted-foreground">{formatRelative(h.ts)}</p>
+                      <p className="text-[10px] text-muted-foreground tabular-nums">
+                        {formatRelative(h.ts)}
+                        <span className="ml-1 opacity-70">· {new Date(h.ts).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false })}</span>
+                      </p>
                     </div>
                   </li>
                 );

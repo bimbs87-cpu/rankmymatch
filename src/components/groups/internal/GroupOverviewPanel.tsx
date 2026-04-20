@@ -423,7 +423,8 @@ function NextRoundCard({ data, isLoading, groupId, busy, onPresence }: NextRound
     const n = raw ? parseInt(raw, 10) : 0;
     setSnoozedUntil(n && n > Date.now() ? n : null);
   }, [snoozeKey]);
-  // Auto-clear when snooze expires
+  // Auto-clear when snooze expires + tick every 60s for live countdown on the chip
+  const [, setNowTick] = useState(0);
   useEffect(() => {
     if (!snoozedUntil) return;
     const ms = snoozedUntil - Date.now();
@@ -431,8 +432,12 @@ function NextRoundCard({ data, isLoading, groupId, busy, onPresence }: NextRound
       setSnoozedUntil(null);
       return;
     }
+    const interval = window.setInterval(() => setNowTick((n) => n + 1), 60_000);
     const t = window.setTimeout(() => setSnoozedUntil(null), ms + 100);
-    return () => window.clearTimeout(t);
+    return () => {
+      window.clearTimeout(t);
+      window.clearInterval(interval);
+    };
   }, [snoozedUntil]);
   const handleSnooze = () => {
     if (!snoozeKey) return;
