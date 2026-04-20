@@ -1,4 +1,4 @@
-import { Link, useLocation } from "@tanstack/react-router";
+import { Link, useLocation, useNavigate } from "@tanstack/react-router";
 import { ChevronDown, Users, Trophy, UserSquare2, Compass, CheckCircle2, CalendarClock, Clock, X as XIcon } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useGroupPendingTasks } from "@/hooks/use-group-pending-tasks";
@@ -64,7 +64,7 @@ export function GroupsNavMenu({ groups, renderTrigger, panelClassName }: Props) 
   const { total: globalPending, loading: globalLoading } = useAllGroupsPending(allGroupIds);
 
   // Next scheduled round of the primary group (used in the popover shortcut).
-  const { round: nextRound, presence: nextPresence } = useNextRound(primaryId || null);
+  const { round: nextRound, presence: nextPresence, confirmedAt: nextConfirmedAt } = useNextRound(primaryId || null);
 
   useEffect(() => {
     if (!open) return;
@@ -82,6 +82,8 @@ export function GroupsNavMenu({ groups, renderTrigger, panelClassName }: Props) 
     };
   }, [open]);
 
+  const navigate = useNavigate();
+
   // 0 groups → plain link to the groups index (where Explore / Create live).
   if (orderedGroups.length === 0) {
     return (
@@ -91,7 +93,9 @@ export function GroupsNavMenu({ groups, renderTrigger, panelClassName }: Props) 
     );
   }
 
-  // 1 group → bypass popover, go straight to it. Expose nextRound for inline sub-link.
+  // 1 group → trigger navigates to the dashboard. We surface the next-round
+  // shortcut so the consumer (BottomNav) can render it as an INDEPENDENT link
+  // — clicking the chip should jump to the round, not the dashboard.
   if (orderedGroups.length === 1) {
     const subShortcut =
       nextRound && nextRound.season_id
@@ -103,15 +107,15 @@ export function GroupsNavMenu({ groups, renderTrigger, panelClassName }: Props) 
           }
         : null;
     return (
-      <Link to="/groups/$groupId" params={{ groupId: primaryId }} className="contents">
+      <>
         {renderTrigger({
-          onClick: () => {},
+          onClick: () => navigate({ to: "/groups/$groupId", params: { groupId: primaryId } }),
           badge: globalPending,
           badgeLoading: globalLoading,
           open: false,
           nextRound: subShortcut,
         })}
-      </Link>
+      </>
     );
   }
 
@@ -127,7 +131,7 @@ export function GroupsNavMenu({ groups, renderTrigger, panelClassName }: Props) 
           role="menu"
           className={
             panelClassName ??
-            "absolute right-0 top-full z-50 mt-2 w-72 max-h-[70vh] overflow-y-auto rounded-2xl border border-border bg-popover p-2 shadow-xl animate-fade-in"
+            "absolute right-0 top-full z-[60] mt-2 w-72 max-h-[70vh] overflow-y-auto rounded-2xl border border-border bg-card p-2 shadow-2xl ring-1 ring-black/20 backdrop-blur-none animate-fade-in"
           }
         >
           <p className="px-2 pb-1 pt-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
@@ -176,7 +180,7 @@ export function GroupsNavMenu({ groups, renderTrigger, panelClassName }: Props) 
                         <span>Próxima rodada</span>
                       </span>
                       <span className="flex items-center gap-1.5">
-                        <PresencePill status={nextPresence} />
+                        <PresencePill status={nextPresence} confirmedAt={nextConfirmedAt} />
                         <span className="text-[10px] font-bold text-success">
                           {formatNextRound(nextRound.scheduled_date, nextRound.scheduled_time)}
                         </span>
@@ -310,29 +314,56 @@ function OtherGroupItem({
   );
 }
 
-function PresencePill({ status }: { status: PresenceStatus }) {
+function PresencePill({ status, confirmedAt }: { status: PresenceStatus; confirmedAt?: string | null }) {
+  const confirmedLabel = confirmedAt ? `Confirmado por você ${formatRelative(confirmedAt)}` : "Você confirmou presença";
   if (status === "confirmed") {
     return (
-      <span title="Você confirmou presença" className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-success/20 text-success">
+      <span
+        title={confirmedLabel}
+        aria-label={confirmedLabel}
+        className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-success/20 text-success"
+      >
         <CheckCircle2 className="h-2.5 w-2.5" />
       </span>
     );
   }
   if (status === "declined") {
     return (
-      <span title="Você marcou ausência" className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-destructive/20 text-destructive">
+      <span
+        title="Você marcou ausência nesta rodada"
+        aria-label="Você marcou ausência nesta rodada"
+        className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-destructive/20 text-destructive"
+      >
         <XIcon className="h-2.5 w-2.5" />
       </span>
     );
   }
   if (status === "pending") {
     return (
-      <span title="Sua presença está pendente" className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-warning/20 text-warning">
+      <span
+        title="Sua presença ainda não foi confirmada — toque para abrir a rodada"
+        aria-label="Presença pendente"
+        className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-warning/20 text-warning"
+      >
         <Clock className="h-2.5 w-2.5" />
       </span>
     );
   }
   return null;
+}
+
+function formatRelative(iso: string): string {
+  const then = new Date(iso).getTime();
+  if (!Number.isFinite(then)) return "recentemente";
+  const diffMs = Date.now() - then;
+  const min = Math.round(diffMs / 60_000);
+  if (min < 1) return "agora há pouco";
+  if (min < 60) return `há ${min} min`;
+  const h = Math.round(min / 60);
+  if (h < 24) return `há ${h} h`;
+  const d = Math.round(h / 24);
+  if (d < 7) return `há ${d} dia${d !== 1 ? "s" : ""}`;
+  return `em ${new Date(iso).toLocaleDateString("pt-BR")}`;
 }
 const WEEKDAYS = ["dom", "seg", "ter", "qua", "qui", "sex", "sáb"];
 function formatNextRound(date: string | null, time: string | null): string {

@@ -19,6 +19,7 @@ export type PresenceStatus = "confirmed" | "declined" | "pending" | "unknown";
 export function useNextRound(groupId: string | null | undefined) {
   const [round, setRound] = useState<NextRound | null>(null);
   const [presence, setPresence] = useState<PresenceStatus>("unknown");
+  const [confirmedAt, setConfirmedAt] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -52,21 +53,24 @@ export function useNextRound(groupId: string | null | undefined) {
           if (uid) {
             const { data: pres } = await supabase
               .from("round_presence")
-              .select("status")
+              .select("status, confirmed_at")
               .eq("round_id", r.id)
               .eq("user_id", uid)
               .maybeSingle();
             if (cancelled) return;
             const s = (pres?.status as string | undefined) ?? null;
+            setConfirmedAt((pres?.confirmed_at as string | null) ?? null);
             if (s === "confirmed") setPresence("confirmed");
             else if (s === "declined" || s === "absent") setPresence("declined");
             else if (s) setPresence("pending");
             else setPresence("pending");
           } else {
             setPresence("unknown");
+            setConfirmedAt(null);
           }
         } else {
           setPresence("unknown");
+          setConfirmedAt(null);
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -77,5 +81,5 @@ export function useNextRound(groupId: string | null | undefined) {
     };
   }, [groupId]);
 
-  return { round, presence, loading };
+  return { round, presence, confirmedAt, loading };
 }

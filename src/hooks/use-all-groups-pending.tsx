@@ -9,10 +9,39 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
+const CACHE_TTL_MS = 30_000;
+const CACHE_PREFIX = "rmm:allGroupsPending:";
+
+function readCache(key: string): number | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = sessionStorage.getItem(CACHE_PREFIX + key);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as { value: number; ts: number };
+    if (!parsed || typeof parsed.value !== "number") return null;
+    if (Date.now() - parsed.ts > CACHE_TTL_MS) return null;
+    return parsed.value;
+  } catch {
+    return null;
+  }
+}
+
+function writeCache(key: string, value: number) {
+  if (typeof window === "undefined") return;
+  try {
+    sessionStorage.setItem(CACHE_PREFIX + key, JSON.stringify({ value, ts: Date.now() }));
+  } catch {
+    // quota exceeded — ignore
+  }
+}
+
 export function useAllGroupsPending(groupIds: string[]) {
-  const [total, setTotal] = useState(0);
-  const [loading, setLoading] = useState(groupIds.length > 0);
   const key = groupIds.slice().sort().join(",");
+  // Hydrate from sessionStorage so the badge doesn't flicker '0/skeleton'
+  // every time the user navigates between pages.
+  const cached = readCache(key);
+  const [total, setTotal] = useState<number>(cached ?? 0);
+  const [loading, setLoading] = useState(groupIds.length > 0 && cached === null);
 
   const refresh = useCallback(async () => {
     if (groupIds.length === 0) {
@@ -50,7 +79,9 @@ export function useAllGroupsPending(groupIds: string[]) {
         matchResultsCount = count ?? 0;
       }
 
-      setTotal((jr.count ?? 0) + (pc.count ?? 0) + matchResultsCount);
+      const next = (jr.count ?? 0) + (pc.count ?? 0) + matchResultsCount;
+      setTotal(next);
+      writeCache(key, next);
     } catch {
       // ignore — keep last value
     } finally {

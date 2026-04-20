@@ -5,6 +5,7 @@ import { useNewReleasesCount } from "@/hooks/use-new-releases";
 import { useAdminPendingCount } from "@/hooks/use-admin-pending-count";
 import { useMyGroups } from "@/hooks/use-groups";
 import { GroupsNavMenu } from "@/components/GroupsNavMenu";
+import { SafeBoundary } from "@/components/SafeBoundary";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const NAV_ITEMS = [
@@ -56,7 +57,7 @@ export function BottomNav() {
           const Icon = item.icon;
           const isRanking = item.to === "/ranking";
 
-          const renderInner = (badge = 0, badgeLoading = false, nextRound?: { id: string; seasonId: string; label: string; presence: string } | null) => (
+          const renderInner = (badge = 0, badgeLoading = false) => (
             <>
               {isRanking ? (
                 <div className="flex h-12 w-12 -mt-7 mb-0.5 items-center justify-center rounded-full border border-border bg-muted shadow-lg text-foreground">
@@ -78,15 +79,6 @@ export function BottomNav() {
                 </div>
               )}
               <span>{item.label}</span>
-              {nextRound && item.isGroups && (
-                <span className="mt-0.5 inline-flex items-center gap-0.5 rounded-full bg-success/15 px-1.5 py-0.5 text-[8px] font-bold text-success leading-none">
-                  <CalendarClock className="h-2 w-2" />
-                  {nextRound.label}
-                  {nextRound.presence === "confirmed" && <span aria-hidden>✓</span>}
-                  {nextRound.presence === "pending" && <span aria-hidden>⏳</span>}
-                  {nextRound.presence === "declined" && <span aria-hidden>✗</span>}
-                </span>
-              )}
             </>
           );
 
@@ -96,16 +88,46 @@ export function BottomNav() {
 
           if (item.isGroups) {
             return (
-              <GroupsNavMenu
+              <SafeBoundary
                 key={item.to}
-                groups={myGroups.map((g) => ({ id: g.id, name: g.name }))}
-                panelClassName="absolute bottom-full left-1/2 z-50 mb-2 w-72 max-h-[60vh] -translate-x-1/2 overflow-y-auto rounded-2xl border border-border bg-popover p-2 shadow-xl animate-fade-in"
-                renderTrigger={({ onClick, badge, badgeLoading, nextRound }) => (
-                  <button type="button" onClick={onClick} className={baseClasses} aria-label="Grupos">
-                    {renderInner(badge, badgeLoading, nextRound)}
-                  </button>
-                )}
-              />
+                label="GroupsNavMenu(BottomNav)"
+                fallback={
+                  <Link to="/groups" className={baseClasses} aria-label="Grupos">
+                    {renderInner(0, false)}
+                  </Link>
+                }
+              >
+                <GroupsNavMenu
+                  groups={myGroups.map((g) => ({ id: g.id, name: g.name }))}
+                  panelClassName="absolute bottom-full left-1/2 z-[60] mb-2 w-72 max-h-[60vh] -translate-x-1/2 overflow-y-auto rounded-2xl border border-border bg-card p-2 shadow-2xl ring-1 ring-black/30 animate-fade-in"
+                  renderTrigger={({ onClick, badge, badgeLoading, nextRound }) => (
+                    <div className="relative flex flex-col items-center">
+                      <button type="button" onClick={onClick} className={baseClasses} aria-label="Grupos">
+                        {renderInner(badge, badgeLoading)}
+                      </button>
+                      {nextRound && (
+                        <Link
+                          to="/groups/$groupId/seasons/$seasonId/rounds/$roundId"
+                          params={{
+                            groupId: myGroups[0]?.id ?? "",
+                            seasonId: nextRound.seasonId,
+                            roundId: nextRound.id,
+                          }}
+                          onClick={(e) => e.stopPropagation()}
+                          className="mt-0.5 inline-flex items-center gap-0.5 rounded-full bg-success/15 px-1.5 py-0.5 text-[8px] font-bold text-success leading-none ring-1 ring-success/30 hover:bg-success/25"
+                          aria-label="Abrir próxima rodada"
+                        >
+                          <CalendarClock className="h-2 w-2" />
+                          {nextRound.label}
+                          {nextRound.presence === "confirmed" && <span aria-hidden>✓</span>}
+                          {nextRound.presence === "pending" && <span aria-hidden>⏳</span>}
+                          {nextRound.presence === "declined" && <span aria-hidden>✗</span>}
+                        </Link>
+                      )}
+                    </div>
+                  )}
+                />
+              </SafeBoundary>
             );
           }
 
