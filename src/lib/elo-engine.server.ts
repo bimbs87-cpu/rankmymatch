@@ -157,9 +157,12 @@ export async function processMatchEloServer(result: MatchResultServer) {
     });
   }
 
-  await supabaseAdmin.from("rating_events").insert(ratingEvents);
+  const { error: insEventsErr } = await supabaseAdmin
+    .from("rating_events")
+    .insert(ratingEvents);
+  if (insEventsErr) throw new Error(`Falha ao salvar rating_events: ${insEventsErr.message}`);
 
-  await Promise.all(
+  const snapResults = await Promise.all(
     snapshotUpserts.map((snap) => {
       if (snap.id) {
         const { id, ...updateData } = snap;
@@ -170,6 +173,9 @@ export async function processMatchEloServer(result: MatchResultServer) {
       }
     }),
   );
+  for (const r of snapResults) {
+    if (r.error) throw new Error(`Falha ao gravar snapshot: ${r.error.message}`);
+  }
 
   const { data: allSnapshots } = await supabaseAdmin
     .from("ranking_snapshots")

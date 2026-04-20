@@ -243,17 +243,25 @@ export const reopenMatchServerFn = createServerFn({ method: "POST" })
     const oldSets = match.match_sets;
 
     // Wipe sets and rating events tied to this match so it can be re-scored cleanly.
-    await supabaseAdmin.from("rating_events").delete().eq("match_id", matchId);
-    await supabaseAdmin.from("match_sets").delete().eq("match_id", matchId);
+    const { error: delEvErr } = await supabaseAdmin.from("rating_events").delete().eq("match_id", matchId);
+    if (delEvErr) throw new Error(`Falha ao limpar eventos: ${delEvErr.message}`);
+    const { error: delSetsErr } = await supabaseAdmin.from("match_sets").delete().eq("match_id", matchId);
+    if (delSetsErr) throw new Error(`Falha ao limpar sets: ${delSetsErr.message}`);
 
-    await supabaseAdmin
+    const { data: updated, error: updErr } = await supabaseAdmin
       .from("matches")
       .update({
         status: "scheduled",
         winner_team: null,
         result_type: null,
       })
-      .eq("id", matchId);
+      .eq("id", matchId)
+      .select("id, status")
+      .maybeSingle();
+    if (updErr) throw new Error(`Falha ao reabrir partida: ${updErr.message}`);
+    if (!updated || updated.status !== "scheduled") {
+      throw new Error("Falha ao reabrir partida: nenhum registro atualizado");
+    }
 
     if (match.round_id) {
       try {
