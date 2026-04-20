@@ -2254,11 +2254,11 @@ function DashboardPage() {
                       </span>
                     )}
                   </div>
-                  <div className="min-h-[260px] flex-1">
+                  <div className="h-[280px] max-h-[360px] flex-1">
                     <EloEvolutionChart
                       points={history.map((h) => ({ date: h.date, rating: h.rating }))}
                       color="#84cc16"
-                      height={260}
+                      height={280}
                     />
                   </div>
                 </div>
