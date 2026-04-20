@@ -850,12 +850,59 @@ export function AuditPanel({ groupId }: Props) {
                   </p>
                   <div className="flex items-center gap-1">
                     {slowCount > 0 && (
-                      <span
-                        className="flex cursor-help items-center gap-1 rounded-full border border-destructive/40 bg-destructive/10 px-1.5 py-0.5 text-[10px] font-bold tabular-nums text-destructive"
-                        title={`${slowCount} cutucada${slowCount !== 1 ? "s" : ""} com resposta acima de 6h (outliers)`}
-                      >
-                        🐌 {slowCount} lenta{slowCount !== 1 ? "s" : ""}
-                      </span>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <button
+                            type="button"
+                            className="flex cursor-pointer items-center gap-1 rounded-full border border-destructive/40 bg-destructive/10 px-1.5 py-0.5 text-[10px] font-bold tabular-nums text-destructive transition hover:bg-destructive/20"
+                            title={`${slowCount} cutucada${slowCount !== 1 ? "s" : ""} com resposta acima de 6h. Clique para ver quem.`}
+                          >
+                            🐌 {slowCount} lenta{slowCount !== 1 ? "s" : ""}
+                          </button>
+                        </PopoverTrigger>
+                        <PopoverContent align="end" className="w-72 p-0">
+                          <div className="border-b border-border bg-destructive/5 px-3 py-2">
+                            <p className="text-[11px] font-bold text-destructive">🐌 Respostas lentas (&gt;6h)</p>
+                            <p className="text-[10px] text-muted-foreground">
+                              {slowResponders.length === 0
+                                ? "Nenhum detalhe disponível."
+                                : `${slowResponders.length} resposta${slowResponders.length !== 1 ? "s" : ""} de destinatários — ordenado da mais lenta.`}
+                            </p>
+                          </div>
+                          <ul className="max-h-64 divide-y divide-border overflow-y-auto">
+                            {slowResponders.length === 0 ? (
+                              <li className="px-3 py-3 text-[11px] text-muted-foreground">
+                                Sem dados detalhados disponíveis.
+                              </li>
+                            ) : (
+                              slowResponders.map((s, i) => {
+                                const name = actorNames[s.userId] || "Usuário";
+                                const hLabel = s.hours >= 10 ? `${Math.round(s.hours)}h` : `${s.hours.toFixed(1)}h`;
+                                const tone =
+                                  s.hours > 24
+                                    ? "text-destructive"
+                                    : s.hours > 12
+                                      ? "text-destructive/80"
+                                      : "text-warning";
+                                return (
+                                  <li key={`${s.userId}-${s.nudgeAt}-${i}`} className="flex items-center justify-between gap-2 px-3 py-2">
+                                    <div className="min-w-0 flex-1">
+                                      <p className="truncate text-[11px] font-semibold text-foreground">{name}</p>
+                                      <p className="text-[9px] text-muted-foreground">
+                                        {s.roundNumber != null ? `Rodada #${s.roundNumber}` : "Rodada"} · cutucada{" "}
+                                        {new Date(s.nudgeAt).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })}
+                                      </p>
+                                    </div>
+                                    <span className={`shrink-0 rounded-full border border-destructive/40 bg-destructive/10 px-1.5 py-0.5 text-[10px] font-bold tabular-nums ${tone}`}>
+                                      {hLabel}
+                                    </span>
+                                  </li>
+                                );
+                              })
+                            )}
+                          </ul>
+                        </PopoverContent>
+                      </Popover>
                     )}
                     {(() => {
                       const tone =
