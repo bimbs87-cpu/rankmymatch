@@ -54,12 +54,41 @@ export function DesktopNav() {
           <div className="flex items-center gap-1 rounded-full border border-border bg-card/80 px-2 py-1.5 backdrop-blur-xl">
             {NAV_ITEMS.map((item) => {
               const Icon = item.icon;
+              const baseClasses =
+                "flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground [&.active]:bg-primary/15 [&.active]:text-primary";
+
+              if (item.isGroups) {
+                return (
+                  <GroupsNavMenu
+                    key={item.to}
+                    groups={myGroups.map((g) => ({ id: g.id, name: g.name }))}
+                    panelClassName="absolute left-1/2 top-full z-50 mt-2 w-72 max-h-[70vh] -translate-x-1/2 overflow-y-auto rounded-2xl border border-border bg-popover p-2 shadow-xl animate-fade-in"
+                    renderTrigger={({ onClick, badge, open }) => (
+                      <button
+                        type="button"
+                        onClick={onClick}
+                        aria-expanded={open}
+                        className={`${baseClasses} relative ${open ? "bg-primary/15 text-primary" : ""}`}
+                      >
+                        <Icon className="h-4 w-4" />
+                        <span>{item.label}</span>
+                        {badge > 0 && (
+                          <span className="ml-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[9px] font-bold text-destructive-foreground">
+                            {badge > 9 ? "9+" : badge}
+                          </span>
+                        )}
+                      </button>
+                    )}
+                  />
+                );
+              }
+
               return (
                 <Link
                   key={item.to}
                   to={item.to}
                   activeOptions={{ exact: item.to === "/" }}
-                  className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground [&.active]:bg-primary/15 [&.active]:text-primary"
+                  className={baseClasses}
                 >
                   <Icon className="h-4 w-4" />
                   <span>{item.label}</span>
