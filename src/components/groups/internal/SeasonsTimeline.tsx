@@ -266,7 +266,10 @@ export function SeasonsTimeline({ seasons, onSelect }: Props) {
         <span className="absolute left-1.5 top-1.5 bottom-1.5 w-px bg-border" aria-hidden />
 
         {orderedSeasons.map((s) => {
-          const rounds = roundsBySeason.get(s.id) || [];
+          const allSeasonRounds = roundsBySeason.get(s.id) || [];
+          const rounds = allSeasonRounds.filter((r) => matchesFilter(r.status));
+          // Hide season entirely when filter is active and there's nothing to show
+          if (filter !== "all" && rounds.length === 0) return null;
           const isActive = s.status === "active";
           const startTs = s.start_date
             ? new Date(s.start_date + "T12:00:00").getTime()
@@ -279,10 +282,7 @@ export function SeasonsTimeline({ seasons, onSelect }: Props) {
             },
             { completed: 0, scheduled: 0, in_progress: 0, cancelled: 0 } as Record<RoundStatus, number>,
           );
-          const isOpen = expanded[s.id] ?? isActive; // active seasons expanded by default
-
-          // Show only first 8 rounds when collapsed
-          const visibleRounds = isOpen ? rounds : rounds.slice(0, 0);
+          const isOpen = expanded[s.id] ?? (isActive || filter !== "all");
 
           return (
             <li key={s.id} className="relative">
