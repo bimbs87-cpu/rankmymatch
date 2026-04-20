@@ -526,27 +526,7 @@ function RankingPage() {
           )}
         </div>
         <div className="flex items-center gap-2">
-          {selectedSeason && seasons.length > 1 && (
-            <div className="hidden lg:block relative">
-              <button
-                onClick={() => setShowSwitcher(!showSwitcher)}
-                className="flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-accent"
-              >
-                <Layers className="h-3.5 w-3.5 text-primary" />
-                <span className="max-w-[220px] truncate">{(selectedSeason as any).groups?.name} • {selectedSeason.name}</span>
-                <ChevronDown className={`h-3.5 w-3.5 text-muted-foreground transition-transform ${showSwitcher ? "rotate-180" : ""}`} />
-              </button>
-              {showSwitcher && (
-                <div className="absolute right-0 top-full mt-2 w-72 rounded-2xl border border-border bg-card/95 backdrop-blur-xl overflow-hidden shadow-xl z-20 max-h-[70vh] overflow-y-auto">
-                  <SeasonSwitcherList
-                    seasons={seasons}
-                    selectedId={selectedSeasonId}
-                    onSelect={(id) => { setSelectedSeasonId(id); setShowSwitcher(false); }}
-                  />
-                </div>
-              )}
-            </div>
-          )}
+
           {selectedSeason && rankings.length >= 2 && (
             <button
               onClick={() => {
@@ -579,36 +559,16 @@ function RankingPage() {
         </div>
       </header>
 
-      {/* MOBILE-only season switcher */}
-      {selectedSeason && seasons.length > 1 ? (
-        <div className="px-5 mt-1 lg:hidden">
-          <button
-            onClick={() => setShowSwitcher(!showSwitcher)}
-            className="flex w-full items-center justify-center gap-2 rounded-2xl border border-border bg-card/80 backdrop-blur-sm px-4 py-2.5 transition-colors hover:bg-accent"
-          >
-            <Layers className="h-3.5 w-3.5 text-primary" />
-            <span className="text-sm font-semibold text-foreground">{(selectedSeason as any).groups?.name} • {selectedSeason.name}</span>
-            <ChevronDown className={`h-3.5 w-3.5 text-muted-foreground transition-transform ${showSwitcher ? "rotate-180" : ""}`} />
-          </button>
-        </div>
-      ) : selectedSeason ? (
+      {/* Season label (read-only — switching is done from the group menu) */}
+      {selectedSeason && (
         <div className="px-5 mt-1 lg:hidden">
           <div className="flex w-full items-center justify-center gap-2 rounded-2xl border border-border bg-card/80 px-4 py-2.5">
             <Layers className="h-3.5 w-3.5 text-primary" />
             <span className="text-sm font-semibold text-foreground">{(selectedSeason as any).groups?.name} • {selectedSeason.name}</span>
           </div>
         </div>
-      ) : null}
-
-      {showSwitcher && seasons.length > 1 && (
-        <div className="mx-5 mt-2 rounded-2xl border border-border bg-card/95 backdrop-blur-xl overflow-hidden shadow-lg lg:hidden max-h-[60vh] overflow-y-auto">
-          <SeasonSwitcherList
-            seasons={seasons}
-            selectedId={selectedSeasonId}
-            onSelect={(id) => { setSelectedSeasonId(id); setShowSwitcher(false); }}
-          />
-        </div>
       )}
+
 
       <div className="space-y-3 px-5 pt-3 lg:px-0 lg:pt-4 lg:space-y-0">
         {!isAuthenticated ? (
