@@ -54,6 +54,15 @@ export function GroupsNavMenu({ groups, renderTrigger, panelClassName }: Props) 
   const { counts } = useGroupPendingTasks(primaryId || null, !!primaryId && orderedGroups.length > 1);
   const memberPending = counts.joinRequests + counts.playerClaims;
 
+  // Aggregated badge across ALL groups (so the BottomNav/DesktopNav "Grupos"
+  // trigger reflects every group where the user has pending admin tasks, not
+  // only the primary one).
+  const allGroupIds = useMemo(() => groups.map((g) => g.id), [groups]);
+  const globalPending = useAllGroupsPending(allGroupIds);
+
+  // Next scheduled round of the primary group (used in the popover shortcut).
+  const { round: nextRound } = useNextRound(primaryId || null);
+
   useEffect(() => {
     if (!open) return;
     const onClick = (e: MouseEvent) => {
@@ -83,7 +92,7 @@ export function GroupsNavMenu({ groups, renderTrigger, panelClassName }: Props) 
   if (orderedGroups.length === 1) {
     return (
       <Link to="/groups/$groupId" params={{ groupId: primaryId }} className="contents">
-        {renderTrigger({ onClick: () => {}, badge: memberPending, open: false })}
+        {renderTrigger({ onClick: () => {}, badge: globalPending, open: false })}
       </Link>
     );
   }
