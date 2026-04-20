@@ -249,6 +249,7 @@ export function SeasonsPanel({ groupId, isAdmin, initialSeasonId, initialRoundId
                     expanded={expandedId === s.id}
                     onToggle={() => setExpandedId(expandedId === s.id ? null : s.id)}
                     onChanged={refresh}
+                    initialRoundId={expandedId === s.id ? initialRoundId : undefined}
                   />
                 </div>
               ))}
