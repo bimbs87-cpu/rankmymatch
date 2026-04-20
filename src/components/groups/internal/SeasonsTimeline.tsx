@@ -3,6 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useViewPlayerProfile } from "@/components/PlayerProfileViewer";
+import { PlayerAvatar } from "@/components/PlayerAvatar";
 
 interface Season {
   id: string;
@@ -59,7 +60,7 @@ export function SeasonsTimeline({ seasons, onSelect }: Props) {
   >([]);
 
   const [selectedMarker, setSelectedMarker] = useState<EventMarker | null>(null);
-  const [podium, setPodium] = useState<{ userId: string; name: string; value: number; subtitle?: string }[] | null>(null);
+  const [podium, setPodium] = useState<{ userId: string; name: string; avatarUrl: string | null; value: number; subtitle?: string }[] | null>(null);
   const [podiumLoading, setPodiumLoading] = useState(false);
   const openProfile = useViewPlayerProfile();
 
