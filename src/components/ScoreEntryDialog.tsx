@@ -750,14 +750,68 @@ export function ScoreEntryDialog({
             </p>
           )}
 
-          <button
-            onClick={handleSubmit}
-            disabled={!matchState.canSubmit || submitting}
-            className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-3.5 text-sm font-bold text-primary-foreground disabled:opacity-50"
-          >
-            <Save className="h-4 w-4" />
-            {submitting ? "Salvando resultado..." : "Salvar Placar e Calcular Elo"}
-          </button>
+          {/* Pending banner: visible to admins when there is a pending submission */}
+          {pending && isAdmin && (
+            <div className="mt-4 flex items-start gap-2 rounded-2xl border border-warning/30 bg-warning/5 p-3">
+              <Clock className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
+              <p className="text-xs text-foreground/80">
+                Resultado enviado para aprovação. Edite os sets se necessário e aprove,
+                ou rejeite para o jogador reenviar.
+              </p>
+            </div>
+          )}
+
+          {/* Action buttons: depend on admin/pending state */}
+          {isAdmin ? (
+            pending ? (
+              <div className="mt-4 grid grid-cols-2 gap-2">
+                <button
+                  onClick={handleRejectPending}
+                  disabled={submitting}
+                  className="flex items-center justify-center gap-2 rounded-2xl border border-destructive/30 bg-destructive/10 py-3.5 text-sm font-bold text-destructive disabled:opacity-50"
+                >
+                  <ThumbsDown className="h-4 w-4" />
+                  Rejeitar
+                </button>
+                <button
+                  onClick={handleApprovePending}
+                  disabled={!matchState.canSubmit || submitting}
+                  className="flex items-center justify-center gap-2 rounded-2xl bg-primary py-3.5 text-sm font-bold text-primary-foreground disabled:opacity-50"
+                >
+                  <Check className="h-4 w-4" />
+                  {submitting ? "Aprovando..." : "Aprovar"}
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={handleSubmit}
+                disabled={!matchState.canSubmit || submitting}
+                className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-3.5 text-sm font-bold text-primary-foreground disabled:opacity-50"
+              >
+                <Save className="h-4 w-4" />
+                {submitting ? "Salvando resultado..." : "Salvar Placar e Calcular Elo"}
+              </button>
+            )
+          ) : isPlayerInMatch ? (
+            <button
+              onClick={handleSubmitPending}
+              disabled={!matchState.canSubmit || submitting || (!!pending && pending.submitted_by !== currentUserId)}
+              className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-3.5 text-sm font-bold text-primary-foreground disabled:opacity-50"
+            >
+              <Send className="h-4 w-4" />
+              {submitting
+                ? "Enviando..."
+                : pending
+                ? pending.submitted_by === currentUserId
+                  ? "Reenviar para aprovação"
+                  : "Aguardando aprovação do admin"
+                : "Enviar para aprovação do admin"}
+            </button>
+          ) : (
+            <p className="mt-4 rounded-2xl border border-dashed border-border bg-muted/10 py-3 text-center text-xs text-muted-foreground">
+              Apenas jogadores da partida ou admins podem lançar o resultado.
+            </p>
+          )}
         </div>
       </div>
     </div>
