@@ -23,7 +23,9 @@ export function DesktopNav() {
   const { displayName, nickname, avatarUrl } = useUserProfile();
   const { groups: myGroups } = useMyGroups();
   const headerName = nickname || displayName || "Você";
-  const activeGroupId = myGroups[0]?.id ?? "";
+  const activeGroup = myGroups[0];
+  const activeGroupId = activeGroup?.id ?? "";
+  const activeGroupName = activeGroup?.name ?? "";
 
   return (
     <header className="hidden lg:block z-40 -mx-8 px-8 pt-6 pb-3 bg-background border-b border-border/40">
@@ -69,7 +71,7 @@ export function DesktopNav() {
         {/* Right: group switcher + notifications */}
         <div className="flex items-center gap-2">
           {myGroups.length > 0 && (
-            <GroupSwitcherPopover groups={myGroups} activeGroupId={activeGroupId} />
+            <GroupSwitcherPopover groups={myGroups} activeGroupId={activeGroupId} activeGroupName={activeGroupName} />
           )}
           {adminPending > 0 && (
             <Link
