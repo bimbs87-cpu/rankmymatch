@@ -378,7 +378,15 @@ export function AuditPanel({ groupId }: Props) {
   const nudgeStats = useMemo(() => {
     const nudges = rows.filter((r) => r.action === "round_nudge");
     if (nudges.length === 0) {
-      return { total: 0, recipients: 0, pendingPct: 0, declinedPct: 0, lastAt: null as string | null, sparkline: [] as number[] };
+      return {
+        total: 0,
+        recipients: 0,
+        pendingPct: 0,
+        declinedPct: 0,
+        lastAt: null as string | null,
+        sparkline: [] as number[],
+        pendingPctSparkline: [] as number[],
+      };
     }
     let recipients = 0;
     let pending = 0;
@@ -390,10 +398,17 @@ export function AuditPanel({ groupId }: Props) {
       declined += Number(d.declined_count ?? 0);
     }
     const sumPD = pending + declined;
-    // Sparkline: last 10 nudges, oldest → newest, recipients_count per nudge.
+    // Sparklines: last 10 nudges, oldest → newest.
     // (rows is sorted DESC by created_at, so reverse.)
     const last10 = nudges.slice(0, 10).reverse();
     const sparkline = last10.map((r) => Number((r.new_data || {}).recipients_count ?? 0));
+    const pendingPctSparkline = last10.map((r) => {
+      const d = r.new_data || {};
+      const p = Number(d.pending_count ?? 0);
+      const dc = Number(d.declined_count ?? 0);
+      const total = p + dc;
+      return total > 0 ? Math.round((p / total) * 100) : 0;
+    });
     return {
       total: nudges.length,
       recipients,
@@ -401,6 +416,7 @@ export function AuditPanel({ groupId }: Props) {
       declinedPct: sumPD > 0 ? Math.round((declined / sumPD) * 100) : 0,
       lastAt: nudges[0]?.created_at ?? null,
       sparkline,
+      pendingPctSparkline,
     };
   }, [rows]);
 
