@@ -911,7 +911,7 @@ function RoundDetailPage() {
                       );
                     })()}
 
-                    {isAdmin && match.status !== "completed" && (
+                    {match.status !== "completed" && (
                       <button
                         onClick={() => setScoringMatch(match)}
                         className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-primary/10 py-2 text-xs font-semibold text-primary"
@@ -1088,6 +1088,7 @@ function RoundDetailPage() {
           setsPerMatch={rivalry ? 99 : isSingles ? (seasonData?.sets_per_match || 3) : 3}
           setsMode={rivalry ? "unlimited" : ((seasonData?.sets_mode as any) || "fixed")}
           isSingles={isSingles || rivalry}
+          isAdmin={isAdmin}
           onClose={() => setScoringMatch(null)}
           onSaved={refresh}
         />
