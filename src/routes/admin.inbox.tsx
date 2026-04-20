@@ -714,6 +714,7 @@ function AdminInboxPage() {
                     <option value="all">Todos os tipos</option>
                     <option value="join_request">Entrar no grupo</option>
                     <option value="claim">Vincular jogador</option>
+                    <option value="match_result">Aprovar placar</option>
                   </select>
                   <select
                     value={ageFilter}
