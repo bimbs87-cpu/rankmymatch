@@ -19,6 +19,18 @@ export const Route = createFileRoute("/landing")({
           "Crie seu grupo de padel, registre partidas e acompanhe o ranking Elo de cada jogador.",
       },
       { property: "og:url", content: "https://rankmymatch.app/landing" },
+      { property: "og:type", content: "website" },
+      { property: "og:image", content: "https://rankmymatch.app/landing-hero-devices.png" },
+      { property: "og:image:width", content: "1200" },
+      { property: "og:image:height", content: "630" },
+      { property: "og:image:alt", content: "RankMyMatch em desktop, tablet e celular" },
+      { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:title", content: "RankMyMatch — Ranking de Padel para seu grupo" },
+      {
+        name: "twitter:description",
+        content: "Crie seu grupo, registre partidas e acompanhe o ranking Elo.",
+      },
+      { name: "twitter:image", content: "https://rankmymatch.app/landing-hero-devices.png" },
     ],
     links: [
       { rel: "canonical", href: "https://rankmymatch.app/landing" },
