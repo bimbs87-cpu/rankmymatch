@@ -2,7 +2,7 @@ import { LayoutGrid, Users, CalendarDays, Settings2, ChevronLeft, X, GitCompare,
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Link } from "@tanstack/react-router";
 
-export type GroupView = "overview" | "members" | "seasons" | "compare" | "ranking" | "admin";
+export type GroupView = "overview" | "members" | "seasons" | "compare" | "admin";
 
 export interface SidebarBadges {
   pendingRequests?: number;
