@@ -430,6 +430,9 @@ export function AuditPanel({ groupId }: Props) {
   const [actorNames, setActorNames] = useState<Record<string, string>>({});
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [responseTimes, setResponseTimes] = useState<number[]>([]);
+  const [slowResponders, setSlowResponders] = useState<
+    Array<{ userId: string; hours: number; roundNumber: number | null; nudgeAt: number }>
+  >([]);
   const [roundMovements, setRoundMovements] = useState<
     Record<string, { round_number: number | null; scheduled_date: string | null }>
   >({});
@@ -481,15 +484,15 @@ export function AuditPanel({ groupId }: Props) {
         }
         const { data: presences } = await supabase
           .from("round_presence")
-          .select("round_id, updated_at, status")
+          .select("round_id, user_id, updated_at, status")
           .in("round_id", roundIds)
           .neq("status", "pending")
           .order("updated_at", { ascending: true });
-        // Index presence updates per round
-        const presByRound = new Map<string, { ts: number }[]>();
+        // Index presence updates per round (with user)
+        const presByRound = new Map<string, { ts: number; userId: string }[]>();
         for (const p of presences || []) {
           const arr = presByRound.get(p.round_id) || [];
-          arr.push({ ts: new Date(p.updated_at).getTime() });
+          arr.push({ ts: new Date(p.updated_at).getTime(), userId: p.user_id });
           presByRound.set(p.round_id, arr);
         }
         // Group nudges by round to find "next nudge" boundary
@@ -499,11 +502,13 @@ export function AuditPanel({ groupId }: Props) {
           arr.push(new Date(n.created_at).getTime());
           nudgesByRound.set(n.entity_id as string, arr);
         }
+        const slow: Array<{ userId: string; hours: number; roundNumber: number | null; nudgeAt: number }> = [];
         for (const n of nudges) {
           const ts = new Date(n.created_at).getTime();
-          const sameRoundNudges = nudgesByRound.get(n.entity_id as string) || [];
+          const roundId = n.entity_id as string;
+          const sameRoundNudges = nudgesByRound.get(roundId) || [];
           const nextNudge = sameRoundNudges.find((t) => t > ts) ?? ts + 24 * 3600 * 1000;
-          const pres = presByRound.get(n.entity_id as string) || [];
+          const pres = presByRound.get(roundId) || [];
           const responses = pres.filter((p) => p.ts > ts && p.ts <= nextNudge);
           if (responses.length === 0) {
             responseHours.push(0);
@@ -511,8 +516,39 @@ export function AuditPanel({ groupId }: Props) {
             const avgMs =
               responses.reduce((s, p) => s + (p.ts - ts), 0) / responses.length;
             responseHours.push(Math.max(0, Math.round((avgMs / (3600 * 1000)) * 10) / 10));
+            // Capture per-recipient slow responses (>6h) for outlier popover
+            for (const r of responses) {
+              const hours = (r.ts - ts) / (3600 * 1000);
+              if (hours > 6) {
+                slow.push({
+                  userId: r.userId,
+                  hours: Math.round(hours * 10) / 10,
+                  roundNumber: roundMeta[roundId]?.round_number ?? null,
+                  nudgeAt: ts,
+                });
+              }
+            }
           }
         }
+        // Resolve names for slow responders not already in actorNames map
+        const slowIds = Array.from(new Set(slow.map((s) => s.userId))).filter((id) => !ids.includes(id));
+        if (slowIds.length > 0) {
+          const { data: extraProfs } = await supabase
+            .from("user_profiles")
+            .select("user_id, name")
+            .in("user_id", slowIds);
+          if (cancelled) return;
+          const extra: Record<string, string> = {};
+          for (const p of (extraProfs || []) as { user_id: string; name: string }[]) {
+            extra[p.user_id] = p.name;
+          }
+          if (Object.keys(extra).length > 0) {
+            setActorNames((prev) => ({ ...prev, ...extra }));
+          }
+        }
+        if (cancelled) return;
+        // Sort slowest first, keep top 20
+        setSlowResponders(slow.sort((a, b) => b.hours - a.hours).slice(0, 20));
       }
       if (cancelled) return;
       setResponseTimes(responseHours.slice(-10));
