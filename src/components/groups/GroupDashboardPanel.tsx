@@ -1044,3 +1044,57 @@ function MatchStartCountdown({
     </span>
   );
 }
+
+/**
+ * Visual response-rate bar for the next round: % of active members who have
+ * responded (confirmed or declined) out of the total. Confirmed shows in
+ * success tone, declined in muted destructive — pending is the empty space.
+ */
+function ResponseProgressBar({
+  confirmed,
+  declined,
+  pending,
+  memberCount,
+}: {
+  confirmed: number;
+  declined: number;
+  pending: number;
+  memberCount: number;
+}) {
+  const total = Math.max(memberCount, confirmed + declined + pending);
+  if (total <= 0) return null;
+  const responded = confirmed + declined;
+  const pct = Math.round((responded / total) * 100);
+  const confirmedPct = (confirmed / total) * 100;
+  const declinedPct = (declined / total) * 100;
+
+  return (
+    <div className="space-y-1">
+      <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+        <span>
+          <span className="font-bold text-foreground tabular-nums">{responded}</span>
+          /{total} responderam
+        </span>
+        <span className="font-bold tabular-nums text-foreground">{pct}%</span>
+      </div>
+      <div
+        className="flex h-1.5 w-full overflow-hidden rounded-full bg-muted/60"
+        role="progressbar"
+        aria-valuenow={pct}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-label={`${pct}% de membros responderam`}
+        title={`✓ ${confirmed} confirmados · ✗ ${declined} recusaram · ${pending} pendentes`}
+      >
+        <div
+          className="h-full bg-success transition-all"
+          style={{ width: `${confirmedPct}%` }}
+        />
+        <div
+          className="h-full bg-destructive/50 transition-all"
+          style={{ width: `${declinedPct}%` }}
+        />
+      </div>
+    </div>
+  );
+}
