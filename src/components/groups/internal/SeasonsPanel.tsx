@@ -1214,7 +1214,7 @@ function RoundExpandedDetails({
             </div>
           )}
 
-          {/* Admin: sortear times when there are no matches yet */}
+      {/* Admin: sortear times when there are no matches yet */}
           {isAdmin && matchesData.length === 0 && (
             <button
               onClick={handleDrawTeams}
@@ -1225,7 +1225,27 @@ function RoundExpandedDetails({
             </button>
           )}
 
-          {/* Matches summary with inline result entry + Elo deltas */}
+          {/* Admin: resortear times when matches exist but no result entered */}
+          {isAdmin && hasUnstartedMatches && (
+            <button
+              onClick={handleRedrawTeams}
+              disabled={busy || confirmedIds.length < (groupFormat === "singles" ? 2 : 4)}
+              className="flex w-full items-center justify-center gap-2 rounded-xl border border-warning/30 bg-warning/10 py-2 text-xs font-bold text-warning hover:bg-warning/20 disabled:opacity-50"
+              title="Apaga os times atuais (nenhum resultado lançado) e sorteia novamente"
+            >
+              <RotateCcw className="h-3.5 w-3.5" /> Resortear times
+            </button>
+          )}
+
+          {/* Mini Elo timeline of the day */}
+          <RoundEloMiniTimeline
+            seasonId={seasonId}
+            scheduledDate={scheduledDate}
+            matchPlayerIds={Array.from(new Set(matchesData.flatMap((m: any) => (m.match_players || []).map((mp: any) => mp.user_id))))}
+            visible={matchesData.some((m: any) => (m.match_sets || []).length > 0)}
+          />
+
+          {/* Matches summary with inline result entry + Elo before/after */}
           {matchesData.length > 0 && (
             <div>
               <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
@@ -1241,18 +1261,20 @@ function RoundExpandedDetails({
                   const renderTeam = (team: any[], side: "A" | "B") => (
                     <span className={m.winner_team === side ? "font-bold text-primary" : "text-foreground"}>
                       {team.length === 0 ? "—" : team.map((mp) => {
-                        const d = deltas[mp.user_id];
+                        const ev = deltas[mp.user_id];
                         return (
-                          <span key={mp.user_id} className="inline-flex items-baseline gap-0.5 mr-1">
+                          <span key={mp.user_id} className="inline-flex items-baseline gap-1 mr-1">
                             <span>{nameOf(mp)}</span>
-                            {typeof d === "number" && d !== 0 && (
-                              <span className={`text-[9px] font-bold tabular-nums ${d > 0 ? "text-success" : "text-destructive"}`}>
-                                {d > 0 ? "+" : ""}{Math.round(d)}
+                            {ev && ev.delta !== 0 && (
+                              <span className="inline-flex items-baseline gap-0.5 text-[9px] font-bold tabular-nums">
+                                <span className="text-muted-foreground">{Math.round(ev.before)}</span>
+                                <span className={ev.delta > 0 ? "text-success" : "text-destructive"}>→{Math.round(ev.after)}</span>
+                                <span className={`${ev.delta > 0 ? "text-success" : "text-destructive"}`}>({ev.delta > 0 ? "+" : ""}{Math.round(ev.delta)})</span>
                               </span>
                             )}
                           </span>
                         );
-                      }).reduce((acc: any, el: any, i: number, arr: any[]) => i === 0 ? [el] : [...acc, <span key={`sep${i}`} className="text-muted-foreground">/ </span>, el], [] as any)}
+                      }).reduce((acc: any, el: any, i: number) => i === 0 ? [el] : [...acc, <span key={`sep${i}`} className="text-muted-foreground">/ </span>, el], [] as any)}
                     </span>
                   );
                   const iAmInMatch = !!user && (m.match_players || []).some((mp: any) => mp.user_id === user.id);
