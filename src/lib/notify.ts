@@ -23,8 +23,14 @@ type NotifyParams = {
   tag?: string;
 };
 
-async function fanout(userIds: string[], params: NotifyParams, defaultUrl: string) {
-  if (!userIds.length) return;
+export type PushResult = { sent: number; failed: number; error?: string; targets: number };
+
+async function fanout(
+  userIds: string[],
+  params: NotifyParams,
+  defaultUrl: string,
+): Promise<PushResult> {
+  if (!userIds.length) return { sent: 0, failed: 0, targets: 0 };
 
   const rows = userIds.map((uid) => ({
     user_id: uid,
@@ -37,10 +43,10 @@ async function fanout(userIds: string[], params: NotifyParams, defaultUrl: strin
 
   await supabase.from("notifications").insert(rows);
 
-  // Fire-and-forget push (best-effort, never blocks the in-app notification).
+  // Best-effort push — awaited so callers can surface success/failure in toasts.
   try {
     const { sendPushFn } = await import("@/lib/push.functions");
-    void sendPushFn({
+    const res = (await sendPushFn({
       data: {
         userIds,
         payload: {
@@ -52,9 +58,15 @@ async function fanout(userIds: string[], params: NotifyParams, defaultUrl: strin
           data: { groupId: params.groupId, ...(params.data || {}) },
         },
       },
-    }).catch(() => {});
-  } catch {
-    /* push is optional */
+    })) as { sent?: number; failed?: number; error?: string };
+    return {
+      sent: res?.sent ?? 0,
+      failed: res?.failed ?? 0,
+      error: res?.error,
+      targets: userIds.length,
+    };
+  } catch (err: any) {
+    return { sent: 0, failed: userIds.length, error: err?.message || "push_failed", targets: userIds.length };
   }
 }
 
