@@ -1,6 +1,6 @@
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, Loader2, Users, Boxes, Trophy, Activity, ShieldCheck, ExternalLink } from "lucide-react";
+import { ArrowLeft, Loader2, Users, Boxes, Trophy, Activity, ShieldCheck, ExternalLink, Compass } from "lucide-react";
 import {
   LineChart,
   Line,
@@ -123,9 +123,10 @@ function DevDashboardPage() {
 
       <main className="mx-auto max-w-7xl px-4 py-6">
         <Tabs defaultValue="overview" className="w-full">
-          <TabsList className="mb-6 grid w-full grid-cols-5 max-w-2xl">
+          <TabsList className="mb-6 grid w-full grid-cols-3 sm:grid-cols-6 max-w-3xl">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="signups">Cadastros</TabsTrigger>
+            <TabsTrigger value="acquisition">Aquisição</TabsTrigger>
             <TabsTrigger value="funnel">Funil</TabsTrigger>
             <TabsTrigger value="retention">Retenção</TabsTrigger>
             <TabsTrigger value="changelog">Changelog</TabsTrigger>
@@ -137,6 +138,10 @@ function DevDashboardPage() {
 
           <TabsContent value="signups">
             <SignupsTab signups={data.signups} />
+          </TabsContent>
+
+          <TabsContent value="acquisition">
+            <AcquisitionTab acquisition={data.acquisition} signups={data.signups} />
           </TabsContent>
 
           <TabsContent value="funnel">
