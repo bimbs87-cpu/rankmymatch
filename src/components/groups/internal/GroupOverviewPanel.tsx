@@ -48,9 +48,17 @@ export function GroupOverviewPanel({ groupId, groupName, groupImage, description
     if (!user || !data.next_round) return;
     setBusy(true);
     try {
-      if (status === "confirmed") await confirmPresence(data.next_round.id, user.id);
-      else await cancelPresence(data.next_round.id, user.id);
-      toast.success(status === "confirmed" ? "Presença confirmada" : "Ausência registrada");
+      if (status === "confirmed") {
+        await confirmPresence(data.next_round.id, user.id);
+        toast.success("Presença confirmada");
+      } else {
+        const result = await cancelPresence(data.next_round.id, user.id);
+        toast.success("Ausência registrada");
+        if (result.promotedUserId) {
+          const who = result.promotedName || "alguém da lista de espera";
+          toast(`Sua vaga foi para ${who}`, { description: "Auto-promoção da lista de espera" });
+        }
+      }
       refresh();
     } catch (e: any) {
       toast.error(e?.message || "Erro");

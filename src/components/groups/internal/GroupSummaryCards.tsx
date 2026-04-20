@@ -7,34 +7,38 @@ interface Props {
   groupId: string;
 }
 
-type WindowOpt = 7 | 30 | 90;
+type WindowOpt = 7 | 30 | 90 | "all";
 
-const WINDOW_LABEL: Record<WindowOpt, string> = {
+const WINDOW_LABEL: Record<Exclude<WindowOpt, "all">, string> = {
   7: "nos últimos 7d",
   30: "nos últimos 30d",
   90: "nos últimos 90d",
 };
 
-const SHORT_WINDOW: Record<WindowOpt, string> = {
+const SHORT_WINDOW: Record<Exclude<WindowOpt, "all">, string> = {
   7: "em 7d",
   30: "em 30d",
   90: "em 90d",
 };
 
-const NEW_WINDOW: Record<WindowOpt, string> = {
+const NEW_WINDOW: Record<Exclude<WindowOpt, "all">, string> = {
   7: "novos em 7d",
   30: "novos em 30d",
   90: "novos em 90d",
 };
 
+// "All-time" uses ~50 years worth of days — effectively the entire group history.
+const ALL_TIME_DAYS = 365 * 50;
+
 /**
  * Compact summary of group-wide totals — shown at the top of "Agenda completa".
- * Each card also shows a small delta vs a configurable time window (7/30/90d).
+ * Each card also shows a small delta vs a configurable time window (7/30/90d/Tudo).
  */
 export function GroupSummaryCards({ groupId }: Props) {
   const { data, isLoading } = useGroupGlobalStats(groupId);
-  const [windowDays, setWindowDays] = useState<WindowOpt>(30);
-  const { data: deltas, isLoading: dLoading } = useGroupRecentDeltas(groupId, windowDays);
+  const [windowOpt, setWindowOpt] = useState<WindowOpt>(30);
+  const effectiveDays = windowOpt === "all" ? ALL_TIME_DAYS : windowOpt;
+  const { data: deltas, isLoading: dLoading } = useGroupRecentDeltas(groupId, effectiveDays);
 
   if (isLoading) {
     return (
@@ -45,6 +49,13 @@ export function GroupSummaryCards({ groupId }: Props) {
       </div>
     );
   }
+
+  const longLabel =
+    windowOpt === "all" ? "no histórico" : WINDOW_LABEL[windowOpt];
+  const shortLabel =
+    windowOpt === "all" ? "histórico" : SHORT_WINDOW[windowOpt];
+  const newLabel =
+    windowOpt === "all" ? "no histórico" : NEW_WINDOW[windowOpt];
 
   const items: {
     icon: any;
@@ -60,7 +71,7 @@ export function GroupSummaryCards({ groupId }: Props) {
       value: data.total_seasons,
       tone: "text-primary",
       delta: deltas.new_seasons_30d,
-      deltaLabel: "novas",
+      deltaLabel: windowOpt === "all" ? "no histórico" : "novas",
     },
     {
       icon: Calendar,
@@ -68,7 +79,7 @@ export function GroupSummaryCards({ groupId }: Props) {
       value: data.total_rounds,
       tone: "text-info",
       delta: deltas.rounds_30d,
-      deltaLabel: WINDOW_LABEL[windowDays],
+      deltaLabel: longLabel,
     },
     {
       icon: BarChart3,
@@ -76,7 +87,7 @@ export function GroupSummaryCards({ groupId }: Props) {
       value: data.total_matches,
       tone: "text-warning",
       delta: deltas.matches_30d,
-      deltaLabel: WINDOW_LABEL[windowDays],
+      deltaLabel: longLabel,
     },
     {
       icon: Users,
@@ -84,7 +95,7 @@ export function GroupSummaryCards({ groupId }: Props) {
       value: data.total_active_players,
       tone: "text-success",
       delta: deltas.new_active_players_30d,
-      deltaLabel: NEW_WINDOW[windowDays],
+      deltaLabel: newLabel,
     },
     {
       icon: Activity,
@@ -92,31 +103,38 @@ export function GroupSummaryCards({ groupId }: Props) {
       value: data.finished_seasons,
       tone: "text-muted-foreground",
       delta: deltas.finished_seasons_30d,
-      deltaLabel: SHORT_WINDOW[windowDays],
+      deltaLabel: shortLabel,
     },
+  ];
+
+  const windowOptions: { key: WindowOpt; label: string }[] = [
+    { key: 7, label: "7d" },
+    { key: 30, label: "30d" },
+    { key: 90, label: "90d" },
+    { key: "all", label: "Tudo" },
   ];
 
   return (
     <div className="space-y-2">
-      {/* Window selector */}
       <div className="flex items-center justify-end gap-1">
         <span className="text-[10px] uppercase tracking-wider text-muted-foreground/70 mr-1">
           Janela
         </span>
-        {([7, 30, 90] as WindowOpt[]).map((w) => {
-          const isOn = w === windowDays;
+        {windowOptions.map((opt) => {
+          const isOn = opt.key === windowOpt;
           return (
             <button
-              key={w}
+              key={String(opt.key)}
               type="button"
-              onClick={() => setWindowDays(w)}
+              onClick={() => setWindowOpt(opt.key)}
               className={`rounded-full border px-2 py-0.5 text-[10px] font-bold tabular-nums transition-all ${
                 isOn
                   ? "border-primary bg-primary text-primary-foreground"
                   : "border-border bg-card/40 text-muted-foreground hover:text-foreground"
               }`}
+              title={opt.key === "all" ? "Desde o início do grupo" : `Últimos ${opt.label}`}
             >
-              {w}d
+              {opt.label}
             </button>
           );
         })}

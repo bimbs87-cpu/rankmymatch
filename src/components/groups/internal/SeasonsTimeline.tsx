@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
+import { Link } from "@tanstack/react-router";
+import { X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 interface Season {
@@ -21,25 +23,49 @@ interface EventMarker {
   left: number;
   type: "big_round" | "season_finished";
   label: string;
+  detail: string;
+  // For big_round: link to the round page
+  roundId?: string;
+  roundNumber?: number | null;
+  matches?: number;
+  seasonId?: string | null;
+  // For season_finished
+  seasonNameForLink?: string;
+  groupId?: string;
 }
 
-const BIG_ROUND_MIN_MATCHES = 4;
+const STORAGE_KEY = "agenda-timeline-min-matches";
 
 /**
  * Mini horizontal timeline of seasons with event markers (big rounds, season closures).
+ * The "big round" threshold is configurable and persisted in localStorage.
  */
 export function SeasonsTimeline({ seasons, onSelect }: Props) {
   const groupId = seasons[0]?.group_id;
-  const [bigRounds, setBigRounds] = useState<{ ts: number; matches: number }[]>([]);
 
-  // Load rounds with their match counts to highlight "big rounds"
+  const [minMatches, setMinMatchesState] = useState<number>(() => {
+    if (typeof window === "undefined") return 4;
+    const saved = Number(window.localStorage.getItem(STORAGE_KEY));
+    return Number.isFinite(saved) && saved >= 1 && saved <= 20 ? saved : 4;
+  });
+  const setMinMatches = (n: number) => {
+    setMinMatchesState(n);
+    try { window.localStorage.setItem(STORAGE_KEY, String(n)); } catch {}
+  };
+
+  const [bigRounds, setBigRounds] = useState<
+    { ts: number; matches: number; roundId: string; roundNumber: number | null; seasonId: string | null }[]
+  >([]);
+
+  const [selectedMarker, setSelectedMarker] = useState<EventMarker | null>(null);
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
       if (!groupId) return;
       const { data: rounds } = await supabase
         .from("rounds")
-        .select("id, scheduled_date, created_at, status")
+        .select("id, scheduled_date, created_at, status, round_number, season_id")
         .eq("group_id", groupId)
         .eq("status", "completed");
       if (!rounds?.length) {
@@ -55,14 +81,14 @@ export function SeasonsTimeline({ seasons, onSelect }: Props) {
       for (const m of matches || []) {
         counts.set(m.round_id, (counts.get(m.round_id) || 0) + 1);
       }
-      const out: { ts: number; matches: number }[] = [];
+      const out: { ts: number; matches: number; roundId: string; roundNumber: number | null; seasonId: string | null }[] = [];
       for (const r of rounds) {
         const n = counts.get(r.id) || 0;
-        if (n >= BIG_ROUND_MIN_MATCHES) {
+        if (n >= 1) {
           const ts = r.scheduled_date
             ? new Date(r.scheduled_date + "T12:00:00").getTime()
             : new Date(r.created_at).getTime();
-          out.push({ ts, matches: n });
+          out.push({ ts, matches: n, roundId: r.id, roundNumber: r.round_number ?? null, seasonId: r.season_id ?? null });
         }
       }
       if (!cancelled) setBigRounds(out);
@@ -70,8 +96,8 @@ export function SeasonsTimeline({ seasons, onSelect }: Props) {
     return () => { cancelled = true; };
   }, [groupId]);
 
-  const { bars, ticks, rangeLabel, markers, min, max } = useMemo(() => {
-    if (!seasons.length) return { bars: [], ticks: [], rangeLabel: "", markers: [], min: 0, max: 0 };
+  const { bars, ticks, rangeLabel, markers } = useMemo(() => {
+    if (!seasons.length) return { bars: [], ticks: [], rangeLabel: "", markers: [] as EventMarker[] };
 
     const today = Date.now();
     const items = seasons.map((s) => {
@@ -113,9 +139,7 @@ export function SeasonsTimeline({ seasons, onSelect }: Props) {
       ticks.push({ year: y, left: ((t - min) / span) * 100 });
     }
 
-    // Build event markers
     const markers: EventMarker[] = [];
-    // Season closure markers
     for (const i of items) {
       if (!i.isActive && i.season.end_date) {
         const ts = new Date(i.season.end_date + "T12:00:00").getTime();
@@ -124,27 +148,37 @@ export function SeasonsTimeline({ seasons, onSelect }: Props) {
             ts,
             left: ((ts - min) / span) * 100,
             type: "season_finished",
-            label: `🏁 ${i.season.name} encerrada em ${new Date(ts).toLocaleDateString("pt-BR")}`,
+            label: `Temporada encerrada`,
+            detail: `${i.season.name} encerrada em ${new Date(ts).toLocaleDateString("pt-BR")}`,
+            seasonId: i.season.id,
+            seasonNameForLink: i.season.name,
+            groupId: i.season.group_id,
           });
         }
       }
     }
-    // Big-round markers
     for (const r of bigRounds) {
+      if (r.matches < minMatches) continue;
       if (r.ts >= min && r.ts <= max) {
         markers.push({
           ts: r.ts,
           left: ((r.ts - min) / span) * 100,
           type: "big_round",
-          label: `🔥 Rodada com ${r.matches} partidas em ${new Date(r.ts).toLocaleDateString("pt-BR")}`,
+          label: `Rodada cheia`,
+          detail: `${r.matches} partida${r.matches !== 1 ? "s" : ""} em ${new Date(r.ts).toLocaleDateString("pt-BR")}`,
+          roundId: r.roundId,
+          roundNumber: r.roundNumber,
+          matches: r.matches,
+          seasonId: r.seasonId,
+          groupId,
         });
       }
     }
 
     const rangeLabel = `${new Date(min).toLocaleDateString("pt-BR", { month: "short", year: "numeric" })} → hoje`;
 
-    return { bars, ticks, rangeLabel, markers, min, max };
-  }, [seasons, bigRounds]);
+    return { bars, ticks, rangeLabel, markers };
+  }, [seasons, bigRounds, minMatches, groupId]);
 
   if (!bars.length) return null;
 
@@ -155,14 +189,39 @@ export function SeasonsTimeline({ seasons, onSelect }: Props) {
 
   return (
     <div className="rounded-2xl border border-border bg-card/40 p-3">
-      <div className="mb-2 flex items-center justify-between">
+      <div className="mb-2 flex items-center justify-between gap-2">
         <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
           Linha do tempo
         </p>
         <p className="text-[10px] tabular-nums text-muted-foreground">{rangeLabel}</p>
       </div>
+
+      {/* Big-round threshold selector */}
+      <div className="mb-2 flex flex-wrap items-center gap-1">
+        <span className="text-[10px] uppercase tracking-wider text-muted-foreground/70">
+          Rodada cheia ≥
+        </span>
+        {[2, 4, 6, 8].map((n) => {
+          const isOn = n === minMatches;
+          return (
+            <button
+              key={n}
+              type="button"
+              onClick={() => setMinMatches(n)}
+              className={`rounded-full border px-2 py-0.5 text-[10px] font-bold tabular-nums transition-all ${
+                isOn
+                  ? "border-warning bg-warning/15 text-warning"
+                  : "border-border bg-card/40 text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {n}
+            </button>
+          );
+        })}
+        <span className="text-[10px] text-muted-foreground/70">partidas</span>
+      </div>
+
       <div className="relative w-full overflow-hidden" style={{ height: totalHeight }}>
-        {/* Year tick lines */}
         {ticks.map((t) => (
           <div
             key={t.year}
@@ -170,14 +229,12 @@ export function SeasonsTimeline({ seasons, onSelect }: Props) {
             style={{ left: `${t.left}%`, bottom: 20 }}
           />
         ))}
-        {/* "Today" marker */}
         <div className="absolute top-0 w-px bg-primary/60" style={{ left: "100%", bottom: 20 }}>
           <span className="absolute -top-0.5 -translate-x-full -translate-y-full text-[9px] font-bold text-primary">
             hoje
           </span>
         </div>
 
-        {/* Season bars */}
         {bars.map((b, idx) => (
           <button
             key={b.id}
@@ -200,23 +257,24 @@ export function SeasonsTimeline({ seasons, onSelect }: Props) {
           </button>
         ))}
 
-        {/* Event markers row */}
         {markers.map((m, i) => (
-          <div
+          <button
             key={`${m.type}-${m.ts}-${i}`}
-            className="absolute -translate-x-1/2"
+            type="button"
+            onClick={() => setSelectedMarker(m)}
+            className="absolute -translate-x-1/2 cursor-pointer transition-transform hover:scale-150"
             style={{ left: `${m.left}%`, top: markersTop }}
-            title={m.label}
+            title={m.detail}
+            aria-label={m.label}
           >
             <span
               className={`block h-2.5 w-2.5 rounded-full ring-2 ring-background ${
                 m.type === "big_round" ? "bg-warning" : "bg-destructive/80"
               }`}
             />
-          </div>
+          </button>
         ))}
 
-        {/* Year labels */}
         {ticks.map((t) => (
           <span
             key={`lbl-${t.year}`}
@@ -227,6 +285,7 @@ export function SeasonsTimeline({ seasons, onSelect }: Props) {
           </span>
         ))}
       </div>
+
       <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-muted-foreground">
         <span className="flex items-center gap-1">
           <span className="inline-block h-2 w-2 rounded-sm bg-success/70" /> Em andamento
@@ -235,12 +294,83 @@ export function SeasonsTimeline({ seasons, onSelect }: Props) {
           <span className="inline-block h-2 w-2 rounded-sm bg-muted-foreground/40" /> Encerrada
         </span>
         <span className="flex items-center gap-1">
-          <span className="inline-block h-2 w-2 rounded-full bg-warning" /> Rodada cheia (≥{BIG_ROUND_MIN_MATCHES} partidas)
+          <span className="inline-block h-2 w-2 rounded-full bg-warning" /> Rodada cheia
         </span>
         <span className="flex items-center gap-1">
           <span className="inline-block h-2 w-2 rounded-full bg-destructive/80" /> Temporada encerrada
         </span>
       </div>
+
+      {/* Rich popover modal for selected marker */}
+      {selectedMarker && (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-background/60 p-4 backdrop-blur-sm sm:items-center"
+          onClick={() => setSelectedMarker(null)}
+        >
+          <div
+            className="w-full max-w-sm rounded-2xl border border-border bg-card p-4 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mb-2 flex items-start justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <span
+                  className={`inline-block h-3 w-3 rounded-full ${
+                    selectedMarker.type === "big_round" ? "bg-warning" : "bg-destructive/80"
+                  }`}
+                />
+                <h4 className="font-display text-sm font-bold text-foreground">
+                  {selectedMarker.type === "big_round" ? "🔥 Rodada cheia" : "🏁 Temporada encerrada"}
+                </h4>
+              </div>
+              <button
+                onClick={() => setSelectedMarker(null)}
+                className="rounded-lg p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
+                aria-label="Fechar"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <p className="text-xs text-muted-foreground">{selectedMarker.detail}</p>
+            {selectedMarker.type === "big_round" && selectedMarker.roundNumber != null && (
+              <p className="mt-2 text-[11px] text-muted-foreground">
+                <span className="text-foreground font-bold">Rodada #{selectedMarker.roundNumber}</span>
+                {selectedMarker.matches != null && ` · ${selectedMarker.matches} partidas`}
+              </p>
+            )}
+            <div className="mt-3 flex items-center justify-end gap-2">
+              {selectedMarker.type === "big_round" &&
+                selectedMarker.groupId &&
+                selectedMarker.seasonId &&
+                selectedMarker.roundId && (
+                  <Link
+                    to="/groups/$groupId/seasons/$seasonId/rounds/$roundId"
+                    params={{
+                      groupId: selectedMarker.groupId,
+                      seasonId: selectedMarker.seasonId,
+                      roundId: selectedMarker.roundId,
+                    }}
+                    onClick={() => setSelectedMarker(null)}
+                    className="rounded-lg bg-primary px-3 py-1.5 text-[11px] font-bold text-primary-foreground hover:opacity-90"
+                  >
+                    Abrir rodada
+                  </Link>
+                )}
+              {selectedMarker.type === "season_finished" && selectedMarker.seasonId && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onSelect?.(selectedMarker.seasonId!);
+                    setSelectedMarker(null);
+                  }}
+                  className="rounded-lg bg-primary px-3 py-1.5 text-[11px] font-bold text-primary-foreground hover:opacity-90"
+                >
+                  Ir para temporada
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

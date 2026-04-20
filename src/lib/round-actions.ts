@@ -112,7 +112,10 @@ export async function confirmPresence(roundId: string, userId: string) {
   }
 }
 
-export async function cancelPresence(roundId: string, userId: string) {
+export async function cancelPresence(
+  roundId: string,
+  userId: string,
+): Promise<{ promotedUserId: string | null; promotedName: string | null }> {
   // Was the canceller occupying a confirmed slot (within max_players)?
   const { data: roundRow } = await supabase
     .from("rounds")
@@ -139,10 +142,23 @@ export async function cancelPresence(roundId: string, userId: string) {
     .eq("user_id", userId);
 
   // Auto-promote first waitlist member if a confirmed slot just opened
+  let promotedId: string | null = null;
+  let promotedName: string | null = null;
   if (wasInConfirmedSlot && roundRow) {
-    const promotedId = await promoteFirstWaitlist(roundId, roundRow.group_id, roundRow.round_number ?? null);
-    // Audit log: track auto-promotion (best-effort, non-blocking)
+    promotedId = await promoteFirstWaitlist(roundId, roundRow.group_id, roundRow.round_number ?? null);
     if (promotedId) {
+      // Resolve the promoted user's display name (best-effort) so callers can toast
+      try {
+        const { data: prof } = await supabase
+          .from("user_profiles")
+          .select("name, nickname")
+          .eq("user_id", promotedId)
+          .maybeSingle();
+        promotedName = prof?.nickname || prof?.name || null;
+      } catch {
+        // ignore
+      }
+      // Audit log: track auto-promotion (best-effort, non-blocking)
       try {
         const { logAudit } = await import("@/lib/audit-log");
         void logAudit({
@@ -161,6 +177,7 @@ export async function cancelPresence(roundId: string, userId: string) {
       }
     }
   }
+  return { promotedUserId: promotedId, promotedName };
 }
 
 /**

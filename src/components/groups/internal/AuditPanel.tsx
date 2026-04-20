@@ -31,6 +31,7 @@ const ACTION_LABELS: Record<string, string> = {
   round_nudge: "Cutucou pendentes",
   round_nudge_cooldown_reset: "Resetou cooldown de cutucadas",
   waitlist_auto_promoted: "Auto-promoveu da lista de espera",
+  waitlist_manual_promoted: "Promoveu manualmente da lista de espera",
 };
 
 const NUDGE_MODE_LABELS: Record<string, string> = {
@@ -274,6 +275,44 @@ function DiffView({ row }: { row: AuditRow }) {
   return <GenericDiff oldData={row.old_data} newData={row.new_data} />;
 }
 
+/** Tiny inline SVG sparkline for nudge recipients trend. */
+function Sparkline({ values }: { values: number[] }) {
+  if (values.length < 2) return null;
+  const w = 200;
+  const h = 32;
+  const pad = 2;
+  const max = Math.max(...values, 1);
+  const min = Math.min(...values, 0);
+  const range = Math.max(1, max - min);
+  const stepX = (w - pad * 2) / (values.length - 1);
+  const points = values.map((v, i) => {
+    const x = pad + i * stepX;
+    const y = h - pad - ((v - min) / range) * (h - pad * 2);
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  });
+  const path = `M ${points.join(" L ")}`;
+  const half = Math.floor(values.length / 2);
+  const a = values.slice(0, half).reduce((s, n) => s + n, 0) / Math.max(1, half);
+  const b = values.slice(half).reduce((s, n) => s + n, 0) / Math.max(1, values.length - half);
+  const trendingDown = b < a;
+  const stroke = trendingDown ? "hsl(var(--success))" : "hsl(var(--warning))";
+  return (
+    <div className="flex items-center gap-2">
+      <svg width="100%" height={h} viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" className="flex-1">
+        <path d={path} fill="none" stroke={stroke} strokeWidth={1.5} strokeLinejoin="round" strokeLinecap="round" />
+        {values.map((v, i) => {
+          const x = pad + i * stepX;
+          const y = h - pad - ((v - min) / range) * (h - pad * 2);
+          return <circle key={i} cx={x} cy={y} r={1.8} fill={stroke} />;
+        })}
+      </svg>
+      <span className={`text-[10px] font-bold tabular-nums ${trendingDown ? "text-success" : "text-warning"}`}>
+        {trendingDown ? "↓" : "↑"} {Math.abs(Math.round(b - a))}
+      </span>
+    </div>
+  );
+}
+
 export function AuditPanel({ groupId }: Props) {
   const [rows, setRows] = useState<AuditRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -317,14 +356,21 @@ export function AuditPanel({ groupId }: Props) {
 
   const actions = useMemo(() => Array.from(new Set(rows.map((r) => r.action))).sort(), [rows]);
   const NUDGE_ACTIONS = new Set(["round_nudge", "round_nudge_cooldown_reset"]);
+  const WAITLIST_ACTIONS = new Set(["waitlist_auto_promoted", "waitlist_manual_promoted"]);
   const isNudgeFilter = filter === "__nudges__";
+  const isWaitlistFilter = filter === "__waitlist__";
   const filtered = useMemo(() => {
     if (filter === "all") return rows;
     if (isNudgeFilter) return rows.filter((r) => NUDGE_ACTIONS.has(r.action));
+    if (isWaitlistFilter) return rows.filter((r) => WAITLIST_ACTIONS.has(r.action));
     return rows.filter((r) => r.action === filter);
-  }, [filter, rows, isNudgeFilter]);
+  }, [filter, rows, isNudgeFilter, isWaitlistFilter]);
   const nudgeCount = useMemo(
     () => rows.filter((r) => NUDGE_ACTIONS.has(r.action)).length,
+    [rows],
+  );
+  const waitlistCount = useMemo(
+    () => rows.filter((r) => WAITLIST_ACTIONS.has(r.action)).length,
     [rows],
   );
 
@@ -332,7 +378,7 @@ export function AuditPanel({ groupId }: Props) {
   const nudgeStats = useMemo(() => {
     const nudges = rows.filter((r) => r.action === "round_nudge");
     if (nudges.length === 0) {
-      return { total: 0, recipients: 0, pendingPct: 0, declinedPct: 0, lastAt: null as string | null };
+      return { total: 0, recipients: 0, pendingPct: 0, declinedPct: 0, lastAt: null as string | null, sparkline: [] as number[] };
     }
     let recipients = 0;
     let pending = 0;
@@ -344,12 +390,17 @@ export function AuditPanel({ groupId }: Props) {
       declined += Number(d.declined_count ?? 0);
     }
     const sumPD = pending + declined;
+    // Sparkline: last 10 nudges, oldest → newest, recipients_count per nudge.
+    // (rows is sorted DESC by created_at, so reverse.)
+    const last10 = nudges.slice(0, 10).reverse();
+    const sparkline = last10.map((r) => Number((r.new_data || {}).recipients_count ?? 0));
     return {
       total: nudges.length,
       recipients,
       pendingPct: sumPD > 0 ? Math.round((pending / sumPD) * 100) : 0,
       declinedPct: sumPD > 0 ? Math.round((declined / sumPD) * 100) : 0,
       lastAt: nudges[0]?.created_at ?? null,
+      sparkline,
     };
   }, [rows]);
 
@@ -383,6 +434,7 @@ export function AuditPanel({ groupId }: Props) {
         >
           <option value="all">Todas as ações ({rows.length})</option>
           <option value="__nudges__">Só cutucadas ({nudgeCount})</option>
+          <option value="__waitlist__">Só lista de espera ({waitlistCount})</option>
           {actions.map((a) => (
             <option key={a} value={a}>
               {ACTION_LABELS[a] || a}
@@ -403,38 +455,67 @@ export function AuditPanel({ groupId }: Props) {
             🔔 Só cutucadas ({nudgeCount})
           </button>
         )}
+        {waitlistCount > 0 && (
+          <button
+            type="button"
+            onClick={() => setFilter(isWaitlistFilter ? "all" : "__waitlist__")}
+            className={`flex items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-bold transition-colors ${
+              isWaitlistFilter
+                ? "border-info/60 bg-info/15 text-info"
+                : "border-border bg-background text-muted-foreground hover:border-info/40 hover:text-info"
+            }`}
+            title="Atalho: filtra promoções automáticas e manuais da lista de espera"
+          >
+            🎟️ Só lista de espera ({waitlistCount})
+          </button>
+        )}
       </div>
 
       {isNudgeFilter && nudgeStats.total > 0 && (
-        <div className="grid gap-2 rounded-xl border border-warning/30 bg-warning/5 p-3 sm:grid-cols-3">
-          <div>
-            <p className="text-[9px] font-bold uppercase tracking-wider text-warning/80">
-              Total de destinatários
-            </p>
-            <p className="mt-0.5 text-xl font-bold tabular-nums text-foreground">
-              {nudgeStats.recipients}
-            </p>
-            <p className="text-[10px] text-muted-foreground">
-              em {nudgeStats.total} cutucada{nudgeStats.total !== 1 ? "s" : ""}
-            </p>
+        <div className="space-y-2 rounded-xl border border-warning/30 bg-warning/5 p-3">
+          <div className="grid gap-2 sm:grid-cols-3">
+            <div>
+              <p className="text-[9px] font-bold uppercase tracking-wider text-warning/80">
+                Total de destinatários
+              </p>
+              <p className="mt-0.5 text-xl font-bold tabular-nums text-foreground">
+                {nudgeStats.recipients}
+              </p>
+              <p className="text-[10px] text-muted-foreground">
+                em {nudgeStats.total} cutucada{nudgeStats.total !== 1 ? "s" : ""}
+              </p>
+            </div>
+            <div>
+              <p className="text-[9px] font-bold uppercase tracking-wider text-warning/80">
+                Pendentes vs recusados
+              </p>
+              <p className="mt-0.5 text-xl font-bold tabular-nums text-foreground">
+                {nudgeStats.pendingPct}% / {nudgeStats.declinedPct}%
+              </p>
+              <p className="text-[10px] text-muted-foreground">média acumulada</p>
+            </div>
+            <div>
+              <p className="text-[9px] font-bold uppercase tracking-wider text-warning/80">
+                Última cutucada
+              </p>
+              <p className="mt-0.5 text-sm font-bold tabular-nums text-foreground">
+                {nudgeStats.lastAt ? fmtDate(nudgeStats.lastAt) : "—"}
+              </p>
+            </div>
           </div>
-          <div>
-            <p className="text-[9px] font-bold uppercase tracking-wider text-warning/80">
-              Pendentes vs recusados
-            </p>
-            <p className="mt-0.5 text-xl font-bold tabular-nums text-foreground">
-              {nudgeStats.pendingPct}% / {nudgeStats.declinedPct}%
-            </p>
-            <p className="text-[10px] text-muted-foreground">média acumulada</p>
-          </div>
-          <div>
-            <p className="text-[9px] font-bold uppercase tracking-wider text-warning/80">
-              Última cutucada
-            </p>
-            <p className="mt-0.5 text-sm font-bold tabular-nums text-foreground">
-              {nudgeStats.lastAt ? fmtDate(nudgeStats.lastAt) : "—"}
-            </p>
-          </div>
+          {nudgeStats.sparkline.length >= 2 && (
+            <div>
+              <div className="mb-1 flex items-center justify-between">
+                <p className="text-[9px] font-bold uppercase tracking-wider text-warning/80">
+                  Destinatários por cutucada (últimas {nudgeStats.sparkline.length})
+                </p>
+                <p className="text-[9px] text-muted-foreground">
+                  ↓ menos = mais gente respondendo sozinha
+                </p>
+              </div>
+              <Sparkline values={nudgeStats.sparkline} />
+            </div>
+          )}
         </div>
       )}
 
