@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { ChevronDown, Users } from "lucide-react";
+import { ChevronDown, Users, Trophy, ListChecks, UserSquare2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 interface GroupItem {
@@ -10,13 +10,16 @@ interface GroupItem {
 interface Props {
   groups: GroupItem[];
   activeGroupId: string;
+  /** Optional: name of the active group, used to label the quick-shortcut section. */
+  activeGroupName?: string;
 }
 
 /**
- * Small button that opens a popover listing the user's other active groups
- * so they can quickly jump into a different group's internal page.
+ * Small button that opens a popover acting as a "direct group menu":
+ * - Quick shortcuts for the active group (Temporadas, Resultados, Membros).
+ * - Optional list of the user's other groups, so they can hop straight to one.
  */
-export function GroupSwitcherPopover({ groups, activeGroupId }: Props) {
+export function GroupSwitcherPopover({ groups, activeGroupId, activeGroupName }: Props) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -38,23 +41,10 @@ export function GroupSwitcherPopover({ groups, activeGroupId }: Props) {
     };
   }, [open]);
 
-  if (groups.length === 0) return null;
+  // No groups at all — nothing useful to show.
+  if (!activeGroupId && groups.length === 0) return null;
 
-  // Single group: render direct link to that group (no popover).
-  if (groups.length === 1) {
-    const only = groups[0];
-    return (
-      <Link
-        to="/groups/$groupId"
-        params={{ groupId: only.id }}
-        aria-label={`Abrir grupo ${only.name}`}
-        title={`Abrir grupo ${only.name}`}
-        className="flex items-center gap-1 rounded-2xl border border-border bg-card px-2 py-2 text-muted-foreground transition-colors hover:bg-accent hover:border-primary/40"
-      >
-        <Users className="h-4 w-4" />
-      </Link>
-    );
-  }
+  const otherGroups = groups.filter((g) => g.id !== activeGroupId);
 
   return (
     <div ref={ref} className="relative">
@@ -73,27 +63,83 @@ export function GroupSwitcherPopover({ groups, activeGroupId }: Props) {
       {open && (
         <div
           role="menu"
-          className="absolute right-0 top-full z-50 mt-2 w-64 max-h-[60vh] overflow-y-auto rounded-2xl border border-border bg-popover p-2 shadow-xl animate-fade-in"
+          className="absolute right-0 top-full z-50 mt-2 w-72 max-h-[70vh] overflow-y-auto rounded-2xl border border-border bg-popover p-2 shadow-xl animate-fade-in"
         >
           <p className="px-2 pb-1 pt-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
             Menu direto do grupo
           </p>
-          <ul className="space-y-0.5">
-            {groups.map((g) => (
-              <li key={g.id}>
-                <Link
-                  to="/groups/$groupId"
-                  params={{ groupId: g.id }}
-                  onClick={() => setOpen(false)}
-                  aria-current={g.id === activeGroupId ? "page" : undefined}
-                  className="flex items-center gap-2 rounded-xl px-2.5 py-2 text-xs font-medium text-foreground transition-colors hover:bg-accent"
-                >
-                  <Users className="h-3.5 w-3.5 shrink-0 text-primary" />
-                  <span className="truncate">{g.name}</span>
-                </Link>
-              </li>
-            ))}
-          </ul>
+
+          {/* Quick shortcuts for the ACTIVE group */}
+          {activeGroupId && (
+            <div className="mb-2 rounded-xl border border-primary/20 bg-primary/5 p-1.5">
+              {activeGroupName && (
+                <p className="px-1.5 pb-1 text-[10px] font-semibold text-primary truncate" title={activeGroupName}>
+                  {activeGroupName}
+                </p>
+              )}
+              <ul className="space-y-0.5">
+                <li>
+                  <Link
+                    to="/groups/$groupId/seasons"
+                    params={{ groupId: activeGroupId }}
+                    onClick={() => setOpen(false)}
+                    className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-accent"
+                  >
+                    <Trophy className="h-3.5 w-3.5 shrink-0 text-primary" />
+                    <span>Temporadas</span>
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    to="/groups/$groupId"
+                    params={{ groupId: activeGroupId }}
+                    search={{ view: "results" } as any}
+                    onClick={() => setOpen(false)}
+                    className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-accent"
+                  >
+                    <ListChecks className="h-3.5 w-3.5 shrink-0 text-primary" />
+                    <span>Resultados</span>
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    to="/groups/$groupId"
+                    params={{ groupId: activeGroupId }}
+                    search={{ view: "members" } as any}
+                    onClick={() => setOpen(false)}
+                    className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-accent"
+                  >
+                    <UserSquare2 className="h-3.5 w-3.5 shrink-0 text-primary" />
+                    <span>Membros</span>
+                  </Link>
+                </li>
+              </ul>
+            </div>
+          )}
+
+          {/* Other groups */}
+          {otherGroups.length > 0 && (
+            <>
+              <p className="px-2 pb-1 pt-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                Outros grupos
+              </p>
+              <ul className="space-y-0.5">
+                {otherGroups.map((g) => (
+                  <li key={g.id}>
+                    <Link
+                      to="/groups/$groupId"
+                      params={{ groupId: g.id }}
+                      onClick={() => setOpen(false)}
+                      className="flex items-center gap-2 rounded-xl px-2.5 py-2 text-xs font-medium text-foreground transition-colors hover:bg-accent"
+                    >
+                      <Users className="h-3.5 w-3.5 shrink-0 text-primary" />
+                      <span className="truncate">{g.name}</span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
         </div>
       )}
     </div>

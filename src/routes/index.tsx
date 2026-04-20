@@ -1298,14 +1298,16 @@ function DashboardPage() {
           </nav>
 
           <div className="flex items-center gap-2">
-            {myGroups.length > 0 && (
-              <GroupSwitcherPopover
-                groups={myGroups}
-                activeGroupId={
-                  (myGroups.find((g) => g.id === nextMatch?.group_id) || myGroups[0]).id
-                }
-              />
-            )}
+            {myGroups.length > 0 && (() => {
+              const active = myGroups.find((g) => g.id === nextMatch?.group_id) || myGroups[0];
+              return (
+                <GroupSwitcherPopover
+                  groups={myGroups}
+                  activeGroupId={active.id}
+                  activeGroupName={active.name}
+                />
+              );
+            })()}
             <NotificationsPopover>
               <button
                 aria-label={unreadCount > 0 ? `${unreadCount} notificações` : "Notificações"}

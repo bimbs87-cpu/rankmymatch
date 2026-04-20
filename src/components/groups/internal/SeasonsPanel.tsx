@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { SeasonFinalRanking } from "./SeasonFinalRanking";
 import { QuickCreateSeasonDialog } from "./QuickCreateSeasonDialog";
+import { PlayerAvatar } from "@/components/PlayerAvatar";
 
 function useSeasonProgress(seasonId: string, totalRounds: number | null) {
   const [completed, setCompleted] = useState(0);
@@ -579,6 +580,7 @@ function RoundExpandedDetails({ groupId, seasonId, roundId }: { groupId: string;
     confirmed: 0, declined: 0, pending: 0, max: 0,
   });
   const [matches, setMatches] = useState<number>(0);
+  const [confirmedPlayers, setConfirmedPlayers] = useState<{ user_id: string; name: string; avatar_url: string | null }[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -587,22 +589,48 @@ function RoundExpandedDetails({ groupId, seasonId, roundId }: { groupId: string;
       setLoading(true);
       const [{ data: round }, { data: pres }, { data: ms }, { data: members }] = await Promise.all([
         supabase.from("rounds").select("max_players, group_id").eq("id", roundId).maybeSingle(),
-        supabase.from("round_presence").select("status").eq("round_id", roundId),
+        supabase.from("round_presence").select("user_id, status, confirmed_at").eq("round_id", roundId),
         supabase.from("matches").select("id").eq("round_id", roundId),
         supabase.from("group_members").select("user_id").eq("group_id", groupId).eq("status", "active"),
       ]);
       if (cancelled) return;
-      const confirmed = (pres || []).filter((p) => p.status === "confirmed").length;
+      const confirmedRows = (pres || []).filter((p) => p.status === "confirmed");
       const declined = (pres || []).filter((p) => p.status === "declined" || p.status === "absent").length;
       const respondedCount = (pres || []).length;
       const pending = Math.max(0, (members?.length || 0) - respondedCount);
       setPresence({
-        confirmed,
+        confirmed: confirmedRows.length,
         declined,
         pending,
         max: round?.max_players || 0,
       });
       setMatches((ms || []).length);
+
+      // Load profiles for up to 8 confirmed players (most recent first).
+      const sorted = [...confirmedRows].sort(
+        (a, b) => new Date(b.confirmed_at || 0).getTime() - new Date(a.confirmed_at || 0).getTime()
+      ).slice(0, 8);
+      if (sorted.length) {
+        const ids = sorted.map((p) => p.user_id);
+        const { data: profs } = await supabase
+          .from("user_profiles")
+          .select("user_id, name, nickname, avatar_url")
+          .in("user_id", ids);
+        if (cancelled) return;
+        const map = new Map((profs || []).map((p) => [p.user_id, p]));
+        setConfirmedPlayers(
+          sorted.map((p) => {
+            const prof = map.get(p.user_id);
+            return {
+              user_id: p.user_id,
+              name: prof?.nickname || prof?.name || "Jogador",
+              avatar_url: prof?.avatar_url ?? null,
+            };
+          })
+        );
+      } else {
+        setConfirmedPlayers([]);
+      }
       setLoading(false);
     })();
     return () => { cancelled = true; };
@@ -613,12 +641,42 @@ function RoundExpandedDetails({ groupId, seasonId, roundId }: { groupId: string;
       {loading ? (
         <div className="text-[11px] text-muted-foreground">Carregando…</div>
       ) : (
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-          <Stat label="Confirmados" value={`${presence.confirmed}/${presence.max || "—"}`} tone="success" />
-          <Stat label="Recusados" value={String(presence.declined)} tone="muted" />
-          <Stat label="Sem resposta" value={String(presence.pending)} tone="warning" />
-          <Stat label="Partidas" value={String(matches)} tone="primary" />
-        </div>
+        <>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            <Stat label="Confirmados" value={`${presence.confirmed}/${presence.max || "—"}`} tone="success" />
+            <Stat label="Recusados" value={String(presence.declined)} tone="muted" />
+            <Stat label="Sem resposta" value={String(presence.pending)} tone="warning" />
+            <Stat label="Partidas" value={String(matches)} tone="primary" />
+          </div>
+
+          {confirmedPlayers.length > 0 && (
+            <div className="mt-3">
+              <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                Confirmados
+              </p>
+              <div className="flex flex-wrap items-center gap-1.5">
+                {confirmedPlayers.map((p) => (
+                  <div
+                    key={p.user_id}
+                    title={p.name}
+                    aria-label={p.name}
+                    className="group/avatar relative"
+                  >
+                    <PlayerAvatar avatarUrl={p.avatar_url} name={p.name} size="md" className="ring-1 ring-success/40" />
+                    <span className="pointer-events-none absolute left-1/2 top-full z-10 mt-1 -translate-x-1/2 whitespace-nowrap rounded-md border border-border bg-popover px-2 py-0.5 text-[10px] font-semibold text-foreground opacity-0 shadow-md transition-opacity group-hover/avatar:opacity-100">
+                      {p.name}
+                    </span>
+                  </div>
+                ))}
+                {presence.confirmed > confirmedPlayers.length && (
+                  <span className="ml-1 rounded-full border border-border bg-card px-2 py-1 text-[10px] font-bold text-muted-foreground">
+                    +{presence.confirmed - confirmedPlayers.length}
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+        </>
       )}
       <div className="mt-2 flex justify-end">
         <Link
