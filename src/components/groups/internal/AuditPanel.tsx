@@ -319,6 +319,10 @@ export function AuditPanel({ groupId }: Props) {
   const [filter, setFilter] = useState<string>("all");
   const [actorNames, setActorNames] = useState<Record<string, string>>({});
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const [responseTimes, setResponseTimes] = useState<number[]>([]);
+  const [roundMovements, setRoundMovements] = useState<
+    Record<string, { round_number: number | null; scheduled_date: string | null }>
+  >({});
 
   useEffect(() => {
     let cancelled = false;
@@ -346,6 +350,63 @@ export function AuditPanel({ groupId }: Props) {
         }
         setActorNames(map);
       }
+
+      // Compute avg response time per nudge: time between nudge and next round_presence change
+      // for that round, capped at next nudge for same round (or 24h).
+      const nudges = list
+        .filter((r) => r.action === "round_nudge" && r.entity_type === "round" && r.entity_id)
+        .slice()
+        // chronological asc
+        .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+      const roundIds = Array.from(new Set(nudges.map((n) => n.entity_id as string)));
+      const roundMeta: Record<string, { round_number: number | null; scheduled_date: string | null }> = {};
+      const responseHours: number[] = [];
+      if (roundIds.length > 0) {
+        const { data: rds } = await supabase
+          .from("rounds")
+          .select("id, round_number, scheduled_date")
+          .in("id", roundIds);
+        for (const r of rds || []) {
+          roundMeta[r.id] = { round_number: r.round_number, scheduled_date: r.scheduled_date };
+        }
+        const { data: presences } = await supabase
+          .from("round_presence")
+          .select("round_id, updated_at, status")
+          .in("round_id", roundIds)
+          .neq("status", "pending")
+          .order("updated_at", { ascending: true });
+        // Index presence updates per round
+        const presByRound = new Map<string, { ts: number }[]>();
+        for (const p of presences || []) {
+          const arr = presByRound.get(p.round_id) || [];
+          arr.push({ ts: new Date(p.updated_at).getTime() });
+          presByRound.set(p.round_id, arr);
+        }
+        // Group nudges by round to find "next nudge" boundary
+        const nudgesByRound = new Map<string, number[]>();
+        for (const n of nudges) {
+          const arr = nudgesByRound.get(n.entity_id as string) || [];
+          arr.push(new Date(n.created_at).getTime());
+          nudgesByRound.set(n.entity_id as string, arr);
+        }
+        for (const n of nudges) {
+          const ts = new Date(n.created_at).getTime();
+          const sameRoundNudges = nudgesByRound.get(n.entity_id as string) || [];
+          const nextNudge = sameRoundNudges.find((t) => t > ts) ?? ts + 24 * 3600 * 1000;
+          const pres = presByRound.get(n.entity_id as string) || [];
+          const responses = pres.filter((p) => p.ts > ts && p.ts <= nextNudge);
+          if (responses.length === 0) {
+            responseHours.push(0);
+          } else {
+            const avgMs =
+              responses.reduce((s, p) => s + (p.ts - ts), 0) / responses.length;
+            responseHours.push(Math.max(0, Math.round((avgMs / (3600 * 1000)) * 10) / 10));
+          }
+        }
+      }
+      if (cancelled) return;
+      setResponseTimes(responseHours.slice(-10));
+      setRoundMovements(roundMeta);
       setLoading(false);
     };
     load();
@@ -357,14 +418,27 @@ export function AuditPanel({ groupId }: Props) {
   const actions = useMemo(() => Array.from(new Set(rows.map((r) => r.action))).sort(), [rows]);
   const NUDGE_ACTIONS = new Set(["round_nudge", "round_nudge_cooldown_reset"]);
   const WAITLIST_ACTIONS = new Set(["waitlist_auto_promoted", "waitlist_manual_promoted"]);
+  const ROUND_MOV_ACTIONS = new Set([
+    "round_nudge",
+    "round_nudge_cooldown_reset",
+    "waitlist_auto_promoted",
+    "waitlist_manual_promoted",
+    "presence_force_open",
+    "presence_force_open_undo",
+  ]);
   const isNudgeFilter = filter === "__nudges__";
   const isWaitlistFilter = filter === "__waitlist__";
+  const isRoundMovFilter = filter === "__round_movements__";
   const filtered = useMemo(() => {
     if (filter === "all") return rows;
     if (isNudgeFilter) return rows.filter((r) => NUDGE_ACTIONS.has(r.action));
     if (isWaitlistFilter) return rows.filter((r) => WAITLIST_ACTIONS.has(r.action));
+    if (isRoundMovFilter)
+      return rows.filter(
+        (r) => ROUND_MOV_ACTIONS.has(r.action) && r.entity_type === "round" && r.entity_id,
+      );
     return rows.filter((r) => r.action === filter);
-  }, [filter, rows, isNudgeFilter, isWaitlistFilter]);
+  }, [filter, rows, isNudgeFilter, isWaitlistFilter, isRoundMovFilter]);
   const nudgeCount = useMemo(
     () => rows.filter((r) => NUDGE_ACTIONS.has(r.action)).length,
     [rows],
@@ -373,6 +447,39 @@ export function AuditPanel({ groupId }: Props) {
     () => rows.filter((r) => WAITLIST_ACTIONS.has(r.action)).length,
     [rows],
   );
+  const roundMovCount = useMemo(
+    () =>
+      rows.filter(
+        (r) => ROUND_MOV_ACTIONS.has(r.action) && r.entity_type === "round" && r.entity_id,
+      ).length,
+    [rows],
+  );
+
+  // Grouped by round for "Movimentações da rodada" view
+  const movementsByRound = useMemo(() => {
+    if (!isRoundMovFilter) return [] as { roundId: string; events: AuditRow[] }[];
+    const groups = new Map<string, AuditRow[]>();
+    for (const r of filtered) {
+      const k = r.entity_id as string;
+      const arr = groups.get(k) || [];
+      arr.push(r);
+      groups.set(k, arr);
+    }
+    // Sort events ASC inside each round (chronological story)
+    const out = Array.from(groups.entries()).map(([roundId, events]) => ({
+      roundId,
+      events: events.slice().sort(
+        (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
+      ),
+    }));
+    // Sort rounds DESC by most recent event
+    out.sort((a, b) => {
+      const lastA = a.events[a.events.length - 1].created_at;
+      const lastB = b.events[b.events.length - 1].created_at;
+      return new Date(lastB).getTime() - new Date(lastA).getTime();
+    });
+    return out;
+  }, [filtered, isRoundMovFilter]);
 
   // Aggregated stats for "Só cutucadas" filter — only round_nudge entries (not cooldown resets)
   const nudgeStats = useMemo(() => {
@@ -451,6 +558,7 @@ export function AuditPanel({ groupId }: Props) {
           <option value="all">Todas as ações ({rows.length})</option>
           <option value="__nudges__">Só cutucadas ({nudgeCount})</option>
           <option value="__waitlist__">Só lista de espera ({waitlistCount})</option>
+          <option value="__round_movements__">Movimentações da rodada ({roundMovCount})</option>
           {actions.map((a) => (
             <option key={a} value={a}>
               {ACTION_LABELS[a] || a}
@@ -483,6 +591,20 @@ export function AuditPanel({ groupId }: Props) {
             title="Atalho: filtra promoções automáticas e manuais da lista de espera"
           >
             🎟️ Só lista de espera ({waitlistCount})
+          </button>
+        )}
+        {roundMovCount > 0 && (
+          <button
+            type="button"
+            onClick={() => setFilter(isRoundMovFilter ? "all" : "__round_movements__")}
+            className={`flex items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-bold transition-colors ${
+              isRoundMovFilter
+                ? "border-primary/60 bg-primary/15 text-primary"
+                : "border-border bg-background text-muted-foreground hover:border-primary/40 hover:text-primary"
+            }`}
+            title="Timeline consolidada por rodada: cutucadas, lista de espera, abrir presença"
+          >
+            🎬 Movimentações da rodada ({roundMovCount})
           </button>
         )}
       </div>
@@ -545,6 +667,19 @@ export function AuditPanel({ groupId }: Props) {
               <Sparkline values={nudgeStats.pendingPctSparkline} unit="%" />
             </div>
           )}
+          {responseTimes.length >= 2 && (
+            <div>
+              <div className="mb-1 flex items-center justify-between">
+                <p className="text-[9px] font-bold uppercase tracking-wider text-warning/80">
+                  Tempo médio de resposta (h) — últimas {responseTimes.length}
+                </p>
+                <p className="text-[9px] text-muted-foreground">
+                  ↓ menor = galera reagindo mais rápido
+                </p>
+              </div>
+              <Sparkline values={responseTimes} unit="h" />
+            </div>
+          )}
         </div>
       )}
 
@@ -556,6 +691,78 @@ export function AuditPanel({ groupId }: Props) {
         <p className="rounded-xl border border-dashed border-border bg-muted/10 p-4 text-center text-xs text-muted-foreground">
           Nenhum evento registrado{filter !== "all" ? " para esta ação" : ""}.
         </p>
+      ) : isRoundMovFilter ? (
+        <ul className="space-y-3">
+          {movementsByRound.map(({ roundId, events }) => {
+            const meta = roundMovements[roundId];
+            const title = meta?.round_number != null ? `Rodada #${meta.round_number}` : `Rodada ${roundId.slice(0, 8)}`;
+            const sub = meta?.scheduled_date
+              ? new Date(meta.scheduled_date + "T12:00:00").toLocaleDateString("pt-BR")
+              : null;
+            return (
+              <li key={roundId} className="overflow-hidden rounded-xl border border-primary/30 bg-primary/5">
+                <div className="flex items-center justify-between gap-2 border-b border-primary/20 bg-primary/10 px-3 py-2">
+                  <p className="text-xs font-bold text-foreground">
+                    🎬 {title}
+                    {sub && <span className="ml-1 text-[10px] font-normal text-muted-foreground">· {sub}</span>}
+                  </p>
+                  <span className="text-[10px] tabular-nums text-muted-foreground">
+                    {events.length} evento{events.length !== 1 ? "s" : ""}
+                  </span>
+                </div>
+                <ol className="relative space-y-2 p-3">
+                  {events.map((r, idx) => {
+                    const label = ACTION_LABELS[r.action] || r.action;
+                    const actor = actorNames[r.user_id] || "Usuário";
+                    const isNudge = r.action === "round_nudge";
+                    const isWait = WAITLIST_ACTIONS.has(r.action);
+                    const isOpen2 = !!expanded[r.id];
+                    const hasDiff = r.old_data != null || r.new_data != null;
+                    const dotColor = isNudge
+                      ? "bg-warning"
+                      : isWait
+                        ? "bg-info"
+                        : "bg-primary";
+                    return (
+                      <li key={r.id} className="relative pl-5">
+                        <span
+                          className={`absolute left-0 top-1.5 h-2.5 w-2.5 rounded-full ring-2 ring-background ${dotColor}`}
+                        />
+                        {idx < events.length - 1 && (
+                          <span className="absolute left-1 top-4 h-full w-px bg-border" />
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => setExpanded((s) => ({ ...s, [r.id]: !s[r.id] }))}
+                          className="block w-full rounded-lg border border-border bg-background/60 p-2 text-left hover:bg-muted/20"
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0 flex-1">
+                              <p className="text-[11px] font-bold text-foreground">{label}</p>
+                              <p className="mt-0.5 text-[10px] text-muted-foreground">
+                                por <span className="text-foreground">{actor}</span> · {fmtDate(r.created_at)}
+                              </p>
+                            </div>
+                            {hasDiff && (
+                              <span className="mt-0.5 shrink-0 text-muted-foreground">
+                                {isOpen2 ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                              </span>
+                            )}
+                          </div>
+                          {isOpen2 && hasDiff && (
+                            <div className="mt-2 border-t border-border pt-2">
+                              <DiffView row={r} />
+                            </div>
+                          )}
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ol>
+              </li>
+            );
+          })}
+        </ul>
       ) : (
         <ul className="space-y-2">
           {filtered.map((r) => {
