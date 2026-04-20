@@ -310,27 +310,32 @@ export function GroupEloEvolutionChart({ groupId, defaultFilter = "all" }: Props
                 data.seasonBoundaries.length > 1 &&
                 (() => {
                   const labelH = 14;
-                  const gap = 2;
+                  const gap = 3;
                   const placed: { x: number; y: number; w: number }[] = [];
                   return data.seasonBoundaries.slice(1).map((b) => {
                     const x = xForTs(b.ts);
                     if (x < padL || x > w - padR) return null;
                     const labelText =
-                      b.seasonName.length > 14 ? b.seasonName.slice(0, 13) + "…" : b.seasonName;
-                    const labelW = Math.min(110, labelText.length * 5.5 + 10);
-                    const labelX = Math.min(w - padR - labelW - 2, x + 3);
-                    // Find a y row with no horizontal collision
+                      b.seasonName.length > 12 ? b.seasonName.slice(0, 11) + "…" : b.seasonName;
+                    const labelW = Math.min(100, labelText.length * 5.5 + 10);
+                    // Prefer placing label to the right of the boundary, clamped to chart bounds
+                    const labelX = Math.max(
+                      padL,
+                      Math.min(w - padR - labelW - 2, x + 3),
+                    );
+                    // Find a y row with no horizontal collision against ALL placed labels
                     let row = 0;
-                    while (
-                      placed.some(
+                    const maxRows = 6;
+                    while (row < maxRows) {
+                      const candidateY = padT + 2 + row * (labelH + gap);
+                      const collides = placed.some(
                         (p) =>
-                          p.y === padT + 2 + row * (labelH + gap) &&
+                          p.y === candidateY &&
                           labelX < p.x + p.w + 4 &&
                           labelX + labelW + 4 > p.x,
-                      )
-                    ) {
+                      );
+                      if (!collides) break;
                       row++;
-                      if (row > 4) break;
                     }
                     const labelY = padT + 2 + row * (labelH + gap);
                     placed.push({ x: labelX, y: labelY, w: labelW });
