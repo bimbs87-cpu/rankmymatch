@@ -18,6 +18,10 @@ export const Route = createFileRoute("/landing")({
         content:
           "Crie seu grupo de padel, registre partidas e acompanhe o ranking Elo de cada jogador.",
       },
+      { property: "og:url", content: "https://rankmymatch.app/landing" },
+    ],
+    links: [
+      { rel: "canonical", href: "https://rankmymatch.app/landing" },
     ],
   }),
   component: LandingRoute,
