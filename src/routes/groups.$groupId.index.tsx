@@ -12,7 +12,6 @@ import {
   ChevronRight,
   AlertTriangle,
   LogOut,
-  Menu,
   Crown,
 } from "lucide-react";
 
@@ -42,7 +41,7 @@ import { ShareGroupDialog } from "@/components/ShareGroupDialog";
 
 import {
   GroupInternalSidebar,
-  GroupInternalSidebarDrawer,
+  GroupInternalFloatingTabs,
   type GroupView,
   type SidebarBadges,
 } from "@/components/groups/internal/GroupInternalSidebar";
@@ -112,7 +111,6 @@ function GroupDetailPage() {
   const { pendingMatch, refresh: refreshPending } = usePendingMatch(groupId);
 
   const [view, setView] = useState<GroupView>(search.view || "overview");
-  const [drawerOpen, setDrawerOpen] = useState(false);
   const [memberShareOpen, setMemberShareOpen] = useState(false);
   const [pendingCompareIds, setPendingCompareIds] = useState<string[] | null>(null);
 
@@ -370,24 +368,10 @@ function GroupDetailPage() {
           <GroupInternalSidebar {...sidebarProps} />
         </aside>
 
-        {/* Mobile drawer */}
-        <GroupInternalSidebarDrawer
-          {...sidebarProps}
-          open={drawerOpen}
-          onOpenChange={setDrawerOpen}
-        />
-
         {/* Main content */}
         <main className="min-w-0 flex-1 overflow-x-hidden pb-28">
           {/* Top bar (mobile) */}
           <div className="flex items-center gap-3 border-b border-border/60 bg-background/80 px-4 py-3 backdrop-blur lg:hidden">
-            <button
-              onClick={() => setDrawerOpen(true)}
-              className="flex h-9 w-9 items-center justify-center rounded-full border border-border bg-card"
-              aria-label="Abrir menu"
-            >
-              <Menu className="h-4 w-4" />
-            </button>
             <Link
               to="/groups"
               className="flex h-9 w-9 items-center justify-center rounded-full border border-border bg-card"
@@ -430,6 +414,14 @@ function GroupDetailPage() {
           </div>
 
           <div className="min-w-0 px-4 py-5 lg:px-8 lg:py-6">
+            {/* Floating tabs (mobile only) — sticky, never covers cover image initially */}
+            <GroupInternalFloatingTabs
+              isAdmin={isAdmin}
+              view={view}
+              onSelect={handleSelectView}
+              badges={sidebarProps.badges}
+            />
+
             {/* Pending match alert (always visible at top) */}
             {pendingMatch && (
               <div className="mb-4">
