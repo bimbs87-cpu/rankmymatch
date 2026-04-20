@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { TrendingUp, TrendingDown, Activity } from "lucide-react";
+import { TrendingUp, TrendingDown, Activity, Gamepad2 } from "lucide-react";
 import { useGroupEloEvolution } from "@/hooks/use-group-elo-evolution";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { PlayerAvatarLink } from "@/components/PlayerProfileViewer";
