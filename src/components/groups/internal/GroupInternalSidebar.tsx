@@ -229,6 +229,12 @@ export function GroupInternalFloatingTabs({ isAdmin, view, onSelect, badges = {}
                       {badgeCount}
                     </span>
                   ) : null}
+                  {/* Animated active indicator */}
+                  <span
+                    className={`pointer-events-none absolute -bottom-0.5 left-1/2 h-[3px] -translate-x-1/2 rounded-full bg-primary shadow-[0_0_8px_hsl(var(--primary)/0.7)] transition-all duration-300 ease-out ${
+                      active ? "w-6 opacity-100" : "w-0 opacity-0"
+                    }`}
+                  />
                 </button>
               </li>
             );
