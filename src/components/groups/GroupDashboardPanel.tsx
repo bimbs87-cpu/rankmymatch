@@ -44,6 +44,9 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import type { Tables } from "@/integrations/supabase/types";
+import { playRoundAlert } from "@/lib/round-alert-sound";
+import { sendPushFn } from "@/lib/push.functions";
+import { Bell as BellIcon } from "lucide-react";
 
 type Group = Tables<"groups"> & {
   member_count?: number;
@@ -104,7 +107,53 @@ export function GroupDashboardPanel({ group, onLeft, onPresenceChanged }: Props)
   const [leaving, setLeaving] = useState(false);
   const [resolvingReq, setResolvingReq] = useState<string | null>(null);
   const [resolvingClaim, setResolvingClaim] = useState<string | null>(null);
+  const [nudging, setNudging] = useState(false);
   const openProfile = useViewPlayerProfile();
+
+  async function handleNudgePending() {
+    if (!data.next_round || !data.next_round.pending_all?.length) return;
+    setNudging(true);
+    try {
+      const pendingIds = data.next_round.pending_all.map((p) => p.user_id);
+      const roundLabel = data.next_round.round_number
+        ? `Rodada ${data.next_round.round_number}`
+        : "Próxima rodada";
+      const title = `📣 ${roundLabel}: confirme presença!`;
+      const body = `Faltam ${pendingIds.length} resposta${pendingIds.length > 1 ? "s" : ""} para a lista. Toque para responder.`;
+
+      // In-app notifications (members → RLS allows when group_id matches)
+      const rows = pendingIds.map((uid) => ({
+        user_id: uid,
+        group_id: group.id,
+        type: "round_nudge",
+        title,
+        body,
+        data: { roundId: data.next_round!.id },
+      }));
+      await supabase.from("notifications").insert(rows);
+
+      // Push (best-effort, gated server-side by shared-group rule)
+      void sendPushFn({
+        data: {
+          userIds: pendingIds,
+          payload: {
+            title,
+            body,
+            url: `/groups/${group.id}`,
+            type: "round_nudge",
+            tag: `round_nudge:${data.next_round.id}`,
+            data: { roundId: data.next_round.id },
+          },
+        },
+      }).catch(() => {});
+
+      toast.success(`Cutucada enviada para ${pendingIds.length} membro${pendingIds.length > 1 ? "s" : ""}`);
+    } catch (e: any) {
+      toast.error(e?.message || "Não foi possível cutucar agora");
+    } finally {
+      setNudging(false);
+    }
+  }
 
   async function handleApproveClaim(claim: typeof data.pending_claims[number]) {
     if (!user) return;
@@ -546,6 +595,13 @@ export function GroupDashboardPanel({ group, onLeft, onPresenceChanged }: Props)
                   </div>
                 )}
               </div>
+              {/* Response rate progress bar — % of active members who responded */}
+              <ResponseProgressBar
+                confirmed={data.next_round.confirmed_all?.length ?? data.next_round.confirmed_count}
+                declined={data.next_round.declined_all?.length ?? 0}
+                pending={data.next_round.pending_all?.length ?? 0}
+                memberCount={data.member_count}
+              />
               {/* Pending row — members who haven't responded yet, in a dimmed tone */}
               {data.next_round.pending_all && data.next_round.pending_all.length > 0 && (
                 <div className="flex items-center gap-2 opacity-60">
@@ -607,30 +663,47 @@ export function GroupDashboardPanel({ group, onLeft, onPresenceChanged }: Props)
                 )}
               </div>
               {isAdmin && (
-                <div className="mt-2 flex items-center justify-between gap-2 rounded-xl border border-dashed border-border/60 bg-background/30 px-2.5 py-1.5">
+                <div className="mt-2 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-dashed border-border/60 bg-background/30 px-2.5 py-1.5">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
                     Admin
                   </span>
-                  <button
-                    onClick={handleToggleForceOpen}
-                    disabled={presenceLoading}
-                    className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold transition-colors disabled:opacity-50 ${
-                      data.next_round.presence_force_open_at &&
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {data.next_round.presence_is_open &&
+                      data.next_round.pending_all &&
+                      data.next_round.pending_all.length > 0 && (
+                        <button
+                          onClick={handleNudgePending}
+                          disabled={nudging}
+                          className="flex items-center gap-1 rounded-full border border-warning/40 bg-warning/10 px-2.5 py-1 text-[10px] font-bold text-warning transition-colors hover:bg-warning/20 disabled:opacity-50"
+                          title={`Cutucar ${data.next_round.pending_all.length} membro(s) sem resposta`}
+                        >
+                          <BellIcon className="h-3 w-3" />
+                          {nudging
+                            ? "Cutucando…"
+                            : `Cutucar pendentes (${data.next_round.pending_all.length})`}
+                        </button>
+                      )}
+                    <button
+                      onClick={handleToggleForceOpen}
+                      disabled={presenceLoading}
+                      className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold transition-colors disabled:opacity-50 ${
+                        data.next_round.presence_force_open_at &&
+                        new Date(data.next_round.presence_force_open_at) <= new Date()
+                          ? "border border-destructive/40 bg-destructive/10 text-destructive hover:bg-destructive/20"
+                          : "border border-primary/40 bg-primary/10 text-primary hover:bg-primary/20"
+                      }`}
+                      title={
+                        data.next_round.presence_force_open_at
+                          ? "Fechar lista manualmente"
+                          : "Abrir lista agora (antes do prazo)"
+                      }
+                    >
+                      {data.next_round.presence_force_open_at &&
                       new Date(data.next_round.presence_force_open_at) <= new Date()
-                        ? "border border-destructive/40 bg-destructive/10 text-destructive hover:bg-destructive/20"
-                        : "border border-primary/40 bg-primary/10 text-primary hover:bg-primary/20"
-                    }`}
-                    title={
-                      data.next_round.presence_force_open_at
-                        ? "Fechar lista manualmente"
-                        : "Abrir lista agora (antes do prazo)"
-                    }
-                  >
-                    {data.next_round.presence_force_open_at &&
-                    new Date(data.next_round.presence_force_open_at) <= new Date()
-                      ? "Fechar lista"
-                      : "Abrir lista agora"}
-                  </button>
+                        ? "Fechar lista"
+                        : "Abrir lista agora"}
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
@@ -931,36 +1004,7 @@ function MatchStartCountdown({
   useEffect(() => {
     if (!isImminent || alertedRef.current) return;
     alertedRef.current = true;
-    try {
-      if (typeof navigator !== "undefined" && "vibrate" in navigator) {
-        navigator.vibrate?.([120, 60, 120]);
-      }
-      const soundOn =
-        typeof localStorage === "undefined"
-          ? true
-          : localStorage.getItem("rmm.roundAlertSound") !== "off";
-      if (!soundOn) return;
-      const AudioCtx =
-        (window as any).AudioContext || (window as any).webkitAudioContext;
-      if (AudioCtx) {
-        const ctx = new AudioCtx();
-        const o = ctx.createOscillator();
-        const g = ctx.createGain();
-        o.type = "sine";
-        o.frequency.value = 880;
-        g.gain.value = 0.0001;
-        o.connect(g);
-        g.connect(ctx.destination);
-        const t = ctx.currentTime;
-        g.gain.exponentialRampToValueAtTime(0.08, t + 0.04);
-        g.gain.exponentialRampToValueAtTime(0.0001, t + 0.35);
-        o.start(t);
-        o.stop(t + 0.4);
-        setTimeout(() => ctx.close().catch(() => {}), 700);
-      }
-    } catch {
-      // best-effort
-    }
+    playRoundAlert();
   }, [isImminent]);
 
   if (!scheduledDate || Number.isNaN(target)) return null;
@@ -998,5 +1042,59 @@ function MatchStartCountdown({
       <Clock className="h-2.5 w-2.5" />
       {label}
     </span>
+  );
+}
+
+/**
+ * Visual response-rate bar for the next round: % of active members who have
+ * responded (confirmed or declined) out of the total. Confirmed shows in
+ * success tone, declined in muted destructive — pending is the empty space.
+ */
+function ResponseProgressBar({
+  confirmed,
+  declined,
+  pending,
+  memberCount,
+}: {
+  confirmed: number;
+  declined: number;
+  pending: number;
+  memberCount: number;
+}) {
+  const total = Math.max(memberCount, confirmed + declined + pending);
+  if (total <= 0) return null;
+  const responded = confirmed + declined;
+  const pct = Math.round((responded / total) * 100);
+  const confirmedPct = (confirmed / total) * 100;
+  const declinedPct = (declined / total) * 100;
+
+  return (
+    <div className="space-y-1">
+      <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+        <span>
+          <span className="font-bold text-foreground tabular-nums">{responded}</span>
+          /{total} responderam
+        </span>
+        <span className="font-bold tabular-nums text-foreground">{pct}%</span>
+      </div>
+      <div
+        className="flex h-1.5 w-full overflow-hidden rounded-full bg-muted/60"
+        role="progressbar"
+        aria-valuenow={pct}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-label={`${pct}% de membros responderam`}
+        title={`✓ ${confirmed} confirmados · ✗ ${declined} recusaram · ${pending} pendentes`}
+      >
+        <div
+          className="h-full bg-success transition-all"
+          style={{ width: `${confirmedPct}%` }}
+        />
+        <div
+          className="h-full bg-destructive/50 transition-all"
+          style={{ width: `${declinedPct}%` }}
+        />
+      </div>
+    </div>
   );
 }
