@@ -1,7 +1,7 @@
 /**
- * Fetches the next scheduled round (status='scheduled', date >= today) for a
- * given group, ordered by scheduled_date + scheduled_time ASC.
- * Used by the GroupsNavMenu to show a "Próxima rodada" shortcut.
+ * Fetches the next scheduled round for a group + the current user's presence
+ * status for that round. Used by the GroupsNavMenu and BottomNav to show a
+ * "Próxima rodada" shortcut with a presence indicator.
  */
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -14,13 +14,17 @@ export interface NextRound {
   location: string | null;
 }
 
+export type PresenceStatus = "confirmed" | "declined" | "pending" | "unknown";
+
 export function useNextRound(groupId: string | null | undefined) {
   const [round, setRound] = useState<NextRound | null>(null);
+  const [presence, setPresence] = useState<PresenceStatus>("unknown");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (!groupId) {
       setRound(null);
+      setPresence("unknown");
       return;
     }
     let cancelled = false;
@@ -38,7 +42,32 @@ export function useNextRound(groupId: string | null | undefined) {
           .order("scheduled_time", { ascending: true, nullsFirst: true })
           .limit(1)
           .maybeSingle();
-        if (!cancelled) setRound((data as NextRound | null) ?? null);
+        if (cancelled) return;
+        const r = (data as NextRound | null) ?? null;
+        setRound(r);
+
+        if (r) {
+          const { data: auth } = await supabase.auth.getUser();
+          const uid = auth.user?.id;
+          if (uid) {
+            const { data: pres } = await supabase
+              .from("round_presence")
+              .select("status")
+              .eq("round_id", r.id)
+              .eq("user_id", uid)
+              .maybeSingle();
+            if (cancelled) return;
+            const s = (pres?.status as string | undefined) ?? null;
+            if (s === "confirmed") setPresence("confirmed");
+            else if (s === "declined" || s === "absent") setPresence("declined");
+            else if (s) setPresence("pending");
+            else setPresence("pending");
+          } else {
+            setPresence("unknown");
+          }
+        } else {
+          setPresence("unknown");
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -48,5 +77,5 @@ export function useNextRound(groupId: string | null | undefined) {
     };
   }, [groupId]);
 
-  return { round, loading };
+  return { round, presence, loading };
 }
