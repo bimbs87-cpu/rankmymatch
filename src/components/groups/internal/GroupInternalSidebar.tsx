@@ -57,7 +57,7 @@ export function GroupInternalSidebar({
   badges = {},
   onShareClick,
 }: Props) {
-  const items = ITEMS.filter((i) => !i.adminOnly || isAdmin);
+  const items = filterItems(isAdmin, memberCount);
 
   return (
     <div className="flex h-full flex-col">
@@ -182,12 +182,13 @@ export function GroupInternalSidebarDrawer({ open, onOpenChange, ...rest }: Draw
  */
 interface FloatingTabsProps {
   isAdmin: boolean;
+  memberCount: number;
   view: GroupView;
   onSelect: (v: GroupView) => void;
   badges?: SidebarBadges;
 }
-export function GroupInternalFloatingTabs({ isAdmin, view, onSelect, badges = {} }: FloatingTabsProps) {
-  const items = ITEMS.filter((i) => !i.adminOnly || isAdmin);
+export function GroupInternalFloatingTabs({ isAdmin, memberCount, view, onSelect, badges = {} }: FloatingTabsProps) {
+  const items = filterItems(isAdmin, memberCount);
   return (
     <div className="fixed inset-x-0 top-0 z-40 border-b border-border/60 bg-background/85 px-3 pb-2.5 pt-[max(0.5rem,env(safe-area-inset-top))] backdrop-blur-xl lg:hidden">
       {/* Context label — makes it clear this is the group's internal menu */}
