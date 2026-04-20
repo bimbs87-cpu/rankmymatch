@@ -134,6 +134,7 @@ export function AdminPanel({ group, isCreator, onSaved, pendingRequestsCount }: 
             />
           )}
           {section === "approvals" && <ApprovalHistoryPanel groupId={group.id} />}
+          {section === "push" && <PushPanel groupId={group.id} groupName={group.name} />}
           {section === "engagement" && (
             <div className="space-y-4">
               <InviteEngagementReport groupId={group.id} />
