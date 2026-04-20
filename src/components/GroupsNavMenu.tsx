@@ -123,12 +123,13 @@ export function GroupsNavMenu({ groups, renderTrigger, panelClassName }: Props) 
   const otherGroups = orderedGroups.slice(1);
 
   return (
-    <div ref={ref} className="relative contents">
+    <div ref={ref} className="relative isolate">
       {renderTrigger({ onClick: () => setOpen((v) => !v), badge: globalPending, badgeLoading: globalLoading, open })}
 
       {open && (
         <div
           role="menu"
+          style={{ backgroundColor: "var(--popover)", opacity: 1 }}
           className={
             panelClassName ??
             "absolute right-0 top-full z-[60] mt-2 w-72 max-h-[70vh] overflow-y-auto rounded-2xl border border-border bg-card p-2 shadow-2xl ring-1 ring-black/20 backdrop-blur-none animate-fade-in"
