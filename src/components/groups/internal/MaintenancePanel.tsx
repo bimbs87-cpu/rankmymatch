@@ -114,6 +114,7 @@ export function MaintenancePanel({ groupId, onCountChange }: Props) {
     }
   };
 
+  const scan = async (showToast = false) => {
     if (!session?.access_token) {
       if (!authLoading && showToast) toast.error("Faça login novamente");
       setDesynced([]);
