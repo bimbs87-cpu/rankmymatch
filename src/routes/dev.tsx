@@ -53,7 +53,6 @@ export const Route = createFileRoute("/dev")({
   component: DevDashboardPage,
 });
 
-function DevDashboardPage() {
 type DashboardPayload = Awaited<ReturnType<typeof getDevDashboard>>;
 
 function DevDashboardPage() {
