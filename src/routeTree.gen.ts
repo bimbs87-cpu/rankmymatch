@@ -21,6 +21,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as LandingRouteImport } from './routes/landing'
 import { Route as HistoryRouteImport } from './routes/history'
 import { Route as GroupsRouteImport } from './routes/groups'
+import { Route as DevRouteImport } from './routes/dev'
 import { Route as CompararRouteImport } from './routes/comparar'
 import { Route as ChangelogRouteImport } from './routes/changelog'
 import { Route as IndexRouteImport } from './routes/index'
@@ -106,6 +107,11 @@ const HistoryRoute = HistoryRouteImport.update({
 const GroupsRoute = GroupsRouteImport.update({
   id: '/groups',
   path: '/groups',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DevRoute = DevRouteImport.update({
+  id: '/dev',
+  path: '/dev',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CompararRoute = CompararRouteImport.update({
@@ -251,6 +257,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/changelog': typeof ChangelogRoute
   '/comparar': typeof CompararRoute
+  '/dev': typeof DevRoute
   '/groups': typeof GroupsRouteWithChildren
   '/history': typeof HistoryRoute
   '/landing': typeof LandingRoute
@@ -291,6 +298,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/changelog': typeof ChangelogRoute
   '/comparar': typeof CompararRoute
+  '/dev': typeof DevRoute
   '/history': typeof HistoryRoute
   '/landing': typeof LandingRoute
   '/login': typeof LoginRoute
@@ -328,6 +336,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/changelog': typeof ChangelogRoute
   '/comparar': typeof CompararRoute
+  '/dev': typeof DevRoute
   '/groups': typeof GroupsRouteWithChildren
   '/history': typeof HistoryRoute
   '/landing': typeof LandingRoute
@@ -370,6 +379,7 @@ export interface FileRouteTypes {
     | '/'
     | '/changelog'
     | '/comparar'
+    | '/dev'
     | '/groups'
     | '/history'
     | '/landing'
@@ -410,6 +420,7 @@ export interface FileRouteTypes {
     | '/'
     | '/changelog'
     | '/comparar'
+    | '/dev'
     | '/history'
     | '/landing'
     | '/login'
@@ -446,6 +457,7 @@ export interface FileRouteTypes {
     | '/'
     | '/changelog'
     | '/comparar'
+    | '/dev'
     | '/groups'
     | '/history'
     | '/landing'
@@ -487,6 +499,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ChangelogRoute: typeof ChangelogRoute
   CompararRoute: typeof CompararRoute
+  DevRoute: typeof DevRoute
   GroupsRoute: typeof GroupsRouteWithChildren
   HistoryRoute: typeof HistoryRoute
   LandingRoute: typeof LandingRoute
@@ -597,6 +610,13 @@ declare module '@tanstack/react-router' {
       path: '/groups'
       fullPath: '/groups'
       preLoaderRoute: typeof GroupsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dev': {
+      id: '/dev'
+      path: '/dev'
+      fullPath: '/dev'
+      preLoaderRoute: typeof DevRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/comparar': {
@@ -863,6 +883,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ChangelogRoute: ChangelogRoute,
   CompararRoute: CompararRoute,
+  DevRoute: DevRoute,
   GroupsRoute: GroupsRouteWithChildren,
   HistoryRoute: HistoryRoute,
   LandingRoute: LandingRoute,
