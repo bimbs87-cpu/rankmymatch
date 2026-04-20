@@ -673,6 +673,17 @@ export function AuditPanel({ groupId }: Props) {
               ? nonZero.reduce((s, n) => s + n, 0) / nonZero.length
               : 0;
             const avgLabel = avg >= 10 ? `${Math.round(avg)}h` : `${avg.toFixed(1)}h`;
+            // Median of responded ones
+            const sorted = [...nonZero].sort((a, b) => a - b);
+            const median = sorted.length === 0
+              ? 0
+              : sorted.length % 2 === 1
+                ? sorted[(sorted.length - 1) / 2]
+                : (sorted[sorted.length / 2 - 1] + sorted[sorted.length / 2]) / 2;
+            const medianLabel = median >= 10 ? `${Math.round(median)}h` : `${median.toFixed(1)}h`;
+            const total = responseTimes.length;
+            const responded = nonZero.length;
+            const tooltip = `${responded} de ${total} cutucadas tiveram resposta. Mediana: ${medianLabel}. Verde <1h · Amarelo 1-6h · Vermelho >6h`;
             return (
               <div>
                 <div className="mb-1 flex items-center justify-between gap-2">
@@ -698,8 +709,8 @@ export function AuditPanel({ groupId }: Props) {
                             : "border-border bg-muted/40 text-muted-foreground";
                     return (
                       <span
-                        className={`flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-bold tabular-nums ${toneCls}`}
-                        title="Tempo médio geral, ignorando cutucadas sem resposta. Verde <1h · Amarelo 1-6h · Vermelho >6h"
+                        className={`flex cursor-help items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-bold tabular-nums ${toneCls}`}
+                        title={tooltip}
                       >
                         <Clock className="h-2.5 w-2.5" /> Média geral: {avgLabel}
                       </span>
