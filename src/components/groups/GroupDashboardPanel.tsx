@@ -1135,13 +1135,6 @@ export function GroupDashboardPanel({ group, onLeft, onPresenceChanged }: Props)
             <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
               <Sparkles className="h-3 w-3 text-primary" /> Atividade recente
             </p>
-            <Link
-              to="/groups/$groupId/feed"
-              params={{ groupId: group.id }}
-              className="text-[10px] font-bold text-primary hover:underline"
-            >
-              Feed →
-            </Link>
           </div>
           {isLoading ? (
             <div className="h-20 animate-pulse rounded-xl bg-muted/30" />

@@ -39,7 +39,6 @@ import { Route as AdminMetricsRouteImport } from './routes/admin.metrics'
 import { Route as AdminInboxRouteImport } from './routes/admin.inbox'
 import { Route as GroupsGroupIdIndexRouteImport } from './routes/groups.$groupId.index'
 import { Route as GroupsGroupIdSeasonsRouteImport } from './routes/groups.$groupId.seasons'
-import { Route as GroupsGroupIdFeedRouteImport } from './routes/groups.$groupId.feed'
 import { Route as GroupsGroupIdDuelRouteImport } from './routes/groups.$groupId.duel'
 import { Route as ApiPushVapidPublicKeyRouteImport } from './routes/api.push.vapid-public-key'
 import { Route as GroupsGroupIdSeasonsIndexRouteImport } from './routes/groups.$groupId.seasons.index'
@@ -203,11 +202,6 @@ const GroupsGroupIdSeasonsRoute = GroupsGroupIdSeasonsRouteImport.update({
   path: '/seasons',
   getParentRoute: () => GroupsGroupIdRoute,
 } as any)
-const GroupsGroupIdFeedRoute = GroupsGroupIdFeedRouteImport.update({
-  id: '/feed',
-  path: '/feed',
-  getParentRoute: () => GroupsGroupIdRoute,
-} as any)
 const GroupsGroupIdDuelRoute = GroupsGroupIdDuelRouteImport.update({
   id: '/duel',
   path: '/duel',
@@ -284,7 +278,6 @@ export interface FileRoutesByFullPath {
   '/groups/': typeof GroupsIndexRoute
   '/api/push/vapid-public-key': typeof ApiPushVapidPublicKeyRoute
   '/groups/$groupId/duel': typeof GroupsGroupIdDuelRoute
-  '/groups/$groupId/feed': typeof GroupsGroupIdFeedRoute
   '/groups/$groupId/seasons': typeof GroupsGroupIdSeasonsRouteWithChildren
   '/groups/$groupId/': typeof GroupsGroupIdIndexRoute
   '/api/og/group/$groupId': typeof ApiOgGroupGroupIdRoute
@@ -323,7 +316,6 @@ export interface FileRoutesByTo {
   '/groups': typeof GroupsIndexRoute
   '/api/push/vapid-public-key': typeof ApiPushVapidPublicKeyRoute
   '/groups/$groupId/duel': typeof GroupsGroupIdDuelRoute
-  '/groups/$groupId/feed': typeof GroupsGroupIdFeedRoute
   '/groups/$groupId': typeof GroupsGroupIdIndexRoute
   '/api/og/group/$groupId': typeof ApiOgGroupGroupIdRoute
   '/api/og/player/$userId': typeof ApiOgPlayerUserIdRoute
@@ -363,7 +355,6 @@ export interface FileRoutesById {
   '/groups/': typeof GroupsIndexRoute
   '/api/push/vapid-public-key': typeof ApiPushVapidPublicKeyRoute
   '/groups/$groupId/duel': typeof GroupsGroupIdDuelRoute
-  '/groups/$groupId/feed': typeof GroupsGroupIdFeedRoute
   '/groups/$groupId/seasons': typeof GroupsGroupIdSeasonsRouteWithChildren
   '/groups/$groupId/': typeof GroupsGroupIdIndexRoute
   '/api/og/group/$groupId': typeof ApiOgGroupGroupIdRoute
@@ -406,7 +397,6 @@ export interface FileRouteTypes {
     | '/groups/'
     | '/api/push/vapid-public-key'
     | '/groups/$groupId/duel'
-    | '/groups/$groupId/feed'
     | '/groups/$groupId/seasons'
     | '/groups/$groupId/'
     | '/api/og/group/$groupId'
@@ -445,7 +435,6 @@ export interface FileRouteTypes {
     | '/groups'
     | '/api/push/vapid-public-key'
     | '/groups/$groupId/duel'
-    | '/groups/$groupId/feed'
     | '/groups/$groupId'
     | '/api/og/group/$groupId'
     | '/api/og/player/$userId'
@@ -484,7 +473,6 @@ export interface FileRouteTypes {
     | '/groups/'
     | '/api/push/vapid-public-key'
     | '/groups/$groupId/duel'
-    | '/groups/$groupId/feed'
     | '/groups/$groupId/seasons'
     | '/groups/$groupId/'
     | '/api/og/group/$groupId'
@@ -737,13 +725,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof GroupsGroupIdSeasonsRouteImport
       parentRoute: typeof GroupsGroupIdRoute
     }
-    '/groups/$groupId/feed': {
-      id: '/groups/$groupId/feed'
-      path: '/feed'
-      fullPath: '/groups/$groupId/feed'
-      preLoaderRoute: typeof GroupsGroupIdFeedRouteImport
-      parentRoute: typeof GroupsGroupIdRoute
-    }
     '/groups/$groupId/duel': {
       id: '/groups/$groupId/duel'
       path: '/duel'
@@ -837,14 +818,12 @@ const GroupsGroupIdSeasonsRouteWithChildren =
 
 interface GroupsGroupIdRouteChildren {
   GroupsGroupIdDuelRoute: typeof GroupsGroupIdDuelRoute
-  GroupsGroupIdFeedRoute: typeof GroupsGroupIdFeedRoute
   GroupsGroupIdSeasonsRoute: typeof GroupsGroupIdSeasonsRouteWithChildren
   GroupsGroupIdIndexRoute: typeof GroupsGroupIdIndexRoute
 }
 
 const GroupsGroupIdRouteChildren: GroupsGroupIdRouteChildren = {
   GroupsGroupIdDuelRoute: GroupsGroupIdDuelRoute,
-  GroupsGroupIdFeedRoute: GroupsGroupIdFeedRoute,
   GroupsGroupIdSeasonsRoute: GroupsGroupIdSeasonsRouteWithChildren,
   GroupsGroupIdIndexRoute: GroupsGroupIdIndexRoute,
 }
