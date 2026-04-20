@@ -542,30 +542,34 @@ function NextRoundCard({ data, isLoading, groupId, busy, onPresence }: NextRound
             </Popover>
           )}
 
-          <div className="mt-1.5">
+          <div className="mt-2">
             {data.next_round.presence_is_open ? (
-              <div className="flex gap-1">
+              <div className="flex gap-1.5">
                 <button
                   disabled={busy}
                   onClick={() => onPresence("confirmed")}
-                  className={`flex flex-1 items-center justify-center gap-1 rounded-full px-2 py-1 text-[10px] font-semibold transition-colors ${
+                  aria-label="Confirmar presença"
+                  className={`flex flex-1 items-center justify-center gap-1.5 rounded-full px-3 py-2 text-xs font-bold transition-colors disabled:opacity-50 active:scale-95 ${
                     data.next_round.presence_status === "confirmed"
                       ? "bg-success text-success-foreground"
                       : "border border-success/40 bg-success/10 text-success hover:bg-success/20"
                   }`}
                 >
-                  <CheckCircle2 className="h-3 w-3" />Vou
+                  <CheckCircle2 className="h-3.5 w-3.5" />
+                  {data.next_round.presence_status === "confirmed" ? "Confirmado" : "Vou"}
                 </button>
                 <button
                   disabled={busy}
                   onClick={() => onPresence("declined")}
-                  className={`flex flex-1 items-center justify-center gap-1 rounded-full px-2 py-1 text-[10px] font-semibold transition-colors ${
+                  aria-label="Recusar presença"
+                  className={`flex flex-1 items-center justify-center gap-1.5 rounded-full px-3 py-2 text-xs font-bold transition-colors disabled:opacity-50 active:scale-95 ${
                     data.next_round.presence_status === "declined"
                       ? "bg-destructive text-destructive-foreground"
                       : "border border-destructive/40 bg-destructive/10 text-destructive hover:bg-destructive/20"
                   }`}
                 >
-                  <XCircle className="h-3 w-3" />Não
+                  <XCircle className="h-3.5 w-3.5" />
+                  {data.next_round.presence_status === "declined" ? "Recusado" : "Não vou"}
                 </button>
               </div>
             ) : (

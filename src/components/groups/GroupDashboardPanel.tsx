@@ -382,6 +382,7 @@ export function GroupDashboardPanel({ group, onLeft, onPresenceChanged }: Props)
 
   async function handleToggleForceOpen() {
     if (!data.next_round) return;
+    if (!user) return;
     const isCurrentlyForceOpen =
       !!data.next_round.presence_force_open_at &&
       new Date(data.next_round.presence_force_open_at) <= new Date();
@@ -396,6 +397,23 @@ export function GroupDashboardPanel({ group, onLeft, onPresenceChanged }: Props)
         .eq("id", data.next_round.id);
       if (error) throw error;
       toast.success(isCurrentlyForceOpen ? "Lista de presença fechada" : "Lista de presença aberta");
+
+      // When opening (not closing), notify all members so they confirm presence.
+      if (!isCurrentlyForceOpen) {
+        const roundLabel = data.next_round.round_number
+          ? `Rodada ${data.next_round.round_number}`
+          : "Próxima rodada";
+        const { notifyGroupMembers } = await import("@/lib/notify");
+        void notifyGroupMembers({
+          groupId: group.id,
+          actorId: user.id,
+          type: "round_open",
+          title: `📣 Lista aberta — ${roundLabel}`,
+          body: `Confirme sua presença antes que as vagas acabem.`,
+          data: { roundId: data.next_round.id },
+          url: `/groups/${group.id}`,
+        });
+      }
       await refresh();
       onPresenceChanged?.();
     } catch (e: any) {
