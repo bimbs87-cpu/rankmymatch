@@ -86,6 +86,8 @@ export async function createRound(data: {
     title: "Nova rodada agendada!",
     body: `Rodada ${data.roundNumber}${data.scheduledDate ? ` em ${new Date(data.scheduledDate + "T00:00:00").toLocaleDateString("pt-BR")}` : ""} foi criada. Confirme sua presença!`,
     data: { roundId: round.id, seasonId: data.seasonId },
+    // Group multiple "nova rodada" pings per group so they collapse on the device.
+    tag: `new_round:${data.groupId}`,
   });
 
   return round;

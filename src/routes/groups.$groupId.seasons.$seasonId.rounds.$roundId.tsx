@@ -461,6 +461,8 @@ function RoundDetailPage() {
           body: `A lista da ${roundLabel} foi aberta. Confirme sua presença!`,
           url: `/groups/${groupId}/seasons/${seasonId}/rounds/${roundId}`,
           data: { roundId, seasonId },
+          // Collapse repeated "lista aberta" pushes for the same round.
+          tag: `presence_open:${roundId}`,
         }).catch(() => {});
       }
       toast.success("Lista de presenças reaberta para todos");
