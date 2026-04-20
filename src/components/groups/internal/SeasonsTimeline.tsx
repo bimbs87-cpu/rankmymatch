@@ -67,6 +67,7 @@ export function SeasonsTimeline({ seasons, onSelect }: Props) {
   const [selected, setSelected] = useState<SelectedRound | null>(null);
   const [podium, setPodium] = useState<{ userId: string; name: string; avatarUrl: string | null; subtitle: string; eloDelta?: number | null }[] | null>(null);
   const [podiumLoading, setPodiumLoading] = useState(false);
+  const [filter, setFilter] = useState<"all" | "completed" | "upcoming">("all");
   const openProfile = useViewPlayerProfile();
 
   useEffect(() => {
@@ -205,9 +206,15 @@ export function SeasonsTimeline({ seasons, onSelect }: Props) {
     { completed: 0, scheduled: 0, in_progress: 0, cancelled: 0 } as Record<RoundStatus, number>,
   );
 
+  const matchesFilter = (st: RoundStatus) => {
+    if (filter === "all") return true;
+    if (filter === "completed") return st === "completed";
+    return st === "scheduled" || st === "in_progress";
+  };
+
   return (
     <div className="rounded-2xl border border-border bg-card/40 p-3">
-      <div className="mb-3 flex items-center justify-between gap-2">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
           Linha do tempo
         </p>
@@ -227,6 +234,31 @@ export function SeasonsTimeline({ seasons, onSelect }: Props) {
             </span>
           )}
         </div>
+      </div>
+
+      {/* Status filter */}
+      <div className="mb-3 flex flex-wrap items-center gap-1.5">
+        {([
+          { id: "all", label: `Todas (${totalCounts.completed + totalCounts.scheduled + totalCounts.in_progress + totalCounts.cancelled})` },
+          { id: "completed", label: `Só concluídas (${totalCounts.completed})` },
+          { id: "upcoming", label: `Só próximas (${totalCounts.scheduled + totalCounts.in_progress})` },
+        ] as const).map((opt) => {
+          const active = filter === opt.id;
+          return (
+            <button
+              key={opt.id}
+              type="button"
+              onClick={() => setFilter(opt.id)}
+              className={`rounded-full px-2.5 py-1 text-[10px] font-bold ring-1 transition-colors ${
+                active
+                  ? "bg-primary text-primary-foreground ring-primary"
+                  : "bg-background/40 text-muted-foreground ring-border hover:text-foreground"
+              }`}
+            >
+              {opt.label}
+            </button>
+          );
+        })}
       </div>
 
       <ul className="relative space-y-2.5 pl-4">
