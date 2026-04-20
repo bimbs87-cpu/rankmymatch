@@ -69,11 +69,15 @@ function RoundsProgress({ seasonId, totalRounds, seasonStatus }: { seasonId: str
 interface Props {
   groupId: string;
   isAdmin: boolean;
+  /** Auto-expand this season on mount (e.g. deep-link from dashboard). */
+  initialSeasonId?: string;
+  /** Auto-expand this round inside the season (works with initialSeasonId). */
+  initialRoundId?: string;
 }
 
-export function SeasonsPanel({ groupId, isAdmin }: Props) {
+export function SeasonsPanel({ groupId, isAdmin, initialSeasonId, initialRoundId }: Props) {
   const { seasons, isLoading, refresh } = useGroupSeasons(groupId);
-  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(initialSeasonId ?? null);
   const [quickCreateOpen, setQuickCreateOpen] = useState(false);
   const [groupFormat, setGroupFormat] = useState<string>("doubles");
   const [groupFixedDay, setGroupFixedDay] = useState<number | null>(null);
@@ -87,6 +91,16 @@ export function SeasonsPanel({ groupId, isAdmin }: Props) {
     setFilterState(f);
     try { window.localStorage.setItem(filterStorageKey, f); } catch {}
   };
+
+  // When a deep-link arrives (initialSeasonId/round), expand that season and scroll to it.
+  useEffect(() => {
+    if (initialSeasonId) {
+      setExpandedId(initialSeasonId);
+      requestAnimationFrame(() => {
+        document.getElementById(`season-${initialSeasonId}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+    }
+  }, [initialSeasonId, initialRoundId]);
 
   // Realtime: refresh when any round in this group changes (status flips, etc.)
   useEffect(() => {
