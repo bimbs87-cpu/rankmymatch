@@ -113,20 +113,26 @@ export function GroupDashboardPanel({ group, onLeft, onPresenceChanged }: Props)
   const [nudgeCooldownUntil, setNudgeCooldownUntil] = useState<number | null>(null);
   const [nudgeNowTs, setNudgeNowTs] = useState(Date.now());
   const [nudgePopoverOpen, setNudgePopoverOpen] = useState(false);
+  const [nudgeUsedCount, setNudgeUsedCount] = useState(0);
   const openProfile = useViewPlayerProfile();
 
   const NUDGE_COOLDOWN_MS = 60 * 60 * 1000; // 1h
+  const NUDGE_MAX_PER_ROUND = 3;
 
-  // Load cooldown from localStorage when round changes
+  // Load cooldown + usage count from localStorage when round changes
   useEffect(() => {
     const rid = data.next_round?.id;
     if (!rid || typeof localStorage === "undefined") {
       setNudgeCooldownUntil(null);
+      setNudgeUsedCount(0);
       return;
     }
     const raw = localStorage.getItem(`rmm.nudge.cooldown.${rid}`);
     const ts = raw ? Number(raw) : 0;
     setNudgeCooldownUntil(ts && ts > Date.now() ? ts : null);
+    const usedRaw = localStorage.getItem(`rmm.nudge.used.${rid}`);
+    const used = usedRaw ? Number(usedRaw) : 0;
+    setNudgeUsedCount(Number.isFinite(used) && used > 0 ? used : 0);
   }, [data.next_round?.id]);
 
   // Tick every 30s while a cooldown is active so the label updates
