@@ -34,7 +34,7 @@ export const getDevDashboard = createServerFn({ method: "GET" })
     // ===== auth.users (paginado, pega até 1000 — suficiente por enquanto) =====
     const { data: usersPage, error: usersErr } =
       await supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 1000 });
-    if (usersErr) throw new Response(usersErr.message, { status: 500 });
+    if (usersErr) throw new Error(usersErr.message);
     const authUsers = usersPage?.users ?? [];
 
     const userIds = authUsers.map((u) => u.id);
