@@ -21,6 +21,7 @@ export function useSeasonRounds(seasonId: string) {
       .from("rounds")
       .select("*")
       .eq("season_id", seasonId)
+      .order("scheduled_date", { ascending: true, nullsFirst: false })
       .order("round_number", { ascending: true });
     setRounds(data || []);
     setIsLoading(false);
