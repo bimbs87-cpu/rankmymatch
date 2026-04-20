@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { lovable } from "@/integrations/lovable/index";
 import { supabase } from "@/integrations/supabase/client";
+import { trackEvent } from "@/lib/analytics";
 import {
   TrendingUp,
   Calendar,
@@ -47,7 +48,11 @@ export function LandingPage() {
   const [error, setError] = useState("");
   const { resolved: resolvedTheme } = useTheme();
 
-  const handleGoogleLogin = async () => {
+  const handleGoogleLogin = async (ctaLocation: string = "unknown") => {
+    trackEvent("landing_cta_click", {
+      cta: "google_login",
+      location: ctaLocation,
+    });
     setLoading(true);
     setError("");
     try {
@@ -139,9 +144,17 @@ export function LandingPage() {
 
   const sports = ["Padel", "Tênis", "Beach Tennis", "Squash", "Pickleball"];
 
-  const CTAButton = ({ size = "md", className = "" }: { size?: "md" | "lg"; className?: string }) => (
+  const CTAButton = ({
+    size = "md",
+    className = "",
+    location = "unknown",
+  }: {
+    size?: "md" | "lg";
+    className?: string;
+    location?: string;
+  }) => (
     <button
-      onClick={handleGoogleLogin}
+      onClick={() => handleGoogleLogin(location)}
       disabled={loading}
       className={`group inline-flex items-center justify-center gap-3 rounded-full bg-primary font-semibold text-primary-foreground shadow-lg shadow-primary/30 transition-all hover:bg-primary/90 hover:shadow-primary/40 active:scale-[0.98] disabled:opacity-60 ${
         size === "lg" ? "px-7 py-4 text-base" : "px-6 py-3 text-sm"
@@ -210,7 +223,7 @@ export function LandingPage() {
         <div className="mx-auto flex max-w-7xl items-center justify-center px-5 pt-6 pb-3 sm:justify-between sm:px-8 sm:pt-4 sm:pb-4">
           <img src={logoSrc} alt="RankMyMatch" className="h-auto w-3/4 max-w-[420px] sm:w-auto sm:h-16 lg:h-20" />
           <button
-            onClick={handleGoogleLogin}
+            onClick={() => handleGoogleLogin("header")}
             disabled={loading}
             className="hidden items-center gap-2 rounded-full border border-border/70 bg-card/60 px-4 py-2 text-sm font-medium text-foreground backdrop-blur-md transition-all hover:border-primary/50 hover:bg-card sm:inline-flex"
           >
@@ -252,7 +265,7 @@ export function LandingPage() {
 
             {/* Mobile-only CTA: appears right below the tagline, before the hero image */}
             <div className="mt-5 flex flex-col items-start gap-2.5 lg:hidden">
-              <CTAButton size="lg" className="w-full" />
+              <CTAButton size="lg" className="w-full" location="hero_mobile" />
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 <CheckCircle2 className="h-4 w-4 text-primary" />
                 <span>Grátis para começar · sem cartão</span>
@@ -280,7 +293,7 @@ export function LandingPage() {
 
             {/* Desktop-only CTA */}
             <div className="mt-5 hidden flex-col items-start gap-2.5 sm:flex-row sm:items-center sm:gap-4 lg:flex lg:justify-start">
-              <CTAButton size="lg" className="w-full sm:w-auto" />
+              <CTAButton size="lg" className="w-full sm:w-auto" location="hero_desktop" />
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 <CheckCircle2 className="h-4 w-4 text-primary" />
                 <span>Grátis para começar · sem cartão</span>
@@ -412,7 +425,7 @@ export function LandingPage() {
               Junte-se a feirinos e clubes que já largaram a planilha. Entre com Google e crie seu primeiro grupo agora.
             </p>
             <div className="mt-6 flex justify-center">
-              <CTAButton size="lg" className="w-full sm:w-auto" />
+              <CTAButton size="lg" className="w-full sm:w-auto" location="final_cta" />
             </div>
             <p className="mt-3 text-[11px] text-muted-foreground">
               Ao entrar, você concorda com nossos Termos de Uso e Política de Privacidade.
