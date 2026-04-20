@@ -87,8 +87,10 @@ export const Route = createFileRoute("/groups/$groupId/")({
     };
   },
   component: GroupDetailPage,
-  validateSearch: (search: Record<string, unknown>): { view?: GroupView } => ({
+  validateSearch: (search: Record<string, unknown>): { view?: GroupView; season?: string; round?: string } => ({
     view: typeof search.view === "string" ? (search.view as GroupView) : undefined,
+    season: typeof search.season === "string" ? search.season : undefined,
+    round: typeof search.round === "string" ? search.round : undefined,
   }),
 });
 
@@ -111,7 +113,9 @@ function GroupDetailPage() {
   } = useGroupDetail(groupId);
   const { pendingMatch, refresh: refreshPending } = usePendingMatch(groupId);
 
-  const [view, setView] = useState<GroupView>(search.view || "overview");
+  // Deep-link to an inline round expand: ?season=...&round=... forces the seasons view.
+  const initialView: GroupView = (search.round || search.season) ? "seasons" : (search.view || "overview");
+  const [view, setView] = useState<GroupView>(initialView);
   const [scrolled, setScrolled] = useState(false);
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 4);
@@ -474,7 +478,14 @@ function GroupDetailPage() {
 
             {view === "members" && <MembersPanel groupId={groupId} />}
 
-            {view === "seasons" && <SeasonsPanel groupId={groupId} isAdmin={isAdmin} />}
+            {view === "seasons" && (
+              <SeasonsPanel
+                groupId={groupId}
+                isAdmin={isAdmin}
+                initialSeasonId={search.season}
+                initialRoundId={search.round}
+              />
+            )}
 
             {view === "ranking" && <GroupRankingPanel groupId={groupId} />}
 
