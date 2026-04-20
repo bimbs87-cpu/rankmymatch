@@ -149,17 +149,7 @@ export function GroupSwitcherPopover({ groups, activeGroupId, activeGroupName }:
               </p>
               <ul className="space-y-0.5">
                 {otherGroups.map((g) => (
-                  <li key={g.id}>
-                    <Link
-                      to="/groups/$groupId"
-                      params={{ groupId: g.id }}
-                      onClick={() => setOpen(false)}
-                      className="flex items-center gap-2 rounded-xl px-2.5 py-2 text-xs font-medium text-foreground transition-colors hover:bg-accent"
-                    >
-                      <Users className="h-3.5 w-3.5 shrink-0 text-primary" />
-                      <span className="truncate">{g.name}</span>
-                    </Link>
-                  </li>
+                  <OtherGroupItem key={g.id} group={g} onNavigate={() => setOpen(false)} />
                 ))}
               </ul>
             </>
@@ -167,5 +157,47 @@ export function GroupSwitcherPopover({ groups, activeGroupId, activeGroupName }:
         </div>
       )}
     </div>
+  );
+}
+
+/**
+ * Row in "Outros grupos" — lazy-loads pending-tasks count on hover so admins
+ * can see at-a-glance which other groups need attention without a heavy fetch
+ * for every group on popover open.
+ */
+function OtherGroupItem({
+  group,
+  onNavigate,
+}: {
+  group: GroupItem;
+  onNavigate: () => void;
+}) {
+  const [enabled, setEnabled] = useState(false);
+  const { counts, loading } = useGroupPendingTasks(group.id, enabled);
+  const total = counts.total;
+
+  return (
+    <li onMouseEnter={() => setEnabled(true)} onFocus={() => setEnabled(true)}>
+      <Link
+        to="/groups/$groupId"
+        params={{ groupId: group.id }}
+        onClick={onNavigate}
+        className="flex items-center justify-between gap-2 rounded-xl px-2.5 py-2 text-xs font-medium text-foreground transition-colors hover:bg-accent"
+      >
+        <span className="flex min-w-0 items-center gap-2">
+          <Users className="h-3.5 w-3.5 shrink-0 text-primary" />
+          <span className="truncate">{group.name}</span>
+        </span>
+        {enabled && !loading && total > 0 && (
+          <span
+            aria-label={`${total} pendência${total === 1 ? "" : "s"}`}
+            title={`${counts.joinRequests} solicitações · ${counts.playerClaims} vínculos · ${counts.matchResults} resultados`}
+            className="flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[9px] font-bold text-destructive-foreground"
+          >
+            {total > 9 ? "9+" : total}
+          </span>
+        )}
+      </Link>
+    </li>
   );
 }

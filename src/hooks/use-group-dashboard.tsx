@@ -233,7 +233,7 @@ export function useGroupDashboard(groupId: string | null) {
               avatar_url: prof?.avatar_url ?? null,
             };
           });
-          confirmedAvatars = confirmedAll.slice(0, 3).map((p) => ({
+          confirmedAvatars = confirmedAll.slice(0, 5).map((p) => ({
             user_id: p.user_id,
             name: p.name,
             avatar_url: p.avatar_url,
