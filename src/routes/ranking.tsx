@@ -526,33 +526,6 @@ function RankingPage() {
           )}
         </div>
         <div className="flex items-center gap-2">
-
-          {selectedSeason && rankings.length >= 2 && (
-            <button
-              onClick={() => {
-                setCompareMode((m) => {
-                  const next = !m;
-                  if (next) {
-                    setExpandedUserId(null);
-                    setCompareSelection(user?.id && rankings.some((r) => r.user_id === user.id) ? [user.id] : []);
-                  } else {
-                    setCompareSelection([]);
-                  }
-                  return next;
-                });
-              }}
-              className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-bold transition shadow-sm ${
-                compareMode
-                  ? "bg-primary/15 text-primary ring-1 ring-primary/40"
-                  : "bg-primary text-primary-foreground hover:opacity-90"
-              }`}
-              aria-pressed={compareMode}
-              title="Comparar jogadores"
-            >
-              {compareMode ? <X className="h-3.5 w-3.5" /> : <GitCompareArrows className="h-3.5 w-3.5" />}
-              {compareMode ? "Cancelar" : "Comparar"}
-            </button>
-          )}
           <Link to="/ranking-info" className="rounded-full border border-border bg-card p-2 transition-colors hover:bg-accent" aria-label="Entenda a pontuação" title="Entenda a pontuação">
             <Info className="h-4 w-4 text-muted-foreground" />
           </Link>
