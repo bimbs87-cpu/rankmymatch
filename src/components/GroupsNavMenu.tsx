@@ -1,9 +1,9 @@
 import { Link, useLocation } from "@tanstack/react-router";
-import { ChevronDown, Users, Trophy, UserSquare2, Compass, CheckCircle2, CalendarClock } from "lucide-react";
+import { ChevronDown, Users, Trophy, UserSquare2, Compass, CheckCircle2, CalendarClock, Clock, X as XIcon } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useGroupPendingTasks } from "@/hooks/use-group-pending-tasks";
 import { useAllGroupsPending } from "@/hooks/use-all-groups-pending";
-import { useNextRound } from "@/hooks/use-next-round";
+import { useNextRound, type PresenceStatus } from "@/hooks/use-next-round";
 
 interface GroupItem {
   id: string;
@@ -16,7 +16,10 @@ interface Props {
   renderTrigger: (args: {
     onClick: () => void;
     badge: number;
+    badgeLoading: boolean;
     open: boolean;
+    /** Optional inline shortcut ("Próx: qua · 19h ✓") rendered under the icon. Only set when groups.length === 1. */
+    nextRound?: { id: string; seasonId: string; label: string; presence: PresenceStatus } | null;
   }) => ReactNode;
   /** Optional anchor classes for the popover panel position. */
   panelClassName?: string;
@@ -58,10 +61,10 @@ export function GroupsNavMenu({ groups, renderTrigger, panelClassName }: Props) 
   // trigger reflects every group where the user has pending admin tasks, not
   // only the primary one).
   const allGroupIds = useMemo(() => groups.map((g) => g.id), [groups]);
-  const globalPending = useAllGroupsPending(allGroupIds);
+  const { total: globalPending, loading: globalLoading } = useAllGroupsPending(allGroupIds);
 
   // Next scheduled round of the primary group (used in the popover shortcut).
-  const { round: nextRound } = useNextRound(primaryId || null);
+  const { round: nextRound, presence: nextPresence } = useNextRound(primaryId || null);
 
   useEffect(() => {
     if (!open) return;
