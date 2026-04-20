@@ -426,6 +426,42 @@ export function SeasonsTimeline({ seasons, onSelect }: Props) {
                 {selectedMarker.matches != null && ` · ${selectedMarker.matches} partidas`}
               </p>
             )}
+
+            {/* Podium preview (top 3) */}
+            <div className="mt-3 rounded-xl border border-border bg-muted/10 p-2.5">
+              <p className="mb-1.5 text-[9px] font-bold uppercase tracking-wider text-muted-foreground">
+                {selectedMarker.type === "big_round" ? "🏆 Top 3 da rodada" : "🏆 Top 3 da temporada"}
+              </p>
+              {podiumLoading ? (
+                <p className="text-center text-[10px] text-muted-foreground">Carregando…</p>
+              ) : !podium || podium.length === 0 ? (
+                <p className="text-center text-[10px] text-muted-foreground">
+                  {selectedMarker.type === "big_round"
+                    ? "Sem placar registrado"
+                    : "Sem ranking final disponível"}
+                </p>
+              ) : (
+                <ol className="space-y-1">
+                  {podium.map((p, i) => {
+                    const medal = i === 0 ? "🥇" : i === 1 ? "🥈" : "🥉";
+                    return (
+                      <li
+                        key={i}
+                        className="flex items-center justify-between gap-2 rounded-lg bg-background/40 px-2 py-1"
+                      >
+                        <span className="flex min-w-0 items-center gap-1.5 truncate text-[11px]">
+                          <span className="shrink-0">{medal}</span>
+                          <span className="truncate font-bold text-foreground">{p.name}</span>
+                        </span>
+                        <span className="shrink-0 text-[10px] tabular-nums text-muted-foreground">
+                          {p.subtitle}
+                        </span>
+                      </li>
+                    );
+                  })}
+                </ol>
+              )}
+            </div>
             <div className="mt-3 flex items-center justify-end gap-2">
               {selectedMarker.type === "big_round" &&
                 selectedMarker.groupId &&
