@@ -701,7 +701,14 @@ function SeasonRoundsInline({ groupId, seasonId, isAdmin }: { groupId: string; s
                     <span className="font-display text-xs font-bold text-primary">R{r.round_number || "?"}</span>
                   </div>
                   <div className="min-w-0">
-                    <span className="text-sm font-semibold text-foreground">Rodada {r.round_number}</span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-sm font-semibold text-foreground">Rodada {r.round_number}</span>
+                      {(r as any).is_extra && (
+                        <span className="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[9px] font-bold uppercase text-amber-600 dark:text-amber-400" title="Rodada extra (fora do calendário regular)">
+                          Extra
+                        </span>
+                      )}
+                    </div>
                     <div className="flex flex-wrap items-center gap-x-2 text-[11px] text-muted-foreground">
                       <span className="flex items-center gap-1"><Calendar className="h-3 w-3" />{formatDate(r.scheduled_date)}</span>
                       {r.scheduled_time && <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{r.scheduled_time.slice(0, 5)}</span>}
