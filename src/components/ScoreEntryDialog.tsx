@@ -179,6 +179,7 @@ export function ScoreEntryDialog({
   }, [submitting]);
 
   const updateScore = (setIndex: number, team: "A" | "B", value: number) => {
+    setUserEdited(true);
     setSets((prev) =>
       prev.map((s, i) =>
         i === setIndex
@@ -190,12 +191,14 @@ export function ScoreEntryDialog({
 
   const addSet = () => {
     if (sets.length < maxSets) {
+      setUserEdited(true);
       setSets([...sets, { scoreA: 0, scoreB: 0 }]);
     }
   };
 
   const removeLastSet = () => {
     if (sets.length > 1) {
+      setUserEdited(true);
       setSets(sets.slice(0, -1));
     }
   };
