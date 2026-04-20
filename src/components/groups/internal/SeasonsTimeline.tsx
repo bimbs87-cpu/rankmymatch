@@ -135,16 +135,17 @@ export function SeasonsTimeline({ seasons, onSelect }: Props) {
           const ids = top.map(([uid]) => uid);
           const { data: profs } = await supabase
             .from("user_profiles")
-            .select("user_id, name, nickname")
+            .select("user_id, name, nickname, avatar_url")
             .in("user_id", ids);
-          const nameMap = new Map(
-            (profs || []).map((p) => [p.user_id, p.nickname || p.name || "Jogador"]),
+          const profMap = new Map(
+            (profs || []).map((p) => [p.user_id, { name: p.nickname || p.name || "Jogador", avatarUrl: p.avatar_url ?? null }]),
           );
           if (cancelled) return;
           setPodium(
             top.map(([uid, v]) => ({
               userId: uid,
-              name: nameMap.get(uid) || "Jogador",
+              name: profMap.get(uid)?.name || "Jogador",
+              avatarUrl: profMap.get(uid)?.avatarUrl ?? null,
               value: v,
               subtitle: `${v} vitória${v !== 1 ? "s" : ""}`,
             })),
@@ -166,16 +167,17 @@ export function SeasonsTimeline({ seasons, onSelect }: Props) {
           const ids = top.map((s) => s.user_id);
           const { data: profs } = await supabase
             .from("user_profiles")
-            .select("user_id, name, nickname")
+            .select("user_id, name, nickname, avatar_url")
             .in("user_id", ids);
-          const nameMap = new Map(
-            (profs || []).map((p) => [p.user_id, p.nickname || p.name || "Jogador"]),
+          const profMap = new Map(
+            (profs || []).map((p) => [p.user_id, { name: p.nickname || p.name || "Jogador", avatarUrl: p.avatar_url ?? null }]),
           );
           if (cancelled) return;
           setPodium(
             top.map((s) => ({
               userId: s.user_id,
-              name: nameMap.get(s.user_id) || "Jogador",
+              name: profMap.get(s.user_id)?.name || "Jogador",
+              avatarUrl: profMap.get(s.user_id)?.avatarUrl ?? null,
               value: Math.round(s.rating),
               subtitle: `${Math.round(s.rating)} pts`,
             })),
@@ -464,6 +466,7 @@ export function SeasonsTimeline({ seasons, onSelect }: Props) {
                           title={`Ver perfil de ${p.name}`}
                         >
                           <span className="shrink-0">{medal}</span>
+                          <PlayerAvatar avatarUrl={p.avatarUrl} name={p.name} size="xs" className="shrink-0" />
                           <span className="truncate font-bold text-foreground hover:text-primary">
                             {p.name}
                           </span>
