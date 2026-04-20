@@ -74,7 +74,7 @@ async function fanout(
  * Notify only the active admins/creators of a group (in-app + best-effort push).
  * Used for moderation events: join requests, player claims, etc.
  */
-export async function notifyGroupAdmins(params: NotifyParams) {
+export async function notifyGroupAdmins(params: NotifyParams): Promise<PushResult> {
   const { data: admins } = await supabase
     .from("group_members")
     .select("user_id")
@@ -83,13 +83,13 @@ export async function notifyGroupAdmins(params: NotifyParams) {
     .in("role", ["creator", "admin"])
     .neq("user_id", params.actorId);
 
-  await fanout((admins || []).map((a) => a.user_id), params, "/admin/inbox");
+  return fanout((admins || []).map((a) => a.user_id), params, "/admin/inbox");
 }
 
 /**
  * Notify all members of a group except the actor (in-app + best-effort push).
  */
-export async function notifyGroupMembers(params: NotifyParams) {
+export async function notifyGroupMembers(params: NotifyParams): Promise<PushResult> {
   const { data: members } = await supabase
     .from("group_members")
     .select("user_id")
@@ -97,7 +97,7 @@ export async function notifyGroupMembers(params: NotifyParams) {
     .eq("status", "active")
     .neq("user_id", params.actorId);
 
-  await fanout((members || []).map((m) => m.user_id), params, "/notifications");
+  return fanout((members || []).map((m) => m.user_id), params, "/notifications");
 }
 
 /**
@@ -109,7 +109,7 @@ export async function notifyUsers(
   userIds: string[],
   params: NotifyParams,
   defaultUrl = "/notifications",
-) {
+): Promise<PushResult> {
   const targets = Array.from(new Set(userIds.filter((u) => u && u !== params.actorId)));
-  await fanout(targets, params, defaultUrl);
+  return fanout(targets, params, defaultUrl);
 }
