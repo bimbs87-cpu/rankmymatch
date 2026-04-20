@@ -486,20 +486,25 @@ function RankingPage() {
   const getDisplayName = (entry: RankingEntry) =>
     displayNameMap.get(entry.user_id) || entry.profile?.nickname || abbreviateName(entry.profile?.name || "Jogador");
 
-  const rivalryGroup = groups.find((g: any) => isRivalryGroup(g));
+  const rivalryGroups = groups.filter((g: any) => isRivalryGroup(g));
   const onlyRivalryGroups = groups.length > 0 && groups.every((g: any) => isRivalryGroup(g));
 
-  // When a rivalry group is selected (or it's the user's only group type),
-  // redirect the central "Ranking" tab to its dedicated premium /duel page.
+  // When the selected season belongs to a rivalry (1x1) group — or the user
+  // only has rivalry groups — redirect to the dedicated /duel report. A
+  // 2-player ranking list is meaningless; the duel view shows H2H, streaks,
+  // and Elo evolution which is what users actually want.
   useEffect(() => {
-    if (!rivalryGroup || isPageLoading) return;
+    if (isPageLoading || rivalryGroups.length === 0) return;
     const selected = seasons.find((s: any) => s.id === selectedSeasonId);
-    const selectedIsRivalry = selected ? selected.group_id === rivalryGroup.id : false;
-    if (onlyRivalryGroups || selectedIsRivalry || !selectedSeasonId) {
-      navigate({ to: "/groups/$groupId/duel", params: { groupId: rivalryGroup.id }, replace: true });
+    const selectedRivalry = selected
+      ? rivalryGroups.find((g: any) => g.id === selected.group_id)
+      : null;
+    const target = selectedRivalry || (onlyRivalryGroups ? rivalryGroups[0] : null);
+    if (target) {
+      navigate({ to: "/groups/$groupId/duel", params: { groupId: target.id }, replace: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rivalryGroup?.id, onlyRivalryGroups, selectedSeasonId, seasons, isPageLoading]);
+  }, [rivalryGroups.map((g) => g.id).join(","), onlyRivalryGroups, selectedSeasonId, seasons.length, isPageLoading]);
 
   return (
     <div className="min-h-screen bg-background pb-28 lg:pb-8">
