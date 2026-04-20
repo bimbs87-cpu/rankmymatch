@@ -79,8 +79,9 @@ export function NotificationsPopover({ children }: Props) {
     }
     if (groupId && seasonId && roundId) {
       navigate({
-        to: "/groups/$groupId/seasons/$seasonId/rounds/$roundId",
-        params: { groupId, seasonId, roundId },
+        to: "/groups/$groupId",
+        params: { groupId },
+        search: { view: "seasons", season: seasonId, round: roundId } as any,
       });
       return;
     }

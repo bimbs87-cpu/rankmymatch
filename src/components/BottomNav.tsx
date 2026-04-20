@@ -113,12 +113,9 @@ export function BottomNav() {
                       </button>
                       {nextRound && (
                         <Link
-                          to="/groups/$groupId/seasons/$seasonId/rounds/$roundId"
-                          params={{
-                            groupId: myGroups[0]?.id ?? "",
-                            seasonId: nextRound.seasonId,
-                            roundId: nextRound.id,
-                          }}
+                          to="/groups/$groupId"
+                          params={{ groupId: myGroups[0]?.id ?? "" }}
+                          search={{ view: "seasons", season: nextRound.seasonId, round: nextRound.id } as any}
                           onClick={(e) => e.stopPropagation()}
                           className="mt-0.5 inline-flex items-center gap-0.5 rounded-full bg-success/15 px-1.5 py-0.5 text-[8px] font-bold text-success leading-none ring-1 ring-success/30 hover:bg-success/25"
                           aria-label="Abrir próxima rodada"
