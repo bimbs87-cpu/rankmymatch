@@ -47,6 +47,7 @@ import type { Tables } from "@/integrations/supabase/types";
 import { playRoundAlert } from "@/lib/round-alert-sound";
 import { sendPushFn } from "@/lib/push.functions";
 import { Bell as BellIcon } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 type Group = Tables<"groups"> & {
   member_count?: number;
@@ -108,21 +109,64 @@ export function GroupDashboardPanel({ group, onLeft, onPresenceChanged }: Props)
   const [resolvingReq, setResolvingReq] = useState<string | null>(null);
   const [resolvingClaim, setResolvingClaim] = useState<string | null>(null);
   const [nudging, setNudging] = useState(false);
+  const [nudgeCooldownUntil, setNudgeCooldownUntil] = useState<number | null>(null);
+  const [nudgeNowTs, setNudgeNowTs] = useState(Date.now());
+  const [nudgePopoverOpen, setNudgePopoverOpen] = useState(false);
   const openProfile = useViewPlayerProfile();
 
-  async function handleNudgePending() {
-    if (!data.next_round || !data.next_round.pending_all?.length) return;
+  const NUDGE_COOLDOWN_MS = 60 * 60 * 1000; // 1h
+
+  // Load cooldown from localStorage when round changes
+  useEffect(() => {
+    const rid = data.next_round?.id;
+    if (!rid || typeof localStorage === "undefined") {
+      setNudgeCooldownUntil(null);
+      return;
+    }
+    const raw = localStorage.getItem(`rmm.nudge.cooldown.${rid}`);
+    const ts = raw ? Number(raw) : 0;
+    setNudgeCooldownUntil(ts && ts > Date.now() ? ts : null);
+  }, [data.next_round?.id]);
+
+  // Tick every 30s while a cooldown is active so the label updates
+  useEffect(() => {
+    if (!nudgeCooldownUntil) return;
+    const id = setInterval(() => setNudgeNowTs(Date.now()), 30_000);
+    return () => clearInterval(id);
+  }, [nudgeCooldownUntil]);
+
+  const cooldownRemainingMs = nudgeCooldownUntil ? nudgeCooldownUntil - nudgeNowTs : 0;
+  const nudgeOnCooldown = cooldownRemainingMs > 0;
+  const cooldownLabel = (() => {
+    if (!nudgeOnCooldown) return null;
+    const mins = Math.ceil(cooldownRemainingMs / 60000);
+    return mins >= 60 ? "1h" : `${mins}min`;
+  })();
+
+  async function handleNudgePending(includeDeclined: boolean) {
+    if (!data.next_round) return;
+    const pendingIds = data.next_round.pending_all?.map((p) => p.user_id) ?? [];
+    const declinedIds = includeDeclined
+      ? data.next_round.declined_all?.map((p) => p.user_id) ?? []
+      : [];
+    const targetIds = [...new Set([...pendingIds, ...declinedIds])];
+    if (!targetIds.length) {
+      toast.info("Ninguém para cutucar");
+      return;
+    }
+    setNudgePopoverOpen(false);
     setNudging(true);
     try {
-      const pendingIds = data.next_round.pending_all.map((p) => p.user_id);
       const roundLabel = data.next_round.round_number
         ? `Rodada ${data.next_round.round_number}`
         : "Próxima rodada";
       const title = `📣 ${roundLabel}: confirme presença!`;
-      const body = `Faltam ${pendingIds.length} resposta${pendingIds.length > 1 ? "s" : ""} para a lista. Toque para responder.`;
+      const body = includeDeclined
+        ? `Tem vaga abrindo? Reconsidere a presença na lista. Toque para responder.`
+        : `Faltam ${targetIds.length} resposta${targetIds.length > 1 ? "s" : ""} para a lista. Toque para responder.`;
 
       // In-app notifications (members → RLS allows when group_id matches)
-      const rows = pendingIds.map((uid) => ({
+      const rows = targetIds.map((uid) => ({
         user_id: uid,
         group_id: group.id,
         type: "round_nudge",
@@ -135,7 +179,7 @@ export function GroupDashboardPanel({ group, onLeft, onPresenceChanged }: Props)
       // Push (best-effort, gated server-side by shared-group rule)
       void sendPushFn({
         data: {
-          userIds: pendingIds,
+          userIds: targetIds,
           payload: {
             title,
             body,
@@ -147,13 +191,26 @@ export function GroupDashboardPanel({ group, onLeft, onPresenceChanged }: Props)
         },
       }).catch(() => {});
 
-      toast.success(`Cutucada enviada para ${pendingIds.length} membro${pendingIds.length > 1 ? "s" : ""}`);
+      // Save cooldown per round
+      const until = Date.now() + NUDGE_COOLDOWN_MS;
+      try {
+        localStorage.setItem(`rmm.nudge.cooldown.${data.next_round.id}`, String(until));
+      } catch {
+        // ignore
+      }
+      setNudgeCooldownUntil(until);
+      setNudgeNowTs(Date.now());
+
+      toast.success(
+        `Cutucada enviada para ${targetIds.length} membro${targetIds.length > 1 ? "s" : ""}`
+      );
     } catch (e: any) {
       toast.error(e?.message || "Não foi possível cutucar agora");
     } finally {
       setNudging(false);
     }
   }
+
 
   async function handleApproveClaim(claim: typeof data.pending_claims[number]) {
     if (!user) return;
@@ -601,6 +658,7 @@ export function GroupDashboardPanel({ group, onLeft, onPresenceChanged }: Props)
                 declined={data.next_round.declined_all?.length ?? 0}
                 pending={data.next_round.pending_all?.length ?? 0}
                 memberCount={data.member_count}
+                maxPlayers={data.next_round.max_players}
               />
               {/* Pending row — members who haven't responded yet, in a dimmed tone */}
               {data.next_round.pending_all && data.next_round.pending_all.length > 0 && (
@@ -671,17 +729,68 @@ export function GroupDashboardPanel({ group, onLeft, onPresenceChanged }: Props)
                     {data.next_round.presence_is_open &&
                       data.next_round.pending_all &&
                       data.next_round.pending_all.length > 0 && (
-                        <button
-                          onClick={handleNudgePending}
-                          disabled={nudging}
-                          className="flex items-center gap-1 rounded-full border border-warning/40 bg-warning/10 px-2.5 py-1 text-[10px] font-bold text-warning transition-colors hover:bg-warning/20 disabled:opacity-50"
-                          title={`Cutucar ${data.next_round.pending_all.length} membro(s) sem resposta`}
-                        >
-                          <BellIcon className="h-3 w-3" />
-                          {nudging
-                            ? "Cutucando…"
-                            : `Cutucar pendentes (${data.next_round.pending_all.length})`}
-                        </button>
+                        <Popover open={nudgePopoverOpen} onOpenChange={setNudgePopoverOpen}>
+                          <PopoverTrigger asChild>
+                            <button
+                              disabled={nudging || nudgeOnCooldown}
+                              className="flex items-center gap-1 rounded-full border border-warning/40 bg-warning/10 px-2.5 py-1 text-[10px] font-bold text-warning transition-colors hover:bg-warning/20 disabled:opacity-50"
+                              title={
+                                nudgeOnCooldown
+                                  ? `Aguarde ${cooldownLabel} para cutucar novamente`
+                                  : `Cutucar ${data.next_round.pending_all.length} membro(s) sem resposta`
+                              }
+                            >
+                              <BellIcon className="h-3 w-3" />
+                              {nudging
+                                ? "Cutucando…"
+                                : nudgeOnCooldown
+                                  ? `Cutucar (aguarde ${cooldownLabel})`
+                                  : `Cutucar pendentes (${data.next_round.pending_all.length})`}
+                            </button>
+                          </PopoverTrigger>
+                          <PopoverContent align="end" className="w-64 p-2">
+                            <div className="mb-2 px-1 text-[11px] font-semibold text-foreground">
+                              Cutucar quem?
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => handleNudgePending(false)}
+                              disabled={nudging}
+                              className="flex w-full items-start gap-2 rounded-md p-2 text-left text-xs transition-colors hover:bg-muted/60 disabled:opacity-50"
+                            >
+                              <BellIcon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-warning" />
+                              <div>
+                                <div className="font-bold text-foreground">
+                                  Só sem resposta ({data.next_round.pending_all.length})
+                                </div>
+                                <div className="text-[10px] text-muted-foreground">
+                                  Lembrete pra quem ainda não confirmou nem recusou.
+                                </div>
+                              </div>
+                            </button>
+                            {data.next_round.declined_all && data.next_round.declined_all.length > 0 && (
+                              <button
+                                type="button"
+                                onClick={() => handleNudgePending(true)}
+                                disabled={nudging}
+                                className="mt-1 flex w-full items-start gap-2 rounded-md p-2 text-left text-xs transition-colors hover:bg-muted/60 disabled:opacity-50"
+                              >
+                                <BellIcon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-destructive" />
+                                <div>
+                                  <div className="font-bold text-foreground">
+                                    + Quem recusou ({data.next_round.declined_all.length})
+                                  </div>
+                                  <div className="text-[10px] text-muted-foreground">
+                                    Inclui também quem disse "Não vou" — útil quando abre vaga.
+                                  </div>
+                                </div>
+                              </button>
+                            )}
+                            <div className="mt-2 border-t border-border/60 px-1 pt-1.5 text-[10px] text-muted-foreground">
+                              Cooldown de 1h por rodada após enviar.
+                            </div>
+                          </PopoverContent>
+                        </Popover>
                       )}
                     <button
                       onClick={handleToggleForceOpen}
@@ -1055,11 +1164,13 @@ function ResponseProgressBar({
   declined,
   pending,
   memberCount,
+  maxPlayers,
 }: {
   confirmed: number;
   declined: number;
   pending: number;
   memberCount: number;
+  maxPlayers?: number | null;
 }) {
   const total = Math.max(memberCount, confirmed + declined + pending);
   if (total <= 0) return null;
@@ -1067,6 +1178,11 @@ function ResponseProgressBar({
   const pct = Math.round((responded / total) * 100);
   const confirmedPct = (confirmed / total) * 100;
   const declinedPct = (declined / total) * 100;
+  // Marker position for max_players (only if it makes sense and fits inside the bar)
+  const showMaxMarker =
+    typeof maxPlayers === "number" && maxPlayers > 0 && maxPlayers < total;
+  const maxMarkerPct = showMaxMarker ? (maxPlayers! / total) * 100 : 0;
+  const isFull = typeof maxPlayers === "number" && confirmed >= maxPlayers;
 
   return (
     <div className="space-y-1">
@@ -1074,17 +1190,24 @@ function ResponseProgressBar({
         <span>
           <span className="font-bold text-foreground tabular-nums">{responded}</span>
           /{total} responderam
+          {isFull && (
+            <span className="ml-1.5 rounded-full bg-success/15 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-success">
+              Lotada
+            </span>
+          )}
         </span>
         <span className="font-bold tabular-nums text-foreground">{pct}%</span>
       </div>
       <div
-        className="flex h-1.5 w-full overflow-hidden rounded-full bg-muted/60"
+        className="relative flex h-1.5 w-full overflow-hidden rounded-full bg-muted/60"
         role="progressbar"
         aria-valuenow={pct}
         aria-valuemin={0}
         aria-valuemax={100}
         aria-label={`${pct}% de membros responderam`}
-        title={`✓ ${confirmed} confirmados · ✗ ${declined} recusaram · ${pending} pendentes`}
+        title={`✓ ${confirmed} confirmados · ✗ ${declined} recusaram · ${pending} pendentes${
+          showMaxMarker ? ` · capacidade ${maxPlayers}` : ""
+        }`}
       >
         <div
           className="h-full bg-success transition-all"
@@ -1094,7 +1217,29 @@ function ResponseProgressBar({
           className="h-full bg-destructive/50 transition-all"
           style={{ width: `${declinedPct}%` }}
         />
+        {showMaxMarker && (
+          <div
+            className="pointer-events-none absolute top-[-2px] bottom-[-2px] w-px bg-foreground/70"
+            style={{ left: `calc(${maxMarkerPct}% - 0.5px)` }}
+            title={`Capacidade da rodada: ${maxPlayers}`}
+            aria-label={`Marca de capacidade: ${maxPlayers} jogadores`}
+          />
+        )}
       </div>
+      {showMaxMarker && (
+        <div className="flex justify-between text-[9px] text-muted-foreground/80">
+          <span>0</span>
+          <span
+            style={{
+              marginLeft: `calc(${maxMarkerPct}% - 1.5rem)`,
+              marginRight: "auto",
+            }}
+            className="font-semibold text-foreground/70"
+          >
+            ↑ {maxPlayers} (lota)
+          </span>
+        </div>
+      )}
     </div>
   );
 }
