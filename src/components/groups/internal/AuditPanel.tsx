@@ -28,6 +28,13 @@ const ACTION_LABELS: Record<string, string> = {
   round_created: "Criou rodada",
   round_deleted: "Excluiu rodada",
   match_score_edited: "Editou placar",
+  round_nudge: "Cutucou pendentes",
+  round_nudge_cooldown_reset: "Resetou cooldown de cutucadas",
+};
+
+const NUDGE_MODE_LABELS: Record<string, string> = {
+  pending_only: "Só sem resposta",
+  "pending+declined": "Sem resposta + quem recusou",
 };
 
 function fmtDate(iso: string) {
