@@ -398,12 +398,55 @@ function NextRoundCard({ data, isLoading, groupId, busy, onPresence }: NextRound
     const el = presenceButtonsRef.current;
     if (!el) return;
     el.scrollIntoView({ behavior: "smooth", block: "center" });
-    // Brief highlight pulse for visual feedback
     el.classList.add("ring-2", "ring-warning", "ring-offset-2", "ring-offset-card", "rounded-full");
     window.setTimeout(() => {
       el.classList.remove("ring-2", "ring-warning", "ring-offset-2", "ring-offset-card", "rounded-full");
     }, 1200);
   };
+
+  // "Lembrar depois" — snooze the pending banner for 1h per round (localStorage)
+  const roundId = data.next_round?.id || null;
+  const snoozeKey = roundId ? `pending_snooze_v1:${roundId}` : null;
+  const [snoozedUntil, setSnoozedUntil] = useState<number | null>(() => {
+    if (typeof window === "undefined" || !snoozeKey) return null;
+    const raw = window.localStorage.getItem(snoozeKey);
+    const n = raw ? parseInt(raw, 10) : 0;
+    return n && n > Date.now() ? n : null;
+  });
+  // Re-read whenever the round changes
+  useEffect(() => {
+    if (typeof window === "undefined" || !snoozeKey) {
+      setSnoozedUntil(null);
+      return;
+    }
+    const raw = window.localStorage.getItem(snoozeKey);
+    const n = raw ? parseInt(raw, 10) : 0;
+    setSnoozedUntil(n && n > Date.now() ? n : null);
+  }, [snoozeKey]);
+  // Auto-clear when snooze expires
+  useEffect(() => {
+    if (!snoozedUntil) return;
+    const ms = snoozedUntil - Date.now();
+    if (ms <= 0) {
+      setSnoozedUntil(null);
+      return;
+    }
+    const t = window.setTimeout(() => setSnoozedUntil(null), ms + 100);
+    return () => window.clearTimeout(t);
+  }, [snoozedUntil]);
+  const handleSnooze = () => {
+    if (!snoozeKey) return;
+    const until = Date.now() + 60 * 60 * 1000;
+    try {
+      window.localStorage.setItem(snoozeKey, String(until));
+    } catch {
+      /* ignore quota */
+    }
+    setSnoozedUntil(until);
+    toast("Banner ocultado por 1h", { description: "Voltamos a lembrar você depois." });
+  };
+  const isSnoozed = !!snoozedUntil && snoozedUntil > Date.now();
+
   const urgency = useMemo(() => {
     const r = data.next_round;
     if (!r || !r.scheduled_date) return null;
@@ -554,7 +597,7 @@ function NextRoundCard({ data, isLoading, groupId, busy, onPresence }: NextRound
           )}
 
           {/* Aviso "Você ainda não respondeu" — destaca no mobile quando lista aberta + pendente */}
-          {data.next_round.presence_is_open && data.next_round.presence_status === "pending" && (
+          {data.next_round.presence_is_open && data.next_round.presence_status === "pending" && !isSnoozed && (
             <div className="mt-2 flex items-center gap-1.5 rounded-lg border border-warning/40 bg-warning/10 px-2 py-1.5 text-[10px] font-bold text-warning animate-in fade-in">
               <span className="relative flex h-2 w-2 shrink-0">
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-warning opacity-70" />
@@ -570,6 +613,14 @@ function NextRoundCard({ data, isLoading, groupId, busy, onPresence }: NextRound
                 className="shrink-0 rounded-full bg-warning px-2 py-0.5 text-[10px] font-bold text-warning-foreground transition hover:scale-[1.03] active:scale-95"
               >
                 Responder agora
+              </button>
+              <button
+                type="button"
+                onClick={handleSnooze}
+                title="Ocultar por 1 hora"
+                className="shrink-0 rounded-full border border-warning/40 bg-card/40 px-2 py-0.5 text-[10px] font-semibold text-warning transition hover:bg-card/70 active:scale-95"
+              >
+                Lembrar depois
               </button>
             </div>
           )}

@@ -316,21 +316,69 @@ export function PushDiagnosticCard() {
 
         {/* Test push history (last 5, persisted in localStorage) */}
         <div className="mt-6">
-          <div className="mb-2 flex items-center justify-between">
+          <div className="mb-2 flex items-center justify-between gap-2">
             <h3 className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground inline-flex items-center gap-1.5">
               <History className="h-3 w-3" /> Histórico de testes (últimos {MAX_HISTORY})
             </h3>
-            {history.length > 0 && (
-              <button
-                onClick={() => {
-                  setHistory([]);
-                  saveHistory([]);
-                }}
-                className="text-[10px] font-semibold text-muted-foreground hover:text-foreground"
-              >
-                Limpar
-              </button>
-            )}
+            <div className="flex items-center gap-2">
+              {history.length >= 2 && (() => {
+                // Oldest → newest, success rate per attempt
+                const ordered = [...history].reverse();
+                const rates = ordered.map((h) => {
+                  const total = h.sent + h.failed;
+                  if (total === 0) return h.error ? 0 : 0; // no devices counted as 0
+                  return h.sent / total;
+                });
+                const avg = rates.reduce((s, n) => s + n, 0) / rates.length;
+                const W = 56;
+                const H = 16;
+                const step = rates.length > 1 ? W / (rates.length - 1) : W;
+                const points = rates
+                  .map((r, i) => `${(i * step).toFixed(1)},${(H - r * H).toFixed(1)}`)
+                  .join(" ");
+                const lastRate = rates[rates.length - 1];
+                const stroke =
+                  avg >= 0.9 ? "hsl(var(--success))" : avg >= 0.5 ? "hsl(var(--warning))" : "hsl(var(--destructive))";
+                return (
+                  <span
+                    className="inline-flex items-center gap-1.5 rounded-full border border-border bg-background/40 px-2 py-0.5 text-[10px] font-bold tabular-nums text-muted-foreground"
+                    title={`Taxa de sucesso média dos últimos ${rates.length} testes: ${Math.round(avg * 100)}%. Último: ${Math.round(lastRate * 100)}%.`}
+                  >
+                    <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} className="overflow-visible">
+                      <polyline
+                        fill="none"
+                        stroke={stroke}
+                        strokeWidth={1.5}
+                        strokeLinejoin="round"
+                        strokeLinecap="round"
+                        points={points}
+                      />
+                      {rates.map((r, i) => (
+                        <circle
+                          key={i}
+                          cx={i * step}
+                          cy={H - r * H}
+                          r={1.6}
+                          fill={stroke}
+                        />
+                      ))}
+                    </svg>
+                    <span className="text-foreground">{Math.round(avg * 100)}%</span>
+                  </span>
+                );
+              })()}
+              {history.length > 0 && (
+                <button
+                  onClick={() => {
+                    setHistory([]);
+                    saveHistory([]);
+                  }}
+                  className="text-[10px] font-semibold text-muted-foreground hover:text-foreground"
+                >
+                  Limpar
+                </button>
+              )}
+            </div>
           </div>
           {history.length === 0 ? (
             <div className="rounded-xl border border-dashed border-border bg-muted/10 px-4 py-4 text-center text-xs text-muted-foreground">
