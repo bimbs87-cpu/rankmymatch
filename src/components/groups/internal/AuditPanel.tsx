@@ -31,6 +31,7 @@ const ACTION_LABELS: Record<string, string> = {
   round_nudge: "Cutucou pendentes",
   round_nudge_cooldown_reset: "Resetou cooldown de cutucadas",
   waitlist_auto_promoted: "Auto-promoveu da lista de espera",
+  waitlist_manual_promoted: "Promoveu manualmente da lista de espera",
 };
 
 const NUDGE_MODE_LABELS: Record<string, string> = {
@@ -317,14 +318,21 @@ export function AuditPanel({ groupId }: Props) {
 
   const actions = useMemo(() => Array.from(new Set(rows.map((r) => r.action))).sort(), [rows]);
   const NUDGE_ACTIONS = new Set(["round_nudge", "round_nudge_cooldown_reset"]);
+  const WAITLIST_ACTIONS = new Set(["waitlist_auto_promoted", "waitlist_manual_promoted"]);
   const isNudgeFilter = filter === "__nudges__";
+  const isWaitlistFilter = filter === "__waitlist__";
   const filtered = useMemo(() => {
     if (filter === "all") return rows;
     if (isNudgeFilter) return rows.filter((r) => NUDGE_ACTIONS.has(r.action));
+    if (isWaitlistFilter) return rows.filter((r) => WAITLIST_ACTIONS.has(r.action));
     return rows.filter((r) => r.action === filter);
-  }, [filter, rows, isNudgeFilter]);
+  }, [filter, rows, isNudgeFilter, isWaitlistFilter]);
   const nudgeCount = useMemo(
     () => rows.filter((r) => NUDGE_ACTIONS.has(r.action)).length,
+    [rows],
+  );
+  const waitlistCount = useMemo(
+    () => rows.filter((r) => WAITLIST_ACTIONS.has(r.action)).length,
     [rows],
   );
 
@@ -332,7 +340,7 @@ export function AuditPanel({ groupId }: Props) {
   const nudgeStats = useMemo(() => {
     const nudges = rows.filter((r) => r.action === "round_nudge");
     if (nudges.length === 0) {
-      return { total: 0, recipients: 0, pendingPct: 0, declinedPct: 0, lastAt: null as string | null };
+      return { total: 0, recipients: 0, pendingPct: 0, declinedPct: 0, lastAt: null as string | null, sparkline: [] as number[] };
     }
     let recipients = 0;
     let pending = 0;
@@ -344,12 +352,17 @@ export function AuditPanel({ groupId }: Props) {
       declined += Number(d.declined_count ?? 0);
     }
     const sumPD = pending + declined;
+    // Sparkline: last 10 nudges, oldest → newest, recipients_count per nudge.
+    // (rows is sorted DESC by created_at, so reverse.)
+    const last10 = nudges.slice(0, 10).reverse();
+    const sparkline = last10.map((r) => Number((r.new_data || {}).recipients_count ?? 0));
     return {
       total: nudges.length,
       recipients,
       pendingPct: sumPD > 0 ? Math.round((pending / sumPD) * 100) : 0,
       declinedPct: sumPD > 0 ? Math.round((declined / sumPD) * 100) : 0,
       lastAt: nudges[0]?.created_at ?? null,
+      sparkline,
     };
   }, [rows]);
 
