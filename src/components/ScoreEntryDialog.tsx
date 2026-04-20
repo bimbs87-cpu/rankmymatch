@@ -92,6 +92,30 @@ export function ScoreEntryDialog({
   const [saveStep, setSaveStep] = useState(0);
   const [saveStepLabel, setSaveStepLabel] = useState("");
   const [playerStats, setPlayerStats] = useState<Record<string, { rating: number; matchesPlayed: number }>>({});
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [userEdited, setUserEdited] = useState(false);
+
+  useEffect(() => {
+    void supabase.auth.getUser().then(({ data }) => {
+      setCurrentUserId(data?.user?.id ?? null);
+    });
+  }, []);
+
+  const isPlayerInMatch = useMemo(() => {
+    if (!currentUserId) return false;
+    return [...teamA, ...teamB].some((p) => p.userId === currentUserId);
+  }, [currentUserId, teamA, teamB]);
+
+  // When a pending result arrives async (and no official sets), prefill the
+  // form so the admin sees what the player proposed — unless the user has
+  // already started editing.
+  useEffect(() => {
+    if (userEdited) return;
+    if (existingSets?.length) return;
+    if (pending?.sets?.length) {
+      setSets(pending.sets.map((s) => ({ scoreA: s.scoreA, scoreB: s.scoreB })));
+    }
+  }, [pending, existingSets, userEdited]);
 
   // Load current rating snapshots for preview of Elo deltas while typing
   useEffect(() => {
