@@ -492,6 +492,26 @@ function NextRoundCard({ data, isLoading, groupId, busy, onPresence }: NextRound
               <span className="relative inline-flex h-2 w-2 rounded-full bg-warning" />
             </span>
           )}
+          {isSnoozed && data.next_round?.presence_is_open && data.next_round.presence_status === "pending" && (() => {
+            const minsLeft = Math.max(1, Math.round(((snoozedUntil ?? 0) - Date.now()) / 60000));
+            const label = minsLeft >= 60 ? `${Math.round(minsLeft / 60)}h` : `${minsLeft}m`;
+            return (
+              <button
+                type="button"
+                onClick={() => {
+                  if (snoozeKey) {
+                    try { window.localStorage.removeItem(snoozeKey); } catch { /* ignore */ }
+                  }
+                  setSnoozedUntil(null);
+                }}
+                title={`Aviso de presença ocultado · volta em ~${label}. Clique para mostrar agora.`}
+                className="inline-flex items-center gap-0.5 rounded-full border border-warning/40 bg-warning/10 px-1.5 py-0.5 text-[9px] font-bold text-warning transition hover:bg-warning/20 normal-case tracking-normal"
+              >
+                <BellOff className="h-2.5 w-2.5" />
+                <span>{label}</span>
+              </button>
+            );
+          })()}
         </h3>
         {data.next_round && (
           <Link
