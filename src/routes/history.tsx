@@ -34,6 +34,9 @@ interface MatchHistory {
 }
 
 export const Route = createFileRoute("/history")({
+  validateSearch: (search: Record<string, unknown>): { group?: string } => ({
+    group: typeof search.group === "string" ? search.group : undefined,
+  }),
   head: () => ({
     meta: [
       { title: "Histórico — RankMyMatch" },
@@ -48,6 +51,7 @@ export const Route = createFileRoute("/history")({
 function HistoryPage() {
   const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
+  const { group: initialGroupFilter } = Route.useSearch();
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
       navigate({ to: "/login" });
@@ -55,7 +59,7 @@ function HistoryPage() {
   }, [authLoading, isAuthenticated, navigate]);
   const [matches, setMatches] = useState<MatchHistory[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [groupFilter, setGroupFilter] = useState<string>("all");
+  const [groupFilter, setGroupFilter] = useState<string>(initialGroupFilter || "all");
   const [selected, setSelected] = useState<MatchHistory | null>(null);
 
   useEffect(() => {

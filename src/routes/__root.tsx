@@ -7,6 +7,8 @@ import { InstallFlowProvider } from "@/components/InstallFlowProvider";
 import { AvatarPromptGate } from "@/components/AvatarPromptGate";
 import { PlayerProfileViewerProvider } from "@/components/PlayerProfileViewer";
 import { Toaster } from "@/components/ui/sonner";
+import { ROOT_META, ROOT_JSONLD } from "@/lib/seo-meta";
+import { ROOT_LINKS } from "@/lib/pwa-links";
 import "../styles.css";
 import { useEffect } from "react";
 
@@ -34,34 +36,7 @@ function NotFoundComponent() {
 
 export const Route = createRootRoute({
   head: () => ({
-    meta: [
-      { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
-      { title: "RankMyMatch — Rankings de Padel, Beach Tênis, Tênis e mais.." },
-      { name: "description", content: "O app definitivo para feirinos com rankings, temporadas de padel entre amigos e clubes." },
-      { property: "og:title", content: "RankMyMatch — Rankings de Padel, Beach Tênis, Tênis e mais.." },
-      { property: "og:description", content: "O app definitivo para feirinos com rankings, temporadas de padel entre amigos e clubes." },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:site", content: "@rankmymatch" },
-      { name: "twitter:creator", content: "@rankmymatch" },
-      { name: "theme-color", content: "#0a0a0a" },
-      { name: "apple-mobile-web-app-capable", content: "yes" },
-      { name: "mobile-web-app-capable", content: "yes" },
-      { name: "apple-mobile-web-app-title", content: "RankMyMatch" },
-      { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
-      { name: "twitter:title", content: "RankMyMatch — Rankings de Padel, Beach Tênis, Tênis e mais.." },
-      { name: "twitter:description", content: "O app definitivo para feirinos com rankings, temporadas de padel entre amigos e clubes." },
-      { name: "twitter:image:alt", content: "RankMyMatch — Rankings entre amigos" },
-      { property: "og:image", content: "https://rankmymatch.app/og-image.png" },
-      { property: "og:image:width", content: "1200" },
-      { property: "og:image:height", content: "630" },
-      { property: "og:image:alt", content: "RankMyMatch — Rankings entre amigos" },
-      { property: "og:site_name", content: "RankMyMatch" },
-      { property: "og:locale", content: "pt_BR" },
-      { property: "og:url", content: "https://rankmymatch.app" },
-      { name: "twitter:image", content: "https://rankmymatch.app/og-image.png" },
-    ],
+    meta: ROOT_META,
     scripts: [
       {
         async: true,
@@ -72,62 +47,10 @@ export const Route = createRootRoute({
       },
       {
         type: "application/ld+json",
-        children: JSON.stringify({
-          "@context": "https://schema.org",
-          "@graph": [
-            {
-              "@type": "WebApplication",
-              name: "RankMyMatch",
-              url: "https://rankmymatch.app",
-              applicationCategory: "SportsApplication",
-              operatingSystem: "Web, iOS, Android",
-              description:
-                "Rankings, temporadas e estatísticas de Padel, Beach Tênis, Tênis, Squash e Pickleball entre amigos e clubes.",
-              offers: { "@type": "Offer", price: "0", priceCurrency: "BRL" },
-              image: "https://rankmymatch.app/og-image.png",
-            },
-            {
-              "@type": "Organization",
-              name: "RankMyMatch",
-              url: "https://rankmymatch.app",
-              logo: "https://rankmymatch.app/icon-512.png",
-              sameAs: ["https://rankmymatch.app"],
-            },
-            {
-              "@type": "WebSite",
-              name: "RankMyMatch",
-              url: "https://rankmymatch.app",
-              inLanguage: "pt-BR",
-            },
-          ],
-        }),
+        children: JSON.stringify(ROOT_JSONLD),
       },
     ],
-    links: [
-      { rel: "canonical", href: "https://rankmymatch.app/" },
-      { rel: "manifest", href: "/manifest.json" },
-      { rel: "apple-touch-icon", sizes: "180x180", href: "/apple-touch-icon.png" },
-      { rel: "icon", type: "image/png", sizes: "32x32", href: "/favicon-32.png" },
-      { rel: "icon", type: "image/png", sizes: "16x16", href: "/favicon-16.png" },
-      { rel: "icon", type: "image/png", sizes: "192x192", href: "/icon-192.png" },
-      { rel: "icon", type: "image/png", sizes: "512x512", href: "/icon-512.png" },
-      { rel: "shortcut icon", href: "/favicon.ico" },
-      { rel: "apple-touch-startup-image", href: "/splash/apple-splash-640-1136.png", media: "(device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" },
-      { rel: "apple-touch-startup-image", href: "/splash/apple-splash-750-1334.png", media: "(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" },
-      { rel: "apple-touch-startup-image", href: "/splash/apple-splash-828-1792.png", media: "(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" },
-      { rel: "apple-touch-startup-image", href: "/splash/apple-splash-1125-2436.png", media: "(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" },
-      { rel: "apple-touch-startup-image", href: "/splash/apple-splash-1170-2532.png", media: "(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" },
-      { rel: "apple-touch-startup-image", href: "/splash/apple-splash-1179-2556.png", media: "(device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" },
-      { rel: "apple-touch-startup-image", href: "/splash/apple-splash-1242-2208.png", media: "(device-width: 414px) and (device-height: 736px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" },
-      { rel: "apple-touch-startup-image", href: "/splash/apple-splash-1242-2688.png", media: "(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" },
-      { rel: "apple-touch-startup-image", href: "/splash/apple-splash-1284-2778.png", media: "(device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" },
-      { rel: "apple-touch-startup-image", href: "/splash/apple-splash-1290-2796.png", media: "(device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" },
-      { rel: "apple-touch-startup-image", href: "/splash/apple-splash-1536-2048.png", media: "(device-width: 768px) and (device-height: 1024px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" },
-      { rel: "apple-touch-startup-image", href: "/splash/apple-splash-1620-2160.png", media: "(device-width: 810px) and (device-height: 1080px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" },
-      { rel: "apple-touch-startup-image", href: "/splash/apple-splash-1668-2224.png", media: "(device-width: 834px) and (device-height: 1112px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" },
-      { rel: "apple-touch-startup-image", href: "/splash/apple-splash-1668-2388.png", media: "(device-width: 834px) and (device-height: 1194px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" },
-      { rel: "apple-touch-startup-image", href: "/splash/apple-splash-2048-2732.png", media: "(device-width: 1024px) and (device-height: 1366px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" },
-    ],
+    links: ROOT_LINKS,
   }),
   shellComponent: RootShell,
   component: RootComponent,
