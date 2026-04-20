@@ -3,11 +3,10 @@ import { Home, User, Crown, Users, Bell, BarChart3 } from "lucide-react";
 import { useNotifications } from "@/hooks/use-notifications";
 import { useAdminPendingCount } from "@/hooks/use-admin-pending-count";
 import { useUserProfile } from "@/hooks/use-user-profile";
-import { useTheme } from "@/lib/theme";
+import { useMyGroups } from "@/hooks/use-groups";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { NotificationsPopover } from "@/components/NotificationsPopover";
-import logoSymbolNeon from "@/assets/logo-symbol-neon.png";
-import logoSymbolBlack from "@/assets/logo-symbol-black.png";
+import { GroupSwitcherPopover } from "@/components/GroupSwitcherPopover";
 
 const NAV_ITEMS = [
   { to: "/" as const, icon: Home, label: "Início" },
@@ -22,8 +21,9 @@ export function DesktopNav() {
   const { count: adminPending } = useAdminPendingCount();
   const totalBadge = unreadCount + adminPending;
   const { displayName, nickname, avatarUrl } = useUserProfile();
-  const { resolved: resolvedTheme } = useTheme();
+  const { groups: myGroups } = useMyGroups();
   const headerName = nickname || displayName || "Você";
+  const activeGroupId = myGroups[0]?.id ?? "";
 
   return (
     <header className="hidden lg:block z-40 -mx-8 px-8 pt-6 pb-3 bg-background border-b border-border/40">
@@ -66,13 +66,11 @@ export function DesktopNav() {
           </div>
         </nav>
 
-        {/* Right: logo + notifications */}
+        {/* Right: group switcher + notifications */}
         <div className="flex items-center gap-2">
-          <img
-            src={resolvedTheme === "light" ? logoSymbolBlack : logoSymbolNeon}
-            alt="RankMyMatch"
-            className="h-7 w-7"
-          />
+          {myGroups.length > 0 && (
+            <GroupSwitcherPopover groups={myGroups} activeGroupId={activeGroupId} />
+          )}
           {adminPending > 0 && (
             <Link
               to="/admin/inbox"
