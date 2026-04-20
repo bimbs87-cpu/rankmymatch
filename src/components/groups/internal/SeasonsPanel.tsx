@@ -652,7 +652,7 @@ function SeasonRoundsInline({ groupId, seasonId, isAdmin, initialRoundId }: { gr
         type: "round_reminder",
         title: `Lembrete: ${group?.name || "Rodada"}`,
         body: `Rodada ${r.round_number} ${formatted}${timeText}. Confirme presença!`,
-        url: `/groups/${groupId}/seasons/${seasonId}/rounds/${r.id}`,
+        url: `/groups/${groupId}?view=seasons&season=${seasonId}&round=${r.id}`,
         data: { roundId: r.id, seasonId, groupId },
         tag: `round_reminder:${r.id}:${Date.now()}`,
       });
