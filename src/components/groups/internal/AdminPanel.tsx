@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import {
   Settings2, Bell, Users, Link2, AlertTriangle, Save, Loader2, Globe, Lock, EyeOff,
-  CheckCircle2, Trash2, BarChart3, ScrollText, Image as ImageIcon, Wrench, Share2, ClipboardCheck,
+  CheckCircle2, Trash2, BarChart3, ScrollText, Image as ImageIcon, Wrench, Share2, ClipboardCheck, Send,
 } from "lucide-react";
 import { GroupOgCoverUpload } from "@/components/GroupOgCoverUpload";
 import { getRecentShareCount } from "@/lib/track-share";
@@ -19,13 +19,14 @@ import { AuditPanel } from "@/components/groups/internal/AuditPanel";
 import { MaintenancePanel } from "@/components/groups/internal/MaintenancePanel";
 import { OgCacheStatsPanel } from "@/components/groups/internal/OgCacheStatsPanel";
 import { ApprovalHistoryPanel } from "@/components/groups/internal/ApprovalHistoryPanel";
+import { PushPanel } from "@/components/groups/internal/PushPanel";
 import { useGroupDetail, approveJoinRequest, rejectJoinRequest } from "@/hooks/use-groups";
 import { useAuth } from "@/hooks/use-auth";
 import { startRenewalCheckout, salesWhatsAppUrl } from "@/lib/payment-provider";
 import { useServerFn } from "@tanstack/react-start";
 import { detectDesyncedMatchesServerFn } from "@/lib/match-maintenance.functions";
 
-type Section = "general" | "presence" | "members" | "invites" | "approvals" | "engagement" | "audit" | "maintenance" | "og-cache" | "advanced";
+type Section = "general" | "presence" | "members" | "invites" | "approvals" | "push" | "engagement" | "audit" | "maintenance" | "og-cache" | "advanced";
 
 interface Props {
   group: any;
@@ -41,6 +42,7 @@ const SECTIONS: { id: Section; label: string; icon: typeof Settings2; creatorOnl
   { id: "members", label: "Membros & vínculos", icon: Users },
   { id: "invites", label: "Convites", icon: Link2 },
   { id: "approvals", label: "Aprovações", icon: ClipboardCheck },
+  { id: "push", label: "Enviar push", icon: Send },
   { id: "engagement", label: "Engajamento", icon: BarChart3 },
   { id: "audit", label: "Auditoria", icon: ScrollText },
   { id: "maintenance", label: "Manutenção", icon: Wrench },
@@ -132,6 +134,7 @@ export function AdminPanel({ group, isCreator, onSaved, pendingRequestsCount }: 
             />
           )}
           {section === "approvals" && <ApprovalHistoryPanel groupId={group.id} />}
+          {section === "push" && <PushPanel groupId={group.id} groupName={group.name} />}
           {section === "engagement" && (
             <div className="space-y-4">
               <InviteEngagementReport groupId={group.id} />
