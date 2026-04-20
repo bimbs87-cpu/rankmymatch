@@ -476,6 +476,7 @@ export function AuditPanel({ groupId }: Props) {
       const roundIds = Array.from(new Set(nudges.map((n) => n.entity_id as string)));
       const roundMeta: Record<string, { round_number: number | null; scheduled_date: string | null }> = {};
       const responseHours: number[] = [];
+      const responseLabels: Array<number | null> = [];
       if (roundIds.length > 0) {
         const { data: rds } = await supabase
           .from("rounds")
@@ -505,7 +506,6 @@ export function AuditPanel({ groupId }: Props) {
           nudgesByRound.set(n.entity_id as string, arr);
         }
         const slow: Array<{ userId: string; hours: number; roundNumber: number | null; nudgeAt: number }> = [];
-        const responseLabels: Array<number | null> = [];
         for (const n of nudges) {
           const ts = new Date(n.created_at).getTime();
           const roundId = n.entity_id as string;
