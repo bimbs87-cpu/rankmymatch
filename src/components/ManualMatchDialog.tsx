@@ -411,22 +411,21 @@ export function ManualMatchDialog({ roundId, groupId, matchFormat = "doubles", o
         const { data: currentUser } = await supabase.auth.getUser();
         const actorId = currentUser?.user?.id || "";
         const playerNames = selectedPlayers.map((uid) => getDisplayName(uid)).join(", ");
-        
-        const notifRows = selectedPlayers
-          .filter((uid) => uid !== actorId)
-          .map((uid) => ({
-            user_id: uid,
-            group_id: roundData.group_id,
+
+        const targets = selectedPlayers.filter((uid) => uid !== actorId);
+        if (targets.length > 0) {
+          const { notifyUsers } = await import("@/lib/notify");
+          void notifyUsers(targets, {
+            groupId: roundData.group_id,
+            actorId,
             type: "match_result",
             title: "Resultado registrado! 🏆",
             body: isSingles
               ? `Rodada ${roundData.round_number} — Confronto entre ${playerNames}. Confira o resultado!`
               : `Rodada ${roundData.round_number} — Rei da Quadra com ${playerNames}. Confira o resultado!`,
             data: { roundId, seasonId },
-          }));
-        
-        if (notifRows.length > 0) {
-          await supabase.from("notifications").insert(notifRows);
+            url: `/groups/${roundData.group_id}/seasons/${seasonId}/rounds/${roundId}`,
+          }).catch(() => {});
         }
       }
 

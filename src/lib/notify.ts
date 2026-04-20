@@ -81,3 +81,17 @@ export async function notifyGroupMembers(params: NotifyParams) {
 
   await fanout((members || []).map((m) => m.user_id), params, "/notifications");
 }
+
+/**
+ * Notify a specific list of users (in-app + best-effort push), excluding the actor.
+ * Used for match-result fan-out where only the involved players should be pinged
+ * — not the entire group.
+ */
+export async function notifyUsers(
+  userIds: string[],
+  params: NotifyParams,
+  defaultUrl = "/notifications",
+) {
+  const targets = Array.from(new Set(userIds.filter((u) => u && u !== params.actorId)));
+  await fanout(targets, params, defaultUrl);
+}
