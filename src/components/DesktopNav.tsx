@@ -66,13 +66,11 @@ export function DesktopNav() {
           </div>
         </nav>
 
-        {/* Right: logo + notifications */}
+        {/* Right: group switcher + notifications */}
         <div className="flex items-center gap-2">
-          <img
-            src={resolvedTheme === "light" ? logoSymbolBlack : logoSymbolNeon}
-            alt="RankMyMatch"
-            className="h-7 w-7"
-          />
+          {myGroups.length > 0 && (
+            <GroupSwitcherPopover groups={myGroups} activeGroupId={activeGroupId} />
+          )}
           {adminPending > 0 && (
             <Link
               to="/admin/inbox"
