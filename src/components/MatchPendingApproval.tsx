@@ -182,3 +182,45 @@ export function MatchPendingApproval({ matchId, seasonId, isAdmin, onResolved, c
     </div>
   );
 }
+
+/**
+ * "Register score" button that becomes context-aware: when there is already
+ * a pending result on this match, label/style adapts (so the player doesn't
+ * see "Enviar resultado" again after they already submitted).
+ */
+export function PendingAwareSubmitButton({
+  matchId,
+  isAdmin,
+  onClick,
+}: {
+  matchId: string;
+  isAdmin: boolean;
+  onClick: () => void;
+}) {
+  const { pending } = useMatchPendingResult(matchId);
+  const hasPending = !!pending;
+
+  // Admin already sees Approve/Reject from MatchPendingApproval — hide button.
+  if (hasPending && isAdmin) return null;
+
+  const label = hasPending
+    ? "Editar envio"
+    : isAdmin
+      ? "Registrar Placar"
+      : "Enviar resultado";
+
+  return (
+    <button
+      onClick={onClick}
+      className={`mt-3 flex w-full items-center justify-center gap-2 rounded-xl py-2 text-xs font-semibold ${
+        hasPending
+          ? "border border-info/40 bg-info/5 text-info"
+          : "bg-primary/10 text-primary"
+      }`}
+    >
+      <Edit3 className="h-3.5 w-3.5" />
+      {label}
+    </button>
+  );
+}
+
