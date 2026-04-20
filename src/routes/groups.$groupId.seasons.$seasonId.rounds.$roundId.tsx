@@ -948,11 +948,16 @@ function RoundDetailPage() {
                 </div>
                 <button
                   type="button"
-                  onClick={() => setShowManualMatch(true)}
-                  className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-2.5 text-xs font-bold text-primary-foreground hover:opacity-90"
+                  onClick={() => handleRivalryStartScore(a, b)}
+                  disabled={creatingDuelMatch}
+                  className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-2.5 text-xs font-bold text-primary-foreground hover:opacity-90 disabled:opacity-60"
                 >
                   <Swords className="h-3.5 w-3.5" />
-                  {isAdmin ? "Lançar resultado" : "Lançar resultado (envia para o admin aprovar)"}
+                  {creatingDuelMatch
+                    ? "Preparando..."
+                    : isAdmin
+                      ? "Lançar resultado"
+                      : "Lançar resultado (admin aprovará)"}
                 </button>
                 {!isAdmin && (
                   <p className="mt-2 text-center text-[10px] text-muted-foreground">
