@@ -112,19 +112,7 @@ export const submitMatchScoreServerFn = createServerFn({ method: "POST" })
     const teamB = players.filter((p) => p.team === "B").map((p) => p.user_id);
     if (!teamA.length || !teamB.length) throw new Error("Times incompletos");
 
-    // ---- 4. Replace sets ----
-    await supabaseAdmin.from("match_sets").delete().eq("match_id", matchId);
-    await supabaseAdmin.from("match_sets").insert(
-      sets.map((s) => ({
-        match_id: matchId,
-        set_number: s.setNumber,
-        score_team_a: s.scoreA,
-        score_team_b: s.scoreB,
-        is_tiebreak: s.setNumber === sets.length && sets.length >= 3,
-      })),
-    );
-
-    // ---- 5. Determine winner ----
+    // ---- 4. Determine winner FIRST (so we don't touch DB if invalid) ----
     let setsA = 0;
     let setsB = 0;
     let gamesA = 0;
@@ -138,15 +126,41 @@ export const submitMatchScoreServerFn = createServerFn({ method: "POST" })
     const winnerTeam: "A" | "B" | null = setsA > setsB ? "A" : setsB > setsA ? "B" : null;
     if (!winnerTeam) throw new Error("Empate em sets — adicione o tiebreak");
 
-    // ---- 6. Update match ----
-    await supabaseAdmin
+    // ---- 5. Mark match as completed FIRST (idempotency guard) ----
+    // We do this before writing sets/elo so that even if a later step fails,
+    // the match is no longer in "scheduled" state and the dashboard reflects
+    // reality. We also use .select() to assert the row actually updated.
+    const { data: updatedMatch, error: updateMatchErr } = await supabaseAdmin
       .from("matches")
       .update({
         status: "completed",
         winner_team: winnerTeam,
-        result_type: sets.length === 1 ? "single_set" : sets.length === 2 ? "straight" : "tiebreak",
+        result_type: "normal",
       })
-      .eq("id", matchId);
+      .eq("id", matchId)
+      .select("id, status")
+      .maybeSingle();
+    if (updateMatchErr) throw new Error(`Falha ao finalizar partida: ${updateMatchErr.message}`);
+    if (!updatedMatch || updatedMatch.status !== "completed") {
+      throw new Error("Falha ao finalizar partida: nenhum registro atualizado");
+    }
+
+    // ---- 6. Replace sets ----
+    const { error: delSetsErr } = await supabaseAdmin
+      .from("match_sets")
+      .delete()
+      .eq("match_id", matchId);
+    if (delSetsErr) throw new Error(`Falha ao limpar sets antigos: ${delSetsErr.message}`);
+    const { error: insSetsErr } = await supabaseAdmin.from("match_sets").insert(
+      sets.map((s) => ({
+        match_id: matchId,
+        set_number: s.setNumber,
+        score_team_a: s.scoreA,
+        score_team_b: s.scoreB,
+        is_tiebreak: s.setNumber === sets.length && sets.length >= 3,
+      })),
+    );
+    if (insSetsErr) throw new Error(`Falha ao salvar sets: ${insSetsErr.message}`);
 
     // ---- 7. Auto-confirm presence + recompute round status ----
     if (match.round_id) {
@@ -170,19 +184,26 @@ export const submitMatchScoreServerFn = createServerFn({ method: "POST" })
       await recomputeRoundStatusInternal(match.round_id);
     }
 
-    // ---- 8. Process Elo ----
-    const { processMatchEloServer } = await import("@/lib/elo-engine.server");
-    await processMatchEloServer({
-      matchId,
-      seasonId,
-      teamA,
-      teamB,
-      winnerTeam,
-      setsTeamA: setsA,
-      setsTeamB: setsB,
-      gamesTeamA: gamesA,
-      gamesTeamB: gamesB,
-    });
+    // ---- 8. Process Elo (idempotency guard: skip if already processed) ----
+    const { data: existingEvents } = await supabaseAdmin
+      .from("rating_events")
+      .select("id")
+      .eq("match_id", matchId)
+      .limit(1);
+    if (!existingEvents?.length) {
+      const { processMatchEloServer } = await import("@/lib/elo-engine.server");
+      await processMatchEloServer({
+        matchId,
+        seasonId,
+        teamA,
+        teamB,
+        winnerTeam,
+        setsTeamA: setsA,
+        setsTeamB: setsB,
+        gamesTeamA: gamesA,
+        gamesTeamB: gamesB,
+      });
+    }
 
     return { winnerTeam, setsA, setsB };
   });
