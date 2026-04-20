@@ -1,8 +1,8 @@
-import { LayoutGrid, Users, BarChart3, Trophy, MessageSquare, Settings2, ChevronLeft, X, GitCompare, Share2 } from "lucide-react";
+import { LayoutGrid, Users, CalendarDays, Trophy, MessageSquare, Settings2, ChevronLeft, X, GitCompare, Share2 } from "lucide-react";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Link } from "@tanstack/react-router";
 
-export type GroupView = "overview" | "members" | "results" | "seasons" | "compare" | "feed" | "admin";
+export type GroupView = "overview" | "members" | "seasons" | "compare" | "feed" | "admin";
 
 export interface SidebarBadges {
   pendingRequests?: number;
@@ -20,8 +20,7 @@ interface Item {
 const ITEMS: Item[] = [
   { id: "overview", label: "Visão geral", icon: LayoutGrid },
   { id: "members", label: "Membros", icon: Users },
-  { id: "results", label: "Resultados", icon: BarChart3 },
-  { id: "seasons", label: "Temporadas", icon: Trophy },
+  { id: "seasons", label: "Agenda completa", icon: CalendarDays },
   { id: "compare", label: "Comparar", icon: GitCompare },
   { id: "feed", label: "Feed", icon: MessageSquare },
   { id: "admin", label: "Admin", icon: Settings2, adminOnly: true },
