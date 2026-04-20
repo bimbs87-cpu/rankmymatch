@@ -60,6 +60,7 @@ export function ScoreEntryDialog({
   setsPerMatch = 3,
   setsMode,
   isSingles = false,
+  isAdmin = true,
   onClose,
   onSaved,
 }: Props) {
@@ -74,8 +75,16 @@ export function ScoreEntryDialog({
     : isFlexibleSets
     ? FLEX_CAP
     : setsPerMatch;
+
+  // Pending result for this match (if any). Admins see "approve/edit/reject".
+  const { pending, refresh: refreshPending } = useMatchPendingResult(matchId);
+
+  // Initial sets: prefer existing official sets; otherwise prefill from
+  // pending submission so the admin sees what the player proposed.
   const initialSets = existingSets?.length
     ? existingSets.map((s) => ({ scoreA: s.scoreA, scoreB: s.scoreB }))
+    : pending?.sets?.length
+    ? pending.sets.map((s) => ({ scoreA: s.scoreA, scoreB: s.scoreB }))
     : [{ scoreA: 0, scoreB: 0 }];
 
   const [sets, setSets] = useState<{ scoreA: number; scoreB: number }[]>(initialSets);
