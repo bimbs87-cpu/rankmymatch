@@ -18,13 +18,18 @@ import { recomputeRoundStatusInternal } from "@/lib/round-status.server";
  */
 
 // ---------- shared helpers ----------
-async function ensureGroupAdmin(userId: string, groupId: string) {
+async function isGroupAdmin(userId: string, groupId: string): Promise<boolean> {
   const { data, error } = await supabaseAdmin.rpc("is_group_admin", {
     _user_id: userId,
     _group_id: groupId,
   });
   if (error) throw new Error(error.message);
-  if (!data) throw new Error("Apenas administradores do grupo podem executar esta ação");
+  return !!data;
+}
+async function ensureGroupAdmin(userId: string, groupId: string) {
+  if (!(await isGroupAdmin(userId, groupId))) {
+    throw new Error("Apenas administradores do grupo podem executar esta ação");
+  }
 }
 
 function computeWinnerFromSets(
@@ -52,7 +57,12 @@ export const detectDesyncedMatchesServerFn = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => DetectInput.parse(input))
   .handler(async ({ data, context }) => {
     const { groupId } = data;
-    await ensureGroupAdmin(context.userId, groupId);
+    // Non-admins (or non-members) viewing the group may briefly mount AdminPanel
+    // which silently calls this. Return empty instead of throwing to avoid a
+    // [object Response] crash bubbling to the global error reporter.
+    if (!(await isGroupAdmin(context.userId, groupId))) {
+      return { desynced: [] };
+    }
 
     // Pull all scheduled matches in this group with their sets.
     const { data: matches, error } = await supabaseAdmin
