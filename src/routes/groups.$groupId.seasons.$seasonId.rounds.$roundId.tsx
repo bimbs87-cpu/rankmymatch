@@ -513,8 +513,12 @@ function RoundDetailPage() {
   const handleCancel = async () => {
     if (!user) return;
     try {
-      await cancelPresence(roundId, user.id);
+      const result = await cancelPresence(roundId, user.id);
       toast.success("Presença cancelada");
+      if (result.promotedUserId) {
+        const who = result.promotedName || "alguém da lista de espera";
+        toast(`Sua vaga foi para ${who}`, { description: "Auto-promoção da lista de espera" });
+      }
       refresh();
     } catch {
       toast.error("Erro ao cancelar");
