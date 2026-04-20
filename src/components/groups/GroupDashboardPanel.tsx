@@ -783,3 +783,57 @@ function SeasonStat({ label, value, truncate }: { label: string; value: string; 
     </div>
   );
 }
+
+/**
+ * Discrete countdown to the moment the presence list opens.
+ * Updates every 30s. <2h → warning tone; <10min → pulsing warning.
+ */
+function PresenceCountdown({ opensAt }: { opensAt: string | null }) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 30000);
+    return () => clearInterval(id);
+  }, []);
+
+  if (!opensAt) {
+    return (
+      <span className="flex items-center gap-1 rounded-full border border-border bg-background/40 px-2.5 py-1 text-[10px] font-semibold text-muted-foreground">
+        <Lock className="h-3 w-3" />
+        Lista fechada
+      </span>
+    );
+  }
+
+  const target = new Date(opensAt).getTime();
+  const diffMs = target - now;
+  const diffMin = Math.max(0, Math.round(diffMs / 60000));
+  const isWarning = diffMs > 0 && diffMs <= 2 * 60 * 60 * 1000;
+  const isImminent = diffMs > 0 && diffMs <= 10 * 60 * 1000;
+
+  let label: string;
+  if (diffMin < 1) label = "abre em instantes";
+  else if (diffMin < 60) label = `abre em ${diffMin}min`;
+  else if (diffMin < 60 * 24) {
+    const h = Math.floor(diffMin / 60);
+    const m = diffMin % 60;
+    label = m > 0 ? `abre em ${h}h${String(m).padStart(2, "0")}` : `abre em ${h}h`;
+  } else {
+    label = `abre ${formatOpensAt(opensAt)}`;
+  }
+
+  const tone = isImminent
+    ? "border-warning/60 bg-warning/15 text-warning animate-pulse"
+    : isWarning
+    ? "border-warning/40 bg-warning/10 text-warning"
+    : "border-border bg-background/40 text-muted-foreground";
+
+  return (
+    <span
+      className={`flex items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-semibold ${tone}`}
+      title={`Lista abre em ${new Date(opensAt).toLocaleString("pt-BR")}`}
+    >
+      <Clock className="h-3 w-3" />
+      {label}
+    </span>
+  );
+}
