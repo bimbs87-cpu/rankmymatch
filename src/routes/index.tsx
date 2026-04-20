@@ -1297,32 +1297,14 @@ function DashboardPage() {
           </nav>
 
           <div className="flex items-center gap-2">
-            {(() => {
-              // Active group = group of the next upcoming match if any,
-              // otherwise the user's first group. Open it goes straight into
-              // the group's internal dashboard (same as "Abrir grupo").
-              const activeGroup =
-                myGroups.find((g) => g.id === nextMatch?.group_id) || myGroups[0];
-              if (!activeGroup) return null;
-              const shortName =
-                activeGroup.name.length > 14
-                  ? activeGroup.name.slice(0, 13) + "…"
-                  : activeGroup.name;
-              return (
-                <Link
-                  to="/groups/$groupId"
-                  params={{ groupId: activeGroup.id }}
-                  aria-label={`Abrir grupo ${activeGroup.name}`}
-                  title={`Abrir grupo ${activeGroup.name}`}
-                  className="flex flex-col items-center gap-0.5 rounded-2xl border border-border bg-card px-2.5 py-1.5 transition-colors hover:bg-accent hover:border-primary/40"
-                >
-                  <Users className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-[9px] font-medium uppercase tracking-wider text-muted-foreground leading-none max-w-[70px] truncate">
-                    {shortName}
-                  </span>
-                </Link>
-              );
-            })()}
+            {myGroups.length > 0 && (
+              <GroupSwitcherPopover
+                groups={myGroups}
+                activeGroupId={
+                  (myGroups.find((g) => g.id === nextMatch?.group_id) || myGroups[0]).id
+                }
+              />
+            )}
             <NotificationsPopover>
               <button
                 aria-label={unreadCount > 0 ? `${unreadCount} notificações` : "Notificações"}
