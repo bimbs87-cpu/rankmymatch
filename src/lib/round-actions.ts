@@ -110,6 +110,84 @@ export async function confirmPresence(roundId: string, userId: string) {
     });
     if (insertError) throw insertError;
   }
+
+  // Fan-out notification: let other already-confirmed players know someone joined.
+  // Best-effort, never blocks UX.
+  try {
+    void notifyPresenceChange(roundId, userId, "confirmed");
+  } catch {
+    // ignore
+  }
+}
+
+/**
+ * Notify the OTHER confirmed players in the round that someone changed presence.
+ * Used for both confirmar and recusar — keeps the active group aware in real time.
+ */
+async function notifyPresenceChange(
+  roundId: string,
+  actorId: string,
+  kind: "confirmed" | "declined",
+): Promise<void> {
+  try {
+    const { data: roundRow } = await supabase
+      .from("rounds")
+      .select("group_id, round_number")
+      .eq("id", roundId)
+      .single();
+    if (!roundRow) return;
+
+    // Recipients = currently-confirmed players in this round, minus the actor
+    const { data: confirmed } = await supabase
+      .from("round_presence")
+      .select("user_id")
+      .eq("round_id", roundId)
+      .eq("status", "confirmed");
+    const recipientIds = Array.from(
+      new Set((confirmed || []).map((p) => p.user_id).filter((u) => u && u !== actorId)),
+    );
+    if (!recipientIds.length) return;
+
+    // Resolve actor name for a friendlier message
+    let actorName = "Alguém";
+    try {
+      const { data: prof } = await supabase
+        .from("user_profiles")
+        .select("name, nickname")
+        .eq("user_id", actorId)
+        .maybeSingle();
+      actorName = prof?.nickname || prof?.name || "Alguém";
+    } catch {
+      // ignore
+    }
+
+    const roundLabel = roundRow.round_number ? `Rodada ${roundRow.round_number}` : "Próxima rodada";
+    const title =
+      kind === "confirmed"
+        ? `✅ ${actorName} confirmou presença`
+        : `❌ ${actorName} desistiu da rodada`;
+    const body =
+      kind === "confirmed"
+        ? `${actorName} entrou na lista da ${roundLabel}.`
+        : `${actorName} saiu da lista da ${roundLabel}.`;
+
+    const { notifyUsers } = await import("@/lib/notify");
+    await notifyUsers(
+      recipientIds,
+      {
+        groupId: roundRow.group_id,
+        actorId,
+        type: kind === "confirmed" ? "presence_confirmed" : "presence_declined",
+        title,
+        body,
+        data: { roundId },
+        url: `/groups/${roundRow.group_id}`,
+      },
+      `/groups/${roundRow.group_id}`,
+    );
+  } catch {
+    // best-effort
+  }
 }
 
 export async function cancelPresence(
@@ -140,6 +218,13 @@ export async function cancelPresence(
     .update({ status: "absent" })
     .eq("round_id", roundId)
     .eq("user_id", userId);
+
+  // Fan-out: notify the remaining confirmed players that someone left.
+  try {
+    void notifyPresenceChange(roundId, userId, "declined");
+  } catch {
+    // ignore
+  }
 
   // Auto-promote first waitlist member if a confirmed slot just opened
   let promotedId: string | null = null;
