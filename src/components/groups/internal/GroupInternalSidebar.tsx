@@ -183,7 +183,10 @@ export function GroupInternalFloatingTabs({ isAdmin, view, onSelect, badges = {}
   return (
     <div className="sticky top-0 z-30 -mx-4 px-3 py-2 lg:hidden">
       <div className="rounded-full border border-border bg-card/90 px-1.5 py-1 shadow-lg ring-1 ring-black/30 backdrop-blur-xl">
-        <ul className="flex items-center gap-1 overflow-x-auto no-scrollbar">
+        <ul
+          className="flex items-center gap-1 overflow-x-auto"
+          style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+        >
           {items.map((item) => {
             const Icon = item.icon;
             const active = view === item.id;
