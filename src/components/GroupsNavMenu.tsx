@@ -86,16 +86,31 @@ export function GroupsNavMenu({ groups, renderTrigger, panelClassName }: Props) 
   if (orderedGroups.length === 0) {
     return (
       <Link to="/groups" className="contents">
-        {renderTrigger({ onClick: () => {}, badge: 0, open: false })}
+        {renderTrigger({ onClick: () => {}, badge: 0, badgeLoading: false, open: false })}
       </Link>
     );
   }
 
-  // 1 group → bypass popover, go straight to it.
+  // 1 group → bypass popover, go straight to it. Expose nextRound for inline sub-link.
   if (orderedGroups.length === 1) {
+    const subShortcut =
+      nextRound && nextRound.season_id
+        ? {
+            id: nextRound.id,
+            seasonId: nextRound.season_id,
+            label: formatNextRound(nextRound.scheduled_date, nextRound.scheduled_time),
+            presence: nextPresence,
+          }
+        : null;
     return (
       <Link to="/groups/$groupId" params={{ groupId: primaryId }} className="contents">
-        {renderTrigger({ onClick: () => {}, badge: globalPending, open: false })}
+        {renderTrigger({
+          onClick: () => {},
+          badge: globalPending,
+          badgeLoading: globalLoading,
+          open: false,
+          nextRound: subShortcut,
+        })}
       </Link>
     );
   }
@@ -105,7 +120,7 @@ export function GroupsNavMenu({ groups, renderTrigger, panelClassName }: Props) 
 
   return (
     <div ref={ref} className="relative contents">
-      {renderTrigger({ onClick: () => setOpen((v) => !v), badge: globalPending, open })}
+      {renderTrigger({ onClick: () => setOpen((v) => !v), badge: globalPending, badgeLoading: globalLoading, open })}
 
       {open && (
         <div
