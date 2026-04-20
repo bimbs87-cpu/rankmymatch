@@ -112,20 +112,20 @@ export function PushPanel({ groupId, groupName }: Props) {
     try {
       const { notifyUsers, describePushResult } = await import("@/lib/notify");
       const targets = Array.from(selected);
-      // Include actor in push (so admin sees confirmation on own device)
-      const includeActor = targets.includes(user.id);
-      const ids = includeActor ? targets : [...targets, user.id];
+      // Always include the admin so they get visual confirmation on their device.
+      const ids = targets.includes(user.id) ? targets : [...targets, user.id];
       const push = await notifyUsers(
         ids,
         {
           groupId,
-          actorId: includeActor ? "__none__" : user.id, // hack: prevent filtering when admin selected
+          actorId: user.id,
           type: "admin_message",
           title: title.trim().slice(0, 80),
           body: message.trim().slice(0, 240),
           url: `/groups/${groupId}`,
           data: { groupId, kind: "admin_push" },
           tag: `admin_push:${groupId}:${Date.now()}`,
+          includeActor: true,
         },
         `/groups/${groupId}`,
       );
