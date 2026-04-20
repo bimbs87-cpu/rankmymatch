@@ -4,6 +4,7 @@ import { TrophyLoadingBar } from "@/components/TrophyLoadingBar";
 import { useGroupDetail } from "@/hooks/use-groups";
 import { useSeasonRounds } from "@/hooks/use-seasons";
 import { supabase } from "@/integrations/supabase/client";
+import { createExtraRound as createExtraRoundFn } from "@/lib/extra-round";
 import { ArrowLeft, Calendar, MapPin, Clock, X, Pencil, Ban, Settings, ChevronRight, Plus } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
