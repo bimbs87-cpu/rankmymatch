@@ -200,16 +200,22 @@ export const getDevDashboard = createServerFn({ method: "GET" })
     };
 
     // ===== Retenção REAL via user_sessions =====
-    // Para cada cohort semanal, verifica quantos usuários têm sessão registrada
-    // em algum dia >= signup + N dias.
-    const { data: sessionsRows } = await supabaseAdmin
+    type SessRow = { user_id: string; session_date: string };
+    const { data: sessionsRowsRaw } = await (supabaseAdmin as unknown as {
+      from: (t: string) => {
+        select: (c: string) => {
+          in: (col: string, vals: string[]) => Promise<{ data: SessRow[] | null }>;
+        };
+      };
+    })
       .from("user_sessions")
       .select("user_id, session_date")
       .in("user_id", userIds.length ? userIds : ["00000000-0000-0000-0000-000000000000"]);
+    const sessionsRows: SessRow[] = sessionsRowsRaw ?? [];
 
-    const sessionsByUser = new Map<string, number[]>(); // user_id → array de timestamps
-    (sessionsRows ?? []).forEach((s) => {
-      const t = new Date(s.session_date as string).getTime();
+    const sessionsByUser = new Map<string, number[]>();
+    sessionsRows.forEach((s) => {
+      const t = new Date(s.session_date).getTime();
       const arr = sessionsByUser.get(s.user_id) ?? [];
       arr.push(t);
       sessionsByUser.set(s.user_id, arr);
