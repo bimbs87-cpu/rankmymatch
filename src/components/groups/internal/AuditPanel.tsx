@@ -282,6 +282,7 @@ function Sparkline({
   unit = "",
   medianLine,
   p90Line,
+  pointLabels,
 }: {
   values: number[];
   unit?: string;
@@ -289,6 +290,8 @@ function Sparkline({
   medianLine?: number;
   /** Optional value to draw as a red dashed reference line (e.g. p90). */
   p90Line?: number;
+  /** Optional per-point label (e.g. round number) to show in tooltip. */
+  pointLabels?: Array<number | null | string>;
 }) {
   if (values.length < 2) return null;
   const w = 200;
@@ -413,7 +416,15 @@ function Sparkline({
         {values.map((v, i) => {
           const x = pad + i * stepX;
           const y = h - pad - ((v - min) / range) * (h - pad * 2);
-          return <circle key={i} cx={x} cy={y} r={1.8} fill={stroke} />;
+          const lbl = pointLabels?.[i];
+          const lblPart = lbl != null && lbl !== "" ? `Rodada #${lbl} · ` : "";
+          const valPart = v >= 10 ? `${Math.round(v)}${unit}` : `${v.toFixed(1)}${unit}`;
+          const tip = `${lblPart}média ${valPart}`;
+          return (
+            <circle key={i} cx={x} cy={y} r={1.8} fill={stroke}>
+              <title>{tip}</title>
+            </circle>
+          );
         })}
       </svg>
       <span className={`text-[10px] font-bold tabular-nums ${trendingDown ? "text-success" : "text-warning"}`}>
@@ -942,6 +953,7 @@ export function AuditPanel({ groupId }: Props) {
                   unit="h"
                   medianLine={median > 0 ? median : undefined}
                   p90Line={p90 > 0 ? p90 : undefined}
+                  pointLabels={responseTimeLabels}
                 />
               </div>
             );
