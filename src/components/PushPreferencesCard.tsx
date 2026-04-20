@@ -119,21 +119,33 @@ export function PushPreferencesCard() {
               "começa agora". A vibração continua ativa.
             </p>
           </div>
-          <button
-            type="button"
-            onClick={toggleSound}
-            aria-pressed={soundOn}
-            aria-label={`${soundOn ? "Desativar" : "Ativar"} som de alerta da rodada`}
-            className={`relative mt-0.5 inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${
-              soundOn ? "bg-primary" : "bg-muted"
-            }`}
-          >
-            <span
-              className={`inline-block h-5 w-5 transform rounded-full bg-background shadow transition-transform ${
-                soundOn ? "translate-x-5" : "translate-x-0.5"
+          <div className="mt-0.5 flex shrink-0 items-center gap-2">
+            <button
+              type="button"
+              onClick={testSound}
+              aria-label="Tocar som de teste"
+              title="Tocar som de teste"
+              className="flex h-6 items-center gap-1 rounded-full border border-border bg-background/60 px-2 text-[10px] font-bold text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary"
+            >
+              <Play className="h-2.5 w-2.5" />
+              Testar
+            </button>
+            <button
+              type="button"
+              onClick={toggleSound}
+              aria-pressed={soundOn}
+              aria-label={`${soundOn ? "Desativar" : "Ativar"} som de alerta da rodada`}
+              className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${
+                soundOn ? "bg-primary" : "bg-muted"
               }`}
-            />
-          </button>
+            >
+              <span
+                className={`inline-block h-5 w-5 transform rounded-full bg-background shadow transition-transform ${
+                  soundOn ? "translate-x-5" : "translate-x-0.5"
+                }`}
+              />
+            </button>
+          </div>
         </li>
       </ul>
     </div>
