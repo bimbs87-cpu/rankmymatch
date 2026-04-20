@@ -35,7 +35,7 @@ export function useAdminPendingCount() {
         return;
       }
 
-      const [{ data: reqs }, { data: claims }] = await Promise.all([
+      const [{ data: reqs }, { data: claims }, { data: matches }] = await Promise.all([
         supabase
           .from("group_join_requests")
           .select("id", { count: "exact" })
@@ -46,9 +46,25 @@ export function useAdminPendingCount() {
           .select("id", { count: "exact" })
           .in("group_id", ids)
           .eq("status", "pending"),
+        // Get all match ids in admin groups so we can scope pending_match_results
+        supabase
+          .from("matches")
+          .select("id, rounds!inner(group_id)")
+          .in("rounds.group_id", ids),
       ]);
 
-      setCount((reqs?.length || 0) + (claims?.length || 0));
+      const matchIds = (matches || []).map((m: any) => m.id);
+      let pendingResults = 0;
+      if (matchIds.length) {
+        const { data: prs } = await supabase
+          .from("pending_match_results")
+          .select("id")
+          .in("match_id", matchIds)
+          .eq("status", "pending");
+        pendingResults = prs?.length || 0;
+      }
+
+      setCount((reqs?.length || 0) + (claims?.length || 0) + pendingResults);
     } catch (err) {
       console.error("Erro ao contar solicitações admin pendentes:", err);
       setCount(0);
@@ -81,6 +97,11 @@ export function useAdminPendingCount() {
       .on(
         "postgres_changes" as never,
         { event: "*", schema: "public", table: "player_claims" },
+        () => refreshRef.current(),
+      )
+      .on(
+        "postgres_changes" as never,
+        { event: "*", schema: "public", table: "pending_match_results" },
         () => refreshRef.current(),
       )
       .subscribe();
