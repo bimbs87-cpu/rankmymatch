@@ -102,7 +102,7 @@ export function GroupsNavMenu({ groups, renderTrigger, panelClassName }: Props) 
 
   return (
     <div ref={ref} className="relative contents">
-      {renderTrigger({ onClick: () => setOpen((v) => !v), badge: memberPending, open })}
+      {renderTrigger({ onClick: () => setOpen((v) => !v), badge: globalPending, open })}
 
       {open && (
         <div
