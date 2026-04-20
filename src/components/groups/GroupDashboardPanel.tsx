@@ -497,9 +497,17 @@ export function GroupDashboardPanel({ group, onLeft, onPresenceChanged }: Props)
                 <p className="font-display text-base font-bold text-foreground">
                   Rodada {data.next_round.round_number ?? "—"}
                 </p>
-                <p className="mt-0.5 text-xs text-muted-foreground">
-                  {formatDate(data.next_round.scheduled_date, data.next_round.scheduled_time)}
-                </p>
+                <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                  <p className="text-xs text-muted-foreground">
+                    {formatDate(data.next_round.scheduled_date, data.next_round.scheduled_time)}
+                  </p>
+                  {data.next_round.presence_is_open && (
+                    <MatchStartCountdown
+                      scheduledDate={data.next_round.scheduled_date}
+                      scheduledTime={data.next_round.scheduled_time}
+                    />
+                  )}
+                </div>
                 {data.next_round.location && (
                   <p className="mt-0.5 flex items-center gap-1 text-[11px] text-muted-foreground">
                     <MapPin className="h-3 w-3" />
