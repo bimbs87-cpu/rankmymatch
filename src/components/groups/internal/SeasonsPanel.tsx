@@ -576,7 +576,7 @@ function SeasonRoundsInline({ groupId, seasonId, isAdmin }: { groupId: string; s
     if (!user) { toast.error("Faça login primeiro"); return; }
     setCreatingExtra(true);
     try {
-      await createExtraRoundFn({
+      const result = await createExtraRoundFn({
         groupId,
         seasonId,
         actorId: user.id,
@@ -584,7 +584,8 @@ function SeasonRoundsInline({ groupId, seasonId, isAdmin }: { groupId: string; s
         scheduledTime: extraTime || null,
         location: extraLocation || null,
       });
-      toast.success("Rodada extra criada");
+      const { describePushResult } = await import("@/lib/notify");
+      toast.success("Rodada extra criada", { description: describePushResult(result.push) });
       setShowExtraForm(false);
       setExtraDate("");
       setExtraTime("");
@@ -594,6 +595,48 @@ function SeasonRoundsInline({ groupId, seasonId, isAdmin }: { groupId: string; s
       toast.error(err?.message || "Erro ao criar rodada extra");
     } finally {
       setCreatingExtra(false);
+    }
+  };
+
+  /**
+   * Manually trigger a push reminder for a round (admin only).
+   * Allowed from 12h before the scheduled start. No cooldown for now (test mode).
+   */
+  const sendRoundPush = async (r: any) => {
+    if (!user) return;
+    if (!r.scheduled_date) { toast.error("Rodada sem data agendada"); return; }
+    const eventTs = new Date(`${r.scheduled_date}T${(r.scheduled_time || "00:00:00").slice(0, 8)}`).getTime();
+    const hoursAway = (eventTs - Date.now()) / 3_600_000;
+    if (hoursAway > 12) {
+      toast.error("Push só pode ser enviado a partir de 12h antes da rodada", {
+        description: `Faltam ${Math.ceil(hoursAway)}h para a rodada.`,
+      });
+      return;
+    }
+    try {
+      const { data: group } = await supabase.from("groups").select("name").eq("id", groupId).single();
+      const { notifyGroupMembers, describePushResult } = await import("@/lib/notify");
+      const formatted = new Date(r.scheduled_date + "T00:00:00").toLocaleDateString("pt-BR", {
+        weekday: "short", day: "2-digit", month: "short",
+      });
+      const timeText = r.scheduled_time ? ` às ${r.scheduled_time.slice(0, 5)}` : "";
+      const push = await notifyGroupMembers({
+        groupId,
+        actorId: user.id,
+        type: "round_reminder",
+        title: `Lembrete: ${group?.name || "Rodada"}`,
+        body: `Rodada ${r.round_number} ${formatted}${timeText}. Confirme presença!`,
+        url: `/groups/${groupId}/seasons/${seasonId}/rounds/${r.id}`,
+        data: { roundId: r.id, seasonId, groupId },
+        tag: `round_reminder:${r.id}:${Date.now()}`,
+      });
+      if (push.error || push.sent === 0) {
+        toast.warning("Push enviado com problemas", { description: describePushResult(push) });
+      } else {
+        toast.success("Push enviado", { description: describePushResult(push) });
+      }
+    } catch (err: any) {
+      toast.error(err?.message || "Erro ao enviar push");
     }
   };
 
