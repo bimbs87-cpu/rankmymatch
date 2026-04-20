@@ -1,4 +1,4 @@
-import { Link, useLocation } from "@tanstack/react-router";
+import { Link, useLocation, useNavigate } from "@tanstack/react-router";
 import { ChevronDown, Users, Trophy, UserSquare2, Compass, CheckCircle2, CalendarClock, Clock, X as XIcon } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useGroupPendingTasks } from "@/hooks/use-group-pending-tasks";
@@ -82,6 +82,8 @@ export function GroupsNavMenu({ groups, renderTrigger, panelClassName }: Props) 
     };
   }, [open]);
 
+  const navigate = useNavigate();
+
   // 0 groups → plain link to the groups index (where Explore / Create live).
   if (orderedGroups.length === 0) {
     return (
@@ -91,7 +93,9 @@ export function GroupsNavMenu({ groups, renderTrigger, panelClassName }: Props) 
     );
   }
 
-  // 1 group → bypass popover, go straight to it. Expose nextRound for inline sub-link.
+  // 1 group → trigger navigates to the dashboard. We surface the next-round
+  // shortcut so the consumer (BottomNav) can render it as an INDEPENDENT link
+  // — clicking the chip should jump to the round, not the dashboard.
   if (orderedGroups.length === 1) {
     const subShortcut =
       nextRound && nextRound.season_id
@@ -103,15 +107,15 @@ export function GroupsNavMenu({ groups, renderTrigger, panelClassName }: Props) 
           }
         : null;
     return (
-      <Link to="/groups/$groupId" params={{ groupId: primaryId }} className="contents">
+      <>
         {renderTrigger({
-          onClick: () => {},
+          onClick: () => navigate({ to: "/groups/$groupId", params: { groupId: primaryId } }),
           badge: globalPending,
           badgeLoading: globalLoading,
           open: false,
           nextRound: subShortcut,
         })}
-      </Link>
+      </>
     );
   }
 
