@@ -202,18 +202,21 @@ export function GroupDashboardPanel({ group, onLeft, onPresenceChanged }: Props)
         },
       }).catch(() => {});
 
-      // Save cooldown per round
+      // Save cooldown + bump usage count per round
       const until = Date.now() + NUDGE_COOLDOWN_MS;
+      const newUsed = nudgeUsedCount + 1;
       try {
         localStorage.setItem(`rmm.nudge.cooldown.${data.next_round.id}`, String(until));
+        localStorage.setItem(`rmm.nudge.used.${data.next_round.id}`, String(newUsed));
       } catch {
         // ignore
       }
       setNudgeCooldownUntil(until);
       setNudgeNowTs(Date.now());
+      setNudgeUsedCount(newUsed);
 
       toast.success(
-        `Cutucada enviada para ${targetIds.length} membro${targetIds.length > 1 ? "s" : ""}`
+        `Cutucada enviada para ${targetIds.length} membro${targetIds.length > 1 ? "s" : ""} (${newUsed}/${NUDGE_MAX_PER_ROUND})`
       );
 
       // Audit log (best-effort)
