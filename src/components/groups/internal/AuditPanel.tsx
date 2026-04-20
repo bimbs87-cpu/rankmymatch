@@ -276,7 +276,7 @@ function DiffView({ row }: { row: AuditRow }) {
 }
 
 /** Tiny inline SVG sparkline for nudge recipients trend. */
-function Sparkline({ values }: { values: number[] }) {
+function Sparkline({ values, unit = "" }: { values: number[]; unit?: string }) {
   if (values.length < 2) return null;
   const w = 200;
   const h = 32;
@@ -307,7 +307,7 @@ function Sparkline({ values }: { values: number[] }) {
         })}
       </svg>
       <span className={`text-[10px] font-bold tabular-nums ${trendingDown ? "text-success" : "text-warning"}`}>
-        {trendingDown ? "↓" : "↑"} {Math.abs(Math.round(b - a))}
+        {trendingDown ? "↓" : "↑"} {Math.abs(Math.round(b - a))}{unit}
       </span>
     </div>
   );
@@ -378,7 +378,15 @@ export function AuditPanel({ groupId }: Props) {
   const nudgeStats = useMemo(() => {
     const nudges = rows.filter((r) => r.action === "round_nudge");
     if (nudges.length === 0) {
-      return { total: 0, recipients: 0, pendingPct: 0, declinedPct: 0, lastAt: null as string | null, sparkline: [] as number[] };
+      return {
+        total: 0,
+        recipients: 0,
+        pendingPct: 0,
+        declinedPct: 0,
+        lastAt: null as string | null,
+        sparkline: [] as number[],
+        pendingPctSparkline: [] as number[],
+      };
     }
     let recipients = 0;
     let pending = 0;
@@ -390,10 +398,17 @@ export function AuditPanel({ groupId }: Props) {
       declined += Number(d.declined_count ?? 0);
     }
     const sumPD = pending + declined;
-    // Sparkline: last 10 nudges, oldest → newest, recipients_count per nudge.
+    // Sparklines: last 10 nudges, oldest → newest.
     // (rows is sorted DESC by created_at, so reverse.)
     const last10 = nudges.slice(0, 10).reverse();
     const sparkline = last10.map((r) => Number((r.new_data || {}).recipients_count ?? 0));
+    const pendingPctSparkline = last10.map((r) => {
+      const d = r.new_data || {};
+      const p = Number(d.pending_count ?? 0);
+      const dc = Number(d.declined_count ?? 0);
+      const total = p + dc;
+      return total > 0 ? Math.round((p / total) * 100) : 0;
+    });
     return {
       total: nudges.length,
       recipients,
@@ -401,6 +416,7 @@ export function AuditPanel({ groupId }: Props) {
       declinedPct: sumPD > 0 ? Math.round((declined / sumPD) * 100) : 0,
       lastAt: nudges[0]?.created_at ?? null,
       sparkline,
+      pendingPctSparkline,
     };
   }, [rows]);
 
@@ -514,6 +530,19 @@ export function AuditPanel({ groupId }: Props) {
                 </p>
               </div>
               <Sparkline values={nudgeStats.sparkline} />
+            </div>
+          )}
+          {nudgeStats.pendingPctSparkline.length >= 2 && (
+            <div>
+              <div className="mb-1 flex items-center justify-between">
+                <p className="text-[9px] font-bold uppercase tracking-wider text-warning/80">
+                  % pendentes por cutucada (últimas {nudgeStats.pendingPctSparkline.length})
+                </p>
+                <p className="text-[9px] text-muted-foreground">
+                  ↓ menos % = galera mais responsiva
+                </p>
+              </div>
+              <Sparkline values={nudgeStats.pendingPctSparkline} unit="%" />
             </div>
           )}
         </div>

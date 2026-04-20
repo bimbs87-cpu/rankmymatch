@@ -23,7 +23,8 @@ export type AuditAction =
   | "match_score_edited"
   | "round_nudge"
   | "round_nudge_cooldown_reset"
-  | "waitlist_auto_promoted";
+  | "waitlist_auto_promoted"
+  | "waitlist_manual_promoted";
 
 export interface LogAuditOptions {
   groupId: string;
