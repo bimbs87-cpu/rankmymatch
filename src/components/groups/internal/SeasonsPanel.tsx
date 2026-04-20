@@ -162,7 +162,7 @@ export function SeasonsPanel({ groupId, isAdmin }: Props) {
 
       {/* Mini timeline showing season spans */}
       {seasons.length > 0 && (
-        <SeasonsTimeline seasons={seasons as any} onSelect={handleTimelineSelect} />
+        <SeasonsTimeline seasons={seasons.map((s: any) => ({ ...s, group_id: groupId })) as any} onSelect={handleTimelineSelect} />
       )}
 
       {/* Quick filter chips */}
