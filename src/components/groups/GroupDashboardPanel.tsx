@@ -882,6 +882,7 @@ function MatchStartCountdown({
   scheduledTime: string | null;
 }) {
   const [now, setNow] = useState(() => Date.now());
+  const alertedRef = useRef(false);
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 30000);
     return () => clearInterval(id);
@@ -913,6 +914,40 @@ function MatchStartCountdown({
 
   const isWarning = diffMs > 0 && diffMs <= 2 * 60 * 60 * 1000;
   const isImminent = diffMs > -60 * 1000 && diffMs <= 10 * 60 * 1000;
+
+  // Discrete alert (sound + vibration) once per session when entering the
+  // imminent state, so users with the tab open on mobile get a gentle nudge.
+  useEffect(() => {
+    if (!isImminent || alertedRef.current) return;
+    alertedRef.current = true;
+    try {
+      if (typeof navigator !== "undefined" && "vibrate" in navigator) {
+        navigator.vibrate?.([120, 60, 120]);
+      }
+      const AudioCtx =
+        (window as any).AudioContext || (window as any).webkitAudioContext;
+      if (AudioCtx) {
+        const ctx = new AudioCtx();
+        const o = ctx.createOscillator();
+        const g = ctx.createGain();
+        o.type = "sine";
+        o.frequency.value = 880;
+        g.gain.value = 0.0001;
+        o.connect(g);
+        g.connect(ctx.destination);
+        const t = ctx.currentTime;
+        // Soft envelope: fade in, hold ~140ms, fade out
+        g.gain.exponentialRampToValueAtTime(0.08, t + 0.04);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + 0.35);
+        o.start(t);
+        o.stop(t + 0.4);
+        setTimeout(() => ctx.close().catch(() => {}), 700);
+      }
+    } catch {
+      // ignore — best-effort discrete alert
+    }
+  }, [isImminent]);
+
   const tone = isImminent
     ? "border-warning/60 bg-warning/15 text-warning animate-pulse"
     : isWarning
