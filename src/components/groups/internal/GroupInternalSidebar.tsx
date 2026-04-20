@@ -1,4 +1,4 @@
-import { LayoutGrid, Users, CalendarDays, Settings2, ChevronLeft, X, GitCompare, Share2, Trophy } from "lucide-react";
+import { LayoutGrid, Users, Settings2, ChevronLeft, X, GitCompare, Share2, Trophy, ListChecks } from "lucide-react";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Link } from "@tanstack/react-router";
 
