@@ -18,13 +18,18 @@ import { recomputeRoundStatusInternal } from "@/lib/round-status.server";
  */
 
 // ---------- shared helpers ----------
-async function ensureGroupAdmin(userId: string, groupId: string) {
+async function isGroupAdmin(userId: string, groupId: string): Promise<boolean> {
   const { data, error } = await supabaseAdmin.rpc("is_group_admin", {
     _user_id: userId,
     _group_id: groupId,
   });
   if (error) throw new Error(error.message);
-  if (!data) throw new Error("Apenas administradores do grupo podem executar esta ação");
+  return !!data;
+}
+async function ensureGroupAdmin(userId: string, groupId: string) {
+  if (!(await isGroupAdmin(userId, groupId))) {
+    throw new Error("Apenas administradores do grupo podem executar esta ação");
+  }
 }
 
 function computeWinnerFromSets(
