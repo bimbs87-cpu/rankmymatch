@@ -658,6 +658,7 @@ export function GroupDashboardPanel({ group, onLeft, onPresenceChanged }: Props)
                 declined={data.next_round.declined_all?.length ?? 0}
                 pending={data.next_round.pending_all?.length ?? 0}
                 memberCount={data.member_count}
+                maxPlayers={data.next_round.max_players}
               />
               {/* Pending row — members who haven't responded yet, in a dimmed tone */}
               {data.next_round.pending_all && data.next_round.pending_all.length > 0 && (
@@ -1163,11 +1164,13 @@ function ResponseProgressBar({
   declined,
   pending,
   memberCount,
+  maxPlayers,
 }: {
   confirmed: number;
   declined: number;
   pending: number;
   memberCount: number;
+  maxPlayers?: number | null;
 }) {
   const total = Math.max(memberCount, confirmed + declined + pending);
   if (total <= 0) return null;
@@ -1175,6 +1178,11 @@ function ResponseProgressBar({
   const pct = Math.round((responded / total) * 100);
   const confirmedPct = (confirmed / total) * 100;
   const declinedPct = (declined / total) * 100;
+  // Marker position for max_players (only if it makes sense and fits inside the bar)
+  const showMaxMarker =
+    typeof maxPlayers === "number" && maxPlayers > 0 && maxPlayers < total;
+  const maxMarkerPct = showMaxMarker ? (maxPlayers! / total) * 100 : 0;
+  const isFull = typeof maxPlayers === "number" && confirmed >= maxPlayers;
 
   return (
     <div className="space-y-1">
@@ -1182,17 +1190,24 @@ function ResponseProgressBar({
         <span>
           <span className="font-bold text-foreground tabular-nums">{responded}</span>
           /{total} responderam
+          {isFull && (
+            <span className="ml-1.5 rounded-full bg-success/15 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-success">
+              Lotada
+            </span>
+          )}
         </span>
         <span className="font-bold tabular-nums text-foreground">{pct}%</span>
       </div>
       <div
-        className="flex h-1.5 w-full overflow-hidden rounded-full bg-muted/60"
+        className="relative flex h-1.5 w-full overflow-hidden rounded-full bg-muted/60"
         role="progressbar"
         aria-valuenow={pct}
         aria-valuemin={0}
         aria-valuemax={100}
         aria-label={`${pct}% de membros responderam`}
-        title={`✓ ${confirmed} confirmados · ✗ ${declined} recusaram · ${pending} pendentes`}
+        title={`✓ ${confirmed} confirmados · ✗ ${declined} recusaram · ${pending} pendentes${
+          showMaxMarker ? ` · capacidade ${maxPlayers}` : ""
+        }`}
       >
         <div
           className="h-full bg-success transition-all"
@@ -1202,7 +1217,29 @@ function ResponseProgressBar({
           className="h-full bg-destructive/50 transition-all"
           style={{ width: `${declinedPct}%` }}
         />
+        {showMaxMarker && (
+          <div
+            className="pointer-events-none absolute top-[-2px] bottom-[-2px] w-px bg-foreground/70"
+            style={{ left: `calc(${maxMarkerPct}% - 0.5px)` }}
+            title={`Capacidade da rodada: ${maxPlayers}`}
+            aria-label={`Marca de capacidade: ${maxPlayers} jogadores`}
+          />
+        )}
       </div>
+      {showMaxMarker && (
+        <div className="flex justify-between text-[9px] text-muted-foreground/80">
+          <span>0</span>
+          <span
+            style={{
+              marginLeft: `calc(${maxMarkerPct}% - 1.5rem)`,
+              marginRight: "auto",
+            }}
+            className="font-semibold text-foreground/70"
+          >
+            ↑ {maxPlayers} (lota)
+          </span>
+        </div>
+      )}
     </div>
   );
 }
