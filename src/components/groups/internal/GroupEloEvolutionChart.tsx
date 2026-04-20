@@ -4,6 +4,7 @@ import { useGroupEloEvolution, type SeasonFilter } from "@/hooks/use-group-elo-e
 
 interface Props {
   groupId: string;
+  defaultFilter?: SeasonFilter;
 }
 
 const COLORS = [
@@ -22,8 +23,8 @@ interface Row {
  * Uses ResizeObserver + 1:1 viewBox so geometry/text never stretch,
  * mirroring the EloEvolutionChart pattern.
  */
-export function GroupEloEvolutionChart({ groupId }: Props) {
-  const [filter, setFilter] = useState<SeasonFilter>("all");
+export function GroupEloEvolutionChart({ groupId, defaultFilter = "all" }: Props) {
+  const [filter, setFilter] = useState<SeasonFilter>(defaultFilter);
   const { data, isLoading } = useGroupEloEvolution(groupId, filter);
   const [hidden, setHidden] = useState<Set<string>>(new Set());
   const [hoverIdx, setHoverIdx] = useState<number | null>(null);
