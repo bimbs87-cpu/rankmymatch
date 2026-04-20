@@ -40,6 +40,7 @@ const SECTIONS: { id: Section; label: string; icon: typeof Settings2; creatorOnl
   { id: "presence", label: "Presença", icon: Bell },
   { id: "members", label: "Membros & vínculos", icon: Users },
   { id: "invites", label: "Convites", icon: Link2 },
+  { id: "approvals", label: "Aprovações", icon: ClipboardCheck },
   { id: "engagement", label: "Engajamento", icon: BarChart3 },
   { id: "audit", label: "Auditoria", icon: ScrollText },
   { id: "maintenance", label: "Manutenção", icon: Wrench },
