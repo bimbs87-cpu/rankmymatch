@@ -827,6 +827,16 @@ export function GroupDashboardPanel({ group, onLeft, onPresenceChanged }: Props)
                           </PopoverContent>
                         </Popover>
                       )}
+                    {data.next_round.presence_is_open && nudgeOnCooldown && (
+                      <button
+                        onClick={handleResetNudgeCooldown}
+                        className="flex h-6 w-6 items-center justify-center rounded-full border border-border bg-background/40 text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary"
+                        title="Resetar cooldown de cutucadas (1h)"
+                        aria-label="Resetar cooldown"
+                      >
+                        <RotateCcw className="h-3 w-3" />
+                      </button>
+                    )}
                     <button
                       onClick={handleToggleForceOpen}
                       disabled={presenceLoading}
