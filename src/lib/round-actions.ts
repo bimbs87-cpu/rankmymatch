@@ -113,11 +113,206 @@ export async function confirmPresence(roundId: string, userId: string) {
 }
 
 export async function cancelPresence(roundId: string, userId: string) {
+  // Was the canceller occupying a confirmed slot (within max_players)?
+  const { data: roundRow } = await supabase
+    .from("rounds")
+    .select("id, group_id, max_players, round_number")
+    .eq("id", roundId)
+    .single();
+
+  let wasInConfirmedSlot = false;
+  if (roundRow) {
+    const { data: confirmedList } = await supabase
+      .from("round_presence")
+      .select("user_id, confirmed_at")
+      .eq("round_id", roundId)
+      .eq("status", "confirmed")
+      .order("confirmed_at", { ascending: true });
+    const idx = (confirmedList || []).findIndex((p) => p.user_id === userId);
+    wasInConfirmedSlot = idx >= 0 && idx < (roundRow.max_players ?? 0);
+  }
+
   await supabase
     .from("round_presence")
     .update({ status: "absent" })
     .eq("round_id", roundId)
     .eq("user_id", userId);
+
+  // Auto-promote first waitlist member if a confirmed slot just opened
+  if (wasInConfirmedSlot && roundRow) {
+    await promoteFirstWaitlist(roundId, roundRow.group_id, roundRow.round_number ?? null);
+  }
+}
+
+/**
+ * Find the first member on the waiting list (confirmed status, beyond max_players
+ * when ordered by confirmed_at ASC) and "promote" them by refreshing their
+ * confirmed_at to now — which puts them inside the cutoff. Sends an in-app
+ * notification + push: "Você está dentro!".
+ *
+ * Returns the promoted user_id, or null if nobody to promote.
+ */
+export async function promoteFirstWaitlist(
+  roundId: string,
+  groupId: string,
+  roundNumber: number | null,
+): Promise<string | null> {
+  const { data: roundRow } = await supabase
+    .from("rounds")
+    .select("max_players")
+    .eq("id", roundId)
+    .single();
+  const maxPlayers = roundRow?.max_players ?? 0;
+  if (!maxPlayers) return null;
+
+  const { data: confirmedList } = await supabase
+    .from("round_presence")
+    .select("user_id, confirmed_at")
+    .eq("round_id", roundId)
+    .eq("status", "confirmed")
+    .order("confirmed_at", { ascending: true });
+
+  const list = confirmedList || [];
+  // First waitlist entry = first index >= maxPlayers
+  const promoted = list[maxPlayers];
+  if (!promoted) return null;
+
+  // Refresh confirmed_at so they slide into the active slot. Use a timestamp
+  // earlier than "now" but later than all existing confirmed entries so we
+  // don't displace anyone already in. Easiest: use the displaced person's
+  // original confirmed_at (which just got freed) or now() — both place the
+  // promoted user inside the cutoff since one slot is now empty.
+  const newTs = new Date().toISOString();
+  await supabase
+    .from("round_presence")
+    .update({ confirmed_at: newTs })
+    .eq("round_id", roundId)
+    .eq("user_id", promoted.user_id);
+
+  // Notify the promoted member
+  const title = "🎉 Você está dentro!";
+  const body = roundNumber
+    ? `Abriu vaga na Rodada ${roundNumber}. Você saiu da lista de espera e está confirmado!`
+    : `Abriu vaga na próxima rodada. Você saiu da lista de espera e está confirmado!`;
+  try {
+    await supabase.from("notifications").insert({
+      user_id: promoted.user_id,
+      group_id: groupId,
+      type: "waitlist_promoted",
+      title,
+      body,
+      data: { roundId },
+    });
+  } catch {
+    // ignore
+  }
+  try {
+    const { sendPushFn } = await import("@/lib/push.functions");
+    void sendPushFn({
+      data: {
+        userIds: [promoted.user_id],
+        payload: {
+          title,
+          body,
+          url: `/groups/${groupId}`,
+          type: "waitlist_promoted",
+          tag: `waitlist_promoted:${roundId}`,
+          data: { roundId },
+        },
+      },
+    }).catch(() => {});
+  } catch {
+    // ignore
+  }
+  return promoted.user_id;
+}
+
+/**
+ * Admin-triggered: manually promote a specific waitlist user into a confirmed
+ * slot. Pushes the last confirmed person into the waiting list by swapping
+ * their confirmed_at timestamps.
+ */
+export async function adminPromoteFromWaitlist(
+  roundId: string,
+  groupId: string,
+  waitlistUserId: string,
+  roundNumber: number | null,
+): Promise<void> {
+  const { data: roundRow } = await supabase
+    .from("rounds")
+    .select("max_players")
+    .eq("id", roundId)
+    .single();
+  const maxPlayers = roundRow?.max_players ?? 0;
+  if (!maxPlayers) throw new Error("Rodada sem capacidade definida");
+
+  const { data: confirmedList } = await supabase
+    .from("round_presence")
+    .select("user_id, confirmed_at")
+    .eq("round_id", roundId)
+    .eq("status", "confirmed")
+    .order("confirmed_at", { ascending: true });
+
+  const list = confirmedList || [];
+  const lastConfirmed = list[maxPlayers - 1];
+  const target = list.find((p) => p.user_id === waitlistUserId);
+  if (!target) throw new Error("Jogador não está confirmado nesta rodada");
+  if (!lastConfirmed) throw new Error("Nenhum confirmado para deslocar");
+  if (lastConfirmed.user_id === waitlistUserId) {
+    // Already inside the cutoff
+    return;
+  }
+
+  // Swap timestamps: waitlist user gets last-confirmed's timestamp (slides in),
+  // last-confirmed user gets a fresh "now" timestamp (slides out to waitlist).
+  const lastTs = lastConfirmed.confirmed_at || new Date(Date.now() - 1000).toISOString();
+  const nowTs = new Date().toISOString();
+  await supabase
+    .from("round_presence")
+    .update({ confirmed_at: lastTs })
+    .eq("round_id", roundId)
+    .eq("user_id", waitlistUserId);
+  await supabase
+    .from("round_presence")
+    .update({ confirmed_at: nowTs })
+    .eq("round_id", roundId)
+    .eq("user_id", lastConfirmed.user_id);
+
+  // Notify promoted user
+  const title = "🎉 Você está dentro!";
+  const body = roundNumber
+    ? `Um admin te promoveu da lista de espera para a Rodada ${roundNumber}. Você está confirmado!`
+    : `Um admin te promoveu da lista de espera. Você está confirmado!`;
+  try {
+    await supabase.from("notifications").insert({
+      user_id: waitlistUserId,
+      group_id: groupId,
+      type: "waitlist_promoted",
+      title,
+      body,
+      data: { roundId },
+    });
+  } catch {
+    // ignore
+  }
+  try {
+    const { sendPushFn } = await import("@/lib/push.functions");
+    void sendPushFn({
+      data: {
+        userIds: [waitlistUserId],
+        payload: {
+          title,
+          body,
+          url: `/groups/${groupId}`,
+          type: "waitlist_promoted",
+          tag: `waitlist_promoted:${roundId}`,
+          data: { roundId },
+        },
+      },
+    }).catch(() => {});
+  } catch {
+    // ignore
+  }
 }
 
 // Build singles pairings ordered by Elo (King of the Court).
