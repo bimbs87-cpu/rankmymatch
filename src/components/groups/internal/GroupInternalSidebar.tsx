@@ -1,8 +1,8 @@
-import { LayoutGrid, Users, CalendarDays, Settings2, ChevronLeft, X, GitCompare, Share2 } from "lucide-react";
+import { LayoutGrid, Users, CalendarDays, Settings2, ChevronLeft, X, GitCompare, Share2, Trophy } from "lucide-react";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Link } from "@tanstack/react-router";
 
-export type GroupView = "overview" | "members" | "seasons" | "compare" | "admin";
+export type GroupView = "overview" | "members" | "seasons" | "compare" | "ranking" | "admin";
 
 export interface SidebarBadges {
   pendingRequests?: number;
