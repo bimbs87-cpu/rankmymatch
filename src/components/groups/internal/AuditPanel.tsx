@@ -344,6 +344,19 @@ function Sparkline({
   return (
     <div className="flex items-center gap-2">
       <svg width="100%" height={h} viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" className="flex-1">
+        {showZones && (
+          <>
+            {greenTop < h - pad && (
+              <rect x={pad} y={greenTop} width={w - pad * 2} height={(h - pad) - greenTop} fill="hsl(var(--success))" opacity={0.08} />
+            )}
+            {yellowTop < yellowBottom && (
+              <rect x={pad} y={yellowTop} width={w - pad * 2} height={yellowBottom - yellowTop} fill="hsl(var(--warning))" opacity={0.08} />
+            )}
+            {redBottom > pad && (
+              <rect x={pad} y={pad} width={w - pad * 2} height={redBottom - pad} fill="hsl(var(--destructive))" opacity={0.08} />
+            )}
+          </>
+        )}
         {medianY !== null && (
           <>
             <line
