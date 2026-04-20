@@ -20,13 +20,16 @@ interface Props {
   onSelect?: (seasonId: string) => void;
 }
 
+type RoundStatus = "completed" | "scheduled" | "cancelled" | "in_progress";
+
 interface EventMarker {
   ts: number;
   left: number;
-  type: "big_round" | "season_finished";
+  type: "round" | "season_finished";
+  status?: RoundStatus;
   label: string;
   detail: string;
-  // For big_round: link to the round page
+  // For round: link to the round page
   roundId?: string;
   roundNumber?: number | null;
   matches?: number;
@@ -36,28 +39,23 @@ interface EventMarker {
   groupId?: string;
 }
 
-const STORAGE_KEY = "agenda-timeline-min-matches";
+interface RoundRow {
+  ts: number;
+  status: RoundStatus;
+  matches: number;
+  roundId: string;
+  roundNumber: number | null;
+  seasonId: string | null;
+}
 
 /**
- * Mini horizontal timeline of seasons with event markers (big rounds, season closures).
- * The "big round" threshold is configurable and persisted in localStorage.
+ * Mini horizontal timeline of seasons with markers for every round
+ * (concluída/agendada/cancelada). Tooltip per marker; click opens podium/details.
  */
 export function SeasonsTimeline({ seasons, onSelect }: Props) {
   const groupId = seasons[0]?.group_id;
 
-  const [minMatches, setMinMatchesState] = useState<number>(() => {
-    if (typeof window === "undefined") return 4;
-    const saved = Number(window.localStorage.getItem(STORAGE_KEY));
-    return Number.isFinite(saved) && saved >= 1 && saved <= 20 ? saved : 4;
-  });
-  const setMinMatches = (n: number) => {
-    setMinMatchesState(n);
-    try { window.localStorage.setItem(STORAGE_KEY, String(n)); } catch {}
-  };
-
-  const [bigRounds, setBigRounds] = useState<
-    { ts: number; matches: number; roundId: string; roundNumber: number | null; seasonId: string | null }[]
-  >([]);
+  const [allRounds, setAllRounds] = useState<RoundRow[]>([]);
 
   const [selectedMarker, setSelectedMarker] = useState<EventMarker | null>(null);
   const [podium, setPodium] = useState<{ userId: string; name: string; avatarUrl: string | null; value: number; subtitle?: string; eloDelta?: number | null }[] | null>(null);
@@ -72,31 +70,33 @@ export function SeasonsTimeline({ seasons, onSelect }: Props) {
         .from("rounds")
         .select("id, scheduled_date, created_at, status, round_number, season_id")
         .eq("group_id", groupId)
-        .eq("status", "completed");
+        .in("status", ["completed", "scheduled", "cancelled", "in_progress"]);
       if (!rounds?.length) {
-        if (!cancelled) setBigRounds([]);
+        if (!cancelled) setAllRounds([]);
         return;
       }
-      const ids = rounds.map((r) => r.id);
-      const { data: matches } = await supabase
-        .from("matches")
-        .select("round_id")
-        .in("round_id", ids);
+      const completedIds = rounds.filter((r) => r.status === "completed").map((r) => r.id);
       const counts = new Map<string, number>();
-      for (const m of matches || []) {
-        counts.set(m.round_id, (counts.get(m.round_id) || 0) + 1);
-      }
-      const out: { ts: number; matches: number; roundId: string; roundNumber: number | null; seasonId: string | null }[] = [];
-      for (const r of rounds) {
-        const n = counts.get(r.id) || 0;
-        if (n >= 1) {
-          const ts = r.scheduled_date
-            ? new Date(r.scheduled_date + "T12:00:00").getTime()
-            : new Date(r.created_at).getTime();
-          out.push({ ts, matches: n, roundId: r.id, roundNumber: r.round_number ?? null, seasonId: r.season_id ?? null });
+      if (completedIds.length) {
+        const { data: matches } = await supabase
+          .from("matches")
+          .select("round_id")
+          .in("round_id", completedIds);
+        for (const m of matches || []) {
+          counts.set(m.round_id, (counts.get(m.round_id) || 0) + 1);
         }
       }
-      if (!cancelled) setBigRounds(out);
+      const out: RoundRow[] = rounds.map((r) => ({
+        ts: r.scheduled_date
+          ? new Date(r.scheduled_date + "T12:00:00").getTime()
+          : new Date(r.created_at).getTime(),
+        status: r.status as RoundStatus,
+        matches: counts.get(r.id) || 0,
+        roundId: r.id,
+        roundNumber: r.round_number ?? null,
+        seasonId: r.season_id ?? null,
+      }));
+      if (!cancelled) setAllRounds(out);
     })();
     return () => { cancelled = true; };
   }, [groupId]);
@@ -109,7 +109,7 @@ export function SeasonsTimeline({ seasons, onSelect }: Props) {
     (async () => {
       setPodiumLoading(true);
       try {
-        if (selectedMarker.type === "big_round" && selectedMarker.roundId) {
+        if (selectedMarker.type === "round" && selectedMarker.status === "completed" && selectedMarker.roundId) {
           const { data: ms } = await supabase
             .from("matches")
             .select("id, winner_team")
@@ -264,28 +264,48 @@ export function SeasonsTimeline({ seasons, onSelect }: Props) {
         }
       }
     }
-    for (const r of bigRounds) {
-      if (r.matches < minMatches) continue;
-      if (r.ts >= min && r.ts <= max) {
-        markers.push({
-          ts: r.ts,
-          left: ((r.ts - min) / span) * 100,
-          type: "big_round",
-          label: `Rodada cheia`,
-          detail: `${r.matches} partida${r.matches !== 1 ? "s" : ""} em ${new Date(r.ts).toLocaleDateString("pt-BR")}`,
-          roundId: r.roundId,
-          roundNumber: r.roundNumber,
-          matches: r.matches,
-          seasonId: r.seasonId,
-          groupId,
-        });
+    for (const r of allRounds) {
+      if (r.ts < min || r.ts > max) continue;
+      const dateStr = new Date(r.ts).toLocaleDateString("pt-BR");
+      const numLabel = r.roundNumber ? `Rodada #${r.roundNumber}` : "Rodada";
+      let label: string;
+      let detail: string;
+      switch (r.status) {
+        case "completed":
+          label = "Rodada concluída";
+          detail = `${numLabel} · ${r.matches} partida${r.matches !== 1 ? "s" : ""} em ${dateStr}`;
+          break;
+        case "cancelled":
+          label = "Rodada cancelada";
+          detail = `${numLabel} cancelada (${dateStr})`;
+          break;
+        case "in_progress":
+          label = "Rodada em andamento";
+          detail = `${numLabel} em andamento (${dateStr})`;
+          break;
+        default:
+          label = "Rodada agendada";
+          detail = `${numLabel} agendada para ${dateStr}`;
       }
+      markers.push({
+        ts: r.ts,
+        left: ((r.ts - min) / span) * 100,
+        type: "round",
+        status: r.status,
+        label,
+        detail,
+        roundId: r.roundId,
+        roundNumber: r.roundNumber,
+        matches: r.matches,
+        seasonId: r.seasonId,
+        groupId,
+      });
     }
 
     const rangeLabel = `${new Date(min).toLocaleDateString("pt-BR", { month: "short", year: "numeric" })} → hoje`;
 
     return { bars, ticks, rangeLabel, markers };
-  }, [seasons, bigRounds, minMatches, groupId]);
+  }, [seasons, allRounds, groupId]);
 
   if (!bars.length) return null;
 
@@ -303,30 +323,27 @@ export function SeasonsTimeline({ seasons, onSelect }: Props) {
         <p className="text-[10px] tabular-nums text-muted-foreground">{rangeLabel}</p>
       </div>
 
-      {/* Big-round threshold selector */}
-      <div className="mb-2 flex flex-wrap items-center gap-1">
-        <span className="text-[10px] uppercase tracking-wider text-muted-foreground/70">
-          Rodada cheia ≥
-        </span>
-        {[2, 4, 6, 8].map((n) => {
-          const isOn = n === minMatches;
-          return (
-            <button
-              key={n}
-              type="button"
-              onClick={() => setMinMatches(n)}
-              className={`rounded-full border px-2 py-0.5 text-[10px] font-bold tabular-nums transition-all ${
-                isOn
-                  ? "border-warning bg-warning/15 text-warning"
-                  : "border-border bg-card/40 text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              {n}
-            </button>
-          );
-        })}
-        <span className="text-[10px] text-muted-foreground/70">partidas</span>
-      </div>
+      {/* Compact summary of round counts by status */}
+      {(() => {
+        const c = { completed: 0, scheduled: 0, cancelled: 0, in_progress: 0 } as Record<RoundStatus, number>;
+        for (const r of allRounds) c[r.status] = (c[r.status] || 0) + 1;
+        return (
+          <div className="mb-2 flex flex-wrap items-center gap-2 text-[10px] text-muted-foreground/80">
+            <span className="inline-flex items-center gap-1">
+              <span className="inline-block h-2 w-2 rounded-full bg-success" />
+              {c.completed} concluída{c.completed !== 1 ? "s" : ""}
+            </span>
+            <span className="inline-flex items-center gap-1">
+              <span className="inline-block h-2 w-2 rounded-full bg-muted-foreground/60" />
+              {c.scheduled + c.in_progress} agendada{c.scheduled + c.in_progress !== 1 ? "s" : ""}
+            </span>
+            <span className="inline-flex items-center gap-1">
+              <span className="inline-block h-2 w-2 rounded-full bg-destructive" />
+              {c.cancelled} cancelada{c.cancelled !== 1 ? "s" : ""}
+            </span>
+          </div>
+        );
+      })()}
 
       <div className="relative w-full overflow-hidden" style={{ height: totalHeight }}>
         {ticks.map((t) => (
@@ -376,7 +393,13 @@ export function SeasonsTimeline({ seasons, onSelect }: Props) {
           >
             <span
               className={`block h-2.5 w-2.5 rounded-full ring-2 ring-background ${
-                m.type === "big_round" ? "bg-warning" : "bg-destructive/80"
+                m.type === "season_finished"
+                  ? "bg-foreground/70"
+                  : m.status === "completed"
+                    ? "bg-success"
+                    : m.status === "cancelled"
+                      ? "bg-destructive"
+                      : "bg-muted-foreground/70"
               }`}
             />
           </button>
@@ -395,16 +418,19 @@ export function SeasonsTimeline({ seasons, onSelect }: Props) {
 
       <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-muted-foreground">
         <span className="flex items-center gap-1">
-          <span className="inline-block h-2 w-2 rounded-sm bg-success/70" /> Em andamento
+          <span className="inline-block h-2 w-2 rounded-sm bg-success/70" /> Temporada ativa
         </span>
         <span className="flex items-center gap-1">
-          <span className="inline-block h-2 w-2 rounded-sm bg-muted-foreground/40" /> Encerrada
+          <span className="inline-block h-2 w-2 rounded-sm bg-muted-foreground/40" /> Temporada encerrada
         </span>
         <span className="flex items-center gap-1">
-          <span className="inline-block h-2 w-2 rounded-full bg-warning" /> Rodada cheia
+          <span className="inline-block h-2 w-2 rounded-full bg-success" /> Concluída
         </span>
         <span className="flex items-center gap-1">
-          <span className="inline-block h-2 w-2 rounded-full bg-destructive/80" /> Temporada encerrada
+          <span className="inline-block h-2 w-2 rounded-full bg-muted-foreground/70" /> Agendada
+        </span>
+        <span className="flex items-center gap-1">
+          <span className="inline-block h-2 w-2 rounded-full bg-destructive" /> Cancelada
         </span>
       </div>
 
@@ -422,11 +448,23 @@ export function SeasonsTimeline({ seasons, onSelect }: Props) {
               <div className="flex items-center gap-2">
                 <span
                   className={`inline-block h-3 w-3 rounded-full ${
-                    selectedMarker.type === "big_round" ? "bg-warning" : "bg-destructive/80"
+                    selectedMarker.type === "season_finished"
+                      ? "bg-foreground/70"
+                      : selectedMarker.status === "completed"
+                        ? "bg-success"
+                        : selectedMarker.status === "cancelled"
+                          ? "bg-destructive"
+                          : "bg-muted-foreground/70"
                   }`}
                 />
                 <h4 className="font-display text-sm font-bold text-foreground">
-                  {selectedMarker.type === "big_round" ? "🔥 Rodada cheia" : "🏁 Temporada encerrada"}
+                  {selectedMarker.type === "season_finished"
+                    ? "🏁 Temporada encerrada"
+                    : selectedMarker.status === "completed"
+                      ? "✅ Rodada concluída"
+                      : selectedMarker.status === "cancelled"
+                        ? "🚫 Rodada cancelada"
+                        : "📅 Rodada agendada"}
                 </h4>
               </div>
               <button
@@ -438,23 +476,25 @@ export function SeasonsTimeline({ seasons, onSelect }: Props) {
               </button>
             </div>
             <p className="text-xs text-muted-foreground">{selectedMarker.detail}</p>
-            {selectedMarker.type === "big_round" && selectedMarker.roundNumber != null && (
+            {selectedMarker.type === "round" && selectedMarker.roundNumber != null && (
               <p className="mt-2 text-[11px] text-muted-foreground">
                 <span className="text-foreground font-bold">Rodada #{selectedMarker.roundNumber}</span>
-                {selectedMarker.matches != null && ` · ${selectedMarker.matches} partidas`}
+                {selectedMarker.matches != null && selectedMarker.status === "completed" && ` · ${selectedMarker.matches} partidas`}
               </p>
             )}
 
-            {/* Podium preview (top 3) */}
+            {/* Podium only meaningful for completed rounds & finished seasons */}
+            {(selectedMarker.type === "season_finished" ||
+              (selectedMarker.type === "round" && selectedMarker.status === "completed")) && (
             <div className="mt-3 rounded-xl border border-border bg-muted/10 p-2.5">
               <p className="mb-1.5 text-[9px] font-bold uppercase tracking-wider text-muted-foreground">
-                {selectedMarker.type === "big_round" ? "🏆 Top 3 da rodada" : "🏆 Top 3 da temporada"}
+                {selectedMarker.type === "round" ? "🏆 Top 3 da rodada" : "🏆 Top 3 da temporada"}
               </p>
               {podiumLoading ? (
                 <p className="text-center text-[10px] text-muted-foreground">Carregando…</p>
               ) : !podium || podium.length === 0 ? (
                 <p className="text-center text-[10px] text-muted-foreground">
-                  {selectedMarker.type === "big_round"
+                  {selectedMarker.type === "round"
                     ? "Sem placar registrado"
                     : "Sem ranking final disponível"}
                 </p>
@@ -507,8 +547,9 @@ export function SeasonsTimeline({ seasons, onSelect }: Props) {
                 </ol>
               )}
             </div>
+            )}
             <div className="mt-3 flex items-center justify-end gap-2">
-              {selectedMarker.type === "big_round" &&
+              {selectedMarker.type === "round" &&
                 selectedMarker.groupId &&
                 selectedMarker.seasonId &&
                 selectedMarker.roundId && (

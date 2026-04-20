@@ -15,6 +15,7 @@ import {
   AlertTriangle,
   Undo2,
   BarChart3,
+  Trophy,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
@@ -772,7 +773,8 @@ function AdminInboxPage() {
                 {/* List */}
                 <div className="space-y-2">
                   {filtered.map((it) => {
-                    const Icon = it.kind === "join_request" ? UserPlus : Link2;
+                    const isMatchResult = it.kind === "match_result";
+                    const Icon = isMatchResult ? Trophy : it.kind === "join_request" ? UserPlus : Link2;
                     const isSelected = selected.has(it.id);
                     const lvl = ageLevel(it.createdAt);
                     const isCritical = lvl === "critical";
@@ -807,11 +809,19 @@ function AdminInboxPage() {
                               <span className="text-sm font-semibold text-foreground">
                                 {it.requesterName}
                               </span>
-                              <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+                              <span
+                                className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                                  isMatchResult
+                                    ? "bg-warning/15 text-warning"
+                                    : "bg-muted text-muted-foreground"
+                                }`}
+                              >
                                 <Icon className="h-3 w-3" />
-                                {it.kind === "join_request"
-                                  ? "Entrar"
-                                  : "Vincular"}
+                                {isMatchResult
+                                  ? "Placar"
+                                  : it.kind === "join_request"
+                                    ? "Entrar"
+                                    : "Vincular"}
                               </span>
                               {isCritical && (
                                 <span className="inline-flex items-center gap-1 rounded-full bg-destructive px-2 py-0.5 text-[10px] font-bold text-destructive-foreground">
@@ -836,35 +846,73 @@ function AdminInboxPage() {
                                     : ""}
                               </span>
                             </div>
-                            <p className="mt-0.5 text-xs text-muted-foreground">
-                              {it.kind === "claim" && it.targetPlayerName ? (
-                                <>
-                                  quer vincular a{" "}
+                            {isMatchResult ? (
+                              <>
+                                <p className="mt-0.5 text-xs text-muted-foreground">
+                                  enviou placar para{" "}
                                   <strong className="text-foreground">
-                                    {it.targetPlayerName}
+                                    {it.roundNumber ? `Rodada ${it.roundNumber}` : "rodada"}
+                                    {it.matchNumber ? ` · Partida ${it.matchNumber}` : ""}
                                   </strong>{" "}
                                   em{" "}
-                                </>
-                              ) : it.kind === "join_request" &&
-                                it.targetPlayerName ? (
-                                <>
-                                  quer entrar como{" "}
-                                  <strong className="text-foreground">
-                                    {it.targetPlayerName}
-                                  </strong>{" "}
-                                  em{" "}
-                                </>
-                              ) : (
-                                <>quer entrar em </>
-                              )}
-                              <Link
-                                to="/groups/$groupId"
-                                params={{ groupId: it.groupId }}
-                                className="font-medium text-primary hover:underline"
-                              >
-                                {it.groupName}
-                              </Link>
-                            </p>
+                                  <Link
+                                    to="/groups/$groupId"
+                                    params={{ groupId: it.groupId }}
+                                    className="font-medium text-primary hover:underline"
+                                  >
+                                    {it.groupName}
+                                  </Link>
+                                </p>
+                                {it.sets && it.sets.length > 0 && (
+                                  <div className="mt-1.5 flex flex-wrap items-center gap-1">
+                                    {[...it.sets]
+                                      .sort((a, b) => a.setNumber - b.setNumber)
+                                      .map((s) => (
+                                        <span
+                                          key={s.setNumber}
+                                          className="inline-flex items-center gap-1 rounded-full border border-border bg-background/60 px-2 py-0.5 text-[11px] font-bold tabular-nums text-foreground"
+                                          title={`Set ${s.setNumber}`}
+                                        >
+                                          <span className="text-[9px] font-semibold uppercase text-muted-foreground">
+                                            S{s.setNumber}
+                                          </span>
+                                          {s.scoreA}–{s.scoreB}
+                                        </span>
+                                      ))}
+                                  </div>
+                                )}
+                              </>
+                            ) : (
+                              <p className="mt-0.5 text-xs text-muted-foreground">
+                                {it.kind === "claim" && it.targetPlayerName ? (
+                                  <>
+                                    quer vincular a{" "}
+                                    <strong className="text-foreground">
+                                      {it.targetPlayerName}
+                                    </strong>{" "}
+                                    em{" "}
+                                  </>
+                                ) : it.kind === "join_request" &&
+                                  it.targetPlayerName ? (
+                                  <>
+                                    quer entrar como{" "}
+                                    <strong className="text-foreground">
+                                      {it.targetPlayerName}
+                                    </strong>{" "}
+                                    em{" "}
+                                  </>
+                                ) : (
+                                  <>quer entrar em </>
+                                )}
+                                <Link
+                                  to="/groups/$groupId"
+                                  params={{ groupId: it.groupId }}
+                                  className="font-medium text-primary hover:underline"
+                                >
+                                  {it.groupName}
+                                </Link>
+                              </p>
+                            )}
                             {it.message && (
                               <p className="mt-1 rounded-lg bg-muted/50 px-2 py-1 text-[11px] text-muted-foreground">
                                 "{it.message}"
