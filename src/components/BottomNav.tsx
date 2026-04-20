@@ -144,6 +144,14 @@ export function BottomNav() {
             );
           }
 
+          if (isRanking && activeGroup) {
+            return (
+              <Link key={item.to} to="/ranking" search={{ group: activeGroup.id }} className={baseClasses}>
+                {renderInner()}
+              </Link>
+            );
+          }
+
           return (
             <Link key={item.to} to={item.to} className={baseClasses}>
               {renderInner()}
