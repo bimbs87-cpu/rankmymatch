@@ -74,7 +74,7 @@ function CardSpinner({ label = "Carregando..." }: { label?: string }) {
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "RankMyMatch — Ranking Elo, temporadas e estatísticas para sua feirinha" },
+      { title: "RankMyMatch — Ranking Elo, temporada e estatísticas para seu feirino" },
       {
         name: "description",
         content:
