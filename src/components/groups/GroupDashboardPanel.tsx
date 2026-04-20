@@ -544,19 +544,7 @@ export function GroupDashboardPanel({ group, onLeft, onPresenceChanged }: Props)
                     </button>
                   </div>
                 ) : (
-                  <span
-                    className="flex items-center gap-1 rounded-full border border-border bg-background/40 px-2.5 py-1 text-[10px] font-semibold text-muted-foreground"
-                    title={
-                      data.next_round.presence_opens_at
-                        ? `Abre em ${new Date(data.next_round.presence_opens_at).toLocaleString("pt-BR")}`
-                        : "Lista ainda não aberta"
-                    }
-                  >
-                    <Lock className="h-3 w-3" />
-                    {data.next_round.presence_opens_at
-                      ? `Abre ${formatOpensAt(data.next_round.presence_opens_at)}`
-                      : "Lista fechada"}
-                  </span>
+                  <PresenceCountdown opensAt={data.next_round.presence_opens_at} />
                 )}
               </div>
               {isAdmin && (
