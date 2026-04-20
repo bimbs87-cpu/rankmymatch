@@ -147,7 +147,7 @@ export async function cancelPresence(roundId: string, userId: string) {
         const { logAudit } = await import("@/lib/audit-log");
         void logAudit({
           groupId: roundRow.group_id,
-          action: "waitlist_auto_promoted" as any,
+          action: "waitlist_auto_promoted",
           entityType: "round",
           entityId: roundId,
           newData: {
