@@ -70,11 +70,19 @@ export function useGroupEloEvolution(groupId: string | null, filter: SeasonFilte
           if (!cancelled) { setData({ ...EMPTY, seasons }); setIsLoading(false); }
           return;
         }
+        // Sanity bound: ignore obviously broken scheduled_date values
+        // (e.g. accidental year 0002) and fall back to created_at.
+        const MIN_VALID_TS = new Date("2010-01-01").getTime();
         const dateOf = new Map<string, number>();
         for (const r of rounds || []) {
-          const ts = r.scheduled_date
+          const scheduledTs = r.scheduled_date
             ? new Date(r.scheduled_date + "T12:00:00").getTime()
-            : new Date(r.created_at).getTime();
+            : NaN;
+          const createdTs = new Date(r.created_at).getTime();
+          const ts =
+            Number.isFinite(scheduledTs) && scheduledTs >= MIN_VALID_TS
+              ? scheduledTs
+              : createdTs;
           dateOf.set(r.id, ts);
         }
 
