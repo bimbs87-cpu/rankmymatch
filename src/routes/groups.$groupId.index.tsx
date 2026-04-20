@@ -415,6 +415,14 @@ function GroupDetailPage() {
           </div>
 
           <div className="min-w-0 px-4 py-5 lg:px-8 lg:py-6">
+            {/* Floating tabs (mobile only) — sticky, never covers cover image initially */}
+            <GroupInternalFloatingTabs
+              isAdmin={isAdmin}
+              view={view}
+              onSelect={handleSelectView}
+              badges={sidebarProps.badges}
+            />
+
             {/* Pending match alert (always visible at top) */}
             {pendingMatch && (
               <div className="mb-4">
