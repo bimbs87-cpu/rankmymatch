@@ -58,6 +58,8 @@ export function SeasonsTimeline({ seasons, onSelect }: Props) {
   >([]);
 
   const [selectedMarker, setSelectedMarker] = useState<EventMarker | null>(null);
+  const [podium, setPodium] = useState<{ name: string; value: number; subtitle?: string }[] | null>(null);
+  const [podiumLoading, setPodiumLoading] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
