@@ -99,6 +99,11 @@ export function useAdminPendingCount() {
         { event: "*", schema: "public", table: "player_claims" },
         () => refreshRef.current(),
       )
+      .on(
+        "postgres_changes" as never,
+        { event: "*", schema: "public", table: "pending_match_results" },
+        () => refreshRef.current(),
+      )
       .subscribe();
     return () => {
       void supabase.removeChannel(channel);
