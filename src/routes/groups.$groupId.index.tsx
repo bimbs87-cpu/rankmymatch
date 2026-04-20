@@ -111,6 +111,13 @@ function GroupDetailPage() {
   const { pendingMatch, refresh: refreshPending } = usePendingMatch(groupId);
 
   const [view, setView] = useState<GroupView>(search.view || "overview");
+  const [scrolled, setScrolled] = useState(false);
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 4);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
   const [memberShareOpen, setMemberShareOpen] = useState(false);
   const [pendingCompareIds, setPendingCompareIds] = useState<string[] | null>(null);
 
@@ -358,7 +365,7 @@ function GroupDetailPage() {
         {/* Main content */}
         <main className="min-w-0 flex-1 overflow-x-hidden pb-28 pt-[96px] lg:pt-0">
           {/* Top bar (mobile) */}
-          <div className="flex items-center gap-3 border-b border-border/60 bg-background/80 px-4 py-3 backdrop-blur lg:hidden">
+          <div className={`flex items-center gap-3 border-b border-border/60 bg-background/80 px-4 py-3 backdrop-blur transition-shadow duration-200 lg:hidden ${scrolled ? "shadow-[0_6px_16px_-8px_rgba(0,0,0,0.6)]" : ""}`}>
             <Link
               to="/groups"
               className="flex h-9 w-9 items-center justify-center rounded-full border border-border bg-card"

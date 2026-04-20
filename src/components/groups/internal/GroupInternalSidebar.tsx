@@ -1,4 +1,4 @@
-import { LayoutGrid, Users, CalendarDays, Settings2, ChevronLeft, X, GitCompare, Share2, Trophy } from "lucide-react";
+import { LayoutGrid, Users, Settings2, ChevronLeft, X, GitCompare, Share2, Trophy, ListChecks } from "lucide-react";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Link } from "@tanstack/react-router";
 
@@ -20,7 +20,7 @@ interface Item {
 const ITEMS: Item[] = [
   { id: "overview", label: "Visão geral", shortLabel: "Visão", icon: LayoutGrid },
   { id: "members", label: "Membros", shortLabel: "", icon: Users },
-  { id: "seasons", label: "Agenda e resultados", shortLabel: "", icon: CalendarDays },
+  { id: "seasons", label: "Agenda e resultados", shortLabel: "", icon: ListChecks },
   { id: "compare", label: "Comparar", shortLabel: "", icon: GitCompare },
   { id: "admin", label: "Admin", icon: Settings2, adminOnly: true },
 ];
@@ -229,6 +229,12 @@ export function GroupInternalFloatingTabs({ isAdmin, view, onSelect, badges = {}
                       {badgeCount}
                     </span>
                   ) : null}
+                  {/* Animated active indicator */}
+                  <span
+                    className={`pointer-events-none absolute -bottom-0.5 left-1/2 h-[3px] -translate-x-1/2 rounded-full bg-primary shadow-[0_0_8px_hsl(var(--primary)/0.7)] transition-all duration-300 ease-out ${
+                      active ? "w-6 opacity-100" : "w-0 opacity-0"
+                    }`}
+                  />
                 </button>
               </li>
             );
