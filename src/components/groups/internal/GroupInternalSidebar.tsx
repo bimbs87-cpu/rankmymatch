@@ -12,14 +12,15 @@ export interface SidebarBadges {
 interface Item {
   id: GroupView;
   label: string;
+  shortLabel?: string;
   icon: typeof LayoutGrid;
   adminOnly?: boolean;
 }
 
 const ITEMS: Item[] = [
-  { id: "overview", label: "Visão geral", icon: LayoutGrid },
+  { id: "overview", label: "Visão geral", shortLabel: "Visão", icon: LayoutGrid },
   { id: "members", label: "Membros", icon: Users },
-  { id: "seasons", label: "Agenda e resultados", icon: CalendarDays },
+  { id: "seasons", label: "Agenda e resultados", shortLabel: "Agenda", icon: CalendarDays },
   { id: "compare", label: "Comparar", icon: GitCompare },
   { id: "admin", label: "Admin", icon: Settings2, adminOnly: true },
 ];
@@ -178,11 +179,10 @@ interface FloatingTabsProps {
 export function GroupInternalFloatingTabs({ isAdmin, view, onSelect, badges = {} }: FloatingTabsProps) {
   const items = ITEMS.filter((i) => !i.adminOnly || isAdmin);
   return (
-    <div className="sticky top-0 z-30 -mx-4 px-3 py-2 lg:hidden">
-      <div className="rounded-full border border-border bg-card/90 px-1.5 py-1 shadow-lg ring-1 ring-black/30 backdrop-blur-xl">
+    <div className="sticky top-0 z-30 -mx-4 px-2 py-2 lg:hidden">
+      <div className="rounded-full border border-border bg-card/90 px-1 py-1 shadow-lg ring-1 ring-black/30 backdrop-blur-xl">
         <ul
-          className="flex items-center gap-1 overflow-x-auto"
-          style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+          className="flex items-center justify-between gap-0.5"
         >
           {items.map((item) => {
             const Icon = item.icon;
@@ -191,20 +191,20 @@ export function GroupInternalFloatingTabs({ isAdmin, view, onSelect, badges = {}
               item.id === "admin" ? badges.pendingRequests : undefined;
             const dot = item.id === "overview" && badges.pendingPresence;
             return (
-              <li key={item.id} className="shrink-0">
+              <li key={item.id} className="min-w-0 flex-1">
                 <button
                   onClick={() => onSelect(item.id)}
-                  className={`group relative flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-semibold transition-colors ${
+                  className={`group relative flex w-full items-center justify-center gap-1 rounded-full px-1.5 py-1.5 text-[10px] font-semibold transition-colors ${
                     active
                       ? "bg-primary/15 text-primary"
                       : "text-muted-foreground hover:bg-accent/40 hover:text-foreground"
                   }`}
                 >
-                  <Icon className="h-3.5 w-3.5" />
-                  <span className="whitespace-nowrap">{item.label}</span>
+                  <Icon className="h-3.5 w-3.5 shrink-0" />
+                  <span className="truncate">{item.shortLabel ?? item.label}</span>
                   {dot && <span className="ml-0.5 h-1.5 w-1.5 rounded-full bg-warning" />}
                   {badgeCount && badgeCount > 0 ? (
-                    <span className="ml-0.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[9px] font-bold text-destructive-foreground">
+                    <span className="ml-0.5 inline-flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-destructive px-1 text-[9px] font-bold text-destructive-foreground">
                       {badgeCount}
                     </span>
                   ) : null}
