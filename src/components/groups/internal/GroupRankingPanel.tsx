@@ -4,6 +4,7 @@ import { Trophy, ExternalLink, AlertCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { PlayerAvatarLink } from "@/components/PlayerProfileViewer";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
+import { GroupEloEvolutionChart } from "@/components/groups/internal/GroupEloEvolutionChart";
 
 interface RankingRow {
   user_id: string;
@@ -95,6 +96,9 @@ export function GroupRankingPanel({ groupId }: Props) {
           <ExternalLink className="h-3 w-3" />
         </Link>
       </header>
+
+      <GroupEloEvolutionChart groupId={groupId} />
+
 
       {loading ? (
         <div className="rounded-2xl border border-border bg-card p-6 text-center text-sm text-muted-foreground">
