@@ -542,6 +542,17 @@ function NextRoundCard({ data, isLoading, groupId, busy, onPresence }: NextRound
             </Popover>
           )}
 
+          {/* Aviso "Você ainda não respondeu" — destaca no mobile quando lista aberta + pendente */}
+          {data.next_round.presence_is_open && data.next_round.presence_status === "pending" && (
+            <div className="mt-2 flex items-center gap-1.5 rounded-lg border border-warning/40 bg-warning/10 px-2 py-1.5 text-[10px] font-bold text-warning animate-in fade-in">
+              <span className="relative flex h-2 w-2 shrink-0">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-warning opacity-70" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-warning" />
+              </span>
+              <span className="truncate">Você ainda não respondeu</span>
+            </div>
+          )}
+
           <div className="mt-2">
             {data.next_round.presence_is_open ? (
               <div className="flex gap-1.5">

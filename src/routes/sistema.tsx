@@ -25,6 +25,7 @@ import { useAuth } from "@/hooks/use-auth";
 import screenshotDesktopHome from "@/assets/mockup-desktop-home.png";
 import screenshotMobileHome from "@/assets/mockup-mobile-home.png";
 import screenshotMobileRanking from "@/assets/mockup-mobile-ranking.png";
+import { PushDiagnosticCard } from "@/components/PushDiagnosticCard";
 
 export const Route = createFileRoute("/sistema")({
   head: () => ({
@@ -606,6 +607,9 @@ function SistemaPage() {
           ))}
         </div>
       </section>
+
+      {/* PUSH DIAGNOSTIC (apenas para usuários logados) */}
+      {user && <PushDiagnosticCard />}
 
       {/* FINAL CTA */}
       <section className="mx-auto max-w-5xl px-5 pb-12 lg:px-8">

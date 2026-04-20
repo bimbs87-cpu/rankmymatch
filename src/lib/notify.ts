@@ -15,6 +15,12 @@ type NotifyParams = {
   data?: Record<string, string | number | boolean | null>;
   /** URL the push opens when tapped. */
   url?: string;
+  /**
+   * Custom push notification tag. When multiple pushes share the same tag, the
+   * OS collapses them into a single visible notification (no flooding).
+   * Defaults to `${type}:${groupId}` when omitted.
+   */
+  tag?: string;
 };
 
 async function fanout(userIds: string[], params: NotifyParams, defaultUrl: string) {
@@ -42,7 +48,7 @@ async function fanout(userIds: string[], params: NotifyParams, defaultUrl: strin
           body: params.body,
           url: params.url || defaultUrl,
           type: params.type,
-          tag: `${params.type}:${params.groupId}`,
+          tag: params.tag || `${params.type}:${params.groupId}`,
           data: { groupId: params.groupId, ...(params.data || {}) },
         },
       },

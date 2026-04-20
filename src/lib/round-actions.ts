@@ -182,6 +182,9 @@ async function notifyPresenceChange(
         body,
         data: { roundId },
         url: `/groups/${roundRow.group_id}`,
+        // Group all presence changes for the same round under one OS notification
+        // so multiple confirmations don't flood the notification tray.
+        tag: `presence_change:${roundId}`,
       },
       `/groups/${roundRow.group_id}`,
     );
