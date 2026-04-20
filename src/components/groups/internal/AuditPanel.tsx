@@ -679,12 +679,32 @@ export function AuditPanel({ groupId }: Props) {
                   <p className="text-[9px] font-bold uppercase tracking-wider text-warning/80">
                     Tempo médio de resposta (h) — últimas {responseTimes.length}
                   </p>
-                  <span
-                    className="flex items-center gap-1 rounded-full border border-warning/40 bg-warning/10 px-2 py-0.5 text-[10px] font-bold tabular-nums text-warning"
-                    title="Tempo médio geral, ignorando cutucadas sem resposta"
-                  >
-                    <Clock className="h-2.5 w-2.5" /> Média geral: {avgLabel}
-                  </span>
+                  {(() => {
+                    const tone =
+                      avg <= 0
+                        ? "muted"
+                        : avg < 1
+                          ? "success"
+                          : avg <= 6
+                            ? "warning"
+                            : "destructive";
+                    const toneCls =
+                      tone === "success"
+                        ? "border-success/40 bg-success/10 text-success"
+                        : tone === "warning"
+                          ? "border-warning/40 bg-warning/10 text-warning"
+                          : tone === "destructive"
+                            ? "border-destructive/40 bg-destructive/10 text-destructive"
+                            : "border-border bg-muted/40 text-muted-foreground";
+                    return (
+                      <span
+                        className={`flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-bold tabular-nums ${toneCls}`}
+                        title="Tempo médio geral, ignorando cutucadas sem resposta. Verde <1h · Amarelo 1-6h · Vermelho >6h"
+                      >
+                        <Clock className="h-2.5 w-2.5" /> Média geral: {avgLabel}
+                      </span>
+                    );
+                  })()}
                 </div>
                 <Sparkline values={responseTimes} unit="h" />
               </div>
