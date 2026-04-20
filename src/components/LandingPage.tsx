@@ -250,7 +250,17 @@ export function LandingPage() {
               temporadas para padel, tênis, beach tennis e mais.
             </p>
 
-            {/* Mobile-only hero image (between text and CTA) */}
+            {/* Mobile-only CTA: appears right below the tagline, before the hero image */}
+            <div className="mt-5 flex flex-col items-start gap-2.5 lg:hidden">
+              <CTAButton size="lg" className="w-full" />
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <CheckCircle2 className="h-4 w-4 text-primary" />
+                <span>Grátis para começar · sem cartão</span>
+              </div>
+              {error && <p className="text-sm text-destructive">{error}</p>}
+            </div>
+
+            {/* Mobile-only hero image (between CTA and sports list) */}
             <div className="relative mt-6 -mx-5 overflow-hidden lg:hidden">
               <div
                 aria-hidden
@@ -268,7 +278,8 @@ export function LandingPage() {
               />
             </div>
 
-            <div className="mt-5 flex flex-col items-start gap-2.5 sm:flex-row sm:items-center sm:gap-4 lg:justify-start">
+            {/* Desktop-only CTA */}
+            <div className="mt-5 hidden flex-col items-start gap-2.5 sm:flex-row sm:items-center sm:gap-4 lg:flex lg:justify-start">
               <CTAButton size="lg" className="w-full sm:w-auto" />
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 <CheckCircle2 className="h-4 w-4 text-primary" />
@@ -276,7 +287,7 @@ export function LandingPage() {
               </div>
             </div>
 
-            {error && <p className="mt-3 text-sm text-destructive">{error}</p>}
+            {error && <p className="mt-3 hidden text-sm text-destructive lg:block">{error}</p>}
 
             <div className="mt-6">
               <p className="mb-2 text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
