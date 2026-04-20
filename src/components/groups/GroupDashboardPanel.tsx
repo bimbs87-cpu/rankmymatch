@@ -152,6 +152,10 @@ export function GroupDashboardPanel({ group, onLeft, onPresenceChanged }: Props)
 
   async function handleNudgePending(includeDeclined: boolean) {
     if (!data.next_round) return;
+    if (nudgeUsedCount >= NUDGE_MAX_PER_ROUND) {
+      toast.error(`Limite de ${NUDGE_MAX_PER_ROUND} cutucadas por rodada atingido`);
+      return;
+    }
     const pendingIds = data.next_round.pending_all?.map((p) => p.user_id) ?? [];
     const declinedIds = includeDeclined
       ? data.next_round.declined_all?.map((p) => p.user_id) ?? []
