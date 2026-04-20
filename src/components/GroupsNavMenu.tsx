@@ -141,6 +141,28 @@ export function GroupsNavMenu({ groups, renderTrigger, panelClassName }: Props) 
                 )}
               </div>
               <ul className="space-y-0.5">
+                {nextRound && (
+                  <li>
+                    <Link
+                      to="/groups/$groupId/seasons/$seasonId/rounds/$roundId"
+                      params={{
+                        groupId: primaryId,
+                        seasonId: nextRound.season_id ?? "",
+                        roundId: nextRound.id,
+                      }}
+                      onClick={() => setOpen(false)}
+                      className="flex items-center justify-between gap-2 rounded-lg bg-success/10 px-2 py-1.5 text-xs font-semibold text-foreground ring-1 ring-success/30 transition-colors hover:bg-success/20"
+                    >
+                      <span className="flex items-center gap-2">
+                        <CalendarClock className="h-3.5 w-3.5 shrink-0 text-success" />
+                        <span>Próxima rodada</span>
+                      </span>
+                      <span className="text-[10px] font-bold text-success">
+                        {formatNextRound(nextRound.scheduled_date, nextRound.scheduled_time)}
+                      </span>
+                    </Link>
+                  </li>
+                )}
                 <li>
                   <Link
                     to="/groups/$groupId"
