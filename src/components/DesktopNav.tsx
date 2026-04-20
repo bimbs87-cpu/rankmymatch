@@ -8,6 +8,7 @@ import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { NotificationsPopover } from "@/components/NotificationsPopover";
 import { GroupSwitcherPopover } from "@/components/GroupSwitcherPopover";
 import { GroupsNavMenu } from "@/components/GroupsNavMenu";
+import { SafeBoundary } from "@/components/SafeBoundary";
 
 const NAV_ITEMS = [
   { to: "/" as const, icon: Home, label: "Início", isGroups: false },
@@ -59,29 +60,39 @@ export function DesktopNav() {
 
               if (item.isGroups) {
                 return (
-                  <GroupsNavMenu
+                  <SafeBoundary
                     key={item.to}
-                    groups={myGroups.map((g) => ({ id: g.id, name: g.name }))}
-                    panelClassName="absolute left-1/2 top-full z-50 mt-2 w-72 max-h-[70vh] -translate-x-1/2 overflow-y-auto rounded-2xl border border-border bg-popover p-2 shadow-xl animate-fade-in"
-                    renderTrigger={({ onClick, badge, badgeLoading, open }) => (
-                      <button
-                        type="button"
-                        onClick={onClick}
-                        aria-expanded={open}
-                        className={`${baseClasses} relative ${open ? "bg-primary/15 text-primary" : ""}`}
-                      >
+                    label="GroupsNavMenu(DesktopNav)"
+                    fallback={
+                      <Link to="/groups" className={baseClasses}>
                         <Icon className="h-4 w-4" />
                         <span>{item.label}</span>
-                        {badgeLoading ? (
-                          <span className="ml-0.5 inline-block h-4 w-4 animate-pulse rounded-full bg-primary/20" />
-                        ) : badge > 0 ? (
-                          <span className="ml-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[9px] font-bold text-destructive-foreground">
-                            {badge > 9 ? "9+" : badge}
-                          </span>
-                        ) : null}
-                      </button>
-                    )}
-                  />
+                      </Link>
+                    }
+                  >
+                    <GroupsNavMenu
+                      groups={myGroups.map((g) => ({ id: g.id, name: g.name }))}
+                      panelClassName="absolute left-1/2 top-full z-[60] mt-2 w-72 max-h-[70vh] -translate-x-1/2 overflow-y-auto rounded-2xl border border-border bg-card p-2 shadow-2xl ring-1 ring-black/30 animate-fade-in"
+                      renderTrigger={({ onClick, badge, badgeLoading, open }) => (
+                        <button
+                          type="button"
+                          onClick={onClick}
+                          aria-expanded={open}
+                          className={`${baseClasses} relative ${open ? "bg-primary/15 text-primary" : ""}`}
+                        >
+                          <Icon className="h-4 w-4" />
+                          <span>{item.label}</span>
+                          {badgeLoading ? (
+                            <span className="ml-0.5 inline-block h-4 w-4 animate-pulse rounded-full bg-primary/20" />
+                          ) : badge > 0 ? (
+                            <span className="ml-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[9px] font-bold text-destructive-foreground">
+                              {badge > 9 ? "9+" : badge}
+                            </span>
+                          ) : null}
+                        </button>
+                      )}
+                    />
+                  </SafeBoundary>
                 );
               }
 
