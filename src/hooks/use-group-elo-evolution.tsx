@@ -15,14 +15,23 @@ export interface SeasonOption {
   status: string;
 }
 
+export interface SeasonBoundary {
+  /** Timestamp of the first match in this season (used as the marker x-position). */
+  ts: number;
+  seasonId: string;
+  seasonName: string;
+}
+
 export interface GroupEloEvolution {
   series: PlayerEloLine[];
   minTs: number;
   maxTs: number;
   seasons: SeasonOption[];
+  /** Boundaries between seasons in chronological order. Empty unless filter='all'. */
+  seasonBoundaries: SeasonBoundary[];
 }
 
-const EMPTY: GroupEloEvolution = { series: [], minTs: 0, maxTs: 0, seasons: [] };
+const EMPTY: GroupEloEvolution = { series: [], minTs: 0, maxTs: 0, seasons: [], seasonBoundaries: [] };
 
 export type SeasonFilter = "all" | "active" | string; // string = season id
 
@@ -94,8 +103,12 @@ export function useGroupEloEvolution(groupId: string | null, filter: SeasonFilte
           return;
         }
         const matchDate = new Map<string, number>();
+        const matchSeason = new Map<string, string | null>();
+        const roundSeason = new Map<string, string | null>();
+        for (const r of rounds || []) roundSeason.set(r.id, r.season_id ?? null);
         for (const m of matches || []) {
           matchDate.set(m.id, dateOf.get(m.round_id) ?? new Date(m.created_at).getTime());
+          matchSeason.set(m.id, roundSeason.get(m.round_id) ?? null);
         }
 
         const { data: events } = await supabase
@@ -105,6 +118,8 @@ export function useGroupEloEvolution(groupId: string | null, filter: SeasonFilte
 
         const byUser = new Map<string, { ts: number; rating: number }[]>();
         let minTs = Infinity, maxTs = -Infinity;
+        // Track first event timestamp per season for boundary markers
+        const seasonFirstTs = new Map<string, number>();
         for (const e of events || []) {
           const ts = matchDate.get(e.match_id) ?? new Date(e.created_at).getTime();
           if (ts < minTs) minTs = ts;
@@ -112,8 +127,24 @@ export function useGroupEloEvolution(groupId: string | null, filter: SeasonFilte
           const arr = byUser.get(e.user_id) || [];
           arr.push({ ts, rating: Number(e.rating_after) });
           byUser.set(e.user_id, arr);
+          const sid = matchSeason.get(e.match_id);
+          if (sid) {
+            const cur = seasonFirstTs.get(sid);
+            if (cur == null || ts < cur) seasonFirstTs.set(sid, ts);
+          }
         }
         for (const arr of byUser.values()) arr.sort((a, b) => a.ts - b.ts);
+
+        // Build season boundaries (only meaningful when filter='all' and there's >1 season with data)
+        const seasonBoundaries: SeasonBoundary[] =
+          filter === "all"
+            ? [...seasonFirstTs.entries()]
+                .map(([sid, ts]) => {
+                  const s = seasons.find((x) => x.id === sid);
+                  return { seasonId: sid, ts, seasonName: s?.name || "Temporada" };
+                })
+                .sort((a, b) => a.ts - b.ts)
+            : [];
 
         const ids = [...byUser.keys()];
         const profileMap = new Map<string, { name: string; nickname: string | null; avatar_url: string | null }>();
@@ -143,6 +174,7 @@ export function useGroupEloEvolution(groupId: string | null, filter: SeasonFilte
             minTs: isFinite(minTs) ? minTs : 0,
             maxTs: isFinite(maxTs) ? maxTs : 0,
             seasons,
+            seasonBoundaries,
           });
           setIsLoading(false);
         }

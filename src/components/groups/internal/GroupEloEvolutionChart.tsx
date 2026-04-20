@@ -305,6 +305,53 @@ export function GroupEloEvolutionChart({ groupId, defaultFilter = "all" }: Props
                 </text>
               ))}
 
+              {/* Season boundary markers (only when viewing all seasons) */}
+              {filter === "all" &&
+                data.seasonBoundaries.length > 1 &&
+                data.seasonBoundaries.slice(1).map((b) => {
+                  const x = xForTs(b.ts);
+                  if (x < padL || x > w - padR) return null;
+                  const labelText =
+                    b.seasonName.length > 18 ? b.seasonName.slice(0, 17) + "…" : b.seasonName;
+                  const labelW = Math.min(120, labelText.length * 5.5 + 10);
+                  const labelX = Math.min(w - padR - labelW - 2, x + 3);
+                  return (
+                    <g key={`sb-${b.seasonId}`}>
+                      <line
+                        x1={x}
+                        x2={x}
+                        y1={padT}
+                        y2={padT + innerH}
+                        stroke="var(--primary)"
+                        strokeOpacity="0.45"
+                        strokeWidth="1"
+                        strokeDasharray="4 4"
+                      />
+                      <rect
+                        x={labelX}
+                        y={padT + 2}
+                        width={labelW}
+                        height={14}
+                        rx={3}
+                        fill="var(--primary)"
+                        fillOpacity="0.12"
+                        stroke="var(--primary)"
+                        strokeOpacity="0.35"
+                      />
+                      <text
+                        x={labelX + 5}
+                        y={padT + 12}
+                        fontSize="9"
+                        fill="var(--primary)"
+                        fontFamily="ui-sans-serif, system-ui, sans-serif"
+                        fontWeight={600}
+                      >
+                        {labelText}
+                      </text>
+                    </g>
+                  );
+                })}
+
               {/* Lines */}
               {visibleSeries.map((s) => {
                 const color = COLORS[data.series.indexOf(s) % COLORS.length];
