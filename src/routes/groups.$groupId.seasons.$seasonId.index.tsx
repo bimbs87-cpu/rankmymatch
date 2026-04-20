@@ -333,6 +333,48 @@ function SeasonDetailPage() {
             </div>
           ))
         )}
+
+        {isAdmin && (
+          <div className="pt-2">
+            {showExtraForm ? (
+              <div className="rounded-2xl border border-primary/30 bg-card/50 p-4 space-y-3">
+                <div>
+                  <h4 className="text-sm font-semibold text-foreground">Nova rodada extra</h4>
+                  <p className="text-xs text-muted-foreground">Adicione uma rodada fora do calendário regular (ex: feriado, jogo extra).</p>
+                </div>
+                <input
+                  type="date"
+                  value={extraDate}
+                  onChange={(e) => setExtraDate(e.target.value)}
+                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                />
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleCreateExtraRound}
+                    disabled={creatingExtra || !extraDate}
+                    className="flex-1 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground disabled:opacity-50"
+                  >
+                    {creatingExtra ? "Criando..." : "Criar rodada"}
+                  </button>
+                  <button
+                    onClick={() => { setShowExtraForm(false); setExtraDate(""); }}
+                    className="rounded-lg bg-muted px-3 py-2 text-xs font-semibold text-muted-foreground"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                onClick={() => setShowExtraForm(true)}
+                className="flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-border bg-card/30 px-4 py-3 text-sm font-semibold text-muted-foreground transition-colors hover:border-primary/50 hover:text-primary"
+              >
+                <Plus className="h-4 w-4" />
+                Adicionar rodada extra
+              </button>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
