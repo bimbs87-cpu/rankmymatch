@@ -1,6 +1,6 @@
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, Loader2, Users, Boxes, Trophy, Activity, ShieldCheck, ExternalLink } from "lucide-react";
+import { ArrowLeft, Loader2, Users, Boxes, Trophy, Activity, ShieldCheck, ExternalLink, Compass } from "lucide-react";
 import {
   LineChart,
   Line,
@@ -123,9 +123,10 @@ function DevDashboardPage() {
 
       <main className="mx-auto max-w-7xl px-4 py-6">
         <Tabs defaultValue="overview" className="w-full">
-          <TabsList className="mb-6 grid w-full grid-cols-5 max-w-2xl">
+          <TabsList className="mb-6 grid w-full grid-cols-3 sm:grid-cols-6 max-w-3xl">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="signups">Cadastros</TabsTrigger>
+            <TabsTrigger value="acquisition">Aquisição</TabsTrigger>
             <TabsTrigger value="funnel">Funil</TabsTrigger>
             <TabsTrigger value="retention">Retenção</TabsTrigger>
             <TabsTrigger value="changelog">Changelog</TabsTrigger>
@@ -137,6 +138,10 @@ function DevDashboardPage() {
 
           <TabsContent value="signups">
             <SignupsTab signups={data.signups} />
+          </TabsContent>
+
+          <TabsContent value="acquisition">
+            <AcquisitionTab acquisition={data.acquisition} signups={data.signups} />
           </TabsContent>
 
           <TabsContent value="funnel">
@@ -431,8 +436,8 @@ function RetentionTab({ cohorts }: { cohorts: DashboardData["cohorts"] }) {
         <CardHeader>
           <CardTitle className="text-base">Retenção por cohort semanal</CardTitle>
           <p className="text-xs text-muted-foreground">
-            ⚠️ Aproximação baseada em <code>last_sign_in_at</code>. Para retenção precisa por
-            evento, seria necessário um log de sessões.
+            Baseado em <code>user_sessions</code> (log diário). Para usuários antigos sem sessões
+            registradas, faz fallback para <code>last_sign_in_at</code>.
           </p>
         </CardHeader>
         <CardContent>
@@ -482,6 +487,111 @@ function RetentionTab({ cohorts }: { cohorts: DashboardData["cohorts"] }) {
           </div>
         </CardContent>
       </Card>
+    </div>
+  );
+}
+
+function AcquisitionTab({
+  acquisition,
+  signups,
+}: {
+  acquisition: DashboardData["acquisition"];
+  signups: DashboardData["signups"];
+}) {
+  const totalSignups = signups.length;
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <StatCard icon={Compass} label="Atribuídos" value={acquisition.tracked} hint={`${totalSignups} no total`} />
+        <StatCard icon={Compass} label="Sem tracking" value={acquisition.untracked} hint="usuários antigos" />
+        <StatCard icon={Compass} label="Via invite" value={acquisition.channels.find((c) => c.key === "invite")?.count ?? 0} />
+        <StatCard icon={Compass} label="Direct" value={acquisition.channels.find((c) => c.key === "direct")?.count ?? 0} />
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Canais</CardTitle>
+            <p className="text-xs text-muted-foreground">
+              invite = via convite · utm:* = de campanha · referrer = veio de outro site · direct
+              = sem origem · untracked = cadastrou antes do tracking
+            </p>
+          </CardHeader>
+          <CardContent>
+            <BreakdownList items={acquisition.channels} total={totalSignups} />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">UTM Source</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {acquisition.utmSources.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Nenhum UTM capturado ainda.</p>
+            ) : (
+              <BreakdownList items={acquisition.utmSources} total={acquisition.tracked} />
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Campanhas</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {acquisition.utmCampaigns.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Nenhuma campanha capturada ainda.</p>
+            ) : (
+              <BreakdownList items={acquisition.utmCampaigns} total={acquisition.tracked} />
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Referrers</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {acquisition.referrers.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Nenhum referrer capturado ainda.</p>
+            ) : (
+              <BreakdownList items={acquisition.referrers} total={acquisition.tracked} />
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}
+
+function BreakdownList({
+  items,
+  total,
+}: {
+  items: { key: string; count: number }[];
+  total: number;
+}) {
+  const max = Math.max(...items.map((i) => i.count), 1);
+  return (
+    <div className="space-y-2">
+      {items.map((item) => {
+        const pct = total > 0 ? (item.count / total) * 100 : 0;
+        const barPct = (item.count / max) * 100;
+        return (
+          <div key={item.key}>
+            <div className="flex items-baseline justify-between text-sm mb-1">
+              <span className="font-medium truncate">{item.key}</span>
+              <span className="text-muted-foreground text-xs ml-2 whitespace-nowrap">
+                {item.count} · {pct.toFixed(1)}%
+              </span>
+            </div>
+            <div className="h-2 w-full rounded bg-muted overflow-hidden">
+              <div className="h-full bg-primary" style={{ width: `${barPct}%` }} />
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }

@@ -1596,6 +1596,39 @@ export type Database = {
           },
         ]
       }
+      user_acquisition: {
+        Row: {
+          created_at: string
+          invite_code: string | null
+          landing_path: string | null
+          referrer: string | null
+          user_id: string
+          utm_campaign: string | null
+          utm_medium: string | null
+          utm_source: string | null
+        }
+        Insert: {
+          created_at?: string
+          invite_code?: string | null
+          landing_path?: string | null
+          referrer?: string | null
+          user_id: string
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+        }
+        Update: {
+          created_at?: string
+          invite_code?: string | null
+          landing_path?: string | null
+          referrer?: string | null
+          user_id?: string
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+        }
+        Relationships: []
+      }
       user_profiles: {
         Row: {
           avatar_type: string | null
@@ -1659,6 +1692,30 @@ export type Database = {
           updated_at?: string | null
           user_id?: string
           worst_shot?: string | null
+        }
+        Relationships: []
+      }
+      user_sessions: {
+        Row: {
+          created_at: string
+          id: string
+          session_date: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          session_date?: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          session_date?: string
+          user_agent?: string | null
+          user_id?: string
         }
         Relationships: []
       }

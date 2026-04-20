@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { User, Session } from "@supabase/supabase-js";
+import { saveAcquisitionForUser, logUserSession } from "@/lib/acquisition-tracking";
 
 interface AuthState {
   user: User | null;
@@ -70,10 +71,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       (event, nextSession) => {
         syncAuthState(nextSession);
 
-        // Detect first-time signup → fire conversion ONCE per user
+        // Detect first-time signup → fire conversion ONCE per user + save acquisition
         if (event === "SIGNED_IN" && nextSession?.user) {
+          const u = nextSession.user;
+          // Daily session log (idempotente via UNIQUE constraint)
+          void logUserSession(u.id);
           try {
-            const u = nextSession.user;
             const created = u.created_at ? new Date(u.created_at).getTime() : 0;
             const lastSignIn = u.last_sign_in_at ? new Date(u.last_sign_in_at).getTime() : 0;
             const isFirstSignIn = created && lastSignIn && Math.abs(lastSignIn - created) < 60_000;
@@ -83,6 +86,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               void import("@/lib/analytics").then(({ trackConversion }) => {
                 trackConversion("sign_up", { method: "google" });
               });
+              // Salva atribuição (UTM/invite/referrer) capturada antes do cadastro
+              void saveAcquisitionForUser(u.id);
+            } else {
+              // Garantia: se cadastro existe mas user_acquisition ainda não, tenta gravar
+              void saveAcquisitionForUser(u.id);
             }
           } catch {
             /* analytics best-effort */
