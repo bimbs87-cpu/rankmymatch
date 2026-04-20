@@ -44,6 +44,9 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import type { Tables } from "@/integrations/supabase/types";
+import { playRoundAlert } from "@/lib/round-alert-sound";
+import { sendPushFn } from "@/lib/push.functions";
+import { Bell as BellIcon } from "lucide-react";
 
 type Group = Tables<"groups"> & {
   member_count?: number;
