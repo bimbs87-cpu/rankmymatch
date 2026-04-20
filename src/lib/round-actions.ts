@@ -140,7 +140,26 @@ export async function cancelPresence(roundId: string, userId: string) {
 
   // Auto-promote first waitlist member if a confirmed slot just opened
   if (wasInConfirmedSlot && roundRow) {
-    await promoteFirstWaitlist(roundId, roundRow.group_id, roundRow.round_number ?? null);
+    const promotedId = await promoteFirstWaitlist(roundId, roundRow.group_id, roundRow.round_number ?? null);
+    // Audit log: track auto-promotion (best-effort, non-blocking)
+    if (promotedId) {
+      try {
+        const { logAudit } = await import("@/lib/audit-log");
+        void logAudit({
+          groupId: roundRow.group_id,
+          action: "waitlist_auto_promoted" as any,
+          entityType: "round",
+          entityId: roundId,
+          newData: {
+            promoted_user_id: promotedId,
+            vacated_by_user_id: userId,
+            round_number: roundRow.round_number ?? null,
+          },
+        });
+      } catch {
+        // ignore
+      }
+    }
   }
 }
 
