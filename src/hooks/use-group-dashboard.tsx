@@ -15,6 +15,7 @@ export interface NextRoundInfo {
   max_players: number;
   presence_is_open: boolean;
   presence_opens_at: string | null;
+  presence_force_open_at: string | null;
   confirmed_avatars: { user_id: string; name: string; avatar_url: string | null }[];
   confirmed_all: { user_id: string; name: string; avatar_url: string | null; confirmed_at: string | null }[];
   declined_all: { user_id: string; name: string; avatar_url: string | null; confirmed_at: string | null }[];
@@ -251,6 +252,7 @@ export function useGroupDashboard(groupId: string | null) {
           max_players: r.max_players,
           presence_is_open: open,
           presence_opens_at: opensAt ? opensAt.toISOString() : null,
+          presence_force_open_at: r.presence_force_open_at,
           confirmed_avatars: confirmedAvatars,
           confirmed_all: confirmedAll,
           declined_all: declinedAll,
