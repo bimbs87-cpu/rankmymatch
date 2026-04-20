@@ -4,6 +4,7 @@ import { useGroupEloEvolution, type SeasonFilter } from "@/hooks/use-group-elo-e
 
 interface Props {
   groupId: string;
+  defaultFilter?: SeasonFilter;
 }
 
 const COLORS = [
