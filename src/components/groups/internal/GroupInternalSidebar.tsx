@@ -20,7 +20,7 @@ interface Item {
 const ITEMS: Item[] = [
   { id: "overview", label: "Visão geral", shortLabel: "Visão", icon: LayoutGrid },
   { id: "members", label: "Membros", shortLabel: "", icon: Users },
-  { id: "seasons", label: "Agenda e resultados", shortLabel: "", icon: CalendarDays },
+  { id: "seasons", label: "Agenda e resultados", shortLabel: "", icon: ListChecks },
   { id: "compare", label: "Comparar", shortLabel: "", icon: GitCompare },
   { id: "admin", label: "Admin", icon: Settings2, adminOnly: true },
 ];
