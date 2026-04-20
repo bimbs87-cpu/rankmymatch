@@ -104,6 +104,7 @@ export function GroupDashboardPanel({ group, onLeft, onPresenceChanged }: Props)
   const [leaving, setLeaving] = useState(false);
   const [resolvingReq, setResolvingReq] = useState<string | null>(null);
   const [resolvingClaim, setResolvingClaim] = useState<string | null>(null);
+  const openProfile = useViewPlayerProfile();
 
   async function handleApproveClaim(claim: typeof data.pending_claims[number]) {
     if (!user) return;
