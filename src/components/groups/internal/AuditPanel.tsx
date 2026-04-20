@@ -396,6 +396,7 @@ export function AuditPanel({ groupId }: Props) {
         >
           <option value="all">Todas as ações ({rows.length})</option>
           <option value="__nudges__">Só cutucadas ({nudgeCount})</option>
+          <option value="__waitlist__">Só lista de espera ({waitlistCount})</option>
           {actions.map((a) => (
             <option key={a} value={a}>
               {ACTION_LABELS[a] || a}
@@ -416,38 +417,67 @@ export function AuditPanel({ groupId }: Props) {
             🔔 Só cutucadas ({nudgeCount})
           </button>
         )}
+        {waitlistCount > 0 && (
+          <button
+            type="button"
+            onClick={() => setFilter(isWaitlistFilter ? "all" : "__waitlist__")}
+            className={`flex items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-bold transition-colors ${
+              isWaitlistFilter
+                ? "border-info/60 bg-info/15 text-info"
+                : "border-border bg-background text-muted-foreground hover:border-info/40 hover:text-info"
+            }`}
+            title="Atalho: filtra promoções automáticas e manuais da lista de espera"
+          >
+            🎟️ Só lista de espera ({waitlistCount})
+          </button>
+        )}
       </div>
 
       {isNudgeFilter && nudgeStats.total > 0 && (
-        <div className="grid gap-2 rounded-xl border border-warning/30 bg-warning/5 p-3 sm:grid-cols-3">
-          <div>
-            <p className="text-[9px] font-bold uppercase tracking-wider text-warning/80">
-              Total de destinatários
-            </p>
-            <p className="mt-0.5 text-xl font-bold tabular-nums text-foreground">
-              {nudgeStats.recipients}
-            </p>
-            <p className="text-[10px] text-muted-foreground">
-              em {nudgeStats.total} cutucada{nudgeStats.total !== 1 ? "s" : ""}
-            </p>
+        <div className="space-y-2 rounded-xl border border-warning/30 bg-warning/5 p-3">
+          <div className="grid gap-2 sm:grid-cols-3">
+            <div>
+              <p className="text-[9px] font-bold uppercase tracking-wider text-warning/80">
+                Total de destinatários
+              </p>
+              <p className="mt-0.5 text-xl font-bold tabular-nums text-foreground">
+                {nudgeStats.recipients}
+              </p>
+              <p className="text-[10px] text-muted-foreground">
+                em {nudgeStats.total} cutucada{nudgeStats.total !== 1 ? "s" : ""}
+              </p>
+            </div>
+            <div>
+              <p className="text-[9px] font-bold uppercase tracking-wider text-warning/80">
+                Pendentes vs recusados
+              </p>
+              <p className="mt-0.5 text-xl font-bold tabular-nums text-foreground">
+                {nudgeStats.pendingPct}% / {nudgeStats.declinedPct}%
+              </p>
+              <p className="text-[10px] text-muted-foreground">média acumulada</p>
+            </div>
+            <div>
+              <p className="text-[9px] font-bold uppercase tracking-wider text-warning/80">
+                Última cutucada
+              </p>
+              <p className="mt-0.5 text-sm font-bold tabular-nums text-foreground">
+                {nudgeStats.lastAt ? fmtDate(nudgeStats.lastAt) : "—"}
+              </p>
+            </div>
           </div>
-          <div>
-            <p className="text-[9px] font-bold uppercase tracking-wider text-warning/80">
-              Pendentes vs recusados
-            </p>
-            <p className="mt-0.5 text-xl font-bold tabular-nums text-foreground">
-              {nudgeStats.pendingPct}% / {nudgeStats.declinedPct}%
-            </p>
-            <p className="text-[10px] text-muted-foreground">média acumulada</p>
-          </div>
-          <div>
-            <p className="text-[9px] font-bold uppercase tracking-wider text-warning/80">
-              Última cutucada
-            </p>
-            <p className="mt-0.5 text-sm font-bold tabular-nums text-foreground">
-              {nudgeStats.lastAt ? fmtDate(nudgeStats.lastAt) : "—"}
-            </p>
-          </div>
+          {nudgeStats.sparkline.length >= 2 && (
+            <div>
+              <div className="mb-1 flex items-center justify-between">
+                <p className="text-[9px] font-bold uppercase tracking-wider text-warning/80">
+                  Destinatários por cutucada (últimas {nudgeStats.sparkline.length})
+                </p>
+                <p className="text-[9px] text-muted-foreground">
+                  ↓ menos = mais gente respondendo sozinha
+                </p>
+              </div>
+              <Sparkline values={nudgeStats.sparkline} />
+            </div>
+          )}
         </div>
       )}
 
