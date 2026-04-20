@@ -1,13 +1,12 @@
-import { LayoutGrid, Users, CalendarDays, MessageSquare, Settings2, ChevronLeft, X, GitCompare, Share2 } from "lucide-react";
+import { LayoutGrid, Users, CalendarDays, Settings2, ChevronLeft, X, GitCompare, Share2 } from "lucide-react";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Link } from "@tanstack/react-router";
 
-export type GroupView = "overview" | "members" | "seasons" | "compare" | "feed" | "admin";
+export type GroupView = "overview" | "members" | "seasons" | "compare" | "admin";
 
 export interface SidebarBadges {
   pendingRequests?: number;
   pendingPresence?: boolean;
-  newComments?: number;
 }
 
 interface Item {
@@ -22,7 +21,6 @@ const ITEMS: Item[] = [
   { id: "members", label: "Membros", icon: Users },
   { id: "seasons", label: "Agenda e resultados", icon: CalendarDays },
   { id: "compare", label: "Comparar", icon: GitCompare },
-  { id: "feed", label: "Feed", icon: MessageSquare },
   { id: "admin", label: "Admin", icon: Settings2, adminOnly: true },
 ];
 
