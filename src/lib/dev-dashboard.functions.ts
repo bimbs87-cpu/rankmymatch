@@ -199,10 +199,22 @@ export const getDevDashboard = createServerFn({ method: "GET" })
         .length,
     };
 
-    // ===== Retenção por cohort semanal (D1, D7, D30 baseados em last_sign_in_at) =====
-    // Cohort = semana de cadastro. Retenção = qtd de usuários do cohort cujo last_sign_in_at >= cohort + N dias.
-    // Limitação: last_sign_in_at é só o último, não todos. Para retenção precisa real, precisaria event log.
-    // Aproximação: D1 = signed in pelo menos 1d depois; D7 = >=7d; D30 = >=30d.
+    // ===== Retenção REAL via user_sessions =====
+    // Para cada cohort semanal, verifica quantos usuários têm sessão registrada
+    // em algum dia >= signup + N dias.
+    const { data: sessionsRows } = await supabaseAdmin
+      .from("user_sessions")
+      .select("user_id, session_date")
+      .in("user_id", userIds.length ? userIds : ["00000000-0000-0000-0000-000000000000"]);
+
+    const sessionsByUser = new Map<string, number[]>(); // user_id → array de timestamps
+    (sessionsRows ?? []).forEach((s) => {
+      const t = new Date(s.session_date as string).getTime();
+      const arr = sessionsByUser.get(s.user_id) ?? [];
+      arr.push(t);
+      sessionsByUser.set(s.user_id, arr);
+    });
+
     type Cohort = {
       week: string;
       size: number;
@@ -213,7 +225,6 @@ export const getDevDashboard = createServerFn({ method: "GET" })
     const cohortMap = new Map<string, Cohort>();
     authUsers.forEach((u) => {
       const created = new Date(u.created_at);
-      // Início da semana (segunda)
       const day = created.getUTCDay();
       const diff = (day + 6) % 7;
       const weekStart = new Date(created);
@@ -222,17 +233,84 @@ export const getDevDashboard = createServerFn({ method: "GET" })
       const week = weekStart.toISOString().slice(0, 10);
       const c = cohortMap.get(week) ?? { week, size: 0, d1: 0, d7: 0, d30: 0 };
       c.size += 1;
-      const last = u.last_sign_in_at ? new Date(u.last_sign_in_at).getTime() : 0;
+
       const createdT = created.getTime();
-      const gap = last - createdT;
-      if (gap >= dayMs) c.d1 += 1;
-      if (gap >= 7 * dayMs) c.d7 += 1;
-      if (gap >= 30 * dayMs) c.d30 += 1;
+      const userSessions = sessionsByUser.get(u.id) ?? [];
+      // Fallback: se não tiver sessão registrada, usa last_sign_in_at
+      const lastSignIn = u.last_sign_in_at ? new Date(u.last_sign_in_at).getTime() : 0;
+      const allTimes = userSessions.length ? userSessions : (lastSignIn ? [lastSignIn] : []);
+
+      const hasReturnAfter = (gapDays: number) =>
+        allTimes.some((t) => t - createdT >= gapDays * dayMs);
+
+      if (hasReturnAfter(1)) c.d1 += 1;
+      if (hasReturnAfter(7)) c.d7 += 1;
+      if (hasReturnAfter(30)) c.d30 += 1;
       cohortMap.set(week, c);
     });
     const cohorts = Array.from(cohortMap.values())
       .sort((a, b) => a.week.localeCompare(b.week))
-      .slice(-12); // últimas 12 semanas
+      .slice(-12);
+
+    // ===== Aquisição (UTM / invite / direct) =====
+    const { data: acqRows } = await supabaseAdmin
+      .from("user_acquisition")
+      .select("user_id, utm_source, utm_medium, utm_campaign, invite_code, referrer, landing_path, created_at");
+
+    const acqByUser = new Map<string, (typeof acqRows extends Array<infer R> ? R : never)>();
+    (acqRows ?? []).forEach((a) => acqByUser.set(a.user_id, a));
+
+    // Breakdown por canal
+    const channelCount = new Map<string, number>();
+    const sourceCount = new Map<string, number>();
+    const campaignCount = new Map<string, number>();
+    const referrerCount = new Map<string, number>();
+
+    authUsers.forEach((u) => {
+      const acq = acqByUser.get(u.id);
+      let channel = "direct";
+      if (acq?.invite_code) channel = "invite";
+      else if (acq?.utm_source) channel = `utm:${acq.utm_source}`;
+      else if (acq?.referrer) channel = `referrer`;
+      else if (!acq) channel = "untracked";
+      channelCount.set(channel, (channelCount.get(channel) ?? 0) + 1);
+
+      if (acq?.utm_source) sourceCount.set(acq.utm_source, (sourceCount.get(acq.utm_source) ?? 0) + 1);
+      if (acq?.utm_campaign) campaignCount.set(acq.utm_campaign, (campaignCount.get(acq.utm_campaign) ?? 0) + 1);
+      if (acq?.referrer) referrerCount.set(acq.referrer, (referrerCount.get(acq.referrer) ?? 0) + 1);
+    });
+
+    const toArr = (m: Map<string, number>) =>
+      Array.from(m.entries())
+        .map(([key, count]) => ({ key, count }))
+        .sort((a, b) => b.count - a.count);
+
+    const acquisition = {
+      channels: toArr(channelCount),
+      utmSources: toArr(sourceCount),
+      utmCampaigns: toArr(campaignCount),
+      referrers: toArr(referrerCount),
+      tracked: acqRows?.length ?? 0,
+      untracked: authUsers.length - (acqRows?.length ?? 0),
+    };
+
+    // Enriquecer signups com canal de aquisição (override do origin antigo se houver dado real)
+    const signupsEnriched = signups.map((s) => {
+      const acq = acqByUser.get(s.user_id);
+      let channel: string = s.origin;
+      if (acq?.invite_code) channel = "invite";
+      else if (acq?.utm_source) channel = `utm:${acq.utm_source}`;
+      else if (acq?.referrer) channel = "referrer";
+      else if (acq) channel = "direct";
+      return {
+        ...s,
+        channel,
+        utm_source: acq?.utm_source ?? null,
+        utm_campaign: acq?.utm_campaign ?? null,
+        invite_code: acq?.invite_code ?? null,
+        referrer: acq?.referrer ?? null,
+      };
+    });
 
     return {
       overview: {
@@ -242,10 +320,13 @@ export const getDevDashboard = createServerFn({ method: "GET" })
         dau,
         wau,
         mau,
+        sessionsTracked: sessionsRows?.length ?? 0,
+        acquisitionTracked: acqRows?.length ?? 0,
       },
       dailyActivity,
-      signups,
+      signups: signupsEnriched,
       funnel,
       cohorts,
+      acquisition,
     };
   });
