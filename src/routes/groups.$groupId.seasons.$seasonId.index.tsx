@@ -25,6 +25,8 @@ function SeasonDetailPage() {
   const [saving, setSaving] = useState(false);
   const [creatingExtra, setCreatingExtra] = useState(false);
   const [extraDate, setExtraDate] = useState("");
+  const [extraTime, setExtraTime] = useState("");
+  const [extraLocation, setExtraLocation] = useState("");
   const [showExtraForm, setShowExtraForm] = useState(false);
 
   useEffect(() => {
