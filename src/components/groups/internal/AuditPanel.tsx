@@ -556,6 +556,7 @@ export function AuditPanel({ groupId }: Props) {
       }
       if (cancelled) return;
       setResponseTimes(responseHours.slice(-10));
+      setResponseTimeLabels(responseLabels.slice(-10));
       setRoundMovements(roundMeta);
       setLoading(false);
     };
