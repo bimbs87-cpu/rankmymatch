@@ -193,18 +193,10 @@ export function GroupInternalFloatingTabs({ isAdmin, memberCount, view, onSelect
   return (
     <div className="fixed inset-x-0 top-0 z-40 border-b border-border/60 bg-background/85 px-3 pb-2.5 pt-[max(0.5rem,env(safe-area-inset-top))] backdrop-blur-xl lg:hidden">
       {/* Context label — makes it clear this is the group's internal menu */}
-      <div className="mb-1.5 flex items-center justify-between px-1">
+      <div className="mb-1.5 flex items-center px-1">
         <span className="text-[9px] font-bold uppercase tracking-[0.14em] text-muted-foreground/80">
           Menu do grupo
         </span>
-        <Link
-          to="/ranking"
-          aria-label="Ranking"
-          className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-card/80 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary"
-        >
-          <Trophy className="h-2.5 w-2.5" />
-          Ranking
-        </Link>
       </div>
       <div className="rounded-2xl border border-primary/20 bg-card/95 p-1 shadow-[0_8px_24px_-8px_hsl(var(--primary)/0.25)] ring-1 ring-black/30 backdrop-blur-xl">
         <ul className="flex items-stretch justify-between gap-1">
