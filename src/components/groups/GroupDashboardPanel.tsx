@@ -726,8 +726,24 @@ export function GroupDashboardPanel({ group, onLeft, onPresenceChanged }: Props)
                 <div className="space-y-2">
                   <div className="flex items-start gap-2 rounded-xl border border-warning/40 bg-warning/10 px-3 py-2 text-[11px]">
                     <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-warning" />
-                    <div className="leading-snug">
-                      <span className="font-bold text-warning">Rodada lotada</span>{" "}
+                    <div className="flex-1 leading-snug">
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                        <span className="font-bold text-warning">Rodada lotada</span>
+                        {(() => {
+                          const sortedAsc = [...(data.next_round.confirmed_all ?? [])].sort(
+                            (a, b) =>
+                              new Date(a.confirmed_at || 0).getTime() -
+                              new Date(b.confirmed_at || 0).getTime(),
+                          );
+                          const wlCount = sortedAsc.slice(data.next_round.max_players).length;
+                          if (wlCount === 0) return null;
+                          return (
+                            <span className="rounded-full border border-warning/50 bg-warning/15 px-2 py-0.5 text-[10px] font-bold text-warning">
+                              Lista de espera: {wlCount}
+                            </span>
+                          );
+                        })()}
+                      </div>
                       <span className="text-muted-foreground">
                         ({data.next_round.confirmed_count}/{data.next_round.max_players}).
                         Novas confirmações entram em <span className="font-semibold text-foreground">lista de espera</span> e jogam se alguém desistir.

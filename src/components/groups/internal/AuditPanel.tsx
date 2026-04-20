@@ -30,6 +30,7 @@ const ACTION_LABELS: Record<string, string> = {
   match_score_edited: "Editou placar",
   round_nudge: "Cutucou pendentes",
   round_nudge_cooldown_reset: "Resetou cooldown de cutucadas",
+  waitlist_auto_promoted: "Auto-promoveu da lista de espera",
 };
 
 const NUDGE_MODE_LABELS: Record<string, string> = {
@@ -327,6 +328,31 @@ export function AuditPanel({ groupId }: Props) {
     [rows],
   );
 
+  // Aggregated stats for "Só cutucadas" filter — only round_nudge entries (not cooldown resets)
+  const nudgeStats = useMemo(() => {
+    const nudges = rows.filter((r) => r.action === "round_nudge");
+    if (nudges.length === 0) {
+      return { total: 0, recipients: 0, pendingPct: 0, declinedPct: 0, lastAt: null as string | null };
+    }
+    let recipients = 0;
+    let pending = 0;
+    let declined = 0;
+    for (const r of nudges) {
+      const d = r.new_data || {};
+      recipients += Number(d.recipients_count ?? 0);
+      pending += Number(d.pending_count ?? 0);
+      declined += Number(d.declined_count ?? 0);
+    }
+    const sumPD = pending + declined;
+    return {
+      total: nudges.length,
+      recipients,
+      pendingPct: sumPD > 0 ? Math.round((pending / sumPD) * 100) : 0,
+      declinedPct: sumPD > 0 ? Math.round((declined / sumPD) * 100) : 0,
+      lastAt: nudges[0]?.created_at ?? null,
+    };
+  }, [rows]);
+
   return (
     <div className="space-y-4">
       <div className="flex items-start justify-between gap-3">
@@ -378,6 +404,39 @@ export function AuditPanel({ groupId }: Props) {
           </button>
         )}
       </div>
+
+      {isNudgeFilter && nudgeStats.total > 0 && (
+        <div className="grid gap-2 rounded-xl border border-warning/30 bg-warning/5 p-3 sm:grid-cols-3">
+          <div>
+            <p className="text-[9px] font-bold uppercase tracking-wider text-warning/80">
+              Total de destinatários
+            </p>
+            <p className="mt-0.5 text-xl font-bold tabular-nums text-foreground">
+              {nudgeStats.recipients}
+            </p>
+            <p className="text-[10px] text-muted-foreground">
+              em {nudgeStats.total} cutucada{nudgeStats.total !== 1 ? "s" : ""}
+            </p>
+          </div>
+          <div>
+            <p className="text-[9px] font-bold uppercase tracking-wider text-warning/80">
+              Pendentes vs recusados
+            </p>
+            <p className="mt-0.5 text-xl font-bold tabular-nums text-foreground">
+              {nudgeStats.pendingPct}% / {nudgeStats.declinedPct}%
+            </p>
+            <p className="text-[10px] text-muted-foreground">média acumulada</p>
+          </div>
+          <div>
+            <p className="text-[9px] font-bold uppercase tracking-wider text-warning/80">
+              Última cutucada
+            </p>
+            <p className="mt-0.5 text-sm font-bold tabular-nums text-foreground">
+              {nudgeStats.lastAt ? fmtDate(nudgeStats.lastAt) : "—"}
+            </p>
+          </div>
+        </div>
+      )}
 
       {loading ? (
         <div className="flex items-center justify-center py-10">
