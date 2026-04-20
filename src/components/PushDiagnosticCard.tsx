@@ -5,7 +5,7 @@ import { usePushSubscription } from "@/hooks/use-push-subscription";
 import { PUSH_EVENT_TYPES, usePushPreferences } from "@/hooks/use-push-preferences";
 import { sendPushFn } from "@/lib/push.functions";
 import { toast } from "sonner";
-import { BellRing, BellOff, CheckCircle2, XCircle, Smartphone, AlertTriangle, Send, History } from "lucide-react";
+import { BellRing, BellOff, CheckCircle2, XCircle, Smartphone, AlertTriangle, Send, History, Copy } from "lucide-react";
 
 const TEST_HISTORY_KEY = "push_test_history_v1";
 const MAX_HISTORY = 5;
@@ -440,9 +440,25 @@ export function PushDiagnosticCard() {
                           <span className="ml-1 text-destructive">· {h.failed} falha{h.failed > 1 ? "s" : ""}</span>
                         )}
                       </p>
-                      <p className="text-[10px] text-muted-foreground tabular-nums">
-                        {formatRelative(h.ts)}
-                        <span className="ml-1 opacity-70">· {new Date(h.ts).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false })}</span>
+                      <p className="flex items-center gap-1 text-[10px] text-muted-foreground tabular-nums">
+                        <span>{formatRelative(h.ts)}</span>
+                        <span className="opacity-70">· {new Date(h.ts).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false })}</span>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const iso = new Date(h.ts).toISOString();
+                            navigator.clipboard?.writeText(iso).then(
+                              () => toast.success("Timestamp copiado", { description: iso }),
+                              () => toast.error("Falha ao copiar"),
+                            );
+                          }}
+                          title="Copiar timestamp ISO (UTC) para colar em logs"
+                          className="ml-0.5 inline-flex h-4 w-4 items-center justify-center rounded text-muted-foreground/60 transition hover:bg-muted hover:text-foreground"
+                          aria-label="Copiar timestamp"
+                        >
+                          <Copy className="h-2.5 w-2.5" />
+                        </button>
                       </p>
                     </div>
                   </li>

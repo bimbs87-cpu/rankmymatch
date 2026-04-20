@@ -282,6 +282,7 @@ function Sparkline({
   unit = "",
   medianLine,
   p90Line,
+  pointLabels,
 }: {
   values: number[];
   unit?: string;
@@ -289,6 +290,8 @@ function Sparkline({
   medianLine?: number;
   /** Optional value to draw as a red dashed reference line (e.g. p90). */
   p90Line?: number;
+  /** Optional per-point label (e.g. round number) to show in tooltip. */
+  pointLabels?: Array<number | null | string>;
 }) {
   if (values.length < 2) return null;
   const w = 200;
@@ -413,7 +416,15 @@ function Sparkline({
         {values.map((v, i) => {
           const x = pad + i * stepX;
           const y = h - pad - ((v - min) / range) * (h - pad * 2);
-          return <circle key={i} cx={x} cy={y} r={1.8} fill={stroke} />;
+          const lbl = pointLabels?.[i];
+          const lblPart = lbl != null && lbl !== "" ? `Rodada #${lbl} · ` : "";
+          const valPart = v >= 10 ? `${Math.round(v)}${unit}` : `${v.toFixed(1)}${unit}`;
+          const tip = `${lblPart}média ${valPart}`;
+          return (
+            <circle key={i} cx={x} cy={y} r={1.8} fill={stroke}>
+              <title>{tip}</title>
+            </circle>
+          );
         })}
       </svg>
       <span className={`text-[10px] font-bold tabular-nums ${trendingDown ? "text-success" : "text-warning"}`}>
@@ -430,9 +441,11 @@ export function AuditPanel({ groupId }: Props) {
   const [actorNames, setActorNames] = useState<Record<string, string>>({});
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [responseTimes, setResponseTimes] = useState<number[]>([]);
+  const [responseTimeLabels, setResponseTimeLabels] = useState<Array<number | null>>([]);
   const [slowResponders, setSlowResponders] = useState<
     Array<{ userId: string; hours: number; roundNumber: number | null; nudgeAt: number }>
   >([]);
+  const [slowGroupedExpanded, setSlowGroupedExpanded] = useState<Record<string, boolean>>({});
   const [roundMovements, setRoundMovements] = useState<
     Record<string, { round_number: number | null; scheduled_date: string | null }>
   >({});
@@ -474,6 +487,7 @@ export function AuditPanel({ groupId }: Props) {
       const roundIds = Array.from(new Set(nudges.map((n) => n.entity_id as string)));
       const roundMeta: Record<string, { round_number: number | null; scheduled_date: string | null }> = {};
       const responseHours: number[] = [];
+      const responseLabels: Array<number | null> = [];
       if (roundIds.length > 0) {
         const { data: rds } = await supabase
           .from("rounds")
@@ -510,6 +524,7 @@ export function AuditPanel({ groupId }: Props) {
           const nextNudge = sameRoundNudges.find((t) => t > ts) ?? ts + 24 * 3600 * 1000;
           const pres = presByRound.get(roundId) || [];
           const responses = pres.filter((p) => p.ts > ts && p.ts <= nextNudge);
+          responseLabels.push(roundMeta[roundId]?.round_number ?? null);
           if (responses.length === 0) {
             responseHours.push(0);
           } else {
@@ -552,6 +567,7 @@ export function AuditPanel({ groupId }: Props) {
       }
       if (cancelled) return;
       setResponseTimes(responseHours.slice(-10));
+      setResponseTimeLabels(responseLabels.slice(-10));
       setRoundMovements(roundMeta);
       setLoading(false);
     };
@@ -869,37 +885,79 @@ export function AuditPanel({ groupId }: Props) {
                                 : `${slowResponders.length} resposta${slowResponders.length !== 1 ? "s" : ""} de destinatários — ordenado da mais lenta.`}
                             </p>
                           </div>
-                          <ul className="max-h-64 divide-y divide-border overflow-y-auto">
+                          <ul className="max-h-72 divide-y divide-border overflow-y-auto">
                             {slowResponders.length === 0 ? (
                               <li className="px-3 py-3 text-[11px] text-muted-foreground">
                                 Sem dados detalhados disponíveis.
                               </li>
-                            ) : (
-                              slowResponders.map((s, i) => {
-                                const name = actorNames[s.userId] || "Usuário";
-                                const hLabel = s.hours >= 10 ? `${Math.round(s.hours)}h` : `${s.hours.toFixed(1)}h`;
+                            ) : (() => {
+                              // Group by user_id, sort users by count DESC then by max hours DESC.
+                              const grouped = new Map<string, typeof slowResponders>();
+                              for (const s of slowResponders) {
+                                const arr = grouped.get(s.userId) || [];
+                                arr.push(s);
+                                grouped.set(s.userId, arr);
+                              }
+                              const userGroups = Array.from(grouped.entries())
+                                .map(([userId, items]) => ({
+                                  userId,
+                                  items: items.slice().sort((a, b) => b.hours - a.hours),
+                                  maxHours: Math.max(...items.map((i) => i.hours)),
+                                  avgHours: items.reduce((s, i) => s + i.hours, 0) / items.length,
+                                }))
+                                .sort((a, b) => b.items.length - a.items.length || b.maxHours - a.maxHours);
+                              return userGroups.map(({ userId, items, maxHours, avgHours }) => {
+                                const name = actorNames[userId] || "Usuário";
+                                const isOpen2 = !!slowGroupedExpanded[userId];
+                                const avgLbl = avgHours >= 10 ? `${Math.round(avgHours)}h` : `${avgHours.toFixed(1)}h`;
+                                const maxLbl = maxHours >= 10 ? `${Math.round(maxHours)}h` : `${maxHours.toFixed(1)}h`;
                                 const tone =
-                                  s.hours > 24
-                                    ? "text-destructive"
-                                    : s.hours > 12
-                                      ? "text-destructive/80"
-                                      : "text-warning";
+                                  maxHours > 24 ? "text-destructive" : maxHours > 12 ? "text-destructive/80" : "text-warning";
                                 return (
-                                  <li key={`${s.userId}-${s.nudgeAt}-${i}`} className="flex items-center justify-between gap-2 px-3 py-2">
-                                    <div className="min-w-0 flex-1">
-                                      <p className="truncate text-[11px] font-semibold text-foreground">{name}</p>
-                                      <p className="text-[9px] text-muted-foreground">
-                                        {s.roundNumber != null ? `Rodada #${s.roundNumber}` : "Rodada"} · cutucada{" "}
-                                        {new Date(s.nudgeAt).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })}
-                                      </p>
-                                    </div>
-                                    <span className={`shrink-0 rounded-full border border-destructive/40 bg-destructive/10 px-1.5 py-0.5 text-[10px] font-bold tabular-nums ${tone}`}>
-                                      {hLabel}
-                                    </span>
+                                  <li key={userId} className="text-[11px]">
+                                    <button
+                                      type="button"
+                                      onClick={() => setSlowGroupedExpanded((p) => ({ ...p, [userId]: !p[userId] }))}
+                                      className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left transition hover:bg-muted/30"
+                                    >
+                                      <div className="min-w-0 flex-1">
+                                        <p className="truncate font-semibold text-foreground">
+                                          {name} <span className="font-normal text-muted-foreground">— {items.length} resposta{items.length !== 1 ? "s" : ""} lenta{items.length !== 1 ? "s" : ""}</span>
+                                        </p>
+                                        <p className="text-[9px] text-muted-foreground">
+                                          média {avgLbl} · pior {maxLbl}
+                                        </p>
+                                      </div>
+                                      <span className={`shrink-0 rounded-full border border-destructive/40 bg-destructive/10 px-1.5 py-0.5 text-[10px] font-bold tabular-nums ${tone}`}>
+                                        {items.length}×
+                                      </span>
+                                      {isOpen2 ? (
+                                        <ChevronUp className="h-3 w-3 shrink-0 text-muted-foreground" />
+                                      ) : (
+                                        <ChevronDown className="h-3 w-3 shrink-0 text-muted-foreground" />
+                                      )}
+                                    </button>
+                                    {isOpen2 && (
+                                      <ul className="space-y-1 border-t border-border/50 bg-muted/10 px-3 py-2">
+                                        {items.map((s, i) => {
+                                          const hLabel = s.hours >= 10 ? `${Math.round(s.hours)}h` : `${s.hours.toFixed(1)}h`;
+                                          const itemTone =
+                                            s.hours > 24 ? "text-destructive" : s.hours > 12 ? "text-destructive/80" : "text-warning";
+                                          return (
+                                            <li key={`${s.nudgeAt}-${i}`} className="flex items-center justify-between gap-2 text-[10px]">
+                                              <span className="text-muted-foreground">
+                                                {s.roundNumber != null ? `Rodada #${s.roundNumber}` : "Rodada"} · {new Date(s.nudgeAt).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })}
+                                              </span>
+                                              <span className={`tabular-nums font-bold ${itemTone}`}>{hLabel}</span>
+                                            </li>
+                                          );
+                                        })}
+                                      </ul>
+                                    )}
                                   </li>
                                 );
-                              })
-                            )}
+                              });
+                            })()}
                           </ul>
                         </PopoverContent>
                       </Popover>
@@ -937,6 +995,7 @@ export function AuditPanel({ groupId }: Props) {
                   unit="h"
                   medianLine={median > 0 ? median : undefined}
                   p90Line={p90 > 0 ? p90 : undefined}
+                  pointLabels={responseTimeLabels}
                 />
               </div>
             );

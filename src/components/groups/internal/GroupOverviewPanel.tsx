@@ -498,8 +498,13 @@ function NextRoundCard({ data, isLoading, groupId, busy, onPresence }: NextRound
             </span>
           )}
           {isSnoozed && data.next_round?.presence_is_open && data.next_round.presence_status === "pending" && (() => {
-            const minsLeft = Math.max(1, Math.round(((snoozedUntil ?? 0) - Date.now()) / 60000));
+            const msLeft = (snoozedUntil ?? 0) - Date.now();
+            const minsLeft = Math.max(1, Math.round(msLeft / 60000));
             const label = minsLeft >= 60 ? `${Math.round(minsLeft / 60)}h` : `${minsLeft}m`;
+            const aboutToExpire = msLeft <= 5 * 60 * 1000;
+            const toneCls = aboutToExpire
+              ? "border-success/40 bg-success/10 text-success hover:bg-success/20"
+              : "border-warning/40 bg-warning/10 text-warning hover:bg-warning/20";
             return (
               <button
                 type="button"
@@ -509,11 +514,18 @@ function NextRoundCard({ data, isLoading, groupId, busy, onPresence }: NextRound
                   }
                   setSnoozedUntil(null);
                 }}
-                title={`Aviso de presença ocultado · volta em ~${label}. Clique para mostrar agora.`}
-                className="inline-flex items-center gap-0.5 rounded-full border border-warning/40 bg-warning/10 px-1.5 py-0.5 text-[9px] font-bold text-warning transition hover:bg-warning/20 normal-case tracking-normal"
+                title={
+                  aboutToExpire
+                    ? `Aviso volta em ~${label} — quase expirando!`
+                    : `Aviso de presença ocultado · volta em ~${label}. Clique para mostrar agora.`
+                }
+                className={`relative inline-flex items-center gap-0.5 rounded-full border px-1.5 py-0.5 text-[9px] font-bold transition normal-case tracking-normal ${toneCls}`}
               >
-                <BellOff className="h-2.5 w-2.5" />
-                <span>{label}</span>
+                {aboutToExpire && (
+                  <span className="absolute inset-0 rounded-full bg-success/30 animate-ping opacity-60" aria-hidden />
+                )}
+                <BellOff className="relative h-2.5 w-2.5" />
+                <span className="relative">{label}</span>
               </button>
             );
           })()}
