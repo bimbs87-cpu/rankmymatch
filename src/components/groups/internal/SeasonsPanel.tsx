@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { SeasonFinalRanking } from "./SeasonFinalRanking";
 import { QuickCreateSeasonDialog } from "./QuickCreateSeasonDialog";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
+import { PlayerAvatarLink } from "@/components/PlayerProfileViewer";
 
 function useSeasonProgress(seasonId: string, totalRounds: number | null) {
   const [completed, setCompleted] = useState(0);
@@ -662,7 +663,9 @@ function RoundExpandedDetails({ groupId, seasonId, roundId }: { groupId: string;
                     aria-label={p.name}
                     className="group/avatar relative"
                   >
-                    <PlayerAvatar avatarUrl={p.avatar_url} name={p.name} size="md" className="ring-1 ring-success/40" />
+                    <PlayerAvatarLink userId={p.user_id} ariaLabel={`Ver perfil de ${p.name}`}>
+                      <PlayerAvatar avatarUrl={p.avatar_url} name={p.name} size="md" className="ring-1 ring-success/40 cursor-pointer transition-transform hover:scale-110" />
+                    </PlayerAvatarLink>
                     <span className="pointer-events-none absolute left-1/2 top-full z-10 mt-1 -translate-x-1/2 whitespace-nowrap rounded-md border border-border bg-popover px-2 py-0.5 text-[10px] font-semibold text-foreground opacity-0 shadow-md transition-opacity group-hover/avatar:opacity-100">
                       {p.name}
                     </span>
