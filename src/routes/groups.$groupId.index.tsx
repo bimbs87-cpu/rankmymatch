@@ -48,7 +48,7 @@ import {
 } from "@/components/groups/internal/GroupInternalSidebar";
 import { GroupOverviewPanel } from "@/components/groups/internal/GroupOverviewPanel";
 import { MembersPanel } from "@/components/groups/internal/MembersPanel";
-import { ResultsPanel } from "@/components/groups/internal/ResultsPanel";
+
 import { SeasonsPanel } from "@/components/groups/internal/SeasonsPanel";
 import { GroupComparePanel } from "@/components/groups/internal/GroupComparePanel";
 import { AdminPanel } from "@/components/groups/internal/AdminPanel";
@@ -478,14 +478,12 @@ function GroupDetailPage() {
                 description={group.description}
                 isAdmin={isAdmin}
                 onGotoMembers={() => handleSelectView("members")}
-                onGotoResults={() => handleSelectView("results")}
+                onGotoResults={() => handleSelectView("seasons")}
                 onCompare={handleCompareFromOverview}
               />
             )}
 
             {view === "members" && <MembersPanel groupId={groupId} />}
-
-            {view === "results" && <ResultsPanel groupId={groupId} isAdmin={isAdmin} />}
 
             {view === "seasons" && <SeasonsPanel groupId={groupId} isAdmin={isAdmin} />}
 

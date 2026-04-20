@@ -94,25 +94,14 @@ export function GroupSwitcherPopover({ groups, activeGroupId, activeGroupName }:
               <ul className="space-y-0.5">
                 <li>
                   <Link
-                    to="/groups/$groupId/seasons"
+                    to="/groups/$groupId"
                     params={{ groupId: activeGroupId }}
+                    search={{ view: "seasons" } as any}
                     onClick={() => setOpen(false)}
                     className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-accent"
                   >
                     <Trophy className="h-3.5 w-3.5 shrink-0 text-primary" />
-                    <span>Temporadas</span>
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    to="/groups/$groupId"
-                    params={{ groupId: activeGroupId }}
-                    search={{ view: "results" } as any}
-                    onClick={() => setOpen(false)}
-                    className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-accent"
-                  >
-                    <ListChecks className="h-3.5 w-3.5 shrink-0 text-primary" />
-                    <span>Resultados</span>
+                    <span>Agenda completa</span>
                   </Link>
                 </li>
                 <li>
