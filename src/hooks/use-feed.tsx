@@ -162,12 +162,15 @@ export async function postComment(data: {
   // Only notify on top-level comments (not replies)
   if (!data.parentId) {
     const preview = data.content.length > 60 ? data.content.slice(0, 57) + "..." : data.content;
+    // Group repeated comment pushes by round/match so the OS collapses them.
+    const ctxKey = data.roundId || data.matchId || data.groupId;
     notifyGroupMembers({
       groupId: data.groupId,
       actorId: data.userId,
       type: "new_comment",
       title: "Novo comentário no feed 💬",
       body: `${data.userName || "Alguém"}: ${preview}`,
+      tag: `comment:${ctxKey}`,
     });
   }
 }

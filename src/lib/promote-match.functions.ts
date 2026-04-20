@@ -114,19 +114,40 @@ export const promoteMatchToRankingServerFn = createServerFn({ method: "POST" })
       }
     }
 
-    // 7. Notify all players
+    // 7. Notify all players (in-app + best-effort push grouped by match)
     const allPlayerIds = [...teamA, ...teamB];
+    const promotedTitle = "Confronto promovido para o ranking";
+    const promotedBody = recomputedElo
+      ? "Um admin promoveu uma partida e o Elo foi recalculado."
+      : "Um admin promoveu uma partida para contar no ranking.";
     const notifRows = allPlayerIds.map((uid) => ({
       user_id: uid,
       group_id: groupId,
       type: "match_promoted",
-      title: "Confronto promovido para o ranking",
-      body: recomputedElo
-        ? "Um admin promoveu uma partida e o Elo foi recalculado."
-        : "Um admin promoveu uma partida para contar no ranking.",
+      title: promotedTitle,
+      body: promotedBody,
       data: { match_id: matchId, season_id: seasonId, promoted_by: userId },
     }));
     await supabaseAdmin.from("notifications").insert(notifRows);
+
+    // Best-effort push, grouped by match so multiple promotions don't flood.
+    try {
+      const { sendPushToUserIds } = await import("@/lib/web-push.server");
+      void sendPushToUserIds(
+        allPlayerIds.filter((u) => u !== userId),
+        {
+          title: promotedTitle,
+          body: promotedBody,
+          url: `/groups/${groupId}`,
+          type: "match_promoted",
+          tag: `match_promoted:${matchId}`,
+          data: { groupId, matchId, seasonId },
+        },
+      ).catch(() => {});
+    } catch {
+      /* push optional */
+    }
+
 
     // 8. Audit log — capture per-player Elo deltas if recomputed
     let eloDeltas: Record<string, { before: number; after: number; change: number }> = {};
