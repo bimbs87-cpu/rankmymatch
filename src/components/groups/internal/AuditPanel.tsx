@@ -30,6 +30,7 @@ const ACTION_LABELS: Record<string, string> = {
   match_score_edited: "Editou placar",
   round_nudge: "Cutucou pendentes",
   round_nudge_cooldown_reset: "Resetou cooldown de cutucadas",
+  waitlist_auto_promoted: "Auto-promoveu da lista de espera",
 };
 
 const NUDGE_MODE_LABELS: Record<string, string> = {
