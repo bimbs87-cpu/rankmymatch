@@ -558,6 +558,7 @@ export function AuditPanel({ groupId }: Props) {
           <option value="all">Todas as ações ({rows.length})</option>
           <option value="__nudges__">Só cutucadas ({nudgeCount})</option>
           <option value="__waitlist__">Só lista de espera ({waitlistCount})</option>
+          <option value="__round_movements__">Movimentações da rodada ({roundMovCount})</option>
           {actions.map((a) => (
             <option key={a} value={a}>
               {ACTION_LABELS[a] || a}
@@ -590,6 +591,20 @@ export function AuditPanel({ groupId }: Props) {
             title="Atalho: filtra promoções automáticas e manuais da lista de espera"
           >
             🎟️ Só lista de espera ({waitlistCount})
+          </button>
+        )}
+        {roundMovCount > 0 && (
+          <button
+            type="button"
+            onClick={() => setFilter(isRoundMovFilter ? "all" : "__round_movements__")}
+            className={`flex items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-bold transition-colors ${
+              isRoundMovFilter
+                ? "border-primary/60 bg-primary/15 text-primary"
+                : "border-border bg-background text-muted-foreground hover:border-primary/40 hover:text-primary"
+            }`}
+            title="Timeline consolidada por rodada: cutucadas, lista de espera, abrir presença"
+          >
+            🎬 Movimentações da rodada ({roundMovCount})
           </button>
         )}
       </div>
@@ -655,6 +670,22 @@ export function AuditPanel({ groupId }: Props) {
         </div>
       )}
 
+          {responseTimes.length >= 2 && (
+            <div>
+              <div className="mb-1 flex items-center justify-between">
+                <p className="text-[9px] font-bold uppercase tracking-wider text-warning/80">
+                  Tempo médio de resposta (h) — últimas {responseTimes.length}
+                </p>
+                <p className="text-[9px] text-muted-foreground">
+                  ↓ menor = galera reagindo mais rápido
+                </p>
+              </div>
+              <Sparkline values={responseTimes} unit="h" />
+            </div>
+          )}
+        </div>
+      )}
+
       {loading ? (
         <div className="flex items-center justify-center py-10">
           <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
@@ -663,6 +694,78 @@ export function AuditPanel({ groupId }: Props) {
         <p className="rounded-xl border border-dashed border-border bg-muted/10 p-4 text-center text-xs text-muted-foreground">
           Nenhum evento registrado{filter !== "all" ? " para esta ação" : ""}.
         </p>
+      ) : isRoundMovFilter ? (
+        <ul className="space-y-3">
+          {movementsByRound.map(({ roundId, events }) => {
+            const meta = roundMovements[roundId];
+            const title = meta?.round_number != null ? `Rodada #${meta.round_number}` : `Rodada ${roundId.slice(0, 8)}`;
+            const sub = meta?.scheduled_date
+              ? new Date(meta.scheduled_date + "T12:00:00").toLocaleDateString("pt-BR")
+              : null;
+            return (
+              <li key={roundId} className="overflow-hidden rounded-xl border border-primary/30 bg-primary/5">
+                <div className="flex items-center justify-between gap-2 border-b border-primary/20 bg-primary/10 px-3 py-2">
+                  <p className="text-xs font-bold text-foreground">
+                    🎬 {title}
+                    {sub && <span className="ml-1 text-[10px] font-normal text-muted-foreground">· {sub}</span>}
+                  </p>
+                  <span className="text-[10px] tabular-nums text-muted-foreground">
+                    {events.length} evento{events.length !== 1 ? "s" : ""}
+                  </span>
+                </div>
+                <ol className="relative space-y-2 p-3">
+                  {events.map((r, idx) => {
+                    const label = ACTION_LABELS[r.action] || r.action;
+                    const actor = actorNames[r.user_id] || "Usuário";
+                    const isNudge = r.action === "round_nudge";
+                    const isWait = WAITLIST_ACTIONS.has(r.action);
+                    const isOpen2 = !!expanded[r.id];
+                    const hasDiff = r.old_data != null || r.new_data != null;
+                    const dotColor = isNudge
+                      ? "bg-warning"
+                      : isWait
+                        ? "bg-info"
+                        : "bg-primary";
+                    return (
+                      <li key={r.id} className="relative pl-5">
+                        <span
+                          className={`absolute left-0 top-1.5 h-2.5 w-2.5 rounded-full ring-2 ring-background ${dotColor}`}
+                        />
+                        {idx < events.length - 1 && (
+                          <span className="absolute left-1 top-4 h-full w-px bg-border" />
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => setExpanded((s) => ({ ...s, [r.id]: !s[r.id] }))}
+                          className="block w-full rounded-lg border border-border bg-background/60 p-2 text-left hover:bg-muted/20"
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0 flex-1">
+                              <p className="text-[11px] font-bold text-foreground">{label}</p>
+                              <p className="mt-0.5 text-[10px] text-muted-foreground">
+                                por <span className="text-foreground">{actor}</span> · {fmtDate(r.created_at)}
+                              </p>
+                            </div>
+                            {hasDiff && (
+                              <span className="mt-0.5 shrink-0 text-muted-foreground">
+                                {isOpen2 ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                              </span>
+                            )}
+                          </div>
+                          {isOpen2 && hasDiff && (
+                            <div className="mt-2 border-t border-border pt-2">
+                              <DiffView row={r} />
+                            </div>
+                          )}
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ol>
+              </li>
+            );
+          })}
+        </ul>
       ) : (
         <ul className="space-y-2">
           {filtered.map((r) => {
