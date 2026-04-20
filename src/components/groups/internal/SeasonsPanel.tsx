@@ -129,6 +129,9 @@ export function SeasonsPanel({ groupId, isAdmin }: Props) {
         )}
       </div>
 
+      {/* Group-wide summary cards (totais do grupo todo) */}
+      <GroupSummaryCards groupId={groupId} />
+
       {quickCreateOpen && (
         <QuickCreateSeasonDialog
           groupId={groupId}
