@@ -3,6 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { Trophy, ExternalLink, AlertCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { PlayerAvatarLink } from "@/components/PlayerProfileViewer";
+import { PlayerAvatar } from "@/components/PlayerAvatar";
 
 interface RankingRow {
   user_id: string;
@@ -133,12 +134,13 @@ export function GroupRankingPanel({ groupId }: Props) {
                 >
                   {row.is_eligible ? idx + 1 : "—"}
                 </span>
-                <PlayerAvatarLink
-                  userId={row.user_id}
-                  profile={row.profile}
-                  size="sm"
-                  groupId={groupId}
-                />
+                <PlayerAvatarLink userId={row.user_id} ariaLabel={`Ver perfil de ${name}`}>
+                  <PlayerAvatar
+                    name={name}
+                    avatarUrl={row.profile?.avatar_url ?? null}
+                    size="sm"
+                  />
+                </PlayerAvatarLink>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-semibold text-foreground">{name}</p>
                   <p className="text-[10px] text-muted-foreground">
