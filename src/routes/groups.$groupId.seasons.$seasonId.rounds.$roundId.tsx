@@ -882,9 +882,17 @@ function RoundDetailPage() {
                     <span className="text-base font-bold text-foreground">{themLabel}</span>
                   </div>
                 </div>
+                <button
+                  type="button"
+                  onClick={() => setShowManualMatch(true)}
+                  className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-2.5 text-xs font-bold text-primary-foreground hover:opacity-90"
+                >
+                  <Swords className="h-3.5 w-3.5" />
+                  {isAdmin ? "Lançar resultado" : "Lançar resultado (envia para o admin aprovar)"}
+                </button>
                 {!isAdmin && (
-                  <p className="mt-4 text-center text-[11px] text-muted-foreground">
-                    Aguardando admin lançar o resultado.
+                  <p className="mt-2 text-center text-[10px] text-muted-foreground">
+                    Seu placar ficará pendente até o admin aprovar.
                   </p>
                 )}
               </div>
