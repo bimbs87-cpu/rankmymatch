@@ -121,44 +121,31 @@ function SeasonDetailPage() {
       toast.error("Selecione uma data");
       return;
     }
-    setCreatingExtra(true);
-
-    // Fetch group defaults for match_format / max_players
-    const { data: group } = await supabase
-      .from("groups")
-      .select("id, match_format, max_players")
-      .eq("id", groupId)
-      .single();
-
-    if (!group) {
-      toast.error("Erro ao carregar grupo");
-      setCreatingExtra(false);
+    if (!user) {
+      toast.error("Faça login primeiro");
       return;
     }
-
-    const nextNumber = rounds.length
-      ? Math.max(...rounds.map((r) => r.round_number || 0)) + 1
-      : 1;
-
-    const { error } = await supabase.from("rounds").insert({
-      group_id: groupId,
-      season_id: seasonId,
-      round_number: nextNumber,
-      scheduled_date: extraDate,
-      status: "scheduled",
-      match_format: group.match_format,
-      max_players: group.max_players,
-    });
-
-    if (error) {
-      toast.error("Erro ao criar rodada extra");
-    } else {
-      toast.success(`Rodada ${nextNumber} criada`);
+    setCreatingExtra(true);
+    try {
+      await createExtraRoundFn({
+        groupId,
+        seasonId,
+        actorId: user.id,
+        scheduledDate: extraDate,
+        scheduledTime: extraTime || null,
+        location: extraLocation || null,
+      });
+      toast.success("Rodada extra criada");
       setShowExtraForm(false);
       setExtraDate("");
+      setExtraTime("");
+      setExtraLocation("");
       refresh();
+    } catch (err: any) {
+      toast.error(err?.message || "Erro ao criar rodada extra");
+    } finally {
+      setCreatingExtra(false);
     }
-    setCreatingExtra(false);
   };
 
   if (isLoading) {
