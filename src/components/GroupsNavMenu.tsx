@@ -175,8 +175,11 @@ export function GroupsNavMenu({ groups, renderTrigger, panelClassName }: Props) 
                         <CalendarClock className="h-3.5 w-3.5 shrink-0 text-success" />
                         <span>Próxima rodada</span>
                       </span>
-                      <span className="text-[10px] font-bold text-success">
-                        {formatNextRound(nextRound.scheduled_date, nextRound.scheduled_time)}
+                      <span className="flex items-center gap-1.5">
+                        <PresencePill status={nextPresence} />
+                        <span className="text-[10px] font-bold text-success">
+                          {formatNextRound(nextRound.scheduled_date, nextRound.scheduled_time)}
+                        </span>
                       </span>
                     </Link>
                   </li>
