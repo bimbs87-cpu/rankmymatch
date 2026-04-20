@@ -3,10 +3,20 @@
  * - Players see "You submitted — awaiting admin" with the score they sent.
  * - Admin sees the score + Approve/Reject buttons (no dialog needed).
  *   Reject opens a tiny prompt for an optional reason.
+ *
+ * Also exports PendingAwareSubmitButton: a context-aware "register score"
+ * button that flips its label/style when there is already a pending result.
  */
-import { useState } from "react";
-import { Clock, Check, X, Loader2, Eye } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Clock, Check, X, Loader2, Eye, Edit3 } from "lucide-react";
 import { toast } from "sonner";
+import {
+  useMatchPendingResult,
+  approvePendingResult,
+  rejectPendingResult,
+} from "@/lib/pending-results";
+import { useAuth } from "@/hooks/use-auth";
+import { supabase } from "@/integrations/supabase/client";
 import {
   useMatchPendingResult,
   approvePendingResult,
