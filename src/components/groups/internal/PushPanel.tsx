@@ -202,9 +202,7 @@ export function PushPanel({ groupId, groupName }: Props) {
                   >
                     <PlayerAvatar
                       name={m.profile?.name || "?"}
-                      nickname={m.profile?.nickname || undefined}
-                      avatarUrl={m.profile?.avatar_url || undefined}
-                      avatarType={m.profile?.avatar_type as any}
+                      avatarUrl={m.profile?.avatar_url || null}
                       size="sm"
                     />
                     <div className="min-w-0 flex-1">
