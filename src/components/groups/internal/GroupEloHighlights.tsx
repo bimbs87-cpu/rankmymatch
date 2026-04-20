@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { TrendingUp, TrendingDown, Activity } from "lucide-react";
+import { TrendingUp, TrendingDown, Activity, Gamepad2 } from "lucide-react";
 import { useGroupEloEvolution } from "@/hooks/use-group-elo-evolution";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { PlayerAvatarLink } from "@/components/PlayerProfileViewer";
@@ -24,16 +24,25 @@ const WINDOW_MS = 30 * 24 * 60 * 60 * 1000;
 export function GroupEloHighlights({ groupId }: Props) {
   const { data, isLoading } = useGroupEloEvolution(groupId, "all");
 
-  const { topUp, topDown, consistent } = useMemo(() => {
+  const { topUp, topDown, consistent, totalGames } = useMemo(() => {
     const cutoff = Date.now() - WINDOW_MS;
     let bestUp: Highlight | null = null;
     let bestDown: Highlight | null = null;
     let bestConsistent: Highlight | null = null;
     let bestConsistentSpread = Infinity;
+    // Each rating event = one player-match. A match has multiple players,
+    // so total matches ≈ unique match timestamps. We approximate "games"
+    // as total rating events in the window divided by 2 (rough avg players per match for singles)
+    // — but more meaningful: count distinct match timestamps across all series.
+    const matchTimestamps = new Set<number>();
 
     for (const s of data.series) {
       const pts = s.points.filter((p) => p.ts >= cutoff);
-      if (pts.length < 2) continue;
+      if (pts.length < 2) {
+        for (const p of pts) matchTimestamps.add(p.ts);
+        continue;
+      }
+      for (const p of pts) matchTimestamps.add(p.ts);
       const start = pts[0].rating;
       const end = pts[pts.length - 1].rating;
       const delta = end - start;
@@ -65,20 +74,25 @@ export function GroupEloHighlights({ groupId }: Props) {
     if (bestUp && bestUp.value <= 0) bestUp = null;
     if (bestDown && bestDown.value >= 0) bestDown = null;
 
-    return { topUp: bestUp, topDown: bestDown, consistent: bestConsistent };
+    return {
+      topUp: bestUp,
+      topDown: bestDown,
+      consistent: bestConsistent,
+      totalGames: matchTimestamps.size,
+    };
   }, [data.series]);
 
   if (isLoading) {
     return (
-      <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-        {[0, 1, 2].map((i) => (
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        {[0, 1, 2, 3].map((i) => (
           <div key={i} className="h-20 animate-pulse rounded-2xl bg-muted/30" />
         ))}
       </div>
     );
   }
 
-  if (!topUp && !topDown && !consistent) {
+  if (!topUp && !topDown && !consistent && totalGames === 0) {
     return null;
   }
 
@@ -87,7 +101,7 @@ export function GroupEloHighlights({ groupId }: Props) {
       <h3 className="px-1 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
         Destaques · últimos 30 dias
       </h3>
-      <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
         <HighlightCard
           icon={<TrendingUp className="h-3.5 w-3.5" />}
           label="Maior alta"
@@ -111,6 +125,13 @@ export function GroupEloHighlights({ groupId }: Props) {
           ring="ring-primary/30"
           highlight={consistent}
           formatValue={(v) => `±${Math.round(v / 2)}`}
+        />
+        <StatCard
+          icon={<Gamepad2 className="h-3.5 w-3.5" />}
+          label="Total de jogos"
+          accent="text-accent-foreground"
+          ring="ring-border"
+          value={totalGames}
         />
       </div>
     </div>
@@ -146,6 +167,29 @@ function HighlightCard({ icon, label, accent, ring, highlight, formatValue }: Hi
       ) : (
         <p className="text-xs text-muted-foreground">Sem dados suficientes</p>
       )}
+    </div>
+  );
+}
+
+interface StatCardProps {
+  icon: React.ReactNode;
+  label: string;
+  accent: string;
+  ring: string;
+  value: number;
+}
+
+function StatCard({ icon, label, accent, ring, value }: StatCardProps) {
+  return (
+    <div className={`rounded-2xl border border-border bg-card p-3 ring-1 ring-inset ${ring}`}>
+      <div className={`mb-1.5 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider ${accent}`}>
+        {icon}
+        {label}
+      </div>
+      <div className="flex items-baseline gap-1.5">
+        <p className="font-mono text-2xl font-bold text-foreground leading-none">{value}</p>
+        <p className="text-[10px] text-muted-foreground">jogos</p>
+      </div>
     </div>
   );
 }

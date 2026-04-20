@@ -98,10 +98,7 @@ export function GroupRankingPanel({ groupId }: Props) {
         </Link>
       </header>
 
-      <GroupEloHighlights groupId={groupId} />
-
       <GroupEloEvolutionChart groupId={groupId} defaultFilter="active" />
-
 
       {loading ? (
         <div className="rounded-2xl border border-border bg-card p-6 text-center text-sm text-muted-foreground">
@@ -169,6 +166,8 @@ export function GroupRankingPanel({ groupId }: Props) {
           })}
         </ul>
       )}
+
+      <GroupEloHighlights groupId={groupId} />
 
       {rows.length > 0 && (
         <p className="px-1 text-center text-[10px] text-muted-foreground">
