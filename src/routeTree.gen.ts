@@ -25,6 +25,7 @@ import { Route as CompararRouteImport } from './routes/comparar'
 import { Route as ChangelogRouteImport } from './routes/changelog'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as GroupsIndexRouteImport } from './routes/groups.index'
+import { Route as SobreDesenvolvimentoChangelogAdminRouteImport } from './routes/sobre-desenvolvimento.changelog-admin'
 import { Route as SobreDesenvolvimentoAdminRouteImport } from './routes/sobre-desenvolvimento.admin'
 import { Route as RankingCompareRouteImport } from './routes/ranking_.compare'
 import { Route as PlayersUserIdRouteImport } from './routes/players.$userId'
@@ -128,6 +129,12 @@ const GroupsIndexRoute = GroupsIndexRouteImport.update({
   path: '/',
   getParentRoute: () => GroupsRoute,
 } as any)
+const SobreDesenvolvimentoChangelogAdminRoute =
+  SobreDesenvolvimentoChangelogAdminRouteImport.update({
+    id: '/changelog-admin',
+    path: '/changelog-admin',
+    getParentRoute: () => SobreDesenvolvimentoRoute,
+  } as any)
 const SobreDesenvolvimentoAdminRoute =
   SobreDesenvolvimentoAdminRouteImport.update({
     id: '/admin',
@@ -273,6 +280,7 @@ export interface FileRoutesByFullPath {
   '/players/$userId': typeof PlayersUserIdRoute
   '/ranking/compare': typeof RankingCompareRoute
   '/sobre-desenvolvimento/admin': typeof SobreDesenvolvimentoAdminRoute
+  '/sobre-desenvolvimento/changelog-admin': typeof SobreDesenvolvimentoChangelogAdminRoute
   '/groups/': typeof GroupsIndexRoute
   '/api/push/vapid-public-key': typeof ApiPushVapidPublicKeyRoute
   '/groups/$groupId/duel': typeof GroupsGroupIdDuelRoute
@@ -311,6 +319,7 @@ export interface FileRoutesByTo {
   '/players/$userId': typeof PlayersUserIdRoute
   '/ranking/compare': typeof RankingCompareRoute
   '/sobre-desenvolvimento/admin': typeof SobreDesenvolvimentoAdminRoute
+  '/sobre-desenvolvimento/changelog-admin': typeof SobreDesenvolvimentoChangelogAdminRoute
   '/groups': typeof GroupsIndexRoute
   '/api/push/vapid-public-key': typeof ApiPushVapidPublicKeyRoute
   '/groups/$groupId/duel': typeof GroupsGroupIdDuelRoute
@@ -350,6 +359,7 @@ export interface FileRoutesById {
   '/players/$userId': typeof PlayersUserIdRoute
   '/ranking_/compare': typeof RankingCompareRoute
   '/sobre-desenvolvimento/admin': typeof SobreDesenvolvimentoAdminRoute
+  '/sobre-desenvolvimento/changelog-admin': typeof SobreDesenvolvimentoChangelogAdminRoute
   '/groups/': typeof GroupsIndexRoute
   '/api/push/vapid-public-key': typeof ApiPushVapidPublicKeyRoute
   '/groups/$groupId/duel': typeof GroupsGroupIdDuelRoute
@@ -392,6 +402,7 @@ export interface FileRouteTypes {
     | '/players/$userId'
     | '/ranking/compare'
     | '/sobre-desenvolvimento/admin'
+    | '/sobre-desenvolvimento/changelog-admin'
     | '/groups/'
     | '/api/push/vapid-public-key'
     | '/groups/$groupId/duel'
@@ -430,6 +441,7 @@ export interface FileRouteTypes {
     | '/players/$userId'
     | '/ranking/compare'
     | '/sobre-desenvolvimento/admin'
+    | '/sobre-desenvolvimento/changelog-admin'
     | '/groups'
     | '/api/push/vapid-public-key'
     | '/groups/$groupId/duel'
@@ -468,6 +480,7 @@ export interface FileRouteTypes {
     | '/players/$userId'
     | '/ranking_/compare'
     | '/sobre-desenvolvimento/admin'
+    | '/sobre-desenvolvimento/changelog-admin'
     | '/groups/'
     | '/api/push/vapid-public-key'
     | '/groups/$groupId/duel'
@@ -625,6 +638,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/groups/'
       preLoaderRoute: typeof GroupsIndexRouteImport
       parentRoute: typeof GroupsRoute
+    }
+    '/sobre-desenvolvimento/changelog-admin': {
+      id: '/sobre-desenvolvimento/changelog-admin'
+      path: '/changelog-admin'
+      fullPath: '/sobre-desenvolvimento/changelog-admin'
+      preLoaderRoute: typeof SobreDesenvolvimentoChangelogAdminRouteImport
+      parentRoute: typeof SobreDesenvolvimentoRoute
     }
     '/sobre-desenvolvimento/admin': {
       id: '/sobre-desenvolvimento/admin'
@@ -848,10 +868,13 @@ const GroupsRouteWithChildren =
 
 interface SobreDesenvolvimentoRouteChildren {
   SobreDesenvolvimentoAdminRoute: typeof SobreDesenvolvimentoAdminRoute
+  SobreDesenvolvimentoChangelogAdminRoute: typeof SobreDesenvolvimentoChangelogAdminRoute
 }
 
 const SobreDesenvolvimentoRouteChildren: SobreDesenvolvimentoRouteChildren = {
   SobreDesenvolvimentoAdminRoute: SobreDesenvolvimentoAdminRoute,
+  SobreDesenvolvimentoChangelogAdminRoute:
+    SobreDesenvolvimentoChangelogAdminRoute,
 }
 
 const SobreDesenvolvimentoRouteWithChildren =
