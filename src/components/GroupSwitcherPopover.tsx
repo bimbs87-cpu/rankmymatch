@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { ChevronDown, Users, Trophy, ListChecks, UserSquare2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { useGroupPendingTasks } from "@/hooks/use-group-pending-tasks";
 
 interface GroupItem {
   id: string;
@@ -18,10 +19,15 @@ interface Props {
  * Small button that opens a popover acting as a "direct group menu":
  * - Quick shortcuts for the active group (Temporadas, Resultados, Membros).
  * - Optional list of the user's other groups, so they can hop straight to one.
+ *
+ * Shows a red dot on the trigger and a count badge next to "Membros" when the
+ * active group has admin pending tasks (join requests + claims).
  */
 export function GroupSwitcherPopover({ groups, activeGroupId, activeGroupName }: Props) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const { counts } = useGroupPendingTasks(activeGroupId || null, !!activeGroupId);
+  const memberPending = counts.joinRequests + counts.playerClaims;
 
   useEffect(() => {
     if (!open) return;
@@ -54,10 +60,18 @@ export function GroupSwitcherPopover({ groups, activeGroupId, activeGroupName }:
         aria-label="Menu direto do grupo"
         title="Menu direto do grupo"
         aria-expanded={open}
-        className="flex items-center gap-0.5 rounded-2xl border border-border bg-card px-2 py-2 text-muted-foreground transition-colors hover:bg-accent hover:border-primary/40"
+        className="relative flex items-center gap-0.5 rounded-2xl border border-border bg-card px-2 py-2 text-muted-foreground transition-colors hover:bg-accent hover:border-primary/40"
       >
         <Users className="h-4 w-4" />
         <ChevronDown className="h-3 w-3" />
+        {memberPending > 0 && (
+          <span
+            aria-label={`${memberPending} pendência${memberPending === 1 ? "" : "s"} no grupo ativo`}
+            className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[9px] font-bold text-destructive-foreground"
+          >
+            {memberPending > 9 ? "9+" : memberPending}
+          </span>
+        )}
       </button>
 
       {open && (
@@ -107,10 +121,20 @@ export function GroupSwitcherPopover({ groups, activeGroupId, activeGroupName }:
                     params={{ groupId: activeGroupId }}
                     search={{ view: "members" } as any}
                     onClick={() => setOpen(false)}
-                    className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-accent"
+                    className="flex items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-accent"
                   >
-                    <UserSquare2 className="h-3.5 w-3.5 shrink-0 text-primary" />
-                    <span>Membros</span>
+                    <span className="flex items-center gap-2">
+                      <UserSquare2 className="h-3.5 w-3.5 shrink-0 text-primary" />
+                      <span>Membros</span>
+                    </span>
+                    {memberPending > 0 && (
+                      <span
+                        aria-label={`${memberPending} pendência${memberPending === 1 ? "" : "s"}`}
+                        className="flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[9px] font-bold text-destructive-foreground"
+                      >
+                        {memberPending > 9 ? "9+" : memberPending}
+                      </span>
+                    )}
                   </Link>
                 </li>
               </ul>

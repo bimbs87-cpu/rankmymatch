@@ -497,9 +497,17 @@ export function GroupDashboardPanel({ group, onLeft, onPresenceChanged }: Props)
                 <p className="font-display text-base font-bold text-foreground">
                   Rodada {data.next_round.round_number ?? "—"}
                 </p>
-                <p className="mt-0.5 text-xs text-muted-foreground">
-                  {formatDate(data.next_round.scheduled_date, data.next_round.scheduled_time)}
-                </p>
+                <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                  <p className="text-xs text-muted-foreground">
+                    {formatDate(data.next_round.scheduled_date, data.next_round.scheduled_time)}
+                  </p>
+                  {data.next_round.presence_is_open && (
+                    <MatchStartCountdown
+                      scheduledDate={data.next_round.scheduled_date}
+                      scheduledTime={data.next_round.scheduled_time}
+                    />
+                  )}
+                </div>
                 {data.next_round.location && (
                   <p className="mt-0.5 flex items-center gap-1 text-[11px] text-muted-foreground">
                     <MapPin className="h-3 w-3" />
@@ -833,6 +841,68 @@ function PresenceCountdown({ opensAt }: { opensAt: string | null }) {
       title={`Lista abre em ${new Date(opensAt).toLocaleString("pt-BR")}`}
     >
       <Clock className="h-3 w-3" />
+      {label}
+    </span>
+  );
+}
+
+/**
+ * Discrete countdown to the start of the match itself, shown alongside the
+ * formatted date once the presence list is already open.
+ * Updates every 30s. <2h → warning tone; <10min → pulsing warning.
+ * Hides itself when the match is in the past or further than 7 days away.
+ */
+function MatchStartCountdown({
+  scheduledDate,
+  scheduledTime,
+}: {
+  scheduledDate: string | null;
+  scheduledTime: string | null;
+}) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 30000);
+    return () => clearInterval(id);
+  }, []);
+
+  if (!scheduledDate) return null;
+  const target = new Date(`${scheduledDate}T${scheduledTime || "00:00"}`).getTime();
+  if (Number.isNaN(target)) return null;
+
+  const diffMs = target - now;
+  // Hide if past or > 7 days away
+  if (diffMs <= -60 * 60 * 1000) return null;
+  if (diffMs > 7 * 24 * 60 * 60 * 1000) return null;
+
+  let label: string;
+  if (diffMs <= 0) label = "começa agora";
+  else {
+    const totalMin = Math.round(diffMs / 60000);
+    if (totalMin < 60) label = `em ${totalMin}min`;
+    else if (totalMin < 60 * 24) {
+      const h = Math.floor(totalMin / 60);
+      const m = totalMin % 60;
+      label = m > 0 ? `em ${h}h${String(m).padStart(2, "0")}` : `em ${h}h`;
+    } else {
+      const days = Math.round(totalMin / (60 * 24));
+      label = days === 1 ? "amanhã" : `em ${days} dias`;
+    }
+  }
+
+  const isWarning = diffMs > 0 && diffMs <= 2 * 60 * 60 * 1000;
+  const isImminent = diffMs > -60 * 1000 && diffMs <= 10 * 60 * 1000;
+  const tone = isImminent
+    ? "border-warning/60 bg-warning/15 text-warning animate-pulse"
+    : isWarning
+    ? "border-warning/40 bg-warning/10 text-warning"
+    : "border-primary/30 bg-primary/10 text-primary";
+
+  return (
+    <span
+      className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold ${tone}`}
+      title={`Início da rodada: ${new Date(target).toLocaleString("pt-BR")}`}
+    >
+      <Clock className="h-2.5 w-2.5" />
       {label}
     </span>
   );
