@@ -1026,23 +1026,27 @@ function RoundExpandedDetails({
         for (const mp of ((m as any).match_players || [])) allIds.add(mp.user_id);
       }
 
-      // Fetch Elo deltas for all completed matches in this round
-      let deltaMap: Record<string, Record<string, number>> = {};
+      // Fetch Elo before/after for all completed matches in this round
+      let deltaMap: Record<string, Record<string, { delta: number; before: number; after: number }>> = {};
       if (matchIds.length) {
         const { data: events } = await supabase
           .from("rating_events")
-          .select("match_id, user_id, rating_change")
+          .select("match_id, user_id, rating_change, rating_before, rating_after")
           .in("match_id", matchIds);
         for (const ev of (events || [])) {
           const mid = (ev as any).match_id as string;
           const uid = (ev as any).user_id as string;
-          const delta = Number((ev as any).rating_change) || 0;
           if (!deltaMap[mid]) deltaMap[mid] = {};
-          deltaMap[mid][uid] = delta;
+          deltaMap[mid][uid] = {
+            delta: Number((ev as any).rating_change) || 0,
+            before: Number((ev as any).rating_before) || 0,
+            after: Number((ev as any).rating_after) || 0,
+          };
         }
       }
       if (cancelled) return;
       setEloDeltas(deltaMap);
+      setScheduledDate(round?.scheduled_date ?? null);
 
       if (allIds.size) {
         const { data: profs } = await supabase
