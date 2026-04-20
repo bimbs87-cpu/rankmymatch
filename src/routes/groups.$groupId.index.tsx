@@ -378,7 +378,7 @@ function GroupDetailPage() {
         />
 
         {/* Main content */}
-        <main className="min-w-0 flex-1 pb-28">
+        <main className="min-w-0 flex-1 overflow-x-hidden pb-28">
           {/* Top bar (mobile) */}
           <div className="flex items-center gap-3 border-b border-border/60 bg-background/80 px-4 py-3 backdrop-blur lg:hidden">
             <button
