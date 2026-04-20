@@ -315,9 +315,16 @@ export function AuditPanel({ groupId }: Props) {
   }, [groupId]);
 
   const actions = useMemo(() => Array.from(new Set(rows.map((r) => r.action))).sort(), [rows]);
-  const filtered = useMemo(
-    () => (filter === "all" ? rows : rows.filter((r) => r.action === filter)),
-    [filter, rows],
+  const NUDGE_ACTIONS = new Set(["round_nudge", "round_nudge_cooldown_reset"]);
+  const isNudgeFilter = filter === "__nudges__";
+  const filtered = useMemo(() => {
+    if (filter === "all") return rows;
+    if (isNudgeFilter) return rows.filter((r) => NUDGE_ACTIONS.has(r.action));
+    return rows.filter((r) => r.action === filter);
+  }, [filter, rows, isNudgeFilter]);
+  const nudgeCount = useMemo(
+    () => rows.filter((r) => NUDGE_ACTIONS.has(r.action)).length,
+    [rows],
   );
 
   return (
@@ -349,12 +356,27 @@ export function AuditPanel({ groupId }: Props) {
           className="rounded-lg border border-border bg-background px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-primary"
         >
           <option value="all">Todas as ações ({rows.length})</option>
+          <option value="__nudges__">Só cutucadas ({nudgeCount})</option>
           {actions.map((a) => (
             <option key={a} value={a}>
               {ACTION_LABELS[a] || a}
             </option>
           ))}
         </select>
+        {nudgeCount > 0 && (
+          <button
+            type="button"
+            onClick={() => setFilter(isNudgeFilter ? "all" : "__nudges__")}
+            className={`flex items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-bold transition-colors ${
+              isNudgeFilter
+                ? "border-warning/60 bg-warning/15 text-warning"
+                : "border-border bg-background text-muted-foreground hover:border-warning/40 hover:text-warning"
+            }`}
+            title="Atalho: filtra round_nudge + round_nudge_cooldown_reset"
+          >
+            🔔 Só cutucadas ({nudgeCount})
+          </button>
+        )}
       </div>
 
       {loading ? (
