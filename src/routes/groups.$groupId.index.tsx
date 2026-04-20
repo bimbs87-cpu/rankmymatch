@@ -429,7 +429,7 @@ function GroupDetailPage() {
             </button>
           </div>
 
-          <div className="px-4 py-5 lg:px-8 lg:py-6">
+          <div className="min-w-0 px-4 py-5 lg:px-8 lg:py-6">
             {/* Pending match alert (always visible at top) */}
             {pendingMatch && (
               <div className="mb-4">
