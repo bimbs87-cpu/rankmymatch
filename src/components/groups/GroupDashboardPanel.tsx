@@ -743,28 +743,66 @@ export function GroupDashboardPanel({ group, onLeft, onPresenceChanged }: Props)
                     const waitlist = sortedAsc.slice(data.next_round.max_players);
                     if (waitlist.length === 0) return null;
                     return (
-                      <div className="flex items-center gap-2 rounded-xl border border-dashed border-border/60 bg-background/30 px-3 py-2">
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                          Lista de espera ({waitlist.length})
-                        </span>
-                        <div className="flex -space-x-1.5">
-                          {waitlist.slice(0, 6).map((p, i) => (
-                            <button
-                              key={p.user_id}
-                              type="button"
-                              onClick={() => openProfile(p.user_id)}
-                              title={`${p.name} · ${i + 1}º na espera`}
-                              className="rounded-full ring-2 ring-card transition-transform hover:z-10 hover:scale-110"
-                            >
-                              <PlayerAvatar avatarUrl={p.avatar_url} name={p.name} size="sm" />
-                            </button>
-                          ))}
-                          {waitlist.length > 6 && (
-                            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-muted text-[9px] font-bold text-muted-foreground ring-2 ring-card">
-                              +{waitlist.length - 6}
-                            </span>
-                          )}
+                      <div className="rounded-xl border border-dashed border-border/60 bg-background/30 px-3 py-2">
+                        <div className="mb-1.5 flex items-center justify-between">
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                            Lista de espera ({waitlist.length})
+                          </span>
                         </div>
+                        {isAdmin ? (
+                          <ul className="space-y-1">
+                            {waitlist.map((p, i) => (
+                              <li
+                                key={p.user_id}
+                                className="flex items-center gap-2 rounded-lg bg-background/40 px-1.5 py-1"
+                              >
+                                <span className="w-4 text-center text-[10px] font-bold tabular-nums text-muted-foreground">
+                                  {i + 1}º
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => openProfile(p.user_id)}
+                                  className="flex min-w-0 flex-1 items-center gap-2 text-left transition-opacity hover:opacity-80"
+                                >
+                                  <PlayerAvatar avatarUrl={p.avatar_url} name={p.name} size="sm" />
+                                  <span className="truncate text-[11px] font-semibold text-foreground">
+                                    {p.name}
+                                  </span>
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handlePromoteFromWaitlist(p.user_id)}
+                                  disabled={promotingUserId === p.user_id}
+                                  className="flex shrink-0 items-center gap-1 rounded-full border border-success/40 bg-success/10 px-2 py-0.5 text-[10px] font-bold text-success transition-colors hover:bg-success/20 disabled:opacity-50"
+                                  title="Promover este jogador da lista de espera (empurra o último confirmado pra espera)"
+                                  aria-label={`Promover ${p.name} da lista de espera`}
+                                >
+                                  <ArrowUpCircle className="h-3 w-3" />
+                                  {promotingUserId === p.user_id ? "Promovendo…" : "Promover"}
+                                </button>
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <div className="flex -space-x-1.5">
+                            {waitlist.slice(0, 6).map((p, i) => (
+                              <button
+                                key={p.user_id}
+                                type="button"
+                                onClick={() => openProfile(p.user_id)}
+                                title={`${p.name} · ${i + 1}º na espera`}
+                                className="rounded-full ring-2 ring-card transition-transform hover:z-10 hover:scale-110"
+                              >
+                                <PlayerAvatar avatarUrl={p.avatar_url} name={p.name} size="sm" />
+                              </button>
+                            ))}
+                            {waitlist.length > 6 && (
+                              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-muted text-[9px] font-bold text-muted-foreground ring-2 ring-card">
+                                +{waitlist.length - 6}
+                              </span>
+                            )}
+                          </div>
+                        )}
                       </div>
                     );
                   })()}
