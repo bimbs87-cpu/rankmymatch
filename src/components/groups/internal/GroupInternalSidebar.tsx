@@ -1,4 +1,4 @@
-import { LayoutGrid, Users, CalendarDays, Trophy, MessageSquare, Settings2, ChevronLeft, X, GitCompare, Share2 } from "lucide-react";
+import { LayoutGrid, Users, CalendarDays, MessageSquare, Settings2, ChevronLeft, X, GitCompare, Share2 } from "lucide-react";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Link } from "@tanstack/react-router";
 
@@ -163,5 +163,58 @@ export function GroupInternalSidebarDrawer({ open, onOpenChange, ...rest }: Draw
         </div>
       </SheetContent>
     </Sheet>
+  );
+}
+
+/**
+ * Floating, horizontally-scrollable tab bar for mobile. Replaces the hidden
+ * hamburger drawer with always-visible quick switch between sections.
+ * Sticky just under the page topbar so it never covers the cover image at the
+ * initial scroll position.
+ */
+interface FloatingTabsProps {
+  isAdmin: boolean;
+  view: GroupView;
+  onSelect: (v: GroupView) => void;
+  badges?: SidebarBadges;
+}
+export function GroupInternalFloatingTabs({ isAdmin, view, onSelect, badges = {} }: FloatingTabsProps) {
+  const items = ITEMS.filter((i) => !i.adminOnly || isAdmin);
+  return (
+    <div className="sticky top-0 z-30 -mx-4 px-3 py-2 lg:hidden">
+      <div className="rounded-full border border-border bg-card/90 px-1.5 py-1 shadow-lg ring-1 ring-black/30 backdrop-blur-xl">
+        <ul className="flex items-center gap-1 overflow-x-auto no-scrollbar">
+          {items.map((item) => {
+            const Icon = item.icon;
+            const active = view === item.id;
+            const badgeCount =
+              item.id === "admin" ? badges.pendingRequests :
+              item.id === "feed" ? badges.newComments : undefined;
+            const dot = item.id === "overview" && badges.pendingPresence;
+            return (
+              <li key={item.id} className="shrink-0">
+                <button
+                  onClick={() => onSelect(item.id)}
+                  className={`group relative flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-semibold transition-colors ${
+                    active
+                      ? "bg-primary/15 text-primary"
+                      : "text-muted-foreground hover:bg-accent/40 hover:text-foreground"
+                  }`}
+                >
+                  <Icon className="h-3.5 w-3.5" />
+                  <span className="whitespace-nowrap">{item.label}</span>
+                  {dot && <span className="ml-0.5 h-1.5 w-1.5 rounded-full bg-warning" />}
+                  {badgeCount && badgeCount > 0 ? (
+                    <span className="ml-0.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[9px] font-bold text-destructive-foreground">
+                      {badgeCount}
+                    </span>
+                  ) : null}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+    </div>
   );
 }
