@@ -353,15 +353,43 @@ export function PushDiagnosticCard() {
                         strokeLinecap="round"
                         points={points}
                       />
-                      {rates.map((r, i) => (
-                        <circle
-                          key={i}
-                          cx={i * step}
-                          cy={H - r * H}
-                          r={1.6}
-                          fill={stroke}
-                        />
-                      ))}
+                      {rates.map((r, i) => {
+                        const cx = i * step;
+                        const cy = H - r * H;
+                        const isLast = i === rates.length - 1;
+                        const entry = ordered[i];
+                        const total = entry.sent + entry.failed;
+                        const pct = total > 0 ? Math.round((entry.sent / total) * 100) : 0;
+                        const tip = entry.error
+                          ? `${formatRelative(entry.ts)} — erro: ${entry.error}`
+                          : `${formatRelative(entry.ts)} — ${entry.sent} sent / ${entry.failed} failed (${pct}%)`;
+                        return (
+                          <g key={i}>
+                            {isLast && (
+                              <circle
+                                cx={cx}
+                                cy={cy}
+                                r={3.6}
+                                fill="none"
+                                stroke={stroke}
+                                strokeWidth={1}
+                                opacity={0.45}
+                              />
+                            )}
+                            <circle
+                              cx={cx}
+                              cy={cy}
+                              r={isLast ? 2.4 : 1.6}
+                              fill={stroke}
+                              stroke={isLast ? "hsl(var(--background))" : "none"}
+                              strokeWidth={isLast ? 0.8 : 0}
+                              style={{ cursor: "help" }}
+                            >
+                              <title>{tip}</title>
+                            </circle>
+                          </g>
+                        );
+                      })}
                     </svg>
                     <span className="text-foreground">{Math.round(avg * 100)}%</span>
                   </span>
