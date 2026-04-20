@@ -31,7 +31,7 @@ import { useGroupDashboard } from "@/hooks/use-group-dashboard";
 import { Clock } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
-import { confirmPresence, cancelPresence } from "@/lib/round-actions";
+import { confirmPresence, cancelPresence, adminPromoteFromWaitlist } from "@/lib/round-actions";
 import { leaveGroup, approveJoinRequest, rejectJoinRequest } from "@/hooks/use-groups";
 import {
   AlertDialog,
@@ -46,7 +46,7 @@ import {
 import type { Tables } from "@/integrations/supabase/types";
 import { playRoundAlert } from "@/lib/round-alert-sound";
 import { sendPushFn } from "@/lib/push.functions";
-import { Bell as BellIcon, RotateCcw, AlertTriangle } from "lucide-react";
+import { Bell as BellIcon, RotateCcw, AlertTriangle, ArrowUpCircle } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { logAudit } from "@/lib/audit-log";
 
