@@ -327,6 +327,31 @@ export function AuditPanel({ groupId }: Props) {
     [rows],
   );
 
+  // Aggregated stats for "Só cutucadas" filter — only round_nudge entries (not cooldown resets)
+  const nudgeStats = useMemo(() => {
+    const nudges = rows.filter((r) => r.action === "round_nudge");
+    if (nudges.length === 0) {
+      return { total: 0, recipients: 0, pendingPct: 0, declinedPct: 0, lastAt: null as string | null };
+    }
+    let recipients = 0;
+    let pending = 0;
+    let declined = 0;
+    for (const r of nudges) {
+      const d = r.new_data || {};
+      recipients += Number(d.recipients_count ?? 0);
+      pending += Number(d.pending_count ?? 0);
+      declined += Number(d.declined_count ?? 0);
+    }
+    const sumPD = pending + declined;
+    return {
+      total: nudges.length,
+      recipients,
+      pendingPct: sumPD > 0 ? Math.round((pending / sumPD) * 100) : 0,
+      declinedPct: sumPD > 0 ? Math.round((declined / sumPD) * 100) : 0,
+      lastAt: nudges[0]?.created_at ?? null,
+    };
+  }, [rows]);
+
   return (
     <div className="space-y-4">
       <div className="flex items-start justify-between gap-3">
