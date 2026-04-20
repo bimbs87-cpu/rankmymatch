@@ -11,13 +11,16 @@ import { supabase } from "@/integrations/supabase/client";
 
 export function useAllGroupsPending(groupIds: string[]) {
   const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(groupIds.length > 0);
   const key = groupIds.slice().sort().join(",");
 
   const refresh = useCallback(async () => {
     if (groupIds.length === 0) {
       setTotal(0);
+      setLoading(false);
       return;
     }
+    setLoading(true);
     try {
       const [jr, pc, matches] = await Promise.all([
         supabase
@@ -50,6 +53,8 @@ export function useAllGroupsPending(groupIds: string[]) {
       setTotal((jr.count ?? 0) + (pc.count ?? 0) + matchResultsCount);
     } catch {
       // ignore — keep last value
+    } finally {
+      setLoading(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key]);
@@ -73,5 +78,5 @@ export function useAllGroupsPending(groupIds: string[]) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key, refresh]);
 
-  return total;
+  return { total, loading };
 }

@@ -63,7 +63,7 @@ export function DesktopNav() {
                     key={item.to}
                     groups={myGroups.map((g) => ({ id: g.id, name: g.name }))}
                     panelClassName="absolute left-1/2 top-full z-50 mt-2 w-72 max-h-[70vh] -translate-x-1/2 overflow-y-auto rounded-2xl border border-border bg-popover p-2 shadow-xl animate-fade-in"
-                    renderTrigger={({ onClick, badge, open }) => (
+                    renderTrigger={({ onClick, badge, badgeLoading, open }) => (
                       <button
                         type="button"
                         onClick={onClick}
@@ -72,11 +72,13 @@ export function DesktopNav() {
                       >
                         <Icon className="h-4 w-4" />
                         <span>{item.label}</span>
-                        {badge > 0 && (
+                        {badgeLoading ? (
+                          <span className="ml-0.5 inline-block h-4 w-4 animate-pulse rounded-full bg-primary/20" />
+                        ) : badge > 0 ? (
                           <span className="ml-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[9px] font-bold text-destructive-foreground">
                             {badge > 9 ? "9+" : badge}
                           </span>
-                        )}
+                        ) : null}
                       </button>
                     )}
                   />

@@ -1,9 +1,9 @@
 import { Link, useLocation } from "@tanstack/react-router";
-import { ChevronDown, Users, Trophy, UserSquare2, Compass, CheckCircle2, CalendarClock } from "lucide-react";
+import { ChevronDown, Users, Trophy, UserSquare2, Compass, CheckCircle2, CalendarClock, Clock, X as XIcon } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useGroupPendingTasks } from "@/hooks/use-group-pending-tasks";
 import { useAllGroupsPending } from "@/hooks/use-all-groups-pending";
-import { useNextRound } from "@/hooks/use-next-round";
+import { useNextRound, type PresenceStatus } from "@/hooks/use-next-round";
 
 interface GroupItem {
   id: string;
@@ -16,7 +16,10 @@ interface Props {
   renderTrigger: (args: {
     onClick: () => void;
     badge: number;
+    badgeLoading: boolean;
     open: boolean;
+    /** Optional inline shortcut ("Próx: qua · 19h ✓") rendered under the icon. Only set when groups.length === 1. */
+    nextRound?: { id: string; seasonId: string; label: string; presence: PresenceStatus } | null;
   }) => ReactNode;
   /** Optional anchor classes for the popover panel position. */
   panelClassName?: string;
@@ -58,10 +61,10 @@ export function GroupsNavMenu({ groups, renderTrigger, panelClassName }: Props) 
   // trigger reflects every group where the user has pending admin tasks, not
   // only the primary one).
   const allGroupIds = useMemo(() => groups.map((g) => g.id), [groups]);
-  const globalPending = useAllGroupsPending(allGroupIds);
+  const { total: globalPending, loading: globalLoading } = useAllGroupsPending(allGroupIds);
 
   // Next scheduled round of the primary group (used in the popover shortcut).
-  const { round: nextRound } = useNextRound(primaryId || null);
+  const { round: nextRound, presence: nextPresence } = useNextRound(primaryId || null);
 
   useEffect(() => {
     if (!open) return;
@@ -83,16 +86,31 @@ export function GroupsNavMenu({ groups, renderTrigger, panelClassName }: Props) 
   if (orderedGroups.length === 0) {
     return (
       <Link to="/groups" className="contents">
-        {renderTrigger({ onClick: () => {}, badge: 0, open: false })}
+        {renderTrigger({ onClick: () => {}, badge: 0, badgeLoading: false, open: false })}
       </Link>
     );
   }
 
-  // 1 group → bypass popover, go straight to it.
+  // 1 group → bypass popover, go straight to it. Expose nextRound for inline sub-link.
   if (orderedGroups.length === 1) {
+    const subShortcut =
+      nextRound && nextRound.season_id
+        ? {
+            id: nextRound.id,
+            seasonId: nextRound.season_id,
+            label: formatNextRound(nextRound.scheduled_date, nextRound.scheduled_time),
+            presence: nextPresence,
+          }
+        : null;
     return (
       <Link to="/groups/$groupId" params={{ groupId: primaryId }} className="contents">
-        {renderTrigger({ onClick: () => {}, badge: globalPending, open: false })}
+        {renderTrigger({
+          onClick: () => {},
+          badge: globalPending,
+          badgeLoading: globalLoading,
+          open: false,
+          nextRound: subShortcut,
+        })}
       </Link>
     );
   }
@@ -102,7 +120,7 @@ export function GroupsNavMenu({ groups, renderTrigger, panelClassName }: Props) 
 
   return (
     <div ref={ref} className="relative contents">
-      {renderTrigger({ onClick: () => setOpen((v) => !v), badge: globalPending, open })}
+      {renderTrigger({ onClick: () => setOpen((v) => !v), badge: globalPending, badgeLoading: globalLoading, open })}
 
       {open && (
         <div
@@ -157,8 +175,11 @@ export function GroupsNavMenu({ groups, renderTrigger, panelClassName }: Props) 
                         <CalendarClock className="h-3.5 w-3.5 shrink-0 text-success" />
                         <span>Próxima rodada</span>
                       </span>
-                      <span className="text-[10px] font-bold text-success">
-                        {formatNextRound(nextRound.scheduled_date, nextRound.scheduled_time)}
+                      <span className="flex items-center gap-1.5">
+                        <PresencePill status={nextPresence} />
+                        <span className="text-[10px] font-bold text-success">
+                          {formatNextRound(nextRound.scheduled_date, nextRound.scheduled_time)}
+                        </span>
                       </span>
                     </Link>
                   </li>
@@ -289,6 +310,30 @@ function OtherGroupItem({
   );
 }
 
+function PresencePill({ status }: { status: PresenceStatus }) {
+  if (status === "confirmed") {
+    return (
+      <span title="Você confirmou presença" className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-success/20 text-success">
+        <CheckCircle2 className="h-2.5 w-2.5" />
+      </span>
+    );
+  }
+  if (status === "declined") {
+    return (
+      <span title="Você marcou ausência" className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-destructive/20 text-destructive">
+        <XIcon className="h-2.5 w-2.5" />
+      </span>
+    );
+  }
+  if (status === "pending") {
+    return (
+      <span title="Sua presença está pendente" className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-warning/20 text-warning">
+        <Clock className="h-2.5 w-2.5" />
+      </span>
+    );
+  }
+  return null;
+}
 const WEEKDAYS = ["dom", "seg", "ter", "qua", "qui", "sex", "sáb"];
 function formatNextRound(date: string | null, time: string | null): string {
   if (!date) return "";
