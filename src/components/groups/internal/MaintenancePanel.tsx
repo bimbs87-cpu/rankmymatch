@@ -1,12 +1,14 @@
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { Loader2, Wrench, CheckCircle2, RefreshCw, Unlock, AlertTriangle } from "lucide-react";
+import { Loader2, Wrench, CheckCircle2, RefreshCw, Unlock, AlertTriangle, Calendar } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
 import {
   detectDesyncedMatchesServerFn,
   finalizeDesyncedMatchesServerFn,
   reopenMatchServerFn,
+  detectInvalidRoundDatesServerFn,
+  fixInvalidRoundDatesServerFn,
 } from "@/lib/match-maintenance.functions";
 
 interface Props {
