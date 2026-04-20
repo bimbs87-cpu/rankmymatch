@@ -738,6 +738,7 @@ function SeasonRoundsInline({ groupId, seasonId, isAdmin }: { groupId: string; s
           </div>
         );
       })}
+      {extraRoundUI}
     </div>
   );
 }
