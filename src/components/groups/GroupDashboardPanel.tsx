@@ -46,8 +46,9 @@ import {
 import type { Tables } from "@/integrations/supabase/types";
 import { playRoundAlert } from "@/lib/round-alert-sound";
 import { sendPushFn } from "@/lib/push.functions";
-import { Bell as BellIcon } from "lucide-react";
+import { Bell as BellIcon, RotateCcw, AlertTriangle } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { logAudit } from "@/lib/audit-log";
 
 type Group = Tables<"groups"> & {
   member_count?: number;

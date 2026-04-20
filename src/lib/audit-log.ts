@@ -20,7 +20,9 @@ export type AuditAction =
   | "season_finished"
   | "round_created"
   | "round_deleted"
-  | "match_score_edited";
+  | "match_score_edited"
+  | "round_nudge"
+  | "round_nudge_cooldown_reset";
 
 export interface LogAuditOptions {
   groupId: string;
