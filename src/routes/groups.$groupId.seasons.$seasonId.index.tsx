@@ -339,10 +339,26 @@ function SeasonDetailPage() {
                   <h4 className="text-sm font-semibold text-foreground">Nova rodada extra</h4>
                   <p className="text-xs text-muted-foreground">Adicione uma rodada fora do calendário regular (ex: feriado, jogo extra).</p>
                 </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <input
+                    type="date"
+                    value={extraDate}
+                    onChange={(e) => setExtraDate(e.target.value)}
+                    className="rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                  />
+                  <input
+                    type="time"
+                    value={extraTime}
+                    onChange={(e) => setExtraTime(e.target.value)}
+                    placeholder="Horário"
+                    className="rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                  />
+                </div>
                 <input
-                  type="date"
-                  value={extraDate}
-                  onChange={(e) => setExtraDate(e.target.value)}
+                  type="text"
+                  value={extraLocation}
+                  onChange={(e) => setExtraLocation(e.target.value)}
+                  placeholder="Local (opcional)"
                   className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
                 />
                 <div className="flex gap-2">
@@ -354,7 +370,7 @@ function SeasonDetailPage() {
                     {creatingExtra ? "Criando..." : "Criar rodada"}
                   </button>
                   <button
-                    onClick={() => { setShowExtraForm(false); setExtraDate(""); }}
+                    onClick={() => { setShowExtraForm(false); setExtraDate(""); setExtraTime(""); setExtraLocation(""); }}
                     className="rounded-lg bg-muted px-3 py-2 text-xs font-semibold text-muted-foreground"
                   >
                     Cancelar
