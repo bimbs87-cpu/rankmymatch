@@ -172,12 +172,13 @@ function OtherGroupItem({
   group: GroupItem;
   onNavigate: () => void;
 }) {
-  const [enabled, setEnabled] = useState(false);
-  const { counts, loading } = useGroupPendingTasks(group.id, enabled);
+  // Preload pending counts immediately when the popover opens so admins can
+  // see at a glance which groups need attention — no hover required.
+  const { counts, loading } = useGroupPendingTasks(group.id, true);
   const total = counts.total;
 
   return (
-    <li onMouseEnter={() => setEnabled(true)} onFocus={() => setEnabled(true)}>
+    <li>
       <Link
         to="/groups/$groupId"
         params={{ groupId: group.id }}
@@ -188,7 +189,7 @@ function OtherGroupItem({
           <Users className="h-3.5 w-3.5 shrink-0 text-primary" />
           <span className="truncate">{group.name}</span>
         </span>
-        {enabled && !loading && total > 0 && (
+        {!loading && total > 0 && (
           <span
             aria-label={`${total} pendência${total === 1 ? "" : "s"}`}
             title={`${counts.joinRequests} solicitações · ${counts.playerClaims} vínculos · ${counts.matchResults} resultados`}
