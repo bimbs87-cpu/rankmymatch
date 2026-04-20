@@ -637,7 +637,7 @@ function SeasonRoundsInline({ groupId, seasonId, isAdmin }: { groupId: string; s
               {creatingExtra ? "Criando..." : "Criar rodada"}
             </button>
             <button
-              onClick={() => { setShowExtraForm(false); setExtraDate(""); }}
+              onClick={() => { setShowExtraForm(false); setExtraDate(""); setExtraTime(""); setExtraLocation(""); }}
               className="rounded-lg bg-muted px-2.5 py-1.5 text-[11px]"
             >
               Cancelar
