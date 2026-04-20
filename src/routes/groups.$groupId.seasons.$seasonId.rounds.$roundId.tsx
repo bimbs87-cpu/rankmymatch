@@ -466,22 +466,54 @@ function RoundDetailPage() {
           reason: "Admin reabriu lista de presenças antecipadamente",
         } as any).then(() => {});
       }
-      // Notify members + push (lista aberta)
-      if (user) {
+      // Push only the players who already confirmed presence — they're the
+      // ones whose round is now officially starting. Pending users are not
+      // pinged here (they'd get the spammy "lista aberta" they didn't ask for).
+      const confirmedIds = presenceConfirmed.map((p) => p.user_id).filter(Boolean);
+      if (user && confirmedIds.length > 0) {
         const roundLabel = round.round_number ? `Rodada ${round.round_number}` : "rodada";
-        void notifyGroupMembers({
-          groupId,
-          actorId: user.id,
-          type: "presence_open",
-          title: "📣 Lista de presença aberta",
-          body: `A lista da ${roundLabel} foi aberta. Confirme sua presença!`,
-          url: `/groups/${groupId}/seasons/${seasonId}/rounds/${roundId}`,
-          data: { roundId, seasonId },
-          // Collapse repeated "lista aberta" pushes for the same round.
-          tag: `presence_open:${roundId}`,
-        }).catch(() => {});
+        const timeStr = round.scheduled_time ? round.scheduled_time.slice(0, 5) : null;
+        const body = timeStr
+          ? `Lista fechada — sua ${roundLabel.toLowerCase()} começa às ${timeStr}.`
+          : `Lista fechada — sua ${roundLabel.toLowerCase()} foi liberada agora.`;
+        try {
+          const { sendPushFn } = await import("@/lib/push.functions");
+          void sendPushFn({
+            data: {
+              userIds: confirmedIds,
+              payload: {
+                title: "🟢 Lista fechada",
+                body,
+                url: `/groups/${groupId}/seasons/${seasonId}/rounds/${roundId}`,
+                type: "presence_open",
+                tag: `presence_open:${roundId}`,
+                data: { roundId, seasonId },
+              },
+            },
+          }).catch(() => {});
+        } catch {
+          /* push optional */
+        }
+        // Mirror as in-app notifications for confirmed players.
+        void supabase
+          .from("notifications")
+          .insert(
+            confirmedIds.map((uid) => ({
+              user_id: uid,
+              group_id: groupId,
+              type: "presence_open",
+              title: "🟢 Lista fechada",
+              body,
+              data: { roundId, seasonId },
+            })),
+          )
+          .then(() => {});
       }
-      toast.success("Lista de presenças reaberta para todos");
+      toast.success(
+        confirmedIds.length > 0
+          ? `Lista reaberta · ${confirmedIds.length} confirmado${confirmedIds.length > 1 ? "s" : ""} notificado${confirmedIds.length > 1 ? "s" : ""}`
+          : "Lista reaberta (nenhum confirmado para notificar)",
+      );
       refresh();
     } catch (e: any) {
       toast.error(e?.message || "Reaberta apenas localmente — erro ao salvar");
@@ -674,6 +706,12 @@ function RoundDetailPage() {
               <span>{effectiveConfirmedCount}/{displayCapacity} confirmados</span>
             </div>
           )}
+          {rivalry && (
+            <div className="flex items-center gap-1.5">
+              <Swords className="h-3.5 w-3.5" />
+              <span>Confronto 1x1</span>
+            </div>
+          )}
         </div>
       </div>
 
@@ -790,7 +828,7 @@ function RoundDetailPage() {
       )}
 
       <div className="space-y-5 px-5">
-        {/* Confirmed players - hide for rivalry */}
+        {/* Confirmed players - hide for rivalry (1x1 has its own duel card below) */}
         {!rivalry && (
           <section>
             <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -815,6 +853,44 @@ function RoundDetailPage() {
             )}
           </section>
         )}
+
+        {/* Rivalry duel card — vertical "Você vs X" when no match yet */}
+        {rivalry && matches.length === 0 && (() => {
+          const [a, b] = members.slice(0, 2);
+          if (!a || !b) return null;
+          const me = user?.id;
+          const youSide = me === a.user_id ? a : me === b.user_id ? b : null;
+          const them = youSide ? (youSide.user_id === a.user_id ? b : a) : null;
+          const top = youSide ?? a;
+          const bottom = them ?? b;
+          const youLabel = youSide ? "Você" : (top as any).profile?.nickname || (top as any).profile?.name || "Jogador 1";
+          const themLabel = (bottom as any).profile?.nickname || (bottom as any).profile?.name || "Jogador 2";
+          return (
+            <section>
+              <div className="rounded-3xl border border-primary/30 bg-card/60 p-5">
+                <p className="mb-3 text-center text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                  Próximo confronto
+                </p>
+                <div className="flex flex-col items-center gap-3">
+                  <div className="flex flex-col items-center gap-1.5">
+                    <PlayerAvatar avatarUrl={(top as any).profile?.avatar_url || null} name={(top as any).profile?.name || "?"} size="lg" />
+                    <span className="text-base font-bold text-foreground">{youLabel}</span>
+                  </div>
+                  <span className="font-display text-2xl font-black text-primary">VS</span>
+                  <div className="flex flex-col items-center gap-1.5">
+                    <PlayerAvatar avatarUrl={(bottom as any).profile?.avatar_url || null} name={(bottom as any).profile?.name || "?"} size="lg" />
+                    <span className="text-base font-bold text-foreground">{themLabel}</span>
+                  </div>
+                </div>
+                {!isAdmin && (
+                  <p className="mt-4 text-center text-[11px] text-muted-foreground">
+                    Aguardando admin lançar o resultado.
+                  </p>
+                )}
+              </div>
+            </section>
+          );
+        })()}
 
         {/* Matches */}
         {matches.length > 0 && (
