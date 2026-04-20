@@ -537,6 +537,10 @@ export function ScoreEntryDialog({
       setSubmitting(false);
     }
   };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center px-4 pb-24 sm:pb-6">
+      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={submitting ? undefined : onClose} />
       <div className="relative w-full max-w-lg rounded-3xl border border-border bg-card p-6 pb-8 sm:pb-6 animate-in zoom-in-95 fade-in-0 duration-200 max-h-[calc(100vh-8rem)] overflow-y-auto sm:max-h-[85vh]">
         {submitting && (
           <div className="fixed inset-0 z-[60] flex items-center justify-center bg-background/85 px-6 backdrop-blur-md">
