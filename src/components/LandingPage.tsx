@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "@tanstack/react-router";
 import { lovable } from "@/integrations/lovable/index";
 import { supabase } from "@/integrations/supabase/client";
 import { trackEvent } from "@/lib/analytics";
@@ -428,7 +429,10 @@ export function LandingPage() {
               <CTAButton size="lg" className="w-full sm:w-auto" location="final_cta" />
             </div>
             <p className="mt-3 text-[11px] text-muted-foreground">
-              Ao entrar, você concorda com nossos Termos de Uso e Política de Privacidade.
+              Ao entrar, você concorda com nossos{" "}
+              <Link to="/termos" className="underline hover:text-foreground">Termos de Uso</Link>
+              {" "}e{" "}
+              <Link to="/privacidade" className="underline hover:text-foreground">Política de Privacidade</Link>.
             </p>
           </div>
         </div>

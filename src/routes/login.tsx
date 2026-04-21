@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import { lovable } from "@/integrations/lovable/index";
 import { supabase } from "@/integrations/supabase/client";
@@ -333,7 +333,10 @@ function LoginPage() {
               {InstallButton}
 
               <p className="mt-3 text-center text-[11px] leading-relaxed text-muted-foreground">
-                Ao entrar, você concorda com nossos Termos de Uso e Política de Privacidade.
+                Ao entrar, você concorda com nossos{" "}
+                <Link to="/termos" className="underline hover:text-foreground">Termos de Uso</Link>
+                {" "}e{" "}
+                <Link to="/privacidade" className="underline hover:text-foreground">Política de Privacidade</Link>.
               </p>
             </div>
           </div>

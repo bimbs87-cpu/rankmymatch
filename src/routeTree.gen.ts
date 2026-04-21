@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as TermosRouteImport } from './routes/termos'
 import { Route as SobreDesenvolvimentoRouteImport } from './routes/sobre-desenvolvimento'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as SistemaRouteImport } from './routes/sistema'
@@ -16,6 +17,7 @@ import { Route as SeasonsRouteImport } from './routes/seasons'
 import { Route as RankingInfoRouteImport } from './routes/ranking-info'
 import { Route as RankingRouteImport } from './routes/ranking'
 import { Route as ProfileRouteImport } from './routes/profile'
+import { Route as PrivacidadeRouteImport } from './routes/privacidade'
 import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as LandingRouteImport } from './routes/landing'
@@ -48,6 +50,11 @@ import { Route as ApiOgPlayerUserIdRouteImport } from './routes/api.og.player.$u
 import { Route as ApiOgGroupGroupIdRouteImport } from './routes/api.og.group.$groupId'
 import { Route as GroupsGroupIdSeasonsSeasonIdIndexRouteImport } from './routes/groups.$groupId.seasons.$seasonId.index'
 
+const TermosRoute = TermosRouteImport.update({
+  id: '/termos',
+  path: '/termos',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SobreDesenvolvimentoRoute = SobreDesenvolvimentoRouteImport.update({
   id: '/sobre-desenvolvimento',
   path: '/sobre-desenvolvimento',
@@ -81,6 +88,11 @@ const RankingRoute = RankingRouteImport.update({
 const ProfileRoute = ProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacidadeRoute = PrivacidadeRouteImport.update({
+  id: '/privacidade',
+  path: '/privacidade',
   getParentRoute: () => rootRouteImport,
 } as any)
 const NotificationsRoute = NotificationsRouteImport.update({
@@ -256,6 +268,7 @@ export interface FileRoutesByFullPath {
   '/landing': typeof LandingRoute
   '/login': typeof LoginRoute
   '/notifications': typeof NotificationsRoute
+  '/privacidade': typeof PrivacidadeRoute
   '/profile': typeof ProfileRoute
   '/ranking': typeof RankingRoute
   '/ranking-info': typeof RankingInfoRoute
@@ -263,6 +276,7 @@ export interface FileRoutesByFullPath {
   '/sistema': typeof SistemaRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/sobre-desenvolvimento': typeof SobreDesenvolvimentoRouteWithChildren
+  '/termos': typeof TermosRoute
   '/admin/inbox': typeof AdminInboxRoute
   '/admin/metrics': typeof AdminMetricsRoute
   '/groups/$groupId': typeof GroupsGroupIdRouteWithChildren
@@ -295,6 +309,7 @@ export interface FileRoutesByTo {
   '/landing': typeof LandingRoute
   '/login': typeof LoginRoute
   '/notifications': typeof NotificationsRoute
+  '/privacidade': typeof PrivacidadeRoute
   '/profile': typeof ProfileRoute
   '/ranking': typeof RankingRoute
   '/ranking-info': typeof RankingInfoRoute
@@ -302,6 +317,7 @@ export interface FileRoutesByTo {
   '/sistema': typeof SistemaRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/sobre-desenvolvimento': typeof SobreDesenvolvimentoRouteWithChildren
+  '/termos': typeof TermosRoute
   '/admin/inbox': typeof AdminInboxRoute
   '/admin/metrics': typeof AdminMetricsRoute
   '/hooks/admin-action': typeof HooksAdminActionRoute
@@ -333,6 +349,7 @@ export interface FileRoutesById {
   '/landing': typeof LandingRoute
   '/login': typeof LoginRoute
   '/notifications': typeof NotificationsRoute
+  '/privacidade': typeof PrivacidadeRoute
   '/profile': typeof ProfileRoute
   '/ranking': typeof RankingRoute
   '/ranking-info': typeof RankingInfoRoute
@@ -340,6 +357,7 @@ export interface FileRoutesById {
   '/sistema': typeof SistemaRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/sobre-desenvolvimento': typeof SobreDesenvolvimentoRouteWithChildren
+  '/termos': typeof TermosRoute
   '/admin/inbox': typeof AdminInboxRoute
   '/admin/metrics': typeof AdminMetricsRoute
   '/groups/$groupId': typeof GroupsGroupIdRouteWithChildren
@@ -375,6 +393,7 @@ export interface FileRouteTypes {
     | '/landing'
     | '/login'
     | '/notifications'
+    | '/privacidade'
     | '/profile'
     | '/ranking'
     | '/ranking-info'
@@ -382,6 +401,7 @@ export interface FileRouteTypes {
     | '/sistema'
     | '/sitemap.xml'
     | '/sobre-desenvolvimento'
+    | '/termos'
     | '/admin/inbox'
     | '/admin/metrics'
     | '/groups/$groupId'
@@ -414,6 +434,7 @@ export interface FileRouteTypes {
     | '/landing'
     | '/login'
     | '/notifications'
+    | '/privacidade'
     | '/profile'
     | '/ranking'
     | '/ranking-info'
@@ -421,6 +442,7 @@ export interface FileRouteTypes {
     | '/sistema'
     | '/sitemap.xml'
     | '/sobre-desenvolvimento'
+    | '/termos'
     | '/admin/inbox'
     | '/admin/metrics'
     | '/hooks/admin-action'
@@ -451,6 +473,7 @@ export interface FileRouteTypes {
     | '/landing'
     | '/login'
     | '/notifications'
+    | '/privacidade'
     | '/profile'
     | '/ranking'
     | '/ranking-info'
@@ -458,6 +481,7 @@ export interface FileRouteTypes {
     | '/sistema'
     | '/sitemap.xml'
     | '/sobre-desenvolvimento'
+    | '/termos'
     | '/admin/inbox'
     | '/admin/metrics'
     | '/groups/$groupId'
@@ -492,6 +516,7 @@ export interface RootRouteChildren {
   LandingRoute: typeof LandingRoute
   LoginRoute: typeof LoginRoute
   NotificationsRoute: typeof NotificationsRoute
+  PrivacidadeRoute: typeof PrivacidadeRoute
   ProfileRoute: typeof ProfileRoute
   RankingRoute: typeof RankingRoute
   RankingInfoRoute: typeof RankingInfoRoute
@@ -499,6 +524,7 @@ export interface RootRouteChildren {
   SistemaRoute: typeof SistemaRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   SobreDesenvolvimentoRoute: typeof SobreDesenvolvimentoRouteWithChildren
+  TermosRoute: typeof TermosRoute
   AdminInboxRoute: typeof AdminInboxRoute
   AdminMetricsRoute: typeof AdminMetricsRoute
   HooksAdminActionRoute: typeof HooksAdminActionRoute
@@ -515,6 +541,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/termos': {
+      id: '/termos'
+      path: '/termos'
+      fullPath: '/termos'
+      preLoaderRoute: typeof TermosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/sobre-desenvolvimento': {
       id: '/sobre-desenvolvimento'
       path: '/sobre-desenvolvimento'
@@ -562,6 +595,13 @@ declare module '@tanstack/react-router' {
       path: '/profile'
       fullPath: '/profile'
       preLoaderRoute: typeof ProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacidade': {
+      id: '/privacidade'
+      path: '/privacidade'
+      fullPath: '/privacidade'
+      preLoaderRoute: typeof PrivacidadeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/notifications': {
@@ -866,6 +906,7 @@ const rootRouteChildren: RootRouteChildren = {
   LandingRoute: LandingRoute,
   LoginRoute: LoginRoute,
   NotificationsRoute: NotificationsRoute,
+  PrivacidadeRoute: PrivacidadeRoute,
   ProfileRoute: ProfileRoute,
   RankingRoute: RankingRoute,
   RankingInfoRoute: RankingInfoRoute,
@@ -873,6 +914,7 @@ const rootRouteChildren: RootRouteChildren = {
   SistemaRoute: SistemaRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   SobreDesenvolvimentoRoute: SobreDesenvolvimentoRouteWithChildren,
+  TermosRoute: TermosRoute,
   AdminInboxRoute: AdminInboxRoute,
   AdminMetricsRoute: AdminMetricsRoute,
   HooksAdminActionRoute: HooksAdminActionRoute,

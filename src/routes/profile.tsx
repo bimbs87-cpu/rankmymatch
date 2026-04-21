@@ -34,8 +34,12 @@ import {
   Eye,
   EyeOff,
   Sparkles,
+  Trash2,
+  ShieldCheck,
+  FileText,
   X as XIcon,
 } from "lucide-react";
+import { DeleteAccountDialog } from "@/components/DeleteAccountDialog";
 import {
   Dialog,
   DialogContent,
@@ -92,6 +96,7 @@ function ProfilePage() {
   const [saving, setSaving] = useState(false);
   const [avatarPickerOpen, setAvatarPickerOpen] = useState(false);
   const [savingAvatar, setSavingAvatar] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
   const { theme, cycleTheme, resolved } = useTheme();
   const { canInstall, isInstalled, isIos, startInstall } = useInstallFlow();
 
@@ -577,14 +582,22 @@ function ProfilePage() {
               {canInstall && !isInstalled ? (
                 <MenuItem icon={<Download className="h-4 w-4 text-muted-foreground" />} label={isIos ? "Instalar (iOS)" : "Instalar app"} onClick={startInstall} />
               ) : null}
+              <MenuItemLink to="/privacidade" icon={<ShieldCheck className="h-4 w-4 text-muted-foreground" />} label="Política de Privacidade" />
+              <MenuItemLink to="/termos" icon={<FileText className="h-4 w-4 text-muted-foreground" />} label="Termos de Uso" />
               <button onClick={handleLogout} className="mt-2 flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-destructive transition-colors hover:bg-destructive/10">
                 <LogOut className="h-4 w-4" />
                 <span className="flex-1 text-sm font-medium">Sair da conta</span>
+              </button>
+              <button onClick={() => setDeleteOpen(true)} className="flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-destructive transition-colors hover:bg-destructive/10">
+                <Trash2 className="h-4 w-4" />
+                <span className="flex-1 text-sm font-medium">Excluir minha conta</span>
               </button>
             </div>
           </>
         }
       />
+
+      <DeleteAccountDialog open={deleteOpen} onOpenChange={setDeleteOpen} />
 
       <AvatarPickerDialog
         open={avatarPickerOpen}
@@ -631,7 +644,7 @@ function MenuItem({ icon, label, onClick, right }: { icon: React.ReactNode; labe
     </button>
   );
 }
-function MenuItemLink({ to, icon, label }: { to: "/history" | "/notifications"; icon: React.ReactNode; label: string }) {
+function MenuItemLink({ to, icon, label }: { to: "/history" | "/notifications" | "/privacidade" | "/termos"; icon: React.ReactNode; label: string }) {
   return (
     <Link to={to} className="flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left transition-colors hover:bg-accent">
       {icon}
