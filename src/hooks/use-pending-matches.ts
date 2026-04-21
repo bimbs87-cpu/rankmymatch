@@ -79,6 +79,7 @@ export function usePendingMatch(groupId?: string) {
           : Promise.resolve({ data: null }),
         supabase.from("match_players").select("user_id, team").eq("match_id", match.id),
         supabase.from("match_sets").select("set_number, score_team_a, score_team_b").eq("match_id", match.id).order("set_number"),
+        supabase.from("matches").select("id", { count: "exact", head: true }).eq("round_id", match.round_id),
       ]);
 
       const playerIds = (playersRes.data || []).map((p) => p.user_id);
