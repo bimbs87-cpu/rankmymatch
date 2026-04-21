@@ -18,6 +18,9 @@ import {
   Lightbulb,
   GitBranch,
   RefreshCw,
+  Wand2,
+  CheckSquare,
+  Square,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
@@ -159,16 +162,32 @@ function ChangelogAdminPage() {
     return pub?.version ?? notes[0]?.version ?? null;
   }, [notes]);
 
-  // Commit-based suggestions, fetched on demand from GitHub
-  const [commitSuggestions, setCommitSuggestions] = useState<CommitSuggestion[]>([]);
+  // Raw commits fetched from GitHub (kept so we can re-send to AI)
+  type RawCommit = { sha: string; message: string; date: string; url: string };
+  const [rawCommits, setRawCommits] = useState<RawCommit[]>([]);
   const [fetchingCommits, setFetchingCommits] = useState(false);
   const [commitsFetchedAt, setCommitsFetchedAt] = useState<Date | null>(null);
 
+  // AI-grouped release entries (the actual user-friendly suggestions)
+  type GroupedEntry = {
+    id: string; // local id for selection
+    type: "feature" | "improvement" | "fix";
+    title: string;
+    description: string;
+    commit_shas: string[];
+  };
+  const [groupedEntries, setGroupedEntries] = useState<GroupedEntry[]>([]);
+  const [grouping, setGrouping] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkPublishing, setBulkPublishing] = useState(false);
+  const [bulkVersion, setBulkVersion] = useState("");
+
+  // Suggestions = grouped entries not yet present in release_notes (by title)
   const suggestions = useMemo(() => {
-    if (!notes) return commitSuggestions;
+    if (!notes) return groupedEntries;
     const existingTitles = new Set(notes.map((n) => n.title.trim().toLowerCase()));
-    return commitSuggestions.filter((s) => !existingTitles.has(s.title.trim().toLowerCase()));
-  }, [notes, commitSuggestions]);
+    return groupedEntries.filter((s) => !existingTitles.has(s.title.trim().toLowerCase()));
+  }, [notes, groupedEntries]);
 
   async function fetchCommitsFromGitHub() {
     setFetchingCommits(true);
@@ -184,27 +203,20 @@ function ChangelogAdminPage() {
         html_url: string;
         commit: { message: string; author: { date: string } };
       }>;
-      const seen = new Set<string>();
-      const parsed: CommitSuggestion[] = [];
-      for (const c of data) {
-        const raw = c.commit?.message ?? "";
-        if (isNoise(raw)) continue;
-        const title = cleanTitle(raw);
-        const key = title.toLowerCase();
-        if (seen.has(key)) continue;
-        seen.add(key);
-        parsed.push({
+      const parsed: RawCommit[] = data
+        .filter((c) => !isNoise(c.commit?.message ?? ""))
+        .map((c) => ({
           sha: c.sha.slice(0, 7),
-          title,
-          description: raw.split("\n").slice(1).join("\n").trim() || `Commit ${c.sha.slice(0, 7)}`,
-          type: inferType(raw),
-          url: c.html_url,
+          message: c.commit?.message ?? "",
           date: c.commit?.author?.date ?? "",
-        });
-      }
-      setCommitSuggestions(parsed);
+          url: c.html_url,
+        }));
+      setRawCommits(parsed);
       setCommitsFetchedAt(new Date());
-      toast.success(`${parsed.length} commits encontrados`);
+      // Reset previous AI grouping when commits change
+      setGroupedEntries([]);
+      setSelectedIds(new Set());
+      toast.success(`${parsed.length} commits relevantes encontrados`);
     } catch (e: any) {
       toast.error(`Falha ao buscar commits: ${e.message ?? "erro"}`);
     } finally {
@@ -212,7 +224,90 @@ function ChangelogAdminPage() {
     }
   }
 
-  function applySuggestion(s: CommitSuggestion) {
+  async function groupWithAI() {
+    if (rawCommits.length === 0) {
+      toast.error("Busque commits primeiro");
+      return;
+    }
+    setGrouping(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("summarize-commits", {
+        body: {
+          commits: rawCommits.map((c) => ({ sha: c.sha, message: c.message, date: c.date })),
+          latestVersion,
+        },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      const entries = (data?.entries ?? []) as Array<Omit<GroupedEntry, "id">>;
+      const withIds: GroupedEntry[] = entries.map((e, i) => ({
+        ...e,
+        id: `g${i}-${e.commit_shas?.[0] ?? i}`,
+      }));
+      setGroupedEntries(withIds);
+      setSelectedIds(new Set(withIds.map((e) => e.id)));
+      setBulkVersion(latestVersion ? bumpPatch(latestVersion) : "v0.0.1");
+      toast.success(`${withIds.length} entradas geradas pela IA`);
+    } catch (e: any) {
+      toast.error(`IA falhou: ${e.message ?? "erro desconhecido"}`);
+    } finally {
+      setGrouping(false);
+    }
+  }
+
+  function toggleSelect(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleSelectAll() {
+    if (selectedIds.size === suggestions.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(suggestions.map((s) => s.id)));
+    }
+  }
+
+  async function publishSelected() {
+    const toPublish = suggestions.filter((s) => selectedIds.has(s.id));
+    if (toPublish.length === 0) {
+      toast.error("Selecione pelo menos uma entrada");
+      return;
+    }
+    if (!bulkVersion.trim()) {
+      toast.error("Informe a versão");
+      return;
+    }
+    setBulkPublishing(true);
+    try {
+      const today = new Date().toISOString().slice(0, 10);
+      const rows = toPublish.map((s) => ({
+        version: bulkVersion.trim(),
+        title: s.title.trim(),
+        description: s.description.trim() || null,
+        type: s.type,
+        released_at: today,
+        is_published: true,
+      }));
+      const { error } = await supabase.from("release_notes").insert(rows);
+      if (error) throw error;
+      toast.success(`${rows.length} entradas publicadas em ${bulkVersion.trim()}`);
+      // Remove published from local state
+      setGroupedEntries((prev) => prev.filter((g) => !selectedIds.has(g.id)));
+      setSelectedIds(new Set());
+      await load();
+    } catch (e: any) {
+      toast.error(`Erro ao publicar: ${e.message ?? "falha"}`);
+    } finally {
+      setBulkPublishing(false);
+    }
+  }
+
+  function applySuggestion(s: GroupedEntry) {
     setDraft((d) => ({
       ...d,
       version: latestVersion ? bumpPatch(latestVersion) : "v0.0.1",
@@ -224,6 +319,7 @@ function ChangelogAdminPage() {
     }));
     toast.success("Sugestão aplicada ao formulário");
   }
+
 
 
   function handleBumpVersion() {
@@ -371,29 +467,44 @@ function ChangelogAdminPage() {
       </header>
 
       <main className="mx-auto w-full max-w-4xl space-y-6 px-5 lg:px-6">
-        {/* Suggestions from GitHub */}
+        {/* Suggestions from GitHub + AI grouping */}
         <section className="rounded-3xl border border-primary/30 bg-primary/5 p-4 lg:p-5">
-          <div className="mb-2 flex items-center justify-between gap-2">
+          <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
             <h2 className="flex items-center gap-2 font-display text-sm font-bold uppercase tracking-wider text-foreground">
               <Lightbulb className="h-4 w-4 text-primary" />
-              Sugestões do GitHub {suggestions.length > 0 && `(${suggestions.length})`}
+              Sugestões automáticas {suggestions.length > 0 && `(${suggestions.length})`}
             </h2>
-            <button
-              type="button"
-              onClick={fetchCommitsFromGitHub}
-              disabled={fetchingCommits}
-              className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-primary/40 bg-primary/10 px-2.5 py-1 text-[11px] font-bold text-primary hover:bg-primary/20 disabled:opacity-50"
-            >
-              {fetchingCommits ? (
-                <Loader2 className="h-3 w-3 animate-spin" />
-              ) : (
-                <RefreshCw className="h-3 w-3" />
-              )}
-              {commitsFetchedAt ? "Atualizar" : "Buscar commits"}
-            </button>
+            <div className="flex flex-wrap items-center gap-1.5">
+              <button
+                type="button"
+                onClick={fetchCommitsFromGitHub}
+                disabled={fetchingCommits}
+                className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-border bg-background px-2.5 py-1 text-[11px] font-bold text-foreground hover:bg-accent disabled:opacity-50"
+              >
+                {fetchingCommits ? (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                ) : (
+                  <RefreshCw className="h-3 w-3" />
+                )}
+                {commitsFetchedAt ? `Atualizar (${rawCommits.length})` : "1. Buscar commits"}
+              </button>
+              <button
+                type="button"
+                onClick={groupWithAI}
+                disabled={grouping || rawCommits.length === 0}
+                className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-primary/40 bg-primary/10 px-2.5 py-1 text-[11px] font-bold text-primary hover:bg-primary/20 disabled:opacity-40"
+              >
+                {grouping ? (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                ) : (
+                  <Wand2 className="h-3 w-3" />
+                )}
+                2. Agrupar com IA
+              </button>
+            </div>
           </div>
           <p className="mb-3 text-[11px] text-muted-foreground">
-            Últimos 30 commits de{" "}
+            Lê os últimos 30 commits de{" "}
             <a
               href={`https://github.com/${GITHUB_OWNER}/${GITHUB_REPO}/commits/${GITHUB_BRANCH}`}
               target="_blank"
@@ -402,54 +513,145 @@ function ChangelogAdminPage() {
             >
               <GitBranch className="h-3 w-3" />
               {GITHUB_OWNER}/{GITHUB_REPO}@{GITHUB_BRANCH}
-            </a>
-            , filtrados (sem chore/merge/sync) e excluindo títulos já no changelog.
+            </a>{" "}
+            e usa IA para agrupar em 3-5 entradas claras de release. Selecione as que quer publicar e clique em <strong>Publicar selecionados</strong>.
           </p>
-          {commitSuggestions.length === 0 && !fetchingCommits && (
+
+          {rawCommits.length === 0 && !fetchingCommits && (
             <p className="rounded-lg border border-dashed border-border bg-background/50 p-3 text-center text-[11px] text-muted-foreground">
-              Clique em <strong>Buscar commits</strong> para gerar sugestões a partir do histórico do repositório.
+              Comece clicando em <strong>1. Buscar commits</strong>.
             </p>
           )}
-          {suggestions.length > 0 && (
-            <ul className="space-y-2">
-              {suggestions.map((s) => {
-                const meta = TYPES.find((t) => t.id === s.type) ?? TYPES[1];
-                return (
-                  <li key={s.sha} className="flex items-start gap-2 rounded-xl border border-border bg-card p-2.5">
-                    <span className={`mt-0.5 inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-bold ${meta.cls}`}>
-                      {meta.icon}
-                      {meta.label}
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-bold text-foreground">{s.title}</p>
-                      <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
-                        <a
-                          href={s.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="font-mono hover:text-primary hover:underline"
-                        >
-                          {s.sha}
-                        </a>
-                        {s.date && <span>· {new Date(s.date).toLocaleDateString("pt-BR")}</span>}
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => applySuggestion(s)}
-                      className="shrink-0 rounded-md border border-primary/40 bg-primary/10 px-2 py-1 text-[10px] font-bold text-primary hover:bg-primary/20"
-                      title="Preencher formulário com esta sugestão"
-                    >
-                      <ArrowUpRight className="inline h-3 w-3" /> Usar
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-          {commitSuggestions.length > 0 && suggestions.length === 0 && (
+
+          {rawCommits.length > 0 && groupedEntries.length === 0 && !grouping && (
             <p className="rounded-lg border border-dashed border-border bg-background/50 p-3 text-center text-[11px] text-muted-foreground">
-              Todos os commits já têm entrada no changelog. 🎉
+              {rawCommits.length} commits prontos. Clique em <strong>2. Agrupar com IA</strong> para gerar entradas amigáveis.
+            </p>
+          )}
+
+          {grouping && (
+            <div className="flex items-center justify-center gap-2 rounded-lg border border-dashed border-primary/30 bg-background/50 p-4 text-[11px] text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin text-primary" />
+              IA analisando commits e gerando entradas…
+            </div>
+          )}
+
+          {suggestions.length > 0 && (
+            <>
+              {/* Bulk action bar */}
+              <div className="mb-3 flex flex-wrap items-center gap-2 rounded-xl border border-primary/30 bg-background/60 p-2.5">
+                <button
+                  type="button"
+                  onClick={toggleSelectAll}
+                  className="inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-2 py-1 text-[11px] font-bold text-foreground hover:bg-accent"
+                >
+                  {selectedIds.size === suggestions.length ? (
+                    <CheckSquare className="h-3 w-3" />
+                  ) : (
+                    <Square className="h-3 w-3" />
+                  )}
+                  {selectedIds.size === suggestions.length ? "Desmarcar todas" : "Marcar todas"}
+                </button>
+                <div className="flex items-center gap-1.5">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                    Versão
+                  </label>
+                  <Input
+                    value={bulkVersion}
+                    onChange={(e) => setBulkVersion(e.target.value)}
+                    placeholder={latestVersion ? bumpPatch(latestVersion) : "v0.0.1"}
+                    className="h-8 w-28 text-xs"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={publishSelected}
+                  disabled={bulkPublishing || selectedIds.size === 0}
+                  className="ml-auto inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-[11px] font-bold text-primary-foreground hover:bg-primary/90 disabled:opacity-40"
+                >
+                  {bulkPublishing ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : (
+                    <Save className="h-3 w-3" />
+                  )}
+                  Publicar selecionados ({selectedIds.size})
+                </button>
+              </div>
+
+              <ul className="space-y-2">
+                {suggestions.map((s) => {
+                  const meta = TYPES.find((t) => t.id === s.type) ?? TYPES[1];
+                  const isSelected = selectedIds.has(s.id);
+                  return (
+                    <li
+                      key={s.id}
+                      className={`flex items-start gap-2 rounded-xl border p-2.5 transition-colors ${
+                        isSelected ? "border-primary/50 bg-primary/5" : "border-border bg-card"
+                      }`}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => toggleSelect(s.id)}
+                        className="mt-0.5 shrink-0 text-primary hover:opacity-80"
+                        aria-label={isSelected ? "Desmarcar" : "Marcar"}
+                      >
+                        {isSelected ? (
+                          <CheckSquare className="h-4 w-4" />
+                        ) : (
+                          <Square className="h-4 w-4 text-muted-foreground" />
+                        )}
+                      </button>
+                      <span
+                        className={`mt-0.5 inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-bold ${meta.cls}`}
+                      >
+                        {meta.icon}
+                        {meta.label}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-bold text-foreground">{s.title}</p>
+                        <p className="mt-0.5 text-[11px] leading-relaxed text-muted-foreground">
+                          {s.description}
+                        </p>
+                        {s.commit_shas.length > 0 && (
+                          <div className="mt-1 flex flex-wrap items-center gap-1">
+                            <span className="text-[9px] uppercase tracking-wider text-muted-foreground">
+                              Commits:
+                            </span>
+                            {s.commit_shas.map((sha) => {
+                              const c = rawCommits.find((r) => r.sha === sha);
+                              return (
+                                <a
+                                  key={sha}
+                                  href={c?.url ?? `https://github.com/${GITHUB_OWNER}/${GITHUB_REPO}/commit/${sha}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="rounded border border-border bg-background px-1 font-mono text-[9px] text-muted-foreground hover:text-primary"
+                                >
+                                  {sha}
+                                </a>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => applySuggestion(s)}
+                        className="shrink-0 rounded-md border border-border bg-background px-2 py-1 text-[10px] font-bold text-muted-foreground hover:bg-accent hover:text-foreground"
+                        title="Editar no formulário antes de publicar"
+                      >
+                        <ArrowUpRight className="inline h-3 w-3" /> Editar
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            </>
+          )}
+
+          {groupedEntries.length > 0 && suggestions.length === 0 && (
+            <p className="rounded-lg border border-dashed border-border bg-background/50 p-3 text-center text-[11px] text-muted-foreground">
+              Todas as entradas já estão no changelog. 🎉
             </p>
           )}
         </section>
