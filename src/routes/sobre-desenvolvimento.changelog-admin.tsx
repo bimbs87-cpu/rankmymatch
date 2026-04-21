@@ -60,69 +60,46 @@ function bumpPatch(version: string): string {
   return `${prefix || "v"}${maj}.${min}.${Number(pat) + 1}`;
 }
 
-/**
- * Heuristic suggestions of changelog entries based on what isn't yet
- * documented. We compare known recent shipped work (hard-coded by version
- * the AI ships) with the existing release_notes rows.
- *
- * Maintained as a static list that the admin can one-click insert into the
- * draft form — much faster than typing from scratch.
- */
-const KNOWN_RECENT_SHIPPED: Array<{
-  version: string;
+const GITHUB_OWNER = "bimbs87-cpu";
+const GITHUB_REPO = "rankmymatch";
+const GITHUB_BRANCH = "main";
+
+type CommitSuggestion = {
+  sha: string;
   title: string;
   description: string;
   type: "feature" | "improvement" | "fix";
-}> = [
-  {
-    version: "v0.28.4",
-    title: "Admin pode confirmar presença por outros jogadores",
-    description: "Na lista aberta de presença, o admin agora pode selecionar integrantes do grupo e marcar a presença deles diretamente — útil pra quem confirma pelo WhatsApp.",
-    type: "feature",
-  },
-  {
-    version: "v0.28.4",
-    title: "Push notifications funcionando em produção",
-    description: "Diagnóstico e correções no fluxo de Web Push (VAPID, service worker, subscription) — notificações de rodada e resultado agora chegam no celular.",
-    type: "fix",
-  },
-  {
-    version: "v0.28.4",
-    title: "Corrigido /dev redirecionando pra home na versão publicada",
-    description: "O guard de admin estava executando no SSR sem cookies de sessão e disparando redirect. Agora a checagem só roda no cliente.",
-    type: "fix",
-  },
-  {
-    version: "v0.28.4",
-    title: "Corrigido botões Triagem e Changelog em /sobre-desenvolvimento",
-    description: "A rota pai não renderizava <Outlet />, então clicar nos botões mudava a URL mas não trocava o conteúdo. Agora as sub-rotas funcionam.",
-    type: "fix",
-  },
-  {
-    version: "v0.28.4",
-    title: "Corrigido build do recharts (react-is faltando)",
-    description: "Adicionado react-is como dependência pra resolver erro de externalização do recharts no build.",
-    type: "fix",
-  },
-  {
-    version: "v0.28.3",
-    title: "Filtro por status na Linha do tempo",
-    description: "Agora dá pra filtrar por 'Só concluídas' ou 'Só próximas' acima da lista — útil pra grupos com muitas temporadas.",
-    type: "improvement",
-  },
-  {
-    version: "v0.28.3",
-    title: "Editor inline e bump de versão no changelog admin",
-    description: "Botão 'Bump version' sugere o próximo patch automaticamente, e cada entrada tem edição inline de título/descrição/versão.",
-    type: "feature",
-  },
-  {
-    version: "v0.28.3",
-    title: "Renomeada aba 'Agenda completa' para 'Agenda e resultados'",
-    description: "Nome mais claro pra refletir que a aba mostra rodadas passadas e futuras.",
-    type: "improvement",
-  },
-];
+  url: string;
+  date: string;
+};
+
+/** Infer changelog type from commit message conventions. */
+function inferType(msg: string): "feature" | "improvement" | "fix" {
+  const m = msg.toLowerCase();
+  if (/^(fix|bug|hotfix)[(:\s]/.test(m) || m.startsWith("fix ") || m.includes(" fix ")) return "fix";
+  if (/^feat[(:\s]/.test(m) || m.startsWith("feature") || m.startsWith("add ")) return "feature";
+  return "improvement";
+}
+
+/** Skip noisy commits that shouldn't appear as changelog suggestions. */
+function isNoise(msg: string): boolean {
+  const m = msg.toLowerCase().trim();
+  if (!m) return true;
+  if (m.startsWith("merge ")) return true;
+  if (m.startsWith("revert ")) return true;
+  if (/^(chore|ci|docs|style|refactor|test)[(:\s]/.test(m)) return true;
+  if (m.includes("lovable")) return true; // auto-sync commits
+  if (m.length < 8) return true;
+  return false;
+}
+
+/** Strip conventional-commit prefix and capitalize. */
+function cleanTitle(msg: string): string {
+  const firstLine = msg.split("\n")[0].trim();
+  const stripped = firstLine.replace(/^(feat|fix|chore|docs|style|refactor|test|perf|build|ci)(\([^)]*\))?:\s*/i, "");
+  return stripped.charAt(0).toUpperCase() + stripped.slice(1);
+}
+
 
 function ChangelogAdminPage() {
   const { user, isLoading: authLoading } = useAuth();
