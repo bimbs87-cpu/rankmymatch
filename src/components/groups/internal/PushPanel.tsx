@@ -85,6 +85,24 @@ export function PushPanel({ groupId, groupName }: Props) {
   const [title, setTitle] = useState(`${groupName}`);
   const [message, setMessage] = useState("");
   const [sending, setSending] = useState(false);
+  const [loadingOrder, setLoadingOrder] = useState(false);
+
+  const insertMatchOrder = async () => {
+    setLoadingOrder(true);
+    try {
+      const msg = await buildMatchOrderMessage(groupId);
+      if (!msg) {
+        toast.warning("Nenhuma rodada com partidas sorteadas encontrada.");
+        return;
+      }
+      setMessage(msg);
+      toast.success("Sugestão preenchida na mensagem.");
+    } catch (e: any) {
+      toast.error(e?.message || "Falha ao gerar sugestão.");
+    } finally {
+      setLoadingOrder(false);
+    }
+  };
 
   useEffect(() => {
     let cancelled = false;
