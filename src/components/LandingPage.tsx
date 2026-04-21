@@ -426,8 +426,12 @@ export function LandingPage() {
             <p className="mx-auto mt-2 max-w-lg text-sm text-muted-foreground sm:text-base">
               Junte-se a feirinos e clubes que já largaram a planilha. Entre com Google e crie seu primeiro grupo agora.
             </p>
-            <div className="mt-6 flex justify-center">
-              <CTAButton size="lg" className="w-full sm:w-auto" location="final_cta" />
+            <div className="mx-auto mt-6 flex max-w-sm flex-col gap-3">
+              <CTAButton size="lg" className="w-full" location="final_cta" />
+              <AppleSignInButton
+                variant="outline"
+                onError={(msg) => setError(msg)}
+              />
             </div>
             <p className="mt-3 text-[11px] text-muted-foreground">
               Ao entrar, você concorda com nossos{" "}
