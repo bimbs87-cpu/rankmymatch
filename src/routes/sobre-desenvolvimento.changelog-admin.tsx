@@ -162,16 +162,32 @@ function ChangelogAdminPage() {
     return pub?.version ?? notes[0]?.version ?? null;
   }, [notes]);
 
-  // Commit-based suggestions, fetched on demand from GitHub
-  const [commitSuggestions, setCommitSuggestions] = useState<CommitSuggestion[]>([]);
+  // Raw commits fetched from GitHub (kept so we can re-send to AI)
+  type RawCommit = { sha: string; message: string; date: string; url: string };
+  const [rawCommits, setRawCommits] = useState<RawCommit[]>([]);
   const [fetchingCommits, setFetchingCommits] = useState(false);
   const [commitsFetchedAt, setCommitsFetchedAt] = useState<Date | null>(null);
 
+  // AI-grouped release entries (the actual user-friendly suggestions)
+  type GroupedEntry = {
+    id: string; // local id for selection
+    type: "feature" | "improvement" | "fix";
+    title: string;
+    description: string;
+    commit_shas: string[];
+  };
+  const [groupedEntries, setGroupedEntries] = useState<GroupedEntry[]>([]);
+  const [grouping, setGrouping] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkPublishing, setBulkPublishing] = useState(false);
+  const [bulkVersion, setBulkVersion] = useState("");
+
+  // Suggestions = grouped entries not yet present in release_notes (by title)
   const suggestions = useMemo(() => {
-    if (!notes) return commitSuggestions;
+    if (!notes) return groupedEntries;
     const existingTitles = new Set(notes.map((n) => n.title.trim().toLowerCase()));
-    return commitSuggestions.filter((s) => !existingTitles.has(s.title.trim().toLowerCase()));
-  }, [notes, commitSuggestions]);
+    return groupedEntries.filter((s) => !existingTitles.has(s.title.trim().toLowerCase()));
+  }, [notes, groupedEntries]);
 
   async function fetchCommitsFromGitHub() {
     setFetchingCommits(true);
@@ -187,27 +203,20 @@ function ChangelogAdminPage() {
         html_url: string;
         commit: { message: string; author: { date: string } };
       }>;
-      const seen = new Set<string>();
-      const parsed: CommitSuggestion[] = [];
-      for (const c of data) {
-        const raw = c.commit?.message ?? "";
-        if (isNoise(raw)) continue;
-        const title = cleanTitle(raw);
-        const key = title.toLowerCase();
-        if (seen.has(key)) continue;
-        seen.add(key);
-        parsed.push({
+      const parsed: RawCommit[] = data
+        .filter((c) => !isNoise(c.commit?.message ?? ""))
+        .map((c) => ({
           sha: c.sha.slice(0, 7),
-          title,
-          description: raw.split("\n").slice(1).join("\n").trim() || `Commit ${c.sha.slice(0, 7)}`,
-          type: inferType(raw),
-          url: c.html_url,
+          message: c.commit?.message ?? "",
           date: c.commit?.author?.date ?? "",
-        });
-      }
-      setCommitSuggestions(parsed);
+          url: c.html_url,
+        }));
+      setRawCommits(parsed);
       setCommitsFetchedAt(new Date());
-      toast.success(`${parsed.length} commits encontrados`);
+      // Reset previous AI grouping when commits change
+      setGroupedEntries([]);
+      setSelectedIds(new Set());
+      toast.success(`${parsed.length} commits relevantes encontrados`);
     } catch (e: any) {
       toast.error(`Falha ao buscar commits: ${e.message ?? "erro"}`);
     } finally {
@@ -215,7 +224,90 @@ function ChangelogAdminPage() {
     }
   }
 
-  function applySuggestion(s: CommitSuggestion) {
+  async function groupWithAI() {
+    if (rawCommits.length === 0) {
+      toast.error("Busque commits primeiro");
+      return;
+    }
+    setGrouping(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("summarize-commits", {
+        body: {
+          commits: rawCommits.map((c) => ({ sha: c.sha, message: c.message, date: c.date })),
+          latestVersion,
+        },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      const entries = (data?.entries ?? []) as Array<Omit<GroupedEntry, "id">>;
+      const withIds: GroupedEntry[] = entries.map((e, i) => ({
+        ...e,
+        id: `g${i}-${e.commit_shas?.[0] ?? i}`,
+      }));
+      setGroupedEntries(withIds);
+      setSelectedIds(new Set(withIds.map((e) => e.id)));
+      setBulkVersion(latestVersion ? bumpPatch(latestVersion) : "v0.0.1");
+      toast.success(`${withIds.length} entradas geradas pela IA`);
+    } catch (e: any) {
+      toast.error(`IA falhou: ${e.message ?? "erro desconhecido"}`);
+    } finally {
+      setGrouping(false);
+    }
+  }
+
+  function toggleSelect(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleSelectAll() {
+    if (selectedIds.size === suggestions.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(suggestions.map((s) => s.id)));
+    }
+  }
+
+  async function publishSelected() {
+    const toPublish = suggestions.filter((s) => selectedIds.has(s.id));
+    if (toPublish.length === 0) {
+      toast.error("Selecione pelo menos uma entrada");
+      return;
+    }
+    if (!bulkVersion.trim()) {
+      toast.error("Informe a versão");
+      return;
+    }
+    setBulkPublishing(true);
+    try {
+      const today = new Date().toISOString().slice(0, 10);
+      const rows = toPublish.map((s) => ({
+        version: bulkVersion.trim(),
+        title: s.title.trim(),
+        description: s.description.trim() || null,
+        type: s.type,
+        released_at: today,
+        is_published: true,
+      }));
+      const { error } = await supabase.from("release_notes").insert(rows);
+      if (error) throw error;
+      toast.success(`${rows.length} entradas publicadas em ${bulkVersion.trim()}`);
+      // Remove published from local state
+      setGroupedEntries((prev) => prev.filter((g) => !selectedIds.has(g.id)));
+      setSelectedIds(new Set());
+      await load();
+    } catch (e: any) {
+      toast.error(`Erro ao publicar: ${e.message ?? "falha"}`);
+    } finally {
+      setBulkPublishing(false);
+    }
+  }
+
+  function applySuggestion(s: GroupedEntry) {
     setDraft((d) => ({
       ...d,
       version: latestVersion ? bumpPatch(latestVersion) : "v0.0.1",
@@ -227,6 +319,7 @@ function ChangelogAdminPage() {
     }));
     toast.success("Sugestão aplicada ao formulário");
   }
+
 
 
   function handleBumpVersion() {
