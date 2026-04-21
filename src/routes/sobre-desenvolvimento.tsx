@@ -78,6 +78,10 @@ function AboutDevelopmentPage() {
     };
   }, [user]);
 
+  if (isChildRoute) {
+    return <Outlet />;
+  }
+
   return (
     <div className="min-h-screen bg-background pb-28">
       {/* Header */}
