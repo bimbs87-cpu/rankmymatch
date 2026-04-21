@@ -34,6 +34,9 @@ export function PendingMatchCard({ match, onScoreSaved, showGroupName = true, is
             <div>
               <span className="text-[10px] font-semibold uppercase tracking-wider text-primary">
                 Próximo {isSingles ? "confronto" : "jogo"}
+                {(match.total_matches_in_round || 1) > 1 && (
+                  <> · Partida {match.match_number || 1} de {match.total_matches_in_round}</>
+                )}
               </span>
               {showGroupName && (
                 <p className="text-[10px] text-muted-foreground leading-none mt-0.5">{match.group_name}</p>
