@@ -644,7 +644,7 @@ function MenuItem({ icon, label, onClick, right }: { icon: React.ReactNode; labe
     </button>
   );
 }
-function MenuItemLink({ to, icon, label }: { to: "/history" | "/notifications"; icon: React.ReactNode; label: string }) {
+function MenuItemLink({ to, icon, label }: { to: "/history" | "/notifications" | "/privacidade" | "/termos"; icon: React.ReactNode; label: string }) {
   return (
     <Link to={to} className="flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left transition-colors hover:bg-accent">
       {icon}
