@@ -467,29 +467,44 @@ function ChangelogAdminPage() {
       </header>
 
       <main className="mx-auto w-full max-w-4xl space-y-6 px-5 lg:px-6">
-        {/* Suggestions from GitHub */}
+        {/* Suggestions from GitHub + AI grouping */}
         <section className="rounded-3xl border border-primary/30 bg-primary/5 p-4 lg:p-5">
-          <div className="mb-2 flex items-center justify-between gap-2">
+          <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
             <h2 className="flex items-center gap-2 font-display text-sm font-bold uppercase tracking-wider text-foreground">
               <Lightbulb className="h-4 w-4 text-primary" />
-              Sugestões do GitHub {suggestions.length > 0 && `(${suggestions.length})`}
+              Sugestões automáticas {suggestions.length > 0 && `(${suggestions.length})`}
             </h2>
-            <button
-              type="button"
-              onClick={fetchCommitsFromGitHub}
-              disabled={fetchingCommits}
-              className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-primary/40 bg-primary/10 px-2.5 py-1 text-[11px] font-bold text-primary hover:bg-primary/20 disabled:opacity-50"
-            >
-              {fetchingCommits ? (
-                <Loader2 className="h-3 w-3 animate-spin" />
-              ) : (
-                <RefreshCw className="h-3 w-3" />
-              )}
-              {commitsFetchedAt ? "Atualizar" : "Buscar commits"}
-            </button>
+            <div className="flex flex-wrap items-center gap-1.5">
+              <button
+                type="button"
+                onClick={fetchCommitsFromGitHub}
+                disabled={fetchingCommits}
+                className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-border bg-background px-2.5 py-1 text-[11px] font-bold text-foreground hover:bg-accent disabled:opacity-50"
+              >
+                {fetchingCommits ? (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                ) : (
+                  <RefreshCw className="h-3 w-3" />
+                )}
+                {commitsFetchedAt ? `Atualizar (${rawCommits.length})` : "1. Buscar commits"}
+              </button>
+              <button
+                type="button"
+                onClick={groupWithAI}
+                disabled={grouping || rawCommits.length === 0}
+                className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-primary/40 bg-primary/10 px-2.5 py-1 text-[11px] font-bold text-primary hover:bg-primary/20 disabled:opacity-40"
+              >
+                {grouping ? (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                ) : (
+                  <Wand2 className="h-3 w-3" />
+                )}
+                2. Agrupar com IA
+              </button>
+            </div>
           </div>
           <p className="mb-3 text-[11px] text-muted-foreground">
-            Últimos 30 commits de{" "}
+            Lê os últimos 30 commits de{" "}
             <a
               href={`https://github.com/${GITHUB_OWNER}/${GITHUB_REPO}/commits/${GITHUB_BRANCH}`}
               target="_blank"
@@ -498,54 +513,145 @@ function ChangelogAdminPage() {
             >
               <GitBranch className="h-3 w-3" />
               {GITHUB_OWNER}/{GITHUB_REPO}@{GITHUB_BRANCH}
-            </a>
-            , filtrados (sem chore/merge/sync) e excluindo títulos já no changelog.
+            </a>{" "}
+            e usa IA para agrupar em 3-5 entradas claras de release. Selecione as que quer publicar e clique em <strong>Publicar selecionados</strong>.
           </p>
-          {commitSuggestions.length === 0 && !fetchingCommits && (
+
+          {rawCommits.length === 0 && !fetchingCommits && (
             <p className="rounded-lg border border-dashed border-border bg-background/50 p-3 text-center text-[11px] text-muted-foreground">
-              Clique em <strong>Buscar commits</strong> para gerar sugestões a partir do histórico do repositório.
+              Comece clicando em <strong>1. Buscar commits</strong>.
             </p>
           )}
-          {suggestions.length > 0 && (
-            <ul className="space-y-2">
-              {suggestions.map((s) => {
-                const meta = TYPES.find((t) => t.id === s.type) ?? TYPES[1];
-                return (
-                  <li key={s.sha} className="flex items-start gap-2 rounded-xl border border-border bg-card p-2.5">
-                    <span className={`mt-0.5 inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-bold ${meta.cls}`}>
-                      {meta.icon}
-                      {meta.label}
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-bold text-foreground">{s.title}</p>
-                      <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
-                        <a
-                          href={s.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="font-mono hover:text-primary hover:underline"
-                        >
-                          {s.sha}
-                        </a>
-                        {s.date && <span>· {new Date(s.date).toLocaleDateString("pt-BR")}</span>}
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => applySuggestion(s)}
-                      className="shrink-0 rounded-md border border-primary/40 bg-primary/10 px-2 py-1 text-[10px] font-bold text-primary hover:bg-primary/20"
-                      title="Preencher formulário com esta sugestão"
-                    >
-                      <ArrowUpRight className="inline h-3 w-3" /> Usar
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-          {commitSuggestions.length > 0 && suggestions.length === 0 && (
+
+          {rawCommits.length > 0 && groupedEntries.length === 0 && !grouping && (
             <p className="rounded-lg border border-dashed border-border bg-background/50 p-3 text-center text-[11px] text-muted-foreground">
-              Todos os commits já têm entrada no changelog. 🎉
+              {rawCommits.length} commits prontos. Clique em <strong>2. Agrupar com IA</strong> para gerar entradas amigáveis.
+            </p>
+          )}
+
+          {grouping && (
+            <div className="flex items-center justify-center gap-2 rounded-lg border border-dashed border-primary/30 bg-background/50 p-4 text-[11px] text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin text-primary" />
+              IA analisando commits e gerando entradas…
+            </div>
+          )}
+
+          {suggestions.length > 0 && (
+            <>
+              {/* Bulk action bar */}
+              <div className="mb-3 flex flex-wrap items-center gap-2 rounded-xl border border-primary/30 bg-background/60 p-2.5">
+                <button
+                  type="button"
+                  onClick={toggleSelectAll}
+                  className="inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-2 py-1 text-[11px] font-bold text-foreground hover:bg-accent"
+                >
+                  {selectedIds.size === suggestions.length ? (
+                    <CheckSquare className="h-3 w-3" />
+                  ) : (
+                    <Square className="h-3 w-3" />
+                  )}
+                  {selectedIds.size === suggestions.length ? "Desmarcar todas" : "Marcar todas"}
+                </button>
+                <div className="flex items-center gap-1.5">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                    Versão
+                  </label>
+                  <Input
+                    value={bulkVersion}
+                    onChange={(e) => setBulkVersion(e.target.value)}
+                    placeholder={latestVersion ? bumpPatch(latestVersion) : "v0.0.1"}
+                    className="h-8 w-28 text-xs"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={publishSelected}
+                  disabled={bulkPublishing || selectedIds.size === 0}
+                  className="ml-auto inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-[11px] font-bold text-primary-foreground hover:bg-primary/90 disabled:opacity-40"
+                >
+                  {bulkPublishing ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : (
+                    <Save className="h-3 w-3" />
+                  )}
+                  Publicar selecionados ({selectedIds.size})
+                </button>
+              </div>
+
+              <ul className="space-y-2">
+                {suggestions.map((s) => {
+                  const meta = TYPES.find((t) => t.id === s.type) ?? TYPES[1];
+                  const isSelected = selectedIds.has(s.id);
+                  return (
+                    <li
+                      key={s.id}
+                      className={`flex items-start gap-2 rounded-xl border p-2.5 transition-colors ${
+                        isSelected ? "border-primary/50 bg-primary/5" : "border-border bg-card"
+                      }`}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => toggleSelect(s.id)}
+                        className="mt-0.5 shrink-0 text-primary hover:opacity-80"
+                        aria-label={isSelected ? "Desmarcar" : "Marcar"}
+                      >
+                        {isSelected ? (
+                          <CheckSquare className="h-4 w-4" />
+                        ) : (
+                          <Square className="h-4 w-4 text-muted-foreground" />
+                        )}
+                      </button>
+                      <span
+                        className={`mt-0.5 inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-bold ${meta.cls}`}
+                      >
+                        {meta.icon}
+                        {meta.label}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-bold text-foreground">{s.title}</p>
+                        <p className="mt-0.5 text-[11px] leading-relaxed text-muted-foreground">
+                          {s.description}
+                        </p>
+                        {s.commit_shas.length > 0 && (
+                          <div className="mt-1 flex flex-wrap items-center gap-1">
+                            <span className="text-[9px] uppercase tracking-wider text-muted-foreground">
+                              Commits:
+                            </span>
+                            {s.commit_shas.map((sha) => {
+                              const c = rawCommits.find((r) => r.sha === sha);
+                              return (
+                                <a
+                                  key={sha}
+                                  href={c?.url ?? `https://github.com/${GITHUB_OWNER}/${GITHUB_REPO}/commit/${sha}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="rounded border border-border bg-background px-1 font-mono text-[9px] text-muted-foreground hover:text-primary"
+                                >
+                                  {sha}
+                                </a>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => applySuggestion(s)}
+                        className="shrink-0 rounded-md border border-border bg-background px-2 py-1 text-[10px] font-bold text-muted-foreground hover:bg-accent hover:text-foreground"
+                        title="Editar no formulário antes de publicar"
+                      >
+                        <ArrowUpRight className="inline h-3 w-3" /> Editar
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            </>
+          )}
+
+          {groupedEntries.length > 0 && suggestions.length === 0 && (
+            <p className="rounded-lg border border-dashed border-border bg-background/50 p-3 text-center text-[11px] text-muted-foreground">
+              Todas as entradas já estão no changelog. 🎉
             </p>
           )}
         </section>
