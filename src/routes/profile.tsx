@@ -34,8 +34,12 @@ import {
   Eye,
   EyeOff,
   Sparkles,
+  Trash2,
+  ShieldCheck,
+  FileText,
   X as XIcon,
 } from "lucide-react";
+import { DeleteAccountDialog } from "@/components/DeleteAccountDialog";
 import {
   Dialog,
   DialogContent,
