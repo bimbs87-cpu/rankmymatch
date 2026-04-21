@@ -16,6 +16,8 @@ import {
   X,
   ArrowUpRight,
   Lightbulb,
+  GitBranch,
+  RefreshCw,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
@@ -58,69 +60,46 @@ function bumpPatch(version: string): string {
   return `${prefix || "v"}${maj}.${min}.${Number(pat) + 1}`;
 }
 
-/**
- * Heuristic suggestions of changelog entries based on what isn't yet
- * documented. We compare known recent shipped work (hard-coded by version
- * the AI ships) with the existing release_notes rows.
- *
- * Maintained as a static list that the admin can one-click insert into the
- * draft form — much faster than typing from scratch.
- */
-const KNOWN_RECENT_SHIPPED: Array<{
-  version: string;
+const GITHUB_OWNER = "bimbs87-cpu";
+const GITHUB_REPO = "rankmymatch";
+const GITHUB_BRANCH = "main";
+
+type CommitSuggestion = {
+  sha: string;
   title: string;
   description: string;
   type: "feature" | "improvement" | "fix";
-}> = [
-  {
-    version: "v0.28.4",
-    title: "Admin pode confirmar presença por outros jogadores",
-    description: "Na lista aberta de presença, o admin agora pode selecionar integrantes do grupo e marcar a presença deles diretamente — útil pra quem confirma pelo WhatsApp.",
-    type: "feature",
-  },
-  {
-    version: "v0.28.4",
-    title: "Push notifications funcionando em produção",
-    description: "Diagnóstico e correções no fluxo de Web Push (VAPID, service worker, subscription) — notificações de rodada e resultado agora chegam no celular.",
-    type: "fix",
-  },
-  {
-    version: "v0.28.4",
-    title: "Corrigido /dev redirecionando pra home na versão publicada",
-    description: "O guard de admin estava executando no SSR sem cookies de sessão e disparando redirect. Agora a checagem só roda no cliente.",
-    type: "fix",
-  },
-  {
-    version: "v0.28.4",
-    title: "Corrigido botões Triagem e Changelog em /sobre-desenvolvimento",
-    description: "A rota pai não renderizava <Outlet />, então clicar nos botões mudava a URL mas não trocava o conteúdo. Agora as sub-rotas funcionam.",
-    type: "fix",
-  },
-  {
-    version: "v0.28.4",
-    title: "Corrigido build do recharts (react-is faltando)",
-    description: "Adicionado react-is como dependência pra resolver erro de externalização do recharts no build.",
-    type: "fix",
-  },
-  {
-    version: "v0.28.3",
-    title: "Filtro por status na Linha do tempo",
-    description: "Agora dá pra filtrar por 'Só concluídas' ou 'Só próximas' acima da lista — útil pra grupos com muitas temporadas.",
-    type: "improvement",
-  },
-  {
-    version: "v0.28.3",
-    title: "Editor inline e bump de versão no changelog admin",
-    description: "Botão 'Bump version' sugere o próximo patch automaticamente, e cada entrada tem edição inline de título/descrição/versão.",
-    type: "feature",
-  },
-  {
-    version: "v0.28.3",
-    title: "Renomeada aba 'Agenda completa' para 'Agenda e resultados'",
-    description: "Nome mais claro pra refletir que a aba mostra rodadas passadas e futuras.",
-    type: "improvement",
-  },
-];
+  url: string;
+  date: string;
+};
+
+/** Infer changelog type from commit message conventions. */
+function inferType(msg: string): "feature" | "improvement" | "fix" {
+  const m = msg.toLowerCase();
+  if (/^(fix|bug|hotfix)[(:\s]/.test(m) || m.startsWith("fix ") || m.includes(" fix ")) return "fix";
+  if (/^feat[(:\s]/.test(m) || m.startsWith("feature") || m.startsWith("add ")) return "feature";
+  return "improvement";
+}
+
+/** Skip noisy commits that shouldn't appear as changelog suggestions. */
+function isNoise(msg: string): boolean {
+  const m = msg.toLowerCase().trim();
+  if (!m) return true;
+  if (m.startsWith("merge ")) return true;
+  if (m.startsWith("revert ")) return true;
+  if (/^(chore|ci|docs|style|refactor|test)[(:\s]/.test(m)) return true;
+  if (m.includes("lovable")) return true; // auto-sync commits
+  if (m.length < 8) return true;
+  return false;
+}
+
+/** Strip conventional-commit prefix and capitalize. */
+function cleanTitle(msg: string): string {
+  const firstLine = msg.split("\n")[0].trim();
+  const stripped = firstLine.replace(/^(feat|fix|chore|docs|style|refactor|test|perf|build|ci)(\([^)]*\))?:\s*/i, "");
+  return stripped.charAt(0).toUpperCase() + stripped.slice(1);
+}
+
 
 function ChangelogAdminPage() {
   const { user, isLoading: authLoading } = useAuth();
@@ -180,17 +159,63 @@ function ChangelogAdminPage() {
     return pub?.version ?? notes[0]?.version ?? null;
   }, [notes]);
 
-  // Suggestions = known shipped entries not yet present in release_notes (by title)
-  const suggestions = useMemo(() => {
-    if (!notes) return [];
-    const existingTitles = new Set(notes.map((n) => n.title.trim().toLowerCase()));
-    return KNOWN_RECENT_SHIPPED.filter((s) => !existingTitles.has(s.title.trim().toLowerCase()));
-  }, [notes]);
+  // Commit-based suggestions, fetched on demand from GitHub
+  const [commitSuggestions, setCommitSuggestions] = useState<CommitSuggestion[]>([]);
+  const [fetchingCommits, setFetchingCommits] = useState(false);
+  const [commitsFetchedAt, setCommitsFetchedAt] = useState<Date | null>(null);
 
-  function applySuggestion(s: (typeof KNOWN_RECENT_SHIPPED)[number]) {
+  const suggestions = useMemo(() => {
+    if (!notes) return commitSuggestions;
+    const existingTitles = new Set(notes.map((n) => n.title.trim().toLowerCase()));
+    return commitSuggestions.filter((s) => !existingTitles.has(s.title.trim().toLowerCase()));
+  }, [notes, commitSuggestions]);
+
+  async function fetchCommitsFromGitHub() {
+    setFetchingCommits(true);
+    try {
+      const url = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/commits?sha=${GITHUB_BRANCH}&per_page=30`;
+      const res = await fetch(url, { headers: { Accept: "application/vnd.github+json" } });
+      if (!res.ok) {
+        const body = await res.text().catch(() => "");
+        throw new Error(`GitHub ${res.status}: ${body.slice(0, 120)}`);
+      }
+      const data = (await res.json()) as Array<{
+        sha: string;
+        html_url: string;
+        commit: { message: string; author: { date: string } };
+      }>;
+      const seen = new Set<string>();
+      const parsed: CommitSuggestion[] = [];
+      for (const c of data) {
+        const raw = c.commit?.message ?? "";
+        if (isNoise(raw)) continue;
+        const title = cleanTitle(raw);
+        const key = title.toLowerCase();
+        if (seen.has(key)) continue;
+        seen.add(key);
+        parsed.push({
+          sha: c.sha.slice(0, 7),
+          title,
+          description: raw.split("\n").slice(1).join("\n").trim() || `Commit ${c.sha.slice(0, 7)}`,
+          type: inferType(raw),
+          url: c.html_url,
+          date: c.commit?.author?.date ?? "",
+        });
+      }
+      setCommitSuggestions(parsed);
+      setCommitsFetchedAt(new Date());
+      toast.success(`${parsed.length} commits encontrados`);
+    } catch (e: any) {
+      toast.error(`Falha ao buscar commits: ${e.message ?? "erro"}`);
+    } finally {
+      setFetchingCommits(false);
+    }
+  }
+
+  function applySuggestion(s: CommitSuggestion) {
     setDraft((d) => ({
       ...d,
-      version: latestVersion ? bumpPatch(latestVersion) : s.version,
+      version: latestVersion ? bumpPatch(latestVersion) : "v0.0.1",
       title: s.title,
       description: s.description,
       type: s.type,
@@ -199,6 +224,7 @@ function ChangelogAdminPage() {
     }));
     toast.success("Sugestão aplicada ao formulário");
   }
+
 
   function handleBumpVersion() {
     if (!latestVersion) {
@@ -345,28 +371,68 @@ function ChangelogAdminPage() {
       </header>
 
       <main className="mx-auto w-full max-w-4xl space-y-6 px-5 lg:px-6">
-        {/* Suggestions */}
-        {suggestions.length > 0 && (
-          <section className="rounded-3xl border border-primary/30 bg-primary/5 p-4 lg:p-5">
-            <h2 className="mb-2 flex items-center gap-2 font-display text-sm font-bold uppercase tracking-wider text-foreground">
+        {/* Suggestions from GitHub */}
+        <section className="rounded-3xl border border-primary/30 bg-primary/5 p-4 lg:p-5">
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <h2 className="flex items-center gap-2 font-display text-sm font-bold uppercase tracking-wider text-foreground">
               <Lightbulb className="h-4 w-4 text-primary" />
-              Sugestões automáticas ({suggestions.length})
+              Sugestões do GitHub {suggestions.length > 0 && `(${suggestions.length})`}
             </h2>
-            <p className="mb-3 text-[11px] text-muted-foreground">
-              Recursos recém-implementados que ainda não estão no changelog. Clique para preencher o formulário automaticamente.
+            <button
+              type="button"
+              onClick={fetchCommitsFromGitHub}
+              disabled={fetchingCommits}
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-primary/40 bg-primary/10 px-2.5 py-1 text-[11px] font-bold text-primary hover:bg-primary/20 disabled:opacity-50"
+            >
+              {fetchingCommits ? (
+                <Loader2 className="h-3 w-3 animate-spin" />
+              ) : (
+                <RefreshCw className="h-3 w-3" />
+              )}
+              {commitsFetchedAt ? "Atualizar" : "Buscar commits"}
+            </button>
+          </div>
+          <p className="mb-3 text-[11px] text-muted-foreground">
+            Últimos 30 commits de{" "}
+            <a
+              href={`https://github.com/${GITHUB_OWNER}/${GITHUB_REPO}/commits/${GITHUB_BRANCH}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-0.5 font-mono text-primary hover:underline"
+            >
+              <GitBranch className="h-3 w-3" />
+              {GITHUB_OWNER}/{GITHUB_REPO}@{GITHUB_BRANCH}
+            </a>
+            , filtrados (sem chore/merge/sync) e excluindo títulos já no changelog.
+          </p>
+          {commitSuggestions.length === 0 && !fetchingCommits && (
+            <p className="rounded-lg border border-dashed border-border bg-background/50 p-3 text-center text-[11px] text-muted-foreground">
+              Clique em <strong>Buscar commits</strong> para gerar sugestões a partir do histórico do repositório.
             </p>
+          )}
+          {suggestions.length > 0 && (
             <ul className="space-y-2">
-              {suggestions.map((s, i) => {
+              {suggestions.map((s) => {
                 const meta = TYPES.find((t) => t.id === s.type) ?? TYPES[1];
                 return (
-                  <li key={i} className="flex items-start gap-2 rounded-xl border border-border bg-card p-2.5">
+                  <li key={s.sha} className="flex items-start gap-2 rounded-xl border border-border bg-card p-2.5">
                     <span className={`mt-0.5 inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-bold ${meta.cls}`}>
                       {meta.icon}
                       {meta.label}
                     </span>
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-bold text-foreground">{s.title}</p>
-                      <p className="text-[11px] text-muted-foreground">{s.description}</p>
+                      <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                        <a
+                          href={s.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="font-mono hover:text-primary hover:underline"
+                        >
+                          {s.sha}
+                        </a>
+                        {s.date && <span>· {new Date(s.date).toLocaleDateString("pt-BR")}</span>}
+                      </div>
                     </div>
                     <button
                       type="button"
@@ -380,8 +446,14 @@ function ChangelogAdminPage() {
                 );
               })}
             </ul>
-          </section>
-        )}
+          )}
+          {commitSuggestions.length > 0 && suggestions.length === 0 && (
+            <p className="rounded-lg border border-dashed border-border bg-background/50 p-3 text-center text-[11px] text-muted-foreground">
+              Todos os commits já têm entrada no changelog. 🎉
+            </p>
+          )}
+        </section>
+
 
         {/* Create form */}
         <section className="rounded-3xl border border-border bg-card p-4 lg:p-5">
