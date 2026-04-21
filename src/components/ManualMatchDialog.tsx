@@ -25,6 +25,9 @@ interface Props {
   roundId: string;
   groupId: string;
   matchFormat?: string;
+  preselectedPlayerIds?: string[];
+  skipPlayerSelection?: boolean;
+  lockGeneratedOrder?: boolean;
   onClose: () => void;
   onSaved: () => void;
 }
@@ -44,12 +47,21 @@ function generateSinglesMatchup(players: string[]): Matchup[] {
   return [{ teamA: [players[0]], teamB: [players[1]], scoreA: 0, scoreB: 0 }];
 }
 
-export function ManualMatchDialog({ roundId, groupId, matchFormat = "doubles", onClose, onSaved }: Props) {
+export function ManualMatchDialog({
+  roundId,
+  groupId,
+  matchFormat = "doubles",
+  preselectedPlayerIds,
+  skipPlayerSelection = false,
+  lockGeneratedOrder = false,
+  onClose,
+  onSaved,
+}: Props) {
   const isSingles = matchFormat === "singles";
   const requiredPlayers = isSingles ? 2 : 4;
 
   const [members, setMembers] = useState<GroupMember[]>([]);
-  const [selectedPlayers, setSelectedPlayers] = useState<string[]>([]);
+  const [selectedPlayers, setSelectedPlayers] = useState<string[]>(preselectedPlayerIds || []);
   const [matchups, setMatchups] = useState<Matchup[]>([]);
   const [step, setStep] = useState<"select" | "scores">("select");
   const [submitting, setSubmitting] = useState(false);
@@ -96,11 +108,26 @@ export function ManualMatchDialog({ roundId, groupId, matchFormat = "doubles", o
             avatar_url: p.avatar_url,
           }))
         );
+
+        if (skipPlayerSelection && (preselectedPlayerIds?.length || 0) === requiredPlayers) {
+          const ordered = preselectedPlayerIds || [];
+          if (isSingles) {
+            setMatchups(generateSinglesMatchup(ordered));
+          } else {
+            const [p1, p2, p3, p4] = ordered;
+            setMatchups([
+              { teamA: [p1, p4], teamB: [p2, p3], scoreA: 0, scoreB: 0 },
+              { teamA: [p1, p3], teamB: [p2, p4], scoreA: 0, scoreB: 0 },
+              { teamA: [p1, p2], teamB: [p3, p4], scoreA: 0, scoreB: 0 },
+            ]);
+          }
+          setStep("scores");
+        }
       }
       setLoading(false);
     };
     load();
-  }, [groupId]);
+  }, [groupId, isSingles, preselectedPlayerIds, requiredPlayers, skipPlayerSelection]);
 
   useEffect(() => {
     if (!submitting) {
