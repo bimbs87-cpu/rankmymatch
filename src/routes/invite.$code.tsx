@@ -7,6 +7,7 @@ import { lovable } from "@/integrations/lovable/index";
 import { useState, useEffect } from "react";
 import { Users, CheckCircle, XCircle, Loader2, LogIn } from "lucide-react";
 import { toast } from "sonner";
+import { AppleSignInButton } from "@/components/AppleSignInButton";
 
 export const Route = createFileRoute("/invite/$code")({
   head: () => ({
@@ -95,6 +96,13 @@ function InviteAuthButtons({ inviteUrl }: { inviteUrl: string }) {
         </svg>
         {loading ? "Entrando..." : "Entrar com Google"}
       </button>
+      <AppleSignInButton
+        variant="outline"
+        redirectUri={inviteUrl}
+        postLoginNavigate={inviteUrl}
+        useReplace
+        onError={(msg) => toast.error(msg)}
+      />
     </>
   );
 }

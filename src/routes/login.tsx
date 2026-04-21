@@ -11,6 +11,7 @@ import logoHorizontalLight from "@/assets/logo-horizontal-light.png";
 import logoSquareNeon from "@/assets/logo-square-neon.png";
 import { useTheme } from "@/lib/theme";
 import { useInstallFlow } from "@/components/InstallFlowProvider";
+import { AppleSignInButton } from "@/components/AppleSignInButton";
 
 export const Route = createFileRoute("/login")({
   head: () => ({
@@ -138,6 +139,10 @@ function LoginPage() {
       </svg>
       {loading ? "Entrando..." : "Entrar com Google"}
     </button>
+  );
+
+  const AppleButton = (
+    <AppleSignInButton variant="outline" onError={(msg) => setError(msg)} />
   );
 
   const InstallButton = !isInstalled && canInstall && !isFlowActive && (
@@ -325,6 +330,7 @@ function LoginPage() {
 
             <div className="space-y-3">
               {GoogleButton}
+              {AppleButton}
 
               {error && (
                 <p className="text-center text-sm text-destructive">{error}</p>
