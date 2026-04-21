@@ -38,13 +38,17 @@ import { Route as HooksAdminUndoRouteImport } from './routes/hooks.admin-undo'
 import { Route as HooksAdminPendingReminderRouteImport } from './routes/hooks.admin-pending-reminder'
 import { Route as HooksAdminActionRouteImport } from './routes/hooks.admin-action'
 import { Route as GroupsGroupIdRouteImport } from './routes/groups.$groupId'
+import { Route as EmailUnsubscribeRouteImport } from './routes/email/unsubscribe'
 import { Route as AdminMetricsRouteImport } from './routes/admin.metrics'
 import { Route as AdminInboxRouteImport } from './routes/admin.inbox'
 import { Route as GroupsGroupIdIndexRouteImport } from './routes/groups.$groupId.index'
+import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/email/suppression'
 import { Route as GroupsGroupIdSeasonsRouteImport } from './routes/groups.$groupId.seasons'
 import { Route as GroupsGroupIdDuelRouteImport } from './routes/groups.$groupId.duel'
 import { Route as ApiPushVapidPublicKeyRouteImport } from './routes/api.push.vapid-public-key'
 import { Route as GroupsGroupIdSeasonsIndexRouteImport } from './routes/groups.$groupId.seasons.index'
+import { Route as LovableEmailTransactionalSendRouteImport } from './routes/lovable/email/transactional/send'
+import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/lovable/email/transactional/preview'
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
 import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/email/auth/webhook'
 import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
@@ -202,6 +206,11 @@ const GroupsGroupIdRoute = GroupsGroupIdRouteImport.update({
   path: '/$groupId',
   getParentRoute: () => GroupsRoute,
 } as any)
+const EmailUnsubscribeRoute = EmailUnsubscribeRouteImport.update({
+  id: '/email/unsubscribe',
+  path: '/email/unsubscribe',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminMetricsRoute = AdminMetricsRouteImport.update({
   id: '/admin/metrics',
   path: '/admin/metrics',
@@ -216,6 +225,11 @@ const GroupsGroupIdIndexRoute = GroupsGroupIdIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => GroupsGroupIdRoute,
+} as any)
+const LovableEmailSuppressionRoute = LovableEmailSuppressionRouteImport.update({
+  id: '/lovable/email/suppression',
+  path: '/lovable/email/suppression',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const GroupsGroupIdSeasonsRoute = GroupsGroupIdSeasonsRouteImport.update({
   id: '/seasons',
@@ -237,6 +251,18 @@ const GroupsGroupIdSeasonsIndexRoute =
     id: '/',
     path: '/',
     getParentRoute: () => GroupsGroupIdSeasonsRoute,
+  } as any)
+const LovableEmailTransactionalSendRoute =
+  LovableEmailTransactionalSendRouteImport.update({
+    id: '/lovable/email/transactional/send',
+    path: '/lovable/email/transactional/send',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const LovableEmailTransactionalPreviewRoute =
+  LovableEmailTransactionalPreviewRouteImport.update({
+    id: '/lovable/email/transactional/preview',
+    path: '/lovable/email/transactional/preview',
+    getParentRoute: () => rootRouteImport,
   } as any)
 const LovableEmailQueueProcessRoute =
   LovableEmailQueueProcessRouteImport.update({
@@ -298,6 +324,7 @@ export interface FileRoutesByFullPath {
   '/termos': typeof TermosRoute
   '/admin/inbox': typeof AdminInboxRoute
   '/admin/metrics': typeof AdminMetricsRoute
+  '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/groups/$groupId': typeof GroupsGroupIdRouteWithChildren
   '/hooks/admin-action': typeof HooksAdminActionRoute
   '/hooks/admin-pending-reminder': typeof HooksAdminPendingReminderRoute
@@ -312,6 +339,7 @@ export interface FileRoutesByFullPath {
   '/api/push/vapid-public-key': typeof ApiPushVapidPublicKeyRoute
   '/groups/$groupId/duel': typeof GroupsGroupIdDuelRoute
   '/groups/$groupId/seasons': typeof GroupsGroupIdSeasonsRouteWithChildren
+  '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/groups/$groupId/': typeof GroupsGroupIdIndexRoute
   '/api/og/group/$groupId': typeof ApiOgGroupGroupIdRoute
   '/api/og/player/$userId': typeof ApiOgPlayerUserIdRoute
@@ -319,6 +347,8 @@ export interface FileRoutesByFullPath {
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
+  '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
+  '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
   '/groups/$groupId/seasons/': typeof GroupsGroupIdSeasonsIndexRoute
   '/groups/$groupId/seasons/$seasonId/': typeof GroupsGroupIdSeasonsSeasonIdIndexRoute
 }
@@ -342,6 +372,7 @@ export interface FileRoutesByTo {
   '/termos': typeof TermosRoute
   '/admin/inbox': typeof AdminInboxRoute
   '/admin/metrics': typeof AdminMetricsRoute
+  '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/hooks/admin-action': typeof HooksAdminActionRoute
   '/hooks/admin-pending-reminder': typeof HooksAdminPendingReminderRoute
   '/hooks/admin-undo': typeof HooksAdminUndoRoute
@@ -354,12 +385,15 @@ export interface FileRoutesByTo {
   '/groups': typeof GroupsIndexRoute
   '/api/push/vapid-public-key': typeof ApiPushVapidPublicKeyRoute
   '/groups/$groupId/duel': typeof GroupsGroupIdDuelRoute
+  '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/groups/$groupId': typeof GroupsGroupIdIndexRoute
   '/api/og/group/$groupId': typeof ApiOgGroupGroupIdRoute
   '/api/og/player/$userId': typeof ApiOgPlayerUserIdRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
+  '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
+  '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
   '/groups/$groupId/seasons': typeof GroupsGroupIdSeasonsIndexRoute
   '/groups/$groupId/seasons/$seasonId': typeof GroupsGroupIdSeasonsSeasonIdIndexRoute
 }
@@ -385,6 +419,7 @@ export interface FileRoutesById {
   '/termos': typeof TermosRoute
   '/admin/inbox': typeof AdminInboxRoute
   '/admin/metrics': typeof AdminMetricsRoute
+  '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/groups/$groupId': typeof GroupsGroupIdRouteWithChildren
   '/hooks/admin-action': typeof HooksAdminActionRoute
   '/hooks/admin-pending-reminder': typeof HooksAdminPendingReminderRoute
@@ -399,6 +434,7 @@ export interface FileRoutesById {
   '/api/push/vapid-public-key': typeof ApiPushVapidPublicKeyRoute
   '/groups/$groupId/duel': typeof GroupsGroupIdDuelRoute
   '/groups/$groupId/seasons': typeof GroupsGroupIdSeasonsRouteWithChildren
+  '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/groups/$groupId/': typeof GroupsGroupIdIndexRoute
   '/api/og/group/$groupId': typeof ApiOgGroupGroupIdRoute
   '/api/og/player/$userId': typeof ApiOgPlayerUserIdRoute
@@ -406,6 +442,8 @@ export interface FileRoutesById {
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
+  '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
+  '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
   '/groups/$groupId/seasons/': typeof GroupsGroupIdSeasonsIndexRoute
   '/groups/$groupId/seasons/$seasonId/': typeof GroupsGroupIdSeasonsSeasonIdIndexRoute
 }
@@ -432,6 +470,7 @@ export interface FileRouteTypes {
     | '/termos'
     | '/admin/inbox'
     | '/admin/metrics'
+    | '/email/unsubscribe'
     | '/groups/$groupId'
     | '/hooks/admin-action'
     | '/hooks/admin-pending-reminder'
@@ -446,6 +485,7 @@ export interface FileRouteTypes {
     | '/api/push/vapid-public-key'
     | '/groups/$groupId/duel'
     | '/groups/$groupId/seasons'
+    | '/lovable/email/suppression'
     | '/groups/$groupId/'
     | '/api/og/group/$groupId'
     | '/api/og/player/$userId'
@@ -453,6 +493,8 @@ export interface FileRouteTypes {
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
+    | '/lovable/email/transactional/preview'
+    | '/lovable/email/transactional/send'
     | '/groups/$groupId/seasons/'
     | '/groups/$groupId/seasons/$seasonId/'
   fileRoutesByTo: FileRoutesByTo
@@ -476,6 +518,7 @@ export interface FileRouteTypes {
     | '/termos'
     | '/admin/inbox'
     | '/admin/metrics'
+    | '/email/unsubscribe'
     | '/hooks/admin-action'
     | '/hooks/admin-pending-reminder'
     | '/hooks/admin-undo'
@@ -488,12 +531,15 @@ export interface FileRouteTypes {
     | '/groups'
     | '/api/push/vapid-public-key'
     | '/groups/$groupId/duel'
+    | '/lovable/email/suppression'
     | '/groups/$groupId'
     | '/api/og/group/$groupId'
     | '/api/og/player/$userId'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
+    | '/lovable/email/transactional/preview'
+    | '/lovable/email/transactional/send'
     | '/groups/$groupId/seasons'
     | '/groups/$groupId/seasons/$seasonId'
   id:
@@ -518,6 +564,7 @@ export interface FileRouteTypes {
     | '/termos'
     | '/admin/inbox'
     | '/admin/metrics'
+    | '/email/unsubscribe'
     | '/groups/$groupId'
     | '/hooks/admin-action'
     | '/hooks/admin-pending-reminder'
@@ -532,6 +579,7 @@ export interface FileRouteTypes {
     | '/api/push/vapid-public-key'
     | '/groups/$groupId/duel'
     | '/groups/$groupId/seasons'
+    | '/lovable/email/suppression'
     | '/groups/$groupId/'
     | '/api/og/group/$groupId'
     | '/api/og/player/$userId'
@@ -539,6 +587,8 @@ export interface FileRouteTypes {
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
+    | '/lovable/email/transactional/preview'
+    | '/lovable/email/transactional/send'
     | '/groups/$groupId/seasons/'
     | '/groups/$groupId/seasons/$seasonId/'
   fileRoutesById: FileRoutesById
@@ -564,6 +614,7 @@ export interface RootRouteChildren {
   TermosRoute: typeof TermosRoute
   AdminInboxRoute: typeof AdminInboxRoute
   AdminMetricsRoute: typeof AdminMetricsRoute
+  EmailUnsubscribeRoute: typeof EmailUnsubscribeRoute
   HooksAdminActionRoute: typeof HooksAdminActionRoute
   HooksAdminPendingReminderRoute: typeof HooksAdminPendingReminderRoute
   HooksAdminUndoRoute: typeof HooksAdminUndoRoute
@@ -572,11 +623,14 @@ export interface RootRouteChildren {
   PlayersUserIdRoute: typeof PlayersUserIdRoute
   RankingCompareRoute: typeof RankingCompareRoute
   ApiPushVapidPublicKeyRoute: typeof ApiPushVapidPublicKeyRoute
+  LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
   ApiOgGroupGroupIdRoute: typeof ApiOgGroupGroupIdRoute
   ApiOgPlayerUserIdRoute: typeof ApiOgPlayerUserIdRoute
   LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
   LovableEmailAuthWebhookRoute: typeof LovableEmailAuthWebhookRoute
   LovableEmailQueueProcessRoute: typeof LovableEmailQueueProcessRoute
+  LovableEmailTransactionalPreviewRoute: typeof LovableEmailTransactionalPreviewRoute
+  LovableEmailTransactionalSendRoute: typeof LovableEmailTransactionalSendRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -784,6 +838,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof GroupsGroupIdRouteImport
       parentRoute: typeof GroupsRoute
     }
+    '/email/unsubscribe': {
+      id: '/email/unsubscribe'
+      path: '/email/unsubscribe'
+      fullPath: '/email/unsubscribe'
+      preLoaderRoute: typeof EmailUnsubscribeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/metrics': {
       id: '/admin/metrics'
       path: '/admin/metrics'
@@ -804,6 +865,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/groups/$groupId/'
       preLoaderRoute: typeof GroupsGroupIdIndexRouteImport
       parentRoute: typeof GroupsGroupIdRoute
+    }
+    '/lovable/email/suppression': {
+      id: '/lovable/email/suppression'
+      path: '/lovable/email/suppression'
+      fullPath: '/lovable/email/suppression'
+      preLoaderRoute: typeof LovableEmailSuppressionRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/groups/$groupId/seasons': {
       id: '/groups/$groupId/seasons'
@@ -832,6 +900,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/groups/$groupId/seasons/'
       preLoaderRoute: typeof GroupsGroupIdSeasonsIndexRouteImport
       parentRoute: typeof GroupsGroupIdSeasonsRoute
+    }
+    '/lovable/email/transactional/send': {
+      id: '/lovable/email/transactional/send'
+      path: '/lovable/email/transactional/send'
+      fullPath: '/lovable/email/transactional/send'
+      preLoaderRoute: typeof LovableEmailTransactionalSendRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/lovable/email/transactional/preview': {
+      id: '/lovable/email/transactional/preview'
+      path: '/lovable/email/transactional/preview'
+      fullPath: '/lovable/email/transactional/preview'
+      preLoaderRoute: typeof LovableEmailTransactionalPreviewRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/lovable/email/queue/process': {
       id: '/lovable/email/queue/process'
@@ -978,6 +1060,7 @@ const rootRouteChildren: RootRouteChildren = {
   TermosRoute: TermosRoute,
   AdminInboxRoute: AdminInboxRoute,
   AdminMetricsRoute: AdminMetricsRoute,
+  EmailUnsubscribeRoute: EmailUnsubscribeRoute,
   HooksAdminActionRoute: HooksAdminActionRoute,
   HooksAdminPendingReminderRoute: HooksAdminPendingReminderRoute,
   HooksAdminUndoRoute: HooksAdminUndoRoute,
@@ -986,11 +1069,14 @@ const rootRouteChildren: RootRouteChildren = {
   PlayersUserIdRoute: PlayersUserIdRoute,
   RankingCompareRoute: RankingCompareRoute,
   ApiPushVapidPublicKeyRoute: ApiPushVapidPublicKeyRoute,
+  LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,
   ApiOgGroupGroupIdRoute: ApiOgGroupGroupIdRoute,
   ApiOgPlayerUserIdRoute: ApiOgPlayerUserIdRoute,
   LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,
   LovableEmailAuthWebhookRoute: LovableEmailAuthWebhookRoute,
   LovableEmailQueueProcessRoute: LovableEmailQueueProcessRoute,
+  LovableEmailTransactionalPreviewRoute: LovableEmailTransactionalPreviewRoute,
+  LovableEmailTransactionalSendRoute: LovableEmailTransactionalSendRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
