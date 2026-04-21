@@ -471,6 +471,22 @@ export async function adminPromoteFromWaitlist(
   }
 }
 
+// King of the Court — Doubles (4 players exactly).
+// Official rotation: every player partners with every other player exactly once
+// across 3 matches. Players come ordered by Elo (1 = highest).
+//   Match 1 → (1+4) vs (2+3)
+//   Match 2 → (1+3) vs (2+4)
+//   Match 3 → (1+2) vs (3+4)
+function buildDoublesKingOfCourt(orderedIds: string[]): Array<[string[], string[]]> {
+  if (orderedIds.length !== 4) return [];
+  const [p1, p2, p3, p4] = orderedIds;
+  return [
+    [[p1, p4], [p2, p3]],
+    [[p1, p3], [p2, p4]],
+    [[p1, p2], [p3, p4]],
+  ];
+}
+
 // Build singles pairings ordered by Elo (King of the Court).
 // 4 players — official fixed cycle, indexed by round_number (1-based, cycles every 3):
 //   round 1 → 1v4 / 2v3
@@ -535,6 +551,30 @@ export async function drawTeams(roundId: string, confirmedPlayerIds: string[], a
 
     const pairs = buildSinglesPairs(ordered, roundData.round_number ?? 1);
     pairings = pairs.map(([a, b]) => [a, b]);
+  }
+
+  // Doubles King of the Court: exactly 4 players → 3 matches with fixed
+  // partner rotation so every player partners with every other player once.
+  if (!isSingles && confirmedPlayerIds.length === 4 && roundData?.season_id) {
+    const { data: snapshots } = await supabase
+      .from("ranking_snapshots")
+      .select("user_id, rating, snapshot_date")
+      .eq("season_id", roundData.season_id)
+      .in("user_id", confirmedPlayerIds)
+      .order("snapshot_date", { ascending: false });
+
+    const ratingMap = new Map<string, number>();
+    (snapshots || []).forEach((s) => {
+      if (!ratingMap.has(s.user_id)) ratingMap.set(s.user_id, Number(s.rating));
+    });
+
+    const ordered = [...confirmedPlayerIds]
+      .map((id) => ({ id, rating: ratingMap.get(id) ?? 1000, r: Math.random() }))
+      .sort((a, b) => (b.rating - a.rating) || (a.r - b.r))
+      .map((x) => x.id);
+
+    const matches = buildDoublesKingOfCourt(ordered);
+    pairings = matches.map(([a, b]) => [...a, ...b]);
   }
 
   if (pairings.length === 0) {
