@@ -2,6 +2,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { notifyGroupMembers } from "@/hooks/use-notifications";
 import { revertMatchElo } from "@/lib/elo-engine";
 import { recomputeRoundStatus } from "@/lib/round-status";
+import { getServerFnAuthHeaders } from "@/lib/server-fn-auth";
 
 export async function createRound(data: {
   groupId: string;
@@ -344,6 +345,7 @@ export async function promoteFirstWaitlist(
   try {
     const { sendPushFn } = await import("@/lib/push.functions");
     void sendPushFn({
+      headers: await getServerFnAuthHeaders(),
       data: {
         userIds: [promoted.user_id],
         payload: {
@@ -433,6 +435,7 @@ export async function adminPromoteFromWaitlist(
   try {
     const { sendPushFn } = await import("@/lib/push.functions");
     void sendPushFn({
+      headers: await getServerFnAuthHeaders(),
       data: {
         userIds: [waitlistUserId],
         payload: {
