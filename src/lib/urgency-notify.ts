@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { getServerFnAuthHeaders } from "@/lib/server-fn-auth";
 
 const STORAGE_PREFIX = "urgency-notify-sent:";
 // Cooldown: 6h — avoid spamming if dashboard is reloaded multiple times.
@@ -51,6 +52,7 @@ export async function notifyUrgentPendingMembers(opts: {
     try {
       const { sendPushFn } = await import("@/lib/push.functions");
       void sendPushFn({
+        headers: await getServerFnAuthHeaders(),
         data: {
           userIds: opts.pendingUserIds,
           payload: {
