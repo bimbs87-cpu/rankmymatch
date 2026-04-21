@@ -141,6 +141,10 @@ function LoginPage() {
     </button>
   );
 
+  const AppleButton = (
+    <AppleSignInButton variant="outline" onError={(msg) => setError(msg)} />
+  );
+
   const InstallButton = !isInstalled && canInstall && !isFlowActive && (
     <button
       onClick={() => void startInstall()}
