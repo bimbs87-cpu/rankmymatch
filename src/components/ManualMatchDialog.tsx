@@ -696,7 +696,7 @@ export function ManualMatchDialog({
                         <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
                           {isSingles ? "Confronto" : `${idx + 1}º Jogo`}
                         </span>
-                        {!isSingles && (
+                        {!isSingles && !lockGeneratedOrder && (
                           <div className="flex items-center gap-0.5">
                             <button
                               onClick={() => moveMatchup(idx, "up")}
