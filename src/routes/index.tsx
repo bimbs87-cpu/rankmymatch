@@ -1701,7 +1701,7 @@ function DashboardPage() {
             <div className="flex flex-row gap-4">
               {visibleNextMatchCardJSX ? (
                 <div className="flex-1 min-w-0">{visibleNextMatchCardJSX}</div>
-              ) : isDuplicateOfPendingMatch ? null : (
+              ) : !isDuplicateOfPendingMatch ? (
                 <div className="flex-1 min-w-0 flex items-center justify-center rounded-3xl border border-dashed border-border bg-card/50 p-6">
                   <p className="text-xs text-muted-foreground">Nenhum confronto próximo agendado</p>
                 </div>
