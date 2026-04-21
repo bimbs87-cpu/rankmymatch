@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
-import { Send, Loader2, Search, Users, Check } from "lucide-react";
+import { Send, Loader2, Search, Users, Check, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { Textarea } from "@/components/ui/textarea";
+import { buildDisplayNames } from "@/lib/name-disambiguation";
 
 interface Props {
   groupId: string;
@@ -25,6 +26,55 @@ const PRESETS: { label: string; value: string }[] = [
   { label: "Rodada cancelada", value: "A próxima rodada foi cancelada. Detalhes no grupo." },
   { label: "Mensagem do admin", value: "Mensagem do admin: " },
 ];
+
+async function buildMatchOrderMessage(groupId: string): Promise<string | null> {
+  const { data: rounds } = await supabase
+    .from("rounds")
+    .select("id, round_number")
+    .eq("group_id", groupId)
+    .order("round_number", { ascending: false })
+    .limit(5);
+  if (!rounds?.length) return null;
+
+  for (const round of rounds) {
+    const { data: matches } = await supabase
+      .from("matches")
+      .select("id, match_number")
+      .eq("round_id", round.id)
+      .order("match_number", { ascending: true });
+    if (!matches?.length) continue;
+
+    const matchIds = matches.map((m) => m.id);
+    const { data: mp } = await supabase
+      .from("match_players")
+      .select("match_id, user_id, team")
+      .in("match_id", matchIds);
+    if (!mp?.length) continue;
+
+    const userIds = Array.from(new Set(mp.map((p) => p.user_id)));
+    const { data: profs } = await supabase
+      .from("user_profiles")
+      .select("user_id, name, nickname")
+      .in("user_id", userIds);
+
+    const labelMap = buildDisplayNames(
+      (profs || []).map((p) => ({ id: p.user_id, name: p.name || "Jogador", nickname: p.nickname })),
+    );
+    const labelOf = (uid: string) => labelMap.get(uid) || "Jogador";
+
+    const lines: string[] = [];
+    for (const m of matches) {
+      const players = mp.filter((p) => p.match_id === m.id);
+      const teamA = players.filter((p) => p.team === "A").map((p) => labelOf(p.user_id));
+      const teamB = players.filter((p) => p.team === "B").map((p) => labelOf(p.user_id));
+      if (!teamA.length || !teamB.length) continue;
+      lines.push(`${m.match_number}-${teamA.join("/")} x ${teamB.join("/")}`);
+    }
+    if (!lines.length) continue;
+    return `Ordem dos jogos: ${lines.join(", ")}.`;
+  }
+  return null;
+}
 
 export function PushPanel({ groupId, groupName }: Props) {
   const { user } = useAuth();
