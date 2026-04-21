@@ -18,6 +18,9 @@ import {
   Lightbulb,
   GitBranch,
   RefreshCw,
+  Wand2,
+  CheckSquare,
+  Square,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
