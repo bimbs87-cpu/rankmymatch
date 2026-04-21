@@ -73,6 +73,36 @@ const KNOWN_RECENT_SHIPPED: Array<{
   type: "feature" | "improvement" | "fix";
 }> = [
   {
+    version: "v0.28.4",
+    title: "Admin pode confirmar presença por outros jogadores",
+    description: "Na lista aberta de presença, o admin agora pode selecionar integrantes do grupo e marcar a presença deles diretamente — útil pra quem confirma pelo WhatsApp.",
+    type: "feature",
+  },
+  {
+    version: "v0.28.4",
+    title: "Push notifications funcionando em produção",
+    description: "Diagnóstico e correções no fluxo de Web Push (VAPID, service worker, subscription) — notificações de rodada e resultado agora chegam no celular.",
+    type: "fix",
+  },
+  {
+    version: "v0.28.4",
+    title: "Corrigido /dev redirecionando pra home na versão publicada",
+    description: "O guard de admin estava executando no SSR sem cookies de sessão e disparando redirect. Agora a checagem só roda no cliente.",
+    type: "fix",
+  },
+  {
+    version: "v0.28.4",
+    title: "Corrigido botões Triagem e Changelog em /sobre-desenvolvimento",
+    description: "A rota pai não renderizava <Outlet />, então clicar nos botões mudava a URL mas não trocava o conteúdo. Agora as sub-rotas funcionam.",
+    type: "fix",
+  },
+  {
+    version: "v0.28.4",
+    title: "Corrigido build do recharts (react-is faltando)",
+    description: "Adicionado react-is como dependência pra resolver erro de externalização do recharts no build.",
+    type: "fix",
+  },
+  {
     version: "v0.28.3",
     title: "Filtro por status na Linha do tempo",
     description: "Agora dá pra filtrar por 'Só concluídas' ou 'Só próximas' acima da lista — útil pra grupos com muitas temporadas.",
