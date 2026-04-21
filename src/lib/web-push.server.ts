@@ -293,7 +293,18 @@ export async function sendPushToUserIds(
     console.error("[push] subscription lookup failed", error);
     return { sent: 0, failed: 0, error: "subscription_lookup_failed" };
   }
-  if (!subs?.length) return { sent: 0, failed: 0 };
+  console.log("[push] dispatch", {
+    type: payload.type,
+    requestedUserIds: userIds.length,
+    allowedUserIds: allowedUserIds.length,
+    subscriptions: subs?.length || 0,
+  });
+  if (!subs?.length) {
+    console.warn("[push] no active subscriptions for allowed users", {
+      allowedUserIds,
+    });
+    return { sent: 0, failed: 0, error: "no_active_subscriptions" };
+  }
 
   const payloadBytes = TEXT.encode(JSON.stringify(payload));
 

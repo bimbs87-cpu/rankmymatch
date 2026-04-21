@@ -35,6 +35,9 @@ export type PushResult = { sent: number; failed: number; error?: string; targets
 export function describePushResult(push: PushResult | null | undefined): string {
   if (!push) return "Push não enviado";
   if (push.targets === 0) return "Sem destinatários para o push";
+  if (push.error === "no_active_subscriptions") {
+    return `Nenhum dispositivo cadastrou push entre ${push.targets} destinatário${push.targets === 1 ? "" : "s"} (peça para abrir o app e ativar notificações)`;
+  }
   if (push.error) return `Falha no push: ${push.error}`;
   if (push.sent === 0 && push.failed > 0) {
     return `Nenhum push entregue · ${push.failed} falha${push.failed === 1 ? "" : "s"} no provedor`;
