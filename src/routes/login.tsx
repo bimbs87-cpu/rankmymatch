@@ -330,6 +330,7 @@ function LoginPage() {
 
             <div className="space-y-3">
               {GoogleButton}
+              {AppleButton}
 
               {error && (
                 <p className="text-center text-sm text-destructive">{error}</p>
