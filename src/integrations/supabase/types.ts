@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      account_deletion_requests: {
+        Row: {
+          cancelled_at: string | null
+          created_at: string
+          executed_at: string | null
+          id: string
+          reason: string | null
+          requested_at: string
+          scheduled_for: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          cancelled_at?: string | null
+          created_at?: string
+          executed_at?: string | null
+          id?: string
+          reason?: string | null
+          requested_at?: string
+          scheduled_for: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          cancelled_at?: string | null
+          created_at?: string
+          executed_at?: string | null
+          id?: string
+          reason?: string | null
+          requested_at?: string
+          scheduled_for?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       admin_pending_reminder_log: {
         Row: {
           last_reminded_at: string
@@ -1639,6 +1675,8 @@ export type Database = {
           birth_date: string | null
           created_at: string
           created_by_admin: string | null
+          deletion_requested_at: string | null
+          deletion_scheduled_for: string | null
           dominant_hand: string | null
           id: string
           instagram_handle: string | null
@@ -1660,6 +1698,8 @@ export type Database = {
           birth_date?: string | null
           created_at?: string
           created_by_admin?: string | null
+          deletion_requested_at?: string | null
+          deletion_scheduled_for?: string | null
           dominant_hand?: string | null
           id?: string
           instagram_handle?: string | null
@@ -1681,6 +1721,8 @@ export type Database = {
           birth_date?: string | null
           created_at?: string
           created_by_admin?: string | null
+          deletion_requested_at?: string | null
+          deletion_scheduled_for?: string | null
           dominant_hand?: string | null
           id?: string
           instagram_handle?: string | null
@@ -1856,6 +1898,13 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_due_deletions: {
+        Args: never
+        Returns: {
+          scheduled_for: string
+          user_id: string
+        }[]
+      }
       get_group_member_count: { Args: { _group_id: string }; Returns: number }
       is_app_admin: { Args: { _user_id: string }; Returns: boolean }
       is_group_admin: {

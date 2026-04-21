@@ -2,89 +2,135 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
+const GRACE_PERIOD_DAYS = 7;
+
 /**
- * Permanently deletes the authenticated user's account.
+ * Requests account deletion with a 7-day grace period.
  *
  * Strategy (LGPD-compliant):
- * - Anonymizes the user_profile (name → "Usuário removido", clears personal
- *   fields, marks is_placeholder=true). This preserves match history and
- *   ranking integrity for the groups where the user played.
- * - Deletes all personal/transient data: notifications, push subscriptions,
- *   compare favorites, comments, bug reports, sales leads, sessions, etc.
- * - Removes the user from all groups (group_members rows).
- * - Finally, deletes the auth.users row via the admin API. The user is logged
- *   out on next request.
+ * - Marks the user_profile with deletion_requested_at and deletion_scheduled_for.
+ * - Creates a row in account_deletion_requests for audit.
+ * - Creates an in-app notification confirming the request.
+ * - The user remains fully functional during the grace period and can cancel.
+ * - A daily cron (`process-pending-deletions`) executes the actual deletion
+ *   once the scheduled date is reached.
  */
-export const deleteAccountFn = createServerFn({ method: "POST" })
+export const requestAccountDeletionFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { userId } = context;
+    const now = new Date();
+    const scheduledFor = new Date(now.getTime() + GRACE_PERIOD_DAYS * 24 * 60 * 60 * 1000);
+
+    // Check if already pending
+    const { data: existing } = await supabaseAdmin
+      .from("user_profiles")
+      .select("deletion_scheduled_for")
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    if (existing?.deletion_scheduled_for) {
+      throw new Error("Sua conta já tem uma exclusão agendada");
+    }
+
+    const { error: profileErr } = await supabaseAdmin
+      .from("user_profiles")
+      .update({
+        deletion_requested_at: now.toISOString(),
+        deletion_scheduled_for: scheduledFor.toISOString(),
+      })
+      .eq("user_id", userId);
+
+    if (profileErr) {
+      console.error("[request-deletion] update profile failed:", profileErr);
+      throw new Error("Não foi possível agendar a exclusão");
+    }
+
+    await supabaseAdmin.from("account_deletion_requests").insert({
+      user_id: userId,
+      requested_at: now.toISOString(),
+      scheduled_for: scheduledFor.toISOString(),
+      status: "pending",
+    });
+
+    await supabaseAdmin.from("notifications").insert({
+      user_id: userId,
+      type: "account_deletion_requested",
+      title: "Exclusão de conta agendada",
+      body: `Sua conta será excluída definitivamente em ${scheduledFor.toLocaleDateString("pt-BR")}. Você pode cancelar a qualquer momento até essa data nas configurações do perfil.`,
+      data: { scheduled_for: scheduledFor.toISOString() },
+    });
+
+    return { success: true, scheduledFor: scheduledFor.toISOString() };
+  });
+
+/**
+ * Cancels a pending account deletion (only works during the grace period).
+ */
+export const cancelAccountDeletionFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { userId } = context;
 
-    // 1. Anonymize the public profile so historical references stay intact
-    //    but no personal data remains visible.
-    const { error: anonErr } = await supabaseAdmin
+    const { data: profile } = await supabaseAdmin
+      .from("user_profiles")
+      .select("deletion_scheduled_for")
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    if (!profile?.deletion_scheduled_for) {
+      throw new Error("Não há exclusão agendada");
+    }
+
+    if (new Date(profile.deletion_scheduled_for) <= new Date()) {
+      throw new Error("O prazo de cancelamento já expirou");
+    }
+
+    const { error } = await supabaseAdmin
       .from("user_profiles")
       .update({
-        name: "Usuário removido",
-        nickname: null,
-        avatar_url: null,
-        avatar_type: null,
-        birth_date: null,
-        instagram_handle: null,
-        dominant_hand: null,
-        preferred_position: null,
-        killer_shot: null,
-        worst_shot: null,
-        share_tagline: null,
-        share_accent_color: null,
-        is_placeholder: true,
-        privacy_settings: {},
+        deletion_requested_at: null,
+        deletion_scheduled_for: null,
       })
       .eq("user_id", userId);
 
-    if (anonErr) {
-      console.error("[delete-account] anonymize profile failed:", anonErr);
-      throw new Error("Não foi possível anonimizar o perfil");
+    if (error) {
+      console.error("[cancel-deletion] update profile failed:", error);
+      throw new Error("Não foi possível cancelar");
     }
 
-    // 2. Delete personal/transient data. Errors here are logged but not fatal —
-    //    we want auth.users deletion to succeed regardless.
-    const cleanupOps: Array<{ table: string; promise: PromiseLike<unknown> }> = [
-      { table: "notifications", promise: supabaseAdmin.from("notifications").delete().eq("user_id", userId) },
-      { table: "push_subscriptions", promise: supabaseAdmin.from("push_subscriptions").delete().eq("user_id", userId) },
-      { table: "push_notification_preferences", promise: supabaseAdmin.from("push_notification_preferences").delete().eq("user_id", userId) },
-      { table: "compare_favorites", promise: supabaseAdmin.from("compare_favorites").delete().eq("user_id", userId) },
-      { table: "comments", promise: supabaseAdmin.from("comments").delete().eq("user_id", userId) },
-      { table: "comment_reactions", promise: supabaseAdmin.from("comment_reactions").delete().eq("user_id", userId) },
-      { table: "bug_report_votes", promise: supabaseAdmin.from("bug_report_votes").delete().eq("user_id", userId) },
-      { table: "user_sessions", promise: supabaseAdmin.from("user_sessions").delete().eq("user_id", userId) },
-      { table: "user_acquisition", promise: supabaseAdmin.from("user_acquisition").delete().eq("user_id", userId) },
-      { table: "admin_pending_reminder_log", promise: supabaseAdmin.from("admin_pending_reminder_log").delete().eq("user_id", userId) },
-      { table: "group_members", promise: supabaseAdmin.from("group_members").delete().eq("user_id", userId) },
-      { table: "group_join_requests", promise: supabaseAdmin.from("group_join_requests").delete().eq("user_id", userId) },
-      { table: "group_admin_permissions", promise: supabaseAdmin.from("group_admin_permissions").delete().eq("user_id", userId) },
-      { table: "round_presence", promise: supabaseAdmin.from("round_presence").delete().eq("user_id", userId) },
-    ];
-
-    for (const op of cleanupOps) {
-      const result = (await op.promise) as { error?: { message: string } | null };
-      if (result?.error) {
-        console.warn(`[delete-account] cleanup ${op.table} warning:`, result.error.message);
-      }
-    }
-
-    // 3. Mark bug reports as anonymous (preserve content for triage)
     await supabaseAdmin
-      .from("bug_reports")
-      .update({ user_id: null })
-      .eq("user_id", userId);
+      .from("account_deletion_requests")
+      .update({ status: "cancelled", cancelled_at: new Date().toISOString() })
+      .eq("user_id", userId)
+      .eq("status", "pending");
 
-    // 4. Finally: remove the auth user. After this the JWT becomes invalid.
-    const { error: deleteErr } = await supabaseAdmin.auth.admin.deleteUser(userId);
-    if (deleteErr) {
-      console.error("[delete-account] auth deleteUser failed:", deleteErr);
-      throw new Error("Não foi possível excluir a conta. Tente novamente.");
-    }
+    await supabaseAdmin.from("notifications").insert({
+      user_id: userId,
+      type: "account_deletion_cancelled",
+      title: "Exclusão cancelada",
+      body: "A exclusão da sua conta foi cancelada com sucesso. Sua conta continua ativa.",
+    });
 
     return { success: true };
+  });
+
+/**
+ * Returns the current deletion status for the authenticated user.
+ */
+export const getDeletionStatusFn = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { userId } = context;
+    const { data } = await supabaseAdmin
+      .from("user_profiles")
+      .select("deletion_requested_at, deletion_scheduled_for")
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    return {
+      pending: !!data?.deletion_scheduled_for,
+      requestedAt: data?.deletion_requested_at ?? null,
+      scheduledFor: data?.deletion_scheduled_for ?? null,
+    };
   });

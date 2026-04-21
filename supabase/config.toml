@@ -1,1 +1,4 @@
 project_id = "oeizpqyvnmickosoynrr"
+
+[functions.process-pending-deletions]
+verify_jwt = false

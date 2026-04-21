@@ -8,6 +8,7 @@ import { DesktopNav } from "@/components/DesktopNav";
 import { InstallFlowProvider } from "@/components/InstallFlowProvider";
 import { AvatarPromptGate } from "@/components/AvatarPromptGate";
 import { PlayerProfileViewerProvider } from "@/components/PlayerProfileViewer";
+import { PendingDeletionBanner } from "@/components/PendingDeletionBanner";
 import { Toaster } from "@/components/ui/sonner";
 import { ROOT_META, ROOT_JSONLD } from "@/lib/seo-meta";
 import { ROOT_LINKS } from "@/lib/pwa-links";
@@ -182,6 +183,7 @@ function RootComponent() {
               }}
             />
             <div className="relative z-10 mx-auto max-w-lg lg:max-w-7xl lg:px-8 min-h-screen">
+              <PendingDeletionBanner />
               <AuthDesktopNav />
               <Outlet />
             </div>
