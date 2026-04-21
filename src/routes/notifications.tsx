@@ -171,7 +171,7 @@ function NotificationsPage() {
                   key={n.id}
                   onClick={handleClick}
                   className={`flex w-full items-start gap-3 rounded-2xl border p-3.5 text-left transition-all ${baseCls} ${
-                    (isPromoted || isUnpromoted) && groupId ? "active:scale-[0.99]" : ""
+                    groupId ? "active:scale-[0.99] cursor-pointer" : "cursor-default"
                   }`}
                 >
                   <div
