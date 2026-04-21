@@ -46,6 +46,7 @@ function dedupeNotifications(items: Notification[]) {
 
 export function useNotifications() {
   const { user } = useAuth();
+  const [allNotifications, setAllNotifications] = useState<Notification[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
@@ -70,11 +71,14 @@ export function useNotifications() {
 
       if (error) throw error;
 
-      const items = dedupeNotifications(data || []);
+      const rawItems = data || [];
+      const items = dedupeNotifications(rawItems);
+      setAllNotifications(rawItems);
       setNotifications(items);
       setUnreadCount(items.filter((n) => !n.read).length);
     } catch (error) {
       console.error("Erro ao carregar notificações:", error);
+      setAllNotifications([]);
       setNotifications([]);
       setUnreadCount(0);
     } finally {
@@ -130,10 +134,18 @@ export function useNotifications() {
 
   const markRead = useCallback(
     async (id: string) => {
-      await supabase.from("notifications").update({ read: true }).eq("id", id);
+      const target = allNotifications.find((notification) => notification.id === id);
+      const roundKey = target ? getRoundLifecycleKey(target) : null;
+      const idsToMark = roundKey
+        ? allNotifications
+            .filter((notification) => getRoundLifecycleKey(notification) === roundKey)
+            .map((notification) => notification.id)
+        : [id];
+
+      await supabase.from("notifications").update({ read: true }).in("id", idsToMark);
       await refresh();
     },
-    [refresh]
+    [allNotifications, refresh]
   );
 
   return { notifications, unreadCount, isLoading, refresh, markAllRead, markRead };
