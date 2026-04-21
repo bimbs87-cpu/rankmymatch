@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as UnsubscribeRouteImport } from './routes/unsubscribe'
 import { Route as TermosRouteImport } from './routes/termos'
 import { Route as SobreDesenvolvimentoRouteImport } from './routes/sobre-desenvolvimento'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
@@ -57,6 +58,11 @@ import { Route as ApiOgPlayerUserIdRouteImport } from './routes/api.og.player.$u
 import { Route as ApiOgGroupGroupIdRouteImport } from './routes/api.og.group.$groupId'
 import { Route as GroupsGroupIdSeasonsSeasonIdIndexRouteImport } from './routes/groups.$groupId.seasons.$seasonId.index'
 
+const UnsubscribeRoute = UnsubscribeRouteImport.update({
+  id: '/unsubscribe',
+  path: '/unsubscribe',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TermosRoute = TermosRouteImport.update({
   id: '/termos',
   path: '/termos',
@@ -322,6 +328,7 @@ export interface FileRoutesByFullPath {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/sobre-desenvolvimento': typeof SobreDesenvolvimentoRouteWithChildren
   '/termos': typeof TermosRoute
+  '/unsubscribe': typeof UnsubscribeRoute
   '/admin/inbox': typeof AdminInboxRoute
   '/admin/metrics': typeof AdminMetricsRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
@@ -370,6 +377,7 @@ export interface FileRoutesByTo {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/sobre-desenvolvimento': typeof SobreDesenvolvimentoRouteWithChildren
   '/termos': typeof TermosRoute
+  '/unsubscribe': typeof UnsubscribeRoute
   '/admin/inbox': typeof AdminInboxRoute
   '/admin/metrics': typeof AdminMetricsRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
@@ -417,6 +425,7 @@ export interface FileRoutesById {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/sobre-desenvolvimento': typeof SobreDesenvolvimentoRouteWithChildren
   '/termos': typeof TermosRoute
+  '/unsubscribe': typeof UnsubscribeRoute
   '/admin/inbox': typeof AdminInboxRoute
   '/admin/metrics': typeof AdminMetricsRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
@@ -468,6 +477,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/sobre-desenvolvimento'
     | '/termos'
+    | '/unsubscribe'
     | '/admin/inbox'
     | '/admin/metrics'
     | '/email/unsubscribe'
@@ -516,6 +526,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/sobre-desenvolvimento'
     | '/termos'
+    | '/unsubscribe'
     | '/admin/inbox'
     | '/admin/metrics'
     | '/email/unsubscribe'
@@ -562,6 +573,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/sobre-desenvolvimento'
     | '/termos'
+    | '/unsubscribe'
     | '/admin/inbox'
     | '/admin/metrics'
     | '/email/unsubscribe'
@@ -612,6 +624,7 @@ export interface RootRouteChildren {
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   SobreDesenvolvimentoRoute: typeof SobreDesenvolvimentoRouteWithChildren
   TermosRoute: typeof TermosRoute
+  UnsubscribeRoute: typeof UnsubscribeRoute
   AdminInboxRoute: typeof AdminInboxRoute
   AdminMetricsRoute: typeof AdminMetricsRoute
   EmailUnsubscribeRoute: typeof EmailUnsubscribeRoute
@@ -635,6 +648,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/unsubscribe': {
+      id: '/unsubscribe'
+      path: '/unsubscribe'
+      fullPath: '/unsubscribe'
+      preLoaderRoute: typeof UnsubscribeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/termos': {
       id: '/termos'
       path: '/termos'
@@ -1058,6 +1078,7 @@ const rootRouteChildren: RootRouteChildren = {
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   SobreDesenvolvimentoRoute: SobreDesenvolvimentoRouteWithChildren,
   TermosRoute: TermosRoute,
+  UnsubscribeRoute: UnsubscribeRoute,
   AdminInboxRoute: AdminInboxRoute,
   AdminMetricsRoute: AdminMetricsRoute,
   EmailUnsubscribeRoute: EmailUnsubscribeRoute,
