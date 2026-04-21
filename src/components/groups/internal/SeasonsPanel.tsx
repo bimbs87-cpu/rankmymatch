@@ -1368,6 +1368,15 @@ function RoundExpandedDetails({
               />
             );
           })()}
+
+          <AdminAddPresenceDialog
+            open={adminPresenceOpen}
+            onOpenChange={setAdminPresenceOpen}
+            roundId={roundId}
+            groupId={groupId}
+            alreadyConfirmedIds={confirmedIds}
+            onAdded={() => setReloadKey((k) => k + 1)}
+          />
         </>
       )}
     </div>
