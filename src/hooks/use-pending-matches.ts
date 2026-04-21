@@ -14,6 +14,7 @@ export interface PendingMatch {
   group_match_format: string;
   sets_per_match: number;
   sets_mode: "fixed" | "flexible" | "unlimited";
+  total_matches_in_round: number;
   teamA: { user_id: string; name: string; nickname: string | null; avatar_url: string | null }[];
   teamB: { user_id: string; name: string; nickname: string | null; avatar_url: string | null }[];
   existingSets: { setNumber: number; scoreA: number; scoreB: number }[];
