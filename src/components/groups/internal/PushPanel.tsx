@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
-import { Send, Loader2, Search, Users, Check } from "lucide-react";
+import { Send, Loader2, Search, Users, Check, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { Textarea } from "@/components/ui/textarea";
+import { buildDisplayNames } from "@/lib/name-disambiguation";
 
 interface Props {
   groupId: string;
@@ -26,6 +27,55 @@ const PRESETS: { label: string; value: string }[] = [
   { label: "Mensagem do admin", value: "Mensagem do admin: " },
 ];
 
+async function buildMatchOrderMessage(groupId: string): Promise<string | null> {
+  const { data: rounds } = await supabase
+    .from("rounds")
+    .select("id, round_number")
+    .eq("group_id", groupId)
+    .order("round_number", { ascending: false })
+    .limit(5);
+  if (!rounds?.length) return null;
+
+  for (const round of rounds) {
+    const { data: matches } = await supabase
+      .from("matches")
+      .select("id, match_number")
+      .eq("round_id", round.id)
+      .order("match_number", { ascending: true });
+    if (!matches?.length) continue;
+
+    const matchIds = matches.map((m) => m.id);
+    const { data: mp } = await supabase
+      .from("match_players")
+      .select("match_id, user_id, team")
+      .in("match_id", matchIds);
+    if (!mp?.length) continue;
+
+    const userIds = Array.from(new Set(mp.map((p) => p.user_id)));
+    const { data: profs } = await supabase
+      .from("user_profiles")
+      .select("user_id, name, nickname")
+      .in("user_id", userIds);
+
+    const labelMap = buildDisplayNames(
+      (profs || []).map((p) => ({ id: p.user_id, name: p.name || "Jogador", nickname: p.nickname })),
+    );
+    const labelOf = (uid: string) => labelMap.get(uid) || "Jogador";
+
+    const lines: string[] = [];
+    for (const m of matches) {
+      const players = mp.filter((p) => p.match_id === m.id);
+      const teamA = players.filter((p) => p.team === "A").map((p) => labelOf(p.user_id));
+      const teamB = players.filter((p) => p.team === "B").map((p) => labelOf(p.user_id));
+      if (!teamA.length || !teamB.length) continue;
+      lines.push(`${m.match_number}-${teamA.join("/")} x ${teamB.join("/")}`);
+    }
+    if (!lines.length) continue;
+    return `Ordem dos jogos: ${lines.join(", ")}.`;
+  }
+  return null;
+}
+
 export function PushPanel({ groupId, groupName }: Props) {
   const { user } = useAuth();
   const [members, setMembers] = useState<MemberRow[]>([]);
@@ -35,6 +85,24 @@ export function PushPanel({ groupId, groupName }: Props) {
   const [title, setTitle] = useState(`${groupName}`);
   const [message, setMessage] = useState("");
   const [sending, setSending] = useState(false);
+  const [loadingOrder, setLoadingOrder] = useState(false);
+
+  const insertMatchOrder = async () => {
+    setLoadingOrder(true);
+    try {
+      const msg = await buildMatchOrderMessage(groupId);
+      if (!msg) {
+        toast.warning("Nenhuma rodada com partidas sorteadas encontrada.");
+        return;
+      }
+      setMessage(msg);
+      toast.success("Sugestão preenchida na mensagem.");
+    } catch (e: any) {
+      toast.error(e?.message || "Falha ao gerar sugestão.");
+    } finally {
+      setLoadingOrder(false);
+    }
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -242,6 +310,15 @@ export function PushPanel({ groupId, groupName }: Props) {
       <div>
         <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Modelos rápidos</label>
         <div className="flex flex-wrap gap-1.5">
+          <button
+            type="button"
+            onClick={insertMatchOrder}
+            disabled={loadingOrder}
+            className="flex items-center gap-1 rounded-full border border-primary/40 bg-primary/10 px-2.5 py-1 text-[11px] font-semibold text-primary hover:bg-primary/20 disabled:opacity-50"
+          >
+            {loadingOrder ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
+            Ordem dos jogos
+          </button>
           {PRESETS.map((p) => (
             <button
               key={p.label}
