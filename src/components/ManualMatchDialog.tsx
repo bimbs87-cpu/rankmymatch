@@ -405,8 +405,30 @@ export function ManualMatchDialog({
 
       const seasonId = roundData?.season_id || "";
 
+      let scheduledMatches: Array<{ id: string; match_number: number | null }> = [];
+      if (skipPlayerSelection) {
+        const { data, error } = await supabase
+          .from("matches")
+          .select("id, match_number")
+          .eq("round_id", roundId)
+          .order("match_number", { ascending: true });
+        if (error) throw error;
+        scheduledMatches = data || [];
+        if (scheduledMatches.length !== matchups.length) {
+          throw new Error("A rodada não possui os 3 confrontos esperados");
+        }
+      }
+
       for (let i = 0; i < matchups.length; i++) {
         const mu = matchups[i];
+
+        if (skipPlayerSelection) {
+          await submitMatchScore(scheduledMatches[i].id, seasonId, [
+            { setNumber: 1, scoreA: mu.scoreA, scoreB: mu.scoreB },
+          ]);
+          continue;
+        }
+
         const winnerTeam = mu.scoreA > mu.scoreB ? "A" : "B";
         const { data: match, error } = await supabase
           .from("matches")
@@ -432,7 +454,9 @@ export function ManualMatchDialog({
         ]);
       }
 
-      await supabase.from("rounds").update({ status: "completed" }).eq("id", roundId);
+      if (!skipPlayerSelection) {
+        await supabase.from("rounds").update({ status: "completed" }).eq("id", roundId);
+      }
 
       if (roundData?.group_id) {
         const { data: currentUser } = await supabase.auth.getUser();
