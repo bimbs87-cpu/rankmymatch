@@ -115,6 +115,7 @@ export function usePendingMatch(groupId?: string) {
         group_match_format: groupRes.data?.match_format || "doubles",
         sets_per_match: seasonRes.data?.sets_per_match || 3,
         sets_mode: ((seasonRes.data as any)?.sets_mode as PendingMatch["sets_mode"]) || "fixed",
+        total_matches_in_round: (totalRes as any)?.count ?? 1,
         teamA: buildTeam("A"),
         teamB: buildTeam("B"),
         existingSets: (setsRes.data || []).map((s) => ({
