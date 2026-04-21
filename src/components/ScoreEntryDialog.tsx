@@ -63,6 +63,7 @@ export function ScoreEntryDialog({
   setsPerMatch = 3,
   setsMode,
   isSingles = false,
+  totalMatches = 1,
   isAdmin = true,
   onClose,
   onSaved,
