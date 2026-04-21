@@ -28,6 +28,9 @@ interface Props {
    */
   setsMode?: "fixed" | "flexible" | "unlimited";
   isSingles?: boolean;
+  /** Total number of matches in the round (e.g. 3 for King of the Court). Used
+   * to display "Partida X de Y" in the dialog header. Defaults to 1. */
+  totalMatches?: number;
   /** Whether the current user is an admin of the group. Non-admin players
    * submit a pending result that admins must approve. Defaults to true to
    * preserve previous behavior in callers that have not yet been updated. */
