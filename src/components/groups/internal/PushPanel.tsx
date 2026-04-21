@@ -310,6 +310,15 @@ export function PushPanel({ groupId, groupName }: Props) {
       <div>
         <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Modelos rápidos</label>
         <div className="flex flex-wrap gap-1.5">
+          <button
+            type="button"
+            onClick={insertMatchOrder}
+            disabled={loadingOrder}
+            className="flex items-center gap-1 rounded-full border border-primary/40 bg-primary/10 px-2.5 py-1 text-[11px] font-semibold text-primary hover:bg-primary/20 disabled:opacity-50"
+          >
+            {loadingOrder ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
+            Ordem dos jogos
+          </button>
           {PRESETS.map((p) => (
             <button
               key={p.label}
