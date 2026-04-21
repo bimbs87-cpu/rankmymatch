@@ -47,6 +47,27 @@ function generateSinglesMatchup(players: string[]): Matchup[] {
   return [{ teamA: [players[0]], teamB: [players[1]], scoreA: 0, scoreB: 0 }];
 }
 
+async function loadScheduledRoundMatchups(roundId: string): Promise<Matchup[]> {
+  const { data: matches, error } = await supabase
+    .from("matches")
+    .select("id, match_number, match_players(user_id, team)")
+    .eq("round_id", roundId)
+    .order("match_number", { ascending: true });
+
+  if (error || !matches?.length) return [];
+
+  return (matches as Array<{
+    id: string;
+    match_number: number | null;
+    match_players: Array<{ user_id: string; team: string }> | null;
+  }>).map((match) => ({
+    teamA: (match.match_players || []).filter((player) => player.team === "A").map((player) => player.user_id),
+    teamB: (match.match_players || []).filter((player) => player.team === "B").map((player) => player.user_id),
+    scoreA: 0,
+    scoreB: 0,
+  }));
+}
+
 export function ManualMatchDialog({
   roundId,
   groupId,
@@ -114,12 +135,8 @@ export function ManualMatchDialog({
           if (isSingles) {
             setMatchups(generateSinglesMatchup(ordered));
           } else {
-            const [p1, p2, p3, p4] = ordered;
-            setMatchups([
-              { teamA: [p1, p4], teamB: [p2, p3], scoreA: 0, scoreB: 0 },
-              { teamA: [p1, p3], teamB: [p2, p4], scoreA: 0, scoreB: 0 },
-              { teamA: [p1, p2], teamB: [p3, p4], scoreA: 0, scoreB: 0 },
-            ]);
+            const scheduledMatchups = await loadScheduledRoundMatchups(roundId);
+            setMatchups(scheduledMatchups.length ? scheduledMatchups : generateDoublesMatchups(ordered));
           }
           setStep("scores");
         }
@@ -127,7 +144,7 @@ export function ManualMatchDialog({
       setLoading(false);
     };
     load();
-  }, [groupId, isSingles, preselectedPlayerIds, requiredPlayers, skipPlayerSelection]);
+  }, [groupId, isSingles, preselectedPlayerIds, requiredPlayers, roundId, skipPlayerSelection]);
 
   useEffect(() => {
     if (!submitting) {
