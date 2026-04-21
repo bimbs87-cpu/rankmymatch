@@ -1223,6 +1223,14 @@ function DashboardPage() {
     );
   })();
 
+  const isDuplicateOfPendingMatch = Boolean(
+    pendingMatch &&
+    nextMatch &&
+    pendingMatch.group_id === nextMatch.group_id &&
+    pendingMatch.round_id === nextMatch.round_id,
+  );
+  const visibleNextMatchCardJSX = isDuplicateOfPendingMatch ? null : nextMatchCardJSX;
+
   return (
     <div
       ref={scrollRef}
@@ -1691,12 +1699,14 @@ function DashboardPage() {
           {/* Seu próximo confronto + Atalhos rápidos — desktop, side-by-side on the same row */}
           {(nextMatchCardJSX || true) && (
             <div className="flex flex-row gap-4">
-              {nextMatchCardJSX ? (
-                <div className="flex-1 min-w-0">{nextMatchCardJSX}</div>
-              ) : (
+              {visibleNextMatchCardJSX ? (
+                <div className="flex-1 min-w-0">{visibleNextMatchCardJSX}</div>
+              ) : !isDuplicateOfPendingMatch ? (
                 <div className="flex-1 min-w-0 flex items-center justify-center rounded-3xl border border-dashed border-border bg-card/50 p-6">
                   <p className="text-xs text-muted-foreground">Nenhum confronto próximo agendado</p>
                 </div>
+              ) : (
+                null
               )}
               <div className="w-[260px] shrink-0">
                 <div className="rounded-3xl border border-border bg-card p-4 h-full">
@@ -2257,9 +2267,9 @@ function DashboardPage() {
         </section>
 
         {/* Seu próximo confronto — mobile/tablet only (desktop version is rendered inside the right column above) */}
-        {nextMatchCardJSX && (
+        {visibleNextMatchCardJSX && (
           <section className="lg:hidden">
-            {nextMatchCardJSX}
+            {visibleNextMatchCardJSX}
           </section>
         )}
 
