@@ -28,52 +28,55 @@ const PRESETS: { label: string; value: string }[] = [
 ];
 
 async function buildMatchOrderMessage(groupId: string): Promise<string | null> {
-  const { data: rounds } = await supabase
-    .from("rounds")
-    .select("id, round_number")
-    .eq("group_id", groupId)
-    .order("round_number", { ascending: false })
-    .limit(5);
-  if (!rounds?.length) return null;
+  const { data: matches, error } = await supabase
+    .from("matches")
+    .select("id, match_number, round_id, rounds!inner(group_id, round_number), match_players(user_id, team)")
+    .eq("rounds.group_id", groupId)
+    .order("round_number", { referencedTable: "rounds", ascending: false })
+    .order("match_number", { ascending: true });
 
-  for (const round of rounds) {
-    const { data: matches } = await supabase
-      .from("matches")
-      .select("id, match_number")
-      .eq("round_id", round.id)
-      .order("match_number", { ascending: true });
-    if (!matches?.length) continue;
+  if (error || !matches?.length) return null;
 
-    const matchIds = matches.map((m) => m.id);
-    const { data: mp } = await supabase
-      .from("match_players")
-      .select("match_id, user_id, team")
-      .in("match_id", matchIds);
-    if (!mp?.length) continue;
+  const typedMatches = (matches as Array<{
+    id: string;
+    match_number: number | null;
+    round_id: string;
+    rounds: { group_id: string; round_number: number | null } | { group_id: string; round_number: number | null }[] | null;
+    match_players: Array<{ user_id: string; team: string }> | null;
+  }>).filter((match) => (match.match_players || []).length > 0);
 
-    const userIds = Array.from(new Set(mp.map((p) => p.user_id)));
-    const { data: profs } = await supabase
-      .from("user_profiles")
-      .select("user_id, name, nickname")
-      .in("user_id", userIds);
+  if (!typedMatches.length) return null;
 
-    const labelMap = buildDisplayNames(
-      (profs || []).map((p) => ({ id: p.user_id, name: p.name || "Jogador", nickname: p.nickname })),
-    );
-    const labelOf = (uid: string) => labelMap.get(uid) || "Jogador";
+  const latestRoundId = typedMatches[0].round_id;
+  const roundMatches = typedMatches.filter((match) => match.round_id === latestRoundId);
+  if (!roundMatches.length) return null;
 
-    const lines: string[] = [];
-    for (const m of matches) {
-      const players = mp.filter((p) => p.match_id === m.id);
-      const teamA = players.filter((p) => p.team === "A").map((p) => labelOf(p.user_id));
-      const teamB = players.filter((p) => p.team === "B").map((p) => labelOf(p.user_id));
-      if (!teamA.length || !teamB.length) continue;
-      lines.push(`${m.match_number}-${teamA.join("/")} x ${teamB.join("/")}`);
-    }
-    if (!lines.length) continue;
-    return `Ordem dos jogos: ${lines.join(", ")}.`;
-  }
-  return null;
+  const userIds = Array.from(
+    new Set(roundMatches.flatMap((match) => (match.match_players || []).map((player) => player.user_id))),
+  );
+  const { data: profs } = await supabase
+    .from("user_profiles")
+    .select("user_id, name, nickname")
+    .in("user_id", userIds);
+
+  const labelMap = buildDisplayNames(
+    (profs || []).map((p) => ({ id: p.user_id, name: p.name || "Jogador", nickname: p.nickname })),
+  );
+  const labelOf = (uid: string) => labelMap.get(uid) || "Jogador";
+
+  const lines = roundMatches
+    .sort((a, b) => (a.match_number || 0) - (b.match_number || 0))
+    .map((match) => {
+      const players = match.match_players || [];
+      const teamA = players.filter((player) => player.team === "A").map((player) => labelOf(player.user_id));
+      const teamB = players.filter((player) => player.team === "B").map((player) => labelOf(player.user_id));
+      if (!teamA.length || !teamB.length) return null;
+      return `${match.match_number || 1}-${teamA.join("/")} x ${teamB.join("/")}`;
+    })
+    .filter(Boolean);
+
+  if (!lines.length) return null;
+  return `Ordem dos jogos: ${lines.join(", ")}.`;
 }
 
 export function PushPanel({ groupId, groupName }: Props) {
