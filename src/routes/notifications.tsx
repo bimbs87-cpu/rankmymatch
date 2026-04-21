@@ -99,13 +99,41 @@ function NotificationsPage() {
               const Icon = iconMap[n.type] || Bell;
               const isPromoted = n.type === "match_promoted";
               const isUnpromoted = n.type === "match_unpromoted";
-              const data = (n.data || {}) as { match_id?: string; season_id?: string | null };
-              const groupId = n.group_id;
+              const data = (n.data || {}) as {
+                match_id?: string;
+                season_id?: string | null;
+                seasonId?: string;
+                round_id?: string;
+                roundId?: string;
+                groupId?: string;
+              };
+              const groupId = n.group_id || data.groupId;
+              const seasonId = data.season_id || data.seasonId;
+              const roundId = data.round_id || data.roundId;
 
               const handleClick = async () => {
                 if (!n.read) await markRead(n.id);
                 if ((isPromoted || isUnpromoted) && groupId) {
                   navigate({ to: "/groups/$groupId/duel", params: { groupId } });
+                  return;
+                }
+                if (groupId && seasonId && roundId) {
+                  navigate({
+                    to: "/groups/$groupId",
+                    params: { groupId },
+                    search: { view: "seasons", season: seasonId, round: roundId } as any,
+                  });
+                  return;
+                }
+                if (groupId && seasonId) {
+                  navigate({
+                    to: "/groups/$groupId/seasons/$seasonId",
+                    params: { groupId, seasonId },
+                  });
+                  return;
+                }
+                if (groupId) {
+                  navigate({ to: "/groups/$groupId", params: { groupId } });
                 }
               };
 
@@ -143,7 +171,7 @@ function NotificationsPage() {
                   key={n.id}
                   onClick={handleClick}
                   className={`flex w-full items-start gap-3 rounded-2xl border p-3.5 text-left transition-all ${baseCls} ${
-                    (isPromoted || isUnpromoted) && groupId ? "active:scale-[0.99]" : ""
+                    groupId ? "active:scale-[0.99] cursor-pointer" : "cursor-default"
                   }`}
                 >
                   <div

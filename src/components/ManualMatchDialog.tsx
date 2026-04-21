@@ -423,8 +423,8 @@ export function ManualMatchDialog({ roundId, groupId, matchFormat = "doubles", o
             body: isSingles
               ? `Rodada ${roundData.round_number} — Confronto entre ${playerNames}. Confira o resultado!`
               : `Rodada ${roundData.round_number} — Rei da Quadra com ${playerNames}. Confira o resultado!`,
-            data: { roundId, seasonId },
-            url: `/groups/${roundData.group_id}/seasons/${seasonId}/rounds/${roundId}`,
+            data: { roundId, seasonId, groupId: roundData.group_id },
+            url: `/groups/${roundData.group_id}?view=seasons&season=${seasonId}&round=${roundId}`,
           }).catch(() => {});
         }
       }
