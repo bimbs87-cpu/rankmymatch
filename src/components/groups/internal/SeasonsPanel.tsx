@@ -17,6 +17,8 @@ import { GroupSummaryCards } from "./GroupSummaryCards";
 import { SeasonsTimeline } from "./SeasonsTimeline";
 import { createExtraRound as createExtraRoundFn } from "@/lib/extra-round";
 import { ScoreEntryDialog } from "@/components/ScoreEntryDialog";
+import { AdminAddPresenceDialog } from "@/components/AdminAddPresenceDialog";
+import { UserPlus } from "lucide-react";
 
 type SeasonFilter = "all" | "active" | "finished";
 
@@ -981,6 +983,7 @@ function RoundExpandedDetails({
   const [busy, setBusy] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
   const [scoringMatchId, setScoringMatchId] = useState<string | null>(null);
+  const [adminPresenceOpen, setAdminPresenceOpen] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -1214,6 +1217,19 @@ function RoundExpandedDetails({
             </div>
           )}
 
+      {/* Admin: add members to presence list (in-person sign-up) */}
+          {isAdmin && matchesData.length === 0 && (
+            <button
+              onClick={() => setAdminPresenceOpen(true)}
+              disabled={busy}
+              className="flex w-full items-center justify-center gap-2 rounded-xl border border-border bg-muted/40 py-2 text-xs font-semibold text-foreground hover:bg-muted/60 disabled:opacity-50"
+              title="Adicionar membros à lista de presença em nome deles"
+            >
+              <UserPlus className="h-3.5 w-3.5" />
+              Adicionar à lista
+            </button>
+          )}
+
       {/* Admin: sortear times when there are no matches yet */}
           {isAdmin && matchesData.length === 0 && (
             <button
@@ -1352,6 +1368,15 @@ function RoundExpandedDetails({
               />
             );
           })()}
+
+          <AdminAddPresenceDialog
+            open={adminPresenceOpen}
+            onOpenChange={setAdminPresenceOpen}
+            roundId={roundId}
+            groupId={groupId}
+            alreadyConfirmedIds={confirmedIds}
+            onAdded={() => setReloadKey((k) => k + 1)}
+          />
         </>
       )}
     </div>
