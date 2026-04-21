@@ -1,7 +1,7 @@
 // Cron job: processes pending account deletions whose 7-day grace period has ended.
 // Should be invoked daily (e.g. via pg_cron or external scheduler).
 // SECURITY: gated by CRON_SECRET header.
-import { createClient } from "@supabase/supabase-js";
+import { createClient } from "npm:@supabase/supabase-js@2";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
