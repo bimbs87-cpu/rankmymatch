@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
+import { removePushSubscriptionFn, upsertPushSubscriptionFn } from "@/lib/push.functions";
 
 /**
  * Web Push subscription manager.
@@ -108,21 +109,14 @@ export function usePushSubscription() {
       const auth = json.keys?.auth;
       if (!endpoint || !p256dh || !auth) throw new Error("Subscription inválida");
 
-      const { error } = await supabase
-        .from("push_subscriptions")
-        .upsert(
-          {
-            user_id: user.id,
-            endpoint,
-            p256dh,
-            auth,
-            user_agent: navigator.userAgent,
-            last_used_at: new Date().toISOString(),
-            failure_count: 0,
-          },
-          { onConflict: "user_id,endpoint" }
-        );
-      if (error) throw error;
+      await upsertPushSubscriptionFn({
+        data: {
+          endpoint,
+          p256dh,
+          auth,
+          userAgent: navigator.userAgent,
+        },
+      });
 
       setIsSubscribed(true);
       return true;
@@ -143,12 +137,7 @@ export function usePushSubscription() {
       if (sub) {
         const endpoint = sub.endpoint;
         await sub.unsubscribe().catch(() => {});
-        const { error } = await supabase
-          .from("push_subscriptions")
-          .delete()
-          .eq("user_id", user.id)
-          .eq("endpoint", endpoint);
-        if (error) throw error;
+        await removePushSubscriptionFn({ data: { endpoint } });
       }
       setIsSubscribed(false);
     } finally {
