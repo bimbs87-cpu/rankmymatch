@@ -16,7 +16,7 @@ import {
   X,
   ArrowUpRight,
   Lightbulb,
-  Github,
+  GitBranch,
   RefreshCw,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
