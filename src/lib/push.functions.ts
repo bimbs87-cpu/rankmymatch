@@ -19,6 +19,17 @@ interface SendPushInput {
   payload: PushPayload;
 }
 
+interface UpsertPushSubscriptionInput {
+  endpoint: string;
+  p256dh: string;
+  auth: string;
+  userAgent?: string | null;
+}
+
+interface RemovePushSubscriptionInput {
+  endpoint: string;
+}
+
 export const sendPushFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: SendPushInput) => {
@@ -70,4 +81,73 @@ export const sendPushFn = createServerFn({ method: "POST" })
       console.error("[sendPushFn] delivery failed:", err);
       return { sent: 0, failed: allowed.length, error: "push_failed" };
     }
+  });
+
+export const upsertPushSubscriptionFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: UpsertPushSubscriptionInput) => {
+    if (!input || typeof input !== "object") throw new Error("invalid push subscription input");
+    const endpoint = String(input.endpoint || "").trim().slice(0, 2000);
+    const p256dh = String(input.p256dh || "").trim().slice(0, 512);
+    const auth = String(input.auth || "").trim().slice(0, 512);
+    const userAgent = input.userAgent ? String(input.userAgent).slice(0, 1000) : null;
+    if (!endpoint || !p256dh || !auth) throw new Error("subscription inválida");
+    return { endpoint, p256dh, auth, userAgent };
+  })
+  .handler(async ({ data, context }) => {
+    const { endpoint, p256dh, auth, userAgent } = data;
+    const userId = context.userId;
+
+    const { error: cleanupError } = await supabaseAdmin
+      .from("push_subscriptions")
+      .delete()
+      .eq("endpoint", endpoint)
+      .neq("user_id", userId);
+    if (cleanupError) {
+      console.error("[push] failed to cleanup conflicting endpoint", cleanupError);
+      throw new Error("push_subscription_cleanup_failed");
+    }
+
+    const { error } = await supabaseAdmin
+      .from("push_subscriptions")
+      .upsert(
+        {
+          user_id: userId,
+          endpoint,
+          p256dh,
+          auth,
+          user_agent: userAgent,
+          last_used_at: new Date().toISOString(),
+          failure_count: 0,
+        },
+        { onConflict: "user_id,endpoint" },
+      );
+    if (error) {
+      console.error("[push] failed to upsert subscription", error);
+      throw new Error("push_subscription_upsert_failed");
+    }
+
+    return { ok: true };
+  });
+
+export const removePushSubscriptionFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: RemovePushSubscriptionInput) => {
+    const endpoint = String(input?.endpoint || "").trim().slice(0, 2000);
+    if (!endpoint) throw new Error("endpoint é obrigatório");
+    return { endpoint };
+  })
+  .handler(async ({ data, context }) => {
+    const { error } = await supabaseAdmin
+      .from("push_subscriptions")
+      .delete()
+      .eq("user_id", context.userId)
+      .eq("endpoint", data.endpoint);
+
+    if (error) {
+      console.error("[push] failed to remove subscription", error);
+      throw new Error("push_subscription_remove_failed");
+    }
+
+    return { ok: true };
   });
