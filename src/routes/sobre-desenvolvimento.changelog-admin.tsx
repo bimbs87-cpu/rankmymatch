@@ -159,17 +159,63 @@ function ChangelogAdminPage() {
     return pub?.version ?? notes[0]?.version ?? null;
   }, [notes]);
 
-  // Suggestions = known shipped entries not yet present in release_notes (by title)
-  const suggestions = useMemo(() => {
-    if (!notes) return [];
-    const existingTitles = new Set(notes.map((n) => n.title.trim().toLowerCase()));
-    return KNOWN_RECENT_SHIPPED.filter((s) => !existingTitles.has(s.title.trim().toLowerCase()));
-  }, [notes]);
+  // Commit-based suggestions, fetched on demand from GitHub
+  const [commitSuggestions, setCommitSuggestions] = useState<CommitSuggestion[]>([]);
+  const [fetchingCommits, setFetchingCommits] = useState(false);
+  const [commitsFetchedAt, setCommitsFetchedAt] = useState<Date | null>(null);
 
-  function applySuggestion(s: (typeof KNOWN_RECENT_SHIPPED)[number]) {
+  const suggestions = useMemo(() => {
+    if (!notes) return commitSuggestions;
+    const existingTitles = new Set(notes.map((n) => n.title.trim().toLowerCase()));
+    return commitSuggestions.filter((s) => !existingTitles.has(s.title.trim().toLowerCase()));
+  }, [notes, commitSuggestions]);
+
+  async function fetchCommitsFromGitHub() {
+    setFetchingCommits(true);
+    try {
+      const url = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/commits?sha=${GITHUB_BRANCH}&per_page=30`;
+      const res = await fetch(url, { headers: { Accept: "application/vnd.github+json" } });
+      if (!res.ok) {
+        const body = await res.text().catch(() => "");
+        throw new Error(`GitHub ${res.status}: ${body.slice(0, 120)}`);
+      }
+      const data = (await res.json()) as Array<{
+        sha: string;
+        html_url: string;
+        commit: { message: string; author: { date: string } };
+      }>;
+      const seen = new Set<string>();
+      const parsed: CommitSuggestion[] = [];
+      for (const c of data) {
+        const raw = c.commit?.message ?? "";
+        if (isNoise(raw)) continue;
+        const title = cleanTitle(raw);
+        const key = title.toLowerCase();
+        if (seen.has(key)) continue;
+        seen.add(key);
+        parsed.push({
+          sha: c.sha.slice(0, 7),
+          title,
+          description: raw.split("\n").slice(1).join("\n").trim() || `Commit ${c.sha.slice(0, 7)}`,
+          type: inferType(raw),
+          url: c.html_url,
+          date: c.commit?.author?.date ?? "",
+        });
+      }
+      setCommitSuggestions(parsed);
+      setCommitsFetchedAt(new Date());
+      toast.success(`${parsed.length} commits encontrados`);
+    } catch (e: any) {
+      toast.error(`Falha ao buscar commits: ${e.message ?? "erro"}`);
+    } finally {
+      setFetchingCommits(false);
+    }
+  }
+
+  function applySuggestion(s: CommitSuggestion) {
     setDraft((d) => ({
       ...d,
-      version: latestVersion ? bumpPatch(latestVersion) : s.version,
+      version: latestVersion ? bumpPatch(latestVersion) : "v0.0.1",
       title: s.title,
       description: s.description,
       type: s.type,
@@ -178,6 +224,7 @@ function ChangelogAdminPage() {
     }));
     toast.success("Sugestão aplicada ao formulário");
   }
+
 
   function handleBumpVersion() {
     if (!latestVersion) {
