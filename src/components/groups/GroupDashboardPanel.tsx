@@ -32,6 +32,7 @@ import { Clock } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import { confirmPresence, cancelPresence, adminPromoteFromWaitlist } from "@/lib/round-actions";
+import { getServerFnAuthHeaders } from "@/lib/server-fn-auth";
 import { leaveGroup, approveJoinRequest, rejectJoinRequest } from "@/hooks/use-groups";
 import {
   AlertDialog,
@@ -210,6 +211,7 @@ export function GroupDashboardPanel({ group, onLeft, onPresenceChanged }: Props)
 
       // Push (best-effort, gated server-side by shared-group rule)
       void sendPushFn({
+        headers: await getServerFnAuthHeaders(),
         data: {
           userIds: targetIds,
           payload: {

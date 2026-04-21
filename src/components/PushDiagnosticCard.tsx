@@ -4,6 +4,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { usePushSubscription } from "@/hooks/use-push-subscription";
 import { PUSH_EVENT_TYPES, usePushPreferences } from "@/hooks/use-push-preferences";
 import { sendPushFn } from "@/lib/push.functions";
+import { getServerFnAuthHeaders } from "@/lib/server-fn-auth";
 import { toast } from "sonner";
 import { BellRing, BellOff, CheckCircle2, XCircle, Smartphone, AlertTriangle, Send, History, Copy } from "lucide-react";
 
@@ -169,6 +170,7 @@ export function PushDiagnosticCard() {
                     if (!user) return;
                     try {
                       const res = await sendPushFn({
+                        headers: await getServerFnAuthHeaders(),
                         data: {
                           userIds: [user.id],
                           payload: {
