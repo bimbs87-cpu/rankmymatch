@@ -1699,8 +1699,8 @@ function DashboardPage() {
           {/* Seu próximo confronto + Atalhos rápidos — desktop, side-by-side on the same row */}
           {(nextMatchCardJSX || true) && (
             <div className="flex flex-row gap-4">
-              {nextMatchCardJSX ? (
-                <div className="flex-1 min-w-0">{nextMatchCardJSX}</div>
+              {visibleNextMatchCardJSX ? (
+                <div className="flex-1 min-w-0">{visibleNextMatchCardJSX}</div>
               ) : (
                 <div className="flex-1 min-w-0 flex items-center justify-center rounded-3xl border border-dashed border-border bg-card/50 p-6">
                   <p className="text-xs text-muted-foreground">Nenhum confronto próximo agendado</p>
@@ -2265,9 +2265,9 @@ function DashboardPage() {
         </section>
 
         {/* Seu próximo confronto — mobile/tablet only (desktop version is rendered inside the right column above) */}
-        {nextMatchCardJSX && (
+        {visibleNextMatchCardJSX && (
           <section className="lg:hidden">
-            {nextMatchCardJSX}
+            {visibleNextMatchCardJSX}
           </section>
         )}
 
