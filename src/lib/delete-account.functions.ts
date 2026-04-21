@@ -18,14 +18,15 @@ const GRACE_PERIOD_DAYS = 7;
 export const requestAccountDeletionFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { userId } = context;
+    const { userId, claims } = context;
+    const userEmail = claims?.email as string | undefined;
     const now = new Date();
     const scheduledFor = new Date(now.getTime() + GRACE_PERIOD_DAYS * 24 * 60 * 60 * 1000);
 
     // Check if already pending
     const { data: existing } = await supabaseAdmin
       .from("user_profiles")
-      .select("deletion_scheduled_for")
+      .select("deletion_scheduled_for, name")
       .eq("user_id", userId)
       .maybeSingle();
 
@@ -61,8 +62,60 @@ export const requestAccountDeletionFn = createServerFn({ method: "POST" })
       data: { scheduled_for: scheduledFor.toISOString() },
     });
 
+    // Send confirmation email (best-effort — failure does not block the request).
+    if (userEmail) {
+      try {
+        await sendDeletionEmail({
+          recipientEmail: userEmail,
+          name: existing?.name ?? null,
+          scheduledFor: scheduledFor.toISOString(),
+          userId,
+        });
+      } catch (emailErr) {
+        console.error("[request-deletion] email send failed:", emailErr);
+      }
+    }
+
     return { success: true, scheduledFor: scheduledFor.toISOString() };
   });
+
+/**
+ * Server-side helper that enqueues the deletion-confirmation email by
+ * calling the project's transactional send route with service-role auth.
+ */
+async function sendDeletionEmail(params: {
+  recipientEmail: string;
+  name: string | null;
+  scheduledFor: string;
+  userId: string;
+}) {
+  const baseUrl = process.env.SITE_URL || "https://rankmymatch.app";
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!serviceKey) {
+    console.warn("[request-deletion] SUPABASE_SERVICE_ROLE_KEY missing; skipping email");
+    return;
+  }
+  const res = await fetch(`${baseUrl}/lovable/email/transactional/send`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${serviceKey}`,
+    },
+    body: JSON.stringify({
+      templateName: "account-deletion-requested",
+      recipientEmail: params.recipientEmail,
+      idempotencyKey: `account-deletion-${params.userId}-${params.scheduledFor}`,
+      templateData: {
+        name: params.name ?? undefined,
+        scheduledFor: params.scheduledFor,
+      },
+    }),
+  });
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`Email send failed (${res.status}): ${body}`);
+  }
+}
 
 /**
  * Cancels a pending account deletion (only works during the grace period).
