@@ -45,6 +45,7 @@ import { Route as GroupsGroupIdSeasonsRouteImport } from './routes/groups.$group
 import { Route as GroupsGroupIdDuelRouteImport } from './routes/groups.$groupId.duel'
 import { Route as ApiPushVapidPublicKeyRouteImport } from './routes/api.push.vapid-public-key'
 import { Route as GroupsGroupIdSeasonsIndexRouteImport } from './routes/groups.$groupId.seasons.index'
+import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
 import { Route as GroupsGroupIdSeasonsSeasonIdRouteImport } from './routes/groups.$groupId.seasons.$seasonId'
 import { Route as ApiOgPlayerUserIdRouteImport } from './routes/api.og.player.$userId'
 import { Route as ApiOgGroupGroupIdRouteImport } from './routes/api.og.group.$groupId'
@@ -235,6 +236,12 @@ const GroupsGroupIdSeasonsIndexRoute =
     path: '/',
     getParentRoute: () => GroupsGroupIdSeasonsRoute,
   } as any)
+const LovableEmailQueueProcessRoute =
+  LovableEmailQueueProcessRouteImport.update({
+    id: '/lovable/email/queue/process',
+    path: '/lovable/email/queue/process',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const GroupsGroupIdSeasonsSeasonIdRoute =
   GroupsGroupIdSeasonsSeasonIdRouteImport.update({
     id: '/$seasonId',
@@ -297,6 +304,7 @@ export interface FileRoutesByFullPath {
   '/api/og/group/$groupId': typeof ApiOgGroupGroupIdRoute
   '/api/og/player/$userId': typeof ApiOgPlayerUserIdRoute
   '/groups/$groupId/seasons/$seasonId': typeof GroupsGroupIdSeasonsSeasonIdRouteWithChildren
+  '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
   '/groups/$groupId/seasons/': typeof GroupsGroupIdSeasonsIndexRoute
   '/groups/$groupId/seasons/$seasonId/': typeof GroupsGroupIdSeasonsSeasonIdIndexRoute
 }
@@ -335,6 +343,7 @@ export interface FileRoutesByTo {
   '/groups/$groupId': typeof GroupsGroupIdIndexRoute
   '/api/og/group/$groupId': typeof ApiOgGroupGroupIdRoute
   '/api/og/player/$userId': typeof ApiOgPlayerUserIdRoute
+  '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
   '/groups/$groupId/seasons': typeof GroupsGroupIdSeasonsIndexRoute
   '/groups/$groupId/seasons/$seasonId': typeof GroupsGroupIdSeasonsSeasonIdIndexRoute
 }
@@ -378,6 +387,7 @@ export interface FileRoutesById {
   '/api/og/group/$groupId': typeof ApiOgGroupGroupIdRoute
   '/api/og/player/$userId': typeof ApiOgPlayerUserIdRoute
   '/groups/$groupId/seasons/$seasonId': typeof GroupsGroupIdSeasonsSeasonIdRouteWithChildren
+  '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
   '/groups/$groupId/seasons/': typeof GroupsGroupIdSeasonsIndexRoute
   '/groups/$groupId/seasons/$seasonId/': typeof GroupsGroupIdSeasonsSeasonIdIndexRoute
 }
@@ -422,6 +432,7 @@ export interface FileRouteTypes {
     | '/api/og/group/$groupId'
     | '/api/og/player/$userId'
     | '/groups/$groupId/seasons/$seasonId'
+    | '/lovable/email/queue/process'
     | '/groups/$groupId/seasons/'
     | '/groups/$groupId/seasons/$seasonId/'
   fileRoutesByTo: FileRoutesByTo
@@ -460,6 +471,7 @@ export interface FileRouteTypes {
     | '/groups/$groupId'
     | '/api/og/group/$groupId'
     | '/api/og/player/$userId'
+    | '/lovable/email/queue/process'
     | '/groups/$groupId/seasons'
     | '/groups/$groupId/seasons/$seasonId'
   id:
@@ -502,6 +514,7 @@ export interface FileRouteTypes {
     | '/api/og/group/$groupId'
     | '/api/og/player/$userId'
     | '/groups/$groupId/seasons/$seasonId'
+    | '/lovable/email/queue/process'
     | '/groups/$groupId/seasons/'
     | '/groups/$groupId/seasons/$seasonId/'
   fileRoutesById: FileRoutesById
@@ -537,6 +550,7 @@ export interface RootRouteChildren {
   ApiPushVapidPublicKeyRoute: typeof ApiPushVapidPublicKeyRoute
   ApiOgGroupGroupIdRoute: typeof ApiOgGroupGroupIdRoute
   ApiOgPlayerUserIdRoute: typeof ApiOgPlayerUserIdRoute
+  LovableEmailQueueProcessRoute: typeof LovableEmailQueueProcessRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -793,6 +807,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof GroupsGroupIdSeasonsIndexRouteImport
       parentRoute: typeof GroupsGroupIdSeasonsRoute
     }
+    '/lovable/email/queue/process': {
+      id: '/lovable/email/queue/process'
+      path: '/lovable/email/queue/process'
+      fullPath: '/lovable/email/queue/process'
+      preLoaderRoute: typeof LovableEmailQueueProcessRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/groups/$groupId/seasons/$seasonId': {
       id: '/groups/$groupId/seasons/$seasonId'
       path: '/$seasonId'
@@ -927,6 +948,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPushVapidPublicKeyRoute: ApiPushVapidPublicKeyRoute,
   ApiOgGroupGroupIdRoute: ApiOgGroupGroupIdRoute,
   ApiOgPlayerUserIdRoute: ApiOgPlayerUserIdRoute,
+  LovableEmailQueueProcessRoute: LovableEmailQueueProcessRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
