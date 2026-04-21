@@ -5,6 +5,7 @@
  * Both helpers insert in-app notifications and best-effort push.
  */
 import { supabase } from "@/integrations/supabase/client";
+import { getServerFnAuthHeaders } from "@/lib/server-fn-auth";
 
 type NotifyParams = {
   groupId: string;
@@ -71,6 +72,7 @@ async function fanout(
   try {
     const { sendPushFn } = await import("@/lib/push.functions");
     const res = (await sendPushFn({
+      headers: await getServerFnAuthHeaders(),
       data: {
         userIds,
         payload: {

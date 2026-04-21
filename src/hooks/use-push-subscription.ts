@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { removePushSubscriptionFn, upsertPushSubscriptionFn } from "@/lib/push.functions";
+import { getServerFnAuthHeaders } from "@/lib/server-fn-auth";
 
 /**
  * Web Push subscription manager.
@@ -109,6 +110,7 @@ export function usePushSubscription() {
       if (!endpoint || !p256dh || !auth) throw new Error("Subscription inválida");
 
       await upsertPushSubscriptionFn({
+        headers: await getServerFnAuthHeaders(),
         data: {
           endpoint,
           p256dh,
@@ -136,7 +138,7 @@ export function usePushSubscription() {
       if (sub) {
         const endpoint = sub.endpoint;
         await sub.unsubscribe().catch(() => {});
-        await removePushSubscriptionFn({ data: { endpoint } });
+        await removePushSubscriptionFn({ headers: await getServerFnAuthHeaders(), data: { endpoint } });
       }
       setIsSubscribed(false);
     } finally {
