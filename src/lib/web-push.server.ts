@@ -53,21 +53,26 @@ function readDerLength(bytes: Uint8Array, offset: number): { length: number; nex
   return { length, nextOffset: offset + 1 + count };
 }
 
-function derToJoseEs256Signature(der: Uint8Array): Uint8Array {
-  if (der[0] !== 0x30) {
-    throw new Error("Invalid DER ECDSA signature");
+function normalizeJoseEs256Signature(signature: Uint8Array): Uint8Array {
+  // Some runtimes return ECDSA signatures as raw JOSE bytes (r||s, 64 bytes),
+  // while others return ASN.1 DER. VAPID JWTs need JOSE format.
+  if (signature.length === 64 && signature[0] !== 0x30) {
+    return signature;
+  }
+  if (signature[0] !== 0x30) {
+    throw new Error("Invalid ECDSA signature format");
   }
 
-  const sequence = readDerLength(der, 1);
+  const sequence = readDerLength(signature, 1);
   let offset = sequence.nextOffset;
 
   const readInteger = (): Uint8Array => {
-    if (der[offset] !== 0x02) throw new Error("Invalid DER integer");
-    const len = readDerLength(der, offset + 1);
+    if (signature[offset] !== 0x02) throw new Error("Invalid DER integer");
+    const len = readDerLength(signature, offset + 1);
     const start = len.nextOffset;
     const end = start + len.length;
     offset = end;
-    let value = der.slice(start, end);
+    let value = signature.slice(start, end);
     while (value.length > 0 && value[0] === 0) value = value.slice(1);
     if (value.length > 32) value = value.slice(value.length - 32);
     const out = new Uint8Array(32);
@@ -150,7 +155,7 @@ async function buildVapidAuthHeader(
     key,
     TEXT.encode(signingInput),
   );
-  const sigB64 = bytesToB64u(derToJoseEs256Signature(new Uint8Array(sigBuf)));
+  const sigB64 = bytesToB64u(normalizeJoseEs256Signature(new Uint8Array(sigBuf)));
   const jwt = `${signingInput}.${sigB64}`;
   return `vapid t=${jwt}, k=${publicKeyB64u}`;
 }
