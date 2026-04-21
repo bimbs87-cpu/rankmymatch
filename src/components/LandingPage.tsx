@@ -20,6 +20,7 @@ import logoHorizontalLight from "@/assets/logo-horizontal-light.png";
 import heroDevices from "@/assets/landing-hero-devices.png";
 import heroMobile from "@/assets/landing-hero-mobile.png";
 import { useTheme } from "@/lib/theme";
+import { AppleSignInButton } from "@/components/AppleSignInButton";
 
 function GoogleIcon({ className }: { className?: string }) {
   return (

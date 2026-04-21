@@ -95,6 +95,13 @@ function InviteAuthButtons({ inviteUrl }: { inviteUrl: string }) {
         </svg>
         {loading ? "Entrando..." : "Entrar com Google"}
       </button>
+      <AppleSignInButton
+        variant="outline"
+        redirectUri={inviteUrl}
+        postLoginNavigate={inviteUrl}
+        useReplace
+        onError={(msg) => toast.error(msg)}
+      />
     </>
   );
 }

@@ -11,6 +11,7 @@ import logoHorizontalLight from "@/assets/logo-horizontal-light.png";
 import logoSquareNeon from "@/assets/logo-square-neon.png";
 import { useTheme } from "@/lib/theme";
 import { useInstallFlow } from "@/components/InstallFlowProvider";
+import { AppleSignInButton } from "@/components/AppleSignInButton";
 
 export const Route = createFileRoute("/login")({
   head: () => ({
