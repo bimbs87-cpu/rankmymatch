@@ -35,6 +35,9 @@ export const Route = createFileRoute("/dev")({
     ],
   }),
   beforeLoad: async () => {
+    // Skip on SSR — no auth cookies available, would always redirect to /.
+    // Auth/admin check happens client-side in the component.
+    if (typeof window === "undefined") return;
     const {
       data: { session },
     } = await supabase.auth.getSession();
