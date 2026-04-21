@@ -17,6 +17,8 @@ import { GroupSummaryCards } from "./GroupSummaryCards";
 import { SeasonsTimeline } from "./SeasonsTimeline";
 import { createExtraRound as createExtraRoundFn } from "@/lib/extra-round";
 import { ScoreEntryDialog } from "@/components/ScoreEntryDialog";
+import { AdminAddPresenceDialog } from "@/components/AdminAddPresenceDialog";
+import { UserPlus } from "lucide-react";
 
 type SeasonFilter = "all" | "active" | "finished";
 
@@ -981,6 +983,7 @@ function RoundExpandedDetails({
   const [busy, setBusy] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
   const [scoringMatchId, setScoringMatchId] = useState<string | null>(null);
+  const [adminPresenceOpen, setAdminPresenceOpen] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
