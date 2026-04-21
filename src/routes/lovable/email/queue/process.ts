@@ -37,7 +37,8 @@ function getRetryAfterSeconds(error: unknown): number {
 
 // Move a message to the dead letter queue and log the reason.
 async function moveToDlq(
-  supabase: ReturnType<typeof createClient>,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
   queue: string,
   msg: { msg_id: number; message: Record<string, unknown> },
   reason: string
@@ -89,7 +90,8 @@ export const Route = createFileRoute("/lovable/email/queue/process")({
           return Response.json({ error: 'Forbidden' }, { status: 403 })
         }
 
-        const supabase = createClient(supabaseUrl, supabaseServiceKey)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const supabase: any = createClient(supabaseUrl, supabaseServiceKey)
 
         // 1. Check rate-limit cooldown and read queue config
         const { data: state } = await supabase
