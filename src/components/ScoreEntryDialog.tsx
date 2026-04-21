@@ -574,13 +574,24 @@ export function ScoreEntryDialog({
           <div className="flex items-center justify-between mb-1">
             <h2 className="font-display text-lg font-bold text-foreground">
               {isSingles ? `Confronto ${matchNumber}` : `Partida ${matchNumber}`}
+              {totalMatches > 1 && (
+                <span className="ml-1 text-sm font-medium text-muted-foreground">
+                  de {totalMatches}
+                </span>
+              )}
             </h2>
             <button onClick={onClose} disabled={submitting} className="rounded-full bg-muted p-2 disabled:opacity-50">
               <X className="h-4 w-4 text-muted-foreground" />
             </button>
           </div>
           <p className="mb-5 text-xs text-muted-foreground">
-            {isSingles ? "1 confronto" : "1 partida"}
+            {totalMatches > 1
+              ? isSingles
+                ? `${totalMatches} confrontos no total`
+                : `${totalMatches} partidas no total`
+              : isSingles
+              ? "1 confronto"
+              : "1 partida"}
             {isUnlimitedSets
               ? " • sets livres"
               : isFlexibleSets
