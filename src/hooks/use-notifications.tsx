@@ -5,6 +5,45 @@ import type { Tables } from "@/integrations/supabase/types";
 
 type Notification = Tables<"notifications">;
 
+const ROUND_LIFECYCLE_TYPES = new Set([
+  "round_created",
+  "round_open",
+  "round_urgent",
+  "round_reminder",
+  "round_nudge",
+]);
+
+function getRoundLifecycleKey(notification: Notification): string | null {
+  if (!ROUND_LIFECYCLE_TYPES.has(notification.type)) return null;
+
+  const data = (notification.data || {}) as {
+    roundId?: string;
+    round_id?: string;
+    groupId?: string;
+    group_id?: string;
+  };
+
+  const roundId = data.roundId || data.round_id;
+  const groupId = notification.group_id || data.groupId || data.group_id || "global";
+
+  return roundId ? `${groupId}:${roundId}` : null;
+}
+
+function dedupeNotifications(items: Notification[]) {
+  const seen = new Set<string>();
+
+  return items.filter((notification) => {
+    const roundKey = getRoundLifecycleKey(notification);
+    if (!roundKey) return true;
+
+    const dedupeKey = `round-lifecycle:${roundKey}`;
+    if (seen.has(dedupeKey)) return false;
+
+    seen.add(dedupeKey);
+    return true;
+  });
+}
+
 export function useNotifications() {
   const { user } = useAuth();
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -31,7 +70,7 @@ export function useNotifications() {
 
       if (error) throw error;
 
-      const items = data || [];
+      const items = dedupeNotifications(data || []);
       setNotifications(items);
       setUnreadCount(items.filter((n) => !n.read).length);
     } catch (error) {
