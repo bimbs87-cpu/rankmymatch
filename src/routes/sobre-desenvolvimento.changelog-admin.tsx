@@ -16,6 +16,8 @@ import {
   X,
   ArrowUpRight,
   Lightbulb,
+  Github,
+  RefreshCw,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
