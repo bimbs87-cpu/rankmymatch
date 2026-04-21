@@ -1223,6 +1223,14 @@ function DashboardPage() {
     );
   })();
 
+  const isDuplicateOfPendingMatch = Boolean(
+    pendingMatch &&
+    nextMatch &&
+    pendingMatch.group_id === nextMatch.group_id &&
+    pendingMatch.round_id === nextMatch.round_id,
+  );
+  const visibleNextMatchCardJSX = isDuplicateOfPendingMatch ? null : nextMatchCardJSX;
+
   return (
     <div
       ref={scrollRef}
