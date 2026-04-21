@@ -48,6 +48,12 @@ const SUPPORT_EMAIL = "mailto:contato@rankmymatch.app?subject=Bug%20no%20RankMyM
 function AboutDevelopmentPage() {
   const { user } = useAuth();
   const [isAdmin, setIsAdmin] = useState(false);
+  const matches = useMatches();
+  const isChildRoute = matches.some(
+    (m) =>
+      m.routeId === "/sobre-desenvolvimento/admin" ||
+      m.routeId === "/sobre-desenvolvimento/changelog-admin",
+  );
 
   useEffect(() => {
     markReleasesSeen();
