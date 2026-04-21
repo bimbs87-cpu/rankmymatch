@@ -371,28 +371,68 @@ function ChangelogAdminPage() {
       </header>
 
       <main className="mx-auto w-full max-w-4xl space-y-6 px-5 lg:px-6">
-        {/* Suggestions */}
-        {suggestions.length > 0 && (
-          <section className="rounded-3xl border border-primary/30 bg-primary/5 p-4 lg:p-5">
-            <h2 className="mb-2 flex items-center gap-2 font-display text-sm font-bold uppercase tracking-wider text-foreground">
+        {/* Suggestions from GitHub */}
+        <section className="rounded-3xl border border-primary/30 bg-primary/5 p-4 lg:p-5">
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <h2 className="flex items-center gap-2 font-display text-sm font-bold uppercase tracking-wider text-foreground">
               <Lightbulb className="h-4 w-4 text-primary" />
-              Sugestões automáticas ({suggestions.length})
+              Sugestões do GitHub {suggestions.length > 0 && `(${suggestions.length})`}
             </h2>
-            <p className="mb-3 text-[11px] text-muted-foreground">
-              Recursos recém-implementados que ainda não estão no changelog. Clique para preencher o formulário automaticamente.
+            <button
+              type="button"
+              onClick={fetchCommitsFromGitHub}
+              disabled={fetchingCommits}
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-primary/40 bg-primary/10 px-2.5 py-1 text-[11px] font-bold text-primary hover:bg-primary/20 disabled:opacity-50"
+            >
+              {fetchingCommits ? (
+                <Loader2 className="h-3 w-3 animate-spin" />
+              ) : (
+                <RefreshCw className="h-3 w-3" />
+              )}
+              {commitsFetchedAt ? "Atualizar" : "Buscar commits"}
+            </button>
+          </div>
+          <p className="mb-3 text-[11px] text-muted-foreground">
+            Últimos 30 commits de{" "}
+            <a
+              href={`https://github.com/${GITHUB_OWNER}/${GITHUB_REPO}/commits/${GITHUB_BRANCH}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-0.5 font-mono text-primary hover:underline"
+            >
+              <GitBranch className="h-3 w-3" />
+              {GITHUB_OWNER}/{GITHUB_REPO}@{GITHUB_BRANCH}
+            </a>
+            , filtrados (sem chore/merge/sync) e excluindo títulos já no changelog.
+          </p>
+          {commitSuggestions.length === 0 && !fetchingCommits && (
+            <p className="rounded-lg border border-dashed border-border bg-background/50 p-3 text-center text-[11px] text-muted-foreground">
+              Clique em <strong>Buscar commits</strong> para gerar sugestões a partir do histórico do repositório.
             </p>
+          )}
+          {suggestions.length > 0 && (
             <ul className="space-y-2">
-              {suggestions.map((s, i) => {
+              {suggestions.map((s) => {
                 const meta = TYPES.find((t) => t.id === s.type) ?? TYPES[1];
                 return (
-                  <li key={i} className="flex items-start gap-2 rounded-xl border border-border bg-card p-2.5">
+                  <li key={s.sha} className="flex items-start gap-2 rounded-xl border border-border bg-card p-2.5">
                     <span className={`mt-0.5 inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-bold ${meta.cls}`}>
                       {meta.icon}
                       {meta.label}
                     </span>
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-bold text-foreground">{s.title}</p>
-                      <p className="text-[11px] text-muted-foreground">{s.description}</p>
+                      <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                        <a
+                          href={s.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="font-mono hover:text-primary hover:underline"
+                        >
+                          {s.sha}
+                        </a>
+                        {s.date && <span>· {new Date(s.date).toLocaleDateString("pt-BR")}</span>}
+                      </div>
                     </div>
                     <button
                       type="button"
@@ -406,8 +446,14 @@ function ChangelogAdminPage() {
                 );
               })}
             </ul>
-          </section>
-        )}
+          )}
+          {commitSuggestions.length > 0 && suggestions.length === 0 && (
+            <p className="rounded-lg border border-dashed border-border bg-background/50 p-3 text-center text-[11px] text-muted-foreground">
+              Todos os commits já têm entrada no changelog. 🎉
+            </p>
+          )}
+        </section>
+
 
         {/* Create form */}
         <section className="rounded-3xl border border-border bg-card p-4 lg:p-5">
