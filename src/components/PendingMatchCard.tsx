@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { Swords, ChevronRight, Edit3, Clock } from "lucide-react";
 import { ScoreEntryDialog } from "@/components/ScoreEntryDialog";
+import { ManualMatchDialog } from "@/components/ManualMatchDialog";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { PlayerAvatarLink } from "@/components/PlayerProfileViewer";
 import { useMatchPendingResult } from "@/lib/pending-results";
@@ -16,9 +17,11 @@ interface Props {
 
 export function PendingMatchCard({ match, onScoreSaved, showGroupName = true, isAdmin = false }: Props) {
   const [scoring, setScoring] = useState(false);
+  const [batchScoring, setBatchScoring] = useState(false);
   const { pending } = useMatchPendingResult(match.id);
   const isSingles = match.group_match_format === "singles";
   const hasPending = !!pending;
+  const useKingOfCourtBatchModal = isAdmin && match.is_king_of_court_round && !hasPending;
 
   const playerAName = match.teamA[0]?.nickname || match.teamA[0]?.name || "Jogador A";
   const playerBName = match.teamB[0]?.nickname || match.teamB[0]?.name || "Jogador B";
@@ -87,7 +90,7 @@ export function PendingMatchCard({ match, onScoreSaved, showGroupName = true, is
         {/* Actions */}
         <div className="flex gap-2">
           <button
-            onClick={() => setScoring(true)}
+            onClick={() => (useKingOfCourtBatchModal ? setBatchScoring(true) : setScoring(true))}
             className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-primary py-2.5 text-xs font-bold text-primary-foreground active:scale-[0.98]"
           >
             <Edit3 className="h-3.5 w-3.5" />
@@ -120,6 +123,19 @@ export function PendingMatchCard({ match, onScoreSaved, showGroupName = true, is
           isAdmin={isAdmin}
           onClose={() => setScoring(false)}
           onSaved={() => { setScoring(false); onScoreSaved(); }}
+        />
+      )}
+
+      {batchScoring && (
+        <ManualMatchDialog
+          roundId={match.round_id}
+          groupId={match.group_id}
+          matchFormat={match.group_match_format}
+          preselectedPlayerIds={[...match.teamA, ...match.teamB].map((p) => p.user_id)}
+          skipPlayerSelection={true}
+          lockGeneratedOrder={true}
+          onClose={() => setBatchScoring(false)}
+          onSaved={() => { setBatchScoring(false); onScoreSaved(); }}
         />
       )}
     </>
