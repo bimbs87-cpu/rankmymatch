@@ -553,6 +553,30 @@ export async function drawTeams(roundId: string, confirmedPlayerIds: string[], a
     pairings = pairs.map(([a, b]) => [a, b]);
   }
 
+  // Doubles King of the Court: exactly 4 players → 3 matches with fixed
+  // partner rotation so every player partners with every other player once.
+  if (!isSingles && confirmedPlayerIds.length === 4 && roundData?.season_id) {
+    const { data: snapshots } = await supabase
+      .from("ranking_snapshots")
+      .select("user_id, rating, snapshot_date")
+      .eq("season_id", roundData.season_id)
+      .in("user_id", confirmedPlayerIds)
+      .order("snapshot_date", { ascending: false });
+
+    const ratingMap = new Map<string, number>();
+    (snapshots || []).forEach((s) => {
+      if (!ratingMap.has(s.user_id)) ratingMap.set(s.user_id, Number(s.rating));
+    });
+
+    const ordered = [...confirmedPlayerIds]
+      .map((id) => ({ id, rating: ratingMap.get(id) ?? 1000, r: Math.random() }))
+      .sort((a, b) => (b.rating - a.rating) || (a.r - b.r))
+      .map((x) => x.id);
+
+    const matches = buildDoublesKingOfCourt(ordered);
+    pairings = matches.map(([a, b]) => [...a, ...b]);
+  }
+
   if (pairings.length === 0) {
     const shuffled = [...confirmedPlayerIds];
     for (let i = shuffled.length - 1; i > 0; i--) {
