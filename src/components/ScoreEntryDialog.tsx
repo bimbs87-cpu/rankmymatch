@@ -28,6 +28,9 @@ interface Props {
    */
   setsMode?: "fixed" | "flexible" | "unlimited";
   isSingles?: boolean;
+  /** Total number of matches in the round (e.g. 3 for King of the Court). Used
+   * to display "Partida X de Y" in the dialog header. Defaults to 1. */
+  totalMatches?: number;
   /** Whether the current user is an admin of the group. Non-admin players
    * submit a pending result that admins must approve. Defaults to true to
    * preserve previous behavior in callers that have not yet been updated. */
@@ -60,6 +63,7 @@ export function ScoreEntryDialog({
   setsPerMatch = 3,
   setsMode,
   isSingles = false,
+  totalMatches = 1,
   isAdmin = true,
   onClose,
   onSaved,
@@ -570,13 +574,24 @@ export function ScoreEntryDialog({
           <div className="flex items-center justify-between mb-1">
             <h2 className="font-display text-lg font-bold text-foreground">
               {isSingles ? `Confronto ${matchNumber}` : `Partida ${matchNumber}`}
+              {totalMatches > 1 && (
+                <span className="ml-1 text-sm font-medium text-muted-foreground">
+                  de {totalMatches}
+                </span>
+              )}
             </h2>
             <button onClick={onClose} disabled={submitting} className="rounded-full bg-muted p-2 disabled:opacity-50">
               <X className="h-4 w-4 text-muted-foreground" />
             </button>
           </div>
           <p className="mb-5 text-xs text-muted-foreground">
-            {isSingles ? "1 confronto" : "1 partida"}
+            {totalMatches > 1
+              ? isSingles
+                ? `${totalMatches} confrontos no total`
+                : `${totalMatches} partidas no total`
+              : isSingles
+              ? "1 confronto"
+              : "1 partida"}
             {isUnlimitedSets
               ? " • sets livres"
               : isFlexibleSets

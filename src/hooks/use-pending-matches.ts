@@ -14,6 +14,7 @@ export interface PendingMatch {
   group_match_format: string;
   sets_per_match: number;
   sets_mode: "fixed" | "flexible" | "unlimited";
+  total_matches_in_round: number;
   teamA: { user_id: string; name: string; nickname: string | null; avatar_url: string | null }[];
   teamB: { user_id: string; name: string; nickname: string | null; avatar_url: string | null }[];
   existingSets: { setNumber: number; scoreA: number; scoreB: number }[];
@@ -71,13 +72,14 @@ export function usePendingMatch(groupId?: string) {
       const round = rounds.find((r) => r.id === match.round_id)!;
 
       // Load group info, season info, players, sets in parallel
-      const [groupRes, seasonRes, playersRes, setsRes] = await Promise.all([
+      const [groupRes, seasonRes, playersRes, setsRes, totalRes] = await Promise.all([
         supabase.from("groups").select("name, match_format").eq("id", round.group_id).single(),
         round.season_id
           ? supabase.from("seasons").select("sets_per_match, sets_mode").eq("id", round.season_id).single()
           : Promise.resolve({ data: null }),
         supabase.from("match_players").select("user_id, team").eq("match_id", match.id),
         supabase.from("match_sets").select("set_number, score_team_a, score_team_b").eq("match_id", match.id).order("set_number"),
+        supabase.from("matches").select("id", { count: "exact", head: true }).eq("round_id", match.round_id),
       ]);
 
       const playerIds = (playersRes.data || []).map((p) => p.user_id);
@@ -113,6 +115,7 @@ export function usePendingMatch(groupId?: string) {
         group_match_format: groupRes.data?.match_format || "doubles",
         sets_per_match: seasonRes.data?.sets_per_match || 3,
         sets_mode: ((seasonRes.data as any)?.sets_mode as PendingMatch["sets_mode"]) || "fixed",
+        total_matches_in_round: (totalRes as any)?.count ?? 1,
         teamA: buildTeam("A"),
         teamB: buildTeam("B"),
         existingSets: (setsRes.data || []).map((s) => ({
