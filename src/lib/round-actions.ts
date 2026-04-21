@@ -471,6 +471,22 @@ export async function adminPromoteFromWaitlist(
   }
 }
 
+// King of the Court — Doubles (4 players exactly).
+// Official rotation: every player partners with every other player exactly once
+// across 3 matches. Players come ordered by Elo (1 = highest).
+//   Match 1 → (1+4) vs (2+3)
+//   Match 2 → (1+3) vs (2+4)
+//   Match 3 → (1+2) vs (3+4)
+function buildDoublesKingOfCourt(orderedIds: string[]): Array<[string[], string[]]> {
+  if (orderedIds.length !== 4) return [];
+  const [p1, p2, p3, p4] = orderedIds;
+  return [
+    [[p1, p4], [p2, p3]],
+    [[p1, p3], [p2, p4]],
+    [[p1, p2], [p3, p4]],
+  ];
+}
+
 // Build singles pairings ordered by Elo (King of the Court).
 // 4 players — official fixed cycle, indexed by round_number (1-based, cycles every 3):
 //   round 1 → 1v4 / 2v3
