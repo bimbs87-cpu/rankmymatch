@@ -113,6 +113,7 @@ export function PendingMatchCard({ match, onScoreSaved, showGroupName = true, is
           setsPerMatch={match.sets_per_match}
           setsMode={(match as any).sets_mode || "fixed"}
           isSingles={match.group_match_format === "singles"}
+          totalMatches={match.total_matches_in_round || 1}
           isAdmin={isAdmin}
           onClose={() => setScoring(false)}
           onSaved={() => { setScoring(false); onScoreSaved(); }}
