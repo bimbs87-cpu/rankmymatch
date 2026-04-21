@@ -72,7 +72,7 @@ export function usePendingMatch(groupId?: string) {
       const round = rounds.find((r) => r.id === match.round_id)!;
 
       // Load group info, season info, players, sets in parallel
-      const [groupRes, seasonRes, playersRes, setsRes] = await Promise.all([
+      const [groupRes, seasonRes, playersRes, setsRes, totalRes] = await Promise.all([
         supabase.from("groups").select("name, match_format").eq("id", round.group_id).single(),
         round.season_id
           ? supabase.from("seasons").select("sets_per_match, sets_mode").eq("id", round.season_id).single()
