@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, useMatches } from "@tanstack/react-router";
 import {
   ArrowLeft,
   Bug,
@@ -48,6 +48,12 @@ const SUPPORT_EMAIL = "mailto:contato@rankmymatch.app?subject=Bug%20no%20RankMyM
 function AboutDevelopmentPage() {
   const { user } = useAuth();
   const [isAdmin, setIsAdmin] = useState(false);
+  const matches = useMatches();
+  const isChildRoute = matches.some(
+    (m) =>
+      m.routeId === "/sobre-desenvolvimento/admin" ||
+      m.routeId === "/sobre-desenvolvimento/changelog-admin",
+  );
 
   useEffect(() => {
     markReleasesSeen();
@@ -71,6 +77,10 @@ function AboutDevelopmentPage() {
       active = false;
     };
   }, [user]);
+
+  if (isChildRoute) {
+    return <Outlet />;
+  }
 
   return (
     <div className="min-h-screen bg-background pb-28">
