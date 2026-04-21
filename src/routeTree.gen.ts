@@ -46,6 +46,8 @@ import { Route as GroupsGroupIdDuelRouteImport } from './routes/groups.$groupId.
 import { Route as ApiPushVapidPublicKeyRouteImport } from './routes/api.push.vapid-public-key'
 import { Route as GroupsGroupIdSeasonsIndexRouteImport } from './routes/groups.$groupId.seasons.index'
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
+import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/email/auth/webhook'
+import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
 import { Route as GroupsGroupIdSeasonsSeasonIdRouteImport } from './routes/groups.$groupId.seasons.$seasonId'
 import { Route as ApiOgPlayerUserIdRouteImport } from './routes/api.og.player.$userId'
 import { Route as ApiOgGroupGroupIdRouteImport } from './routes/api.og.group.$groupId'
@@ -242,6 +244,16 @@ const LovableEmailQueueProcessRoute =
     path: '/lovable/email/queue/process',
     getParentRoute: () => rootRouteImport,
   } as any)
+const LovableEmailAuthWebhookRoute = LovableEmailAuthWebhookRouteImport.update({
+  id: '/lovable/email/auth/webhook',
+  path: '/lovable/email/auth/webhook',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LovableEmailAuthPreviewRoute = LovableEmailAuthPreviewRouteImport.update({
+  id: '/lovable/email/auth/preview',
+  path: '/lovable/email/auth/preview',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const GroupsGroupIdSeasonsSeasonIdRoute =
   GroupsGroupIdSeasonsSeasonIdRouteImport.update({
     id: '/$seasonId',
@@ -304,6 +316,8 @@ export interface FileRoutesByFullPath {
   '/api/og/group/$groupId': typeof ApiOgGroupGroupIdRoute
   '/api/og/player/$userId': typeof ApiOgPlayerUserIdRoute
   '/groups/$groupId/seasons/$seasonId': typeof GroupsGroupIdSeasonsSeasonIdRouteWithChildren
+  '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
+  '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
   '/groups/$groupId/seasons/': typeof GroupsGroupIdSeasonsIndexRoute
   '/groups/$groupId/seasons/$seasonId/': typeof GroupsGroupIdSeasonsSeasonIdIndexRoute
@@ -343,6 +357,8 @@ export interface FileRoutesByTo {
   '/groups/$groupId': typeof GroupsGroupIdIndexRoute
   '/api/og/group/$groupId': typeof ApiOgGroupGroupIdRoute
   '/api/og/player/$userId': typeof ApiOgPlayerUserIdRoute
+  '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
+  '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
   '/groups/$groupId/seasons': typeof GroupsGroupIdSeasonsIndexRoute
   '/groups/$groupId/seasons/$seasonId': typeof GroupsGroupIdSeasonsSeasonIdIndexRoute
@@ -387,6 +403,8 @@ export interface FileRoutesById {
   '/api/og/group/$groupId': typeof ApiOgGroupGroupIdRoute
   '/api/og/player/$userId': typeof ApiOgPlayerUserIdRoute
   '/groups/$groupId/seasons/$seasonId': typeof GroupsGroupIdSeasonsSeasonIdRouteWithChildren
+  '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
+  '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
   '/groups/$groupId/seasons/': typeof GroupsGroupIdSeasonsIndexRoute
   '/groups/$groupId/seasons/$seasonId/': typeof GroupsGroupIdSeasonsSeasonIdIndexRoute
@@ -432,6 +450,8 @@ export interface FileRouteTypes {
     | '/api/og/group/$groupId'
     | '/api/og/player/$userId'
     | '/groups/$groupId/seasons/$seasonId'
+    | '/lovable/email/auth/preview'
+    | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
     | '/groups/$groupId/seasons/'
     | '/groups/$groupId/seasons/$seasonId/'
@@ -471,6 +491,8 @@ export interface FileRouteTypes {
     | '/groups/$groupId'
     | '/api/og/group/$groupId'
     | '/api/og/player/$userId'
+    | '/lovable/email/auth/preview'
+    | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
     | '/groups/$groupId/seasons'
     | '/groups/$groupId/seasons/$seasonId'
@@ -514,6 +536,8 @@ export interface FileRouteTypes {
     | '/api/og/group/$groupId'
     | '/api/og/player/$userId'
     | '/groups/$groupId/seasons/$seasonId'
+    | '/lovable/email/auth/preview'
+    | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
     | '/groups/$groupId/seasons/'
     | '/groups/$groupId/seasons/$seasonId/'
@@ -550,6 +574,8 @@ export interface RootRouteChildren {
   ApiPushVapidPublicKeyRoute: typeof ApiPushVapidPublicKeyRoute
   ApiOgGroupGroupIdRoute: typeof ApiOgGroupGroupIdRoute
   ApiOgPlayerUserIdRoute: typeof ApiOgPlayerUserIdRoute
+  LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
+  LovableEmailAuthWebhookRoute: typeof LovableEmailAuthWebhookRoute
   LovableEmailQueueProcessRoute: typeof LovableEmailQueueProcessRoute
 }
 
@@ -814,6 +840,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LovableEmailQueueProcessRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/lovable/email/auth/webhook': {
+      id: '/lovable/email/auth/webhook'
+      path: '/lovable/email/auth/webhook'
+      fullPath: '/lovable/email/auth/webhook'
+      preLoaderRoute: typeof LovableEmailAuthWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/lovable/email/auth/preview': {
+      id: '/lovable/email/auth/preview'
+      path: '/lovable/email/auth/preview'
+      fullPath: '/lovable/email/auth/preview'
+      preLoaderRoute: typeof LovableEmailAuthPreviewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/groups/$groupId/seasons/$seasonId': {
       id: '/groups/$groupId/seasons/$seasonId'
       path: '/$seasonId'
@@ -948,6 +988,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPushVapidPublicKeyRoute: ApiPushVapidPublicKeyRoute,
   ApiOgGroupGroupIdRoute: ApiOgGroupGroupIdRoute,
   ApiOgPlayerUserIdRoute: ApiOgPlayerUserIdRoute,
+  LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,
+  LovableEmailAuthWebhookRoute: LovableEmailAuthWebhookRoute,
   LovableEmailQueueProcessRoute: LovableEmailQueueProcessRoute,
 }
 export const routeTree = rootRouteImport
