@@ -1,6 +1,6 @@
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, Loader2, Users, Boxes, Trophy, Activity, ShieldCheck, ExternalLink, Compass } from "lucide-react";
+import { ArrowLeft, Loader2, Users, Boxes, Trophy, Activity, ShieldCheck, ExternalLink, Compass, UserPlus, UserCheck, UserX, AlertTriangle, Clock, Sparkles } from "lucide-react";
 import {
   LineChart,
   Line,
@@ -196,32 +196,130 @@ function StatCard({
 }
 
 function OverviewTab({ data }: { data: DashboardData }) {
-  const { overview, dailyActivity } = data;
+  const { overview, dailyActivity, recentActivity, diagnostics } = data;
+  const conversionToGroup =
+    overview.totalUsers > 0
+      ? ((overview.usersWithGroup / overview.totalUsers) * 100).toFixed(0)
+      : "0";
+  const conversionToMatch =
+    overview.totalUsers > 0
+      ? ((overview.usersWithMatch / overview.totalUsers) * 100).toFixed(0)
+      : "0";
+  const returnRate =
+    overview.totalUsers > 0
+      ? ((overview.returningLast7d / overview.totalUsers) * 100).toFixed(0)
+      : "0";
+  const ghostRate =
+    overview.totalUsers > 0
+      ? ((overview.neverReturned / overview.totalUsers) * 100).toFixed(0)
+      : "0";
+
+  const hasAnomalies =
+    overview.authWithoutProfile > 0 || overview.profilesWithoutAuth > 0;
+
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-        <StatCard icon={Users} label="Usuários" value={overview.totalUsers} />
-        <StatCard icon={Boxes} label="Grupos" value={overview.totalGroups} />
-        <StatCard icon={Trophy} label="Partidas" value={overview.totalMatches} />
-        <StatCard icon={Activity} label="DAU" value={overview.dau} hint="últimas 24h" />
-        <StatCard icon={Activity} label="WAU" value={overview.wau} hint="últimos 7d" />
-        <StatCard icon={Activity} label="MAU" value={overview.mau} hint="últimos 30d" />
+      {hasAnomalies && (
+        <Card className="border-destructive/40 bg-destructive/5">
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2 text-destructive">
+              <AlertTriangle className="h-4 w-4" />
+              Anomalias detectadas
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm">
+            {overview.authWithoutProfile > 0 && (
+              <div>
+                <strong className="text-destructive">
+                  {overview.authWithoutProfile} cadastro(s) sem profile.
+                </strong>{" "}
+                <span className="text-muted-foreground">
+                  Usuário criou conta mas o trigger de criação de perfil falhou.
+                </span>
+                {diagnostics?.authWithoutProfile.length > 0 && (
+                  <ul className="mt-1 ml-4 list-disc text-xs text-muted-foreground">
+                    {diagnostics.authWithoutProfile.slice(0, 5).map((u) => (
+                      <li key={u.user_id}>
+                        {u.email ?? u.user_id} —{" "}
+                        {new Date(u.created_at).toLocaleString("pt-BR")}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
+            {overview.profilesWithoutAuth > 0 && (
+              <div>
+                <strong>{overview.profilesWithoutAuth} profile(s)</strong>{" "}
+                <span className="text-muted-foreground">
+                  sem auth.user (placeholders criados por admins — esperado).
+                </span>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      <div>
+        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+          Base de usuários
+        </h2>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <StatCard icon={Users} label="Cadastros (auth)" value={overview.totalUsers} hint="contas criadas" />
+          <StatCard icon={UserCheck} label="Profiles reais" value={overview.realProfiles} hint="com perfil ativo" />
+          <StatCard icon={UserX} label="Placeholders" value={overview.placeholderProfiles} hint="criados por admin" />
+          <StatCard icon={Boxes} label="Grupos" value={overview.totalGroups} />
+        </div>
+      </div>
+
+      <div>
+        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+          Novos cadastros
+        </h2>
+        <div className="grid grid-cols-3 gap-3">
+          <StatCard icon={UserPlus} label="Hoje" value={overview.signupsToday} />
+          <StatCard icon={UserPlus} label="Últimos 7d" value={overview.signupsLast7d} />
+          <StatCard icon={UserPlus} label="Últimos 30d" value={overview.signupsLast30d} />
+        </div>
+      </div>
+
+      <div>
+        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+          Engajamento
+        </h2>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+          <StatCard icon={Activity} label="DAU" value={overview.dau} hint="ativos 24h" />
+          <StatCard icon={Activity} label="WAU" value={overview.wau} hint="ativos 7d" />
+          <StatCard icon={Activity} label="MAU" value={overview.mau} hint="ativos 30d" />
+          <StatCard icon={Sparkles} label="Retornantes 7d" value={overview.returningLast7d} hint={`${returnRate}% da base`} />
+          <StatCard icon={Clock} label="Nunca voltaram" value={overview.neverReturned} hint={`${ghostRate}% da base`} />
+        </div>
+      </div>
+
+      <div>
+        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+          Ativação
+        </h2>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+          <StatCard icon={Trophy} label="Partidas registradas" value={overview.totalMatches} />
+          <StatCard icon={Boxes} label="Criaram grupo" value={overview.usersWithGroup} hint={`${conversionToGroup}% dos cadastros`} />
+          <StatCard icon={Trophy} label="Jogaram partida" value={overview.usersWithMatch} hint={`${conversionToMatch}% dos cadastros`} />
+        </div>
       </div>
 
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Atividade últimos 30 dias</CardTitle>
+          <p className="text-xs text-muted-foreground">
+            Logins = quem voltou ao app · Cadastros = novos usuários por dia
+          </p>
         </CardHeader>
         <CardContent>
           <div className="h-72 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={dailyActivity}>
                 <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                <XAxis
-                  dataKey="date"
-                  tickFormatter={(d) => d.slice(5)}
-                  className="text-xs"
-                />
+                <XAxis dataKey="date" tickFormatter={(d) => d.slice(5)} className="text-xs" />
                 <YAxis allowDecimals={false} className="text-xs" />
                 <Tooltip
                   contentStyle={{
@@ -231,24 +329,82 @@ function OverviewTab({ data }: { data: DashboardData }) {
                   }}
                 />
                 <Legend />
-                <Line
-                  type="monotone"
-                  dataKey="users"
-                  name="Logins (last_sign_in)"
-                  stroke="hsl(var(--primary))"
-                  strokeWidth={2}
-                  dot={false}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="signups"
-                  name="Novos cadastros"
-                  stroke="hsl(var(--accent))"
-                  strokeWidth={2}
-                  dot={false}
-                />
+                <Line type="monotone" dataKey="users" name="Logins (last_sign_in)" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} />
+                <Line type="monotone" dataKey="signups" name="Novos cadastros" stroke="hsl(var(--accent))" strokeWidth={2} dot={false} />
               </LineChart>
             </ResponsiveContainer>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Últimos 15 cadastros</CardTitle>
+          <p className="text-xs text-muted-foreground">
+            Quem chegou recentemente, de onde veio e o que já fez no app.
+          </p>
+        </CardHeader>
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Usuário</TableHead>
+                  <TableHead>Cadastrou</TableHead>
+                  <TableHead>Voltou?</TableHead>
+                  <TableHead>Origem</TableHead>
+                  <TableHead>Status</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {recentActivity.map((s) => {
+                  const created = new Date(s.created_at).getTime();
+                  const lastSign = s.last_sign_in_at ? new Date(s.last_sign_in_at).getTime() : 0;
+                  const returned = lastSign && lastSign - created > 60_000;
+                  const daysSince = Math.floor((Date.now() - created) / (24 * 3600_000));
+                  return (
+                    <TableRow key={s.user_id}>
+                      <TableCell>
+                        <div className="font-medium text-sm">{s.name ?? "—"}</div>
+                        <div className="text-xs text-muted-foreground">{s.email ?? "sem email"}</div>
+                      </TableCell>
+                      <TableCell className="text-xs whitespace-nowrap">
+                        {daysSince === 0 ? "hoje" : daysSince === 1 ? "ontem" : `há ${daysSince}d`}
+                      </TableCell>
+                      <TableCell className="text-xs">
+                        {returned ? (
+                          <span className="text-primary font-medium">Sim</span>
+                        ) : (
+                          <span className="text-muted-foreground">Nunca</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={s.origin === "invite" ? "default" : s.origin === "direct" ? "secondary" : "outline"}>
+                          {s.origin}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-xs">
+                        <div className="flex flex-wrap gap-1">
+                          {!s.has_profile && <Badge variant="destructive" className="text-[10px]">sem perfil</Badge>}
+                          {s.groups_created > 0 && <Badge variant="outline" className="text-[10px]">{s.groups_created}g</Badge>}
+                          {s.has_match && <Badge variant="outline" className="text-[10px]">jogou</Badge>}
+                          {s.has_profile && s.groups_created === 0 && !s.has_match && (
+                            <span className="text-muted-foreground">só cadastrou</span>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+                {recentActivity.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                      Nenhum cadastro recente
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
           </div>
         </CardContent>
       </Card>
