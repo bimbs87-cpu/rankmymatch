@@ -13,6 +13,9 @@ import {
 } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
 import { getDevDashboard } from "@/lib/dev-dashboard.functions";
+import { sendMonthlyReportNow } from "@/lib/monthly-report.functions";
+import { toast } from "sonner";
+import { FileText, Send } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
@@ -220,6 +223,7 @@ function OverviewTab({ data }: { data: DashboardData }) {
 
   return (
     <div className="space-y-6">
+      <MonthlyReportCard />
       {hasAnomalies && (
         <Card className="border-destructive/40 bg-destructive/5">
           <CardHeader>
@@ -1158,5 +1162,111 @@ function ChangelogTab() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+function MonthlyReportCard() {
+  const [loading, setLoading] = useState<"current" | "previous" | null>(null);
+  const [result, setResult] = useState<{
+    periodLabel: string;
+    downloadUrl: string;
+    recipients: string[];
+  } | null>(null);
+
+  const trigger = async (month: "current" | "previous") => {
+    setLoading(month);
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!session) throw new Error("Sessão não encontrada");
+      const res = await sendMonthlyReportNow({
+        data: { month },
+        headers: { authorization: `Bearer ${session.access_token}` },
+      });
+      setResult({
+        periodLabel: res.periodLabel,
+        downloadUrl: res.downloadUrl,
+        recipients: res.recipients,
+      });
+      toast.success(
+        `Relatório de ${res.periodLabel} enviado para ${res.recipients.length} destinatário(s).`
+      );
+    } catch (err) {
+      console.error("[monthly-report] failed:", err);
+      toast.error(
+        err instanceof Error ? err.message : "Falha ao gerar relatório"
+      );
+    } finally {
+      setLoading(null);
+    }
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base flex items-center gap-2">
+          <FileText className="h-4 w-4" />
+          Relatório mensal em PDF
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <p className="text-sm text-muted-foreground">
+          Gera um PDF com tráfego do mês, janelas de 7d/30d e top UTMs/referrers.
+          Enviado automaticamente todo dia 1 para{" "}
+          <code className="text-xs">guilherme@wernerwalter.com.br</code> e{" "}
+          <code className="text-xs">bimbs87@gmail.com</code>. Use os botões
+          abaixo para enviar agora.
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            variant="default"
+            size="sm"
+            onClick={() => trigger("previous")}
+            disabled={loading !== null}
+          >
+            {loading === "previous" ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Send className="h-4 w-4" />
+            )}
+            Enviar relatório do mês anterior
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => trigger("current")}
+            disabled={loading !== null}
+          >
+            {loading === "current" ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Send className="h-4 w-4" />
+            )}
+            Enviar prévia do mês atual
+          </Button>
+        </div>
+        {result && (
+          <div className="rounded-md border bg-muted/30 p-3 text-sm space-y-1">
+            <div>
+              <strong>Período:</strong> {result.periodLabel}
+            </div>
+            <div>
+              <strong>Destinatários:</strong> {result.recipients.join(", ")}
+            </div>
+            <div>
+              <a
+                href={result.downloadUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="text-primary underline"
+              >
+                Baixar PDF gerado
+              </a>
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }
