@@ -196,7 +196,7 @@ function StatCard({
 }
 
 function OverviewTab({ data }: { data: DashboardData }) {
-  const { overview, dailyActivity, recentActivity, diagnostics } = data;
+  const { overview, dailyActivity, recentActivity, diagnostics, traffic } = data;
   const conversionToGroup =
     overview.totalUsers > 0
       ? ((overview.usersWithGroup / overview.totalUsers) * 100).toFixed(0)
