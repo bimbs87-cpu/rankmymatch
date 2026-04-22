@@ -449,6 +449,112 @@ function OverviewTab({ data }: { data: DashboardData }) {
         </Card>
       )}
 
+      {/* === Conversão por canal (UTM/Referrer) — 7d === */}
+      {traffic?.hasData && (
+        <div className="grid gap-3 lg:grid-cols-2">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Conversão por UTM source (7d)</CardTitle>
+              <p className="text-xs text-muted-foreground">
+                Sessões que viraram cadastro, agrupado por origem de campanha.
+              </p>
+            </CardHeader>
+            <CardContent className="p-0">
+              <ConversionTable rows={traffic.utmConversion7d ?? []} colLabel="UTM source" />
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Conversão por referrer (7d)</CardTitle>
+              <p className="text-xs text-muted-foreground">
+                De onde vieram (domínio externo) e quanto converteu.
+              </p>
+            </CardHeader>
+            <CardContent className="p-0">
+              <ConversionTable rows={traffic.referrerConversion7d ?? []} colLabel="Referrer" />
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* === Bounce rate por landing page === */}
+      {traffic?.hasData && (traffic.landingBounce7d?.length ?? 0) > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Páginas que mais perdem visitantes (7d)</CardTitle>
+            <p className="text-xs text-muted-foreground">
+              Landings com sessões de 1 só pageview — onde o ads pode estar mandando tráfego ruim.
+            </p>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Página</TableHead>
+                    <TableHead className="text-right">Sessões</TableHead>
+                    <TableHead className="text-right">Bounced</TableHead>
+                    <TableHead className="text-right">Bounce rate</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {(traffic.landingBounce7d ?? []).slice(0, 12).map((r) => (
+                    <TableRow key={r.key}>
+                      <TableCell className="font-mono text-xs truncate max-w-[260px]">{r.key}</TableCell>
+                      <TableCell className="text-right">{r.sessions}</TableCell>
+                      <TableCell className="text-right">{r.bounced}</TableCell>
+                      <TableCell className="text-right">
+                        <span className={r.bounceRate >= 70 ? "text-destructive font-semibold" : r.bounceRate >= 50 ? "text-amber-500 font-medium" : "text-foreground"}>
+                          {r.bounceRate}%
+                        </span>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* === Funil de onboarding pós-signup === */}
+      {onboardingFunnel.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Funil de onboarding (30d)</CardTitle>
+            <p className="text-xs text-muted-foreground">
+              Etapas após o signup. A queda entre etapas mostra onde os usuários travam.
+            </p>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {onboardingFunnel.map((step, i, arr) => {
+              const base = arr[0].users || 1;
+              const pct = (step.users / base) * 100;
+              const drop = i > 0 ? arr[i - 1].users - step.users : 0;
+              return (
+                <div key={step.key}>
+                  <div className="flex items-baseline justify-between text-sm mb-1">
+                    <span className="font-medium">{step.label}</span>
+                    <span className="text-muted-foreground text-xs whitespace-nowrap">
+                      {step.users} · {pct.toFixed(1)}%
+                      {i > 0 && drop > 0 && (
+                        <span className="text-destructive ml-2">−{drop}</span>
+                      )}
+                    </span>
+                  </div>
+                  <div className="h-3 w-full rounded bg-muted overflow-hidden">
+                    <div className="h-full bg-primary" style={{ width: `${Math.max(pct, 2)}%` }} />
+                  </div>
+                </div>
+              );
+            })}
+            <p className="text-[11px] text-muted-foreground pt-1">
+              Eventos começam a ser registrados a partir desta versão — usuários antigos não aparecem em todas as etapas.
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
       <div>
         <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2">
           Base de usuários
