@@ -186,6 +186,35 @@ type SegmentFunnelData = {
   referrer: SegmentRow[];
 };
 
+type MomPeriod = {
+  sessions: number;
+  pageviews: number;
+  signups: number;
+  bounceRate: number;
+};
+type MomWindow = {
+  current: MomPeriod;
+  previous: MomPeriod;
+  delta: { sessions: number; pageviews: number; signups: number; bounceRate: number };
+};
+type MomData = {
+  window7d: MomWindow;
+  window30d: MomWindow;
+};
+
+type AnomalySample = { user_id: string; email: string | null; created_at: string | null };
+type SignupAnomaliesData = {
+  ghostUsers: { count: number; sample: AnomalySample[] };
+  signupWithoutOnbEvent: { count: number; sample: AnomalySample[] };
+  authedSessionWithoutSignupEvent: { count: number; sample: AnomalySample[] };
+  loginAbandon: {
+    sessionsTouchedLogin: number;
+    abandoned: number;
+    converted: number;
+    abandonRate: number;
+  };
+};
+
 function StatCard({
   icon: Icon,
   label,
@@ -215,11 +244,108 @@ function StatCard({
   );
 }
 
+function MomComparisonCard({ mom }: { mom: MomData }) {
+  const fmtPct = (n: number) => (n > 0 ? `+${n}%` : `${n}%`);
+  const fmtDelta = (n: number) => (n > 0 ? `+${n}` : `${n}`);
+  const colorFor = (n: number, invert = false) => {
+    const positive = invert ? n < 0 : n > 0;
+    const negative = invert ? n > 0 : n < 0;
+    if (positive) return "text-emerald-500";
+    if (negative) return "text-destructive";
+    return "text-muted-foreground";
+  };
+  const renderWindow = (label: string, w: MomWindow) => (
+    <div className="space-y-2">
+      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{label}</p>
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        {[
+          { k: "Sessões", cur: w.current.sessions, prev: w.previous.sessions, d: w.delta.sessions, fmt: fmtPct, invert: false },
+          { k: "Pageviews", cur: w.current.pageviews, prev: w.previous.pageviews, d: w.delta.pageviews, fmt: fmtPct, invert: false },
+          { k: "Cadastros", cur: w.current.signups, prev: w.previous.signups, d: w.delta.signups, fmt: fmtPct, invert: false },
+          { k: "Bounce", cur: `${w.current.bounceRate}%`, prev: `${w.previous.bounceRate}%`, d: w.delta.bounceRate, fmt: (n: number) => `${fmtDelta(n)}pp`, invert: true },
+        ].map((row) => (
+          <div key={row.k} className="rounded-lg border border-border bg-card/50 p-3">
+            <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{row.k}</p>
+            <p className="font-display text-xl font-bold mt-0.5">{row.cur}</p>
+            <p className="text-[10px] text-muted-foreground">vs {row.prev}</p>
+            <p className={`text-xs font-semibold mt-1 ${colorFor(row.d, row.invert)}`}>
+              {row.fmt(row.d)}
+            </p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base flex items-center gap-2">
+          <TrendingUp className="h-4 w-4" />
+          Comparação período-contra-período
+        </CardTitle>
+        <p className="text-xs text-muted-foreground">
+          Atual vs período anterior equivalente. Bounce em verde = caiu (bom).
+        </p>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {renderWindow("Últimos 7 dias vs 7 dias anteriores", mom.window7d)}
+        {renderWindow("Últimos 30 dias vs 30 dias anteriores", mom.window30d)}
+      </CardContent>
+    </Card>
+  );
+}
+
+function AnomalyRow({
+  severity,
+  count,
+  label,
+  explanation,
+  sample,
+}: {
+  severity: "high" | "medium" | "low";
+  count: number;
+  label: string;
+  explanation: string;
+  sample: AnomalySample[];
+}) {
+  const sevColor =
+    severity === "high"
+      ? "text-destructive"
+      : severity === "medium"
+        ? "text-amber-500"
+        : "text-muted-foreground";
+  return (
+    <div className="rounded-lg border border-border bg-card/50 p-3">
+      <div className="flex items-baseline justify-between gap-2 flex-wrap">
+        <strong className={sevColor}>
+          {count} — {label}
+        </strong>
+        <Badge variant="outline" className="text-[10px] uppercase">{severity}</Badge>
+      </div>
+      <p className="text-xs text-muted-foreground mt-1">{explanation}</p>
+      {sample.length > 0 && (
+        <ul className="mt-2 ml-4 list-disc text-xs text-muted-foreground space-y-0.5">
+          {sample.slice(0, 5).map((u) => (
+            <li key={u.user_id}>
+              {u.email ?? u.user_id}
+              {u.created_at && (
+                <> — {new Date(u.created_at).toLocaleString("pt-BR")}</>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 function OverviewTab({ data }: { data: DashboardData }) {
   const { overview, dailyActivity, recentActivity, diagnostics, traffic } = data;
   const onboardingFunnel = (data as unknown as { onboardingFunnel?: { key: string; label: string; users: number }[] }).onboardingFunnel ?? [];
   const segmentFunnel7d = (data as unknown as { segmentFunnel7d?: SegmentFunnelData }).segmentFunnel7d;
   const segmentFunnel30d = (data as unknown as { segmentFunnel30d?: SegmentFunnelData }).segmentFunnel30d;
+  const mom = (data as unknown as { mom?: MomData }).mom;
+  const signupAnomalies = (data as unknown as { signupAnomalies?: SignupAnomaliesData }).signupAnomalies;
   const conversionToGroup =
     overview.totalUsers > 0
       ? ((overview.usersWithGroup / overview.totalUsers) * 100).toFixed(0)
@@ -237,22 +363,89 @@ function OverviewTab({ data }: { data: DashboardData }) {
       ? ((overview.neverReturned / overview.totalUsers) * 100).toFixed(0)
       : "0";
 
+  const totalAnomalies =
+    (signupAnomalies?.ghostUsers.count ?? 0) +
+    (signupAnomalies?.signupWithoutOnbEvent.count ?? 0) +
+    (signupAnomalies?.authedSessionWithoutSignupEvent.count ?? 0);
   const hasAnomalies =
-    overview.authWithoutProfile > 0 || overview.profilesWithoutAuth > 0;
+    overview.authWithoutProfile > 0 ||
+    overview.profilesWithoutAuth > 0 ||
+    totalAnomalies > 0 ||
+    (signupAnomalies?.loginAbandon.abandoned ?? 0) > 0;
 
   return (
     <div className="space-y-6">
       <MonthlyReportCard />
+
+      {/* === Comparação Mês-contra-Mês (MoM) === */}
+      {mom && <MomComparisonCard mom={mom} />}
+
       {hasAnomalies && (
         <Card className="border-destructive/40 bg-destructive/5">
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2 text-destructive">
               <AlertTriangle className="h-4 w-4" />
-              Anomalias detectadas
+              Anomalias detectadas no signup
             </CardTitle>
+            <p className="text-xs text-muted-foreground">
+              Diagnóstico de por que usuários podem não estar convertendo mesmo com tráfego alto.
+            </p>
           </CardHeader>
-          <CardContent className="space-y-2 text-sm">
-            {overview.authWithoutProfile > 0 && (
+          <CardContent className="space-y-3 text-sm">
+            {/* 1. Ghost users (auth sem profile) */}
+            {(signupAnomalies?.ghostUsers.count ?? 0) > 0 && (
+              <AnomalyRow
+                severity="high"
+                count={signupAnomalies!.ghostUsers.count}
+                label="Ghost users (auth sem profile)"
+                explanation="Usuário criou conta mas o trigger que cria o profile falhou — provavelmente não consegue usar o app."
+                sample={signupAnomalies!.ghostUsers.sample}
+              />
+            )}
+
+            {/* 2. Signup sem evento de tracking */}
+            {(signupAnomalies?.signupWithoutOnbEvent.count ?? 0) > 0 && (
+              <AnomalyRow
+                severity="medium"
+                count={signupAnomalies!.signupWithoutOnbEvent.count}
+                label="Signup sem evento 'signup' (instrumentação falhou)"
+                explanation="Usuário cadastrou nos últimos 30d mas o evento onboarding 'signup' não foi registrado. Pode quebrar métricas de funil."
+                sample={signupAnomalies!.signupWithoutOnbEvent.sample}
+              />
+            )}
+
+            {/* 3. Sessão autenticada sem evento signup */}
+            {(signupAnomalies?.authedSessionWithoutSignupEvent.count ?? 0) > 0 && (
+              <AnomalyRow
+                severity="low"
+                count={signupAnomalies!.authedSessionWithoutSignupEvent.count}
+                label="Sessão autenticada sem evento 'signup'"
+                explanation="Sessão tem user_id mas o usuário nunca disparou o evento 'signup' (cadastros antigos antes da instrumentação ou regressão)."
+                sample={signupAnomalies!.authedSessionWithoutSignupEvent.sample}
+              />
+            )}
+
+            {/* 4. Abandono em /login */}
+            {signupAnomalies && signupAnomalies.loginAbandon.sessionsTouchedLogin > 0 && (
+              <div className="rounded-lg border border-border bg-card/50 p-3">
+                <div className="flex items-baseline justify-between gap-2 flex-wrap">
+                  <strong className="text-destructive">
+                    Abandono em /login: {signupAnomalies.loginAbandon.abandonRate}%
+                  </strong>
+                  <span className="text-xs text-muted-foreground">
+                    {signupAnomalies.loginAbandon.abandoned} abandonaram ·{" "}
+                    {signupAnomalies.loginAbandon.converted} converteram ·{" "}
+                    {signupAnomalies.loginAbandon.sessionsTouchedLogin} sessões tocaram /login
+                  </span>
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Sessões que chegaram em /login mas o usuário nunca completou o cadastro. Alta taxa pode indicar fricção no Google OAuth ou problema na tela.
+                </p>
+              </div>
+            )}
+
+            {/* Legacy compat: cadastros sem profile (já coberto por ghost users — mantido por segurança) */}
+            {overview.authWithoutProfile > 0 && (signupAnomalies?.ghostUsers.count ?? 0) === 0 && (
               <div>
                 <strong className="text-destructive">
                   {overview.authWithoutProfile} cadastro(s) sem profile.
@@ -273,11 +466,9 @@ function OverviewTab({ data }: { data: DashboardData }) {
               </div>
             )}
             {overview.profilesWithoutAuth > 0 && (
-              <div>
-                <strong>{overview.profilesWithoutAuth} profile(s)</strong>{" "}
-                <span className="text-muted-foreground">
-                  sem auth.user (placeholders criados por admins — esperado).
-                </span>
+              <div className="text-xs text-muted-foreground">
+                <strong className="text-foreground">{overview.profilesWithoutAuth} profile(s)</strong>{" "}
+                sem auth.user (placeholders criados por admins — esperado, não é bug).
               </div>
             )}
           </CardContent>

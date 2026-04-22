@@ -900,6 +900,165 @@ export const getDevDashboard = createServerFn({ method: "GET" })
     const segmentFunnel7d = buildSegmentFunnel(sessions7dIds);
     const segmentFunnel30d = buildSegmentFunnel(sessions30dIds);
 
+    // ===== Comparação Mês-contra-Mês (MoM) =====
+    // 7d atual vs 7d anterior + 30d atual vs 30d anterior
+    function pctDelta(curr: number, prev: number): number {
+      if (prev === 0) return curr > 0 ? 100 : 0;
+      return Number((((curr - prev) / prev) * 100).toFixed(1));
+    }
+    function inWindow(ts: number, startMs: number, endMs: number) {
+      return ts >= startMs && ts < endMs;
+    }
+    function buildPeriod(startMs: number, endMs: number) {
+      const periodVisits = visits.filter((v) =>
+        inWindow(new Date(v.created_at).getTime(), startMs, endMs)
+      );
+      const periodSessions = new Set(periodVisits.map((v) => v.session_id));
+      const sessPageCount = new Map<string, number>();
+      periodVisits.forEach((v) =>
+        sessPageCount.set(v.session_id, (sessPageCount.get(v.session_id) ?? 0) + 1)
+      );
+      const bounced = Array.from(sessPageCount.values()).filter((c) => c === 1).length;
+      const bounceRate =
+        periodSessions.size > 0
+          ? Number(((bounced / periodSessions.size) * 100).toFixed(1))
+          : 0;
+      const signups = authUsers.filter((u) =>
+        inWindow(new Date(u.created_at).getTime(), startMs, endMs)
+      ).length;
+      return {
+        sessions: periodSessions.size,
+        pageviews: periodVisits.length,
+        signups,
+        bounceRate,
+      };
+    }
+    const cur7Start = now - 7 * dayMs;
+    const prev7Start = now - 14 * dayMs;
+    const cur30Start = now - 30 * dayMs;
+    const prev30Start = now - 60 * dayMs;
+    const cur7 = buildPeriod(cur7Start, now);
+    const prev7 = buildPeriod(prev7Start, cur7Start);
+    const cur30 = buildPeriod(cur30Start, now);
+    const prev30 = buildPeriod(prev30Start, cur30Start);
+    const mom = {
+      window7d: {
+        current: cur7,
+        previous: prev7,
+        delta: {
+          sessions: pctDelta(cur7.sessions, prev7.sessions),
+          pageviews: pctDelta(cur7.pageviews, prev7.pageviews),
+          signups: pctDelta(cur7.signups, prev7.signups),
+          bounceRate: Number((cur7.bounceRate - prev7.bounceRate).toFixed(1)),
+        },
+      },
+      window30d: {
+        current: cur30,
+        previous: prev30,
+        delta: {
+          sessions: pctDelta(cur30.sessions, prev30.sessions),
+          pageviews: pctDelta(cur30.pageviews, prev30.pageviews),
+          signups: pctDelta(cur30.signups, prev30.signups),
+          bounceRate: Number((cur30.bounceRate - prev30.bounceRate).toFixed(1)),
+        },
+      },
+    };
+
+    // ===== Anomalias de signup (4 categorias) =====
+    // 1. Ghost users: auth.users SEM user_profiles
+    const profileUserIdSet = new Set(
+      (allProfiles ?? []).map((p) => p.user_id)
+    );
+    const ghostUsers = authUsers
+      .filter((u) => !profileUserIdSet.has(u.id))
+      .map((u) => ({
+        user_id: u.id,
+        email: u.email ?? null,
+        created_at: u.created_at,
+      }));
+
+    // 2. Signup sem evento onboarding 'signup' (instrumentação falhou)
+    const onboardingSignupUserIds = new Set(
+      onbRows.filter((r) => r.step === "signup").map((r) => r.user_id)
+    );
+    // Considera só usuários cadastrados nos últimos 30d (período em que temos onbRows)
+    const signupWithoutOnbEvent = authUsers
+      .filter(
+        (u) =>
+          new Date(u.created_at).getTime() >= now - 30 * dayMs &&
+          !onboardingSignupUserIds.has(u.id) &&
+          profileUserIdSet.has(u.id)
+      )
+      .map((u) => ({
+        user_id: u.id,
+        email: u.email ?? null,
+        created_at: u.created_at,
+      }));
+
+    // 3. Sessão autenticada (page_visits.user_id != null) sem evento signup
+    // — possível regressão de tracking
+    const authedSessionUserIds = new Set<string>();
+    visits.forEach((v) => {
+      if (v.user_id) authedSessionUserIds.add(v.user_id);
+    });
+    const authedSessionWithoutSignupEvent = Array.from(authedSessionUserIds)
+      .filter(
+        (uid) =>
+          authUserIdSet.has(uid) && !onboardingSignupUserIds.has(uid)
+      )
+      .slice(0, 50)
+      .map((uid) => {
+        const u = authUsers.find((x) => x.id === uid);
+        return {
+          user_id: uid,
+          email: u?.email ?? null,
+          created_at: u?.created_at ?? null,
+        };
+      });
+
+    // 4. Abandono em /login: sessões que tocaram /login mas usuário nunca completou cadastro
+    const loginSessionIds = new Set<string>();
+    visits.forEach((v) => {
+      if (v.path === "/login" || v.path.startsWith("/login")) {
+        loginSessionIds.add(v.session_id);
+      }
+    });
+    let loginAbandonCount = 0;
+    let loginConvertedCount = 0;
+    loginSessionIds.forEach((sid) => {
+      const uid = sessionUserMap.get(sid);
+      if (uid && authUserIdSet.has(uid)) {
+        loginConvertedCount += 1;
+      } else {
+        loginAbandonCount += 1;
+      }
+    });
+    const loginAbandonRate =
+      loginSessionIds.size > 0
+        ? Number(((loginAbandonCount / loginSessionIds.size) * 100).toFixed(1))
+        : 0;
+
+    const signupAnomalies = {
+      ghostUsers: {
+        count: ghostUsers.length,
+        sample: ghostUsers.slice(0, 10),
+      },
+      signupWithoutOnbEvent: {
+        count: signupWithoutOnbEvent.length,
+        sample: signupWithoutOnbEvent.slice(0, 10),
+      },
+      authedSessionWithoutSignupEvent: {
+        count: authedSessionWithoutSignupEvent.length,
+        sample: authedSessionWithoutSignupEvent.slice(0, 10),
+      },
+      loginAbandon: {
+        sessionsTouchedLogin: loginSessionIds.size,
+        abandoned: loginAbandonCount,
+        converted: loginConvertedCount,
+        abandonRate: loginAbandonRate,
+      },
+    };
+
     return {
       overview: {
         totalUsers,
@@ -926,6 +1085,8 @@ export const getDevDashboard = createServerFn({ method: "GET" })
       onboardingFunnel,
       segmentFunnel7d,
       segmentFunnel30d,
+      mom,
+      signupAnomalies,
       dailyActivity,
       signups: signupsEnriched,
       funnel,
