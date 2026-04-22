@@ -375,10 +375,19 @@ function OverviewTab({ data }: { data: DashboardData }) {
                 De onde vêm as pessoas que visitam (não só as cadastradas).
               </p>
             </CardHeader>
-            <CardContent className="space-y-3">
-              <BreakdownList title="UTM Source" items={traffic.topUtmSources} empty="Nenhum tráfego com UTM" />
-              <BreakdownList title="Referrers" items={traffic.topReferrers} empty="Tráfego direto" />
-              <BreakdownList title="UTM Campaign" items={traffic.topCampaigns} empty="—" />
+            <CardContent className="space-y-4">
+              <div>
+                <p className="text-xs font-semibold text-muted-foreground mb-2">UTM Source</p>
+                {traffic.topUtmSources.length > 0 ? <BreakdownList items={traffic.topUtmSources} total={traffic.sessions7d || 1} /> : <p className="text-xs text-muted-foreground">Nenhum tráfego com UTM</p>}
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-muted-foreground mb-2">Referrers</p>
+                {traffic.topReferrers.length > 0 ? <BreakdownList items={traffic.topReferrers} total={traffic.sessions7d || 1} /> : <p className="text-xs text-muted-foreground">Tráfego direto</p>}
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-muted-foreground mb-2">UTM Campaign</p>
+                {traffic.topCampaigns.length > 0 ? <BreakdownList items={traffic.topCampaigns} total={traffic.sessions7d || 1} /> : <p className="text-xs text-muted-foreground">—</p>}
+              </div>
             </CardContent>
           </Card>
           <Card>
@@ -387,10 +396,19 @@ function OverviewTab({ data }: { data: DashboardData }) {
                 <Smartphone className="h-4 w-4" /> Comportamento
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3">
-              <BreakdownList title="Landing pages (1ª visita)" items={traffic.topLandingPages} empty="—" />
-              <BreakdownList title="Páginas mais vistas 7d" items={traffic.topPages7d} empty="—" />
-              <BreakdownList title="Dispositivos" items={traffic.devices} empty="—" />
+            <CardContent className="space-y-4">
+              <div>
+                <p className="text-xs font-semibold text-muted-foreground mb-2">Landing pages (1ª visita)</p>
+                {traffic.topLandingPages.length > 0 ? <BreakdownList items={traffic.topLandingPages} total={traffic.sessions7d || 1} /> : <p className="text-xs text-muted-foreground">—</p>}
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-muted-foreground mb-2">Páginas mais vistas 7d</p>
+                {traffic.topPages7d.length > 0 ? <BreakdownList items={traffic.topPages7d} total={traffic.pageviews7d || 1} /> : <p className="text-xs text-muted-foreground">—</p>}
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-muted-foreground mb-2">Dispositivos</p>
+                {traffic.devices.length > 0 ? <BreakdownList items={traffic.devices} total={traffic.sessions7d || 1} /> : <p className="text-xs text-muted-foreground">—</p>}
+              </div>
             </CardContent>
           </Card>
         </div>
