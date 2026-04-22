@@ -49,12 +49,14 @@ export async function trackOnboardingStep(
     cache.add(cacheKey);
     saveCache(cache);
 
-    // upsert ignora duplicatas via unique index (user_id, step)
-    await supabase.from("onboarding_events").insert({
-      user_id: user.id,
-      step,
-      metadata: metadata ?? null,
-    });
+    // unique index (user_id, step) garante idempotência (ignora erro de duplicata)
+    await supabase.from("onboarding_events").insert([
+      {
+        user_id: user.id,
+        step,
+        metadata: (metadata ?? null) as never,
+      },
+    ]);
   } catch {
     // silencioso
   }
