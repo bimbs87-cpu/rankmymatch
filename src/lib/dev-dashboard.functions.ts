@@ -2,15 +2,58 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
-/** Verifica se o caller é app_admin. Throw caso contrário. */
+/**
+ * Janela de atribuição visit→signup (Lote 3 — fixa em 24h).
+ * Uma sessão é considerada "convertida em signup" quando:
+ *   sessionFirstSeen <= user.created_at + tolerância (5min relógio)
+ *   AND user.created_at - sessionFirstSeen <= SIGNUP_ATTRIBUTION_WINDOW_MS
+ * Atribuição = first-touch dentro da janela.
+ */
+const SIGNUP_ATTRIBUTION_WINDOW_MS = 24 * 3600_000;
+const SIGNUP_ATTRIBUTION_TOLERANCE_MS = 5 * 60_000;
+
+/**
+ * Decide se uma sessão deve ser contada como "signup" para o user dado.
+ * Regra (24h fixas, first-touch):
+ *   - sessFirstT precisa existir (>0) e userCreated precisa existir
+ *   - sessFirstT <= userCreated + tolerância (sessão veio antes ou logo no momento do signup)
+ *   - userCreated - sessFirstT <= 24h (sessão dentro da janela de atribuição)
+ * Exportada apenas para testes.
+ */
+export function isSessionAttributableToSignup(
+  sessFirstT: number,
+  userCreated: number | undefined,
+  windowMs: number = SIGNUP_ATTRIBUTION_WINDOW_MS,
+  toleranceMs: number = SIGNUP_ATTRIBUTION_TOLERANCE_MS
+): boolean {
+  if (!sessFirstT || !userCreated) return false;
+  const delta = userCreated - sessFirstT;
+  // sessão deve preceder o signup (delta >= -tolerance) e estar dentro da janela
+  return delta >= -toleranceMs && delta <= windowMs;
+}
+
+/**
+ * Verifica se o caller é app_admin. Throw caso contrário.
+ * Endurecida no Lote 3: erros não vazam detalhes do DB; resposta padrão 403.
+ */
 async function ensureAppAdmin(userId: string) {
+  if (!userId) {
+    console.warn("[ensureAppAdmin] no userId in context");
+    throw new Error("Forbidden");
+  }
   const { data, error } = await supabaseAdmin
     .from("app_admins")
     .select("user_id")
     .eq("user_id", userId)
     .maybeSingle();
-  if (error) throw new Error(`DB error: ${error.message}`);
-  if (!data) throw new Error("Forbidden: not an app admin");
+  if (error) {
+    console.error("[ensureAppAdmin] DB lookup failed:", error.message);
+    throw new Error("Forbidden");
+  }
+  if (!data) {
+    console.warn("[ensureAppAdmin] user is not app_admin:", userId);
+    throw new Error("Forbidden");
+  }
 }
 
 type SignupRow = {
@@ -839,10 +882,9 @@ export const getDevDashboard = createServerFn({ method: "GET" })
         const sessFirstT = sessVisits.length
           ? Math.min(...sessVisits.map((v) => new Date(v.created_at).getTime()))
           : 0;
-        const signedUpInSession =
-          userId &&
-          userCreated &&
-          Math.abs(sessFirstT - userCreated) < 6 * 3600_000;
+        const signedUpInSession = Boolean(
+          userId && isSessionAttributableToSignup(sessFirstT, userCreated)
+        );
 
         const inc = (m: Map<string, SegmentBucket>, k: string) => {
           const b = m.get(k) ?? {
