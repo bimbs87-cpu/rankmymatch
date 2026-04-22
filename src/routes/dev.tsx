@@ -244,7 +244,102 @@ function StatCard({
   );
 }
 
-function OverviewTab({ data }: { data: DashboardData }) {
+function MomComparisonCard({ mom }: { mom: MomData }) {
+  const fmtPct = (n: number) => (n > 0 ? `+${n}%` : `${n}%`);
+  const fmtDelta = (n: number) => (n > 0 ? `+${n}` : `${n}`);
+  const colorFor = (n: number, invert = false) => {
+    const positive = invert ? n < 0 : n > 0;
+    const negative = invert ? n > 0 : n < 0;
+    if (positive) return "text-emerald-500";
+    if (negative) return "text-destructive";
+    return "text-muted-foreground";
+  };
+  const renderWindow = (label: string, w: MomWindow) => (
+    <div className="space-y-2">
+      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{label}</p>
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        {[
+          { k: "Sessões", cur: w.current.sessions, prev: w.previous.sessions, d: w.delta.sessions, fmt: fmtPct, invert: false },
+          { k: "Pageviews", cur: w.current.pageviews, prev: w.previous.pageviews, d: w.delta.pageviews, fmt: fmtPct, invert: false },
+          { k: "Cadastros", cur: w.current.signups, prev: w.previous.signups, d: w.delta.signups, fmt: fmtPct, invert: false },
+          { k: "Bounce", cur: `${w.current.bounceRate}%`, prev: `${w.previous.bounceRate}%`, d: w.delta.bounceRate, fmt: (n: number) => `${fmtDelta(n)}pp`, invert: true },
+        ].map((row) => (
+          <div key={row.k} className="rounded-lg border border-border bg-card/50 p-3">
+            <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{row.k}</p>
+            <p className="font-display text-xl font-bold mt-0.5">{row.cur}</p>
+            <p className="text-[10px] text-muted-foreground">vs {row.prev}</p>
+            <p className={`text-xs font-semibold mt-1 ${colorFor(row.d, row.invert)}`}>
+              {row.fmt(row.d)}
+            </p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base flex items-center gap-2">
+          <TrendingUp className="h-4 w-4" />
+          Comparação período-contra-período
+        </CardTitle>
+        <p className="text-xs text-muted-foreground">
+          Atual vs período anterior equivalente. Bounce em verde = caiu (bom).
+        </p>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {renderWindow("Últimos 7 dias vs 7 dias anteriores", mom.window7d)}
+        {renderWindow("Últimos 30 dias vs 30 dias anteriores", mom.window30d)}
+      </CardContent>
+    </Card>
+  );
+}
+
+function AnomalyRow({
+  severity,
+  count,
+  label,
+  explanation,
+  sample,
+}: {
+  severity: "high" | "medium" | "low";
+  count: number;
+  label: string;
+  explanation: string;
+  sample: AnomalySample[];
+}) {
+  const sevColor =
+    severity === "high"
+      ? "text-destructive"
+      : severity === "medium"
+        ? "text-amber-500"
+        : "text-muted-foreground";
+  return (
+    <div className="rounded-lg border border-border bg-card/50 p-3">
+      <div className="flex items-baseline justify-between gap-2 flex-wrap">
+        <strong className={sevColor}>
+          {count} — {label}
+        </strong>
+        <Badge variant="outline" className="text-[10px] uppercase">{severity}</Badge>
+      </div>
+      <p className="text-xs text-muted-foreground mt-1">{explanation}</p>
+      {sample.length > 0 && (
+        <ul className="mt-2 ml-4 list-disc text-xs text-muted-foreground space-y-0.5">
+          {sample.slice(0, 5).map((u) => (
+            <li key={u.user_id}>
+              {u.email ?? u.user_id}
+              {u.created_at && (
+                <> — {new Date(u.created_at).toLocaleString("pt-BR")}</>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+
   const { overview, dailyActivity, recentActivity, diagnostics, traffic } = data;
   const onboardingFunnel = (data as unknown as { onboardingFunnel?: { key: string; label: string; users: number }[] }).onboardingFunnel ?? [];
   const segmentFunnel7d = (data as unknown as { segmentFunnel7d?: SegmentFunnelData }).segmentFunnel7d;
