@@ -1,7 +1,5 @@
 // Gera relatório mensal em PDF e envia por e-mail aos administradores.
-// Usado tanto pelo botão "Enviar agora" no /dev quanto pelo cron mensal.
-import { createServerFn } from "@tanstack/react-start";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+// SERVER-ONLY: never import this file from client code.
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 
@@ -540,22 +538,19 @@ async function runMonthlyReport(targetMonth: Date) {
   };
 }
 
-// ===== Server functions expostas =====
-export const sendMonthlyReportNow = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((input: { month?: "current" | "previous" } | undefined) => input ?? {})
-  .handler(async ({ data, context }) => {
-    await ensureAppAdmin(context.userId);
-    const target =
-      data?.month === "current" ? startOfMonth(new Date()) : previousMonth(new Date());
-    return runMonthlyReport(target);
-  });
+// Helpers exportados para wrappers (server functions / rotas de cron)
+export async function runMonthlyReportForMode(
+  mode: "current" | "previous" | undefined
+) {
+  const target =
+    mode === "current" ? startOfMonth(new Date()) : previousMonth(new Date());
+  return runMonthlyReport(target);
+}
 
-// Endpoint interno chamado pelo cron (autenticado via CRON_SECRET)
 export async function runScheduledMonthlyReport() {
   // Cron roda dia 1 — relata o MÊS ANTERIOR
   const target = previousMonth(new Date());
   return runMonthlyReport(target);
 }
 
-export { SITE_URL };
+export { ensureAppAdmin, SITE_URL };

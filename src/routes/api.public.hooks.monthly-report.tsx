@@ -1,7 +1,7 @@
 // Endpoint público para o pg_cron disparar o relatório mensal.
 // Autenticado via header `x-cron-secret` que casa com o secret CRON_SECRET.
 import { createFileRoute } from "@tanstack/react-router";
-import { runScheduledMonthlyReport } from "@/lib/monthly-report.functions";
+import { runScheduledMonthlyReport } from "@/lib/monthly-report.server";
 
 export const Route = createFileRoute("/api/public/hooks/monthly-report")({
   server: {
