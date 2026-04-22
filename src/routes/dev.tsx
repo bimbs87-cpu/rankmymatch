@@ -1019,6 +1019,47 @@ function AcquisitionTab({
   );
 }
 
+function ConversionTable({
+  rows,
+  colLabel,
+}: {
+  rows: { key: string; sessions: number; converted: number; rate: number }[];
+  colLabel: string;
+}) {
+  if (rows.length === 0) {
+    return <p className="text-xs text-muted-foreground p-4">Sem dados suficientes (mínimo 2 sessões por canal).</p>;
+  }
+  const sorted = [...rows].sort((a, b) => b.rate - a.rate);
+  return (
+    <div className="overflow-x-auto">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>{colLabel}</TableHead>
+            <TableHead className="text-right">Sessões</TableHead>
+            <TableHead className="text-right">Cadastros</TableHead>
+            <TableHead className="text-right">Taxa</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {sorted.slice(0, 12).map((r) => (
+            <TableRow key={r.key}>
+              <TableCell className="font-mono text-xs truncate max-w-[200px]">{r.key}</TableCell>
+              <TableCell className="text-right">{r.sessions}</TableCell>
+              <TableCell className="text-right">{r.converted}</TableCell>
+              <TableCell className="text-right">
+                <span className={r.rate >= 5 ? "text-primary font-semibold" : r.rate > 0 ? "text-foreground" : "text-muted-foreground"}>
+                  {r.rate}%
+                </span>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
+  );
+}
+
 function BreakdownList({
   items,
   total,
