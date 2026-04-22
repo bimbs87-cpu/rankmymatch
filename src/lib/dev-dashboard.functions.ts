@@ -795,6 +795,111 @@ export const getDevDashboard = createServerFn({ method: "GET" })
       users: stepCounts.get(s.key)?.size ?? 0,
     }));
 
+    // ===== Drill-down end-to-end por segmento (UTM/referrer) =====
+    // Para cada sessão 7d e 30d, capturamos o first-touch (utm_source, referrer_host)
+    // e marcamos quais converteram em cada etapa do funil.
+    // Usa fallback para tabelas reais (groups, match_players) — não depende só de onboarding_events.
+    const sessions30dIds = new Set(
+      visits
+        .filter((v) => now - new Date(v.created_at).getTime() < 30 * dayMs)
+        .map((v) => v.session_id)
+    );
+
+    // Mapas: user_id -> tem_grupo? tem_match?
+    const userHasGroup = usersWithGroup; // já é Set
+    const userHasMatch = userIdsWithMatch; // já é Set
+
+    type SegmentBucket = {
+      sessions: number;
+      signups: number;
+      groups: number;
+      matches: number;
+    };
+
+    function buildSegmentFunnel(sessionIds: Set<string>) {
+      const utm = new Map<string, SegmentBucket>();
+      const ref = new Map<string, SegmentBucket>();
+      const overall: SegmentBucket = {
+        sessions: 0,
+        signups: 0,
+        groups: 0,
+        matches: 0,
+      };
+
+      sessionIds.forEach((sid) => {
+        const ft = sessionFirstTouch.get(sid);
+        if (!ft) return;
+        const utmKey = ft.utm_source ?? "(nenhum)";
+        const refKey = ft.referrer_host ?? "(direto)";
+
+        // converted = sessão tem user_id (autenticado) cujo signup é próximo da sessão
+        const userId = sessionUserMap.get(sid);
+        const userCreated = userId ? userCreatedAtMap.get(userId) : undefined;
+        const sessVisits = visits.filter((v) => v.session_id === sid);
+        const sessFirstT = sessVisits.length
+          ? Math.min(...sessVisits.map((v) => new Date(v.created_at).getTime()))
+          : 0;
+        const signedUpInSession =
+          userId &&
+          userCreated &&
+          Math.abs(sessFirstT - userCreated) < 6 * 3600_000;
+
+        const inc = (m: Map<string, SegmentBucket>, k: string) => {
+          const b = m.get(k) ?? {
+            sessions: 0,
+            signups: 0,
+            groups: 0,
+            matches: 0,
+          };
+          b.sessions += 1;
+          if (signedUpInSession) b.signups += 1;
+          if (userId && userHasGroup.has(userId)) b.groups += 1;
+          if (userId && userHasMatch.has(userId)) b.matches += 1;
+          m.set(k, b);
+        };
+        inc(utm, utmKey);
+        inc(ref, refKey);
+
+        overall.sessions += 1;
+        if (signedUpInSession) overall.signups += 1;
+        if (userId && userHasGroup.has(userId)) overall.groups += 1;
+        if (userId && userHasMatch.has(userId)) overall.matches += 1;
+      });
+
+      const toRows = (m: Map<string, SegmentBucket>) =>
+        Array.from(m.entries())
+          .map(([key, b]) => ({
+            key,
+            sessions: b.sessions,
+            signups: b.signups,
+            groups: b.groups,
+            matches: b.matches,
+            signupRate:
+              b.sessions > 0
+                ? Number(((b.signups / b.sessions) * 100).toFixed(1))
+                : 0,
+            groupRate:
+              b.signups > 0
+                ? Number(((b.groups / b.signups) * 100).toFixed(1))
+                : 0,
+            matchRate:
+              b.groups > 0
+                ? Number(((b.matches / b.groups) * 100).toFixed(1))
+                : 0,
+          }))
+          .filter((r) => r.sessions >= 2)
+          .sort((a, b) => b.sessions - a.sessions);
+
+      return {
+        overall,
+        utm: toRows(utm),
+        referrer: toRows(ref),
+      };
+    }
+
+    const segmentFunnel7d = buildSegmentFunnel(sessions7dIds);
+    const segmentFunnel30d = buildSegmentFunnel(sessions30dIds);
+
     return {
       overview: {
         totalUsers,
@@ -819,6 +924,8 @@ export const getDevDashboard = createServerFn({ method: "GET" })
       },
       traffic,
       onboardingFunnel,
+      segmentFunnel7d,
+      segmentFunnel30d,
       dailyActivity,
       signups: signupsEnriched,
       funnel,
