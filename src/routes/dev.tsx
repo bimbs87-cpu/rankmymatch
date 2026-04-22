@@ -220,6 +220,7 @@ function OverviewTab({ data }: { data: DashboardData }) {
 
   return (
     <div className="space-y-6">
+      <MonthlyReportCard />
       {hasAnomalies && (
         <Card className="border-destructive/40 bg-destructive/5">
           <CardHeader>

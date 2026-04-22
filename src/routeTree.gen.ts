@@ -54,6 +54,7 @@ import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/e
 import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/email/auth/webhook'
 import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
 import { Route as GroupsGroupIdSeasonsSeasonIdRouteImport } from './routes/groups.$groupId.seasons.$seasonId'
+import { Route as ApiPublicHooksMonthlyReportRouteImport } from './routes/api.public.hooks.monthly-report'
 import { Route as ApiOgPlayerUserIdRouteImport } from './routes/api.og.player.$userId'
 import { Route as ApiOgGroupGroupIdRouteImport } from './routes/api.og.group.$groupId'
 import { Route as GroupsGroupIdSeasonsSeasonIdIndexRouteImport } from './routes/groups.$groupId.seasons.$seasonId.index'
@@ -292,6 +293,12 @@ const GroupsGroupIdSeasonsSeasonIdRoute =
     path: '/$seasonId',
     getParentRoute: () => GroupsGroupIdSeasonsRoute,
   } as any)
+const ApiPublicHooksMonthlyReportRoute =
+  ApiPublicHooksMonthlyReportRouteImport.update({
+    id: '/api/public/hooks/monthly-report',
+    path: '/api/public/hooks/monthly-report',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiOgPlayerUserIdRoute = ApiOgPlayerUserIdRouteImport.update({
   id: '/api/og/player/$userId',
   path: '/api/og/player/$userId',
@@ -350,6 +357,7 @@ export interface FileRoutesByFullPath {
   '/groups/$groupId/': typeof GroupsGroupIdIndexRoute
   '/api/og/group/$groupId': typeof ApiOgGroupGroupIdRoute
   '/api/og/player/$userId': typeof ApiOgPlayerUserIdRoute
+  '/api/public/hooks/monthly-report': typeof ApiPublicHooksMonthlyReportRoute
   '/groups/$groupId/seasons/$seasonId': typeof GroupsGroupIdSeasonsSeasonIdRouteWithChildren
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
@@ -397,6 +405,7 @@ export interface FileRoutesByTo {
   '/groups/$groupId': typeof GroupsGroupIdIndexRoute
   '/api/og/group/$groupId': typeof ApiOgGroupGroupIdRoute
   '/api/og/player/$userId': typeof ApiOgPlayerUserIdRoute
+  '/api/public/hooks/monthly-report': typeof ApiPublicHooksMonthlyReportRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
@@ -447,6 +456,7 @@ export interface FileRoutesById {
   '/groups/$groupId/': typeof GroupsGroupIdIndexRoute
   '/api/og/group/$groupId': typeof ApiOgGroupGroupIdRoute
   '/api/og/player/$userId': typeof ApiOgPlayerUserIdRoute
+  '/api/public/hooks/monthly-report': typeof ApiPublicHooksMonthlyReportRoute
   '/groups/$groupId/seasons/$seasonId': typeof GroupsGroupIdSeasonsSeasonIdRouteWithChildren
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
@@ -499,6 +509,7 @@ export interface FileRouteTypes {
     | '/groups/$groupId/'
     | '/api/og/group/$groupId'
     | '/api/og/player/$userId'
+    | '/api/public/hooks/monthly-report'
     | '/groups/$groupId/seasons/$seasonId'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
@@ -546,6 +557,7 @@ export interface FileRouteTypes {
     | '/groups/$groupId'
     | '/api/og/group/$groupId'
     | '/api/og/player/$userId'
+    | '/api/public/hooks/monthly-report'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
@@ -595,6 +607,7 @@ export interface FileRouteTypes {
     | '/groups/$groupId/'
     | '/api/og/group/$groupId'
     | '/api/og/player/$userId'
+    | '/api/public/hooks/monthly-report'
     | '/groups/$groupId/seasons/$seasonId'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
@@ -639,6 +652,7 @@ export interface RootRouteChildren {
   LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
   ApiOgGroupGroupIdRoute: typeof ApiOgGroupGroupIdRoute
   ApiOgPlayerUserIdRoute: typeof ApiOgPlayerUserIdRoute
+  ApiPublicHooksMonthlyReportRoute: typeof ApiPublicHooksMonthlyReportRoute
   LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
   LovableEmailAuthWebhookRoute: typeof LovableEmailAuthWebhookRoute
   LovableEmailQueueProcessRoute: typeof LovableEmailQueueProcessRoute
@@ -963,6 +977,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof GroupsGroupIdSeasonsSeasonIdRouteImport
       parentRoute: typeof GroupsGroupIdSeasonsRoute
     }
+    '/api/public/hooks/monthly-report': {
+      id: '/api/public/hooks/monthly-report'
+      path: '/api/public/hooks/monthly-report'
+      fullPath: '/api/public/hooks/monthly-report'
+      preLoaderRoute: typeof ApiPublicHooksMonthlyReportRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/og/player/$userId': {
       id: '/api/og/player/$userId'
       path: '/api/og/player/$userId'
@@ -1093,6 +1114,7 @@ const rootRouteChildren: RootRouteChildren = {
   LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,
   ApiOgGroupGroupIdRoute: ApiOgGroupGroupIdRoute,
   ApiOgPlayerUserIdRoute: ApiOgPlayerUserIdRoute,
+  ApiPublicHooksMonthlyReportRoute: ApiPublicHooksMonthlyReportRoute,
   LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,
   LovableEmailAuthWebhookRoute: LovableEmailAuthWebhookRoute,
   LovableEmailQueueProcessRoute: LovableEmailQueueProcessRoute,
