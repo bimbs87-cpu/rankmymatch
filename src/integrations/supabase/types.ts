@@ -1082,6 +1082,57 @@ export type Database = {
         }
         Relationships: []
       }
+      page_visits: {
+        Row: {
+          country: string | null
+          created_at: string
+          device_type: string | null
+          id: string
+          invite_code: string | null
+          is_first_visit: boolean
+          path: string
+          referrer_host: string | null
+          session_id: string
+          user_agent: string | null
+          user_id: string | null
+          utm_campaign: string | null
+          utm_medium: string | null
+          utm_source: string | null
+        }
+        Insert: {
+          country?: string | null
+          created_at?: string
+          device_type?: string | null
+          id?: string
+          invite_code?: string | null
+          is_first_visit?: boolean
+          path: string
+          referrer_host?: string | null
+          session_id: string
+          user_agent?: string | null
+          user_id?: string | null
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+        }
+        Update: {
+          country?: string | null
+          created_at?: string
+          device_type?: string | null
+          id?: string
+          invite_code?: string | null
+          is_first_visit?: boolean
+          path?: string
+          referrer_host?: string | null
+          session_id?: string
+          user_agent?: string | null
+          user_id?: string | null
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+        }
+        Relationships: []
+      }
       pending_match_results: {
         Row: {
           created_at: string
