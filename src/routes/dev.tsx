@@ -1,6 +1,6 @@
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, Loader2, Users, Boxes, Trophy, Activity, ShieldCheck, ExternalLink, Compass, UserPlus, UserCheck, UserX, AlertTriangle, Clock, Sparkles } from "lucide-react";
+import { ArrowLeft, Loader2, Users, Boxes, Trophy, Activity, ShieldCheck, ExternalLink, Compass, UserPlus, UserCheck, UserX, AlertTriangle, Clock, Sparkles, Eye, MousePointerClick, Globe, Smartphone, TrendingUp, LogIn } from "lucide-react";
 import {
   LineChart,
   Line,
@@ -196,7 +196,7 @@ function StatCard({
 }
 
 function OverviewTab({ data }: { data: DashboardData }) {
-  const { overview, dailyActivity, recentActivity, diagnostics } = data;
+  const { overview, dailyActivity, recentActivity, diagnostics, traffic } = data;
   const conversionToGroup =
     overview.totalUsers > 0
       ? ((overview.usersWithGroup / overview.totalUsers) * 100).toFixed(0)
@@ -256,6 +256,194 @@ function OverviewTab({ data }: { data: DashboardData }) {
                 </span>
               </div>
             )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* === TRÁFEGO DO SITE (todos os visitantes, inclusive anônimos) === */}
+      <div>
+        <div className="flex items-center justify-between mb-2">
+          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+            Tráfego do site (visitantes anônimos + logados)
+          </h2>
+          {!traffic?.hasData && (
+            <Badge variant="outline" className="text-[10px]">
+              Aguardando dados — comece a aparecer após o próximo deploy
+            </Badge>
+          )}
+        </div>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <StatCard
+            icon={Eye}
+            label="Pageviews hoje"
+            value={traffic?.pageviewsToday ?? 0}
+            hint={`${traffic?.pageviews7d ?? 0} em 7d`}
+          />
+          <StatCard
+            icon={Users}
+            label="Sessões hoje"
+            value={traffic?.sessionsToday ?? 0}
+            hint={`${traffic?.sessions7d ?? 0} em 7d · visitantes únicos`}
+          />
+          <StatCard
+            icon={Sparkles}
+            label="Novos visitantes hoje"
+            value={traffic?.firstVisitsToday ?? 0}
+            hint={`${traffic?.firstVisits7d ?? 0} em 7d`}
+          />
+          <StatCard
+            icon={MousePointerClick}
+            label="Conversão visitor→signup"
+            value={`${traffic?.visitorToSignupRate7d ?? 0}%`}
+            hint={`${traffic?.sessionsConverted7d ?? 0} de ${traffic?.sessions7d ?? 0} sessões 7d`}
+          />
+        </div>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 mt-3">
+          <StatCard
+            icon={LogIn}
+            label="Bounce rate 7d"
+            value={`${traffic?.bounceRate7d ?? 0}%`}
+            hint="sessão com 1 só pageview"
+          />
+          <StatCard
+            icon={TrendingUp}
+            label="Páginas / sessão"
+            value={traffic?.pagesPerSession7d ?? 0}
+            hint="média 7d"
+          />
+          <StatCard
+            icon={UserX}
+            label="Sessões anônimas 7d"
+            value={traffic?.anonSessions7d ?? 0}
+            hint="nunca logaram"
+          />
+          <StatCard
+            icon={UserCheck}
+            label="Sessões logadas 7d"
+            value={traffic?.authSessions7d ?? 0}
+          />
+        </div>
+      </div>
+
+      {/* === FUNIL END-TO-END (visitor → signup → group → match) === */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Funil end-to-end (últimos 7 dias)</CardTitle>
+          <p className="text-xs text-muted-foreground">
+            De visitante anônimo até jogador ativo. Cada etapa mostra a queda real.
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {[
+            { label: "Visitaram o site (sessões 7d)", value: traffic?.sessions7d ?? 0 },
+            { label: "Cadastraram (7d)", value: overview.signupsLast7d },
+            { label: "Criaram grupo (acumulado)", value: overview.usersWithGroup },
+            { label: "Jogaram partida (acumulado)", value: overview.usersWithMatch },
+          ].map((step, i, arr) => {
+            const base = arr[0].value || 1;
+            const pct = (step.value / base) * 100;
+            const dropFromPrev = i > 0 ? arr[i - 1].value - step.value : 0;
+            return (
+              <div key={step.label}>
+                <div className="flex items-baseline justify-between text-sm mb-1">
+                  <span className="font-medium">{step.label}</span>
+                  <span className="text-muted-foreground text-xs whitespace-nowrap">
+                    {step.value} · {pct.toFixed(1)}%
+                    {i > 0 && dropFromPrev > 0 && (
+                      <span className="text-destructive ml-2">−{dropFromPrev}</span>
+                    )}
+                  </span>
+                </div>
+                <div className="h-3 w-full rounded bg-muted overflow-hidden">
+                  <div className="h-full bg-primary" style={{ width: `${Math.max(pct, 2)}%` }} />
+                </div>
+              </div>
+            );
+          })}
+        </CardContent>
+      </Card>
+
+      {/* Aquisição por canal (sessões, não cadastros) */}
+      {traffic?.hasData && (
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <Globe className="h-4 w-4" /> Origem das sessões 30d
+              </CardTitle>
+              <p className="text-xs text-muted-foreground">
+                De onde vêm as pessoas que visitam (não só as cadastradas).
+              </p>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <p className="text-xs font-semibold text-muted-foreground mb-2">UTM Source</p>
+                {traffic.topUtmSources.length > 0 ? <BreakdownList items={traffic.topUtmSources} total={traffic.sessions7d || 1} /> : <p className="text-xs text-muted-foreground">Nenhum tráfego com UTM</p>}
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-muted-foreground mb-2">Referrers</p>
+                {traffic.topReferrers.length > 0 ? <BreakdownList items={traffic.topReferrers} total={traffic.sessions7d || 1} /> : <p className="text-xs text-muted-foreground">Tráfego direto</p>}
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-muted-foreground mb-2">UTM Campaign</p>
+                {traffic.topCampaigns.length > 0 ? <BreakdownList items={traffic.topCampaigns} total={traffic.sessions7d || 1} /> : <p className="text-xs text-muted-foreground">—</p>}
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <Smartphone className="h-4 w-4" /> Comportamento
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <p className="text-xs font-semibold text-muted-foreground mb-2">Landing pages (1ª visita)</p>
+                {traffic.topLandingPages.length > 0 ? <BreakdownList items={traffic.topLandingPages} total={traffic.sessions7d || 1} /> : <p className="text-xs text-muted-foreground">—</p>}
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-muted-foreground mb-2">Páginas mais vistas 7d</p>
+                {traffic.topPages7d.length > 0 ? <BreakdownList items={traffic.topPages7d} total={traffic.pageviews7d || 1} /> : <p className="text-xs text-muted-foreground">—</p>}
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-muted-foreground mb-2">Dispositivos</p>
+                {traffic.devices.length > 0 ? <BreakdownList items={traffic.devices} total={traffic.sessions7d || 1} /> : <p className="text-xs text-muted-foreground">—</p>}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Gráfico de tráfego diário */}
+      {traffic?.hasData && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Tráfego diário (30d)</CardTitle>
+            <p className="text-xs text-muted-foreground">
+              Sessões = visitantes únicos · Pageviews = total · Novos = primeira visita ever
+            </p>
+          </CardHeader>
+          <CardContent>
+            <div className="h-72 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={traffic.trafficDaily}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                  <XAxis dataKey="date" tickFormatter={(d) => d.slice(5)} className="text-xs" />
+                  <YAxis allowDecimals={false} className="text-xs" />
+                  <Tooltip
+                    contentStyle={{
+                      background: "hsl(var(--card))",
+                      border: "1px solid hsl(var(--border))",
+                      borderRadius: "0.5rem",
+                    }}
+                  />
+                  <Legend />
+                  <Line type="monotone" dataKey="sessions" name="Sessões" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} />
+                  <Line type="monotone" dataKey="pageviews" name="Pageviews" stroke="hsl(var(--accent))" strokeWidth={2} dot={false} />
+                  <Line type="monotone" dataKey="newVisitors" name="Novos visitantes" stroke="hsl(var(--destructive))" strokeWidth={2} dot={false} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
           </CardContent>
         </Card>
       )}
