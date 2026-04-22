@@ -333,29 +333,33 @@ function OverviewTab({ data }: { data: DashboardData }) {
             De visitante anônimo até jogador ativo. Cada etapa mostra a queda real.
           </p>
         </CardHeader>
-        <CardContent>
-          <FunnelStep
-            label="Visitaram o site"
-            value={traffic?.sessions7d ?? 0}
-            base={traffic?.sessions7d ?? 0}
-          />
-          <FunnelStep
-            label="Cadastraram"
-            value={overview.signupsLast7d}
-            base={traffic?.sessions7d ?? 0}
-          />
-          <FunnelStep
-            label="Criaram grupo"
-            value={overview.usersWithGroup}
-            base={traffic?.sessions7d ?? 0}
-            note="acumulado"
-          />
-          <FunnelStep
-            label="Jogaram partida"
-            value={overview.usersWithMatch}
-            base={traffic?.sessions7d ?? 0}
-            note="acumulado"
-          />
+        <CardContent className="space-y-3">
+          {[
+            { label: "Visitaram o site (sessões 7d)", value: traffic?.sessions7d ?? 0 },
+            { label: "Cadastraram (7d)", value: overview.signupsLast7d },
+            { label: "Criaram grupo (acumulado)", value: overview.usersWithGroup },
+            { label: "Jogaram partida (acumulado)", value: overview.usersWithMatch },
+          ].map((step, i, arr) => {
+            const base = arr[0].value || 1;
+            const pct = (step.value / base) * 100;
+            const dropFromPrev = i > 0 ? arr[i - 1].value - step.value : 0;
+            return (
+              <div key={step.label}>
+                <div className="flex items-baseline justify-between text-sm mb-1">
+                  <span className="font-medium">{step.label}</span>
+                  <span className="text-muted-foreground text-xs whitespace-nowrap">
+                    {step.value} · {pct.toFixed(1)}%
+                    {i > 0 && dropFromPrev > 0 && (
+                      <span className="text-destructive ml-2">−{dropFromPrev}</span>
+                    )}
+                  </span>
+                </div>
+                <div className="h-3 w-full rounded bg-muted overflow-hidden">
+                  <div className="h-full bg-primary" style={{ width: `${Math.max(pct, 2)}%` }} />
+                </div>
+              </div>
+            );
+          })}
         </CardContent>
       </Card>
 
