@@ -130,6 +130,9 @@ export function JoinGroupDialog({
           return;
         }
         toast.success("Você entrou no grupo!");
+        void import("@/lib/onboarding-events").then(({ trackOnboardingStep }) =>
+          trackOnboardingStep("joined_first_group", { group_id: groupId }),
+        );
         onJoined();
         onOpenChange(false);
         return;
