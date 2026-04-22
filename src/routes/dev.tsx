@@ -220,6 +220,8 @@ function OverviewTab({ data }: { data: DashboardData }) {
   const onboardingFunnel = (data as unknown as { onboardingFunnel?: { key: string; label: string; users: number }[] }).onboardingFunnel ?? [];
   const segmentFunnel7d = (data as unknown as { segmentFunnel7d?: SegmentFunnelData }).segmentFunnel7d;
   const segmentFunnel30d = (data as unknown as { segmentFunnel30d?: SegmentFunnelData }).segmentFunnel30d;
+  const mom = (data as unknown as { mom?: MomData }).mom;
+  const signupAnomalies = (data as unknown as { signupAnomalies?: SignupAnomaliesData }).signupAnomalies;
   const conversionToGroup =
     overview.totalUsers > 0
       ? ((overview.usersWithGroup / overview.totalUsers) * 100).toFixed(0)
@@ -237,8 +239,15 @@ function OverviewTab({ data }: { data: DashboardData }) {
       ? ((overview.neverReturned / overview.totalUsers) * 100).toFixed(0)
       : "0";
 
+  const totalAnomalies =
+    (signupAnomalies?.ghostUsers.count ?? 0) +
+    (signupAnomalies?.signupWithoutOnbEvent.count ?? 0) +
+    (signupAnomalies?.authedSessionWithoutSignupEvent.count ?? 0);
   const hasAnomalies =
-    overview.authWithoutProfile > 0 || overview.profilesWithoutAuth > 0;
+    overview.authWithoutProfile > 0 ||
+    overview.profilesWithoutAuth > 0 ||
+    totalAnomalies > 0 ||
+    (signupAnomalies?.loginAbandon.abandoned ?? 0) > 0;
 
   return (
     <div className="space-y-6">
