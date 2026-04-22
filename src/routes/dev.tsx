@@ -281,16 +281,76 @@ function OverviewTab({ data }: { data: DashboardData }) {
   return (
     <div className="space-y-6">
       <MonthlyReportCard />
+
+      {/* === Comparação Mês-contra-Mês (MoM) === */}
+      {mom && <MomComparisonCard mom={mom} />}
+
       {hasAnomalies && (
         <Card className="border-destructive/40 bg-destructive/5">
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2 text-destructive">
               <AlertTriangle className="h-4 w-4" />
-              Anomalias detectadas
+              Anomalias detectadas no signup
             </CardTitle>
+            <p className="text-xs text-muted-foreground">
+              Diagnóstico de por que usuários podem não estar convertendo mesmo com tráfego alto.
+            </p>
           </CardHeader>
-          <CardContent className="space-y-2 text-sm">
-            {overview.authWithoutProfile > 0 && (
+          <CardContent className="space-y-3 text-sm">
+            {/* 1. Ghost users (auth sem profile) */}
+            {(signupAnomalies?.ghostUsers.count ?? 0) > 0 && (
+              <AnomalyRow
+                severity="high"
+                count={signupAnomalies!.ghostUsers.count}
+                label="Ghost users (auth sem profile)"
+                explanation="Usuário criou conta mas o trigger que cria o profile falhou — provavelmente não consegue usar o app."
+                sample={signupAnomalies!.ghostUsers.sample}
+              />
+            )}
+
+            {/* 2. Signup sem evento de tracking */}
+            {(signupAnomalies?.signupWithoutOnbEvent.count ?? 0) > 0 && (
+              <AnomalyRow
+                severity="medium"
+                count={signupAnomalies!.signupWithoutOnbEvent.count}
+                label="Signup sem evento 'signup' (instrumentação falhou)"
+                explanation="Usuário cadastrou nos últimos 30d mas o evento onboarding 'signup' não foi registrado. Pode quebrar métricas de funil."
+                sample={signupAnomalies!.signupWithoutOnbEvent.sample}
+              />
+            )}
+
+            {/* 3. Sessão autenticada sem evento signup */}
+            {(signupAnomalies?.authedSessionWithoutSignupEvent.count ?? 0) > 0 && (
+              <AnomalyRow
+                severity="low"
+                count={signupAnomalies!.authedSessionWithoutSignupEvent.count}
+                label="Sessão autenticada sem evento 'signup'"
+                explanation="Sessão tem user_id mas o usuário nunca disparou o evento 'signup' (cadastros antigos antes da instrumentação ou regressão)."
+                sample={signupAnomalies!.authedSessionWithoutSignupEvent.sample}
+              />
+            )}
+
+            {/* 4. Abandono em /login */}
+            {signupAnomalies && signupAnomalies.loginAbandon.sessionsTouchedLogin > 0 && (
+              <div className="rounded-lg border border-border bg-card/50 p-3">
+                <div className="flex items-baseline justify-between gap-2 flex-wrap">
+                  <strong className="text-destructive">
+                    Abandono em /login: {signupAnomalies.loginAbandon.abandonRate}%
+                  </strong>
+                  <span className="text-xs text-muted-foreground">
+                    {signupAnomalies.loginAbandon.abandoned} abandonaram ·{" "}
+                    {signupAnomalies.loginAbandon.converted} converteram ·{" "}
+                    {signupAnomalies.loginAbandon.sessionsTouchedLogin} sessões tocaram /login
+                  </span>
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Sessões que chegaram em /login mas o usuário nunca completou o cadastro. Alta taxa pode indicar fricção no Google OAuth ou problema na tela.
+                </p>
+              </div>
+            )}
+
+            {/* Legacy compat: cadastros sem profile (já coberto por ghost users — mantido por segurança) */}
+            {overview.authWithoutProfile > 0 && (signupAnomalies?.ghostUsers.count ?? 0) === 0 && (
               <div>
                 <strong className="text-destructive">
                   {overview.authWithoutProfile} cadastro(s) sem profile.
@@ -311,11 +371,9 @@ function OverviewTab({ data }: { data: DashboardData }) {
               </div>
             )}
             {overview.profilesWithoutAuth > 0 && (
-              <div>
-                <strong>{overview.profilesWithoutAuth} profile(s)</strong>{" "}
-                <span className="text-muted-foreground">
-                  sem auth.user (placeholders criados por admins — esperado).
-                </span>
+              <div className="text-xs text-muted-foreground">
+                <strong className="text-foreground">{overview.profilesWithoutAuth} profile(s)</strong>{" "}
+                sem auth.user (placeholders criados por admins — esperado, não é bug).
               </div>
             )}
           </CardContent>
