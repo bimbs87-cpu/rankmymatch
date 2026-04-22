@@ -339,7 +339,7 @@ function AnomalyRow({
   );
 }
 
-
+function OverviewTab({ data }: { data: DashboardData }) {
   const { overview, dailyActivity, recentActivity, diagnostics, traffic } = data;
   const onboardingFunnel = (data as unknown as { onboardingFunnel?: { key: string; label: string; users: number }[] }).onboardingFunnel ?? [];
   const segmentFunnel7d = (data as unknown as { segmentFunnel7d?: SegmentFunnelData }).segmentFunnel7d;
