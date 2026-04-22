@@ -197,6 +197,7 @@ function StatCard({
 
 function OverviewTab({ data }: { data: DashboardData }) {
   const { overview, dailyActivity, recentActivity, diagnostics, traffic } = data;
+  const onboardingFunnel = (data as unknown as { onboardingFunnel?: { key: string; label: string; users: number }[] }).onboardingFunnel ?? [];
   const conversionToGroup =
     overview.totalUsers > 0
       ? ((overview.usersWithGroup / overview.totalUsers) * 100).toFixed(0)
