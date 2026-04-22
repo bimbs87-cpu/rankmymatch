@@ -882,10 +882,9 @@ export const getDevDashboard = createServerFn({ method: "GET" })
         const sessFirstT = sessVisits.length
           ? Math.min(...sessVisits.map((v) => new Date(v.created_at).getTime()))
           : 0;
-        const signedUpInSession =
-          userId &&
-          userCreated &&
-          Math.abs(sessFirstT - userCreated) < 6 * 3600_000;
+        const signedUpInSession = Boolean(
+          userId && isSessionAttributableToSignup(sessFirstT, userCreated)
+        );
 
         const inc = (m: Map<string, SegmentBucket>, k: string) => {
           const b = m.get(k) ?? {
