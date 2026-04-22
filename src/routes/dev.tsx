@@ -260,6 +260,172 @@ function OverviewTab({ data }: { data: DashboardData }) {
         </Card>
       )}
 
+      {/* === TRÁFEGO DO SITE (todos os visitantes, inclusive anônimos) === */}
+      <div>
+        <div className="flex items-center justify-between mb-2">
+          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+            Tráfego do site (visitantes anônimos + logados)
+          </h2>
+          {!traffic?.hasData && (
+            <Badge variant="outline" className="text-[10px]">
+              Aguardando dados — comece a aparecer após o próximo deploy
+            </Badge>
+          )}
+        </div>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <StatCard
+            icon={Eye}
+            label="Pageviews hoje"
+            value={traffic?.pageviewsToday ?? 0}
+            hint={`${traffic?.pageviews7d ?? 0} em 7d`}
+          />
+          <StatCard
+            icon={Users}
+            label="Sessões hoje"
+            value={traffic?.sessionsToday ?? 0}
+            hint={`${traffic?.sessions7d ?? 0} em 7d · visitantes únicos`}
+          />
+          <StatCard
+            icon={Sparkles}
+            label="Novos visitantes hoje"
+            value={traffic?.firstVisitsToday ?? 0}
+            hint={`${traffic?.firstVisits7d ?? 0} em 7d`}
+          />
+          <StatCard
+            icon={MousePointerClick}
+            label="Conversão visitor→signup"
+            value={`${traffic?.visitorToSignupRate7d ?? 0}%`}
+            hint={`${traffic?.sessionsConverted7d ?? 0} de ${traffic?.sessions7d ?? 0} sessões 7d`}
+          />
+        </div>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 mt-3">
+          <StatCard
+            icon={LogIn}
+            label="Bounce rate 7d"
+            value={`${traffic?.bounceRate7d ?? 0}%`}
+            hint="sessão com 1 só pageview"
+          />
+          <StatCard
+            icon={TrendingUp}
+            label="Páginas / sessão"
+            value={traffic?.pagesPerSession7d ?? 0}
+            hint="média 7d"
+          />
+          <StatCard
+            icon={UserX}
+            label="Sessões anônimas 7d"
+            value={traffic?.anonSessions7d ?? 0}
+            hint="nunca logaram"
+          />
+          <StatCard
+            icon={UserCheck}
+            label="Sessões logadas 7d"
+            value={traffic?.authSessions7d ?? 0}
+          />
+        </div>
+      </div>
+
+      {/* === FUNIL END-TO-END (visitor → signup → group → match) === */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Funil end-to-end (últimos 7 dias)</CardTitle>
+          <p className="text-xs text-muted-foreground">
+            De visitante anônimo até jogador ativo. Cada etapa mostra a queda real.
+          </p>
+        </CardHeader>
+        <CardContent>
+          <FunnelStep
+            label="Visitaram o site"
+            value={traffic?.sessions7d ?? 0}
+            base={traffic?.sessions7d ?? 0}
+          />
+          <FunnelStep
+            label="Cadastraram"
+            value={overview.signupsLast7d}
+            base={traffic?.sessions7d ?? 0}
+          />
+          <FunnelStep
+            label="Criaram grupo"
+            value={overview.usersWithGroup}
+            base={traffic?.sessions7d ?? 0}
+            note="acumulado"
+          />
+          <FunnelStep
+            label="Jogaram partida"
+            value={overview.usersWithMatch}
+            base={traffic?.sessions7d ?? 0}
+            note="acumulado"
+          />
+        </CardContent>
+      </Card>
+
+      {/* Aquisição por canal (sessões, não cadastros) */}
+      {traffic?.hasData && (
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <Globe className="h-4 w-4" /> Origem das sessões 30d
+              </CardTitle>
+              <p className="text-xs text-muted-foreground">
+                De onde vêm as pessoas que visitam (não só as cadastradas).
+              </p>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <BreakdownList title="UTM Source" items={traffic.topUtmSources} empty="Nenhum tráfego com UTM" />
+              <BreakdownList title="Referrers" items={traffic.topReferrers} empty="Tráfego direto" />
+              <BreakdownList title="UTM Campaign" items={traffic.topCampaigns} empty="—" />
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <Smartphone className="h-4 w-4" /> Comportamento
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <BreakdownList title="Landing pages (1ª visita)" items={traffic.topLandingPages} empty="—" />
+              <BreakdownList title="Páginas mais vistas 7d" items={traffic.topPages7d} empty="—" />
+              <BreakdownList title="Dispositivos" items={traffic.devices} empty="—" />
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Gráfico de tráfego diário */}
+      {traffic?.hasData && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Tráfego diário (30d)</CardTitle>
+            <p className="text-xs text-muted-foreground">
+              Sessões = visitantes únicos · Pageviews = total · Novos = primeira visita ever
+            </p>
+          </CardHeader>
+          <CardContent>
+            <div className="h-72 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={traffic.trafficDaily}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                  <XAxis dataKey="date" tickFormatter={(d) => d.slice(5)} className="text-xs" />
+                  <YAxis allowDecimals={false} className="text-xs" />
+                  <Tooltip
+                    contentStyle={{
+                      background: "hsl(var(--card))",
+                      border: "1px solid hsl(var(--border))",
+                      borderRadius: "0.5rem",
+                    }}
+                  />
+                  <Legend />
+                  <Line type="monotone" dataKey="sessions" name="Sessões" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} />
+                  <Line type="monotone" dataKey="pageviews" name="Pageviews" stroke="hsl(var(--accent))" strokeWidth={2} dot={false} />
+                  <Line type="monotone" dataKey="newVisitors" name="Novos visitantes" stroke="hsl(var(--destructive))" strokeWidth={2} dot={false} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       <div>
         <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2">
           Base de usuários
