@@ -217,6 +217,9 @@ function ProfilePage() {
       toast.error("Erro ao salvar perfil");
     } else {
       toast.success("Perfil atualizado!");
+      void import("@/lib/onboarding-events").then(({ trackOnboardingStep }) =>
+        trackOnboardingStep("profile_completed"),
+      );
       setEditing(false);
       await reload();
     }

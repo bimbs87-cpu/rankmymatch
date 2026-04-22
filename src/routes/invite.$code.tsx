@@ -371,6 +371,9 @@ function InvitePage() {
 
       setJoined(true);
       toast.success("Você entrou no grupo!");
+      void import("@/lib/onboarding-events").then(({ trackOnboardingStep }) =>
+        trackOnboardingStep("joined_first_group", { group_id: invite.group_id, via: "invite" }),
+      );
     } catch (e: any) {
       toast.error("Erro ao entrar no grupo");
     }

@@ -387,6 +387,9 @@ export function ScoreEntryDialog({
       void import("@/lib/analytics").then(({ trackConversion }) =>
         trackConversion("register_match", { match_id: matchId, season_id: seasonId, mode: isSingles ? "singles" : "doubles", source: "admin_save" }),
       );
+      void import("@/lib/onboarding-events").then(({ trackOnboardingStep }) =>
+        trackOnboardingStep("first_match_result", { match_id: matchId, source: "admin_save" }),
+      );
       onSaved();
       onClose();
     } catch (e: any) {
@@ -446,6 +449,9 @@ export function ScoreEntryDialog({
       toast.success("Resultado enviado para aprovação do admin");
       void import("@/lib/analytics").then(({ trackConversion }) =>
         trackConversion("register_match", { match_id: matchId, season_id: seasonId, source: "player_pending" }),
+      );
+      void import("@/lib/onboarding-events").then(({ trackOnboardingStep }) =>
+        trackOnboardingStep("first_match_result", { match_id: matchId, source: "player_pending" }),
       );
       await refreshPending();
       onSaved();

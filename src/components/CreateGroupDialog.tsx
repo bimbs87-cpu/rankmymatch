@@ -119,6 +119,9 @@ export function CreateGroupDialog({ open, onClose }: Props) {
       void import("@/lib/analytics").then(({ trackConversion }) =>
         trackConversion("create_group", { sport, match_format: matchFormat, is_public: isPublic, group_id: group.id }),
       );
+      void import("@/lib/onboarding-events").then(({ trackOnboardingStep }) =>
+        trackOnboardingStep("created_first_group", { group_id: group.id, sport }),
+      );
       navigate({ to: "/groups/$groupId", params: { groupId: group.id } });
     } catch (e: any) {
       console.error("Erro ao criar grupo:", e);

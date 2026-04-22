@@ -40,9 +40,23 @@ function getReferrerHost(): string | null {
   }
 }
 
+/** Rotas internas/admin que NÃO devem ser rastreadas (não confundir métricas). */
+const IGNORED_PATH_PREFIXES = [
+  "/dev",
+  "/admin",
+  "/sobre-desenvolvimento",
+  "/api/",
+  "/lovable/",
+];
+
+function shouldIgnorePath(path: string): boolean {
+  return IGNORED_PATH_PREFIXES.some((p) => path === p || path.startsWith(p + "/") || path.startsWith(p));
+}
+
 /** Registra uma visita à página atual. Idempotente por (path) num intervalo curto. */
 export async function trackPageVisit(path: string) {
   if (typeof window === "undefined") return;
+  if (shouldIgnorePath(path)) return;
   try {
     // Evita duplicar a mesma rota chamada repetidas vezes em <2s (StrictMode etc.)
     const lastPath = window.sessionStorage.getItem(LAST_PATH_KEY);

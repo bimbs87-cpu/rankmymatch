@@ -1082,6 +1082,30 @@ export type Database = {
         }
         Relationships: []
       }
+      onboarding_events: {
+        Row: {
+          created_at: string
+          id: string
+          metadata: Json | null
+          step: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          step: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          step?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       page_visits: {
         Row: {
           country: string | null
