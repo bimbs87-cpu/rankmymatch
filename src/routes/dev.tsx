@@ -1050,6 +1050,193 @@ function AcquisitionTab({
   );
 }
 
+function SegmentFunnelCard({
+  data7d,
+  data30d,
+}: {
+  data7d?: SegmentFunnelData;
+  data30d?: SegmentFunnelData;
+}) {
+  const [window, setWindow] = useState<"7d" | "30d">("7d");
+  const [dim, setDim] = useState<"utm" | "referrer">("utm");
+  const [filter, setFilter] = useState<string | null>(null);
+
+  const active = window === "7d" ? data7d : data30d;
+  if (!active) return null;
+
+  const rows = (dim === "utm" ? active.utm : active.referrer) ?? [];
+  const filteredRow = filter ? rows.find((r) => r.key === filter) : null;
+
+  // Soma agregada (do segmento selecionado ou overall)
+  const summary = filteredRow
+    ? {
+        sessions: filteredRow.sessions,
+        signups: filteredRow.signups,
+        groups: filteredRow.groups,
+        matches: filteredRow.matches,
+      }
+    : active.overall;
+
+  const steps = [
+    { label: "Sessões", value: summary.sessions },
+    { label: "Cadastraram", value: summary.signups },
+    { label: "Criaram/entraram em grupo", value: summary.groups },
+    { label: "Jogaram partida", value: summary.matches },
+  ];
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">
+          Drill-down do funil por canal (ads & referrers)
+        </CardTitle>
+        <p className="text-xs text-muted-foreground">
+          Veja como cada canal de aquisição converte de visitante até jogador. Clique numa linha para filtrar o funil.
+        </p>
+        <div className="flex flex-wrap gap-2 pt-2">
+          <div className="flex gap-1">
+            {(["7d", "30d"] as const).map((w) => (
+              <Button
+                key={w}
+                size="sm"
+                variant={window === w ? "default" : "outline"}
+                onClick={() => {
+                  setWindow(w);
+                  setFilter(null);
+                }}
+              >
+                {w}
+              </Button>
+            ))}
+          </div>
+          <div className="flex gap-1">
+            {(["utm", "referrer"] as const).map((d) => (
+              <Button
+                key={d}
+                size="sm"
+                variant={dim === d ? "default" : "outline"}
+                onClick={() => {
+                  setDim(d);
+                  setFilter(null);
+                }}
+              >
+                {d === "utm" ? "Por UTM source" : "Por referrer"}
+              </Button>
+            ))}
+          </div>
+          {filter && (
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => setFilter(null)}
+              className="text-xs"
+            >
+              Limpar filtro: {filter} ✕
+            </Button>
+          )}
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {/* Funil agregado/filtrado */}
+        <div className="space-y-2 rounded-md border bg-muted/20 p-3">
+          <div className="text-xs font-semibold text-muted-foreground mb-2">
+            {filter
+              ? `Funil de ${dim === "utm" ? "UTM source" : "referrer"} = ${filter} (${window})`
+              : `Funil agregado (${window})`}
+          </div>
+          {steps.map((s, i, arr) => {
+            const base = arr[0].value || 1;
+            const pct = (s.value / base) * 100;
+            const stepConv =
+              i > 0 && arr[i - 1].value > 0
+                ? (s.value / arr[i - 1].value) * 100
+                : null;
+            const drop = i > 0 ? arr[i - 1].value - s.value : 0;
+            return (
+              <div key={s.label}>
+                <div className="flex items-baseline justify-between text-sm mb-1">
+                  <span className="font-medium">{s.label}</span>
+                  <span className="text-muted-foreground text-xs whitespace-nowrap">
+                    {s.value} · {pct.toFixed(1)}% do topo
+                    {stepConv !== null && (
+                      <span className="ml-2">→ {stepConv.toFixed(1)}% etapa</span>
+                    )}
+                    {i > 0 && drop > 0 && (
+                      <span className="text-destructive ml-2">−{drop}</span>
+                    )}
+                  </span>
+                </div>
+                <div className="h-3 w-full rounded bg-muted overflow-hidden">
+                  <div
+                    className="h-full bg-primary"
+                    style={{ width: `${Math.max(pct, 2)}%` }}
+                  />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Tabela detalhada por segmento */}
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>{dim === "utm" ? "UTM source" : "Referrer"}</TableHead>
+                <TableHead className="text-right">Sessões</TableHead>
+                <TableHead className="text-right">→ Signup</TableHead>
+                <TableHead className="text-right">→ Grupo</TableHead>
+                <TableHead className="text-right">→ Partida</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {rows.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center text-muted-foreground py-6 text-xs">
+                    Sem dados suficientes para esta janela.
+                  </TableCell>
+                </TableRow>
+              )}
+              {rows.slice(0, 15).map((r) => {
+                const selected = filter === r.key;
+                return (
+                  <TableRow
+                    key={r.key}
+                    className={`cursor-pointer hover:bg-muted/40 ${selected ? "bg-primary/10" : ""}`}
+                    onClick={() => setFilter(selected ? null : r.key)}
+                  >
+                    <TableCell className="font-mono text-xs truncate max-w-[160px]">
+                      {r.key}
+                    </TableCell>
+                    <TableCell className="text-right text-xs">{r.sessions}</TableCell>
+                    <TableCell className="text-right text-xs">
+                      <span className="font-medium">{r.signups}</span>{" "}
+                      <span className={r.signupRate >= 5 ? "text-primary" : "text-muted-foreground"}>
+                        ({r.signupRate}%)
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-right text-xs">
+                      {r.groups}{" "}
+                      <span className="text-muted-foreground">({r.groupRate}%)</span>
+                    </TableCell>
+                    <TableCell className="text-right text-xs">
+                      {r.matches}{" "}
+                      <span className="text-muted-foreground">({r.matchRate}%)</span>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </div>
+        <p className="text-[11px] text-muted-foreground">
+          Atribuição: first-touch da sessão. % entre parênteses é a taxa relativa à etapa anterior. Grupo/Partida são acumulados (usuário pode ter feito após a sessão).
+        </p>
+      </CardContent>
+    </Card>
+  );
+}
+
 function ConversionTable({
   rows,
   colLabel,
