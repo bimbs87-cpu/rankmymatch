@@ -169,6 +169,23 @@ function DevDashboardPage() {
 
 type DashboardData = Awaited<ReturnType<typeof getDevDashboard>>;
 
+type SegmentRow = {
+  key: string;
+  sessions: number;
+  signups: number;
+  groups: number;
+  matches: number;
+  signupRate: number;
+  groupRate: number;
+  matchRate: number;
+};
+
+type SegmentFunnelData = {
+  overall: { sessions: number; signups: number; groups: number; matches: number };
+  utm: SegmentRow[];
+  referrer: SegmentRow[];
+};
+
 function StatCard({
   icon: Icon,
   label,
