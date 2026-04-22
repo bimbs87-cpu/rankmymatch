@@ -818,6 +818,7 @@ export const getDevDashboard = createServerFn({ method: "GET" })
         usersWithMatch: funnel.registered_match,
       },
       traffic,
+      onboardingFunnel,
       dailyActivity,
       signups: signupsEnriched,
       funnel,
