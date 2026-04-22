@@ -387,6 +387,14 @@ function OverviewTab({ data }: { data: DashboardData }) {
         </CardContent>
       </Card>
 
+      {/* === Drill-down end-to-end por canal de aquisição (ads) === */}
+      {(segmentFunnel7d || segmentFunnel30d) && (
+        <SegmentFunnelCard
+          data7d={segmentFunnel7d}
+          data30d={segmentFunnel30d}
+        />
+      )}
+
       {/* Aquisição por canal (sessões, não cadastros) */}
       {traffic?.hasData && (
         <div className="grid gap-3 sm:grid-cols-2">
