@@ -2,6 +2,7 @@ import { Outlet, Link, createRootRoute, HeadContent, Scripts, useRouter } from "
 import { AuthProvider, useAuth } from "@/hooks/use-auth";
 import { trackPageview } from "@/lib/analytics";
 import { captureAcquisitionOnce } from "@/lib/acquisition-tracking";
+import { trackPageVisit } from "@/lib/visit-tracking";
 import { UserProfileProvider } from "@/hooks/use-user-profile";
 import { BottomNav } from "@/components/BottomNav";
 import { DesktopNav } from "@/components/DesktopNav";
@@ -90,10 +91,14 @@ function RootComponent() {
   useEffect(() => {
     // Capture UTM/invite/referrer on first visit (persisted in localStorage)
     captureAcquisitionOnce();
-    // Track initial pageview + every SPA navigation for GA4
-    trackPageview(window.location.pathname + window.location.search);
+    // Track initial pageview + every SPA navigation for GA4 + page_visits table
+    const initialPath = window.location.pathname + window.location.search;
+    trackPageview(initialPath);
+    void trackPageVisit(window.location.pathname);
     const unsub = router.subscribe("onResolved", () => {
-      trackPageview(window.location.pathname + window.location.search);
+      const p = window.location.pathname + window.location.search;
+      trackPageview(p);
+      void trackPageVisit(window.location.pathname);
     });
     return () => {
       unsub();
