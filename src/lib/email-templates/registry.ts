@@ -18,7 +18,9 @@ export interface TemplateEntry {
  *   // then add to TEMPLATES: 'welcome': welcomeTemplate
  */
 import { template as accountDeletionRequested } from './account-deletion-requested'
+import { template as monthlyReport } from './monthly-report'
 
 export const TEMPLATES: Record<string, TemplateEntry> = {
   'account-deletion-requested': accountDeletionRequested,
+  'monthly-report': monthlyReport,
 }
