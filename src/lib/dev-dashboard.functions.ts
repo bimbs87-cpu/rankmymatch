@@ -1085,6 +1085,8 @@ export const getDevDashboard = createServerFn({ method: "GET" })
       onboardingFunnel,
       segmentFunnel7d,
       segmentFunnel30d,
+      mom,
+      signupAnomalies,
       dailyActivity,
       signups: signupsEnriched,
       funnel,
