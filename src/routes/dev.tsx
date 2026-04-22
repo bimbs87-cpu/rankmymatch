@@ -186,6 +186,35 @@ type SegmentFunnelData = {
   referrer: SegmentRow[];
 };
 
+type MomPeriod = {
+  sessions: number;
+  pageviews: number;
+  signups: number;
+  bounceRate: number;
+};
+type MomWindow = {
+  current: MomPeriod;
+  previous: MomPeriod;
+  delta: { sessions: number; pageviews: number; signups: number; bounceRate: number };
+};
+type MomData = {
+  window7d: MomWindow;
+  window30d: MomWindow;
+};
+
+type AnomalySample = { user_id: string; email: string | null; created_at: string | null };
+type SignupAnomaliesData = {
+  ghostUsers: { count: number; sample: AnomalySample[] };
+  signupWithoutOnbEvent: { count: number; sample: AnomalySample[] };
+  authedSessionWithoutSignupEvent: { count: number; sample: AnomalySample[] };
+  loginAbandon: {
+    sessionsTouchedLogin: number;
+    abandoned: number;
+    converted: number;
+    abandonRate: number;
+  };
+};
+
 function StatCard({
   icon: Icon,
   label,
