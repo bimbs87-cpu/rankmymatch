@@ -621,6 +621,96 @@ export const getDevDashboard = createServerFn({ method: "GET" })
       pageViewCount.set(v.path, (pageViewCount.get(v.path) ?? 0) + 1);
     });
 
+    // ===== Conversão visitor→signup por canal (UTM source / referrer) — 7d =====
+    // Pegamos a primeira visita de cada sessão (touch inicial) e marcamos se converteu.
+    const sessionFirstTouch = new Map<
+      string,
+      { utm_source: string | null; referrer_host: string | null; landing: string }
+    >();
+    visitsAsc.forEach((v) => {
+      if (sessionFirstTouch.has(v.session_id)) return;
+      sessionFirstTouch.set(v.session_id, {
+        utm_source: v.utm_source,
+        referrer_host: v.referrer_host,
+        landing: v.path,
+      });
+    });
+
+    // Filtra para sessões dentro de 7d
+    const sessions7dIds = new Set(visits7d.map((v) => v.session_id));
+    type ConvBucket = { sessions: number; converted: number };
+    const utmConvMap = new Map<string, ConvBucket>();
+    const refConvMap = new Map<string, ConvBucket>();
+    const landingConvMap = new Map<string, ConvBucket>();
+    const landingBounceMap = new Map<
+      string,
+      { sessions: number; bounced: number }
+    >();
+
+    sessions7dIds.forEach((sid) => {
+      const ft = sessionFirstTouch.get(sid);
+      if (!ft) return;
+      const converted = sessionsConverted7d.has(sid);
+      const utmKey = ft.utm_source ?? "(nenhum)";
+      const refKey = ft.referrer_host ?? "(direto)";
+      const landKey = ft.landing;
+
+      const utmB = utmConvMap.get(utmKey) ?? { sessions: 0, converted: 0 };
+      utmB.sessions += 1;
+      if (converted) utmB.converted += 1;
+      utmConvMap.set(utmKey, utmB);
+
+      const refB = refConvMap.get(refKey) ?? { sessions: 0, converted: 0 };
+      refB.sessions += 1;
+      if (converted) refB.converted += 1;
+      refConvMap.set(refKey, refB);
+
+      const landB = landingConvMap.get(landKey) ?? { sessions: 0, converted: 0 };
+      landB.sessions += 1;
+      if (converted) landB.converted += 1;
+      landingConvMap.set(landKey, landB);
+
+      const pageCount = sessionPageCount.get(sid) ?? 0;
+      const bounceB = landingBounceMap.get(landKey) ?? {
+        sessions: 0,
+        bounced: 0,
+      };
+      bounceB.sessions += 1;
+      if (pageCount === 1) bounceB.bounced += 1;
+      landingBounceMap.set(landKey, bounceB);
+    });
+
+    const toConvArr = (m: Map<string, ConvBucket>) =>
+      Array.from(m.entries())
+        .map(([key, b]) => ({
+          key,
+          sessions: b.sessions,
+          converted: b.converted,
+          rate:
+            b.sessions > 0
+              ? Number(((b.converted / b.sessions) * 100).toFixed(1))
+              : 0,
+        }))
+        .filter((r) => r.sessions >= 2) // só ranquear canais com mínima amostra
+        .sort((a, b) => b.sessions - a.sessions);
+
+    const utmConversion7d = toConvArr(utmConvMap);
+    const referrerConversion7d = toConvArr(refConvMap);
+    const landingConversion7d = toConvArr(landingConvMap);
+
+    const landingBounce7d = Array.from(landingBounceMap.entries())
+      .map(([key, b]) => ({
+        key,
+        sessions: b.sessions,
+        bounced: b.bounced,
+        bounceRate:
+          b.sessions > 0
+            ? Number(((b.bounced / b.sessions) * 100).toFixed(1))
+            : 0,
+      }))
+      .filter((r) => r.sessions >= 3)
+      .sort((a, b) => b.bounceRate - a.bounceRate);
+
     const trafficDaily: {
       date: string;
       sessions: number;
@@ -672,7 +762,38 @@ export const getDevDashboard = createServerFn({ method: "GET" })
       topInviteCodes: toArr(visitInvite).slice(0, 10),
       devices: toArr(visitDevice),
       trafficDaily,
+      utmConversion7d,
+      referrerConversion7d,
+      landingConversion7d,
+      landingBounce7d,
     };
+
+    // ===== Onboarding events (funil pós-signup) =====
+    type OnbRow = { user_id: string; step: string; created_at: string };
+    const { data: onbRowsRaw } = await supabaseAdmin
+      .from("onboarding_events")
+      .select("user_id, step, created_at")
+      .gte("created_at", thirtyDaysAgo);
+    const onbRows: OnbRow[] = (onbRowsRaw ?? []) as OnbRow[];
+
+    const stepOrder: { key: string; label: string }[] = [
+      { key: "signup", label: "Cadastro" },
+      { key: "profile_completed", label: "Completou perfil" },
+      { key: "joined_first_group", label: "Entrou em grupo" },
+      { key: "created_first_group", label: "Criou grupo" },
+      { key: "first_match_result", label: "Lançou 1ª partida" },
+    ];
+    const stepCounts = new Map<string, Set<string>>();
+    onbRows.forEach((r) => {
+      const set = stepCounts.get(r.step) ?? new Set<string>();
+      set.add(r.user_id);
+      stepCounts.set(r.step, set);
+    });
+    const onboardingFunnel = stepOrder.map((s) => ({
+      key: s.key,
+      label: s.label,
+      users: stepCounts.get(s.key)?.size ?? 0,
+    }));
 
     return {
       overview: {
