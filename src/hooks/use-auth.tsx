@@ -88,6 +88,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               });
               // Salva atribuição (UTM/invite/referrer) capturada antes do cadastro
               void saveAcquisitionForUser(u.id);
+              void import("@/lib/onboarding-events").then(({ trackOnboardingStep }) => {
+                trackOnboardingStep("signup", { provider: u.app_metadata?.provider });
+              });
             } else {
               // Garantia: se cadastro existe mas user_acquisition ainda não, tenta gravar
               void saveAcquisitionForUser(u.id);
