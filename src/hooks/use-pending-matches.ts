@@ -132,6 +132,7 @@ export function usePendingMatch(groupId?: string) {
         match_number: match.match_number,
         match_format: match.match_format,
         round_id: match.round_id,
+        round_number: round.round_number,
         season_id: round.season_id || "",
         group_id: round.group_id,
         group_name: groupRes.data?.name || "Grupo",
