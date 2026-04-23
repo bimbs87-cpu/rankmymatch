@@ -16,6 +16,7 @@ import {
   Undo2,
   Swords,
   Trophy,
+  Loader2,
 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useNotifications } from "@/hooks/use-notifications";
@@ -66,6 +67,7 @@ export function NotificationsPopover({ children }: Props) {
   // and closed rapidly (or re-opened before the previous call settles).
   const markingRef = useRef(false);
   const lastMarkedAtRef = useRef(0);
+  const [isMarking, setIsMarking] = useState(false);
 
   // Auto-mark all as read when the popover opens.
   useEffect(() => {
@@ -75,12 +77,14 @@ export function NotificationsPopover({ children }: Props) {
     if (Date.now() - lastMarkedAtRef.current < 1500) return;
 
     markingRef.current = true;
+    setIsMarking(true);
     void (async () => {
       try {
         await markAllRead();
         lastMarkedAtRef.current = Date.now();
       } finally {
         markingRef.current = false;
+        setIsMarking(false);
       }
     })();
   }, [open, unreadCount, markAllRead]);
@@ -131,6 +135,15 @@ export function NotificationsPopover({ children }: Props) {
       >
         <header className="flex items-center justify-between border-b border-border px-4 py-3">
           <h3 className="font-display text-sm font-bold text-foreground">Notificações</h3>
+          {isMarking && (
+            <span
+              className="flex items-center gap-1.5 text-[10px] font-medium text-muted-foreground"
+              aria-live="polite"
+            >
+              <Loader2 className="h-3 w-3 animate-spin" />
+              Marcando como lidas…
+            </span>
+          )}
         </header>
 
         <div className="max-h-[60vh] overflow-y-auto px-2 py-2">
