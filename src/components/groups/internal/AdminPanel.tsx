@@ -569,8 +569,12 @@ function MembersSection({ group, onSaved }: { group: any; onSaved: () => void })
 
   const approve = async (req: any) => {
     if (!user) return;
-    await approveJoinRequest(req.id, group.id, req.user_id, user.id);
-    toast.success("Aprovado!"); refresh(); onSaved();
+    try {
+      await approveJoinRequest(req.id, group.id, req.user_id, user.id);
+      toast.success("Aprovado!"); refresh(); onSaved();
+    } catch (e: any) {
+      toast.error(e?.message || "Erro ao aprovar");
+    }
   };
   const reject = async (req: any) => {
     if (!user) return;

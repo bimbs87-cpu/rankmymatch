@@ -244,9 +244,13 @@ function GroupDetailPage() {
 
   const handleApprove = async (req: any) => {
     if (!user) return;
-    await approveJoinRequest(req.id, groupId, req.user_id, user.id);
-    toast.success("Membro aprovado!");
-    refresh();
+    try {
+      await approveJoinRequest(req.id, groupId, req.user_id, user.id);
+      toast.success("Membro aprovado!");
+      refresh();
+    } catch (e: any) {
+      toast.error(e?.message || "Erro ao aprovar");
+    }
   };
   const handleReject = async (req: any) => {
     if (!user) return;
