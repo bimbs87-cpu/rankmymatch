@@ -113,32 +113,7 @@ export function JoinGroupDialog({
   const handleSubmit = async () => {
     setSubmitting(true);
     try {
-      // Public group + no claim: direct join
-      if (isPublicGroup && !selected) {
-        const { error } = await supabase.from("group_members").insert({
-          group_id: groupId,
-          user_id: userId,
-          role: "member",
-          status: "active",
-        });
-        if (error) {
-          if (error.message?.includes("duplicate")) {
-            toast.error("Você já é membro ou já solicitou.");
-          } else {
-            throw error;
-          }
-          return;
-        }
-        toast.success("Você entrou no grupo!");
-        void import("@/lib/onboarding-events").then(({ trackOnboardingStep }) =>
-          trackOnboardingStep("joined_first_group", { group_id: groupId }),
-        );
-        onJoined();
-        onOpenChange(false);
-        return;
-      }
-
-      // Otherwise: create a join request (with optional claim)
+      // All joins now go through admin approval (regardless of public/private).
       const insertData: any = {
         group_id: groupId,
         user_id: userId,
@@ -197,7 +172,7 @@ export function JoinGroupDialog({
       toast.success(
         selected
           ? "Solicitação enviada! O admin vai aprovar e vincular seu histórico."
-          : "Solicitação enviada!",
+          : "Solicitação enviada! O admin vai revisar.",
       );
       onJoined();
       onOpenChange(false);
