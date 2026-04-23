@@ -2,8 +2,9 @@ import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import {
   Trophy, Calendar, Plus, ChevronRight, ChevronDown, CircleDot, CheckCircle2,
-  Clock, MapPin, Pencil, Ban, X, Settings, Check, Flag, RotateCcw, Trash2, PlusCircle, Bell,
+  Clock, MapPin, Pencil, Ban, X, Settings, Check, Flag, RotateCcw, Trash2, PlusCircle, Bell, Lock,
 } from "lucide-react";
+import { isPresenceOpen, getPresenceOpenDate, formatPresenceOpenDate } from "@/lib/presence-schedule";
 import { useGroupSeasons } from "@/hooks/use-seasons";
 import { useSeasonRounds } from "@/hooks/use-rounds";
 import { useAuth } from "@/hooks/use-auth";
@@ -993,18 +994,20 @@ export function RoundExpandedDetails({
   const [adminPresenceOpen, setAdminPresenceOpen] = useState(false);
   const [roundStatus, setRoundStatus] = useState<"scheduled" | "in_progress" | "completed">("scheduled");
   const [isRivalry, setIsRivalry] = useState(false);
+  const [presenceOpen, setPresenceOpen] = useState(true);
+  const [presenceOpensAt, setPresenceOpensAt] = useState<Date | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       setLoading(true);
       const [{ data: round }, { data: pres }, { data: ms }, { data: members }, { data: season }, { data: group }] = await Promise.all([
-        supabase.from("rounds").select("max_players, group_id, status, scheduled_date, scheduled_time, match_format").eq("id", roundId).maybeSingle(),
+        supabase.from("rounds").select("max_players, group_id, status, scheduled_date, scheduled_time, match_format, presence_force_open_at").eq("id", roundId).maybeSingle(),
         supabase.from("round_presence").select("user_id, status, confirmed_at").eq("round_id", roundId),
         supabase.from("matches").select("id, status, match_number, winner_team, match_players(user_id, team), match_sets(set_number, score_team_a, score_team_b)").eq("round_id", roundId).order("match_number", { ascending: true }),
         supabase.from("group_members").select("user_id").eq("group_id", groupId).eq("status", "active"),
         supabase.from("seasons").select("sets_per_match, sets_mode, match_format").eq("id", seasonId).maybeSingle(),
-        supabase.from("groups").select("match_format, singles_group_type").eq("id", groupId).maybeSingle(),
+        supabase.from("groups").select("match_format, singles_group_type, presence_open_mode, presence_open_time").eq("id", groupId).maybeSingle(),
       ]);
       if (cancelled) return;
       const confirmedRows = (pres || []).filter((p) => p.status === "confirmed");
@@ -1072,6 +1075,32 @@ export function RoundExpandedDetails({
       if (cancelled) return;
       setEloDeltas(deltaMap);
       setScheduledDate(round?.scheduled_date ?? null);
+
+      // Compute presence-window state (admin force-open overrides config).
+      const presenceCfg = {
+        presence_open_mode: (group as any)?.presence_open_mode || "always",
+        presence_open_time: (group as any)?.presence_open_time || "10:00:00",
+      };
+      const forcedOpen =
+        !!(round as any)?.presence_force_open_at &&
+        new Date((round as any).presence_force_open_at) <= new Date();
+      const scheduledOpen = isPresenceOpen(
+        presenceCfg,
+        round?.scheduled_date ?? null,
+        round?.scheduled_time ?? null,
+        roundId,
+      );
+      setPresenceOpen(forcedOpen || scheduledOpen);
+      setPresenceOpensAt(
+        forcedOpen || scheduledOpen
+          ? null
+          : getPresenceOpenDate(
+              presenceCfg,
+              round?.scheduled_date ?? null,
+              round?.scheduled_time ?? null,
+              roundId,
+            ),
+      );
 
       if (allIds.size) {
         const { data: profs } = await supabase
@@ -1195,13 +1224,27 @@ export function RoundExpandedDetails({
                 >
                   Cancelar presença
                 </button>
+              ) : !presenceOpen && !isAdmin ? (
+                <div className="flex w-full flex-col items-center justify-center gap-1 rounded-xl border border-border bg-muted/40 py-2 text-center text-xs font-semibold text-muted-foreground">
+                  <span className="flex items-center gap-1.5">
+                    <Lock className="h-3.5 w-3.5" />
+                    Lista de presença ainda não abriu
+                  </span>
+                  {presenceOpensAt && (
+                    <span className="text-[10px] font-normal text-muted-foreground/80">
+                      Abre {formatPresenceOpenDate(presenceOpensAt)}
+                    </span>
+                  )}
+                </div>
               ) : (
                 <button
                   onClick={handleConfirm}
                   disabled={busy}
                   className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-2 text-xs font-bold text-primary-foreground disabled:opacity-50"
+                  title={!presenceOpen && isAdmin ? "Lista ainda não abriu para membros — admins podem confirmar antecipadamente" : undefined}
                 >
                   Confirmar presença
+                  {!presenceOpen && isAdmin && <Lock className="h-3 w-3 opacity-70" />}
                 </button>
               )}
             </div>
