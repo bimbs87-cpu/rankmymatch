@@ -292,9 +292,9 @@ async function autoDrawDoublesIfFull(roundId: string, actorId: string): Promise<
               : "A rodada está completa. Veja seus confrontos.",
             url: `/groups/${roundRow.group_id}`,
             tag: `draw_completed:${roundId}`,
-            data: { type: "draw_completed", roundId, groupId: roundRow.group_id },
+            type: "draw_completed",
+            data: { roundId, groupId: roundRow.group_id },
           },
-          eventType: "draw_completed",
         },
       });
     } catch (err) {
