@@ -2,9 +2,10 @@ import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import {
   Trophy, Calendar, Plus, ChevronRight, ChevronDown, CircleDot, CheckCircle2,
-  Clock, MapPin, Pencil, Ban, X, Settings, Check, Flag, RotateCcw, Trash2, PlusCircle, Bell, Lock,
+  Clock, MapPin, Pencil, Ban, X, Settings, Check, Flag, RotateCcw, Trash2, PlusCircle, Bell,
+  Medal, TrendingUp, TrendingDown, Zap, Crown, Activity, Users,
 } from "lucide-react";
-import { isPresenceOpen, getPresenceOpenDate, formatPresenceOpenDate } from "@/lib/presence-schedule";
+
 import { useGroupSeasons } from "@/hooks/use-seasons";
 import { useSeasonRounds } from "@/hooks/use-rounds";
 import { useAuth } from "@/hooks/use-auth";
@@ -994,20 +995,18 @@ export function RoundExpandedDetails({
   const [adminPresenceOpen, setAdminPresenceOpen] = useState(false);
   const [roundStatus, setRoundStatus] = useState<"scheduled" | "in_progress" | "completed">("scheduled");
   const [isRivalry, setIsRivalry] = useState(false);
-  const [presenceOpen, setPresenceOpen] = useState(true);
-  const [presenceOpensAt, setPresenceOpensAt] = useState<Date | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       setLoading(true);
       const [{ data: round }, { data: pres }, { data: ms }, { data: members }, { data: season }, { data: group }] = await Promise.all([
-        supabase.from("rounds").select("max_players, group_id, status, scheduled_date, scheduled_time, match_format, presence_force_open_at").eq("id", roundId).maybeSingle(),
+        supabase.from("rounds").select("max_players, group_id, status, scheduled_date, scheduled_time, match_format").eq("id", roundId).maybeSingle(),
         supabase.from("round_presence").select("user_id, status, confirmed_at").eq("round_id", roundId),
         supabase.from("matches").select("id, status, match_number, winner_team, match_players(user_id, team), match_sets(set_number, score_team_a, score_team_b)").eq("round_id", roundId).order("match_number", { ascending: true }),
         supabase.from("group_members").select("user_id").eq("group_id", groupId).eq("status", "active"),
         supabase.from("seasons").select("sets_per_match, sets_mode, match_format").eq("id", seasonId).maybeSingle(),
-        supabase.from("groups").select("match_format, singles_group_type, presence_open_mode, presence_open_time").eq("id", groupId).maybeSingle(),
+        supabase.from("groups").select("match_format, singles_group_type").eq("id", groupId).maybeSingle(),
       ]);
       if (cancelled) return;
       const confirmedRows = (pres || []).filter((p) => p.status === "confirmed");
@@ -1075,32 +1074,6 @@ export function RoundExpandedDetails({
       if (cancelled) return;
       setEloDeltas(deltaMap);
       setScheduledDate(round?.scheduled_date ?? null);
-
-      // Compute presence-window state (admin force-open overrides config).
-      const presenceCfg = {
-        presence_open_mode: (group as any)?.presence_open_mode || "always",
-        presence_open_time: (group as any)?.presence_open_time || "10:00:00",
-      };
-      const forcedOpen =
-        !!(round as any)?.presence_force_open_at &&
-        new Date((round as any).presence_force_open_at) <= new Date();
-      const scheduledOpen = isPresenceOpen(
-        presenceCfg,
-        round?.scheduled_date ?? null,
-        round?.scheduled_time ?? null,
-        roundId,
-      );
-      setPresenceOpen(forcedOpen || scheduledOpen);
-      setPresenceOpensAt(
-        forcedOpen || scheduledOpen
-          ? null
-          : getPresenceOpenDate(
-              presenceCfg,
-              round?.scheduled_date ?? null,
-              round?.scheduled_time ?? null,
-              roundId,
-            ),
-      );
 
       if (allIds.size) {
         const { data: profs } = await supabase
@@ -1208,13 +1181,61 @@ export function RoundExpandedDetails({
 
   const scoringMatch = scoringMatchId ? matchesData.find((m) => m.id === scoringMatchId) : null;
 
+  // Aggregate stats for completed-round redesign
+  const isCompleted = roundStatus === "completed";
+  const playedMatches = matchesData.filter((m: any) => (m.match_sets || []).length > 0);
+  const totalSets = playedMatches.reduce(
+    (acc: number, m: any) => acc + (m.match_sets || []).length,
+    0,
+  );
+  const totalGames = playedMatches.reduce(
+    (acc: number, m: any) =>
+      acc +
+      (m.match_sets || []).reduce(
+        (s: number, st: any) => s + (st.score_team_a || 0) + (st.score_team_b || 0),
+        0,
+      ),
+    0,
+  );
+
+  // Compute per-player season aggregate from this round's rating events
+  const playerAgg: Record<string, { delta: number; before: number; after: number; name: string; avatar: string | null }> = {};
+  for (const m of playedMatches) {
+    const dmap = eloDeltas[m.id] || {};
+    for (const mp of (m.match_players || [])) {
+      const ev = dmap[mp.user_id];
+      if (!ev) continue;
+      const prev = playerAgg[mp.user_id];
+      const profName = mp.profile?.nickname || mp.profile?.name || "Jogador";
+      const avatar = mp.profile?.avatar_url ?? null;
+      if (!prev) {
+        playerAgg[mp.user_id] = { delta: ev.delta, before: ev.before, after: ev.after, name: profName, avatar };
+      } else {
+        playerAgg[mp.user_id] = {
+          delta: prev.delta + ev.delta,
+          before: Math.min(prev.before, ev.before),
+          after: ev.after,
+          name: profName,
+          avatar,
+        };
+      }
+    }
+  }
+  const playerAggList = Object.entries(playerAgg)
+    .map(([uid, v]) => ({ userId: uid, ...v }))
+    .sort((a, b) => b.delta - a.delta);
+  const mvp = playerAggList[0];
+  const flop = playerAggList[playerAggList.length - 1];
+  const totalEloMoved = playerAggList.reduce((acc, p) => acc + Math.abs(p.delta), 0);
+
   return (
-    <div className="border-t border-border bg-background/40 p-3 space-y-3">
+    <div className="border-t border-border bg-gradient-to-b from-background/60 to-background/30 p-3 space-y-3">
       {loading ? (
         <div className="text-[11px] text-muted-foreground">Carregando…</div>
       ) : (
         <>
-          {user && roundStatus !== "completed" && (
+          {/* ============== INCOMPLETE ROUND FLOW ============== */}
+          {!isCompleted && user && (
             <div>
               {myStatus === "confirmed" ? (
                 <button
@@ -1224,46 +1245,28 @@ export function RoundExpandedDetails({
                 >
                   Cancelar presença
                 </button>
-              ) : !presenceOpen && !isAdmin ? (
-                <div className="flex w-full flex-col items-center justify-center gap-1 rounded-xl border border-border bg-muted/40 py-2 text-center text-xs font-semibold text-muted-foreground">
-                  <span className="flex items-center gap-1.5">
-                    <Lock className="h-3.5 w-3.5" />
-                    Lista de presença ainda não abriu
-                  </span>
-                  {presenceOpensAt && (
-                    <span className="text-[10px] font-normal text-muted-foreground/80">
-                      Abre {formatPresenceOpenDate(presenceOpensAt)}
-                    </span>
-                  )}
-                </div>
               ) : (
                 <button
                   onClick={handleConfirm}
                   disabled={busy}
                   className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-2 text-xs font-bold text-primary-foreground disabled:opacity-50"
-                  title={!presenceOpen && isAdmin ? "Lista ainda não abriu para membros — admins podem confirmar antecipadamente" : undefined}
                 >
                   Confirmar presença
-                  {!presenceOpen && isAdmin && <Lock className="h-3 w-3 opacity-70" />}
                 </button>
               )}
             </div>
           )}
 
-          {roundStatus === "completed" && (
-            <div className="rounded-xl border border-success/30 bg-success/10 px-3 py-2 text-center text-xs font-semibold text-success">
-              ✓ Rodada encerrada
+          {!isCompleted && (
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              <Stat label="Confirmados" value={`${presence.confirmed}/${presence.max || "—"}`} tone="success" />
+              <Stat label="Recusados" value={String(presence.declined)} tone="muted" />
+              <Stat label="Sem resposta" value={String(presence.pending)} tone="warning" />
+              <Stat label="Partidas" value={String(matchesData.length)} tone="primary" />
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-            <Stat label="Confirmados" value={`${presence.confirmed}/${presence.max || "—"}`} tone="success" />
-            <Stat label="Recusados" value={String(presence.declined)} tone="muted" />
-            <Stat label="Sem resposta" value={String(presence.pending)} tone="warning" />
-            <Stat label="Partidas" value={String(matchesData.length)} tone="primary" />
-          </div>
-
-          {confirmedPlayers.length > 0 && (
+          {!isCompleted && confirmedPlayers.length > 0 && (
             <div>
               <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
                 Confirmados
@@ -1274,9 +1277,6 @@ export function RoundExpandedDetails({
                     <PlayerAvatarLink userId={p.user_id} ariaLabel={`Ver perfil de ${p.name}`}>
                       <PlayerAvatar avatarUrl={p.avatar_url} name={p.name} size="md" className="ring-1 ring-success/40 cursor-pointer transition-transform hover:scale-110" />
                     </PlayerAvatarLink>
-                    <span className="pointer-events-none absolute left-1/2 top-full z-10 mt-1 -translate-x-1/2 whitespace-nowrap rounded-md border border-border bg-popover px-2 py-0.5 text-[10px] font-semibold text-foreground opacity-0 shadow-md transition-opacity group-hover/avatar:opacity-100">
-                      {p.name}
-                    </span>
                   </div>
                 ))}
                 {presence.confirmed > confirmedPlayers.length && (
@@ -1288,22 +1288,18 @@ export function RoundExpandedDetails({
             </div>
           )}
 
-      {/* Admin: add members to presence list (in-person sign-up) */}
-          {isAdmin && matchesData.length === 0 && (
+          {!isCompleted && isAdmin && matchesData.length === 0 && (
             <button
               onClick={() => setAdminPresenceOpen(true)}
               disabled={busy}
               className="flex w-full items-center justify-center gap-2 rounded-xl border border-border bg-muted/40 py-2 text-xs font-semibold text-foreground hover:bg-muted/60 disabled:opacity-50"
-              title="Adicionar membros à lista de presença em nome deles"
             >
               <UserPlus className="h-3.5 w-3.5" />
               Adicionar à lista
             </button>
           )}
 
-      {/* Admin: sortear times when there are no matches yet — hidden in rivalry
-          (rivalry rounds always have a single fixed pairing of the 2 members). */}
-          {isAdmin && matchesData.length === 0 && !isRivalry && (
+          {!isCompleted && isAdmin && matchesData.length === 0 && !isRivalry && (
             <button
               onClick={handleDrawTeams}
               disabled={busy || confirmedIds.length < (groupFormat === "singles" ? 2 : 4)}
@@ -1313,8 +1309,7 @@ export function RoundExpandedDetails({
             </button>
           )}
 
-          {/* Admin: rivalry shortcut — create the single match for the 2 members */}
-          {isAdmin && matchesData.length === 0 && isRivalry && confirmedIds.length === 2 && (
+          {!isCompleted && isAdmin && matchesData.length === 0 && isRivalry && confirmedIds.length === 2 && (
             <button
               onClick={handleDrawTeams}
               disabled={busy}
@@ -1324,28 +1319,26 @@ export function RoundExpandedDetails({
             </button>
           )}
 
-          {/* Admin: resortear times when matches exist but no result entered (not for rivalry) */}
-          {isAdmin && hasUnstartedMatches && !isRivalry && (
+          {!isCompleted && isAdmin && hasUnstartedMatches && !isRivalry && (
             <button
               onClick={handleRedrawTeams}
               disabled={busy || confirmedIds.length < (groupFormat === "singles" ? 2 : 4)}
               className="flex w-full items-center justify-center gap-2 rounded-xl border border-warning/30 bg-warning/10 py-2 text-xs font-bold text-warning hover:bg-warning/20 disabled:opacity-50"
-              title="Apaga os times atuais (nenhum resultado lançado) e sorteia novamente"
             >
               <RotateCcw className="h-3.5 w-3.5" /> Resortear times
             </button>
           )}
 
-          {/* Mini Elo timeline of the day */}
-          <RoundEloMiniTimeline
-            seasonId={seasonId}
-            scheduledDate={scheduledDate}
-            matchPlayerIds={Array.from(new Set(matchesData.flatMap((m: any) => (m.match_players || []).map((mp: any) => mp.user_id))))}
-            visible={matchesData.some((m: any) => (m.match_sets || []).length > 0)}
-          />
+          {!isCompleted && (
+            <RoundEloMiniTimeline
+              seasonId={seasonId}
+              scheduledDate={scheduledDate}
+              matchPlayerIds={Array.from(new Set(matchesData.flatMap((m: any) => (m.match_players || []).map((mp: any) => mp.user_id))))}
+              visible={matchesData.some((m: any) => (m.match_sets || []).length > 0)}
+            />
+          )}
 
-          {/* Matches summary with inline result entry + Elo before/after */}
-          {matchesData.length > 0 && (
+          {!isCompleted && matchesData.length > 0 && (
             <div>
               <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
                 Partidas
@@ -1356,30 +1349,13 @@ export function RoundExpandedDetails({
                   const teamB = (m.match_players || []).filter((mp: any) => mp.team === "B");
                   const sets = (m.match_sets || []).slice().sort((a: any, b: any) => a.set_number - b.set_number);
                   const nameOf = (mp: any) => (mp.profile?.nickname || mp.profile?.name || "Jogador");
-                  const deltas = eloDeltas[m.id] || {};
                   const renderTeam = (team: any[], side: "A" | "B") => (
                     <span className={m.winner_team === side ? "font-bold text-primary" : "text-foreground"}>
-                      {team.length === 0 ? "—" : team.map((mp) => {
-                        const ev = deltas[mp.user_id];
-                        return (
-                          <span key={mp.user_id} className="inline-flex items-baseline gap-1 mr-1">
-                            <span>{nameOf(mp)}</span>
-                            {ev && ev.delta !== 0 && (
-                              <span className="inline-flex items-baseline gap-0.5 text-[9px] font-bold tabular-nums">
-                                <span className="text-muted-foreground">{Math.round(ev.before)}</span>
-                                <span className={ev.delta > 0 ? "text-success" : "text-destructive"}>→{Math.round(ev.after)}</span>
-                                <span className={`${ev.delta > 0 ? "text-success" : "text-destructive"}`}>({ev.delta > 0 ? "+" : ""}{Math.round(ev.delta)})</span>
-                              </span>
-                            )}
-                          </span>
-                        );
-                      }).reduce((acc: any, el: any, i: number) => i === 0 ? [el] : [...acc, <span key={`sep${i}`} className="text-muted-foreground">/ </span>, el], [] as any)}
+                      {team.length === 0 ? "—" : team.map((mp: any) => nameOf(mp)).join(" / ")}
                     </span>
                   );
                   const iAmInMatch = !!user && (m.match_players || []).some((mp: any) => mp.user_id === user.id);
                   const canEnterScore = isAdmin || iAmInMatch;
-                  // Allow editing completed matches too (sets > 0): admins always; participants only when they can re-submit.
-                  // Elo is auto-recalculated on edit via revertMatchEloServer + submitMatchScoreServer.
                   const isCompletedWithSets = m.status === "completed" && sets.length > 0;
                   const showEnterBtn = canEnterScore && (m.status !== "completed" || (isCompletedWithSets && isAdmin));
                   return (
@@ -1416,6 +1392,26 @@ export function RoundExpandedDetails({
                 })}
               </div>
             </div>
+          )}
+
+          {/* ============== COMPLETED ROUND — PROFESSIONAL RECAP ============== */}
+          {isCompleted && (
+            <CompletedRoundRecap
+              matches={playedMatches}
+              eloDeltas={eloDeltas}
+              presence={presence}
+              confirmedPlayers={confirmedPlayers}
+              totalSets={totalSets}
+              totalGames={totalGames}
+              totalEloMoved={totalEloMoved}
+              mvp={mvp}
+              flop={flop}
+              playerAggList={playerAggList}
+              seasonId={seasonId}
+              scheduledDate={scheduledDate}
+              isAdmin={isAdmin}
+              onEditMatch={(id: string) => setScoringMatchId(id)}
+            />
           )}
 
           {scoringMatch && (() => {
@@ -1577,3 +1573,415 @@ function RoundEloMiniTimeline({
     </div>
   );
 }
+
+// =============================================================================
+// CompletedRoundRecap — professional recap for finished rounds.
+// Hero score per match (large, centered), per-set Elo variation (inferred),
+// match stats (winner, total games, MVP), and aggregate round leaderboard.
+// =============================================================================
+type EloEv = { delta: number; before: number; after: number };
+type AggPlayer = { userId: string; delta: number; before: number; after: number; name: string; avatar: string | null };
+
+function CompletedRoundRecap({
+  matches,
+  eloDeltas,
+  presence,
+  confirmedPlayers,
+  totalSets,
+  totalGames,
+  totalEloMoved,
+  mvp,
+  flop,
+  playerAggList,
+  isAdmin,
+  onEditMatch,
+}: {
+  matches: any[];
+  eloDeltas: Record<string, Record<string, EloEv>>;
+  presence: { confirmed: number; declined: number; pending: number; max: number };
+  confirmedPlayers: { user_id: string; name: string; avatar_url: string | null }[];
+  totalSets: number;
+  totalGames: number;
+  totalEloMoved: number;
+  mvp: AggPlayer | undefined;
+  flop: AggPlayer | undefined;
+  playerAggList: AggPlayer[];
+  seasonId: string;
+  scheduledDate: string | null;
+  isAdmin: boolean;
+  onEditMatch: (matchId: string) => void;
+}) {
+  return (
+    <div className="space-y-3">
+      {/* Round summary chips */}
+      <div className="grid grid-cols-4 gap-1.5">
+        <RecapChip label="Partidas" value={String(matches.length)} icon={<Trophy className="h-3 w-3" />} tone="primary" />
+        <RecapChip label="Sets" value={String(totalSets)} icon={<Activity className="h-3 w-3" />} tone="info" />
+        <RecapChip label="Games" value={String(totalGames)} icon={<Zap className="h-3 w-3" />} tone="warning" />
+        <RecapChip label="Elo movido" value={String(Math.round(totalEloMoved))} icon={<TrendingUp className="h-3 w-3" />} tone="success" />
+      </div>
+
+      {/* MVP / Flop highlight + Confirmados */}
+      {(mvp || confirmedPlayers.length > 0) && (
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+          {mvp && mvp.delta > 0 && (
+            <HighlightCard
+              icon={<Crown className="h-3.5 w-3.5" />}
+              label="MVP da rodada"
+              tone="success"
+              player={mvp}
+            />
+          )}
+          {flop && flop !== mvp && flop.delta < 0 && (
+            <HighlightCard
+              icon={<TrendingDown className="h-3.5 w-3.5" />}
+              label="Maior queda"
+              tone="destructive"
+              player={flop}
+            />
+          )}
+        </div>
+      )}
+
+      {confirmedPlayers.length > 0 && (
+        <div className="rounded-xl border border-border bg-card/40 px-2.5 py-2">
+          <div className="mb-1 flex items-center gap-1.5">
+            <Users className="h-3 w-3 text-success" />
+            <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+              Presentes ({presence.confirmed})
+            </span>
+          </div>
+          <div className="flex flex-wrap items-center gap-1">
+            {confirmedPlayers.map((p) => (
+              <PlayerAvatarLink key={p.user_id} userId={p.user_id} ariaLabel={`Ver perfil de ${p.name}`}>
+                <PlayerAvatar
+                  avatarUrl={p.avatar_url}
+                  name={p.name}
+                  size="sm"
+                  className="ring-1 ring-success/40 cursor-pointer transition-transform hover:scale-110"
+                />
+              </PlayerAvatarLink>
+            ))}
+            {presence.confirmed > confirmedPlayers.length && (
+              <span className="ml-1 rounded-full border border-border bg-card px-1.5 py-0.5 text-[9px] font-bold text-muted-foreground">
+                +{presence.confirmed - confirmedPlayers.length}
+              </span>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Hero scores per match */}
+      <div className="space-y-2">
+        {matches.map((m: any) => (
+          <MatchScoreCard
+            key={m.id}
+            match={m}
+            deltas={eloDeltas[m.id] || {}}
+            isAdmin={isAdmin}
+            onEdit={() => onEditMatch(m.id)}
+          />
+        ))}
+      </div>
+
+      {/* Round leaderboard */}
+      {playerAggList.length > 0 && (
+        <div className="rounded-xl border border-border bg-card/40 p-2.5">
+          <div className="mb-2 flex items-center gap-1.5">
+            <Medal className="h-3.5 w-3.5 text-warning" />
+            <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+              Ranking da rodada (Elo)
+            </span>
+          </div>
+          <div className="space-y-0.5">
+            {playerAggList.map((p, i) => {
+              const positive = p.delta > 0;
+              const zero = p.delta === 0;
+              return (
+                <div
+                  key={p.userId}
+                  className="flex items-center gap-2 rounded-md px-1.5 py-1 hover:bg-muted/40"
+                >
+                  <span className="w-4 shrink-0 text-center font-display text-[10px] font-bold text-muted-foreground tabular-nums">
+                    {i + 1}
+                  </span>
+                  <PlayerAvatarLink userId={p.userId} ariaLabel={`Ver perfil de ${p.name}`}>
+                    <PlayerAvatar avatarUrl={p.avatar} name={p.name} size="sm" className="cursor-pointer" />
+                  </PlayerAvatarLink>
+                  <span className="min-w-0 flex-1 truncate text-[11px] font-semibold text-foreground">{p.name}</span>
+                  <span className="text-[10px] text-muted-foreground tabular-nums">
+                    {Math.round(p.before)}
+                  </span>
+                  <span className="text-[10px] text-muted-foreground">→</span>
+                  <span className={`text-[11px] font-bold tabular-nums ${positive ? "text-success" : zero ? "text-muted-foreground" : "text-destructive"}`}>
+                    {Math.round(p.after)}
+                  </span>
+                  <span className={`w-12 shrink-0 text-right text-[10px] font-bold tabular-nums ${positive ? "text-success" : zero ? "text-muted-foreground" : "text-destructive"}`}>
+                    {positive ? "+" : ""}{Math.round(p.delta)}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function RecapChip({
+  label, value, icon, tone,
+}: { label: string; value: string; icon: React.ReactNode; tone: "primary" | "success" | "warning" | "info" }) {
+  const toneClass = {
+    primary: "text-primary border-primary/20 bg-primary/5",
+    success: "text-success border-success/20 bg-success/5",
+    warning: "text-warning border-warning/20 bg-warning/5",
+    info: "text-info border-info/20 bg-info/5",
+  }[tone];
+  return (
+    <div className={`rounded-lg border px-1.5 py-1.5 ${toneClass}`}>
+      <div className="flex items-center gap-1 opacity-80">
+        {icon}
+        <span className="text-[8px] font-bold uppercase tracking-wider">{label}</span>
+      </div>
+      <p className="mt-0.5 font-display text-base font-bold tabular-nums leading-none">{value}</p>
+    </div>
+  );
+}
+
+function HighlightCard({
+  icon, label, tone, player,
+}: { icon: React.ReactNode; label: string; tone: "success" | "destructive"; player: AggPlayer }) {
+  const toneCls = tone === "success"
+    ? "border-success/30 bg-success/5 text-success"
+    : "border-destructive/30 bg-destructive/5 text-destructive";
+  return (
+    <div className={`flex items-center gap-2 rounded-xl border px-2.5 py-2 ${toneCls}`}>
+      <PlayerAvatarLink userId={player.userId} ariaLabel={`Ver perfil de ${player.name}`}>
+        <PlayerAvatar avatarUrl={player.avatar} name={player.name} size="md" className="ring-2 ring-current cursor-pointer" />
+      </PlayerAvatarLink>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider opacity-90">
+          {icon}
+          {label}
+        </div>
+        <p className="truncate font-display text-xs font-bold text-foreground">{player.name}</p>
+      </div>
+      <div className="text-right">
+        <p className="font-display text-lg font-bold tabular-nums leading-none">
+          {player.delta > 0 ? "+" : ""}{Math.round(player.delta)}
+        </p>
+        <p className="text-[9px] text-muted-foreground tabular-nums">
+          {Math.round(player.before)} → {Math.round(player.after)}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function MatchScoreCard({
+  match, deltas, isAdmin, onEdit,
+}: {
+  match: any;
+  deltas: Record<string, EloEv>;
+  isAdmin: boolean;
+  onEdit: () => void;
+}) {
+  const teamA = (match.match_players || []).filter((mp: any) => mp.team === "A");
+  const teamB = (match.match_players || []).filter((mp: any) => mp.team === "B");
+  const sets = (match.match_sets || []).slice().sort((a: any, b: any) => a.set_number - b.set_number);
+  const nameOf = (mp: any) => mp.profile?.nickname || mp.profile?.name || "Jogador";
+  const aWon = match.winner_team === "A";
+  const bWon = match.winner_team === "B";
+
+  // Aggregate side totals
+  const setsA = sets.filter((s: any) => s.score_team_a > s.score_team_b).length;
+  const setsB = sets.filter((s: any) => s.score_team_b > s.score_team_a).length;
+  const gamesA = sets.reduce((acc: number, s: any) => acc + (s.score_team_a || 0), 0);
+  const gamesB = sets.reduce((acc: number, s: any) => acc + (s.score_team_b || 0), 0);
+
+  // Team aggregate Elo delta (sum of player deltas per side)
+  const eloA = teamA.reduce((acc: number, mp: any) => acc + (deltas[mp.user_id]?.delta || 0), 0);
+  const eloB = teamB.reduce((acc: number, mp: any) => acc + (deltas[mp.user_id]?.delta || 0), 0);
+
+  // Inferred per-set Elo distribution: spread match delta proportionally to sets won.
+  // If side won 0 sets, give a small share (10%) to reflect competitive play.
+  const inferredSetElo = (totalDelta: number, sideSetsWon: number) => {
+    if (sets.length === 0) return [];
+    const baseShare = sideSetsWon === 0 ? 0.1 : 0;
+    const winShare = (1 - baseShare * sets.length) / Math.max(1, sideSetsWon);
+    return sets.map((s: any) => {
+      const won = (s.score_team_a > s.score_team_b && totalDelta === eloA) ||
+                  (s.score_team_b > s.score_team_a && totalDelta === eloB);
+      const share = won ? winShare : baseShare;
+      return totalDelta * share;
+    });
+  };
+  const aSetsElo = inferredSetElo(eloA, setsA);
+  const bSetsElo = inferredSetElo(eloB, setsB);
+
+  return (
+    <div className="overflow-hidden rounded-xl border border-border bg-card/60">
+      {/* Header — match # */}
+      <div className="flex items-center justify-between bg-muted/30 px-2.5 py-1">
+        <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground">
+          Partida {match.match_number || "?"}
+        </span>
+        {isAdmin && (
+          <button
+            onClick={onEdit}
+            className="flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[9px] font-semibold text-primary hover:bg-primary/10"
+            title="Editar resultado"
+          >
+            <Pencil className="h-2.5 w-2.5" /> Editar
+          </button>
+        )}
+      </div>
+
+      {/* HERO SCORE: large, centered */}
+      <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 px-3 py-3">
+        {/* Team A */}
+        <div className={`min-w-0 text-right ${aWon ? "" : "opacity-60"}`}>
+          <div className="flex flex-col items-end gap-1">
+            {teamA.map((mp: any) => {
+              const ev = deltas[mp.user_id];
+              return (
+                <div key={mp.user_id} className="flex items-center gap-1.5">
+                  <div className="text-right min-w-0">
+                    <p className={`truncate text-[11px] font-bold leading-tight ${aWon ? "text-foreground" : "text-muted-foreground"}`}>
+                      {nameOf(mp)}
+                    </p>
+                    {ev && ev.delta !== 0 && (
+                      <p className={`text-[9px] font-semibold tabular-nums leading-tight ${ev.delta > 0 ? "text-success" : "text-destructive"}`}>
+                        {ev.delta > 0 ? "+" : ""}{Math.round(ev.delta)} ({Math.round(ev.after)})
+                      </p>
+                    )}
+                  </div>
+                  <PlayerAvatarLink userId={mp.user_id} ariaLabel={`Ver perfil de ${nameOf(mp)}`}>
+                    <PlayerAvatar avatarUrl={mp.profile?.avatar_url ?? null} name={nameOf(mp)} size="sm" className={`cursor-pointer ${aWon ? "ring-2 ring-success/60" : ""}`} />
+                  </PlayerAvatarLink>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Center: SCORE */}
+        <div className="flex items-center justify-center gap-1.5">
+          <span className={`font-display text-3xl font-black tabular-nums ${aWon ? "text-foreground" : "text-muted-foreground/60"}`}>
+            {setsA}
+          </span>
+          <span className="font-display text-xl font-bold text-muted-foreground/40">×</span>
+          <span className={`font-display text-3xl font-black tabular-nums ${bWon ? "text-foreground" : "text-muted-foreground/60"}`}>
+            {setsB}
+          </span>
+        </div>
+
+        {/* Team B */}
+        <div className={`min-w-0 text-left ${bWon ? "" : "opacity-60"}`}>
+          <div className="flex flex-col items-start gap-1">
+            {teamB.map((mp: any) => {
+              const ev = deltas[mp.user_id];
+              return (
+                <div key={mp.user_id} className="flex items-center gap-1.5">
+                  <PlayerAvatarLink userId={mp.user_id} ariaLabel={`Ver perfil de ${nameOf(mp)}`}>
+                    <PlayerAvatar avatarUrl={mp.profile?.avatar_url ?? null} name={nameOf(mp)} size="sm" className={`cursor-pointer ${bWon ? "ring-2 ring-success/60" : ""}`} />
+                  </PlayerAvatarLink>
+                  <div className="text-left min-w-0">
+                    <p className={`truncate text-[11px] font-bold leading-tight ${bWon ? "text-foreground" : "text-muted-foreground"}`}>
+                      {nameOf(mp)}
+                    </p>
+                    {ev && ev.delta !== 0 && (
+                      <p className={`text-[9px] font-semibold tabular-nums leading-tight ${ev.delta > 0 ? "text-success" : "text-destructive"}`}>
+                        {ev.delta > 0 ? "+" : ""}{Math.round(ev.delta)} ({Math.round(ev.after)})
+                      </p>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      {/* Per-set table */}
+      {sets.length > 0 && (
+        <div className="border-t border-border/60 bg-background/40">
+          <table className="w-full text-[10px] tabular-nums">
+            <thead>
+              <tr className="text-muted-foreground">
+                <th className="px-2 py-1 text-left font-semibold uppercase tracking-wider text-[9px]">Set</th>
+                {sets.map((s: any) => (
+                  <th key={s.set_number} className="px-1 py-1 text-center font-semibold uppercase tracking-wider text-[9px]">
+                    {s.set_number}{s.is_tiebreak ? "·TB" : ""}
+                  </th>
+                ))}
+                <th className="px-2 py-1 text-right font-semibold uppercase tracking-wider text-[9px]">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr className={aWon ? "bg-success/5" : ""}>
+                <td className="px-2 py-1 text-left font-bold text-foreground truncate max-w-[6rem]">
+                  {teamA.map(nameOf).join(" / ")}
+                </td>
+                {sets.map((s: any, i: number) => {
+                  const won = s.score_team_a > s.score_team_b;
+                  const setDelta = aSetsElo[i] || 0;
+                  return (
+                    <td key={s.set_number} className="px-1 py-1 text-center">
+                      <div className={`font-display font-bold ${won ? "text-success" : "text-muted-foreground"}`}>
+                        {s.score_team_a}
+                      </div>
+                      {Math.abs(setDelta) >= 0.5 && (
+                        <div className={`text-[8px] font-bold ${setDelta > 0 ? "text-success" : "text-destructive"}`}>
+                          {setDelta > 0 ? "+" : ""}{Math.round(setDelta)}
+                        </div>
+                      )}
+                    </td>
+                  );
+                })}
+                <td className="px-2 py-1 text-right font-display font-bold text-foreground">{gamesA}</td>
+              </tr>
+              <tr className={bWon ? "bg-success/5" : ""}>
+                <td className="px-2 py-1 text-left font-bold text-foreground truncate max-w-[6rem]">
+                  {teamB.map(nameOf).join(" / ")}
+                </td>
+                {sets.map((s: any, i: number) => {
+                  const won = s.score_team_b > s.score_team_a;
+                  const setDelta = bSetsElo[i] || 0;
+                  return (
+                    <td key={s.set_number} className="px-1 py-1 text-center">
+                      <div className={`font-display font-bold ${won ? "text-success" : "text-muted-foreground"}`}>
+                        {s.score_team_b}
+                      </div>
+                      {Math.abs(setDelta) >= 0.5 && (
+                        <div className={`text-[8px] font-bold ${setDelta > 0 ? "text-success" : "text-destructive"}`}>
+                          {setDelta > 0 ? "+" : ""}{Math.round(setDelta)}
+                        </div>
+                      )}
+                    </td>
+                  );
+                })}
+                <td className="px-2 py-1 text-right font-display font-bold text-foreground">{gamesB}</td>
+              </tr>
+            </tbody>
+          </table>
+          {(eloA !== 0 || eloB !== 0) && (
+            <div className="flex items-center justify-between border-t border-border/60 bg-muted/20 px-2 py-1 text-[9px]">
+              <span className="font-bold uppercase tracking-wider text-muted-foreground">Δ Elo do time</span>
+              <div className="flex items-center gap-3 tabular-nums">
+                <span className={`font-bold ${eloA > 0 ? "text-success" : eloA < 0 ? "text-destructive" : "text-muted-foreground"}`}>
+                  A: {eloA > 0 ? "+" : ""}{Math.round(eloA)}
+                </span>
+                <span className={`font-bold ${eloB > 0 ? "text-success" : eloB < 0 ? "text-destructive" : "text-muted-foreground"}`}>
+                  B: {eloB > 0 ? "+" : ""}{Math.round(eloB)}
+                </span>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
