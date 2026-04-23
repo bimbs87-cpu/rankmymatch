@@ -197,46 +197,78 @@ export function ExplorePanel() {
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
-            {filtered.map((g) => (
-              <Link
-                key={g.id}
-                to="/groups/$groupId"
-                params={{ groupId: g.id }}
-                className="group flex items-start gap-3 rounded-2xl border border-border bg-card p-4 transition-all hover:border-primary/40 hover:shadow-lg active:scale-[0.99]"
-              >
-                <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl bg-primary/10 ring-1 ring-primary/20">
-                  {g.image_url ? (
-                    <img src={g.image_url} alt="" className="h-full w-full rounded-xl object-cover" />
-                  ) : (
-                    <Users className="h-5 w-5 text-primary" />
-                  )}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-1.5">
-                    <span className="truncate text-sm font-bold text-foreground">{g.name}</span>
-                    {g.is_public ? (
-                      <Globe className="h-3 w-3 flex-shrink-0 text-muted-foreground" />
+            {filtered.map((g) => {
+              const isHiddenAdmin = (g as any).is_hidden_admin === true;
+              return (
+                <Link
+                  key={g.id}
+                  to="/groups/$groupId"
+                  params={{ groupId: g.id }}
+                  className={`group flex items-start gap-3 rounded-2xl border bg-card p-4 transition-all hover:border-primary/40 hover:shadow-lg active:scale-[0.99] ${
+                    isHiddenAdmin ? "border-dashed border-muted-foreground/40" : "border-border"
+                  }`}
+                >
+                  <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl bg-primary/10 ring-1 ring-primary/20">
+                    {g.image_url ? (
+                      <img src={g.image_url} alt="" className="h-full w-full rounded-xl object-cover" />
                     ) : (
-                      <Lock className="h-3 w-3 flex-shrink-0 text-muted-foreground" />
-                    )}
-                    {g.is_premium && (
-                      <span className="inline-flex flex-shrink-0 items-center gap-0.5 rounded-full bg-[var(--rank-gold)]/15 px-1.5 py-0.5 text-[9px] font-bold text-[var(--rank-gold)] ring-1 ring-[var(--rank-gold)]/40">
-                        <Crown className="h-2.5 w-2.5" />
-                        PREMIUM
-                      </span>
+                      <Users className="h-5 w-5 text-primary" />
                     )}
                   </div>
-                  <p className="mt-0.5 text-[11px] text-muted-foreground">
-                    {g.member_count} membro{g.member_count !== 1 ? "s" : ""} ·{" "}
-                    {g.match_format === "singles" ? "Singles" : "Doubles"} ·{" "}
-                    {g.sport === "tennis" ? "Tênis" : "Padel"}
-                  </p>
-                  {g.description && (
-                    <p className="mt-1.5 line-clamp-2 text-[11px] text-muted-foreground/80">{g.description}</p>
-                  )}
-                </div>
-              </Link>
-            ))}
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span className="truncate text-sm font-bold text-foreground">{g.name}</span>
+                      {isHiddenAdmin ? (
+                        <EyeOff className="h-3 w-3 flex-shrink-0 text-muted-foreground" />
+                      ) : g.is_public ? (
+                        <Globe className="h-3 w-3 flex-shrink-0 text-muted-foreground" />
+                      ) : (
+                        <Lock className="h-3 w-3 flex-shrink-0 text-muted-foreground" />
+                      )}
+                      {isHiddenAdmin && (
+                        <span className="inline-flex flex-shrink-0 items-center gap-0.5 rounded-full bg-muted px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-muted-foreground ring-1 ring-border">
+                          Oculto
+                        </span>
+                      )}
+                      {g.is_premium && (
+                        <span className="inline-flex flex-shrink-0 items-center gap-0.5 rounded-full bg-[var(--rank-gold)]/15 px-1.5 py-0.5 text-[9px] font-bold text-[var(--rank-gold)] ring-1 ring-[var(--rank-gold)]/40">
+                          <Crown className="h-2.5 w-2.5" />
+                          PREMIUM
+                        </span>
+                      )}
+                    </div>
+                    <p className="mt-0.5 text-[11px] text-muted-foreground">
+                      {g.member_count} membro{g.member_count !== 1 ? "s" : ""} ·{" "}
+                      {g.match_format === "singles" ? "Singles" : "Doubles"} ·{" "}
+                      {g.sport === "tennis" ? "Tênis" : "Padel"}
+                    </p>
+                    {g.description && (
+                      <p className="mt-1.5 line-clamp-2 text-[11px] text-muted-foreground/80">{g.description}</p>
+                    )}
+                    {isHiddenAdmin && (
+                      <div className="mt-2 space-y-1.5">
+                        <p className="text-[10px] text-muted-foreground/80">
+                          Só você vê este grupo aqui — compartilhe o convite para novos jogadores entrarem.
+                        </p>
+                        <button
+                          type="button"
+                          onClick={(e) => handleCopyInvite(e, g.id)}
+                          disabled={copyingId === g.id}
+                          className="inline-flex items-center gap-1.5 rounded-full border border-primary/40 bg-primary/10 px-2.5 py-1 text-[11px] font-semibold text-primary transition-colors hover:bg-primary/20 disabled:opacity-50"
+                        >
+                          {copyingId === g.id ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : (
+                            <Copy className="h-3 w-3" />
+                          )}
+                          Copiar convite
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </Link>
+              );
+            })}
           </div>
         )}
       </div>
