@@ -74,7 +74,7 @@ export function usePendingMatch(groupId?: string) {
 
       // Load group info, season info, players, sets in parallel
       const [groupRes, seasonRes, playersRes, setsRes, totalRes, roundMatchesRes] = await Promise.all([
-        supabase.from("groups").select("name, match_format").eq("id", round.group_id).single(),
+        supabase.from("groups").select("name, match_format, singles_group_type").eq("id", round.group_id).single(),
         round.season_id
           ? supabase.from("seasons").select("sets_per_match, sets_mode").eq("id", round.season_id).single()
           : Promise.resolve({ data: null }),
@@ -115,18 +115,29 @@ export function usePendingMatch(groupId?: string) {
             };
           });
 
+      // Rivalry groups (singles + singles_group_type='rivalry') always use
+      // unlimited sets — the duel runs as long as the players want.
+      const isRivalry =
+        groupRes.data?.match_format === "singles" &&
+        groupRes.data?.singles_group_type === "rivalry";
+      const resolvedSetsMode: PendingMatch["sets_mode"] = isRivalry
+        ? "unlimited"
+        : (((seasonRes.data as any)?.sets_mode as PendingMatch["sets_mode"]) || "fixed");
+      const resolvedSetsPerMatch = isRivalry
+        ? 99
+        : (seasonRes.data?.sets_per_match || 3);
+
       setPendingMatch({
         id: match.id,
         match_number: match.match_number,
         match_format: match.match_format,
         round_id: match.round_id,
-        round_number: round.round_number,
         season_id: round.season_id || "",
         group_id: round.group_id,
         group_name: groupRes.data?.name || "Grupo",
         group_match_format: groupRes.data?.match_format || "doubles",
-        sets_per_match: seasonRes.data?.sets_per_match || 3,
-        sets_mode: ((seasonRes.data as any)?.sets_mode as PendingMatch["sets_mode"]) || "fixed",
+        sets_per_match: resolvedSetsPerMatch,
+        sets_mode: resolvedSetsMode,
         total_matches_in_round: (totalRes as any)?.count ?? 1,
         is_king_of_court_round: isKingOfCourtRound,
         teamA: buildTeam("A"),
