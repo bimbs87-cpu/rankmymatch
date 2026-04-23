@@ -2,8 +2,9 @@ import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import {
   Trophy, Calendar, Plus, ChevronRight, ChevronDown, CircleDot, CheckCircle2,
-  Clock, MapPin, Pencil, Ban, X, Settings, Check, Flag, RotateCcw, Trash2, PlusCircle, Bell,
+  Clock, MapPin, Pencil, Ban, X, Settings, Check, Flag, RotateCcw, Trash2, PlusCircle, Bell, Lock,
 } from "lucide-react";
+import { isPresenceOpen, getPresenceOpenDate, formatPresenceOpenDate } from "@/lib/presence-schedule";
 import { useGroupSeasons } from "@/hooks/use-seasons";
 import { useSeasonRounds } from "@/hooks/use-rounds";
 import { useAuth } from "@/hooks/use-auth";
