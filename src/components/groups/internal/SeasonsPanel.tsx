@@ -984,6 +984,8 @@ function RoundExpandedDetails({
   const [reloadKey, setReloadKey] = useState(0);
   const [scoringMatchId, setScoringMatchId] = useState<string | null>(null);
   const [adminPresenceOpen, setAdminPresenceOpen] = useState(false);
+  const [roundStatus, setRoundStatus] = useState<"scheduled" | "in_progress" | "completed">("scheduled");
+  const [isRivalry, setIsRivalry] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
