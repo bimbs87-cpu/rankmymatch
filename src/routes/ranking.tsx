@@ -266,7 +266,9 @@ function RankingPage() {
         if (!nextSeasonId || !selectedSeasonRecord || !selectedSeasonMatchesRequestedGroup) {
           let fallback = false;
           if (requestedGroupId) {
-            const activeRequestedSeason = requestedGroupSeasons.find((season: any) => season.status === "active");
+            const activeRequestedSeason = requestedGroupSeasons.find((season: any) =>
+              isSeasonActive(season.status),
+            );
             if (activeRequestedSeason) {
               nextSeasonId = activeRequestedSeason.id;
             } else {
@@ -274,36 +276,46 @@ function RankingPage() {
               fallback = true;
             }
           } else {
-            // Prefer an active season in a group the user belongs to.
-            // Fall back to last-played season only if no active season exists.
-            const memberGroupIds = new Set(groups.map((g) => g.id));
-            const activeSeasons = availableSeasons.filter(
-              (season: any) => season.status === "active" && memberGroupIds.has(season.group_id),
-            );
+            // Try restoring from localStorage first (only when user has no explicit group request).
+            const storedSeasonId = readStoredSeasonId();
+            const storedSeason = storedSeasonId
+              ? availableSeasons.find((s: any) => s.id === storedSeasonId)
+              : null;
 
-            if (activeSeasons.length > 0) {
-              nextSeasonId = activeSeasons[0].id;
+            if (storedSeason) {
+              nextSeasonId = storedSeason.id;
+              fallback = !isSeasonActive(storedSeason.status);
             } else {
-              const { data: lastEvent, error: lastEventError } = await supabase
-                .from("rating_events")
-                .select("season_id")
-                .eq("user_id", user.id)
-                .order("created_at", { ascending: false })
-                .limit(1);
+              // Prefer an active season in a group the user belongs to.
+              const memberGroupIds = new Set(groups.map((g) => g.id));
+              const activeSeasons = availableSeasons.filter(
+                (season: any) => isSeasonActive(season.status) && memberGroupIds.has(season.group_id),
+              );
 
-              if (lastEventError) throw lastEventError;
-              if (cancelled) return;
+              if (activeSeasons.length > 0) {
+                nextSeasonId = activeSeasons[0].id;
+              } else {
+                const { data: lastEvent, error: lastEventError } = await supabase
+                  .from("rating_events")
+                  .select("season_id")
+                  .eq("user_id", user.id)
+                  .order("created_at", { ascending: false })
+                  .limit(1);
 
-              const lastSeasonId = lastEvent?.[0]?.season_id;
-              const matchedSeason = lastSeasonId ? availableSeasons.find((season: any) => season.id === lastSeasonId) : null;
-              nextSeasonId = matchedSeason?.id || availableSeasons[0].id;
-              fallback = true;
+                if (lastEventError) throw lastEventError;
+                if (cancelled) return;
+
+                const lastSeasonId = lastEvent?.[0]?.season_id;
+                const matchedSeason = lastSeasonId ? availableSeasons.find((season: any) => season.id === lastSeasonId) : null;
+                nextSeasonId = matchedSeason?.id || availableSeasons[0].id;
+                fallback = true;
+              }
             }
           }
           setSelectedSeasonId(nextSeasonId);
           setUsedFallback(fallback);
         } else {
-          setUsedFallback(false);
+          setUsedFallback(!isSeasonActive(selectedSeasonRecord.status));
         }
 
         const selectedSeason = availableSeasons.find((season: any) => season.id === nextSeasonId) || availableSeasons[0];
@@ -314,6 +326,9 @@ function RankingPage() {
 
         const effectiveSeasonId = selectedSeason.id;
         const effectiveGroupId = selectedSeason.group_id;
+
+        // Persist the resolved selection so reopening /ranking lands on the same view.
+        writeStoredSeasonAndGroup(effectiveSeasonId, effectiveGroupId);
 
         setLoadProgress(38);
         setLoadLabel("Buscando dados do ranking...");
