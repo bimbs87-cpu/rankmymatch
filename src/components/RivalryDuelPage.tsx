@@ -1296,7 +1296,88 @@ export function RivalryDuelPage({ groupId, groupName, seasonId, seasonName }: Pr
           </ol>
         )}
       </div>
+
+      {/* Block 10: Histórico de alterações de resultado */}
+      {isAdmin && editHistory.length > 0 && (
+        <div className="rounded-3xl border border-border bg-card/50 p-5">
+          <div className="mb-3 flex items-center gap-1.5">
+            <FileClock className="h-3.5 w-3.5 text-primary" />
+            <h3 className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+              Histórico de alterações
+            </h3>
+          </div>
+          <ol className="space-y-2.5">
+            {editHistory.slice(0, 8).map((h) => {
+              const when = new Date(h.created_at).toLocaleString("pt-BR", {
+                day: "2-digit",
+                month: "short",
+                hour: "2-digit",
+                minute: "2-digit",
+              });
+              return (
+                <li
+                  key={h.id}
+                  className="rounded-xl border border-border/40 bg-background/40 px-3 py-2 text-[11px]"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-semibold text-foreground truncate">
+                      {h.editor_name || "Admin"}
+                    </span>
+                    <span className="text-[10px] text-muted-foreground">{when}</span>
+                  </div>
+                  <p className="mt-1 font-display tabular-nums text-muted-foreground">
+                    <span className="line-through opacity-60">{h.old_sets}</span>
+                    <span className="mx-1.5 text-primary">→</span>
+                    <span className="text-foreground">{h.new_sets}</span>
+                  </p>
+                </li>
+              );
+            })}
+          </ol>
+        </div>
+      )}
       </div>
+
+      {editingMatch && (
+        <ScoreEntryDialog
+          matchId={editingMatch.id}
+          seasonId={seasonId || ""}
+          matchNumber={1}
+          totalMatches={1}
+          isAdmin={isAdmin}
+          isSingles={true}
+          setsMode="unlimited"
+          teamA={[
+            {
+              name: editingMatch.team_a_user_id === playerA.user_id ? displayNameA : displayNameB,
+              avatarUrl:
+                (editingMatch.team_a_user_id === playerA.user_id
+                  ? playerA.avatar_url
+                  : playerB.avatar_url) ?? undefined,
+              userId:
+                editingMatch.team_a_user_id === playerA.user_id ? playerA.user_id : playerB.user_id,
+            },
+          ]}
+          teamB={[
+            {
+              name: editingMatch.team_a_user_id === playerA.user_id ? displayNameB : displayNameA,
+              avatarUrl:
+                (editingMatch.team_a_user_id === playerA.user_id
+                  ? playerB.avatar_url
+                  : playerA.avatar_url) ?? undefined,
+              userId:
+                editingMatch.team_a_user_id === playerA.user_id ? playerB.user_id : playerA.user_id,
+            },
+          ]}
+          existingSets={editingMatch.sets.map((s, i) => ({
+            setNumber: i + 1,
+            scoreA: s.scoreA,
+            scoreB: s.scoreB,
+          }))}
+          onClose={() => setEditingMatch(null)}
+          onSaved={handleEditSaved}
+        />
+      )}
 
       <DuelShareDialog
         open={shareOpen}
