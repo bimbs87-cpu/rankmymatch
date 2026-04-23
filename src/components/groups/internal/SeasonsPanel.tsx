@@ -995,7 +995,7 @@ function RoundExpandedDetails({
         supabase.from("matches").select("id, status, match_number, winner_team, match_players(user_id, team), match_sets(set_number, score_team_a, score_team_b)").eq("round_id", roundId).order("match_number", { ascending: true }),
         supabase.from("group_members").select("user_id").eq("group_id", groupId).eq("status", "active"),
         supabase.from("seasons").select("sets_per_match, sets_mode, match_format").eq("id", seasonId).maybeSingle(),
-        supabase.from("groups").select("match_format").eq("id", groupId).maybeSingle(),
+        supabase.from("groups").select("match_format, singles_group_type").eq("id", groupId).maybeSingle(),
       ]);
       if (cancelled) return;
       const confirmedRows = (pres || []).filter((p) => p.status === "confirmed");
@@ -1009,11 +1009,24 @@ function RoundExpandedDetails({
         max: round?.max_players || 0,
       });
       setMatchesData(ms || []);
+      setRoundStatus((round?.status as any) || "scheduled");
 
       const fmt = (round?.match_format || season?.match_format || group?.match_format || "doubles") as string;
       setGroupFormat(fmt === "singles" || fmt === "1v1" ? "singles" : "doubles");
-      if (season?.sets_per_match) setSetsPerMatch(season.sets_per_match);
-      if (season?.sets_mode) setSetsMode(season.sets_mode as any);
+
+      // Rivalry override: regardless of season config, rivalry groups always
+      // play unlimited sets (the duel runs as long as players want).
+      const isRivalry =
+        group?.match_format === "singles" && group?.singles_group_type === "rivalry";
+      setIsRivalry(isRivalry);
+      if (isRivalry) {
+        setSetsPerMatch(99);
+        setSetsMode("unlimited");
+      } else {
+        if (season?.sets_per_match) setSetsPerMatch(season.sets_per_match);
+        if (season?.sets_mode) setSetsMode(season.sets_mode as any);
+      }
+
 
       const mine = user ? (pres || []).find((p) => p.user_id === user.id) : null;
       setMyStatus((mine?.status as any) ?? null);
