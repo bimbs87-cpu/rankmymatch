@@ -14,6 +14,134 @@ type CommitInput = {
   date?: string;
 };
 
+type ReleaseEntry = {
+  type: "feature" | "improvement" | "fix";
+  title: string;
+  description: string;
+  commit_shas: string[];
+};
+
+function isNoiseCommit(message: string) {
+  const m = message.toLowerCase().trim();
+  if (!m) return true;
+  if (m.startsWith("merge ") || m.startsWith("revert ")) return true;
+  if (/^(chore|ci|docs|style|refactor|test|build)[(:\s]/.test(m)) return true;
+  if (m.includes("lovable") || m === "changes" || m === "wip") return true;
+  return m.length < 8;
+}
+
+function inferType(message: string): ReleaseEntry["type"] {
+  const m = message.toLowerCase();
+  if (/^(fix|bug|hotfix)[(:\s]/.test(m) || m.startsWith("fix ") || m.includes(" corrig")) return "fix";
+  if (/^(feat|feature|add|new)[(:\s]/.test(m) || m.includes("novo") || m.includes("nova")) return "feature";
+  return "improvement";
+}
+
+function cleanTitle(message: string) {
+  const firstLine = message.split("\n")[0].trim();
+  const stripped = firstLine
+    .replace(/^(feat|fix|chore|docs|style|refactor|test|perf|build|ci|improve|improvement)(\([^)]*\))?:\s*/i, "")
+    .replace(/[_]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!stripped) return "";
+  return stripped.charAt(0).toUpperCase() + stripped.slice(1);
+}
+
+function isGenericText(value: string | null | undefined) {
+  if (!value) return true;
+  return /(ajustes (internos|gerais)|melhorias gerais|performance e estabilidade|diversas melhorias|ajustes de estabilidade|ajustes de performance|internals?)/i.test(
+    value,
+  );
+}
+
+function buildFallbackDescription(title: string, type: ReleaseEntry["type"], message: string) {
+  const lowerTitle = title.charAt(0).toLowerCase() + title.slice(1);
+  if (/clicável|clickable/i.test(title)) {
+    return `Esse atalho agora responde direto ao toque, agilizando o uso dessa área do app.`;
+  }
+  if (/tooltip/i.test(title)) {
+    return `Agora essa informação aparece de forma mais clara e contextual durante o uso.`;
+  }
+  if (/painel admin/i.test(title)) {
+    return `Agora essa gestão pode ser feita direto pela interface administrativa.`;
+  }
+  if (/error boundary/i.test(title)) {
+    return `Erros isolados nessa área não derrubam mais a página inteira.`;
+  }
+  if (/popover/i.test(title)) {
+    return `O componente agora abre com leitura melhor e sem sobrepor a tela.`;
+  }
+  if (/changelog/i.test(message) && type === "feature") {
+    return `Agora essa atualização pode ser gerenciada direto pela interface do app.`;
+  }
+  if (type === "fix") {
+    return `Corrigimos ${lowerTitle} para deixar essa parte do app funcionando como esperado.`;
+  }
+  if (type === "feature") {
+    return `Agora o app conta com ${lowerTitle}.`;
+  }
+  return `${title} ficou mais claro, estável e prático no uso diário.`;
+}
+
+function sanitizeEntries(entries: ReleaseEntry[], commits: CommitInput[]): ReleaseEntry[] {
+  const commitMap = new Map(commits.map((commit) => [commit.sha, commit]));
+  const dedup = new Set<string>();
+
+  return entries
+    .map((entry) => {
+      const sourceCommit = entry.commit_shas
+        ?.map((sha) => commitMap.get(sha))
+        .find(Boolean);
+      const sourceMessage = sourceCommit?.message ?? entry.title;
+      const fallbackTitle = cleanTitle(sourceMessage);
+      const type = entry.type ?? inferType(sourceMessage);
+      const title = isGenericText(entry.title) ? fallbackTitle : entry.title?.trim();
+      const description = isGenericText(entry.description)
+        ? buildFallbackDescription(title || fallbackTitle, type, sourceMessage)
+        : entry.description?.trim();
+
+      return {
+        type,
+        title: title || fallbackTitle,
+        description: description || buildFallbackDescription(title || fallbackTitle, type, sourceMessage),
+        commit_shas: Array.from(new Set((entry.commit_shas ?? []).filter(Boolean))),
+      } satisfies ReleaseEntry;
+    })
+    .filter((entry) => entry.title && !isGenericText(entry.title) && entry.commit_shas.length > 0)
+    .filter((entry) => {
+      const key = entry.title.toLowerCase();
+      if (dedup.has(key)) return false;
+      dedup.add(key);
+      return true;
+    });
+}
+
+function fallbackEntries(commits: CommitInput[]): ReleaseEntry[] {
+  const seen = new Set<string>();
+
+  return commits
+    .filter((commit) => !isNoiseCommit(commit.message))
+    .map((commit) => {
+      const type = inferType(commit.message);
+      const title = cleanTitle(commit.message);
+      return {
+        type,
+        title,
+        description: buildFallbackDescription(title, type, commit.message),
+        commit_shas: [commit.sha],
+      } satisfies ReleaseEntry;
+    })
+    .filter((entry) => entry.title && !isGenericText(entry.title))
+    .filter((entry) => {
+      const key = entry.title.toLowerCase();
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .slice(0, 15);
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -170,15 +298,13 @@ Gere quantas entradas específicas forem necessárias (idealmente 1 por mudança
     }
 
     const parsed = JSON.parse(argsStr) as {
-      entries: Array<{
-        type: "feature" | "improvement" | "fix";
-        title: string;
-        description: string;
-        commit_shas: string[];
-      }>;
+      entries: ReleaseEntry[];
     };
 
-    return new Response(JSON.stringify(parsed), {
+    const sanitized = sanitizeEntries(parsed.entries ?? [], commits);
+    const finalEntries = sanitized.length > 0 ? sanitized : fallbackEntries(commits);
+
+    return new Response(JSON.stringify({ entries: finalEntries }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
