@@ -298,15 +298,13 @@ Gere quantas entradas específicas forem necessárias (idealmente 1 por mudança
     }
 
     const parsed = JSON.parse(argsStr) as {
-      entries: Array<{
-        type: "feature" | "improvement" | "fix";
-        title: string;
-        description: string;
-        commit_shas: string[];
-      }>;
+      entries: ReleaseEntry[];
     };
 
-    return new Response(JSON.stringify(parsed), {
+    const sanitized = sanitizeEntries(parsed.entries ?? [], commits);
+    const finalEntries = sanitized.length > 0 ? sanitized : fallbackEntries(commits);
+
+    return new Response(JSON.stringify({ entries: finalEntries }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
