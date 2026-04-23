@@ -15,6 +15,7 @@ export type AuditAction =
   | "presence_force_open"
   | "presence_force_open_undo"
   | "member_removed"
+  | "member_left"
   | "member_promoted"
   | "season_created"
   | "season_finished"
