@@ -52,6 +52,7 @@ export function MembersPanel({ groupId }: Props) {
   const [renamingUserId, setRenamingUserId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
   const [renameSaving, setRenameSaving] = useState(false);
+  const [removingId, setRemovingId] = useState<string | null>(null);
   const [addPlaceholderOpen, setAddPlaceholderOpen] = useState(false);
   const [searchUserOpen, setSearchUserOpen] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
@@ -267,18 +268,22 @@ export function MembersPanel({ groupId }: Props) {
   };
 
   const handleHardRemove = async (memberId: string, name?: string) => {
+    if (removingId) return; // guard against repeat clicks while a removal is in flight
     const ok = confirm(
       `Remover ${name || "este jogador"} do grupo definitivamente?\n\n` +
       `O jogador deixa de aparecer na lista de membros.\n` +
       `O histórico de partidas é preservado.`,
     );
     if (!ok) return;
+    setRemovingId(memberId);
     try {
       await hardRemoveMember(memberId);
       toast.success("Removido do grupo");
       refresh();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Erro ao remover");
+    } finally {
+      setRemovingId(null);
     }
   };
 
