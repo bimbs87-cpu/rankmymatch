@@ -130,6 +130,50 @@ export async function confirmPresence(roundId: string, userId: string) {
   } catch {
     // ignore
   }
+
+  // Rivalry auto-create match: when a 1v1 (rivalry) round has both members
+  // confirmed and no match exists yet, create the match automatically so the
+  // next step is just "Lançar resultado" — no manual draw is needed.
+  try {
+    void autoCreateRivalryMatchIfReady(roundId, userId);
+  } catch {
+    // ignore — best-effort
+  }
+}
+
+async function autoCreateRivalryMatchIfReady(roundId: string, actorId: string): Promise<void> {
+  const { data: roundRow } = await supabase
+    .from("rounds")
+    .select("id, group_id, match_format")
+    .eq("id", roundId)
+    .single();
+  if (!roundRow) return;
+  if (roundRow.match_format !== "singles") return;
+
+  const { data: groupRow } = await supabase
+    .from("groups")
+    .select("singles_group_type")
+    .eq("id", roundRow.group_id)
+    .single();
+  if (groupRow?.singles_group_type !== "rivalry") return;
+
+  // Already has a match? Skip.
+  const { count: matchCount } = await supabase
+    .from("matches")
+    .select("id", { count: "exact", head: true })
+    .eq("round_id", roundId);
+  if ((matchCount ?? 0) > 0) return;
+
+  // Need both members confirmed.
+  const { data: confirmed } = await supabase
+    .from("round_presence")
+    .select("user_id")
+    .eq("round_id", roundId)
+    .eq("status", "confirmed");
+  const confirmedIds = (confirmed || []).map((p) => p.user_id);
+  if (confirmedIds.length !== 2) return;
+
+  await drawTeams(roundId, confirmedIds, actorId);
 }
 
 /**
