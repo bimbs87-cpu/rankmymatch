@@ -832,6 +832,14 @@ function AdminInboxPage() {
                                   CRÍTICO
                                 </span>
                               )}
+                              {it.kind === "join_request" && it.waitlistPosition != null && (
+                                <span
+                                  className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary ring-1 ring-primary/20"
+                                  title="Posição na lista de espera (grupo cheio)"
+                                >
+                                  Fila #{it.waitlistPosition}
+                                </span>
+                              )}
                               <span
                                 className={`text-[10px] ${
                                   isCritical
