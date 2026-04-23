@@ -50,6 +50,8 @@ interface PendingItem {
   targetPlayerName: string | null;
   message: string | null;
   createdAt: string;
+  /** Waitlist position (1-based) when join_request is in waitlist mode. */
+  waitlistPosition?: number | null;
   /** match_result extras (kind === "match_result") */
   matchId?: string;
   seasonId?: string;
