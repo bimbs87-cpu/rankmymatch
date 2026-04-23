@@ -1794,19 +1794,9 @@ function MatchScoreCard({
   const aWon = match.winner_team === "A";
   const bWon = match.winner_team === "B";
 
-  // Aggregate side totals
+  // Aggregate side totals (sets won per side) — used by the hero score.
   const setsA = sets.filter((s: any) => s.score_team_a > s.score_team_b).length;
   const setsB = sets.filter((s: any) => s.score_team_b > s.score_team_a).length;
-  const gamesA = sets.reduce((acc: number, s: any) => acc + (s.score_team_a || 0), 0);
-  const gamesB = sets.reduce((acc: number, s: any) => acc + (s.score_team_b || 0), 0);
-
-  // Team aggregate Elo delta (sum of player deltas per side)
-  const eloA = teamA.reduce((acc: number, mp: any) => acc + (deltas[mp.user_id]?.delta || 0), 0);
-  const eloB = teamB.reduce((acc: number, mp: any) => acc + (deltas[mp.user_id]?.delta || 0), 0);
-
-  // Aggregate game totals are kept for the hero score (single-set case);
-  // per-set Elo inference was removed with the per-set table.
-  void gamesA; void gamesB;
 
   return (
     <div className="overflow-hidden rounded-xl border border-border bg-card/60">
