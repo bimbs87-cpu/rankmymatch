@@ -1804,21 +1804,9 @@ function MatchScoreCard({
   const eloA = teamA.reduce((acc: number, mp: any) => acc + (deltas[mp.user_id]?.delta || 0), 0);
   const eloB = teamB.reduce((acc: number, mp: any) => acc + (deltas[mp.user_id]?.delta || 0), 0);
 
-  // Inferred per-set Elo distribution: spread match delta proportionally to sets won.
-  // If side won 0 sets, give a small share (10%) to reflect competitive play.
-  const inferredSetElo = (totalDelta: number, sideSetsWon: number) => {
-    if (sets.length === 0) return [];
-    const baseShare = sideSetsWon === 0 ? 0.1 : 0;
-    const winShare = (1 - baseShare * sets.length) / Math.max(1, sideSetsWon);
-    return sets.map((s: any) => {
-      const won = (s.score_team_a > s.score_team_b && totalDelta === eloA) ||
-                  (s.score_team_b > s.score_team_a && totalDelta === eloB);
-      const share = won ? winShare : baseShare;
-      return totalDelta * share;
-    });
-  };
-  const aSetsElo = inferredSetElo(eloA, setsA);
-  const bSetsElo = inferredSetElo(eloB, setsB);
+  // Aggregate game totals are kept for the hero score (single-set case);
+  // per-set Elo inference was removed with the per-set table.
+  void gamesA; void gamesB;
 
   return (
     <div className="overflow-hidden rounded-xl border border-border bg-card/60">
