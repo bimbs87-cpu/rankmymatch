@@ -5,7 +5,7 @@ import { useUserProfile } from "@/hooks/use-user-profile";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
 import { useState, useEffect } from "react";
-import { Users, CheckCircle, XCircle, Loader2, LogIn } from "lucide-react";
+import { Users, CheckCircle, XCircle, Loader2, LogIn, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import { AppleSignInButton } from "@/components/AppleSignInButton";
 
@@ -37,6 +37,7 @@ interface InviteData {
     description: string | null;
     sport: string;
     is_public: boolean;
+    visibility: string;
     image_url: string | null;
     member_count: number;
     max_players: number;
@@ -153,7 +154,7 @@ function InvitePage() {
       // Load group info
       const { data: groupData } = await supabase
         .from("groups")
-        .select("name, description, sport, is_public, image_url, max_players")
+        .select("name, description, sport, is_public, visibility, image_url, max_players")
         .eq("id", inviteData.group_id)
         .single();
 
@@ -481,6 +482,22 @@ function InvitePage() {
             </div>
           </div>
         </div>
+
+        {/* Hidden group notice — explain why direct invite is required */}
+        {invite?.group?.visibility === "hidden" && (
+          <div className="mt-4 rounded-2xl border border-warning/40 bg-warning/10 p-4">
+            <div className="flex items-start gap-2.5">
+              <EyeOff className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
+              <div className="min-w-0 flex-1 text-left">
+                <p className="text-xs font-bold text-foreground">Grupo oculto</p>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  Este grupo não aparece na lista de Explorar. Você só está vendo esta página
+                  porque recebeu o link de convite direto. Guarde-o se quiser voltar depois.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Claim invite banner */}
         {invite?.claim_placeholder_user_id && (

@@ -24,7 +24,8 @@ export type AuditAction =
   | "round_nudge"
   | "round_nudge_cooldown_reset"
   | "waitlist_auto_promoted"
-  | "waitlist_manual_promoted";
+  | "waitlist_manual_promoted"
+  | "group_visibility_changed";
 
 export interface LogAuditOptions {
   groupId: string;
