@@ -434,10 +434,31 @@ function Sparkline({
   );
 }
 
+const FILTER_STORAGE_KEY = (groupId: string) => `auditpanel:filter:${groupId}`;
+
 export function AuditPanel({ groupId }: Props) {
   const [rows, setRows] = useState<AuditRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<string>("all");
+  const [filter, setFilterState] = useState<string>(() => {
+    if (typeof window === "undefined") return "all";
+    try {
+      return window.localStorage.getItem(FILTER_STORAGE_KEY(groupId)) || "all";
+    } catch {
+      return "all";
+    }
+  });
+  // Wrap setter to persist on every change (covers <select> + all shortcut buttons).
+  const setFilter = (next: string) => {
+    setFilterState(next);
+    if (typeof window !== "undefined") {
+      try {
+        if (next === "all") window.localStorage.removeItem(FILTER_STORAGE_KEY(groupId));
+        else window.localStorage.setItem(FILTER_STORAGE_KEY(groupId), next);
+      } catch {
+        /* ignore quota / private mode errors */
+      }
+    }
+  };
   const [actorNames, setActorNames] = useState<Record<string, string>>({});
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [responseTimes, setResponseTimes] = useState<number[]>([]);
@@ -449,6 +470,17 @@ export function AuditPanel({ groupId }: Props) {
   const [roundMovements, setRoundMovements] = useState<
     Record<string, { round_number: number | null; scheduled_date: string | null }>
   >({});
+
+  // When switching between groups, reload the persisted filter for the new group.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const stored = window.localStorage.getItem(FILTER_STORAGE_KEY(groupId));
+      setFilterState(stored || "all");
+    } catch {
+      setFilterState("all");
+    }
+  }, [groupId]);
 
   useEffect(() => {
     let cancelled = false;
