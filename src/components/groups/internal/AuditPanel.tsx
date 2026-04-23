@@ -264,12 +264,29 @@ function NudgeResetDetail({ row }: { row: AuditRow }) {
   );
 }
 
+function VisibilityDiff({ row }: { row: AuditRow }) {
+  const oldV = row.old_data?.visibility ?? "—";
+  const newV = row.new_data?.visibility ?? "—";
+  const oldLabel = VISIBILITY_LABELS[oldV] || oldV;
+  const newLabel = VISIBILITY_LABELS[newV] || newV;
+  return (
+    <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/20 p-2 text-xs">
+      <span className="rounded-md bg-background px-2 py-0.5 font-mono text-foreground/80">{oldLabel}</span>
+      <span className="text-muted-foreground">→</span>
+      <span className="rounded-md bg-primary/15 px-2 py-0.5 font-mono font-bold text-primary">{newLabel}</span>
+    </div>
+  );
+}
+
 function DiffView({ row }: { row: AuditRow }) {
   if (row.action === "round_nudge") {
     return <NudgeDetail row={row} />;
   }
   if (row.action === "round_nudge_cooldown_reset") {
     return <NudgeResetDetail row={row} />;
+  }
+  if (row.action === "group_visibility_changed") {
+    return <VisibilityDiff row={row} />;
   }
   if (row.old_data == null && row.new_data == null) {
     return (
