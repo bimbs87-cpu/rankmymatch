@@ -220,6 +220,7 @@ function AdminInboxPage() {
             targetPlayerName: target?.name || null,
             message: r.message || null,
             createdAt: r.created_at,
+            waitlistPosition: (r as any).is_waitlisted ? (r as any).waitlist_position ?? null : null,
           };
         }),
         ...claims.map((c): PendingItem => {
