@@ -5,7 +5,7 @@
  *
  * A "Ver todas" footer link still opens /notifications for the full list.
  */
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import {
   Bell,
@@ -15,7 +15,6 @@ import {
   ArrowUpCircle,
   Undo2,
   Swords,
-  CheckCheck,
   Trophy,
 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
