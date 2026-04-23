@@ -1037,7 +1037,7 @@ export const getDevDashboard = createServerFn({ method: "GET" })
     }) {
       const causes: string[] = [];
       // Se taxa signup baixa (<10%) e há sessões em /login → abandono no login
-      if (seg.signupRate < 10 && loginAbandonRate > 50) {
+      if (seg.signupRate < 10 && loginAbandonRateEarly > 50) {
         causes.push("Abandono em /login");
       }
       // Se houve signups mas usuários sem profile → ghost users
@@ -1047,10 +1047,9 @@ export const getDevDashboard = createServerFn({ method: "GET" })
       // Se signups mas onboarding event ausente → instrumentação
       const onbCoverage =
         seg.signups > 0
-          ? // estimativa global, não por segmento (page_visits não liga UTM→user)
-            authUsers.filter(
+          ? authUsers.filter(
               (u) =>
-                profileUserIdSet.has(u.id) &&
+                profileUserIdSetEarly.has(u.id) &&
                 !onbSignupSet.has(u.id) &&
                 Date.now() - new Date(u.created_at).getTime() < 30 * dayMs
             ).length
