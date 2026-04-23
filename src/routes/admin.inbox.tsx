@@ -149,7 +149,7 @@ function AdminInboxPage() {
       const [reqsRes, claimsRes, groupsRes, prRes] = await Promise.all([
         supabase
           .from("group_join_requests")
-          .select("id, group_id, user_id, claimed_player_id, message, created_at")
+          .select("id, group_id, user_id, claimed_player_id, message, created_at, waitlist_position, is_waitlisted")
           .in("group_id", adminGroupIds)
           .eq("status", "pending"),
         supabase
