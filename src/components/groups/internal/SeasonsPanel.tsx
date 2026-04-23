@@ -1232,9 +1232,184 @@ export function RoundExpandedDetails({
         <div className="text-[11px] text-muted-foreground">Carregando…</div>
       ) : (
         <>
-          {user && roundStatus !== "completed" && (
-...
+          {/* ============== INCOMPLETE ROUND FLOW ============== */}
+          {!isCompleted && user && (
+            <div>
+              {myStatus === "confirmed" ? (
+                <button
+                  onClick={handleCancel}
+                  disabled={busy}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl border border-destructive/30 bg-destructive/10 py-2 text-xs font-semibold text-destructive disabled:opacity-50"
+                >
+                  Cancelar presença
+                </button>
+              ) : (
+                <button
+                  onClick={handleConfirm}
+                  disabled={busy}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-2 text-xs font-bold text-primary-foreground disabled:opacity-50"
+                >
+                  Confirmar presença
+                </button>
+              )}
             </div>
+          )}
+
+          {!isCompleted && (
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              <Stat label="Confirmados" value={`${presence.confirmed}/${presence.max || "—"}`} tone="success" />
+              <Stat label="Recusados" value={String(presence.declined)} tone="muted" />
+              <Stat label="Sem resposta" value={String(presence.pending)} tone="warning" />
+              <Stat label="Partidas" value={String(matchesData.length)} tone="primary" />
+            </div>
+          )}
+
+          {!isCompleted && confirmedPlayers.length > 0 && (
+            <div>
+              <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                Confirmados
+              </p>
+              <div className="flex flex-wrap items-center gap-1.5">
+                {confirmedPlayers.map((p) => (
+                  <div key={p.user_id} title={p.name} className="group/avatar relative">
+                    <PlayerAvatarLink userId={p.user_id} ariaLabel={`Ver perfil de ${p.name}`}>
+                      <PlayerAvatar avatarUrl={p.avatar_url} name={p.name} size="md" className="ring-1 ring-success/40 cursor-pointer transition-transform hover:scale-110" />
+                    </PlayerAvatarLink>
+                  </div>
+                ))}
+                {presence.confirmed > confirmedPlayers.length && (
+                  <span className="ml-1 rounded-full border border-border bg-card px-2 py-1 text-[10px] font-bold text-muted-foreground">
+                    +{presence.confirmed - confirmedPlayers.length}
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+
+          {!isCompleted && isAdmin && matchesData.length === 0 && (
+            <button
+              onClick={() => setAdminPresenceOpen(true)}
+              disabled={busy}
+              className="flex w-full items-center justify-center gap-2 rounded-xl border border-border bg-muted/40 py-2 text-xs font-semibold text-foreground hover:bg-muted/60 disabled:opacity-50"
+            >
+              <UserPlus className="h-3.5 w-3.5" />
+              Adicionar à lista
+            </button>
+          )}
+
+          {!isCompleted && isAdmin && matchesData.length === 0 && !isRivalry && (
+            <button
+              onClick={handleDrawTeams}
+              disabled={busy || confirmedIds.length < (groupFormat === "singles" ? 2 : 4)}
+              className="flex w-full items-center justify-center gap-2 rounded-xl border border-primary/30 bg-primary/10 py-2 text-xs font-bold text-primary hover:bg-primary/20 disabled:opacity-50"
+            >
+              Sortear times ({confirmedIds.length} confirmados)
+            </button>
+          )}
+
+          {!isCompleted && isAdmin && matchesData.length === 0 && isRivalry && confirmedIds.length === 2 && (
+            <button
+              onClick={handleDrawTeams}
+              disabled={busy}
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-2 text-xs font-bold text-primary-foreground disabled:opacity-50"
+            >
+              <Trophy className="h-3.5 w-3.5" /> Iniciar confronto
+            </button>
+          )}
+
+          {!isCompleted && isAdmin && hasUnstartedMatches && !isRivalry && (
+            <button
+              onClick={handleRedrawTeams}
+              disabled={busy || confirmedIds.length < (groupFormat === "singles" ? 2 : 4)}
+              className="flex w-full items-center justify-center gap-2 rounded-xl border border-warning/30 bg-warning/10 py-2 text-xs font-bold text-warning hover:bg-warning/20 disabled:opacity-50"
+            >
+              <RotateCcw className="h-3.5 w-3.5" /> Resortear times
+            </button>
+          )}
+
+          {!isCompleted && (
+            <RoundEloMiniTimeline
+              seasonId={seasonId}
+              scheduledDate={scheduledDate}
+              matchPlayerIds={Array.from(new Set(matchesData.flatMap((m: any) => (m.match_players || []).map((mp: any) => mp.user_id))))}
+              visible={matchesData.some((m: any) => (m.match_sets || []).length > 0)}
+            />
+          )}
+
+          {!isCompleted && matchesData.length > 0 && (
+            <div>
+              <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                Partidas
+              </p>
+              <div className="space-y-1.5">
+                {matchesData.map((m: any) => {
+                  const teamA = (m.match_players || []).filter((mp: any) => mp.team === "A");
+                  const teamB = (m.match_players || []).filter((mp: any) => mp.team === "B");
+                  const sets = (m.match_sets || []).slice().sort((a: any, b: any) => a.set_number - b.set_number);
+                  const nameOf = (mp: any) => (mp.profile?.nickname || mp.profile?.name || "Jogador");
+                  const renderTeam = (team: any[], side: "A" | "B") => (
+                    <span className={m.winner_team === side ? "font-bold text-primary" : "text-foreground"}>
+                      {team.length === 0 ? "—" : team.map((mp: any) => nameOf(mp)).join(" / ")}
+                    </span>
+                  );
+                  const iAmInMatch = !!user && (m.match_players || []).some((mp: any) => mp.user_id === user.id);
+                  const canEnterScore = isAdmin || iAmInMatch;
+                  const isCompletedWithSets = m.status === "completed" && sets.length > 0;
+                  const showEnterBtn = canEnterScore && (m.status !== "completed" || (isCompletedWithSets && isAdmin));
+                  return (
+                    <div key={m.id} className="rounded-lg border border-border bg-card/40 px-2 py-1.5 text-[11px] space-y-1">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="min-w-0 flex-1 truncate">
+                          {renderTeam(teamA, "A")}
+                          <span className="text-muted-foreground"> vs </span>
+                          {renderTeam(teamB, "B")}
+                        </div>
+                        <div className="flex items-center gap-1 shrink-0">
+                          {sets.length > 0 ? sets.map((s: any) => (
+                            <span key={s.set_number} className="rounded bg-muted px-1.5 py-0.5 font-display font-bold tabular-nums">
+                              {s.score_team_a}-{s.score_team_b}
+                            </span>
+                          )) : (
+                            <span className="rounded-full bg-info/10 px-1.5 py-0.5 text-[9px] font-semibold text-info">
+                              {m.status === "scheduled" ? "Agendada" : "Em andamento"}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      {showEnterBtn && (
+                        <button
+                          onClick={() => setScoringMatchId(m.id)}
+                          className="flex w-full items-center justify-center gap-1 rounded-md border border-primary/30 bg-primary/5 py-1 text-[10px] font-semibold text-primary hover:bg-primary/10"
+                        >
+                          <Trophy className="h-3 w-3" />
+                          {sets.length > 0 ? "Editar resultado" : (isAdmin ? "Lançar resultado" : "Enviar resultado")}
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* ============== COMPLETED ROUND — PROFESSIONAL RECAP ============== */}
+          {isCompleted && (
+            <CompletedRoundRecap
+              matches={playedMatches}
+              eloDeltas={eloDeltas}
+              presence={presence}
+              confirmedPlayers={confirmedPlayers}
+              totalSets={totalSets}
+              totalGames={totalGames}
+              totalEloMoved={totalEloMoved}
+              mvp={mvp}
+              flop={flop}
+              playerAggList={playerAggList}
+              seasonId={seasonId}
+              scheduledDate={scheduledDate}
+              isAdmin={isAdmin}
+              onEditMatch={(id) => setScoringMatchId(id)}
+            />
           )}
 
           {scoringMatch && (() => {
