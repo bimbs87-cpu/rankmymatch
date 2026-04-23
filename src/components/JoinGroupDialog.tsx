@@ -285,8 +285,24 @@ export function JoinGroupDialog({
           <p className="text-center text-xs text-muted-foreground">
             {hasClaimables
               ? "Você já joga aqui? Selecione seu nome para vincular o histórico ao aprovar."
-              : "Envie uma solicitação ao admin para entrar no grupo."}
+              : "Toda entrada precisa de aprovação do admin do grupo."}
           </p>
+          {capacity?.isFull && (
+            <div className="mt-2 w-full rounded-2xl border border-destructive/40 bg-destructive/10 px-3 py-2 text-center">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-destructive">
+                Grupo cheio
+              </p>
+              <p className="mt-1 text-xs text-foreground">
+                {capacity.activeCount}/{capacity.limit} membros. O admin precisa
+                aumentar o limite ou liberar uma vaga antes que você possa entrar.
+              </p>
+            </div>
+          )}
+          {capacity && !capacity.isFull && capacity.limit != null && (
+            <p className="text-center text-[10px] text-muted-foreground">
+              {capacity.activeCount}/{capacity.limit} vagas ocupadas
+            </p>
+          )}
         </div>
 
         <div className="flex-1 overflow-y-auto min-h-0 space-y-3">
