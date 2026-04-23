@@ -53,12 +53,32 @@ export function JoinGroupDialog({
     if (!open) {
       setSelected(null);
       setMessage("");
+      setCapacity(null);
       return;
     }
     let cancelled = false;
     (async () => {
       setLoading(true);
       try {
+        // Load member_limit + active count to validate capacity client-side
+        // (the server-side approval also re-validates in approveJoinRequest).
+        const [{ data: groupRow }, { data: cnt }] = await Promise.all([
+          supabase
+            .from("groups")
+            .select("member_limit")
+            .eq("id", groupId)
+            .maybeSingle(),
+          supabase.rpc("get_group_member_count", { _group_id: groupId }),
+        ]);
+        const limit = (groupRow as any)?.member_limit ?? null;
+        const activeCount = (cnt as number | null) ?? 0;
+        if (!cancelled) {
+          setCapacity({
+            activeCount,
+            limit,
+            isFull: limit != null && activeCount >= limit,
+          });
+        }
         const { data: members } = await supabase
           .from("group_members")
           .select("user_id, status")
