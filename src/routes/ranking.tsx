@@ -61,6 +61,22 @@ function LoadingBar({ progress, label }: { progress: number; label: string }) {
   return <TrophyLoadingBar progress={progress} label={label} />;
 }
 
+function SeasonStatusBadge({ status }: { status?: string }) {
+  const isActive = status === "active";
+  return (
+    <span
+      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
+        isActive
+          ? "bg-primary/15 text-primary ring-1 ring-primary/30"
+          : "bg-muted text-muted-foreground ring-1 ring-border"
+      }`}
+    >
+      <span className={`h-1.5 w-1.5 rounded-full ${isActive ? "bg-primary animate-pulse" : "bg-muted-foreground/60"}`} />
+      {isActive ? "Ativa" : "Encerrada"}
+    </span>
+  );
+}
+
 function RankingPage() {
   const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
