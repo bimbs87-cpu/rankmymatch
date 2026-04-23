@@ -17,19 +17,20 @@ export async function createRound(data: {
 }) {
   const isSingles = data.matchFormat === "singles";
 
-  // Singles round sizing — derive from group when caller didn't provide:
-  // - rivalry: 2
-  // - league/casual: group.max_players (fallback 8)
+  // Round sizing — derive from group when caller didn't provide:
+  // - singles rivalry: 2
+  // - singles league/casual: group.max_players (fallback 8)
+  // - doubles: simultaneous_courts * 4 (King of the Court when 1 court → 4 players)
   let resolvedMaxPlayers = data.maxPlayers;
   let groupSinglesType: string | null = null;
-  if (isSingles) {
-    const { data: groupRow } = await supabase
-      .from("groups")
-      .select("singles_group_type, max_players")
-      .eq("id", data.groupId)
-      .single();
-    groupSinglesType = groupRow?.singles_group_type ?? null;
-    if (!resolvedMaxPlayers) {
+  const { data: groupRow } = await supabase
+    .from("groups")
+    .select("singles_group_type, max_players, simultaneous_courts")
+    .eq("id", data.groupId)
+    .single();
+  groupSinglesType = groupRow?.singles_group_type ?? null;
+  if (!resolvedMaxPlayers) {
+    if (isSingles) {
       if (groupSinglesType === "rivalry") {
         resolvedMaxPlayers = 2;
       } else {
@@ -37,6 +38,11 @@ export async function createRound(data: {
           ? groupRow.max_players
           : 8;
       }
+    } else {
+      const courts = groupRow?.simultaneous_courts && groupRow.simultaneous_courts >= 1
+        ? groupRow.simultaneous_courts
+        : 1;
+      resolvedMaxPlayers = courts * 4;
     }
   }
 
@@ -49,7 +55,7 @@ export async function createRound(data: {
       scheduled_date: data.scheduledDate || null,
       scheduled_time: data.scheduledTime || null,
       location: data.location || null,
-      max_players: resolvedMaxPlayers || 8,
+      max_players: resolvedMaxPlayers || 4,
       match_format: isSingles ? "singles" : "doubles",
       status: "scheduled",
     })
@@ -99,6 +105,7 @@ export async function createRound(data: {
 // actions don't block each other. Promises are cleared on settle.
 const inFlightConfirm = new Map<string, Promise<void>>();
 const inFlightRivalryDraw = new Map<string, Promise<void>>();
+const inFlightAutoDraw = new Map<string, Promise<void>>();
 
 export async function confirmPresence(roundId: string, userId: string) {
   const key = `${roundId}:${userId}`;
@@ -160,6 +167,14 @@ export async function confirmPresence(roundId: string, userId: string) {
   } catch {
     // ignore — best-effort
   }
+
+  // Auto-draw doubles round when capacity is reached (e.g. King of the Court
+  // — 4 players on a single court → 3 matches with the official rotation).
+  try {
+    void autoDrawDoublesIfFull(roundId, userId);
+  } catch {
+    // ignore — best-effort
+  }
 }
 
 async function autoCreateRivalryMatchIfReady(roundId: string, actorId: string): Promise<void> {
@@ -212,6 +227,83 @@ async function autoCreateRivalryMatchIfReady(roundId: string, actorId: string): 
 
   inFlightRivalryDraw.set(roundId, run);
   run.finally(() => inFlightRivalryDraw.delete(roundId));
+  return run;
+}
+
+/**
+ * Auto-draw a doubles round when capacity is reached. Idempotent — only fires
+ * when the round has no matches yet and the count of confirmed players is
+ * exactly max_players (4 for 1-court "King of the Court", 8 for 2 courts...).
+ * Players ordered by Elo are drawn via `drawTeams`, which also fans out
+ * per-player in-app notifications. We then push web notifications too.
+ */
+async function autoDrawDoublesIfFull(roundId: string, actorId: string): Promise<void> {
+  const existing = inFlightAutoDraw.get(roundId);
+  if (existing) return existing;
+
+  const run = (async () => {
+    const { data: roundRow } = await supabase
+      .from("rounds")
+      .select("id, group_id, match_format, max_players, status")
+      .eq("id", roundId)
+      .single();
+    if (!roundRow) return;
+    if (roundRow.match_format !== "doubles") return;
+    if (!["scheduled", "in_progress", "open", "presence_open"].includes(roundRow.status)) return;
+
+    const { count: matchCount } = await supabase
+      .from("matches")
+      .select("id", { count: "exact", head: true })
+      .eq("round_id", roundId);
+    if ((matchCount ?? 0) > 0) return;
+
+    const { data: confirmed } = await supabase
+      .from("round_presence")
+      .select("user_id, confirmed_at")
+      .eq("round_id", roundId)
+      .eq("status", "confirmed")
+      .order("confirmed_at", { ascending: true });
+    const confirmedIds = (confirmed || []).map((p) => p.user_id);
+    const target = roundRow.max_players ?? 0;
+    if (target < 4) return;
+    if (confirmedIds.length < target) return;
+
+    // Take exactly the first `target` confirmed players (FIFO). Anyone beyond
+    // is already on the waiting list and won't be drawn.
+    const drawnIds = confirmedIds.slice(0, target);
+    console.info("[autoDrawDoubles] drawing teams (round full)", {
+      roundId,
+      target,
+      confirmed: confirmedIds.length,
+    });
+    await drawTeams(roundId, drawnIds, actorId);
+
+    // Fan out a web push so involved players are notified immediately
+    // (drawTeams already inserts in-app notifications).
+    try {
+      const { sendPushFn } = await import("@/lib/push.functions");
+      void sendPushFn({
+        data: {
+          userIds: drawnIds,
+          payload: {
+            title: "Sorteio realizado! 🎲",
+            body: target === 4
+              ? "A rodada está completa. Veja os confrontos do Rei da Quadra."
+              : "A rodada está completa. Veja seus confrontos.",
+            url: `/groups/${roundRow.group_id}`,
+            tag: `draw_completed:${roundId}`,
+            type: "draw_completed",
+            data: { roundId, groupId: roundRow.group_id },
+          },
+        },
+      });
+    } catch (err) {
+      console.error("[autoDrawDoubles] push failed:", err);
+    }
+  })();
+
+  inFlightAutoDraw.set(roundId, run);
+  run.finally(() => inFlightAutoDraw.delete(roundId));
   return run;
 }
 

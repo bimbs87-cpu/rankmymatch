@@ -1026,26 +1026,33 @@ export function GroupDashboardPanel({ group, onLeft, onPresenceChanged }: Props)
                         <RotateCcw className="h-3 w-3" />
                       </button>
                     )}
-                    <button
-                      onClick={handleToggleForceOpen}
-                      disabled={presenceLoading}
-                      className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold transition-colors disabled:opacity-50 ${
-                        data.next_round.presence_force_open_at &&
-                        new Date(data.next_round.presence_force_open_at) <= new Date()
-                          ? "border border-destructive/40 bg-destructive/10 text-destructive hover:bg-destructive/20"
-                          : "border border-primary/40 bg-primary/10 text-primary hover:bg-primary/20"
-                      }`}
-                      title={
-                        data.next_round.presence_force_open_at
-                          ? "Fechar lista manualmente"
-                          : "Abrir lista agora (antes do prazo)"
-                      }
-                    >
-                      {data.next_round.presence_force_open_at &&
-                      new Date(data.next_round.presence_force_open_at) <= new Date()
-                        ? "Fechar lista"
-                        : "Abrir lista agora"}
-                    </button>
+                    {(() => {
+                      const isForceOpen =
+                        !!data.next_round.presence_force_open_at &&
+                        new Date(data.next_round.presence_force_open_at) <= new Date();
+                      // Hide the toggle entirely when the list is already open
+                      // via schedule (no force-open active) — there's nothing
+                      // useful to do in that state.
+                      if (data.next_round.presence_is_open && !isForceOpen) return null;
+                      return (
+                        <button
+                          onClick={handleToggleForceOpen}
+                          disabled={presenceLoading}
+                          className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold transition-colors disabled:opacity-50 ${
+                            isForceOpen
+                              ? "border border-destructive/40 bg-destructive/10 text-destructive hover:bg-destructive/20"
+                              : "border border-primary/40 bg-primary/10 text-primary hover:bg-primary/20"
+                          }`}
+                          title={
+                            isForceOpen
+                              ? "Fechar lista manualmente"
+                              : "Abrir lista agora (antes do prazo)"
+                          }
+                        >
+                          {isForceOpen ? "Fechar lista" : "Abrir lista agora"}
+                        </button>
+                      );
+                    })()}
                   </div>
                 </div>
               )}
