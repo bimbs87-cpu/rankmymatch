@@ -199,7 +199,11 @@ interface RankingOption {
   last_event_at: string | null;
   // Total games (a + b) for each of the user's last up to 3 sets, oldest -> newest
   last_set_games: number[];
+  // Aggregate-only flag
+  is_aggregate?: boolean;
 }
+
+const ALL_RANKINGS_ID = "__all__";
 
 function DashboardPage() {
   let authData: ReturnType<typeof useAuth>;
