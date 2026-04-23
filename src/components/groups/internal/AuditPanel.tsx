@@ -802,6 +802,20 @@ export function AuditPanel({ groupId }: Props) {
             🎬 Movimentações da rodada ({roundMovCount})
           </button>
         )}
+        {visibilityCount > 0 && (
+          <button
+            type="button"
+            onClick={() => setFilter(isVisibilityFilter ? "all" : "__visibility__")}
+            className={`flex items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-bold transition-colors ${
+              isVisibilityFilter
+                ? "border-accent/60 bg-accent/15 text-accent-foreground"
+                : "border-border bg-background text-muted-foreground hover:border-accent/40 hover:text-foreground"
+            }`}
+            title="Mostra todas as mudanças de visibilidade do grupo (público / privado / oculto)"
+          >
+            👁️ Visibilidade ({visibilityCount})
+          </button>
+        )}
       </div>
 
       {isNudgeFilter && nudgeStats.total > 0 && (
