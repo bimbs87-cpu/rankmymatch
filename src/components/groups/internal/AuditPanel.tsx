@@ -33,6 +33,14 @@ const ACTION_LABELS: Record<string, string> = {
   round_nudge_cooldown_reset: "Resetou cooldown de cutucadas",
   waitlist_auto_promoted: "Auto-promoveu da lista de espera",
   waitlist_manual_promoted: "Promoveu manualmente da lista de espera",
+  group_visibility_changed: "Mudou visibilidade do grupo",
+  group_member_limit_changed: "Mudou limite de membros",
+};
+
+const VISIBILITY_LABELS: Record<string, string> = {
+  public: "Público",
+  private: "Privado",
+  hidden: "Oculto",
 };
 
 const NUDGE_MODE_LABELS: Record<string, string> = {
