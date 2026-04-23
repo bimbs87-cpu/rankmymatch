@@ -214,17 +214,34 @@ function GeneralSection({ group, onSaved }: { group: any; onSaved: () => void })
     : null;
   const premiumExpiringSoon = isPremium && premiumDaysLeft != null && premiumDaysLeft <= 14;
 
-  const dirty = name !== group.name || description !== (group.description || "") || visibility !== initVis;
+  const parsedLimit = memberLimitEnabled ? parseInt(memberLimit, 10) : null;
+  const memberCount = (group as any).member_count ?? 0;
+  const limitInvalid = memberLimitEnabled && (
+    !Number.isFinite(parsedLimit as number) ||
+    (parsedLimit as number) < Math.max(1, memberCount) ||
+    (parsedLimit as number) > 9999
+  );
+  const dirty = name !== group.name
+    || description !== (group.description || "")
+    || visibility !== initVis
+    || (memberLimitEnabled ? parsedLimit : null) !== initMemberLimit;
 
   const save = async () => {
     if (!name.trim()) { toast.error("Nome é obrigatório"); return; }
+    if (limitInvalid) {
+      toast.error(`Limite inválido. Mínimo ${Math.max(1, memberCount)}, máximo 9999.`);
+      return;
+    }
     setSaving(true);
     const visibilityChanged = visibility !== initVis;
+    const newLimit = memberLimitEnabled ? parsedLimit : null;
+    const limitChanged = newLimit !== initMemberLimit;
     const { error } = await supabase.from("groups").update({
       name: name.trim(),
       description: description.trim() || null,
       is_public: visibility === "public",
       visibility,
+      member_limit: newLimit,
     } as any).eq("id", group.id);
     if (error) toast.error("Erro ao salvar");
     else {
@@ -238,6 +255,16 @@ function GeneralSection({ group, onSaved }: { group: any; onSaved: () => void })
           entityId: group.id,
           oldData: { visibility: initVis },
           newData: { visibility },
+        });
+      }
+      if (limitChanged) {
+        void logAudit({
+          groupId: group.id,
+          action: "group_member_limit_changed",
+          entityType: "group",
+          entityId: group.id,
+          oldData: { member_limit: initMemberLimit },
+          newData: { member_limit: newLimit },
         });
       }
       onSaved();
