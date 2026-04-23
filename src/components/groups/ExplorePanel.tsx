@@ -102,6 +102,7 @@ export function ExplorePanel() {
   const [sort, setSort] = useState<SortKey>("newest");
   const [showFilters, setShowFilters] = useState(false);
   const [copyingId, setCopyingId] = useState<string | null>(null);
+  const [inviteInfoById, setInviteInfoById] = useState<Record<string, InviteInfo>>({});
 
   const { groups, isLoading } = usePublicGroups(search);
 
@@ -115,8 +116,9 @@ export function ExplorePanel() {
     }
     setCopyingId(groupId);
     try {
-      const url = await getOrCreateInviteUrl(groupId, user.id);
-      await navigator.clipboard.writeText(url);
+      const info = await getOrCreateInviteUrl(groupId, user.id);
+      await navigator.clipboard.writeText(info.url);
+      setInviteInfoById((prev) => ({ ...prev, [groupId]: info }));
       toast.success("Link de convite copiado!");
     } catch (err: any) {
       console.error(err);
