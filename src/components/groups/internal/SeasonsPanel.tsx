@@ -1844,24 +1844,44 @@ function MatchScoreCard({
           </div>
         </div>
 
-        {/* Center: SCORE — when there's only a single set, show the games score
-            directly (e.g. 6×4) instead of the redundant 1×0 / 0×1. */}
-        {(() => {
-          const single = sets.length === 1;
-          const left = single ? (sets[0].score_team_a ?? 0) : setsA;
-          const right = single ? (sets[0].score_team_b ?? 0) : setsB;
-          return (
+        {/* Center: SCORE — show set-by-set games (e.g. 6-4 | 6-3) instead of
+            the abstract sets count, so the result reads like a scoreboard. */}
+        <div className="flex flex-col items-center justify-center gap-0.5">
+          {sets.length === 0 ? (
+            <span className="font-display text-2xl font-black text-muted-foreground/40">—</span>
+          ) : (
             <div className="flex items-center justify-center gap-1.5">
-              <span className={`font-display text-3xl font-black tabular-nums ${aWon ? "text-foreground" : "text-muted-foreground/60"}`}>
-                {left}
-              </span>
-              <span className="font-display text-xl font-bold text-muted-foreground/40">×</span>
-              <span className={`font-display text-3xl font-black tabular-nums ${bWon ? "text-foreground" : "text-muted-foreground/60"}`}>
-                {right}
-              </span>
+              {sets.map((s: any, i: number) => {
+                const aSetWon = s.score_team_a > s.score_team_b;
+                const bSetWon = s.score_team_b > s.score_team_a;
+                return (
+                  <div key={s.set_number} className="flex items-center gap-1.5">
+                    {i > 0 && (
+                      <span className="font-display text-base font-bold text-muted-foreground/30">|</span>
+                    )}
+                    <div className="flex items-center gap-1">
+                      <span className={`font-display text-2xl font-black tabular-nums leading-none ${aSetWon ? "text-foreground" : "text-muted-foreground/50"}`}>
+                        {s.score_team_a}
+                      </span>
+                      <span className="font-display text-sm font-bold text-muted-foreground/40">-</span>
+                      <span className={`font-display text-2xl font-black tabular-nums leading-none ${bSetWon ? "text-foreground" : "text-muted-foreground/50"}`}>
+                        {s.score_team_b}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
-          );
-        })()}
+          )}
+          {sets.length > 1 && (
+            <span className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground/60 tabular-nums">
+              <span className={aWon ? "text-success" : ""}>{setsA}</span>
+              <span className="mx-0.5">×</span>
+              <span className={bWon ? "text-success" : ""}>{setsB}</span>
+              <span className="ml-1">sets</span>
+            </span>
+          )}
+        </div>
 
         {/* Team B */}
         <div className={`min-w-0 text-left ${bWon ? "" : "opacity-60"}`}>
