@@ -40,9 +40,12 @@ serve(async (req) => {
       );
     }
 
-    // Compact commit list for the prompt
+    // Compact commit list for the prompt — include date for context
     const commitList = commits
-      .map((c, i) => `${i + 1}. [${c.sha}] ${c.message.split("\n")[0]}`)
+      .map((c, i) => {
+        const dateStr = c.date ? ` (${c.date.slice(0, 10)})` : "";
+        return `${i + 1}. [${c.sha}]${dateStr} ${c.message.split("\n")[0]}`;
+      })
       .join("\n");
 
     const systemPrompt = `Você é um redator de release notes para o RankMyMatch, um app de ranking de padel/tênis em PT-BR.
