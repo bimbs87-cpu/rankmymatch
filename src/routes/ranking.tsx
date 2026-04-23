@@ -61,6 +61,22 @@ function LoadingBar({ progress, label }: { progress: number; label: string }) {
   return <TrophyLoadingBar progress={progress} label={label} />;
 }
 
+function SeasonStatusBadge({ status }: { status?: string }) {
+  const isActive = status === "active";
+  return (
+    <span
+      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
+        isActive
+          ? "bg-primary/15 text-primary ring-1 ring-primary/30"
+          : "bg-muted text-muted-foreground ring-1 ring-border"
+      }`}
+    >
+      <span className={`h-1.5 w-1.5 rounded-full ${isActive ? "bg-primary animate-pulse" : "bg-muted-foreground/60"}`} />
+      {isActive ? "Ativa" : "Encerrada"}
+    </span>
+  );
+}
+
 function RankingPage() {
   const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
@@ -85,6 +101,7 @@ function RankingPage() {
   const [expandedUserId, setExpandedUserId] = useState<string | null>(null);
   const [compareMode, setCompareMode] = useState(false);
   const [compareSelection, setCompareSelection] = useState<string[]>([]);
+  const [usedFallback, setUsedFallback] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -198,20 +215,25 @@ function RankingPage() {
           !requestedGroupId || selectedSeasonRecord?.group_id === requestedGroupId;
 
         if (!nextSeasonId || !selectedSeasonRecord || !selectedSeasonMatchesRequestedGroup) {
+          let fallback = false;
           if (requestedGroupId) {
             const activeRequestedSeason = requestedGroupSeasons.find((season: any) => season.status === "active");
-            nextSeasonId = activeRequestedSeason?.id || requestedGroupSeasons[0].id;
+            if (activeRequestedSeason) {
+              nextSeasonId = activeRequestedSeason.id;
+            } else {
+              nextSeasonId = requestedGroupSeasons[0].id;
+              fallback = true;
+            }
           } else {
-            // Prefer the active season the user is currently playing in.
+            // Prefer an active season in a group the user belongs to.
             // Fall back to last-played season only if no active season exists.
-            const activeSeasons = availableSeasons.filter((season: any) => season.status === "active");
             const memberGroupIds = new Set(groups.map((g) => g.id));
-            const activeUserSeason =
-              activeSeasons.find((season: any) => memberGroupIds.has(season.group_id)) ||
-              activeSeasons[0];
+            const activeSeasons = availableSeasons.filter(
+              (season: any) => season.status === "active" && memberGroupIds.has(season.group_id),
+            );
 
-            if (activeUserSeason) {
-              nextSeasonId = activeUserSeason.id;
+            if (activeSeasons.length > 0) {
+              nextSeasonId = activeSeasons[0].id;
             } else {
               const { data: lastEvent, error: lastEventError } = await supabase
                 .from("rating_events")
@@ -226,9 +248,13 @@ function RankingPage() {
               const lastSeasonId = lastEvent?.[0]?.season_id;
               const matchedSeason = lastSeasonId ? availableSeasons.find((season: any) => season.id === lastSeasonId) : null;
               nextSeasonId = matchedSeason?.id || availableSeasons[0].id;
+              fallback = true;
             }
           }
           setSelectedSeasonId(nextSeasonId);
+          setUsedFallback(fallback);
+        } else {
+          setUsedFallback(false);
         }
 
         const selectedSeason = availableSeasons.find((season: any) => season.id === nextSeasonId) || availableSeasons[0];
@@ -531,8 +557,9 @@ function RankingPage() {
         <div>
           <h1 className="font-display text-xl lg:text-2xl font-bold text-foreground">Ranking</h1>
           {selectedSeason && (
-            <p className="hidden lg:block mt-0.5 text-xs text-muted-foreground">
-              {(selectedSeason as any).groups?.name} • {selectedSeason.name}
+            <p className="hidden lg:flex mt-0.5 items-center gap-2 text-xs text-muted-foreground">
+              <span>{(selectedSeason as any).groups?.name} • {selectedSeason.name}</span>
+              <SeasonStatusBadge status={(selectedSeason as any).status} />
             </p>
           )}
         </div>
@@ -549,6 +576,18 @@ function RankingPage() {
           <div className="flex w-full items-center justify-center gap-2 rounded-2xl border border-border bg-card/80 px-4 py-2.5">
             <Layers className="h-3.5 w-3.5 text-primary" />
             <span className="text-sm font-semibold text-foreground">{(selectedSeason as any).groups?.name} • {selectedSeason.name}</span>
+            <SeasonStatusBadge status={(selectedSeason as any).status} />
+          </div>
+        </div>
+      )}
+
+      {selectedSeason && usedFallback && (selectedSeason as any).status !== "active" && (
+        <div className="px-5 mt-2 lg:px-0">
+          <div className="flex items-start gap-2 rounded-2xl border border-warning/30 bg-warning/10 px-3 py-2 text-xs text-warning-foreground/90">
+            <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5 text-warning" />
+            <span>
+              Sem temporada ativa disponível. Mostrando a última temporada jogada.
+            </span>
           </div>
         </div>
       )}
