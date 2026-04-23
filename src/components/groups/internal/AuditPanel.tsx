@@ -23,6 +23,7 @@ const ACTION_LABELS: Record<string, string> = {
   presence_force_open: "Reabriu lista de presenças",
   presence_force_open_undo: "Desfez reabertura",
   member_removed: "Removeu membro",
+  member_left: "Saiu do grupo",
   member_promoted: "Promoveu admin",
   season_created: "Criou temporada",
   season_finished: "Encerrou temporada",

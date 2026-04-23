@@ -645,6 +645,13 @@ export async function checkUserHasResults(groupId: string, userId: string): Prom
 }
 
 export async function leaveGroup(memberId: string) {
+  // Load row first to capture group/user/role for the audit log.
+  const { data: prev } = await supabase
+    .from("group_members")
+    .select("group_id, user_id, role, status")
+    .eq("id", memberId)
+    .maybeSingle();
+
   // Set status to 'left' instead of deleting to preserve history
   const { data, error } = await supabase
     .from("group_members")
@@ -658,5 +665,22 @@ export async function leaveGroup(memberId: string) {
   }
   if (!data) {
     throw new Error("Não foi possível atualizar o vínculo (verifique permissões).");
+  }
+
+  // Audit: who left + when (best-effort, never blocks the leave action).
+  if (prev?.group_id) {
+    try {
+      const { logAudit } = await import("@/lib/audit-log");
+      await logAudit({
+        groupId: prev.group_id,
+        action: "member_left",
+        entityType: "group_member",
+        entityId: memberId,
+        oldData: prev,
+        newData: { ...prev, status: "left" },
+      });
+    } catch (auditErr) {
+      console.warn("[leaveGroup] audit failed:", auditErr);
+    }
   }
 }
