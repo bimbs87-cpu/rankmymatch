@@ -289,15 +289,24 @@ function GroupDetailPage() {
   };
   const handleLeaveConfirm = async () => {
     if (!user) return;
+    if (isCreator) {
+      toast.error("Você é o criador do grupo. Transfira a criação para outro admin antes de sair.");
+      setLeaveDialogOpen(false);
+      return;
+    }
     const myMembership = members.find((m) => m.user_id === user.id);
-    if (!myMembership) return;
+    if (!myMembership) {
+      toast.error("Não encontramos seu vínculo com o grupo. Recarregue a página.");
+      return;
+    }
     setLeavingLoading(true);
     try {
       await leaveGroup(myMembership.id);
       toast.success("Você saiu do grupo");
       navigate({ to: "/groups" });
-    } catch {
-      toast.error("Erro ao sair do grupo");
+    } catch (e: any) {
+      console.error("[leaveGroup] failed:", e);
+      toast.error(e?.message || "Erro ao sair do grupo");
     } finally {
       setLeavingLoading(false);
       setLeaveDialogOpen(false);
