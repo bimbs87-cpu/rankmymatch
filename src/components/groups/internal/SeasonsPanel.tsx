@@ -1224,13 +1224,27 @@ export function RoundExpandedDetails({
                 >
                   Cancelar presença
                 </button>
+              ) : !presenceOpen && !isAdmin ? (
+                <div className="flex w-full flex-col items-center justify-center gap-1 rounded-xl border border-border bg-muted/40 py-2 text-center text-xs font-semibold text-muted-foreground">
+                  <span className="flex items-center gap-1.5">
+                    <Lock className="h-3.5 w-3.5" />
+                    Lista de presença ainda não abriu
+                  </span>
+                  {presenceOpensAt && (
+                    <span className="text-[10px] font-normal text-muted-foreground/80">
+                      Abre {formatPresenceOpenDate(presenceOpensAt)}
+                    </span>
+                  )}
+                </div>
               ) : (
                 <button
                   onClick={handleConfirm}
                   disabled={busy}
                   className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-2 text-xs font-bold text-primary-foreground disabled:opacity-50"
+                  title={!presenceOpen && isAdmin ? "Lista ainda não abriu para membros — admins podem confirmar antecipadamente" : undefined}
                 >
                   Confirmar presença
+                  {!presenceOpen && isAdmin && <Lock className="h-3 w-3 opacity-70" />}
                 </button>
               )}
             </div>
