@@ -338,9 +338,50 @@ function GeneralSection({ group, onSaved }: { group: any; onSaved: () => void })
         </p>
       </div>
 
+      {/* Status indicator: shows the CURRENTLY SAVED visibility and its impact on Explorar */}
+      <div
+        className={`rounded-2xl border p-3 ${
+          initVis === "hidden"
+            ? "border-warning/40 bg-warning/10"
+            : initVis === "private"
+              ? "border-border bg-muted/30"
+              : "border-success/30 bg-success/5"
+        }`}
+      >
+        <div className="flex items-start gap-2.5">
+          {initVis === "hidden" ? (
+            <EyeOff className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
+          ) : initVis === "private" ? (
+            <Lock className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+          ) : (
+            <Globe className="mt-0.5 h-4 w-4 shrink-0 text-success" />
+          )}
+          <div className="min-w-0 flex-1 text-xs">
+            <p className="font-bold text-foreground">
+              Estado atual:{" "}
+              {initVis === "hidden" ? "Oculto" : initVis === "private" ? "Visível (Privado)" : "Visível (Público)"}
+            </p>
+            <p className="mt-0.5 text-muted-foreground">
+              {initVis === "hidden" &&
+                "O grupo NÃO aparece em Explorar. Novos jogadores só conseguem entrar com um link de convite direto."}
+              {initVis === "private" &&
+                "O grupo aparece em Explorar com card visível, mas o conteúdo (membros, ranking, partidas) só é visível para membros."}
+              {initVis === "public" &&
+                "O grupo aparece em Explorar e qualquer pessoa pode ver tudo (membros, ranking, partidas) antes de entrar."}
+            </p>
+            {dirty && visibility !== initVis && (
+              <p className="mt-1.5 rounded-lg border border-primary/30 bg-primary/10 px-2 py-1 text-[11px] font-semibold text-primary">
+                Alteração pendente: salve para mudar para "{visibility === "hidden" ? "Oculto" : visibility === "private" ? "Privado" : "Público"}".
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+
       <div className="rounded-2xl border border-border bg-muted/20 p-3 text-xs text-muted-foreground">
         <p><span className="text-foreground">Esporte:</span> <span className="capitalize">{group.sport}</span> · <span className="text-foreground">Máx jogadores:</span> {group.max_players} · <span className="text-foreground">Quadras:</span> {group.simultaneous_courts}</p>
       </div>
+
 
       <div className="rounded-2xl border border-border bg-background/40 p-3">
         <GroupCardPreview
