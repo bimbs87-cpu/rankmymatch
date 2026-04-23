@@ -644,6 +644,10 @@ export function AuditPanel({ groupId }: Props) {
       ).length,
     [rows],
   );
+  const visibilityCount = useMemo(
+    () => rows.filter((r) => VISIBILITY_ACTIONS.has(r.action)).length,
+    [rows],
+  );
 
   // Grouped by round for "Movimentações da rodada" view
   const movementsByRound = useMemo(() => {
