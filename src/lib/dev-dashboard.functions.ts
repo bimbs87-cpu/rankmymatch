@@ -1009,6 +1009,22 @@ export const getDevDashboard = createServerFn({ method: "GET" })
     const onbSignupSet = new Set(
       onbRows.filter((r) => r.step === "signup").map((r) => r.user_id)
     );
+    // Pré-computa abandono em /login para usar no inferCauses
+    const loginSessionIdsEarly = new Set<string>();
+    visits.forEach((v) => {
+      if (v.path === "/login" || v.path.startsWith("/login")) {
+        loginSessionIdsEarly.add(v.session_id);
+      }
+    });
+    let loginAbandonEarly = 0;
+    loginSessionIdsEarly.forEach((sid) => {
+      const uid = sessionUserMap.get(sid);
+      if (!(uid && authUserIdSet.has(uid))) loginAbandonEarly += 1;
+    });
+    const loginAbandonRateEarly =
+      loginSessionIdsEarly.size > 0
+        ? Number(((loginAbandonEarly / loginSessionIdsEarly.size) * 100).toFixed(1))
+        : 0;
     function inferCauses(seg: {
       key: string;
       sessions: number;
