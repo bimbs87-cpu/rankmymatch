@@ -13,7 +13,23 @@ function generateInviteCode(): string {
   return code;
 }
 
+async function assertCanInvite(groupId: string, userId: string): Promise<void> {
+  const { data, error } = await supabase
+    .from("group_members")
+    .select("role, status")
+    .eq("group_id", groupId)
+    .eq("user_id", userId)
+    .eq("status", "active")
+    .in("role", ["admin", "creator"])
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) throw new Error("Você não tem permissão para gerar convites deste grupo.");
+}
+
 async function getOrCreateInviteUrl(groupId: string, userId: string): Promise<string> {
+  // Defensive server-side check: only admins/creators can mint invites here.
+  await assertCanInvite(groupId, userId);
+
   const { data: existing } = await supabase
     .from("invite_links")
     .select("code, expires_at, max_uses, use_count")
@@ -58,10 +74,14 @@ export function ExplorePanel() {
 
   const { groups, isLoading } = usePublicGroups(search);
 
-  const handleCopyInvite = async (e: React.MouseEvent, groupId: string) => {
+  const handleCopyInvite = async (e: React.MouseEvent, groupId: string, canInvite: boolean) => {
     e.preventDefault();
     e.stopPropagation();
     if (!user) return;
+    if (!canInvite) {
+      toast.error("Você não tem permissão para gerar convites deste grupo.");
+      return;
+    }
     setCopyingId(groupId);
     try {
       const url = await getOrCreateInviteUrl(groupId, user.id);
@@ -252,7 +272,7 @@ export function ExplorePanel() {
                         </p>
                         <button
                           type="button"
-                          onClick={(e) => handleCopyInvite(e, g.id)}
+                          onClick={(e) => handleCopyInvite(e, g.id, isHiddenAdmin)}
                           disabled={copyingId === g.id}
                           className="inline-flex items-center gap-1.5 rounded-full border border-primary/40 bg-primary/10 px-2.5 py-1 text-[11px] font-semibold text-primary transition-colors hover:bg-primary/20 disabled:opacity-50"
                         >
