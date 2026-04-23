@@ -613,19 +613,22 @@ export function AuditPanel({ groupId }: Props) {
     "presence_force_open",
     "presence_force_open_undo",
   ]);
+  const VISIBILITY_ACTIONS = new Set(["group_visibility_changed"]);
   const isNudgeFilter = filter === "__nudges__";
   const isWaitlistFilter = filter === "__waitlist__";
   const isRoundMovFilter = filter === "__round_movements__";
+  const isVisibilityFilter = filter === "__visibility__";
   const filtered = useMemo(() => {
     if (filter === "all") return rows;
     if (isNudgeFilter) return rows.filter((r) => NUDGE_ACTIONS.has(r.action));
     if (isWaitlistFilter) return rows.filter((r) => WAITLIST_ACTIONS.has(r.action));
+    if (isVisibilityFilter) return rows.filter((r) => VISIBILITY_ACTIONS.has(r.action));
     if (isRoundMovFilter)
       return rows.filter(
         (r) => ROUND_MOV_ACTIONS.has(r.action) && r.entity_type === "round" && r.entity_id,
       );
     return rows.filter((r) => r.action === filter);
-  }, [filter, rows, isNudgeFilter, isWaitlistFilter, isRoundMovFilter]);
+  }, [filter, rows, isNudgeFilter, isWaitlistFilter, isRoundMovFilter, isVisibilityFilter]);
   const nudgeCount = useMemo(
     () => rows.filter((r) => NUDGE_ACTIONS.has(r.action)).length,
     [rows],
