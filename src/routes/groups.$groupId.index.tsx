@@ -303,13 +303,21 @@ function GroupDetailPage() {
     try {
       await leaveGroup(myMembership.id);
       toast.success("Você saiu do grupo");
+      // Refresh local state (member list + my role) before navigating away,
+      // so any quick back-navigation reflects reality and not stale data.
+      try {
+        await refresh();
+      } catch {
+        // ignore refresh errors — navigation is more important
+      }
+      setLeaveDialogOpen(false);
       navigate({ to: "/groups" });
     } catch (e: any) {
       console.error("[leaveGroup] failed:", e);
       toast.error(e?.message || "Erro ao sair do grupo");
+      setLeaveDialogOpen(false);
     } finally {
       setLeavingLoading(false);
-      setLeaveDialogOpen(false);
     }
   };
 
