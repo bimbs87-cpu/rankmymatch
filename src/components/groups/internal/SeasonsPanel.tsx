@@ -1410,7 +1410,7 @@ export function RoundExpandedDetails({
               seasonId={seasonId}
               scheduledDate={scheduledDate}
               isAdmin={isAdmin}
-              onEditMatch={(id) => setScoringMatchId(id)}
+              onEditMatch={(id: string) => setScoringMatchId(id)}
             />
           )}
 
