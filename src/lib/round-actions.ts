@@ -105,6 +105,7 @@ export async function createRound(data: {
 // actions don't block each other. Promises are cleared on settle.
 const inFlightConfirm = new Map<string, Promise<void>>();
 const inFlightRivalryDraw = new Map<string, Promise<void>>();
+const inFlightAutoDraw = new Map<string, Promise<void>>();
 
 export async function confirmPresence(roundId: string, userId: string) {
   const key = `${roundId}:${userId}`;
