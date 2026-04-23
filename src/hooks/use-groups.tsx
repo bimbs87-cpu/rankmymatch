@@ -272,7 +272,10 @@ export function useMyPendingJoinRequests() {
 }
 
 export function usePublicGroups(search: string) {
-  const [groups, setGroups] = useState<(Group & { member_count: number; is_premium?: boolean })[]>([]);
+  const { user } = useAuth();
+  const [groups, setGroups] = useState<
+    (Group & { member_count: number; is_premium?: boolean; is_hidden_admin?: boolean })[]
+  >([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -293,10 +296,43 @@ export function usePublicGroups(search: string) {
         }
 
         const { data, error } = await query;
-
         if (error) throw error;
 
-        setGroups(await attachMemberCounts(data || []));
+        let combined = (data || []).map((g) => ({ ...g }));
+
+        // Also surface HIDDEN groups where the current user is admin/creator,
+        // so admins can manage and share invites from Explore.
+        if (user) {
+          const { data: adminMems } = await supabase
+            .from("group_members")
+            .select("group_id, role")
+            .eq("user_id", user.id)
+            .eq("status", "active")
+            .in("role", ["admin", "creator"]);
+          const adminIds = (adminMems || []).map((m) => m.group_id);
+          if (adminIds.length) {
+            let hiddenQuery = supabase
+              .from("groups")
+              .select("*")
+              .eq("status", "active")
+              .eq("visibility", "hidden")
+              .in("id", adminIds)
+              .order("created_at", { ascending: false });
+            if (search.trim()) hiddenQuery = hiddenQuery.ilike("name", `%${search.trim()}%`);
+            const { data: hiddenData } = await hiddenQuery;
+            const existingIds = new Set(combined.map((g) => g.id));
+            for (const h of hiddenData || []) {
+              if (!existingIds.has(h.id)) combined.push({ ...h, is_hidden_admin: true } as any);
+            }
+          }
+        }
+
+        const withCounts = await attachMemberCounts(combined);
+        // Re-attach the admin flag (attachMemberCounts spreads new objects)
+        const adminFlagMap = new Map(combined.map((g: any) => [g.id, !!g.is_hidden_admin]));
+        setGroups(
+          withCounts.map((g) => ({ ...g, is_hidden_admin: adminFlagMap.get(g.id) || false })),
+        );
       } catch (error) {
         console.error("Erro ao carregar grupos públicos:", error);
         setGroups([]);
@@ -307,7 +343,7 @@ export function usePublicGroups(search: string) {
 
     const timeout = setTimeout(load, 300);
     return () => clearTimeout(timeout);
-  }, [search]);
+  }, [search, user]);
 
   return { groups, isLoading };
 }
