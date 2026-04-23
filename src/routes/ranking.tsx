@@ -202,20 +202,31 @@ function RankingPage() {
             const activeRequestedSeason = requestedGroupSeasons.find((season: any) => season.status === "active");
             nextSeasonId = activeRequestedSeason?.id || requestedGroupSeasons[0].id;
           } else {
-            const { data: lastEvent, error: lastEventError } = await supabase
-              .from("rating_events")
-              .select("season_id")
-              .eq("user_id", user.id)
-              .order("created_at", { ascending: false })
-              .limit(1);
+            // Prefer the active season the user is currently playing in.
+            // Fall back to last-played season only if no active season exists.
+            const activeSeasons = availableSeasons.filter((season: any) => season.status === "active");
+            const memberGroupIds = new Set(groups.map((g) => g.id));
+            const activeUserSeason =
+              activeSeasons.find((season: any) => memberGroupIds.has(season.group_id)) ||
+              activeSeasons[0];
 
-            if (lastEventError) throw lastEventError;
-            if (cancelled) return;
+            if (activeUserSeason) {
+              nextSeasonId = activeUserSeason.id;
+            } else {
+              const { data: lastEvent, error: lastEventError } = await supabase
+                .from("rating_events")
+                .select("season_id")
+                .eq("user_id", user.id)
+                .order("created_at", { ascending: false })
+                .limit(1);
 
-            const lastSeasonId = lastEvent?.[0]?.season_id;
-            const matchedSeason = lastSeasonId ? availableSeasons.find((season: any) => season.id === lastSeasonId) : null;
-            const activeSeason = availableSeasons.find((season: any) => season.status === "active");
-            nextSeasonId = matchedSeason?.id || activeSeason?.id || availableSeasons[0].id;
+              if (lastEventError) throw lastEventError;
+              if (cancelled) return;
+
+              const lastSeasonId = lastEvent?.[0]?.season_id;
+              const matchedSeason = lastSeasonId ? availableSeasons.find((season: any) => season.id === lastSeasonId) : null;
+              nextSeasonId = matchedSeason?.id || availableSeasons[0].id;
+            }
           }
           setSelectedSeasonId(nextSeasonId);
         }
