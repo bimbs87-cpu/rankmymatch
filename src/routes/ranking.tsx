@@ -615,16 +615,36 @@ function RankingPage() {
   const getDisplayName = (entry: RankingEntry) =>
     displayNameMap.get(entry.user_id) || entry.profile?.nickname || abbreviateName(entry.profile?.name || "Jogador");
 
+  const handleSeasonSelect = (id: string) => {
+    setSelectedSeasonId(id);
+    setShowSwitcher(false);
+    const season = seasons.find((s: any) => s.id === id);
+    if (season) {
+      writeStoredSeasonAndGroup(id, season.group_id);
+    }
+  };
+
+  const hasMultipleSeasons = seasons.length > 1;
+  const noGroupsFallback = isAuthenticated && groups.length === 0 && seasons.length > 0;
+
   return (
     <div className="min-h-screen bg-background pb-28 lg:pb-8">
       <header className="flex items-center justify-between px-5 pt-6 pb-2 lg:px-0 lg:pt-4">
-        <div>
+        <div className="min-w-0">
           <h1 className="font-display text-xl lg:text-2xl font-bold text-foreground">Ranking</h1>
           {selectedSeason && (
-            <p className="hidden lg:flex mt-0.5 items-center gap-2 text-xs text-muted-foreground">
-              <span>{(selectedSeason as any).groups?.name} • {selectedSeason.name}</span>
+            <button
+              type="button"
+              onClick={() => hasMultipleSeasons && setShowSwitcher((v) => !v)}
+              disabled={!hasMultipleSeasons}
+              className={`hidden lg:flex mt-0.5 items-center gap-2 text-xs text-muted-foreground rounded-md ${hasMultipleSeasons ? "hover:text-foreground transition-colors cursor-pointer" : "cursor-default"}`}
+              aria-label="Trocar temporada"
+              aria-expanded={showSwitcher}
+            >
+              <span className="truncate">{(selectedSeason as any).groups?.name} • {selectedSeason.name}</span>
               <SeasonStatusBadge status={(selectedSeason as any).status} />
-            </p>
+              {hasMultipleSeasons && <ChevronDown className={`h-3 w-3 transition-transform ${showSwitcher ? "rotate-180" : ""}`} />}
+            </button>
           )}
         </div>
         <div className="flex items-center gap-2">
@@ -634,18 +654,61 @@ function RankingPage() {
         </div>
       </header>
 
-      {/* Season label (read-only — switching is done from the group menu) */}
+      {/* Season label / dropdown trigger (mobile) */}
       {selectedSeason && (
         <div className="px-5 mt-1 lg:hidden">
-          <div className="flex w-full items-center justify-center gap-2 rounded-2xl border border-border bg-card/80 px-4 py-2.5">
+          <button
+            type="button"
+            onClick={() => hasMultipleSeasons && setShowSwitcher((v) => !v)}
+            disabled={!hasMultipleSeasons}
+            className={`flex w-full items-center justify-center gap-2 rounded-2xl border border-border bg-card/80 px-4 py-2.5 ${hasMultipleSeasons ? "active:bg-accent/40 transition-colors" : ""}`}
+            aria-label="Trocar temporada"
+            aria-expanded={showSwitcher}
+          >
             <Layers className="h-3.5 w-3.5 text-primary" />
-            <span className="text-sm font-semibold text-foreground">{(selectedSeason as any).groups?.name} • {selectedSeason.name}</span>
+            <span className="text-sm font-semibold text-foreground truncate">{(selectedSeason as any).groups?.name} • {selectedSeason.name}</span>
             <SeasonStatusBadge status={(selectedSeason as any).status} />
+            {hasMultipleSeasons && <ChevronDown className={`h-3.5 w-3.5 text-muted-foreground transition-transform ${showSwitcher ? "rotate-180" : ""}`} />}
+          </button>
+        </div>
+      )}
+
+      {/* Season switcher dropdown panel (shared mobile + desktop) */}
+      {showSwitcher && hasMultipleSeasons && (
+        <div className="px-5 mt-2 lg:px-0">
+          <div className="rounded-2xl border border-border bg-card shadow-lg overflow-hidden max-h-[60vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-border px-4 py-2">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Trocar temporada</span>
+              <button
+                onClick={() => setShowSwitcher(false)}
+                className="rounded-full p-1 text-muted-foreground hover:text-foreground hover:bg-accent"
+                aria-label="Fechar"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+            <SeasonSwitcherList
+              seasons={seasons}
+              selectedId={selectedSeasonId}
+              onSelect={handleSeasonSelect}
+            />
           </div>
         </div>
       )}
 
-      {selectedSeason && usedFallback && (selectedSeason as any).status !== "active" && (
+      {noGroupsFallback && selectedSeason && (
+        <div className="px-5 mt-2 lg:px-0">
+          <div className="flex items-start gap-2 rounded-2xl border border-primary/30 bg-primary/10 px-3 py-2 text-xs text-foreground">
+            <Info className="h-3.5 w-3.5 shrink-0 mt-0.5 text-primary" />
+            <span>
+              Você ainda não faz parte de nenhum grupo. Mostrando o melhor ranking público disponível para você explorar.{" "}
+              <Link to="/groups" className="font-semibold text-primary underline-offset-2 hover:underline">Encontrar grupos</Link>
+            </span>
+          </div>
+        </div>
+      )}
+
+      {selectedSeason && !noGroupsFallback && usedFallback && !isSeasonActive((selectedSeason as any).status) && (
         <div className="px-5 mt-2 lg:px-0">
           <div className="flex items-start gap-2 rounded-2xl border border-warning/30 bg-warning/10 px-3 py-2 text-xs text-warning-foreground/90">
             <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5 text-warning" />
