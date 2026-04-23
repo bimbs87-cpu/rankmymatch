@@ -710,6 +710,45 @@ export function AuditPanel({ groupId }: Props) {
         </button>
       </div>
 
+      {filter !== "all" && (() => {
+        const presetLabels: Record<string, { label: string; emoji: string; tone: string }> = {
+          __nudges__: { label: "Só cutucadas", emoji: "🔔", tone: "border-warning/40 bg-warning/10 text-warning" },
+          __waitlist__: { label: "Só lista de espera", emoji: "🎟️", tone: "border-info/40 bg-info/10 text-info" },
+          __round_movements__: {
+            label: "Movimentações da rodada",
+            emoji: "🎬",
+            tone: "border-primary/40 bg-primary/10 text-primary",
+          },
+        };
+        const preset = presetLabels[filter];
+        const label = preset?.label ?? ACTION_LABELS[filter] ?? filter;
+        const emoji = preset?.emoji ?? "🔎";
+        const tone = preset?.tone ?? "border-primary/40 bg-primary/10 text-primary";
+        return (
+          <div
+            className={`flex flex-wrap items-center justify-between gap-2 rounded-xl border px-3 py-2 text-xs ${tone}`}
+            role="status"
+            aria-live="polite"
+          >
+            <div className="flex items-center gap-2">
+              <span aria-hidden>{emoji}</span>
+              <span className="font-bold uppercase tracking-wider opacity-80">Filtro ativo:</span>
+              <span className="font-bold">{label}</span>
+              <span className="rounded-full bg-background/60 px-2 py-0.5 font-bold tabular-nums opacity-90">
+                {filtered.length} {filtered.length === 1 ? "evento" : "eventos"}
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setFilter("all")}
+              className="rounded-full border border-current/40 bg-background/60 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider hover:bg-background"
+            >
+              Limpar filtro
+            </button>
+          </div>
+        );
+      })()}
+
       <div className="flex flex-wrap items-center gap-2">
         <label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Filtrar:</label>
         <select
