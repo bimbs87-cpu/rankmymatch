@@ -9,7 +9,6 @@ import {
   Sparkles,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/use-auth";
 import { RoundExpandedDetails } from "./SeasonsPanel";
 
 interface Props {
