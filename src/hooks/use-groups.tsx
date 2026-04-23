@@ -272,7 +272,10 @@ export function useMyPendingJoinRequests() {
 }
 
 export function usePublicGroups(search: string) {
-  const [groups, setGroups] = useState<(Group & { member_count: number; is_premium?: boolean })[]>([]);
+  const { user } = useAuth();
+  const [groups, setGroups] = useState<
+    (Group & { member_count: number; is_premium?: boolean; is_hidden_admin_view?: boolean })[]
+  >([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -280,6 +283,7 @@ export function usePublicGroups(search: string) {
       setIsLoading(true);
 
       try {
+        // 1) Public/private active groups (default Explorar list).
         let query = supabase
           .from("groups")
           .select("*")
@@ -293,10 +297,57 @@ export function usePublicGroups(search: string) {
         }
 
         const { data, error } = await query;
-
         if (error) throw error;
+        const visible = (data || []).map((g) => ({ ...g, is_hidden_admin_view: false }));
 
-        setGroups(await attachMemberCounts(data || []));
+        // 2) Hidden groups where the current user is an active admin/creator.
+        //    These are normally NOT in Explorar, but the user manages them — so
+        //    we surface them with a clear "hidden" badge so they understand why
+        //    others can't see the group.
+        let hiddenAdminGroups: typeof visible = [];
+        if (user?.id) {
+          const { data: myAdminMemberships } = await supabase
+            .from("group_members")
+            .select("group_id")
+            .eq("user_id", user.id)
+            .eq("status", "active")
+            .in("role", ["creator", "admin"]);
+          const adminGroupIds = (myAdminMemberships || []).map((m) => m.group_id);
+          if (adminGroupIds.length > 0) {
+            let hQuery = supabase
+              .from("groups")
+              .select("*")
+              .in("id", adminGroupIds)
+              .eq("status", "active")
+              .eq("visibility", "hidden")
+              .order("created_at", { ascending: false });
+            if (search.trim()) hQuery = hQuery.ilike("name", `%${search.trim()}%`);
+            const { data: hd } = await hQuery;
+            hiddenAdminGroups = (hd || []).map((g) => ({ ...g, is_hidden_admin_view: true }));
+          }
+        }
+
+        const combined = [...visible, ...hiddenAdminGroups];
+        // De-dupe (in case of overlap) and re-sort by created_at desc
+        const seen = new Set<string>();
+        const deduped = combined.filter((g) => {
+          if (seen.has(g.id)) return false;
+          seen.add(g.id);
+          return true;
+        });
+        deduped.sort(
+          (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+        );
+
+        const withCounts = await attachMemberCounts(deduped as any);
+        // attachMemberCounts strips the flag, so merge it back
+        const flagMap = new Map(deduped.map((g) => [g.id, g.is_hidden_admin_view]));
+        setGroups(
+          withCounts.map((g) => ({
+            ...g,
+            is_hidden_admin_view: flagMap.get(g.id) || false,
+          })),
+        );
       } catch (error) {
         console.error("Erro ao carregar grupos públicos:", error);
         setGroups([]);
@@ -307,7 +358,7 @@ export function usePublicGroups(search: string) {
 
     const timeout = setTimeout(load, 300);
     return () => clearTimeout(timeout);
-  }, [search]);
+  }, [search, user?.id]);
 
   return { groups, isLoading };
 }
