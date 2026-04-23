@@ -166,6 +166,14 @@ export async function confirmPresence(roundId: string, userId: string) {
   } catch {
     // ignore — best-effort
   }
+
+  // Auto-draw doubles round when capacity is reached (e.g. King of the Court
+  // — 4 players on a single court → 3 matches with the official rotation).
+  try {
+    void autoDrawDoublesIfFull(roundId, userId);
+  } catch {
+    // ignore — best-effort
+  }
 }
 
 async function autoCreateRivalryMatchIfReady(roundId: string, actorId: string): Promise<void> {
