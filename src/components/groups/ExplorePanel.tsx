@@ -13,7 +13,23 @@ function generateInviteCode(): string {
   return code;
 }
 
+async function assertCanInvite(groupId: string, userId: string): Promise<void> {
+  const { data, error } = await supabase
+    .from("group_members")
+    .select("role, status")
+    .eq("group_id", groupId)
+    .eq("user_id", userId)
+    .eq("status", "active")
+    .in("role", ["admin", "creator"])
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) throw new Error("Você não tem permissão para gerar convites deste grupo.");
+}
+
 async function getOrCreateInviteUrl(groupId: string, userId: string): Promise<string> {
+  // Defensive server-side check: only admins/creators can mint invites here.
+  await assertCanInvite(groupId, userId);
+
   const { data: existing } = await supabase
     .from("invite_links")
     .select("code, expires_at, max_uses, use_count")
