@@ -1000,34 +1000,46 @@ export function RivalryDuelPage({ groupId, groupName, seasonId, seasonName }: Pr
                           );
                         })()}
                       </div>
-                      {isAdmin && !m.counts_for_ranking && (
-                        <button
-                          onClick={() => handlePromoteMatch(m.id)}
-                          disabled={promotingId === m.id}
-                          className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/5 px-2.5 py-1 text-[10px] font-semibold text-primary transition-colors hover:bg-primary/10 disabled:opacity-50"
-                        >
-                          {promotingId === m.id ? (
-                            <Loader2 className="h-3 w-3 animate-spin" />
-                          ) : (
-                            <ArrowUpCircle className="h-3 w-3" />
-                          )}
-                          Promover para ranking
-                        </button>
-                      )}
-                      {isAdmin && m.counts_for_ranking && !!m.round_number === false && (
-                        <button
-                          onClick={() => handleRevertMatch(m.id)}
-                          disabled={revertingId === m.id}
-                          className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-warning/30 bg-warning/5 px-2.5 py-1 text-[10px] font-semibold text-warning transition-colors hover:bg-warning/10 disabled:opacity-50"
-                        >
-                          {revertingId === m.id ? (
-                            <Loader2 className="h-3 w-3 animate-spin" />
-                          ) : (
-                            <Undo2 className="h-3 w-3" />
-                          )}
-                          Reverter promoção
-                        </button>
-                      )}
+                      <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                        {isAdmin && (
+                          <button
+                            onClick={() => handleStartEdit(m.id)}
+                            className="inline-flex items-center gap-1.5 rounded-full border border-border bg-background/50 px-2.5 py-1 text-[10px] font-semibold text-foreground transition-colors hover:bg-accent/30"
+                            title="Editar resultado — recalcula o Elo automaticamente"
+                          >
+                            <Edit3 className="h-3 w-3" />
+                            Editar resultado
+                          </button>
+                        )}
+                        {isAdmin && !m.counts_for_ranking && (
+                          <button
+                            onClick={() => handlePromoteMatch(m.id)}
+                            disabled={promotingId === m.id}
+                            className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/5 px-2.5 py-1 text-[10px] font-semibold text-primary transition-colors hover:bg-primary/10 disabled:opacity-50"
+                          >
+                            {promotingId === m.id ? (
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                            ) : (
+                              <ArrowUpCircle className="h-3 w-3" />
+                            )}
+                            Promover para ranking
+                          </button>
+                        )}
+                        {isAdmin && m.counts_for_ranking && !!m.round_number === false && (
+                          <button
+                            onClick={() => handleRevertMatch(m.id)}
+                            disabled={revertingId === m.id}
+                            className="inline-flex items-center gap-1.5 rounded-full border border-warning/30 bg-warning/5 px-2.5 py-1 text-[10px] font-semibold text-warning transition-colors hover:bg-warning/10 disabled:opacity-50"
+                          >
+                            {revertingId === m.id ? (
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                            ) : (
+                              <Undo2 className="h-3 w-3" />
+                            )}
+                            Reverter promoção
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
