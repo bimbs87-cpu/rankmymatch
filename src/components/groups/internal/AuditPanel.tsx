@@ -437,7 +437,52 @@ function Sparkline({
 export function AuditPanel({ groupId }: Props) {
   const [rows, setRows] = useState<AuditRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<string>("all");
+  const [filter, setFilterState] = useState<string>("all");
+  // While restoring the saved filter for a newly selected group, we keep this
+  // false to avoid flashing "Tudo" before the persisted value is applied.
+  const [filterReady, setFilterReady] = useState(false);
+
+  const filterStorageKey = `audit-panel:filter:${groupId}`;
+
+  // Restore saved filter whenever groupId changes. We reset filterReady first
+  // so the UI shows a tiny skeleton during the (synchronous) restore.
+  useEffect(() => {
+    setFilterReady(false);
+    let cancelled = false;
+    // Defer to next microtask so the "not ready" state actually paints once,
+    // preventing the "Tudo" flash on group switch.
+    Promise.resolve().then(() => {
+      if (cancelled) return;
+      try {
+        const saved = typeof window !== "undefined"
+          ? window.localStorage.getItem(filterStorageKey)
+          : null;
+        setFilterState(saved && saved.length > 0 ? saved : "all");
+      } catch {
+        setFilterState("all");
+      }
+      setFilterReady(true);
+    });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [groupId]);
+
+  const setFilter = (next: string) => {
+    setFilterState(next);
+    try {
+      if (typeof window !== "undefined") {
+        if (next === "all") {
+          window.localStorage.removeItem(filterStorageKey);
+        } else {
+          window.localStorage.setItem(filterStorageKey, next);
+        }
+      }
+    } catch {
+      // ignore storage errors (private mode, quota, etc.)
+    }
+  };
   const [actorNames, setActorNames] = useState<Record<string, string>>({});
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [responseTimes, setResponseTimes] = useState<number[]>([]);
