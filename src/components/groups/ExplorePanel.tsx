@@ -272,7 +272,7 @@ export function ExplorePanel() {
                         </p>
                         <button
                           type="button"
-                          onClick={(e) => handleCopyInvite(e, g.id)}
+                          onClick={(e) => handleCopyInvite(e, g.id, isHiddenAdmin)}
                           disabled={copyingId === g.id}
                           className="inline-flex items-center gap-1.5 rounded-full border border-primary/40 bg-primary/10 px-2.5 py-1 text-[11px] font-semibold text-primary transition-colors hover:bg-primary/20 disabled:opacity-50"
                         >
