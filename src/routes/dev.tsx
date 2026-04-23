@@ -591,6 +591,12 @@ function OverviewTab({ data }: { data: DashboardData }) {
         />
       )}
 
+      {/* === Sankey: visualização do funil por origem === */}
+      <FunnelSankeyCard utm={sankeyUtm7d} referrer={sankeyReferrer7d} />
+
+      {/* === Top 10 segmentos com maior queda === */}
+      <TopDropSegmentsCard rows={topDropSegments} />
+
       {/* Aquisição por canal (sessões, não cadastros) */}
       {traffic?.hasData && (
         <div className="grid gap-3 sm:grid-cols-2">
