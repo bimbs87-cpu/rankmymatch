@@ -1,8 +1,14 @@
-import { useEffect, useState } from "react";
-import { UserPlus, X, Loader2, UserMinus, Ghost, Link2 } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { UserPlus, X, Loader2, UserMinus, Ghost, Link2, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { toast } from "sonner";
+
+interface CapacityInfo {
+  activeCount: number;
+  limit: number | null;
+  isFull: boolean;
+}
 
 interface ClaimablePlayer {
   user_id: string;
