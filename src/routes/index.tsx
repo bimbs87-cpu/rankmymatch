@@ -197,7 +197,7 @@ interface RankingOption {
   last_change: number | null;
   last_events: number[];
   last_event_at: string | null;
-  // Total games (a + b) for each of the user's last up to 3 sets, oldest -> newest
+  // Total games (a + b) for each of the user's last up to 5 sets, oldest -> newest
   last_set_games: number[];
   // Aggregate-only flag
   is_aggregate?: boolean;
@@ -711,9 +711,9 @@ function DashboardPage() {
         .map((snap: any) => {
           const season = seasonMap.get(snap.season_id) as any;
           const evs = eventsBySeason.get(snap.season_id) || [];
-          const last3 = evs.slice(0, 3).reverse().map((e) => e.rating_change);
-          // Last 3 sets: take sets from most recent matches (oldest -> newest)
-          const recentMatches = evs.slice(0, 3); // newest first
+          const last5 = evs.slice(0, 5).reverse().map((e) => e.rating_change);
+          // Last 5 sets: take sets from most recent matches (oldest -> newest)
+          const recentMatches = evs.slice(0, 5); // newest first
           const allSets: { games: number; created_at: string }[] = [];
           for (const ev of recentMatches) {
             const sets = setsByMatch.get(ev.match_id) || [];
@@ -723,8 +723,8 @@ function DashboardPage() {
               allSets.push({ games: myGames, created_at: ev.created_at });
             }
           }
-          // Reverse to chronological order (oldest first), then take last 3.
-          const lastSetGames = allSets.reverse().slice(-3).map((s) => s.games);
+          // Reverse to chronological order (oldest first), then take last 5.
+          const lastSetGames = allSets.reverse().slice(-5).map((s) => s.games);
           // Push all events of this season into aggregate buckets
           for (const ev of evs) {
             aggEvents.push({ rating_change: ev.rating_change, created_at: ev.created_at });
@@ -744,7 +744,7 @@ function DashboardPage() {
             matches_played: snap.matches_played,
             matches_won: snap.matches_won,
             last_change: evs[0] ? evs[0].rating_change : null,
-            last_events: last3,
+            last_events: last5,
             last_event_at: evs[0]?.created_at || season?.updated_at || null,
             last_set_games: lastSetGames,
           };
@@ -768,8 +768,8 @@ function DashboardPage() {
         aggEvents.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
         aggSets.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
         const lastChange = aggEvents[0]?.rating_change ?? null;
-        const last3Events = aggEvents.slice(0, 3).reverse().map((e) => e.rating_change);
-        const last3Sets = aggSets.slice(-3).map((s) => s.games);
+        const last3Events = aggEvents.slice(0, 5).reverse().map((e) => e.rating_change);
+        const last3Sets = aggSets.slice(-5).map((s) => s.games);
         const aggregate: RankingOption = {
           season_id: ALL_RANKINGS_ID,
           season_name: "Geral",
@@ -1478,11 +1478,11 @@ function DashboardPage() {
                   </span>
                 </div>
 
-                {/* Last 3 results — V/D pills */}
+                {/* Last 5 results — V/D pills */}
                 {currentRanking.last_events.length > 0 && (
                   <div className="mt-2 flex items-center gap-1">
-                    <span className="text-[8px] uppercase tracking-wider text-muted-foreground/70">Últ. 3</span>
-                    {currentRanking.last_events.slice(0, 3).map((delta, i) => (
+                    <span className="text-[8px] uppercase tracking-wider text-muted-foreground/70">Últ. 5</span>
+                    {currentRanking.last_events.slice(0, 5).map((delta, i) => (
                       <span
                         key={i}
                         className={`flex h-4 w-4 items-center justify-center rounded text-[9px] font-bold ${
