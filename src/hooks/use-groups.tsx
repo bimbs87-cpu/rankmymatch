@@ -595,9 +595,17 @@ export async function checkUserHasResults(groupId: string, userId: string): Prom
 
 export async function leaveGroup(memberId: string) {
   // Set status to 'left' instead of deleting to preserve history
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("group_members")
     .update({ status: "left", updated_at: new Date().toISOString() })
-    .eq("id", memberId);
-  if (error) throw error;
+    .eq("id", memberId)
+    .select("id")
+    .maybeSingle();
+  if (error) {
+    console.error("[leaveGroup] supabase error:", error);
+    throw new Error(error.message || "Falha ao sair do grupo");
+  }
+  if (!data) {
+    throw new Error("Não foi possível atualizar o vínculo (verifique permissões).");
+  }
 }
