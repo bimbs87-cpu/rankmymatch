@@ -61,8 +61,14 @@ function LoadingBar({ progress, label }: { progress: number; label: string }) {
   return <TrophyLoadingBar progress={progress} label={label} />;
 }
 
-function SeasonStatusBadge({ status }: { status?: string }) {
-  const isActive = status === "active";
+// Strict normalization: badge shows "Ativa" only when status is exactly the string "active".
+// Any other value (null, undefined, "finished", unknown enums) is treated as ended.
+function isSeasonActive(status: unknown): boolean {
+  return typeof status === "string" && status.trim().toLowerCase() === "active";
+}
+
+function SeasonStatusBadge({ status }: { status?: unknown }) {
+  const isActive = isSeasonActive(status);
   return (
     <span
       className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
@@ -75,6 +81,28 @@ function SeasonStatusBadge({ status }: { status?: string }) {
       {isActive ? "Ativa" : "Encerrada"}
     </span>
   );
+}
+
+const RANKING_LS_SEASON_KEY = "rmm:ranking:lastSeasonId";
+const RANKING_LS_GROUP_KEY = "rmm:ranking:lastGroupId";
+
+function readStoredSeasonId(): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    return window.localStorage.getItem(RANKING_LS_SEASON_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function writeStoredSeasonAndGroup(seasonId: string | null, groupId: string | null) {
+  if (typeof window === "undefined") return;
+  try {
+    if (seasonId) window.localStorage.setItem(RANKING_LS_SEASON_KEY, seasonId);
+    if (groupId) window.localStorage.setItem(RANKING_LS_GROUP_KEY, groupId);
+  } catch {
+    /* ignore */
+  }
 }
 
 function RankingPage() {
