@@ -881,15 +881,19 @@ export function GroupDashboardPanel({ group, onLeft, onPresenceChanged }: Props)
               )}
               <div className="flex flex-wrap items-center justify-end gap-2">
 
-                {data.next_round.presence_is_open ? (
+                {data.next_round.status === "completed" ? (
+                  <span className="rounded-full bg-success/15 px-2.5 py-1 text-[10px] font-bold text-success ring-1 ring-success/30">
+                    ✓ Rodada encerrada
+                  </span>
+                ) : data.next_round.presence_is_open ? (
                   <div className="flex items-center gap-1.5">
                     <button
                       onClick={handleConfirm}
-                      disabled={presenceLoading}
-                      className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold transition-colors disabled:opacity-50 ${
+                      disabled={presenceLoading || data.next_round.presence_status === "confirmed"}
+                      className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-100 ${
                         data.next_round.presence_status === "confirmed"
                           ? "bg-success text-success-foreground"
-                          : "border border-success/40 bg-success/10 text-success hover:bg-success/20"
+                          : "border border-success/40 bg-success/10 text-success hover:bg-success/20 disabled:opacity-50"
                       }`}
                     >
                       <CheckCircle2 className="h-3 w-3" />
@@ -897,16 +901,23 @@ export function GroupDashboardPanel({ group, onLeft, onPresenceChanged }: Props)
                     </button>
                     <button
                       onClick={handleDecline}
-                      disabled={presenceLoading}
-                      className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold transition-colors disabled:opacity-50 ${
+                      disabled={
+                        presenceLoading ||
+                        data.next_round.presence_status === "declined" ||
+                        (data.next_round.presence_status as string) === "absent"
+                      }
+                      className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-100 ${
                         data.next_round.presence_status === "declined" ||
                         (data.next_round.presence_status as string) === "absent"
                           ? "bg-destructive text-destructive-foreground"
-                          : "border border-border bg-background/40 text-muted-foreground hover:border-destructive/40 hover:text-destructive"
+                          : "border border-border bg-background/40 text-muted-foreground hover:border-destructive/40 hover:text-destructive disabled:opacity-50"
                       }`}
                     >
                       <XCircle className="h-3 w-3" />
-                      Não vou
+                      {data.next_round.presence_status === "declined" ||
+                      (data.next_round.presence_status as string) === "absent"
+                        ? "Recusado"
+                        : "Não vou"}
                     </button>
                   </div>
                 ) : (
