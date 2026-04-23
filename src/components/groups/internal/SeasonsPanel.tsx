@@ -1794,31 +1794,9 @@ function MatchScoreCard({
   const aWon = match.winner_team === "A";
   const bWon = match.winner_team === "B";
 
-  // Aggregate side totals
+  // Aggregate side totals (sets won per side) — used by the hero score.
   const setsA = sets.filter((s: any) => s.score_team_a > s.score_team_b).length;
   const setsB = sets.filter((s: any) => s.score_team_b > s.score_team_a).length;
-  const gamesA = sets.reduce((acc: number, s: any) => acc + (s.score_team_a || 0), 0);
-  const gamesB = sets.reduce((acc: number, s: any) => acc + (s.score_team_b || 0), 0);
-
-  // Team aggregate Elo delta (sum of player deltas per side)
-  const eloA = teamA.reduce((acc: number, mp: any) => acc + (deltas[mp.user_id]?.delta || 0), 0);
-  const eloB = teamB.reduce((acc: number, mp: any) => acc + (deltas[mp.user_id]?.delta || 0), 0);
-
-  // Inferred per-set Elo distribution: spread match delta proportionally to sets won.
-  // If side won 0 sets, give a small share (10%) to reflect competitive play.
-  const inferredSetElo = (totalDelta: number, sideSetsWon: number) => {
-    if (sets.length === 0) return [];
-    const baseShare = sideSetsWon === 0 ? 0.1 : 0;
-    const winShare = (1 - baseShare * sets.length) / Math.max(1, sideSetsWon);
-    return sets.map((s: any) => {
-      const won = (s.score_team_a > s.score_team_b && totalDelta === eloA) ||
-                  (s.score_team_b > s.score_team_a && totalDelta === eloB);
-      const share = won ? winShare : baseShare;
-      return totalDelta * share;
-    });
-  };
-  const aSetsElo = inferredSetElo(eloA, setsA);
-  const bSetsElo = inferredSetElo(eloB, setsB);
 
   return (
     <div className="overflow-hidden rounded-xl border border-border bg-card/60">
@@ -1912,83 +1890,6 @@ function MatchScoreCard({
         </div>
       </div>
 
-      {/* Per-set table */}
-      {sets.length > 0 && (
-        <div className="border-t border-border/60 bg-background/40">
-          <table className="w-full text-[10px] tabular-nums">
-            <thead>
-              <tr className="text-muted-foreground">
-                <th className="px-2 py-1 text-left font-semibold uppercase tracking-wider text-[9px]">Set</th>
-                {sets.map((s: any) => (
-                  <th key={s.set_number} className="px-1 py-1 text-center font-semibold uppercase tracking-wider text-[9px]">
-                    {s.set_number}{s.is_tiebreak ? "·TB" : ""}
-                  </th>
-                ))}
-                <th className="px-2 py-1 text-right font-semibold uppercase tracking-wider text-[9px]">Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr className={aWon ? "bg-success/5" : ""}>
-                <td className="px-2 py-1 text-left font-bold text-foreground truncate max-w-[6rem]">
-                  {teamA.map(nameOf).join(" / ")}
-                </td>
-                {sets.map((s: any, i: number) => {
-                  const won = s.score_team_a > s.score_team_b;
-                  const setDelta = aSetsElo[i] || 0;
-                  return (
-                    <td key={s.set_number} className="px-1 py-1 text-center">
-                      <div className={`font-display font-bold ${won ? "text-success" : "text-muted-foreground"}`}>
-                        {s.score_team_a}
-                      </div>
-                      {Math.abs(setDelta) >= 0.5 && (
-                        <div className={`text-[8px] font-bold ${setDelta > 0 ? "text-success" : "text-destructive"}`}>
-                          {setDelta > 0 ? "+" : ""}{Math.round(setDelta)}
-                        </div>
-                      )}
-                    </td>
-                  );
-                })}
-                <td className="px-2 py-1 text-right font-display font-bold text-foreground">{gamesA}</td>
-              </tr>
-              <tr className={bWon ? "bg-success/5" : ""}>
-                <td className="px-2 py-1 text-left font-bold text-foreground truncate max-w-[6rem]">
-                  {teamB.map(nameOf).join(" / ")}
-                </td>
-                {sets.map((s: any, i: number) => {
-                  const won = s.score_team_b > s.score_team_a;
-                  const setDelta = bSetsElo[i] || 0;
-                  return (
-                    <td key={s.set_number} className="px-1 py-1 text-center">
-                      <div className={`font-display font-bold ${won ? "text-success" : "text-muted-foreground"}`}>
-                        {s.score_team_b}
-                      </div>
-                      {Math.abs(setDelta) >= 0.5 && (
-                        <div className={`text-[8px] font-bold ${setDelta > 0 ? "text-success" : "text-destructive"}`}>
-                          {setDelta > 0 ? "+" : ""}{Math.round(setDelta)}
-                        </div>
-                      )}
-                    </td>
-                  );
-                })}
-                <td className="px-2 py-1 text-right font-display font-bold text-foreground">{gamesB}</td>
-              </tr>
-            </tbody>
-          </table>
-          {(eloA !== 0 || eloB !== 0) && (
-            <div className="flex items-center justify-between border-t border-border/60 bg-muted/20 px-2 py-1 text-[9px]">
-              <span className="font-bold uppercase tracking-wider text-muted-foreground">Δ Elo do time</span>
-              <div className="flex items-center gap-3 tabular-nums">
-                <span className={`font-bold ${eloA > 0 ? "text-success" : eloA < 0 ? "text-destructive" : "text-muted-foreground"}`}>
-                  A: {eloA > 0 ? "+" : ""}{Math.round(eloA)}
-                </span>
-                <span className={`font-bold ${eloB > 0 ? "text-success" : eloB < 0 ? "text-destructive" : "text-muted-foreground"}`}>
-                  B: {eloB > 0 ? "+" : ""}{Math.round(eloB)}
-                </span>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
     </div>
   );
 }
