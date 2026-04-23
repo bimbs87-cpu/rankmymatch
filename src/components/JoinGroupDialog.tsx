@@ -326,10 +326,10 @@ export function JoinGroupDialog({
           {capacity && capacity.memberLimit != null && (
             <div className="mt-1 flex flex-wrap items-center justify-center gap-1.5">
               <span
-                className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold ring-1 ${
                   capacity.isFull
-                    ? "bg-amber-500/15 text-amber-600 ring-1 ring-amber-500/30"
-                    : "bg-primary/10 text-primary ring-1 ring-primary/20"
+                    ? "bg-destructive/10 text-destructive ring-destructive/30"
+                    : "bg-primary/10 text-primary ring-primary/20"
                 }`}
               >
                 <Users className="h-2.5 w-2.5" />
@@ -344,7 +344,7 @@ export function JoinGroupDialog({
             </div>
           )}
           {capacity?.isFull && (
-            <p className="mt-1 text-center text-[10px] text-amber-600/90 leading-snug">
+            <p className="mt-1 text-center text-[10px] text-muted-foreground leading-snug">
               Grupo cheio. Quando alguém sair, o admin será avisado para aprovar o próximo da fila.
             </p>
           )}
