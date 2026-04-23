@@ -1,7 +1,45 @@
 import { Link } from "@tanstack/react-router";
-import { Search, Users, Globe, Lock, Filter, SlidersHorizontal, Compass, Crown } from "lucide-react";
+import { Search, Users, Globe, Lock, Filter, SlidersHorizontal, Compass, Crown, EyeOff, Copy, Loader2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { usePublicGroups } from "@/hooks/use-groups";
+import { useAuth } from "@/hooks/use-auth";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+
+function generateInviteCode(): string {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
+  let code = "";
+  for (let i = 0; i < 8; i++) code += chars.charAt(Math.floor(Math.random() * chars.length));
+  return code;
+}
+
+async function getOrCreateInviteUrl(groupId: string, userId: string): Promise<string> {
+  const { data: existing } = await supabase
+    .from("invite_links")
+    .select("code, expires_at, max_uses, use_count")
+    .eq("group_id", groupId)
+    .eq("is_active", true)
+    .order("created_at", { ascending: false })
+    .limit(5);
+
+  const usable = (existing || []).find(
+    (l) =>
+      (!l.expires_at || new Date(l.expires_at) > new Date()) &&
+      (l.max_uses == null || l.use_count < l.max_uses),
+  );
+
+  let code = usable?.code;
+  if (!code) {
+    code = generateInviteCode();
+    const { error } = await supabase.from("invite_links").insert({
+      group_id: groupId,
+      code,
+      created_by: userId,
+    });
+    if (error) throw error;
+  }
+  return `${window.location.origin}/invite/${code}`;
+}
 
 type SortKey = "newest" | "biggest" | "smallest";
 type SportFilter = "all" | "padel" | "tennis";
