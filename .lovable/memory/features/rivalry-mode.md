@@ -28,6 +28,12 @@ type: feature
 - `setsPerMatch=99` (unlimited), starts with 1 set, "add +1 set" button always available
 - Winner = whoever has more valid sets (no tie allowed)
 - Season creation hides sets config for rivalry
+- Score editing reverts previous Elo and re-applies on re-submit (`revertMatchEloServer`)
+
+## Auto-flow for Rivalry
+- `confirmPresence` auto-creates the match via `drawTeams` when both members are confirmed (no manual "Iniciar confronto" needed; button kept as fallback)
+- Presence buttons in `GroupDashboardPanel` are disabled when already in that state (prevents double-click)
+- "Rodada encerrada" chip replaces presence buttons when `round.status === "completed"`
 
 ## Group Detail
 - Tab shows "Duelo" instead of "Ranking" for rivalry
