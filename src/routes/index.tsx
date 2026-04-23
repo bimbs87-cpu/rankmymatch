@@ -199,7 +199,11 @@ interface RankingOption {
   last_event_at: string | null;
   // Total games (a + b) for each of the user's last up to 3 sets, oldest -> newest
   last_set_games: number[];
+  // Aggregate-only flag
+  is_aggregate?: boolean;
 }
+
+const ALL_RANKINGS_ID = "__all__";
 
 function DashboardPage() {
   let authData: ReturnType<typeof useAuth>;
@@ -699,6 +703,10 @@ function DashboardPage() {
         }
       }
 
+      // Collect timestamped events + sets across seasons for the aggregate option
+      const aggEvents: { rating_change: number; created_at: string }[] = [];
+      const aggSets: { games: number; created_at: string }[] = [];
+
       const opts: RankingOption[] = (snapsRes.data || [])
         .map((snap: any) => {
           const season = seasonMap.get(snap.season_id) as any;
@@ -706,18 +714,22 @@ function DashboardPage() {
           const last3 = evs.slice(0, 3).reverse().map((e) => e.rating_change);
           // Last 3 sets: take sets from most recent matches (oldest -> newest)
           const recentMatches = evs.slice(0, 3); // newest first
-          const allSets: number[] = [];
+          const allSets: { games: number; created_at: string }[] = [];
           for (const ev of recentMatches) {
             const sets = setsByMatch.get(ev.match_id) || [];
             const myTeam = teamByMatch.get(ev.match_id);
             for (const s of sets) {
               const myGames = myTeam === "B" ? (s.score_team_b || 0) : (s.score_team_a || 0);
-              allSets.push(myGames);
+              allSets.push({ games: myGames, created_at: ev.created_at });
             }
           }
-          // allSets is currently newest match -> oldest match (within match it's set_number asc).
           // Reverse to chronological order (oldest first), then take last 3.
-          const lastSetGames = allSets.reverse().slice(-3);
+          const lastSetGames = allSets.reverse().slice(-3).map((s) => s.games);
+          // Push all events of this season into aggregate buckets
+          for (const ev of evs) {
+            aggEvents.push({ rating_change: ev.rating_change, created_at: ev.created_at });
+          }
+          for (const s of allSets) aggSets.push(s);
           const roundCounts = roundsBySeason.get(snap.season_id) || { completed: 0, total: 0 };
           const plannedTotal = season?.total_rounds ?? roundCounts.total;
           return {
@@ -742,6 +754,41 @@ function DashboardPage() {
           const bt = b.last_event_at ? new Date(b.last_event_at).getTime() : 0;
           return bt - at;
         });
+
+      // Build aggregate ranking option (across all seasons/groups) when the user
+      // has more than one ranking. Elo = matches-weighted average; last events
+      // and last sets are taken globally by recency.
+      if (opts.length > 1) {
+        const totalMatches = opts.reduce((acc, o) => acc + o.matches_played, 0);
+        const totalWins = opts.reduce((acc, o) => acc + o.matches_won, 0);
+        const weightedRating =
+          totalMatches > 0
+            ? opts.reduce((acc, o) => acc + o.rating * o.matches_played, 0) / totalMatches
+            : opts.reduce((acc, o) => acc + o.rating, 0) / opts.length;
+        aggEvents.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+        aggSets.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+        const lastChange = aggEvents[0]?.rating_change ?? null;
+        const last3Events = aggEvents.slice(0, 3).reverse().map((e) => e.rating_change);
+        const last3Sets = aggSets.slice(-3).map((s) => s.games);
+        const aggregate: RankingOption = {
+          season_id: ALL_RANKINGS_ID,
+          season_name: "Geral",
+          group_id: "",
+          group_name: `${opts.length} rankings`,
+          rounds_completed: 0,
+          rounds_total: 0,
+          rating: weightedRating,
+          position: null,
+          matches_played: totalMatches,
+          matches_won: totalWins,
+          last_change: lastChange,
+          last_events: last3Events,
+          last_event_at: aggEvents[0]?.created_at || null,
+          last_set_games: last3Sets,
+          is_aggregate: true,
+        };
+        opts.unshift(aggregate);
+      }
 
       setRankings(opts);
       setSelectedSeasonId((prev) => {
@@ -2245,21 +2292,33 @@ function DashboardPage() {
 
                 {/* Chart */}
                 <div className="flex flex-1 flex-col">
-                  <div className="mb-1 flex items-center justify-between text-[10px] text-muted-foreground">
-                    <span>{ratingPoints.length > 0 ? `${ratingPoints.length} partidas` : ""}</span>
-                    {minRating != null && maxRating != null && (
-                      <span className="font-mono">
-                        {Math.round(minRating)} – {Math.round(maxRating)}
-                      </span>
-                    )}
-                  </div>
-                  <div className="h-[280px] max-h-[360px] flex-1">
-                    <EloEvolutionChart
-                      points={history.map((h) => ({ date: h.date, rating: h.rating }))}
-                      color="#84cc16"
-                      height={280}
-                    />
-                  </div>
+                  {currentRanking?.is_aggregate ? (
+                    <div className="flex flex-1 flex-col items-center justify-center rounded-xl border border-dashed border-border/60 bg-muted/10 p-6 text-center">
+                      <BarChart3 className="mb-2 h-8 w-8 text-muted-foreground/40" />
+                      <p className="text-xs font-semibold text-foreground">Visão geral combinada</p>
+                      <p className="mt-1 text-[10px] text-muted-foreground">
+                        Selecione uma temporada específica para ver a evolução do Elo.
+                      </p>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="mb-1 flex items-center justify-between text-[10px] text-muted-foreground">
+                        <span>{ratingPoints.length > 0 ? `${ratingPoints.length} partidas` : ""}</span>
+                        {minRating != null && maxRating != null && (
+                          <span className="font-mono">
+                            {Math.round(minRating)} – {Math.round(maxRating)}
+                          </span>
+                        )}
+                      </div>
+                      <div className="h-[280px] max-h-[360px] flex-1">
+                        <EloEvolutionChart
+                          points={history.map((h) => ({ date: h.date, rating: h.rating }))}
+                          color="#84cc16"
+                          height={280}
+                        />
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
             );
