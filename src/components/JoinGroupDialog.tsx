@@ -249,14 +249,12 @@ export function JoinGroupDialog({
             <UserPlus className="h-7 w-7 text-primary" />
           </div>
           <h3 className="font-display text-base font-bold text-foreground">
-            {isPublicGroup ? "Entrar no grupo" : "Solicitar entrada"}
+            Solicitar entrada
           </h3>
           <p className="text-center text-xs text-muted-foreground">
             {hasClaimables
               ? "Você já joga aqui? Selecione seu nome para vincular o histórico ao aprovar."
-              : isPublicGroup
-                ? "Confirme para entrar como novo membro."
-                : "Envie uma solicitação ao admin para entrar."}
+              : "Envie uma solicitação ao admin para entrar no grupo."}
           </p>
         </div>
 
@@ -294,21 +292,19 @@ export function JoinGroupDialog({
                 </div>
               )}
 
-              {!isPublicGroup && (
-                <div className="pt-1">
-                  <label className="mb-1 block text-[11px] font-medium text-muted-foreground">
-                    Mensagem para o admin (opcional)
-                  </label>
-                  <textarea
-                    value={message}
-                    onChange={(e) => setMessage(e.target.value)}
-                    rows={2}
-                    maxLength={200}
-                    placeholder="Ex: Sou amigo do João..."
-                    className="w-full rounded-2xl border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary resize-none"
-                  />
-                </div>
-              )}
+              <div className="pt-1">
+                <label className="mb-1 block text-[11px] font-medium text-muted-foreground">
+                  Mensagem para o admin (opcional)
+                </label>
+                <textarea
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  rows={2}
+                  maxLength={200}
+                  placeholder="Ex: Sou amigo do João..."
+                  className="w-full rounded-2xl border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary resize-none"
+                />
+              </div>
             </>
           )}
         </div>
@@ -319,11 +315,7 @@ export function JoinGroupDialog({
           className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-3 text-sm font-bold text-primary-foreground disabled:opacity-50"
         >
           {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />}
-          {selected
-            ? "Pedir vinculação"
-            : isPublicGroup
-              ? "Entrar como novo membro"
-              : "Enviar solicitação"}
+          {selected ? "Pedir vinculação" : "Enviar solicitação"}
         </button>
       </div>
     </div>
