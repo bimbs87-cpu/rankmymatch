@@ -1233,8 +1233,8 @@ function SeasonSwitcherList({
   selectedId: string | null;
   onSelect: (id: string) => void;
 }) {
-  const active = seasons.filter((s) => s.status === "active");
-  const finished = seasons.filter((s) => s.status !== "active");
+  const active = seasons.filter((s) => isSeasonActive(s.status));
+  const finished = seasons.filter((s) => !isSeasonActive(s.status));
 
   const renderItem = (s: any) => (
     <button
