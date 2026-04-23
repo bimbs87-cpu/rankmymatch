@@ -190,6 +190,8 @@ function GeneralSection({ group, onSaved }: { group: any; onSaved: () => void })
   const [saving, setSaving] = useState(false);
   const [isPremium, setIsPremium] = useState(false);
   const [premiumExpiresAt, setPremiumExpiresAt] = useState<Date | null>(null);
+  const { session } = useAuth();
+  const updateVisibilityFn = useServerFn(updateGroupVisibilityServerFn);
 
   useEffect(() => {
     let cancelled = false;
