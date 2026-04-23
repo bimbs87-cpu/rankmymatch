@@ -1179,196 +1179,61 @@ export function RoundExpandedDetails({
 
   const scoringMatch = scoringMatchId ? matchesData.find((m) => m.id === scoringMatchId) : null;
 
+  // Aggregate stats for completed-round redesign
+  const isCompleted = roundStatus === "completed";
+  const playedMatches = matchesData.filter((m: any) => (m.match_sets || []).length > 0);
+  const totalSets = playedMatches.reduce(
+    (acc: number, m: any) => acc + (m.match_sets || []).length,
+    0,
+  );
+  const totalGames = playedMatches.reduce(
+    (acc: number, m: any) =>
+      acc +
+      (m.match_sets || []).reduce(
+        (s: number, st: any) => s + (st.score_team_a || 0) + (st.score_team_b || 0),
+        0,
+      ),
+    0,
+  );
+
+  // Compute per-player season aggregate from this round's rating events
+  const playerAgg: Record<string, { delta: number; before: number; after: number; name: string; avatar: string | null }> = {};
+  for (const m of playedMatches) {
+    const dmap = eloDeltas[m.id] || {};
+    for (const mp of (m.match_players || [])) {
+      const ev = dmap[mp.user_id];
+      if (!ev) continue;
+      const prev = playerAgg[mp.user_id];
+      const profName = mp.profile?.nickname || mp.profile?.name || "Jogador";
+      const avatar = mp.profile?.avatar_url ?? null;
+      if (!prev) {
+        playerAgg[mp.user_id] = { delta: ev.delta, before: ev.before, after: ev.after, name: profName, avatar };
+      } else {
+        playerAgg[mp.user_id] = {
+          delta: prev.delta + ev.delta,
+          before: Math.min(prev.before, ev.before),
+          after: ev.after,
+          name: profName,
+          avatar,
+        };
+      }
+    }
+  }
+  const playerAggList = Object.entries(playerAgg)
+    .map(([uid, v]) => ({ userId: uid, ...v }))
+    .sort((a, b) => b.delta - a.delta);
+  const mvp = playerAggList[0];
+  const flop = playerAggList[playerAggList.length - 1];
+  const totalEloMoved = playerAggList.reduce((acc, p) => acc + Math.abs(p.delta), 0);
+
   return (
-    <div className="border-t border-border bg-background/40 p-3 space-y-3">
+    <div className="border-t border-border bg-gradient-to-b from-background/60 to-background/30 p-3 space-y-3">
       {loading ? (
         <div className="text-[11px] text-muted-foreground">Carregando…</div>
       ) : (
         <>
           {user && roundStatus !== "completed" && (
-            <div>
-              {myStatus === "confirmed" ? (
-                <button
-                  onClick={handleCancel}
-                  disabled={busy}
-                  className="flex w-full items-center justify-center gap-2 rounded-xl border border-destructive/30 bg-destructive/10 py-2 text-xs font-semibold text-destructive disabled:opacity-50"
-                >
-                  Cancelar presença
-                </button>
-              ) : (
-                <button
-                  onClick={handleConfirm}
-                  disabled={busy}
-                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-2 text-xs font-bold text-primary-foreground disabled:opacity-50"
-                >
-                  Confirmar presença
-                </button>
-              )}
-            </div>
-          )}
-
-          {roundStatus === "completed" && (
-            <div className="rounded-xl border border-success/30 bg-success/10 px-3 py-2 text-center text-xs font-semibold text-success">
-              ✓ Rodada encerrada
-            </div>
-          )}
-
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-            <Stat label="Confirmados" value={`${presence.confirmed}/${presence.max || "—"}`} tone="success" />
-            <Stat label="Recusados" value={String(presence.declined)} tone="muted" />
-            <Stat label="Sem resposta" value={String(presence.pending)} tone="warning" />
-            <Stat label="Partidas" value={String(matchesData.length)} tone="primary" />
-          </div>
-
-          {confirmedPlayers.length > 0 && (
-            <div>
-              <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                Confirmados
-              </p>
-              <div className="flex flex-wrap items-center gap-1.5">
-                {confirmedPlayers.map((p) => (
-                  <div key={p.user_id} title={p.name} className="group/avatar relative">
-                    <PlayerAvatarLink userId={p.user_id} ariaLabel={`Ver perfil de ${p.name}`}>
-                      <PlayerAvatar avatarUrl={p.avatar_url} name={p.name} size="md" className="ring-1 ring-success/40 cursor-pointer transition-transform hover:scale-110" />
-                    </PlayerAvatarLink>
-                    <span className="pointer-events-none absolute left-1/2 top-full z-10 mt-1 -translate-x-1/2 whitespace-nowrap rounded-md border border-border bg-popover px-2 py-0.5 text-[10px] font-semibold text-foreground opacity-0 shadow-md transition-opacity group-hover/avatar:opacity-100">
-                      {p.name}
-                    </span>
-                  </div>
-                ))}
-                {presence.confirmed > confirmedPlayers.length && (
-                  <span className="ml-1 rounded-full border border-border bg-card px-2 py-1 text-[10px] font-bold text-muted-foreground">
-                    +{presence.confirmed - confirmedPlayers.length}
-                  </span>
-                )}
-              </div>
-            </div>
-          )}
-
-      {/* Admin: add members to presence list (in-person sign-up) */}
-          {isAdmin && matchesData.length === 0 && (
-            <button
-              onClick={() => setAdminPresenceOpen(true)}
-              disabled={busy}
-              className="flex w-full items-center justify-center gap-2 rounded-xl border border-border bg-muted/40 py-2 text-xs font-semibold text-foreground hover:bg-muted/60 disabled:opacity-50"
-              title="Adicionar membros à lista de presença em nome deles"
-            >
-              <UserPlus className="h-3.5 w-3.5" />
-              Adicionar à lista
-            </button>
-          )}
-
-      {/* Admin: sortear times when there are no matches yet — hidden in rivalry
-          (rivalry rounds always have a single fixed pairing of the 2 members). */}
-          {isAdmin && matchesData.length === 0 && !isRivalry && (
-            <button
-              onClick={handleDrawTeams}
-              disabled={busy || confirmedIds.length < (groupFormat === "singles" ? 2 : 4)}
-              className="flex w-full items-center justify-center gap-2 rounded-xl border border-primary/30 bg-primary/10 py-2 text-xs font-bold text-primary hover:bg-primary/20 disabled:opacity-50"
-            >
-              Sortear times ({confirmedIds.length} confirmados)
-            </button>
-          )}
-
-          {/* Admin: rivalry shortcut — create the single match for the 2 members */}
-          {isAdmin && matchesData.length === 0 && isRivalry && confirmedIds.length === 2 && (
-            <button
-              onClick={handleDrawTeams}
-              disabled={busy}
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-2 text-xs font-bold text-primary-foreground disabled:opacity-50"
-            >
-              <Trophy className="h-3.5 w-3.5" /> Iniciar confronto
-            </button>
-          )}
-
-          {/* Admin: resortear times when matches exist but no result entered (not for rivalry) */}
-          {isAdmin && hasUnstartedMatches && !isRivalry && (
-            <button
-              onClick={handleRedrawTeams}
-              disabled={busy || confirmedIds.length < (groupFormat === "singles" ? 2 : 4)}
-              className="flex w-full items-center justify-center gap-2 rounded-xl border border-warning/30 bg-warning/10 py-2 text-xs font-bold text-warning hover:bg-warning/20 disabled:opacity-50"
-              title="Apaga os times atuais (nenhum resultado lançado) e sorteia novamente"
-            >
-              <RotateCcw className="h-3.5 w-3.5" /> Resortear times
-            </button>
-          )}
-
-          {/* Mini Elo timeline of the day */}
-          <RoundEloMiniTimeline
-            seasonId={seasonId}
-            scheduledDate={scheduledDate}
-            matchPlayerIds={Array.from(new Set(matchesData.flatMap((m: any) => (m.match_players || []).map((mp: any) => mp.user_id))))}
-            visible={matchesData.some((m: any) => (m.match_sets || []).length > 0)}
-          />
-
-          {/* Matches summary with inline result entry + Elo before/after */}
-          {matchesData.length > 0 && (
-            <div>
-              <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                Partidas
-              </p>
-              <div className="space-y-1.5">
-                {matchesData.map((m: any) => {
-                  const teamA = (m.match_players || []).filter((mp: any) => mp.team === "A");
-                  const teamB = (m.match_players || []).filter((mp: any) => mp.team === "B");
-                  const sets = (m.match_sets || []).slice().sort((a: any, b: any) => a.set_number - b.set_number);
-                  const nameOf = (mp: any) => (mp.profile?.nickname || mp.profile?.name || "Jogador");
-                  const deltas = eloDeltas[m.id] || {};
-                  const renderTeam = (team: any[], side: "A" | "B") => (
-                    <span className={m.winner_team === side ? "font-bold text-primary" : "text-foreground"}>
-                      {team.length === 0 ? "—" : team.map((mp) => {
-                        const ev = deltas[mp.user_id];
-                        return (
-                          <span key={mp.user_id} className="inline-flex items-baseline gap-1 mr-1">
-                            <span>{nameOf(mp)}</span>
-                            {ev && ev.delta !== 0 && (
-                              <span className="inline-flex items-baseline gap-0.5 text-[9px] font-bold tabular-nums">
-                                <span className="text-muted-foreground">{Math.round(ev.before)}</span>
-                                <span className={ev.delta > 0 ? "text-success" : "text-destructive"}>→{Math.round(ev.after)}</span>
-                                <span className={`${ev.delta > 0 ? "text-success" : "text-destructive"}`}>({ev.delta > 0 ? "+" : ""}{Math.round(ev.delta)})</span>
-                              </span>
-                            )}
-                          </span>
-                        );
-                      }).reduce((acc: any, el: any, i: number) => i === 0 ? [el] : [...acc, <span key={`sep${i}`} className="text-muted-foreground">/ </span>, el], [] as any)}
-                    </span>
-                  );
-                  const iAmInMatch = !!user && (m.match_players || []).some((mp: any) => mp.user_id === user.id);
-                  const canEnterScore = isAdmin || iAmInMatch;
-                  const showEnterBtn = canEnterScore && m.status !== "completed";
-                  return (
-                    <div key={m.id} className="rounded-lg border border-border bg-card/40 px-2 py-1.5 text-[11px] space-y-1">
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="min-w-0 flex-1 truncate">
-                          {renderTeam(teamA, "A")}
-                          <span className="text-muted-foreground"> vs </span>
-                          {renderTeam(teamB, "B")}
-                        </div>
-                        <div className="flex items-center gap-1 shrink-0">
-                          {sets.length > 0 ? sets.map((s: any) => (
-                            <span key={s.set_number} className="rounded bg-muted px-1.5 py-0.5 font-display font-bold tabular-nums">
-                              {s.score_team_a}-{s.score_team_b}
-                            </span>
-                          )) : (
-                            <span className="rounded-full bg-info/10 px-1.5 py-0.5 text-[9px] font-semibold text-info">
-                              {m.status === "scheduled" ? "Agendada" : "Em andamento"}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      {showEnterBtn && (
-                        <button
-                          onClick={() => setScoringMatchId(m.id)}
-                          className="flex w-full items-center justify-center gap-1 rounded-md border border-primary/30 bg-primary/5 py-1 text-[10px] font-semibold text-primary hover:bg-primary/10"
-                        >
-                          <Trophy className="h-3 w-3" />
-                          {sets.length > 0 ? "Editar resultado" : (isAdmin ? "Lançar resultado" : "Enviar resultado")}
-                        </button>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
+...
             </div>
           )}
 
