@@ -61,8 +61,14 @@ function LoadingBar({ progress, label }: { progress: number; label: string }) {
   return <TrophyLoadingBar progress={progress} label={label} />;
 }
 
-function SeasonStatusBadge({ status }: { status?: string }) {
-  const isActive = status === "active";
+// Strict normalization: badge shows "Ativa" only when status is exactly the string "active".
+// Any other value (null, undefined, "finished", unknown enums) is treated as ended.
+function isSeasonActive(status: unknown): boolean {
+  return typeof status === "string" && status.trim().toLowerCase() === "active";
+}
+
+function SeasonStatusBadge({ status }: { status?: unknown }) {
+  const isActive = isSeasonActive(status);
   return (
     <span
       className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
@@ -75,6 +81,28 @@ function SeasonStatusBadge({ status }: { status?: string }) {
       {isActive ? "Ativa" : "Encerrada"}
     </span>
   );
+}
+
+const RANKING_LS_SEASON_KEY = "rmm:ranking:lastSeasonId";
+const RANKING_LS_GROUP_KEY = "rmm:ranking:lastGroupId";
+
+function readStoredSeasonId(): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    return window.localStorage.getItem(RANKING_LS_SEASON_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function writeStoredSeasonAndGroup(seasonId: string | null, groupId: string | null) {
+  if (typeof window === "undefined") return;
+  try {
+    if (seasonId) window.localStorage.setItem(RANKING_LS_SEASON_KEY, seasonId);
+    if (groupId) window.localStorage.setItem(RANKING_LS_GROUP_KEY, groupId);
+  } catch {
+    /* ignore */
+  }
 }
 
 function RankingPage() {
@@ -120,10 +148,31 @@ function RankingPage() {
       }
 
       if (!groups.length) {
+        // User isn't a member of any group yet. Try to surface the most-recent
+        // active public season so the page isn't a dead-end.
         if (!cancelled) {
-          setSeasons([]);
+          setLoading(true);
+          setLoadProgress(15);
+          setLoadLabel("Buscando temporada pública...");
+        }
+        const { data: publicSeasons } = await supabase
+          .from("seasons")
+          .select("*, groups!inner(name, visibility, status)")
+          .eq("groups.visibility", "public")
+          .eq("groups.status", "active")
+          .in("status", ["active", "finished"])
+          .order("status", { ascending: true }) // 'active' < 'finished' alphabetically
+          .order("created_at", { ascending: false })
+          .limit(8);
+        if (cancelled) return;
+        const fallbackSeasons = (publicSeasons || []) as any[];
+        const best =
+          fallbackSeasons.find((s) => isSeasonActive(s.status)) || fallbackSeasons[0] || null;
+        if (!cancelled) {
+          setSeasons(fallbackSeasons);
           setRankings([]);
-          setSelectedSeasonId(null);
+          setSelectedSeasonId(best?.id ?? null);
+          setUsedFallback(true);
           setTotalRounds(0);
           setCompletedRounds(0);
           setTotalSets(0);
@@ -217,7 +266,9 @@ function RankingPage() {
         if (!nextSeasonId || !selectedSeasonRecord || !selectedSeasonMatchesRequestedGroup) {
           let fallback = false;
           if (requestedGroupId) {
-            const activeRequestedSeason = requestedGroupSeasons.find((season: any) => season.status === "active");
+            const activeRequestedSeason = requestedGroupSeasons.find((season: any) =>
+              isSeasonActive(season.status),
+            );
             if (activeRequestedSeason) {
               nextSeasonId = activeRequestedSeason.id;
             } else {
@@ -225,36 +276,46 @@ function RankingPage() {
               fallback = true;
             }
           } else {
-            // Prefer an active season in a group the user belongs to.
-            // Fall back to last-played season only if no active season exists.
-            const memberGroupIds = new Set(groups.map((g) => g.id));
-            const activeSeasons = availableSeasons.filter(
-              (season: any) => season.status === "active" && memberGroupIds.has(season.group_id),
-            );
+            // Try restoring from localStorage first (only when user has no explicit group request).
+            const storedSeasonId = readStoredSeasonId();
+            const storedSeason = storedSeasonId
+              ? availableSeasons.find((s: any) => s.id === storedSeasonId)
+              : null;
 
-            if (activeSeasons.length > 0) {
-              nextSeasonId = activeSeasons[0].id;
+            if (storedSeason) {
+              nextSeasonId = storedSeason.id;
+              fallback = !isSeasonActive(storedSeason.status);
             } else {
-              const { data: lastEvent, error: lastEventError } = await supabase
-                .from("rating_events")
-                .select("season_id")
-                .eq("user_id", user.id)
-                .order("created_at", { ascending: false })
-                .limit(1);
+              // Prefer an active season in a group the user belongs to.
+              const memberGroupIds = new Set(groups.map((g) => g.id));
+              const activeSeasons = availableSeasons.filter(
+                (season: any) => isSeasonActive(season.status) && memberGroupIds.has(season.group_id),
+              );
 
-              if (lastEventError) throw lastEventError;
-              if (cancelled) return;
+              if (activeSeasons.length > 0) {
+                nextSeasonId = activeSeasons[0].id;
+              } else {
+                const { data: lastEvent, error: lastEventError } = await supabase
+                  .from("rating_events")
+                  .select("season_id")
+                  .eq("user_id", user.id)
+                  .order("created_at", { ascending: false })
+                  .limit(1);
 
-              const lastSeasonId = lastEvent?.[0]?.season_id;
-              const matchedSeason = lastSeasonId ? availableSeasons.find((season: any) => season.id === lastSeasonId) : null;
-              nextSeasonId = matchedSeason?.id || availableSeasons[0].id;
-              fallback = true;
+                if (lastEventError) throw lastEventError;
+                if (cancelled) return;
+
+                const lastSeasonId = lastEvent?.[0]?.season_id;
+                const matchedSeason = lastSeasonId ? availableSeasons.find((season: any) => season.id === lastSeasonId) : null;
+                nextSeasonId = matchedSeason?.id || availableSeasons[0].id;
+                fallback = true;
+              }
             }
           }
           setSelectedSeasonId(nextSeasonId);
           setUsedFallback(fallback);
         } else {
-          setUsedFallback(false);
+          setUsedFallback(!isSeasonActive(selectedSeasonRecord.status));
         }
 
         const selectedSeason = availableSeasons.find((season: any) => season.id === nextSeasonId) || availableSeasons[0];
@@ -265,6 +326,9 @@ function RankingPage() {
 
         const effectiveSeasonId = selectedSeason.id;
         const effectiveGroupId = selectedSeason.group_id;
+
+        // Persist the resolved selection so reopening /ranking lands on the same view.
+        writeStoredSeasonAndGroup(effectiveSeasonId, effectiveGroupId);
 
         setLoadProgress(38);
         setLoadLabel("Buscando dados do ranking...");
@@ -551,16 +615,36 @@ function RankingPage() {
   const getDisplayName = (entry: RankingEntry) =>
     displayNameMap.get(entry.user_id) || entry.profile?.nickname || abbreviateName(entry.profile?.name || "Jogador");
 
+  const handleSeasonSelect = (id: string) => {
+    setSelectedSeasonId(id);
+    setShowSwitcher(false);
+    const season = seasons.find((s: any) => s.id === id);
+    if (season) {
+      writeStoredSeasonAndGroup(id, season.group_id);
+    }
+  };
+
+  const hasMultipleSeasons = seasons.length > 1;
+  const noGroupsFallback = isAuthenticated && groups.length === 0 && seasons.length > 0;
+
   return (
     <div className="min-h-screen bg-background pb-28 lg:pb-8">
       <header className="flex items-center justify-between px-5 pt-6 pb-2 lg:px-0 lg:pt-4">
-        <div>
+        <div className="min-w-0">
           <h1 className="font-display text-xl lg:text-2xl font-bold text-foreground">Ranking</h1>
           {selectedSeason && (
-            <p className="hidden lg:flex mt-0.5 items-center gap-2 text-xs text-muted-foreground">
-              <span>{(selectedSeason as any).groups?.name} • {selectedSeason.name}</span>
+            <button
+              type="button"
+              onClick={() => hasMultipleSeasons && setShowSwitcher((v) => !v)}
+              disabled={!hasMultipleSeasons}
+              className={`hidden lg:flex mt-0.5 items-center gap-2 text-xs text-muted-foreground rounded-md ${hasMultipleSeasons ? "hover:text-foreground transition-colors cursor-pointer" : "cursor-default"}`}
+              aria-label="Trocar temporada"
+              aria-expanded={showSwitcher}
+            >
+              <span className="truncate">{(selectedSeason as any).groups?.name} • {selectedSeason.name}</span>
               <SeasonStatusBadge status={(selectedSeason as any).status} />
-            </p>
+              {hasMultipleSeasons && <ChevronDown className={`h-3 w-3 transition-transform ${showSwitcher ? "rotate-180" : ""}`} />}
+            </button>
           )}
         </div>
         <div className="flex items-center gap-2">
@@ -570,18 +654,61 @@ function RankingPage() {
         </div>
       </header>
 
-      {/* Season label (read-only — switching is done from the group menu) */}
+      {/* Season label / dropdown trigger (mobile) */}
       {selectedSeason && (
         <div className="px-5 mt-1 lg:hidden">
-          <div className="flex w-full items-center justify-center gap-2 rounded-2xl border border-border bg-card/80 px-4 py-2.5">
+          <button
+            type="button"
+            onClick={() => hasMultipleSeasons && setShowSwitcher((v) => !v)}
+            disabled={!hasMultipleSeasons}
+            className={`flex w-full items-center justify-center gap-2 rounded-2xl border border-border bg-card/80 px-4 py-2.5 ${hasMultipleSeasons ? "active:bg-accent/40 transition-colors" : ""}`}
+            aria-label="Trocar temporada"
+            aria-expanded={showSwitcher}
+          >
             <Layers className="h-3.5 w-3.5 text-primary" />
-            <span className="text-sm font-semibold text-foreground">{(selectedSeason as any).groups?.name} • {selectedSeason.name}</span>
+            <span className="text-sm font-semibold text-foreground truncate">{(selectedSeason as any).groups?.name} • {selectedSeason.name}</span>
             <SeasonStatusBadge status={(selectedSeason as any).status} />
+            {hasMultipleSeasons && <ChevronDown className={`h-3.5 w-3.5 text-muted-foreground transition-transform ${showSwitcher ? "rotate-180" : ""}`} />}
+          </button>
+        </div>
+      )}
+
+      {/* Season switcher dropdown panel (shared mobile + desktop) */}
+      {showSwitcher && hasMultipleSeasons && (
+        <div className="px-5 mt-2 lg:px-0">
+          <div className="rounded-2xl border border-border bg-card shadow-lg overflow-hidden max-h-[60vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-border px-4 py-2">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Trocar temporada</span>
+              <button
+                onClick={() => setShowSwitcher(false)}
+                className="rounded-full p-1 text-muted-foreground hover:text-foreground hover:bg-accent"
+                aria-label="Fechar"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+            <SeasonSwitcherList
+              seasons={seasons}
+              selectedId={selectedSeasonId}
+              onSelect={handleSeasonSelect}
+            />
           </div>
         </div>
       )}
 
-      {selectedSeason && usedFallback && (selectedSeason as any).status !== "active" && (
+      {noGroupsFallback && selectedSeason && (
+        <div className="px-5 mt-2 lg:px-0">
+          <div className="flex items-start gap-2 rounded-2xl border border-primary/30 bg-primary/10 px-3 py-2 text-xs text-foreground">
+            <Info className="h-3.5 w-3.5 shrink-0 mt-0.5 text-primary" />
+            <span>
+              Você ainda não faz parte de nenhum grupo. Mostrando o melhor ranking público disponível para você explorar.{" "}
+              <Link to="/groups" className="font-semibold text-primary underline-offset-2 hover:underline">Encontrar grupos</Link>
+            </span>
+          </div>
+        </div>
+      )}
+
+      {selectedSeason && !noGroupsFallback && usedFallback && !isSeasonActive((selectedSeason as any).status) && (
         <div className="px-5 mt-2 lg:px-0">
           <div className="flex items-start gap-2 rounded-2xl border border-warning/30 bg-warning/10 px-3 py-2 text-xs text-warning-foreground/90">
             <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5 text-warning" />
@@ -1106,8 +1233,8 @@ function SeasonSwitcherList({
   selectedId: string | null;
   onSelect: (id: string) => void;
 }) {
-  const active = seasons.filter((s) => s.status === "active");
-  const finished = seasons.filter((s) => s.status !== "active");
+  const active = seasons.filter((s) => isSeasonActive(s.status));
+  const finished = seasons.filter((s) => !isSeasonActive(s.status));
 
   const renderItem = (s: any) => (
     <button
