@@ -29,22 +29,31 @@ export async function createSeasonWithRounds(data: {
     const normalizedSeasonMatchFormat = normalizeSeasonMatchFormat(data.matchFormat);
     const isSingles = normalizedSeasonMatchFormat === "1v1";
 
-    // Singles round sizing:
-    // - rivalry: 2 players
-    // - league/casual: group's configured max_players (fallback 8)
+    // Round sizing:
+    // - singles rivalry: 2 players
+    // - singles league/casual: group's configured max_players (fallback 8)
+    // - doubles: simultaneous_courts * 4 (King of the Court when 1 court → 4)
     let singlesMaxPlayers = 8;
-    if (isSingles) {
+    let doublesMaxPlayers = 4;
+    {
       const { data: groupRow } = await supabase
         .from("groups")
-        .select("singles_group_type, max_players")
+        .select("singles_group_type, max_players, simultaneous_courts")
         .eq("id", data.groupId)
         .single();
-      if (groupRow?.singles_group_type === "rivalry") {
-        singlesMaxPlayers = 2;
+      if (isSingles) {
+        if (groupRow?.singles_group_type === "rivalry") {
+          singlesMaxPlayers = 2;
+        } else {
+          singlesMaxPlayers = groupRow?.max_players && groupRow.max_players >= 2
+            ? groupRow.max_players
+            : 8;
+        }
       } else {
-        singlesMaxPlayers = groupRow?.max_players && groupRow.max_players >= 2
-          ? groupRow.max_players
-          : 8;
+        const courts = groupRow?.simultaneous_courts && groupRow.simultaneous_courts >= 1
+          ? groupRow.simultaneous_courts
+          : 1;
+        doublesMaxPlayers = courts * 4;
       }
     }
 
@@ -84,7 +93,7 @@ export async function createSeasonWithRounds(data: {
       round_number: idx + 1,
       scheduled_date: date,
       scheduled_time: data.scheduledTime || null,
-      max_players: isSingles ? singlesMaxPlayers : 8,
+      max_players: isSingles ? singlesMaxPlayers : doublesMaxPlayers,
       match_format: isSingles ? "singles" : "doubles",
       status: "scheduled" as const,
     }));

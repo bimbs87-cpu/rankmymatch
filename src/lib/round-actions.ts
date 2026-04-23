@@ -17,19 +17,20 @@ export async function createRound(data: {
 }) {
   const isSingles = data.matchFormat === "singles";
 
-  // Singles round sizing — derive from group when caller didn't provide:
-  // - rivalry: 2
-  // - league/casual: group.max_players (fallback 8)
+  // Round sizing — derive from group when caller didn't provide:
+  // - singles rivalry: 2
+  // - singles league/casual: group.max_players (fallback 8)
+  // - doubles: simultaneous_courts * 4 (King of the Court when 1 court → 4 players)
   let resolvedMaxPlayers = data.maxPlayers;
   let groupSinglesType: string | null = null;
-  if (isSingles) {
-    const { data: groupRow } = await supabase
-      .from("groups")
-      .select("singles_group_type, max_players")
-      .eq("id", data.groupId)
-      .single();
-    groupSinglesType = groupRow?.singles_group_type ?? null;
-    if (!resolvedMaxPlayers) {
+  const { data: groupRow } = await supabase
+    .from("groups")
+    .select("singles_group_type, max_players, simultaneous_courts")
+    .eq("id", data.groupId)
+    .single();
+  groupSinglesType = groupRow?.singles_group_type ?? null;
+  if (!resolvedMaxPlayers) {
+    if (isSingles) {
       if (groupSinglesType === "rivalry") {
         resolvedMaxPlayers = 2;
       } else {
@@ -37,6 +38,11 @@ export async function createRound(data: {
           ? groupRow.max_players
           : 8;
       }
+    } else {
+      const courts = groupRow?.simultaneous_courts && groupRow.simultaneous_courts >= 1
+        ? groupRow.simultaneous_courts
+        : 1;
+      resolvedMaxPlayers = courts * 4;
     }
   }
 
@@ -49,7 +55,7 @@ export async function createRound(data: {
       scheduled_date: data.scheduledDate || null,
       scheduled_time: data.scheduledTime || null,
       location: data.location || null,
-      max_players: resolvedMaxPlayers || 8,
+      max_players: resolvedMaxPlayers || 4,
       match_format: isSingles ? "singles" : "doubles",
       status: "scheduled",
     })
