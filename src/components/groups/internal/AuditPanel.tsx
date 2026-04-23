@@ -23,7 +23,6 @@ const ACTION_LABELS: Record<string, string> = {
   presence_force_open: "Reabriu lista de presenças",
   presence_force_open_undo: "Desfez reabertura",
   member_removed: "Removeu membro",
-  member_left: "Saiu do grupo",
   member_promoted: "Promoveu admin",
   season_created: "Criou temporada",
   season_finished: "Encerrou temporada",
@@ -34,14 +33,6 @@ const ACTION_LABELS: Record<string, string> = {
   round_nudge_cooldown_reset: "Resetou cooldown de cutucadas",
   waitlist_auto_promoted: "Auto-promoveu da lista de espera",
   waitlist_manual_promoted: "Promoveu manualmente da lista de espera",
-  group_visibility_changed: "Mudou visibilidade do grupo",
-  group_member_limit_changed: "Mudou limite de membros",
-};
-
-const VISIBILITY_LABELS: Record<string, string> = {
-  public: "Público",
-  private: "Privado",
-  hidden: "Oculto",
 };
 
 const NUDGE_MODE_LABELS: Record<string, string> = {
@@ -265,29 +256,12 @@ function NudgeResetDetail({ row }: { row: AuditRow }) {
   );
 }
 
-function VisibilityDiff({ row }: { row: AuditRow }) {
-  const oldV = row.old_data?.visibility ?? "—";
-  const newV = row.new_data?.visibility ?? "—";
-  const oldLabel = VISIBILITY_LABELS[oldV] || oldV;
-  const newLabel = VISIBILITY_LABELS[newV] || newV;
-  return (
-    <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/20 p-2 text-xs">
-      <span className="rounded-md bg-background px-2 py-0.5 font-mono text-foreground/80">{oldLabel}</span>
-      <span className="text-muted-foreground">→</span>
-      <span className="rounded-md bg-primary/15 px-2 py-0.5 font-mono font-bold text-primary">{newLabel}</span>
-    </div>
-  );
-}
-
 function DiffView({ row }: { row: AuditRow }) {
   if (row.action === "round_nudge") {
     return <NudgeDetail row={row} />;
   }
   if (row.action === "round_nudge_cooldown_reset") {
     return <NudgeResetDetail row={row} />;
-  }
-  if (row.action === "group_visibility_changed") {
-    return <VisibilityDiff row={row} />;
   }
   if (row.old_data == null && row.new_data == null) {
     return (
@@ -614,22 +588,19 @@ export function AuditPanel({ groupId }: Props) {
     "presence_force_open",
     "presence_force_open_undo",
   ]);
-  const VISIBILITY_ACTIONS = new Set(["group_visibility_changed"]);
   const isNudgeFilter = filter === "__nudges__";
   const isWaitlistFilter = filter === "__waitlist__";
   const isRoundMovFilter = filter === "__round_movements__";
-  const isVisibilityFilter = filter === "__visibility__";
   const filtered = useMemo(() => {
     if (filter === "all") return rows;
     if (isNudgeFilter) return rows.filter((r) => NUDGE_ACTIONS.has(r.action));
     if (isWaitlistFilter) return rows.filter((r) => WAITLIST_ACTIONS.has(r.action));
-    if (isVisibilityFilter) return rows.filter((r) => VISIBILITY_ACTIONS.has(r.action));
     if (isRoundMovFilter)
       return rows.filter(
         (r) => ROUND_MOV_ACTIONS.has(r.action) && r.entity_type === "round" && r.entity_id,
       );
     return rows.filter((r) => r.action === filter);
-  }, [filter, rows, isNudgeFilter, isWaitlistFilter, isRoundMovFilter, isVisibilityFilter]);
+  }, [filter, rows, isNudgeFilter, isWaitlistFilter, isRoundMovFilter]);
   const nudgeCount = useMemo(
     () => rows.filter((r) => NUDGE_ACTIONS.has(r.action)).length,
     [rows],
@@ -643,10 +614,6 @@ export function AuditPanel({ groupId }: Props) {
       rows.filter(
         (r) => ROUND_MOV_ACTIONS.has(r.action) && r.entity_type === "round" && r.entity_id,
       ).length,
-    [rows],
-  );
-  const visibilityCount = useMemo(
-    () => rows.filter((r) => VISIBILITY_ACTIONS.has(r.action)).length,
     [rows],
   );
 
@@ -754,7 +721,6 @@ export function AuditPanel({ groupId }: Props) {
           <option value="__nudges__">Só cutucadas ({nudgeCount})</option>
           <option value="__waitlist__">Só lista de espera ({waitlistCount})</option>
           <option value="__round_movements__">Movimentações da rodada ({roundMovCount})</option>
-          <option value="__visibility__">Mudanças de visibilidade ({visibilityCount})</option>
           {actions.map((a) => (
             <option key={a} value={a}>
               {ACTION_LABELS[a] || a}
@@ -801,20 +767,6 @@ export function AuditPanel({ groupId }: Props) {
             title="Timeline consolidada por rodada: cutucadas, lista de espera, abrir presença"
           >
             🎬 Movimentações da rodada ({roundMovCount})
-          </button>
-        )}
-        {visibilityCount > 0 && (
-          <button
-            type="button"
-            onClick={() => setFilter(isVisibilityFilter ? "all" : "__visibility__")}
-            className={`flex items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-bold transition-colors ${
-              isVisibilityFilter
-                ? "border-accent/60 bg-accent/15 text-accent-foreground"
-                : "border-border bg-background text-muted-foreground hover:border-accent/40 hover:text-foreground"
-            }`}
-            title="Mostra todas as mudanças de visibilidade do grupo (público / privado / oculto)"
-          >
-            👁️ Visibilidade ({visibilityCount})
           </button>
         )}
       </div>

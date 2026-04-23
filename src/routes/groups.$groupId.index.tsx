@@ -303,21 +303,13 @@ function GroupDetailPage() {
     try {
       await leaveGroup(myMembership.id);
       toast.success("Você saiu do grupo");
-      // Refresh local state (member list + my role) before navigating away,
-      // so any quick back-navigation reflects reality and not stale data.
-      try {
-        await refresh();
-      } catch {
-        // ignore refresh errors — navigation is more important
-      }
-      setLeaveDialogOpen(false);
       navigate({ to: "/groups" });
     } catch (e: any) {
       console.error("[leaveGroup] failed:", e);
       toast.error(e?.message || "Erro ao sair do grupo");
-      setLeaveDialogOpen(false);
     } finally {
       setLeavingLoading(false);
+      setLeaveDialogOpen(false);
     }
   };
 
@@ -603,10 +595,7 @@ function GroupDetailPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div
             className="fixed inset-0 bg-black/60 backdrop-blur-sm"
-            onClick={() => {
-              if (leavingLoading) return;
-              setLeaveDialogOpen(false);
-            }}
+            onClick={() => setLeaveDialogOpen(false)}
           />
           <div className="relative w-[90%] max-w-sm rounded-3xl border border-border bg-card p-6 animate-in zoom-in-95 duration-200">
             <div className="flex flex-col items-center gap-4 text-center">
@@ -629,23 +618,15 @@ function GroupDetailPage() {
               <div className="flex w-full gap-3">
                 <button
                   onClick={() => setLeaveDialogOpen(false)}
-                  disabled={leavingLoading}
-                  className="flex-1 rounded-2xl border border-border py-3 text-sm font-semibold text-foreground disabled:opacity-50"
+                  className="flex-1 rounded-2xl border border-border py-3 text-sm font-semibold text-foreground"
                 >
                   Cancelar
                 </button>
                 <button
                   onClick={handleLeaveConfirm}
                   disabled={leavingLoading}
-                  aria-busy={leavingLoading}
-                  className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-destructive py-3 text-sm font-bold text-destructive-foreground disabled:opacity-60 disabled:cursor-not-allowed"
+                  className="flex-1 rounded-2xl bg-destructive py-3 text-sm font-bold text-destructive-foreground disabled:opacity-50"
                 >
-                  {leavingLoading && (
-                    <span
-                      className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-destructive-foreground/40 border-t-destructive-foreground"
-                      aria-hidden="true"
-                    />
-                  )}
                   {leavingLoading ? "Saindo..." : "Sair"}
                 </button>
               </div>

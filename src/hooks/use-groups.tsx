@@ -274,7 +274,7 @@ export function useMyPendingJoinRequests() {
 export function usePublicGroups(search: string) {
   const { user } = useAuth();
   const [groups, setGroups] = useState<
-    (Group & { member_count: number; is_premium?: boolean; is_hidden_admin_view?: boolean })[]
+    (Group & { member_count: number; is_premium?: boolean; is_hidden_admin?: boolean })[]
   >([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -283,7 +283,6 @@ export function usePublicGroups(search: string) {
       setIsLoading(true);
 
       try {
-        // 1) Public/private active groups (default Explorar list).
         let query = supabase
           .from("groups")
           .select("*")
@@ -298,55 +297,41 @@ export function usePublicGroups(search: string) {
 
         const { data, error } = await query;
         if (error) throw error;
-        const visible = (data || []).map((g) => ({ ...g, is_hidden_admin_view: false }));
 
-        // 2) Hidden groups where the current user is an active admin/creator.
-        //    These are normally NOT in Explorar, but the user manages them — so
-        //    we surface them with a clear "hidden" badge so they understand why
-        //    others can't see the group.
-        let hiddenAdminGroups: typeof visible = [];
-        if (user?.id) {
-          const { data: myAdminMemberships } = await supabase
+        let combined = (data || []).map((g) => ({ ...g }));
+
+        // Also surface HIDDEN groups where the current user is admin/creator,
+        // so admins can manage and share invites from Explore.
+        if (user) {
+          const { data: adminMems } = await supabase
             .from("group_members")
-            .select("group_id")
+            .select("group_id, role")
             .eq("user_id", user.id)
             .eq("status", "active")
-            .in("role", ["creator", "admin"]);
-          const adminGroupIds = (myAdminMemberships || []).map((m) => m.group_id);
-          if (adminGroupIds.length > 0) {
-            let hQuery = supabase
+            .in("role", ["admin", "creator"]);
+          const adminIds = (adminMems || []).map((m) => m.group_id);
+          if (adminIds.length) {
+            let hiddenQuery = supabase
               .from("groups")
               .select("*")
-              .in("id", adminGroupIds)
               .eq("status", "active")
               .eq("visibility", "hidden")
+              .in("id", adminIds)
               .order("created_at", { ascending: false });
-            if (search.trim()) hQuery = hQuery.ilike("name", `%${search.trim()}%`);
-            const { data: hd } = await hQuery;
-            hiddenAdminGroups = (hd || []).map((g) => ({ ...g, is_hidden_admin_view: true }));
+            if (search.trim()) hiddenQuery = hiddenQuery.ilike("name", `%${search.trim()}%`);
+            const { data: hiddenData } = await hiddenQuery;
+            const existingIds = new Set(combined.map((g) => g.id));
+            for (const h of hiddenData || []) {
+              if (!existingIds.has(h.id)) combined.push({ ...h, is_hidden_admin: true } as any);
+            }
           }
         }
 
-        const combined = [...visible, ...hiddenAdminGroups];
-        // De-dupe (in case of overlap) and re-sort by created_at desc
-        const seen = new Set<string>();
-        const deduped = combined.filter((g) => {
-          if (seen.has(g.id)) return false;
-          seen.add(g.id);
-          return true;
-        });
-        deduped.sort(
-          (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
-        );
-
-        const withCounts = await attachMemberCounts(deduped as any);
-        // attachMemberCounts strips the flag, so merge it back
-        const flagMap = new Map(deduped.map((g) => [g.id, g.is_hidden_admin_view]));
+        const withCounts = await attachMemberCounts(combined);
+        // Re-attach the admin flag (attachMemberCounts spreads new objects)
+        const adminFlagMap = new Map(combined.map((g: any) => [g.id, !!g.is_hidden_admin]));
         setGroups(
-          withCounts.map((g) => ({
-            ...g,
-            is_hidden_admin_view: flagMap.get(g.id) || false,
-          })),
+          withCounts.map((g) => ({ ...g, is_hidden_admin: adminFlagMap.get(g.id) || false })),
         );
       } catch (error) {
         console.error("Erro ao carregar grupos públicos:", error);
@@ -358,7 +343,7 @@ export function usePublicGroups(search: string) {
 
     const timeout = setTimeout(load, 300);
     return () => clearTimeout(timeout);
-  }, [search, user?.id]);
+  }, [search, user]);
 
   return { groups, isLoading };
 }
@@ -645,13 +630,6 @@ export async function checkUserHasResults(groupId: string, userId: string): Prom
 }
 
 export async function leaveGroup(memberId: string) {
-  // Load row first to capture group/user/role for the audit log.
-  const { data: prev } = await supabase
-    .from("group_members")
-    .select("group_id, user_id, role, status")
-    .eq("id", memberId)
-    .maybeSingle();
-
   // Set status to 'left' instead of deleting to preserve history
   const { data, error } = await supabase
     .from("group_members")
@@ -665,22 +643,5 @@ export async function leaveGroup(memberId: string) {
   }
   if (!data) {
     throw new Error("Não foi possível atualizar o vínculo (verifique permissões).");
-  }
-
-  // Audit: who left + when (best-effort, never blocks the leave action).
-  if (prev?.group_id) {
-    try {
-      const { logAudit } = await import("@/lib/audit-log");
-      await logAudit({
-        groupId: prev.group_id,
-        action: "member_left",
-        entityType: "group_member",
-        entityId: memberId,
-        oldData: prev,
-        newData: { ...prev, status: "left" },
-      });
-    } catch (auditErr) {
-      console.warn("[leaveGroup] audit failed:", auditErr);
-    }
   }
 }

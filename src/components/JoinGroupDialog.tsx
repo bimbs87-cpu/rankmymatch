@@ -43,42 +43,17 @@ export function JoinGroupDialog({
   const [formers, setFormers] = useState<ClaimablePlayer[]>([]);
   const [selected, setSelected] = useState<ClaimablePlayer | null>(null);
   const [message, setMessage] = useState("");
-  const [capacity, setCapacity] = useState<{
-    activeCount: number;
-    limit: number | null;
-    isFull: boolean;
-  } | null>(null);
 
   useEffect(() => {
     if (!open) {
       setSelected(null);
       setMessage("");
-      setCapacity(null);
       return;
     }
     let cancelled = false;
     (async () => {
       setLoading(true);
       try {
-        // Load member_limit + active count to validate capacity client-side
-        // (the server-side approval also re-validates in approveJoinRequest).
-        const [{ data: groupRow }, { data: cnt }] = await Promise.all([
-          supabase
-            .from("groups")
-            .select("member_limit")
-            .eq("id", groupId)
-            .maybeSingle(),
-          supabase.rpc("get_group_member_count", { _group_id: groupId }),
-        ]);
-        const limit = (groupRow as any)?.member_limit ?? null;
-        const activeCount = (cnt as number | null) ?? 0;
-        if (!cancelled) {
-          setCapacity({
-            activeCount,
-            limit,
-            isFull: limit != null && activeCount >= limit,
-          });
-        }
         const { data: members } = await supabase
           .from("group_members")
           .select("user_id, status")
@@ -136,12 +111,6 @@ export function JoinGroupDialog({
   }, [open, groupId, userId]);
 
   const handleSubmit = async () => {
-    if (capacity?.isFull) {
-      toast.error(
-        `Grupo cheio (${capacity.activeCount}/${capacity.limit}). Peça ao admin para aumentar o limite ou liberar uma vaga.`,
-      );
-      return;
-    }
     setSubmitting(true);
     try {
       // All joins now go through admin approval (regardless of public/private).
@@ -285,24 +254,8 @@ export function JoinGroupDialog({
           <p className="text-center text-xs text-muted-foreground">
             {hasClaimables
               ? "Você já joga aqui? Selecione seu nome para vincular o histórico ao aprovar."
-              : "Toda entrada precisa de aprovação do admin do grupo."}
+              : "Envie uma solicitação ao admin para entrar no grupo."}
           </p>
-          {capacity?.isFull && (
-            <div className="mt-2 w-full rounded-2xl border border-destructive/40 bg-destructive/10 px-3 py-2 text-center">
-              <p className="text-[11px] font-bold uppercase tracking-wider text-destructive">
-                Grupo cheio
-              </p>
-              <p className="mt-1 text-xs text-foreground">
-                {capacity.activeCount}/{capacity.limit} membros. O admin precisa
-                aumentar o limite ou liberar uma vaga antes que você possa entrar.
-              </p>
-            </div>
-          )}
-          {capacity && !capacity.isFull && capacity.limit != null && (
-            <p className="text-center text-[10px] text-muted-foreground">
-              {capacity.activeCount}/{capacity.limit} vagas ocupadas
-            </p>
-          )}
         </div>
 
         <div className="flex-1 overflow-y-auto min-h-0 space-y-3">
@@ -358,15 +311,11 @@ export function JoinGroupDialog({
 
         <button
           onClick={handleSubmit}
-          disabled={submitting || loading || capacity?.isFull}
-          className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-3 text-sm font-bold text-primary-foreground disabled:opacity-50 disabled:cursor-not-allowed"
+          disabled={submitting || loading}
+          className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-3 text-sm font-bold text-primary-foreground disabled:opacity-50"
         >
           {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />}
-          {capacity?.isFull
-            ? "Grupo cheio"
-            : selected
-              ? "Pedir vinculação"
-              : "Enviar solicitação"}
+          {selected ? "Pedir vinculação" : "Enviar solicitação"}
         </button>
       </div>
     </div>
