@@ -148,10 +148,31 @@ function RankingPage() {
       }
 
       if (!groups.length) {
+        // User isn't a member of any group yet. Try to surface the most-recent
+        // active public season so the page isn't a dead-end.
         if (!cancelled) {
-          setSeasons([]);
+          setLoading(true);
+          setLoadProgress(15);
+          setLoadLabel("Buscando temporada pública...");
+        }
+        const { data: publicSeasons } = await supabase
+          .from("seasons")
+          .select("*, groups!inner(name, visibility, status)")
+          .eq("groups.visibility", "public")
+          .eq("groups.status", "active")
+          .in("status", ["active", "finished"])
+          .order("status", { ascending: true }) // 'active' < 'finished' alphabetically
+          .order("created_at", { ascending: false })
+          .limit(8);
+        if (cancelled) return;
+        const fallbackSeasons = (publicSeasons || []) as any[];
+        const best =
+          fallbackSeasons.find((s) => isSeasonActive(s.status)) || fallbackSeasons[0] || null;
+        if (!cancelled) {
+          setSeasons(fallbackSeasons);
           setRankings([]);
-          setSelectedSeasonId(null);
+          setSelectedSeasonId(best?.id ?? null);
+          setUsedFallback(true);
           setTotalRounds(0);
           setCompletedRounds(0);
           setTotalSets(0);
