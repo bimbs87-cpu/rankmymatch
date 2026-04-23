@@ -68,6 +68,8 @@ export const submitMatchScoreServerFn = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { matchId, seasonId, sets } = data;
     const { userId } = context;
+    const requestId = crypto.randomUUID().slice(0, 8);
+    console.info("[submitMatchScore] start", { requestId, matchId, seasonId, userId, sets: sets.length });
 
     // ---- 1. Load match + round + group, validate authorization ----
     const { data: match, error: matchErr } = await supabaseAdmin
@@ -92,6 +94,7 @@ export const submitMatchScoreServerFn = createServerFn({ method: "POST" })
     // Editing an already-completed match is allowed: revert prior Elo first,
     // then re-apply with the new score.
     const isEdit = match.status === "completed";
+    console.info("[submitMatchScore] auth ok", { requestId, isEdit, currentStatus: match.status });
 
     // ---- 2. Validate each set score ----
     for (const s of sets) {
