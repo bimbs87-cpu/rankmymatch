@@ -409,7 +409,62 @@ function GeneralSection({ group, onSaved }: { group: any; onSaved: () => void })
       </div>
 
       <div className="rounded-2xl border border-border bg-muted/20 p-3 text-xs text-muted-foreground">
-        <p><span className="text-foreground">Esporte:</span> <span className="capitalize">{group.sport}</span> · <span className="text-foreground">Máx jogadores:</span> {group.max_players} · <span className="text-foreground">Quadras:</span> {group.simultaneous_courts}</p>
+        <p><span className="text-foreground">Esporte:</span> <span className="capitalize">{group.sport}</span> · <span className="text-foreground">Máx por rodada:</span> {group.max_players} · <span className="text-foreground">Quadras:</span> {group.simultaneous_courts}</p>
+      </div>
+
+      {/* Limite de membros do grupo */}
+      <div className="rounded-2xl border border-border bg-card p-3">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-xs font-bold text-foreground flex items-center gap-1.5">
+              <Users className="h-3.5 w-3.5 text-primary" /> Limite de membros
+            </p>
+            <p className="mt-0.5 text-[11px] text-muted-foreground">
+              Quando atingido, novas solicitações de entrada são bloqueadas.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setMemberLimitEnabled((v) => !v)}
+            className={`shrink-0 inline-flex h-5 w-9 items-center rounded-full transition-colors ${memberLimitEnabled ? "bg-primary" : "bg-muted"}`}
+            aria-pressed={memberLimitEnabled}
+            aria-label="Ativar limite de membros"
+          >
+            <span className={`inline-block h-4 w-4 rounded-full bg-background transition-transform ${memberLimitEnabled ? "translate-x-4" : "translate-x-0.5"}`} />
+          </button>
+        </div>
+
+        {memberLimitEnabled ? (
+          <div className="mt-3 space-y-2">
+            <input
+              type="number"
+              inputMode="numeric"
+              min={Math.max(1, memberCount)}
+              max={9999}
+              value={memberLimit}
+              onChange={(e) => setMemberLimit(e.target.value.replace(/[^0-9]/g, ""))}
+              placeholder={`Mínimo ${Math.max(1, memberCount)}`}
+              className={`w-full rounded-xl border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-1 ${
+                limitInvalid ? "border-destructive focus:ring-destructive" : "border-border focus:ring-primary"
+              }`}
+            />
+            <p className="text-[11px] text-muted-foreground">
+              Atualmente: <span className="font-semibold text-foreground">{memberCount}</span> membros ativos.
+              {parsedLimit && !limitInvalid && (
+                <> · {Math.max(0, parsedLimit - memberCount)} vagas restantes.</>
+              )}
+            </p>
+            {limitInvalid && (
+              <p className="text-[11px] font-semibold text-destructive">
+                O limite precisa ser pelo menos {Math.max(1, memberCount)} (membros atuais).
+              </p>
+            )}
+          </div>
+        ) : (
+          <p className="mt-2 text-[11px] text-muted-foreground">
+            Sem limite — qualquer pessoa pode solicitar entrada.
+          </p>
+        )}
       </div>
 
 
