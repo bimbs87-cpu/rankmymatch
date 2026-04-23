@@ -145,7 +145,11 @@ export function ExplorePanel() {
                 key={g.id}
                 to="/groups/$groupId"
                 params={{ groupId: g.id }}
-                className="group flex items-start gap-3 rounded-2xl border border-border bg-card p-4 transition-all hover:border-primary/40 hover:shadow-lg active:scale-[0.99]"
+                className={`group flex items-start gap-3 rounded-2xl border p-4 transition-all hover:border-primary/40 hover:shadow-lg active:scale-[0.99] ${
+                  g.is_hidden_admin_view
+                    ? "border-dashed border-warning/40 bg-warning/5"
+                    : "border-border bg-card"
+                }`}
               >
                 <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl bg-primary/10 ring-1 ring-primary/20">
                   {g.image_url ? (
@@ -155,9 +159,11 @@ export function ExplorePanel() {
                   )}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex flex-wrap items-center gap-1.5">
                     <span className="truncate text-sm font-bold text-foreground">{g.name}</span>
-                    {g.is_public ? (
+                    {g.is_hidden_admin_view ? (
+                      <EyeOff className="h-3 w-3 flex-shrink-0 text-warning" />
+                    ) : g.is_public ? (
                       <Globe className="h-3 w-3 flex-shrink-0 text-muted-foreground" />
                     ) : (
                       <Lock className="h-3 w-3 flex-shrink-0 text-muted-foreground" />
@@ -168,12 +174,26 @@ export function ExplorePanel() {
                         PREMIUM
                       </span>
                     )}
+                    {g.is_hidden_admin_view && (
+                      <span
+                        className="inline-flex items-center gap-0.5 rounded-full bg-warning/15 px-1.5 py-0.5 text-[9px] font-bold text-warning ring-1 ring-warning/40"
+                        title="Este grupo está oculto e não aparece para outros usuários no Explorar. Você vê porque é admin."
+                      >
+                        <EyeOff className="h-2.5 w-2.5" />
+                        OCULTO
+                      </span>
+                    )}
                   </div>
                   <p className="mt-0.5 text-[11px] text-muted-foreground">
                     {g.member_count} membro{g.member_count !== 1 ? "s" : ""} ·{" "}
                     {g.match_format === "singles" ? "Singles" : "Doubles"} ·{" "}
                     {g.sport === "tennis" ? "Tênis" : "Padel"}
                   </p>
+                  {g.is_hidden_admin_view && (
+                    <p className="mt-1 rounded-md border border-warning/30 bg-warning/10 px-1.5 py-0.5 text-[10px] font-medium text-warning">
+                      Visível só para você (admin). Compartilhe via link de convite.
+                    </p>
+                  )}
                   {g.description && (
                     <p className="mt-1.5 line-clamp-2 text-[11px] text-muted-foreground/80">{g.description}</p>
                   )}
