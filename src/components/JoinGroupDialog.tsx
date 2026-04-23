@@ -43,6 +43,11 @@ export function JoinGroupDialog({
   const [formers, setFormers] = useState<ClaimablePlayer[]>([]);
   const [selected, setSelected] = useState<ClaimablePlayer | null>(null);
   const [message, setMessage] = useState("");
+  const [capacity, setCapacity] = useState<{
+    activeCount: number;
+    limit: number | null;
+    isFull: boolean;
+  } | null>(null);
 
   useEffect(() => {
     if (!open) {
