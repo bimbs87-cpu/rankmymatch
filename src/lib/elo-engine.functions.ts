@@ -199,6 +199,7 @@ export const submitMatchScoreServerFn = createServerFn({ method: "POST" })
       .eq("match_id", matchId)
       .limit(1);
     if (!existingEvents?.length) {
+      console.info("[submitMatchScore] processing Elo", { requestId, matchId, isEdit });
       const { processMatchEloServer } = await import("@/lib/elo-engine.server");
       await processMatchEloServer({
         matchId,
@@ -211,8 +212,14 @@ export const submitMatchScoreServerFn = createServerFn({ method: "POST" })
         gamesTeamA: gamesA,
         gamesTeamB: gamesB,
       });
+    } else {
+      console.info("[submitMatchScore] skip Elo: events already exist (idempotent)", {
+        requestId,
+        matchId,
+      });
     }
 
+    console.info("[submitMatchScore] done", { requestId, matchId, winnerTeam, edited: isEdit });
     return { winnerTeam, setsA, setsB, edited: isEdit };
   });
 
