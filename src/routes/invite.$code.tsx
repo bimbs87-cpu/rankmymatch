@@ -41,6 +41,7 @@ interface InviteData {
     image_url: string | null;
     member_count: number;
     max_players: number;
+    member_limit: number | null;
   } | null;
 }
 
@@ -154,7 +155,7 @@ function InvitePage() {
       // Load group info
       const { data: groupData } = await supabase
         .from("groups")
-        .select("name, description, sport, is_public, visibility, image_url, max_players")
+        .select("name, description, sport, is_public, visibility, image_url, max_players, member_limit")
         .eq("id", inviteData.group_id)
         .single();
 
@@ -205,7 +206,8 @@ function InvitePage() {
     setJoining(true);
 
     const userName = profileDisplayName || user.user_metadata?.full_name || user.user_metadata?.name || "Um jogador";
-    const maxPlayers = invite.group?.max_players ?? 999;
+    // Member capacity = group.member_limit if set, else fallback to max_players (legacy)
+    const maxPlayers = invite.group?.member_limit ?? invite.group?.max_players ?? 999;
     const currentCount = invite.group?.member_count ?? 0;
     const isFull = currentCount >= maxPlayers;
     const isClaimInvite = !!invite.claim_placeholder_user_id;

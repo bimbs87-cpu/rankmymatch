@@ -738,6 +738,7 @@ export type Database = {
           is_public: boolean
           match_format: string
           max_players: number
+          member_limit: number | null
           mode: string
           name: string
           og_cover_url: string | null
@@ -762,6 +763,7 @@ export type Database = {
           is_public?: boolean
           match_format?: string
           max_players?: number
+          member_limit?: number | null
           mode?: string
           name: string
           og_cover_url?: string | null
@@ -786,6 +788,7 @@ export type Database = {
           is_public?: boolean
           match_format?: string
           max_players?: number
+          member_limit?: number | null
           mode?: string
           name?: string
           og_cover_url?: string | null

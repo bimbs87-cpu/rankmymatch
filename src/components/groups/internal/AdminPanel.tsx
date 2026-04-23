@@ -183,6 +183,9 @@ function GeneralSection({ group, onSaved }: { group: any; onSaved: () => void })
   const [description, setDescription] = useState(group.description || "");
   const initVis = group.visibility || (group.is_public ? "public" : "private");
   const [visibility, setVisibility] = useState<string>(initVis);
+  const initMemberLimit: number | null = (group as any).member_limit ?? null;
+  const [memberLimitEnabled, setMemberLimitEnabled] = useState<boolean>(initMemberLimit != null);
+  const [memberLimit, setMemberLimit] = useState<string>(initMemberLimit != null ? String(initMemberLimit) : "");
   const [saving, setSaving] = useState(false);
   const [isPremium, setIsPremium] = useState(false);
   const [premiumExpiresAt, setPremiumExpiresAt] = useState<Date | null>(null);
@@ -211,17 +214,34 @@ function GeneralSection({ group, onSaved }: { group: any; onSaved: () => void })
     : null;
   const premiumExpiringSoon = isPremium && premiumDaysLeft != null && premiumDaysLeft <= 14;
 
-  const dirty = name !== group.name || description !== (group.description || "") || visibility !== initVis;
+  const parsedLimit = memberLimitEnabled ? parseInt(memberLimit, 10) : null;
+  const memberCount = (group as any).member_count ?? 0;
+  const limitInvalid = memberLimitEnabled && (
+    !Number.isFinite(parsedLimit as number) ||
+    (parsedLimit as number) < Math.max(1, memberCount) ||
+    (parsedLimit as number) > 9999
+  );
+  const dirty = name !== group.name
+    || description !== (group.description || "")
+    || visibility !== initVis
+    || (memberLimitEnabled ? parsedLimit : null) !== initMemberLimit;
 
   const save = async () => {
     if (!name.trim()) { toast.error("Nome é obrigatório"); return; }
+    if (limitInvalid) {
+      toast.error(`Limite inválido. Mínimo ${Math.max(1, memberCount)}, máximo 9999.`);
+      return;
+    }
     setSaving(true);
     const visibilityChanged = visibility !== initVis;
+    const newLimit = memberLimitEnabled ? parsedLimit : null;
+    const limitChanged = newLimit !== initMemberLimit;
     const { error } = await supabase.from("groups").update({
       name: name.trim(),
       description: description.trim() || null,
       is_public: visibility === "public",
       visibility,
+      member_limit: newLimit,
     } as any).eq("id", group.id);
     if (error) toast.error("Erro ao salvar");
     else {
@@ -235,6 +255,16 @@ function GeneralSection({ group, onSaved }: { group: any; onSaved: () => void })
           entityId: group.id,
           oldData: { visibility: initVis },
           newData: { visibility },
+        });
+      }
+      if (limitChanged) {
+        void logAudit({
+          groupId: group.id,
+          action: "group_member_limit_changed",
+          entityType: "group",
+          entityId: group.id,
+          oldData: { member_limit: initMemberLimit },
+          newData: { member_limit: newLimit },
         });
       }
       onSaved();
@@ -379,7 +409,62 @@ function GeneralSection({ group, onSaved }: { group: any; onSaved: () => void })
       </div>
 
       <div className="rounded-2xl border border-border bg-muted/20 p-3 text-xs text-muted-foreground">
-        <p><span className="text-foreground">Esporte:</span> <span className="capitalize">{group.sport}</span> · <span className="text-foreground">Máx jogadores:</span> {group.max_players} · <span className="text-foreground">Quadras:</span> {group.simultaneous_courts}</p>
+        <p><span className="text-foreground">Esporte:</span> <span className="capitalize">{group.sport}</span> · <span className="text-foreground">Máx por rodada:</span> {group.max_players} · <span className="text-foreground">Quadras:</span> {group.simultaneous_courts}</p>
+      </div>
+
+      {/* Limite de membros do grupo */}
+      <div className="rounded-2xl border border-border bg-card p-3">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-xs font-bold text-foreground flex items-center gap-1.5">
+              <Users className="h-3.5 w-3.5 text-primary" /> Limite de membros
+            </p>
+            <p className="mt-0.5 text-[11px] text-muted-foreground">
+              Quando atingido, novas solicitações de entrada são bloqueadas.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setMemberLimitEnabled((v) => !v)}
+            className={`shrink-0 inline-flex h-5 w-9 items-center rounded-full transition-colors ${memberLimitEnabled ? "bg-primary" : "bg-muted"}`}
+            aria-pressed={memberLimitEnabled}
+            aria-label="Ativar limite de membros"
+          >
+            <span className={`inline-block h-4 w-4 rounded-full bg-background transition-transform ${memberLimitEnabled ? "translate-x-4" : "translate-x-0.5"}`} />
+          </button>
+        </div>
+
+        {memberLimitEnabled ? (
+          <div className="mt-3 space-y-2">
+            <input
+              type="number"
+              inputMode="numeric"
+              min={Math.max(1, memberCount)}
+              max={9999}
+              value={memberLimit}
+              onChange={(e) => setMemberLimit(e.target.value.replace(/[^0-9]/g, ""))}
+              placeholder={`Mínimo ${Math.max(1, memberCount)}`}
+              className={`w-full rounded-xl border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-1 ${
+                limitInvalid ? "border-destructive focus:ring-destructive" : "border-border focus:ring-primary"
+              }`}
+            />
+            <p className="text-[11px] text-muted-foreground">
+              Atualmente: <span className="font-semibold text-foreground">{memberCount}</span> membros ativos.
+              {parsedLimit && !limitInvalid && (
+                <> · {Math.max(0, parsedLimit - memberCount)} vagas restantes.</>
+              )}
+            </p>
+            {limitInvalid && (
+              <p className="text-[11px] font-semibold text-destructive">
+                O limite precisa ser pelo menos {Math.max(1, memberCount)} (membros atuais).
+              </p>
+            )}
+          </div>
+        ) : (
+          <p className="mt-2 text-[11px] text-muted-foreground">
+            Sem limite — qualquer pessoa pode solicitar entrada.
+          </p>
+        )}
       </div>
 
 
@@ -484,8 +569,12 @@ function MembersSection({ group, onSaved }: { group: any; onSaved: () => void })
 
   const approve = async (req: any) => {
     if (!user) return;
-    await approveJoinRequest(req.id, group.id, req.user_id, user.id);
-    toast.success("Aprovado!"); refresh(); onSaved();
+    try {
+      await approveJoinRequest(req.id, group.id, req.user_id, user.id);
+      toast.success("Aprovado!"); refresh(); onSaved();
+    } catch (e: any) {
+      toast.error(e?.message || "Erro ao aprovar");
+    }
   };
   const reject = async (req: any) => {
     if (!user) return;
