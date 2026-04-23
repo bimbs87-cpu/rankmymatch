@@ -8,9 +8,11 @@ import { useAuth } from "@/hooks/use-auth";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { PlayerAvatarLink, PlayerNameLink } from "@/components/PlayerProfileViewer";
 import { DualEloChart } from "@/components/DualEloChart";
+import { ScoreEntryDialog } from "@/components/ScoreEntryDialog";
 import { computeDuelMedals } from "@/lib/duel-medals";
 import { buildMedalsTimeline } from "@/lib/duel-medals-timeline";
 import { promoteMatchToRankingServerFn, revertMatchPromotionServerFn } from "@/lib/promote-match.functions";
+import { logAudit } from "@/lib/audit-log";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "sonner";
 import {
@@ -29,6 +31,8 @@ import {
   ArrowUpCircle,
   Undo2,
   Loader2,
+  Edit3,
+  FileClock,
 } from "lucide-react";
 
 interface DuelPlayer {
@@ -84,9 +88,14 @@ export function RivalryDuelPage({ groupId, groupName, seasonId, seasonName }: Pr
   const [revertingId, setRevertingId] = useState<string | null>(null);
   const [matchFilter, setMatchFilter] = useState<"all" | "official" | "casual">("all");
   const [shareOpen, setShareOpen] = useState(false);
+  const [editingMatch, setEditingMatch] = useState<DuelMatch | null>(null);
+  const [editHistory, setEditHistory] = useState<
+    { id: string; created_at: string; user_id: string; editor_name: string | null; match_id: string | null; old_sets: string; new_sets: string }[]
+  >([]);
 
   useEffect(() => {
     loadDuelData();
+    void loadEditHistory();
   }, [groupId, seasonId]);
 
   async function loadDuelData() {
@@ -230,6 +239,57 @@ export function RivalryDuelPage({ groupId, groupName, seasonId, seasonName }: Pr
     return data?.id || null;
   }
 
+  async function loadEditHistory() {
+    try {
+      const { data } = await supabase
+        .from("audit_logs")
+        .select("id, created_at, user_id, entity_id, old_data, new_data")
+        .eq("group_id", groupId)
+        .eq("action", "match_score_edited")
+        .order("created_at", { ascending: false })
+        .limit(20);
+
+      if (!data?.length) {
+        setEditHistory([]);
+        return;
+      }
+
+      const editorIds = Array.from(new Set(data.map((r) => r.user_id)));
+      const { data: profiles } = await supabase
+        .from("user_profiles")
+        .select("user_id, name, nickname")
+        .in("user_id", editorIds);
+      const nameMap = new Map(
+        (profiles || []).map((p) => [p.user_id, p.nickname || p.name || null]),
+      );
+
+      const fmtSets = (raw: unknown): string => {
+        if (!Array.isArray(raw)) return "—";
+        return (raw as Array<{ scoreA?: number; scoreB?: number; score_team_a?: number; score_team_b?: number }>)
+          .map((s) => {
+            const a = s.scoreA ?? s.score_team_a ?? 0;
+            const b = s.scoreB ?? s.score_team_b ?? 0;
+            return `${a}-${b}`;
+          })
+          .join(" • ");
+      };
+
+      setEditHistory(
+        data.map((r) => ({
+          id: r.id,
+          created_at: r.created_at,
+          user_id: r.user_id,
+          editor_name: nameMap.get(r.user_id) ?? null,
+          match_id: r.entity_id,
+          old_sets: fmtSets(r.old_data),
+          new_sets: fmtSets(r.new_data),
+        })),
+      );
+    } catch (err) {
+      console.error("Error loading edit history:", err);
+    }
+  }
+
   async function loadDuelMatches(gid: string, userIds: string[]): Promise<Omit<DuelMatch, "rating_change_by_user">[]> {
     // Get all rounds for this group
     const { data: rounds } = await supabase
@@ -345,6 +405,56 @@ export function RivalryDuelPage({ groupId, groupName, seasonId, seasonName }: Pr
     } finally {
       setRevertingId(null);
     }
+  }
+
+  function handleStartEdit(matchId: string) {
+    const m = matches.find((x) => x.id === matchId);
+    if (!m) return;
+    setEditingMatch(m);
+  }
+
+  async function handleEditSaved() {
+    if (!editingMatch) return;
+    const matchId = editingMatch.id;
+    // Capture pre-edit sets for the audit log
+    const oldSets = editingMatch.sets.map((s, i) => ({
+      setNumber: i + 1,
+      scoreA: s.scoreA,
+      scoreB: s.scoreB,
+    }));
+    setEditingMatch(null);
+
+    try {
+      // Fetch the new sets to record what changed
+      const { data: newSetsRows } = await supabase
+        .from("match_sets")
+        .select("set_number, score_team_a, score_team_b")
+        .eq("match_id", matchId)
+        .order("set_number", { ascending: true });
+
+      const newSets = (newSetsRows || []).map((s) => ({
+        setNumber: s.set_number,
+        scoreA: s.score_team_a,
+        scoreB: s.score_team_b,
+      }));
+
+      await logAudit({
+        groupId,
+        action: "match_score_edited",
+        entityType: "match",
+        entityId: matchId,
+        oldData: oldSets,
+        newData: newSets,
+      });
+
+      toast.success("Resultado atualizado — Elo recalculado");
+    } catch (err) {
+      console.error("Audit log failed:", err);
+    }
+
+    // Refresh duel data + edit history
+    void loadDuelData();
+    void loadEditHistory();
   }
 
   if (loading) {
@@ -890,34 +1000,46 @@ export function RivalryDuelPage({ groupId, groupName, seasonId, seasonName }: Pr
                           );
                         })()}
                       </div>
-                      {isAdmin && !m.counts_for_ranking && (
-                        <button
-                          onClick={() => handlePromoteMatch(m.id)}
-                          disabled={promotingId === m.id}
-                          className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/5 px-2.5 py-1 text-[10px] font-semibold text-primary transition-colors hover:bg-primary/10 disabled:opacity-50"
-                        >
-                          {promotingId === m.id ? (
-                            <Loader2 className="h-3 w-3 animate-spin" />
-                          ) : (
-                            <ArrowUpCircle className="h-3 w-3" />
-                          )}
-                          Promover para ranking
-                        </button>
-                      )}
-                      {isAdmin && m.counts_for_ranking && !!m.round_number === false && (
-                        <button
-                          onClick={() => handleRevertMatch(m.id)}
-                          disabled={revertingId === m.id}
-                          className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-warning/30 bg-warning/5 px-2.5 py-1 text-[10px] font-semibold text-warning transition-colors hover:bg-warning/10 disabled:opacity-50"
-                        >
-                          {revertingId === m.id ? (
-                            <Loader2 className="h-3 w-3 animate-spin" />
-                          ) : (
-                            <Undo2 className="h-3 w-3" />
-                          )}
-                          Reverter promoção
-                        </button>
-                      )}
+                      <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                        {isAdmin && (
+                          <button
+                            onClick={() => handleStartEdit(m.id)}
+                            className="inline-flex items-center gap-1.5 rounded-full border border-border bg-background/50 px-2.5 py-1 text-[10px] font-semibold text-foreground transition-colors hover:bg-accent/30"
+                            title="Editar resultado — recalcula o Elo automaticamente"
+                          >
+                            <Edit3 className="h-3 w-3" />
+                            Editar resultado
+                          </button>
+                        )}
+                        {isAdmin && !m.counts_for_ranking && (
+                          <button
+                            onClick={() => handlePromoteMatch(m.id)}
+                            disabled={promotingId === m.id}
+                            className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/5 px-2.5 py-1 text-[10px] font-semibold text-primary transition-colors hover:bg-primary/10 disabled:opacity-50"
+                          >
+                            {promotingId === m.id ? (
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                            ) : (
+                              <ArrowUpCircle className="h-3 w-3" />
+                            )}
+                            Promover para ranking
+                          </button>
+                        )}
+                        {isAdmin && m.counts_for_ranking && !!m.round_number === false && (
+                          <button
+                            onClick={() => handleRevertMatch(m.id)}
+                            disabled={revertingId === m.id}
+                            className="inline-flex items-center gap-1.5 rounded-full border border-warning/30 bg-warning/5 px-2.5 py-1 text-[10px] font-semibold text-warning transition-colors hover:bg-warning/10 disabled:opacity-50"
+                          >
+                            {revertingId === m.id ? (
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                            ) : (
+                              <Undo2 className="h-3 w-3" />
+                            )}
+                            Reverter promoção
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -1174,7 +1296,88 @@ export function RivalryDuelPage({ groupId, groupName, seasonId, seasonName }: Pr
           </ol>
         )}
       </div>
+
+      {/* Block 10: Histórico de alterações de resultado */}
+      {isAdmin && editHistory.length > 0 && (
+        <div className="rounded-3xl border border-border bg-card/50 p-5">
+          <div className="mb-3 flex items-center gap-1.5">
+            <FileClock className="h-3.5 w-3.5 text-primary" />
+            <h3 className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+              Histórico de alterações
+            </h3>
+          </div>
+          <ol className="space-y-2.5">
+            {editHistory.slice(0, 8).map((h) => {
+              const when = new Date(h.created_at).toLocaleString("pt-BR", {
+                day: "2-digit",
+                month: "short",
+                hour: "2-digit",
+                minute: "2-digit",
+              });
+              return (
+                <li
+                  key={h.id}
+                  className="rounded-xl border border-border/40 bg-background/40 px-3 py-2 text-[11px]"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-semibold text-foreground truncate">
+                      {h.editor_name || "Admin"}
+                    </span>
+                    <span className="text-[10px] text-muted-foreground">{when}</span>
+                  </div>
+                  <p className="mt-1 font-display tabular-nums text-muted-foreground">
+                    <span className="line-through opacity-60">{h.old_sets}</span>
+                    <span className="mx-1.5 text-primary">→</span>
+                    <span className="text-foreground">{h.new_sets}</span>
+                  </p>
+                </li>
+              );
+            })}
+          </ol>
+        </div>
+      )}
       </div>
+
+      {editingMatch && (
+        <ScoreEntryDialog
+          matchId={editingMatch.id}
+          seasonId={seasonId || ""}
+          matchNumber={1}
+          totalMatches={1}
+          isAdmin={isAdmin}
+          isSingles={true}
+          setsMode="unlimited"
+          teamA={[
+            {
+              name: editingMatch.team_a_user_id === playerA.user_id ? displayNameA : displayNameB,
+              avatarUrl:
+                (editingMatch.team_a_user_id === playerA.user_id
+                  ? playerA.avatar_url
+                  : playerB.avatar_url) ?? undefined,
+              userId:
+                editingMatch.team_a_user_id === playerA.user_id ? playerA.user_id : playerB.user_id,
+            },
+          ]}
+          teamB={[
+            {
+              name: editingMatch.team_a_user_id === playerA.user_id ? displayNameB : displayNameA,
+              avatarUrl:
+                (editingMatch.team_a_user_id === playerA.user_id
+                  ? playerB.avatar_url
+                  : playerA.avatar_url) ?? undefined,
+              userId:
+                editingMatch.team_a_user_id === playerA.user_id ? playerB.user_id : playerA.user_id,
+            },
+          ]}
+          existingSets={editingMatch.sets.map((s, i) => ({
+            setNumber: i + 1,
+            scoreA: s.scoreA,
+            scoreB: s.scoreB,
+          }))}
+          onClose={() => setEditingMatch(null)}
+          onSaved={handleEditSaved}
+        />
+      )}
 
       <DuelShareDialog
         open={shareOpen}
