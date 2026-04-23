@@ -559,6 +559,13 @@ export function MembersPanel({ groupId }: Props) {
                           <span className="hidden sm:inline">Convidar</span>
                         </button>
                       )}
+                      <button
+                        onClick={() => handleHardRemove(m.id, m.profile?.name)}
+                        className="rounded-lg bg-destructive/10 p-1.5 text-destructive hover:bg-destructive/20"
+                        title="Remover do grupo definitivamente"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </button>
                     </>
                   )
                 )}
