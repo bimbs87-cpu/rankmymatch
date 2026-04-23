@@ -88,9 +88,14 @@ export function RivalryDuelPage({ groupId, groupName, seasonId, seasonName }: Pr
   const [revertingId, setRevertingId] = useState<string | null>(null);
   const [matchFilter, setMatchFilter] = useState<"all" | "official" | "casual">("all");
   const [shareOpen, setShareOpen] = useState(false);
+  const [editingMatch, setEditingMatch] = useState<DuelMatch | null>(null);
+  const [editHistory, setEditHistory] = useState<
+    { id: string; created_at: string; user_id: string; editor_name: string | null; match_id: string | null; old_sets: string; new_sets: string }[]
+  >([]);
 
   useEffect(() => {
     loadDuelData();
+    void loadEditHistory();
   }, [groupId, seasonId]);
 
   async function loadDuelData() {
