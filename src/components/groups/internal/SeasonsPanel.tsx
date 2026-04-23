@@ -1866,16 +1866,24 @@ function MatchScoreCard({
           </div>
         </div>
 
-        {/* Center: SCORE */}
-        <div className="flex items-center justify-center gap-1.5">
-          <span className={`font-display text-3xl font-black tabular-nums ${aWon ? "text-foreground" : "text-muted-foreground/60"}`}>
-            {setsA}
-          </span>
-          <span className="font-display text-xl font-bold text-muted-foreground/40">×</span>
-          <span className={`font-display text-3xl font-black tabular-nums ${bWon ? "text-foreground" : "text-muted-foreground/60"}`}>
-            {setsB}
-          </span>
-        </div>
+        {/* Center: SCORE — when there's only a single set, show the games score
+            directly (e.g. 6×4) instead of the redundant 1×0 / 0×1. */}
+        {(() => {
+          const single = sets.length === 1;
+          const left = single ? (sets[0].score_team_a ?? 0) : setsA;
+          const right = single ? (sets[0].score_team_b ?? 0) : setsB;
+          return (
+            <div className="flex items-center justify-center gap-1.5">
+              <span className={`font-display text-3xl font-black tabular-nums ${aWon ? "text-foreground" : "text-muted-foreground/60"}`}>
+                {left}
+              </span>
+              <span className="font-display text-xl font-bold text-muted-foreground/40">×</span>
+              <span className={`font-display text-3xl font-black tabular-nums ${bWon ? "text-foreground" : "text-muted-foreground/60"}`}>
+                {right}
+              </span>
+            </div>
+          );
+        })()}
 
         {/* Team B */}
         <div className={`min-w-0 text-left ${bWon ? "" : "opacity-60"}`}>
