@@ -1573,3 +1573,415 @@ function RoundEloMiniTimeline({
     </div>
   );
 }
+
+// =============================================================================
+// CompletedRoundRecap — professional recap for finished rounds.
+// Hero score per match (large, centered), per-set Elo variation (inferred),
+// match stats (winner, total games, MVP), and aggregate round leaderboard.
+// =============================================================================
+type EloEv = { delta: number; before: number; after: number };
+type AggPlayer = { userId: string; delta: number; before: number; after: number; name: string; avatar: string | null };
+
+function CompletedRoundRecap({
+  matches,
+  eloDeltas,
+  presence,
+  confirmedPlayers,
+  totalSets,
+  totalGames,
+  totalEloMoved,
+  mvp,
+  flop,
+  playerAggList,
+  isAdmin,
+  onEditMatch,
+}: {
+  matches: any[];
+  eloDeltas: Record<string, Record<string, EloEv>>;
+  presence: { confirmed: number; declined: number; pending: number; max: number };
+  confirmedPlayers: { user_id: string; name: string; avatar_url: string | null }[];
+  totalSets: number;
+  totalGames: number;
+  totalEloMoved: number;
+  mvp: AggPlayer | undefined;
+  flop: AggPlayer | undefined;
+  playerAggList: AggPlayer[];
+  seasonId: string;
+  scheduledDate: string | null;
+  isAdmin: boolean;
+  onEditMatch: (matchId: string) => void;
+}) {
+  return (
+    <div className="space-y-3">
+      {/* Round summary chips */}
+      <div className="grid grid-cols-4 gap-1.5">
+        <RecapChip label="Partidas" value={String(matches.length)} icon={<Trophy className="h-3 w-3" />} tone="primary" />
+        <RecapChip label="Sets" value={String(totalSets)} icon={<Activity className="h-3 w-3" />} tone="info" />
+        <RecapChip label="Games" value={String(totalGames)} icon={<Zap className="h-3 w-3" />} tone="warning" />
+        <RecapChip label="Elo movido" value={String(Math.round(totalEloMoved))} icon={<TrendingUp className="h-3 w-3" />} tone="success" />
+      </div>
+
+      {/* MVP / Flop highlight + Confirmados */}
+      {(mvp || confirmedPlayers.length > 0) && (
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+          {mvp && mvp.delta > 0 && (
+            <HighlightCard
+              icon={<Crown className="h-3.5 w-3.5" />}
+              label="MVP da rodada"
+              tone="success"
+              player={mvp}
+            />
+          )}
+          {flop && flop !== mvp && flop.delta < 0 && (
+            <HighlightCard
+              icon={<TrendingDown className="h-3.5 w-3.5" />}
+              label="Maior queda"
+              tone="destructive"
+              player={flop}
+            />
+          )}
+        </div>
+      )}
+
+      {confirmedPlayers.length > 0 && (
+        <div className="rounded-xl border border-border bg-card/40 px-2.5 py-2">
+          <div className="mb-1 flex items-center gap-1.5">
+            <Users className="h-3 w-3 text-success" />
+            <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+              Presentes ({presence.confirmed})
+            </span>
+          </div>
+          <div className="flex flex-wrap items-center gap-1">
+            {confirmedPlayers.map((p) => (
+              <PlayerAvatarLink key={p.user_id} userId={p.user_id} ariaLabel={`Ver perfil de ${p.name}`}>
+                <PlayerAvatar
+                  avatarUrl={p.avatar_url}
+                  name={p.name}
+                  size="sm"
+                  className="ring-1 ring-success/40 cursor-pointer transition-transform hover:scale-110"
+                />
+              </PlayerAvatarLink>
+            ))}
+            {presence.confirmed > confirmedPlayers.length && (
+              <span className="ml-1 rounded-full border border-border bg-card px-1.5 py-0.5 text-[9px] font-bold text-muted-foreground">
+                +{presence.confirmed - confirmedPlayers.length}
+              </span>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Hero scores per match */}
+      <div className="space-y-2">
+        {matches.map((m: any) => (
+          <MatchScoreCard
+            key={m.id}
+            match={m}
+            deltas={eloDeltas[m.id] || {}}
+            isAdmin={isAdmin}
+            onEdit={() => onEditMatch(m.id)}
+          />
+        ))}
+      </div>
+
+      {/* Round leaderboard */}
+      {playerAggList.length > 0 && (
+        <div className="rounded-xl border border-border bg-card/40 p-2.5">
+          <div className="mb-2 flex items-center gap-1.5">
+            <Medal className="h-3.5 w-3.5 text-warning" />
+            <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+              Ranking da rodada (Elo)
+            </span>
+          </div>
+          <div className="space-y-0.5">
+            {playerAggList.map((p, i) => {
+              const positive = p.delta > 0;
+              const zero = p.delta === 0;
+              return (
+                <div
+                  key={p.userId}
+                  className="flex items-center gap-2 rounded-md px-1.5 py-1 hover:bg-muted/40"
+                >
+                  <span className="w-4 shrink-0 text-center font-display text-[10px] font-bold text-muted-foreground tabular-nums">
+                    {i + 1}
+                  </span>
+                  <PlayerAvatarLink userId={p.userId} ariaLabel={`Ver perfil de ${p.name}`}>
+                    <PlayerAvatar avatarUrl={p.avatar} name={p.name} size="sm" className="cursor-pointer" />
+                  </PlayerAvatarLink>
+                  <span className="min-w-0 flex-1 truncate text-[11px] font-semibold text-foreground">{p.name}</span>
+                  <span className="text-[10px] text-muted-foreground tabular-nums">
+                    {Math.round(p.before)}
+                  </span>
+                  <span className="text-[10px] text-muted-foreground">→</span>
+                  <span className={`text-[11px] font-bold tabular-nums ${positive ? "text-success" : zero ? "text-muted-foreground" : "text-destructive"}`}>
+                    {Math.round(p.after)}
+                  </span>
+                  <span className={`w-12 shrink-0 text-right text-[10px] font-bold tabular-nums ${positive ? "text-success" : zero ? "text-muted-foreground" : "text-destructive"}`}>
+                    {positive ? "+" : ""}{Math.round(p.delta)}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function RecapChip({
+  label, value, icon, tone,
+}: { label: string; value: string; icon: React.ReactNode; tone: "primary" | "success" | "warning" | "info" }) {
+  const toneClass = {
+    primary: "text-primary border-primary/20 bg-primary/5",
+    success: "text-success border-success/20 bg-success/5",
+    warning: "text-warning border-warning/20 bg-warning/5",
+    info: "text-info border-info/20 bg-info/5",
+  }[tone];
+  return (
+    <div className={`rounded-lg border px-1.5 py-1.5 ${toneClass}`}>
+      <div className="flex items-center gap-1 opacity-80">
+        {icon}
+        <span className="text-[8px] font-bold uppercase tracking-wider">{label}</span>
+      </div>
+      <p className="mt-0.5 font-display text-base font-bold tabular-nums leading-none">{value}</p>
+    </div>
+  );
+}
+
+function HighlightCard({
+  icon, label, tone, player,
+}: { icon: React.ReactNode; label: string; tone: "success" | "destructive"; player: AggPlayer }) {
+  const toneCls = tone === "success"
+    ? "border-success/30 bg-success/5 text-success"
+    : "border-destructive/30 bg-destructive/5 text-destructive";
+  return (
+    <div className={`flex items-center gap-2 rounded-xl border px-2.5 py-2 ${toneCls}`}>
+      <PlayerAvatarLink userId={player.userId} ariaLabel={`Ver perfil de ${player.name}`}>
+        <PlayerAvatar avatarUrl={player.avatar} name={player.name} size="md" className="ring-2 ring-current cursor-pointer" />
+      </PlayerAvatarLink>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider opacity-90">
+          {icon}
+          {label}
+        </div>
+        <p className="truncate font-display text-xs font-bold text-foreground">{player.name}</p>
+      </div>
+      <div className="text-right">
+        <p className="font-display text-lg font-bold tabular-nums leading-none">
+          {player.delta > 0 ? "+" : ""}{Math.round(player.delta)}
+        </p>
+        <p className="text-[9px] text-muted-foreground tabular-nums">
+          {Math.round(player.before)} → {Math.round(player.after)}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function MatchScoreCard({
+  match, deltas, isAdmin, onEdit,
+}: {
+  match: any;
+  deltas: Record<string, EloEv>;
+  isAdmin: boolean;
+  onEdit: () => void;
+}) {
+  const teamA = (match.match_players || []).filter((mp: any) => mp.team === "A");
+  const teamB = (match.match_players || []).filter((mp: any) => mp.team === "B");
+  const sets = (match.match_sets || []).slice().sort((a: any, b: any) => a.set_number - b.set_number);
+  const nameOf = (mp: any) => mp.profile?.nickname || mp.profile?.name || "Jogador";
+  const aWon = match.winner_team === "A";
+  const bWon = match.winner_team === "B";
+
+  // Aggregate side totals
+  const setsA = sets.filter((s: any) => s.score_team_a > s.score_team_b).length;
+  const setsB = sets.filter((s: any) => s.score_team_b > s.score_team_a).length;
+  const gamesA = sets.reduce((acc: number, s: any) => acc + (s.score_team_a || 0), 0);
+  const gamesB = sets.reduce((acc: number, s: any) => acc + (s.score_team_b || 0), 0);
+
+  // Team aggregate Elo delta (sum of player deltas per side)
+  const eloA = teamA.reduce((acc: number, mp: any) => acc + (deltas[mp.user_id]?.delta || 0), 0);
+  const eloB = teamB.reduce((acc: number, mp: any) => acc + (deltas[mp.user_id]?.delta || 0), 0);
+
+  // Inferred per-set Elo distribution: spread match delta proportionally to sets won.
+  // If side won 0 sets, give a small share (10%) to reflect competitive play.
+  const inferredSetElo = (totalDelta: number, sideSetsWon: number) => {
+    if (sets.length === 0) return [];
+    const baseShare = sideSetsWon === 0 ? 0.1 : 0;
+    const winShare = (1 - baseShare * sets.length) / Math.max(1, sideSetsWon);
+    return sets.map((s: any) => {
+      const won = (s.score_team_a > s.score_team_b && totalDelta === eloA) ||
+                  (s.score_team_b > s.score_team_a && totalDelta === eloB);
+      const share = won ? winShare : baseShare;
+      return totalDelta * share;
+    });
+  };
+  const aSetsElo = inferredSetElo(eloA, setsA);
+  const bSetsElo = inferredSetElo(eloB, setsB);
+
+  return (
+    <div className="overflow-hidden rounded-xl border border-border bg-card/60">
+      {/* Header — match # */}
+      <div className="flex items-center justify-between bg-muted/30 px-2.5 py-1">
+        <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground">
+          Partida {match.match_number || "?"}
+        </span>
+        {isAdmin && (
+          <button
+            onClick={onEdit}
+            className="flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[9px] font-semibold text-primary hover:bg-primary/10"
+            title="Editar resultado"
+          >
+            <Pencil className="h-2.5 w-2.5" /> Editar
+          </button>
+        )}
+      </div>
+
+      {/* HERO SCORE: large, centered */}
+      <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 px-3 py-3">
+        {/* Team A */}
+        <div className={`min-w-0 text-right ${aWon ? "" : "opacity-60"}`}>
+          <div className="flex flex-col items-end gap-1">
+            {teamA.map((mp: any) => {
+              const ev = deltas[mp.user_id];
+              return (
+                <div key={mp.user_id} className="flex items-center gap-1.5">
+                  <div className="text-right min-w-0">
+                    <p className={`truncate text-[11px] font-bold leading-tight ${aWon ? "text-foreground" : "text-muted-foreground"}`}>
+                      {nameOf(mp)}
+                    </p>
+                    {ev && ev.delta !== 0 && (
+                      <p className={`text-[9px] font-semibold tabular-nums leading-tight ${ev.delta > 0 ? "text-success" : "text-destructive"}`}>
+                        {ev.delta > 0 ? "+" : ""}{Math.round(ev.delta)} ({Math.round(ev.after)})
+                      </p>
+                    )}
+                  </div>
+                  <PlayerAvatarLink userId={mp.user_id} ariaLabel={`Ver perfil de ${nameOf(mp)}`}>
+                    <PlayerAvatar avatarUrl={mp.profile?.avatar_url ?? null} name={nameOf(mp)} size="sm" className={`cursor-pointer ${aWon ? "ring-2 ring-success/60" : ""}`} />
+                  </PlayerAvatarLink>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Center: SCORE */}
+        <div className="flex items-center justify-center gap-1.5">
+          <span className={`font-display text-3xl font-black tabular-nums ${aWon ? "text-foreground" : "text-muted-foreground/60"}`}>
+            {setsA}
+          </span>
+          <span className="font-display text-xl font-bold text-muted-foreground/40">×</span>
+          <span className={`font-display text-3xl font-black tabular-nums ${bWon ? "text-foreground" : "text-muted-foreground/60"}`}>
+            {setsB}
+          </span>
+        </div>
+
+        {/* Team B */}
+        <div className={`min-w-0 text-left ${bWon ? "" : "opacity-60"}`}>
+          <div className="flex flex-col items-start gap-1">
+            {teamB.map((mp: any) => {
+              const ev = deltas[mp.user_id];
+              return (
+                <div key={mp.user_id} className="flex items-center gap-1.5">
+                  <PlayerAvatarLink userId={mp.user_id} ariaLabel={`Ver perfil de ${nameOf(mp)}`}>
+                    <PlayerAvatar avatarUrl={mp.profile?.avatar_url ?? null} name={nameOf(mp)} size="sm" className={`cursor-pointer ${bWon ? "ring-2 ring-success/60" : ""}`} />
+                  </PlayerAvatarLink>
+                  <div className="text-left min-w-0">
+                    <p className={`truncate text-[11px] font-bold leading-tight ${bWon ? "text-foreground" : "text-muted-foreground"}`}>
+                      {nameOf(mp)}
+                    </p>
+                    {ev && ev.delta !== 0 && (
+                      <p className={`text-[9px] font-semibold tabular-nums leading-tight ${ev.delta > 0 ? "text-success" : "text-destructive"}`}>
+                        {ev.delta > 0 ? "+" : ""}{Math.round(ev.delta)} ({Math.round(ev.after)})
+                      </p>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      {/* Per-set table */}
+      {sets.length > 0 && (
+        <div className="border-t border-border/60 bg-background/40">
+          <table className="w-full text-[10px] tabular-nums">
+            <thead>
+              <tr className="text-muted-foreground">
+                <th className="px-2 py-1 text-left font-semibold uppercase tracking-wider text-[9px]">Set</th>
+                {sets.map((s: any) => (
+                  <th key={s.set_number} className="px-1 py-1 text-center font-semibold uppercase tracking-wider text-[9px]">
+                    {s.set_number}{s.is_tiebreak ? "·TB" : ""}
+                  </th>
+                ))}
+                <th className="px-2 py-1 text-right font-semibold uppercase tracking-wider text-[9px]">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr className={aWon ? "bg-success/5" : ""}>
+                <td className="px-2 py-1 text-left font-bold text-foreground truncate max-w-[6rem]">
+                  {teamA.map(nameOf).join(" / ")}
+                </td>
+                {sets.map((s: any, i: number) => {
+                  const won = s.score_team_a > s.score_team_b;
+                  const setDelta = aSetsElo[i] || 0;
+                  return (
+                    <td key={s.set_number} className="px-1 py-1 text-center">
+                      <div className={`font-display font-bold ${won ? "text-success" : "text-muted-foreground"}`}>
+                        {s.score_team_a}
+                      </div>
+                      {Math.abs(setDelta) >= 0.5 && (
+                        <div className={`text-[8px] font-bold ${setDelta > 0 ? "text-success" : "text-destructive"}`}>
+                          {setDelta > 0 ? "+" : ""}{Math.round(setDelta)}
+                        </div>
+                      )}
+                    </td>
+                  );
+                })}
+                <td className="px-2 py-1 text-right font-display font-bold text-foreground">{gamesA}</td>
+              </tr>
+              <tr className={bWon ? "bg-success/5" : ""}>
+                <td className="px-2 py-1 text-left font-bold text-foreground truncate max-w-[6rem]">
+                  {teamB.map(nameOf).join(" / ")}
+                </td>
+                {sets.map((s: any, i: number) => {
+                  const won = s.score_team_b > s.score_team_a;
+                  const setDelta = bSetsElo[i] || 0;
+                  return (
+                    <td key={s.set_number} className="px-1 py-1 text-center">
+                      <div className={`font-display font-bold ${won ? "text-success" : "text-muted-foreground"}`}>
+                        {s.score_team_b}
+                      </div>
+                      {Math.abs(setDelta) >= 0.5 && (
+                        <div className={`text-[8px] font-bold ${setDelta > 0 ? "text-success" : "text-destructive"}`}>
+                          {setDelta > 0 ? "+" : ""}{Math.round(setDelta)}
+                        </div>
+                      )}
+                    </td>
+                  );
+                })}
+                <td className="px-2 py-1 text-right font-display font-bold text-foreground">{gamesB}</td>
+              </tr>
+            </tbody>
+          </table>
+          {(eloA !== 0 || eloB !== 0) && (
+            <div className="flex items-center justify-between border-t border-border/60 bg-muted/20 px-2 py-1 text-[9px]">
+              <span className="font-bold uppercase tracking-wider text-muted-foreground">Δ Elo do time</span>
+              <div className="flex items-center gap-3 tabular-nums">
+                <span className={`font-bold ${eloA > 0 ? "text-success" : eloA < 0 ? "text-destructive" : "text-muted-foreground"}`}>
+                  A: {eloA > 0 ? "+" : ""}{Math.round(eloA)}
+                </span>
+                <span className={`font-bold ${eloB > 0 ? "text-success" : eloB < 0 ? "text-destructive" : "text-muted-foreground"}`}>
+                  B: {eloB > 0 ? "+" : ""}{Math.round(eloB)}
+                </span>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
