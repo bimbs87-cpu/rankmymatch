@@ -183,6 +183,9 @@ function GeneralSection({ group, onSaved }: { group: any; onSaved: () => void })
   const [description, setDescription] = useState(group.description || "");
   const initVis = group.visibility || (group.is_public ? "public" : "private");
   const [visibility, setVisibility] = useState<string>(initVis);
+  const initMemberLimit: number | null = (group as any).member_limit ?? null;
+  const [memberLimitEnabled, setMemberLimitEnabled] = useState<boolean>(initMemberLimit != null);
+  const [memberLimit, setMemberLimit] = useState<string>(initMemberLimit != null ? String(initMemberLimit) : "");
   const [saving, setSaving] = useState(false);
   const [isPremium, setIsPremium] = useState(false);
   const [premiumExpiresAt, setPremiumExpiresAt] = useState<Date | null>(null);
