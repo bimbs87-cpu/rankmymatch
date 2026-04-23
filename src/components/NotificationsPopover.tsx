@@ -67,24 +67,22 @@ export function NotificationsPopover({ children }: Props) {
   // and closed rapidly (or re-opened before the previous call settles).
   const markingRef = useRef(false);
   const lastMarkedAtRef = useRef(0);
-  const [isMarking, setIsMarking] = useState(false);
 
-  // Auto-mark all as read when the popover opens.
+  // Auto-mark all as read when the popover opens. We do this in the
+  // background (no spinner) so the indicator clears instantly and the user
+  // sees a clean state without flicker.
   useEffect(() => {
     if (!open || unreadCount === 0) return;
     if (markingRef.current) return;
-    // Debounce: ignore if we just marked within the last 1.5s.
     if (Date.now() - lastMarkedAtRef.current < 1500) return;
 
     markingRef.current = true;
-    setIsMarking(true);
     void (async () => {
       try {
         await markAllRead();
         lastMarkedAtRef.current = Date.now();
       } finally {
         markingRef.current = false;
-        setIsMarking(false);
       }
     })();
   }, [open, unreadCount, markAllRead]);
