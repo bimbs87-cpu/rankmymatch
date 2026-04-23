@@ -580,11 +580,13 @@ export type Database = {
           created_at: string
           group_id: string
           id: string
+          is_waitlisted: boolean
           message: string | null
           resolved_at: string | null
           resolved_by: string | null
           status: string
           user_id: string
+          waitlist_position: number | null
         }
         Insert: {
           claimed_player_id?: string | null
@@ -592,11 +594,13 @@ export type Database = {
           created_at?: string
           group_id: string
           id?: string
+          is_waitlisted?: boolean
           message?: string | null
           resolved_at?: string | null
           resolved_by?: string | null
           status?: string
           user_id: string
+          waitlist_position?: number | null
         }
         Update: {
           claimed_player_id?: string | null
@@ -604,11 +608,13 @@ export type Database = {
           created_at?: string
           group_id?: string
           id?: string
+          is_waitlisted?: boolean
           message?: string | null
           resolved_at?: string | null
           resolved_by?: string | null
           status?: string
           user_id?: string
+          waitlist_position?: number | null
         }
         Relationships: [
           {
@@ -2148,6 +2154,10 @@ export type Database = {
           msg_id: number
           read_ct: number
         }[]
+      }
+      recompute_waitlist_positions: {
+        Args: { _group_id: string }
+        Returns: undefined
       }
     }
     Enums: {
