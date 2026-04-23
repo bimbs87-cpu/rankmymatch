@@ -192,7 +192,7 @@ function ChangelogAdminPage() {
   async function fetchCommitsFromGitHub() {
     setFetchingCommits(true);
     try {
-      const url = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/commits?sha=${GITHUB_BRANCH}&per_page=30`;
+      const url = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/commits?sha=${GITHUB_BRANCH}&per_page=50`;
       const res = await fetch(url, { headers: { Accept: "application/vnd.github+json" } });
       if (!res.ok) {
         const body = await res.text().catch(() => "");
