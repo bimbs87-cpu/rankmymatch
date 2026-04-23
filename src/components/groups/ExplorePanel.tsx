@@ -316,6 +316,20 @@ export function ExplorePanel() {
                           )}
                           Copiar convite
                         </button>
+                        {inviteInfoById[g.id] && (() => {
+                          const info = inviteInfoById[g.id];
+                          const parts: string[] = [];
+                          if (info.expiresAt) parts.push(formatExpiresAt(info.expiresAt));
+                          if (info.maxUses != null) {
+                            const remaining = Math.max(0, info.maxUses - info.useCount);
+                            parts.push(`${remaining} de ${info.maxUses} usos restantes`);
+                          } else {
+                            parts.push("usos ilimitados");
+                          }
+                          return (
+                            <p className="text-[10px] text-muted-foreground/70">{parts.join(" · ")}</p>
+                          );
+                        })()}
                       </div>
                     )}
                   </div>
