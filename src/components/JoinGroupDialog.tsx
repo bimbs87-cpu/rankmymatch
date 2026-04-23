@@ -49,11 +49,31 @@ export function JoinGroupDialog({
   const [formers, setFormers] = useState<ClaimablePlayer[]>([]);
   const [selected, setSelected] = useState<ClaimablePlayer | null>(null);
   const [message, setMessage] = useState("");
+  const [capacity, setCapacity] = useState<CapacityInfo | null>(null);
+
+  const refreshCapacity = useCallback(async () => {
+    try {
+      const [{ data: groupRow }, { data: cnt }] = await Promise.all([
+        supabase.from("groups").select("member_limit").eq("id", groupId).maybeSingle(),
+        supabase.rpc("get_group_member_count", { _group_id: groupId }),
+      ]);
+      const limit = (groupRow as any)?.member_limit ?? null;
+      const activeCount = (cnt as number | null) ?? 0;
+      setCapacity({
+        activeCount,
+        limit,
+        isFull: limit != null && activeCount >= limit,
+      });
+    } catch (e) {
+      console.warn("refreshCapacity failed:", e);
+    }
+  }, [groupId]);
 
   useEffect(() => {
     if (!open) {
       setSelected(null);
       setMessage("");
+      setCapacity(null);
       return;
     }
     let cancelled = false;
