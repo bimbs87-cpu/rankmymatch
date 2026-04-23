@@ -506,6 +506,13 @@ export function MembersPanel({ groupId }: Props) {
                     <>
                       <button onClick={() => setMergeFormerMember(m)} className="rounded-lg bg-primary/10 p-1.5 text-primary" title="Mesclar"><GitMerge className="h-3 w-3" /></button>
                       <button onClick={() => handleStartRename(m.user_id, m.profile?.name || "")} className="rounded-lg bg-muted p-1.5 text-muted-foreground" title="Renomear"><Pencil className="h-3 w-3" /></button>
+                      <button
+                        onClick={() => handleHardRemove(m.id, m.profile?.name)}
+                        className="rounded-lg bg-destructive/10 p-1.5 text-destructive hover:bg-destructive/20"
+                        title="Remover do grupo definitivamente"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </button>
                     </>
                   )
                 )}
