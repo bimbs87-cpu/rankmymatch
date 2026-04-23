@@ -570,6 +570,65 @@ export async function rejectJoinRequest(requestId: string, adminId: string) {
     .eq("id", requestId);
 }
 
+/**
+ * After a member leaves/is removed, check if a spot just opened up and notify
+ * group admins that the next waitlisted candidate is ready to be approved.
+ * Best-effort: errors are logged but do not block the caller.
+ */
+async function notifyAdminsOfWaitlistVacancy(groupId: string, actorId: string) {
+  try {
+    // Only relevant when the group has a configured limit
+    const { data: g } = await supabase
+      .from("groups")
+      .select("name, member_limit")
+      .eq("id", groupId)
+      .maybeSingle();
+    const limit = (g as any)?.member_limit ?? null;
+    if (limit == null) return;
+
+    const { data: cnt } = await supabase.rpc("get_group_member_count", { _group_id: groupId });
+    const current = (cnt as number | null) ?? 0;
+    if (current >= limit) return; // still full, no vacancy yet
+
+    // Find next waitlisted pending request (FIFO)
+    const { data: next } = await supabase
+      .from("group_join_requests")
+      .select("id, user_id, waitlist_position")
+      .eq("group_id", groupId)
+      .eq("status", "pending")
+      .eq("is_waitlisted", true)
+      .order("waitlist_position", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    if (!next) return;
+
+    const { data: profile } = await supabase
+      .from("user_profiles")
+      .select("name, nickname")
+      .eq("user_id", next.user_id)
+      .maybeSingle();
+    const name = profile?.nickname || profile?.name || "Próximo da fila";
+
+    const { notifyGroupAdmins } = await import("@/lib/notify");
+    await notifyGroupAdmins({
+      groupId,
+      actorId,
+      type: "waitlist_vacancy",
+      title: "Vaga aberta — aprovar próximo da fila",
+      body: `Uma vaga abriu em ${(g as any)?.name || "seu grupo"}. ${name} é o próximo da lista de espera.`,
+      url: "/admin/inbox",
+      tag: `waitlist_vacancy:${groupId}`,
+      data: {
+        kind: "waitlist_vacancy",
+        requestId: next.id,
+        nextUserId: next.user_id,
+      },
+    });
+  } catch (err) {
+    console.warn("[notifyAdminsOfWaitlistVacancy] failed:", err);
+  }
+}
+
 export async function removeMember(memberId: string) {
   // Soft-remove: keep group_members row with status='removed' so the original
   // name continues to appear (dimmed) in rankings, matches and history.
@@ -594,6 +653,8 @@ export async function removeMember(memberId: string) {
       oldData: prev,
       newData: { ...prev, status: "removed" },
     });
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) void notifyAdminsOfWaitlistVacancy(prev.group_id, user.id);
   }
 }
 
