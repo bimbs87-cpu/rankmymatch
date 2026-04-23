@@ -26,7 +26,14 @@ async function assertCanInvite(groupId: string, userId: string): Promise<void> {
   if (!data) throw new Error("Você não tem permissão para gerar convites deste grupo.");
 }
 
-async function getOrCreateInviteUrl(groupId: string, userId: string): Promise<string> {
+interface InviteInfo {
+  url: string;
+  expiresAt: string | null;
+  maxUses: number | null;
+  useCount: number;
+}
+
+async function getOrCreateInviteUrl(groupId: string, userId: string): Promise<InviteInfo> {
   // Defensive server-side check: only admins/creators can mint invites here.
   await assertCanInvite(groupId, userId);
 
@@ -45,16 +52,40 @@ async function getOrCreateInviteUrl(groupId: string, userId: string): Promise<st
   );
 
   let code = usable?.code;
+  let expiresAt: string | null = usable?.expires_at ?? null;
+  let maxUses: number | null = usable?.max_uses ?? null;
+  let useCount: number = usable?.use_count ?? 0;
   if (!code) {
     code = generateInviteCode();
-    const { error } = await supabase.from("invite_links").insert({
-      group_id: groupId,
-      code,
-      created_by: userId,
-    });
+    const { data: inserted, error } = await supabase
+      .from("invite_links")
+      .insert({ group_id: groupId, code, created_by: userId })
+      .select("expires_at, max_uses, use_count")
+      .single();
     if (error) throw error;
+    expiresAt = inserted?.expires_at ?? null;
+    maxUses = inserted?.max_uses ?? null;
+    useCount = inserted?.use_count ?? 0;
   }
-  return `${window.location.origin}/invite/${code}`;
+  return {
+    url: `${window.location.origin}/invite/${code}`,
+    expiresAt,
+    maxUses,
+    useCount,
+  };
+}
+
+function formatExpiresAt(iso: string): string {
+  const d = new Date(iso);
+  const now = new Date();
+  const diffMs = d.getTime() - now.getTime();
+  if (diffMs <= 0) return "expirado";
+  const days = Math.floor(diffMs / 86400000);
+  if (days >= 1) return `expira em ${days} dia${days !== 1 ? "s" : ""}`;
+  const hours = Math.floor(diffMs / 3600000);
+  if (hours >= 1) return `expira em ${hours}h`;
+  const mins = Math.max(1, Math.floor(diffMs / 60000));
+  return `expira em ${mins} min`;
 }
 
 type SortKey = "newest" | "biggest" | "smallest";
@@ -71,6 +102,7 @@ export function ExplorePanel() {
   const [sort, setSort] = useState<SortKey>("newest");
   const [showFilters, setShowFilters] = useState(false);
   const [copyingId, setCopyingId] = useState<string | null>(null);
+  const [inviteInfoById, setInviteInfoById] = useState<Record<string, InviteInfo>>({});
 
   const { groups, isLoading } = usePublicGroups(search);
 
@@ -84,8 +116,9 @@ export function ExplorePanel() {
     }
     setCopyingId(groupId);
     try {
-      const url = await getOrCreateInviteUrl(groupId, user.id);
-      await navigator.clipboard.writeText(url);
+      const info = await getOrCreateInviteUrl(groupId, user.id);
+      await navigator.clipboard.writeText(info.url);
+      setInviteInfoById((prev) => ({ ...prev, [groupId]: info }));
       toast.success("Link de convite copiado!");
     } catch (err: any) {
       console.error(err);
@@ -283,6 +316,20 @@ export function ExplorePanel() {
                           )}
                           Copiar convite
                         </button>
+                        {inviteInfoById[g.id] && (() => {
+                          const info = inviteInfoById[g.id];
+                          const parts: string[] = [];
+                          if (info.expiresAt) parts.push(formatExpiresAt(info.expiresAt));
+                          if (info.maxUses != null) {
+                            const remaining = Math.max(0, info.maxUses - info.useCount);
+                            parts.push(`${remaining} de ${info.maxUses} usos restantes`);
+                          } else {
+                            parts.push("usos ilimitados");
+                          }
+                          return (
+                            <p className="text-[10px] text-muted-foreground/70">{parts.join(" · ")}</p>
+                          );
+                        })()}
                       </div>
                     )}
                   </div>
