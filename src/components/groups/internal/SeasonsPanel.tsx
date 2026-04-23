@@ -1335,7 +1335,10 @@ export function RoundExpandedDetails({
                   );
                   const iAmInMatch = !!user && (m.match_players || []).some((mp: any) => mp.user_id === user.id);
                   const canEnterScore = isAdmin || iAmInMatch;
-                  const showEnterBtn = canEnterScore && m.status !== "completed";
+                  // Allow editing completed matches too (sets > 0): admins always; participants only when they can re-submit.
+                  // Elo is auto-recalculated on edit via revertMatchEloServer + submitMatchScoreServer.
+                  const isCompletedWithSets = m.status === "completed" && sets.length > 0;
+                  const showEnterBtn = canEnterScore && (m.status !== "completed" || (isCompletedWithSets && isAdmin));
                   return (
                     <div key={m.id} className="rounded-lg border border-border bg-card/40 px-2 py-1.5 text-[11px] space-y-1">
                       <div className="flex items-center justify-between gap-2">
