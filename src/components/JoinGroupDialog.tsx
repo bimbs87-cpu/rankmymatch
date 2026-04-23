@@ -230,10 +230,15 @@ export function JoinGroupDialog({
         console.warn("notifyGroupAdmins (join) falhou:", notifyErr);
       }
 
+      const isWaitlisted = capacity?.isFull ?? false;
+      const positionMsg = isWaitlisted
+        ? ` Você está na posição #${capacity?.nextPosition ?? "?"} da lista de espera.`
+        : "";
       toast.success(
-        selected
+        (selected
           ? "Solicitação enviada! O admin vai aprovar e vincular seu histórico."
-          : "Solicitação enviada! O admin vai revisar.",
+          : "Solicitação enviada! O admin vai revisar.") + positionMsg,
+        { duration: isWaitlisted ? 7000 : 4000 },
       );
       onJoined();
       onOpenChange(false);
