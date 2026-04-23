@@ -231,6 +231,83 @@ async function autoCreateRivalryMatchIfReady(roundId: string, actorId: string): 
 }
 
 /**
+ * Auto-draw a doubles round when capacity is reached. Idempotent — only fires
+ * when the round has no matches yet and the count of confirmed players is
+ * exactly max_players (4 for 1-court "King of the Court", 8 for 2 courts...).
+ * Players ordered by Elo are drawn via `drawTeams`, which also fans out
+ * per-player in-app notifications. We then push web notifications too.
+ */
+async function autoDrawDoublesIfFull(roundId: string, actorId: string): Promise<void> {
+  const existing = inFlightAutoDraw.get(roundId);
+  if (existing) return existing;
+
+  const run = (async () => {
+    const { data: roundRow } = await supabase
+      .from("rounds")
+      .select("id, group_id, match_format, max_players, status")
+      .eq("id", roundId)
+      .single();
+    if (!roundRow) return;
+    if (roundRow.match_format !== "doubles") return;
+    if (!["scheduled", "in_progress", "open", "presence_open"].includes(roundRow.status)) return;
+
+    const { count: matchCount } = await supabase
+      .from("matches")
+      .select("id", { count: "exact", head: true })
+      .eq("round_id", roundId);
+    if ((matchCount ?? 0) > 0) return;
+
+    const { data: confirmed } = await supabase
+      .from("round_presence")
+      .select("user_id, confirmed_at")
+      .eq("round_id", roundId)
+      .eq("status", "confirmed")
+      .order("confirmed_at", { ascending: true });
+    const confirmedIds = (confirmed || []).map((p) => p.user_id);
+    const target = roundRow.max_players ?? 0;
+    if (target < 4) return;
+    if (confirmedIds.length < target) return;
+
+    // Take exactly the first `target` confirmed players (FIFO). Anyone beyond
+    // is already on the waiting list and won't be drawn.
+    const drawnIds = confirmedIds.slice(0, target);
+    console.info("[autoDrawDoubles] drawing teams (round full)", {
+      roundId,
+      target,
+      confirmed: confirmedIds.length,
+    });
+    await drawTeams(roundId, drawnIds, actorId);
+
+    // Fan out a web push so involved players are notified immediately
+    // (drawTeams already inserts in-app notifications).
+    try {
+      const { sendPushFn } = await import("@/lib/push.functions");
+      void sendPushFn({
+        data: {
+          userIds: drawnIds,
+          payload: {
+            title: "Sorteio realizado! 🎲",
+            body: target === 4
+              ? "A rodada está completa. Veja os confrontos do Rei da Quadra."
+              : "A rodada está completa. Veja seus confrontos.",
+            url: `/groups/${roundRow.group_id}`,
+            tag: `draw_completed:${roundId}`,
+            data: { type: "draw_completed", roundId, groupId: roundRow.group_id },
+          },
+          eventType: "draw_completed",
+        },
+      });
+    } catch (err) {
+      console.error("[autoDrawDoubles] push failed:", err);
+    }
+  })();
+
+  inFlightAutoDraw.set(roundId, run);
+  run.finally(() => inFlightAutoDraw.delete(roundId));
+  return run;
+}
+
+/**
  * Notify the OTHER confirmed players in the round that someone changed presence.
  * Used for both confirmar and recusar — keeps the active group aware in real time.
  */
