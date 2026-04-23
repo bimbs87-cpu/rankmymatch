@@ -15,6 +15,7 @@ import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { PlayerAvatarLink } from "@/components/PlayerProfileViewer";
 import { GroupSummaryCards } from "./GroupSummaryCards";
 import { SeasonsTimeline } from "./SeasonsTimeline";
+import { LastAndNextRoundCards } from "./LastAndNextRoundCards";
 import { createExtraRound as createExtraRoundFn } from "@/lib/extra-round";
 import { ScoreEntryDialog } from "@/components/ScoreEntryDialog";
 import { AdminAddPresenceDialog } from "@/components/AdminAddPresenceDialog";
@@ -179,10 +180,16 @@ export function SeasonsPanel({ groupId, isAdmin, initialSeasonId, initialRoundId
       {/* Group-wide summary cards (totais do grupo todo) */}
       <GroupSummaryCards groupId={groupId} />
 
+      {/* Last completed round — expanded by default */}
+      <LastAndNextRoundCards groupId={groupId} isAdmin={isAdmin} variant="last" />
+
       {/* Mini timeline showing season spans */}
       {seasons.length > 0 && (
         <SeasonsTimeline seasons={seasons.map((s: any) => ({ ...s, group_id: groupId })) as any} onSelect={handleTimelineSelect} />
       )}
+
+      {/* Next upcoming round — collapsed by default */}
+      <LastAndNextRoundCards groupId={groupId} isAdmin={isAdmin} variant="next" />
 
       {/* Quick filter chips */}
       {seasons.length > 0 && (
