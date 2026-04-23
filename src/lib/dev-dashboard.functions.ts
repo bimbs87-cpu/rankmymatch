@@ -942,6 +942,205 @@ export const getDevDashboard = createServerFn({ method: "GET" })
     const segmentFunnel7d = buildSegmentFunnel(sessions7dIds);
     const segmentFunnel30d = buildSegmentFunnel(sessions30dIds);
 
+    // ===== Sankey: Sessões → Signup → Grupo → Partida por UTM/referrer (7d) =====
+    // Nodes: "src:<key>" → "Signup" → "Grupo" → "Partida"
+    // + drop nodes ("Drop Signup", "Drop Grupo", "Drop Partida") para visualizar quedas.
+    type SankeyNode = { id: string };
+    type SankeyLink = { source: string; target: string; value: number };
+    function buildSankey(rows: typeof segmentFunnel7d.utm, label: string) {
+      const nodes = new Map<string, SankeyNode>();
+      const links: SankeyLink[] = [];
+      const addNode = (id: string) => {
+        if (!nodes.has(id)) nodes.set(id, { id });
+      };
+      const stageSignup = `${label}: Signup`;
+      const stageGroup = `${label}: Grupo`;
+      const stageMatch = `${label}: Partida`;
+      const dropSignup = `${label}: Drop pré-Signup`;
+      const dropGroup = `${label}: Drop pré-Grupo`;
+      const dropMatch = `${label}: Drop pré-Partida`;
+      addNode(stageSignup);
+      addNode(stageGroup);
+      addNode(stageMatch);
+      addNode(dropSignup);
+      addNode(dropGroup);
+      addNode(dropMatch);
+
+      // limita a top-8 segmentos para não poluir
+      rows.slice(0, 8).forEach((r) => {
+        if (r.sessions <= 0) return;
+        const src = `Origem: ${r.key}`;
+        addNode(src);
+        if (r.signups > 0) links.push({ source: src, target: stageSignup, value: r.signups });
+        const dropS = r.sessions - r.signups;
+        if (dropS > 0) links.push({ source: src, target: dropSignup, value: dropS });
+      });
+
+      // Agregados de signup→grupo→partida
+      const totSignup = rows.slice(0, 8).reduce((acc, r) => acc + r.signups, 0);
+      const totGroup = rows.slice(0, 8).reduce((acc, r) => acc + r.groups, 0);
+      const totMatch = rows.slice(0, 8).reduce((acc, r) => acc + r.matches, 0);
+      if (totGroup > 0) links.push({ source: stageSignup, target: stageGroup, value: totGroup });
+      const dropG = totSignup - totGroup;
+      if (dropG > 0) links.push({ source: stageSignup, target: dropGroup, value: dropG });
+      if (totMatch > 0) links.push({ source: stageGroup, target: stageMatch, value: totMatch });
+      const dropM = totGroup - totMatch;
+      if (dropM > 0) links.push({ source: stageGroup, target: dropMatch, value: dropM });
+
+      // Filtra nodes sem links
+      const usedIds = new Set<string>();
+      links.forEach((l) => {
+        usedIds.add(l.source);
+        usedIds.add(l.target);
+      });
+      return {
+        nodes: Array.from(nodes.values()).filter((n) => usedIds.has(n.id)),
+        links,
+      };
+    }
+    const sankeyUtm7d = buildSankey(segmentFunnel7d.utm, "UTM");
+    const sankeyReferrer7d = buildSankey(segmentFunnel7d.referrer, "Ref");
+
+    // ===== Top-10 segmentos com maior drop + causas automáticas =====
+    const profileUserIdSetEarly = new Set((allProfiles ?? []).map((p) => p.user_id));
+    const ghostUserIdSet = new Set(
+      authUsers.filter((u) => !profileUserIdSetEarly.has(u.id)).map((u) => u.id)
+    );
+    const onbSignupSet = new Set(
+      onbRows.filter((r) => r.step === "signup").map((r) => r.user_id)
+    );
+    // Pré-computa abandono em /login para usar no inferCauses
+    const loginSessionIdsEarly = new Set<string>();
+    visits.forEach((v) => {
+      if (v.path === "/login" || v.path.startsWith("/login")) {
+        loginSessionIdsEarly.add(v.session_id);
+      }
+    });
+    let loginAbandonEarly = 0;
+    loginSessionIdsEarly.forEach((sid) => {
+      const uid = sessionUserMap.get(sid);
+      if (!(uid && authUserIdSet.has(uid))) loginAbandonEarly += 1;
+    });
+    const loginAbandonRateEarly =
+      loginSessionIdsEarly.size > 0
+        ? Number(((loginAbandonEarly / loginSessionIdsEarly.size) * 100).toFixed(1))
+        : 0;
+    function inferCauses(seg: {
+      key: string;
+      sessions: number;
+      signups: number;
+      groups: number;
+      matches: number;
+      signupRate: number;
+      groupRate: number;
+      matchRate: number;
+    }) {
+      const causes: string[] = [];
+      // Se taxa signup baixa (<10%) e há sessões em /login → abandono no login
+      if (seg.signupRate < 10 && loginAbandonRateEarly > 50) {
+        causes.push("Abandono em /login");
+      }
+      // Se houve signups mas usuários sem profile → ghost users
+      if (seg.signups > 0 && ghostUserIdSet.size > 0) {
+        causes.push("Ghost users (profile não criado)");
+      }
+      // Se signups mas onboarding event ausente → instrumentação
+      const onbCoverage =
+        seg.signups > 0
+          ? authUsers.filter(
+              (u) =>
+                profileUserIdSetEarly.has(u.id) &&
+                !onbSignupSet.has(u.id) &&
+                Date.now() - new Date(u.created_at).getTime() < 30 * dayMs
+            ).length
+          : 0;
+      if (onbCoverage > 0 && seg.signups > 0) {
+        causes.push("Falta de evento onboarding");
+      }
+      // Se signup→grupo baixo (<30%)
+      if (seg.signups >= 3 && seg.groupRate < 30) {
+        causes.push("Baixa criação/entrada em grupo");
+      }
+      // Se grupo→partida baixo (<30%)
+      if (seg.groups >= 2 && seg.matchRate < 30) {
+        causes.push("Grupo sem partida lançada");
+      }
+      if (causes.length === 0) causes.push("Sem causa óbvia");
+      return causes;
+    }
+
+    type DropRow = {
+      kind: "utm" | "referrer";
+      key: string;
+      sessions: number;
+      signups: number;
+      groups: number;
+      matches: number;
+      signupRate: number;
+      groupRate: number;
+      matchRate: number;
+      worstStage: "signup" | "group" | "match";
+      worstDropPct: number;
+      causes: string[];
+    };
+    function pickWorstStage(r: {
+      sessions: number;
+      signups: number;
+      groups: number;
+      matches: number;
+    }): { stage: "signup" | "group" | "match"; dropPct: number } {
+      const dropS = r.sessions > 0 ? ((r.sessions - r.signups) / r.sessions) * 100 : 0;
+      const dropG = r.signups > 0 ? ((r.signups - r.groups) / r.signups) * 100 : 0;
+      const dropM = r.groups > 0 ? ((r.groups - r.matches) / r.groups) * 100 : 0;
+      const candidates: { stage: "signup" | "group" | "match"; dropPct: number }[] = [
+        { stage: "signup", dropPct: Number(dropS.toFixed(1)) },
+        { stage: "group", dropPct: Number(dropG.toFixed(1)) },
+        { stage: "match", dropPct: Number(dropM.toFixed(1)) },
+      ];
+      candidates.sort((a, b) => b.dropPct - a.dropPct);
+      return candidates[0]!;
+    }
+    const allSegRows: DropRow[] = [
+      ...segmentFunnel7d.utm.map((r) => {
+        const w = pickWorstStage(r);
+        return {
+          kind: "utm" as const,
+          key: r.key,
+          sessions: r.sessions,
+          signups: r.signups,
+          groups: r.groups,
+          matches: r.matches,
+          signupRate: r.signupRate,
+          groupRate: r.groupRate,
+          matchRate: r.matchRate,
+          worstStage: w.stage,
+          worstDropPct: w.dropPct,
+          causes: inferCauses(r),
+        };
+      }),
+      ...segmentFunnel7d.referrer.map((r) => {
+        const w = pickWorstStage(r);
+        return {
+          kind: "referrer" as const,
+          key: r.key,
+          sessions: r.sessions,
+          signups: r.signups,
+          groups: r.groups,
+          matches: r.matches,
+          signupRate: r.signupRate,
+          groupRate: r.groupRate,
+          matchRate: r.matchRate,
+          worstStage: w.stage,
+          worstDropPct: w.dropPct,
+          causes: inferCauses(r),
+        };
+      }),
+    ];
+    const topDropSegments = allSegRows
+      .filter((r) => r.sessions >= 3)
+      .sort((a, b) => b.worstDropPct - a.worstDropPct)
+      .slice(0, 10);
+
     // ===== Comparação Mês-contra-Mês (MoM) =====
     // 7d atual vs 7d anterior + 30d atual vs 30d anterior
     function pctDelta(curr: number, prev: number): number {
@@ -1127,6 +1326,9 @@ export const getDevDashboard = createServerFn({ method: "GET" })
       onboardingFunnel,
       segmentFunnel7d,
       segmentFunnel30d,
+      sankeyUtm7d,
+      sankeyReferrer7d,
+      topDropSegments,
       mom,
       signupAnomalies,
       dailyActivity,
