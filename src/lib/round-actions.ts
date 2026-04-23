@@ -3,6 +3,7 @@ import { notifyGroupMembers } from "@/hooks/use-notifications";
 import { revertMatchElo } from "@/lib/elo-engine";
 import { recomputeRoundStatus } from "@/lib/round-status";
 import { getServerFnAuthHeaders } from "@/lib/server-fn-auth";
+import { computeRoundCapacity } from "@/lib/round-capacity";
 
 export async function createRound(data: {
   groupId: string;
@@ -17,28 +18,27 @@ export async function createRound(data: {
 }) {
   const isSingles = data.matchFormat === "singles";
 
-  // Singles round sizing — derive from group when caller didn't provide:
-  // - rivalry: 2
-  // - league/casual: group.max_players (fallback 8)
-  let resolvedMaxPlayers = data.maxPlayers;
-  let groupSinglesType: string | null = null;
-  if (isSingles) {
-    const { data: groupRow } = await supabase
-      .from("groups")
-      .select("singles_group_type, max_players")
-      .eq("id", data.groupId)
-      .single();
-    groupSinglesType = groupRow?.singles_group_type ?? null;
-    if (!resolvedMaxPlayers) {
-      if (groupSinglesType === "rivalry") {
-        resolvedMaxPlayers = 2;
-      } else {
-        resolvedMaxPlayers = groupRow?.max_players && groupRow.max_players >= 2
-          ? groupRow.max_players
-          : 8;
-      }
-    }
-  }
+  // Always derive round capacity from the group's structural config
+  // (simultaneous_courts × players-per-match). This is what the admin agreed
+  // to at group creation — e.g. 1 court doubles = 4 confirmed, the rest
+  // automatically becomes waiting list.
+  const { data: groupRow } = await supabase
+    .from("groups")
+    .select("singles_group_type, max_players, simultaneous_courts, match_format")
+    .eq("id", data.groupId)
+    .single();
+  const groupSinglesType: string | null = groupRow?.singles_group_type ?? null;
+  const capacity = computeRoundCapacity({
+    match_format: isSingles ? "singles" : "doubles",
+    simultaneous_courts: groupRow?.simultaneous_courts ?? 1,
+    singles_group_type: groupSinglesType,
+    max_players: groupRow?.max_players ?? null,
+  });
+  // If caller passed an explicit maxPlayers, treat it as a CAP — never expand
+  // beyond structural capacity, but allow shrinking (e.g. a custom small round).
+  const resolvedMaxPlayers = data.maxPlayers && data.maxPlayers > 0
+    ? Math.min(data.maxPlayers, capacity)
+    : capacity;
 
   const { data: round, error } = await supabase
     .from("rounds")
@@ -49,7 +49,7 @@ export async function createRound(data: {
       scheduled_date: data.scheduledDate || null,
       scheduled_time: data.scheduledTime || null,
       location: data.location || null,
-      max_players: resolvedMaxPlayers || 8,
+      max_players: resolvedMaxPlayers,
       match_format: isSingles ? "singles" : "doubles",
       status: "scheduled",
     })
