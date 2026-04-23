@@ -62,6 +62,13 @@ export function NotificationsPopover({ children }: Props) {
   const { notifications, unreadCount, isLoading, markAllRead, markRead } = useNotifications();
   const recent = notifications.slice(0, 8);
 
+  // Auto-mark all as read when the popover opens.
+  useEffect(() => {
+    if (open && unreadCount > 0) {
+      void markAllRead();
+    }
+  }, [open, unreadCount, markAllRead]);
+
   const handleClick = async (n: (typeof notifications)[number]) => {
     if (!n.read) await markRead(n.id);
     setOpen(false);
@@ -107,22 +114,7 @@ export function NotificationsPopover({ children }: Props) {
         className="w-[min(22rem,calc(100vw-2rem))] border-border bg-card p-0"
       >
         <header className="flex items-center justify-between border-b border-border px-4 py-3">
-          <div className="flex items-center gap-2">
-            <h3 className="font-display text-sm font-bold text-foreground">Notificações</h3>
-            {unreadCount > 0 && (
-              <span className="rounded-full bg-primary px-2 py-0.5 text-[10px] font-bold text-primary-foreground">
-                {unreadCount}
-              </span>
-            )}
-          </div>
-          {unreadCount > 0 && (
-            <button
-              onClick={() => void markAllRead()}
-              className="flex items-center gap-1 rounded-full px-2 py-1 text-[10px] font-semibold text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-            >
-              <CheckCheck className="h-3 w-3" /> Marcar tudo
-            </button>
-          )}
+          <h3 className="font-display text-sm font-bold text-foreground">Notificações</h3>
         </header>
 
         <div className="max-h-[60vh] overflow-y-auto px-2 py-2">
