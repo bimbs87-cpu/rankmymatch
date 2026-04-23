@@ -16,7 +16,6 @@ import {
   Undo2,
   Swords,
   Trophy,
-  Loader2,
 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useNotifications } from "@/hooks/use-notifications";
