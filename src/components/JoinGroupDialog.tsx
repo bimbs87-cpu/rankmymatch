@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { UserPlus, X, Loader2, UserMinus, Ghost, Link2 } from "lucide-react";
+import { UserPlus, X, Loader2, UserMinus, Ghost, Link2, Users, Clock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { toast } from "sonner";
@@ -9,6 +9,15 @@ interface ClaimablePlayer {
   name: string;
   avatar_url: string | null;
   kind: "placeholder" | "former";
+}
+
+interface CapacityInfo {
+  memberCount: number;
+  memberLimit: number | null;
+  isFull: boolean;
+  waitlistCount: number;
+  /** Predicted waitlist position if this user submits now (1-based). */
+  nextPosition: number;
 }
 
 interface Props {
