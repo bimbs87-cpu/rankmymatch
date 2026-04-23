@@ -136,6 +136,12 @@ export function JoinGroupDialog({
   }, [open, groupId, userId]);
 
   const handleSubmit = async () => {
+    if (capacity?.isFull) {
+      toast.error(
+        `Grupo cheio (${capacity.activeCount}/${capacity.limit}). Peça ao admin para aumentar o limite ou liberar uma vaga.`,
+      );
+      return;
+    }
     setSubmitting(true);
     try {
       // All joins now go through admin approval (regardless of public/private).
