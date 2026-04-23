@@ -302,7 +302,22 @@ function GroupDetailPage() {
     setLeavingLoading(true);
     try {
       await leaveGroup(myMembership.id);
-      toast.success("Você saiu do grupo");
+      const groupName = group?.name || "o grupo";
+      const wasAdmin = myMembership.role === "admin";
+      const visibilityLabel =
+        group?.visibility === "public"
+          ? "público"
+          : group?.visibility === "private"
+            ? "privado"
+            : "oculto";
+      const reentryHint =
+        group?.visibility === "hidden"
+          ? "Você precisará de um convite do admin para voltar."
+          : "Você pode pedir para entrar novamente a qualquer momento.";
+      toast.success(`Você saiu de ${groupName}`, {
+        description: `Status atualizado para ex-membro${wasAdmin ? " (admin removido)" : ""}. Grupo ${visibilityLabel}. ${reentryHint}`,
+        duration: 6000,
+      });
       // Refresh local state (member list + my role) before navigating away,
       // so any quick back-navigation reflects reality and not stale data.
       try {
