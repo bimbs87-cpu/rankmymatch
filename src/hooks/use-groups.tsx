@@ -691,6 +691,12 @@ export async function checkUserHasResults(groupId: string, userId: string): Prom
 }
 
 export async function leaveGroup(memberId: string) {
+  // Load row first so we can detect group + actor (for waitlist follow-up).
+  const { data: prev } = await supabase
+    .from("group_members")
+    .select("id, group_id, user_id")
+    .eq("id", memberId)
+    .maybeSingle();
   // Set status to 'left' instead of deleting to preserve history
   const { data, error } = await supabase
     .from("group_members")
@@ -704,5 +710,8 @@ export async function leaveGroup(memberId: string) {
   }
   if (!data) {
     throw new Error("Não foi possível atualizar o vínculo (verifique permissões).");
+  }
+  if (prev?.group_id && prev.user_id) {
+    void notifyAdminsOfWaitlistVacancy(prev.group_id, prev.user_id);
   }
 }
