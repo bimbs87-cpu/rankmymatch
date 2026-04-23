@@ -37,25 +37,33 @@ async function getOrCreateInviteUrl(groupId: string, userId: string): Promise<In
   // Defensive server-side check: only admins/creators can mint invites here.
   await assertCanInvite(groupId, userId);
 
-  const { data: existing } = await supabase
+  // Always look at the SINGLE most recent active link for this group.
+  const { data: latest } = await supabase
     .from("invite_links")
     .select("code, expires_at, max_uses, use_count")
     .eq("group_id", groupId)
     .eq("is_active", true)
     .order("created_at", { ascending: false })
-    .limit(5);
+    .limit(1)
+    .maybeSingle();
 
-  const usable = (existing || []).find(
-    (l) =>
-      (!l.expires_at || new Date(l.expires_at) > new Date()) &&
-      (l.max_uses == null || l.use_count < l.max_uses),
-  );
+  const isUsable =
+    !!latest &&
+    (!latest.expires_at || new Date(latest.expires_at) > new Date()) &&
+    (latest.max_uses == null || latest.use_count < latest.max_uses);
 
-  let code = usable?.code;
-  let expiresAt: string | null = usable?.expires_at ?? null;
-  let maxUses: number | null = usable?.max_uses ?? null;
-  let useCount: number = usable?.use_count ?? 0;
-  if (!code) {
+  let code: string;
+  let expiresAt: string | null;
+  let maxUses: number | null;
+  let useCount: number;
+
+  if (isUsable && latest) {
+    code = latest.code;
+    expiresAt = latest.expires_at ?? null;
+    maxUses = latest.max_uses ?? null;
+    useCount = latest.use_count ?? 0;
+  } else {
+    // Latest is expired/exhausted (or none exists) → mint a new one.
     code = generateInviteCode();
     const { data: inserted, error } = await supabase
       .from("invite_links")
@@ -67,6 +75,7 @@ async function getOrCreateInviteUrl(groupId: string, userId: string): Promise<In
     maxUses = inserted?.max_uses ?? null;
     useCount = inserted?.use_count ?? 0;
   }
+
   return {
     url: `${window.location.origin}/invite/${code}`,
     expiresAt,
