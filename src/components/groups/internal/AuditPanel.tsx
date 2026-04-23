@@ -753,6 +753,7 @@ export function AuditPanel({ groupId }: Props) {
           <option value="__nudges__">Só cutucadas ({nudgeCount})</option>
           <option value="__waitlist__">Só lista de espera ({waitlistCount})</option>
           <option value="__round_movements__">Movimentações da rodada ({roundMovCount})</option>
+          <option value="__visibility__">Mudanças de visibilidade ({visibilityCount})</option>
           {actions.map((a) => (
             <option key={a} value={a}>
               {ACTION_LABELS[a] || a}
