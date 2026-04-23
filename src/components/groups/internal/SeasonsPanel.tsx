@@ -1251,8 +1251,9 @@ function RoundExpandedDetails({
             </button>
           )}
 
-      {/* Admin: sortear times when there are no matches yet */}
-          {isAdmin && matchesData.length === 0 && (
+      {/* Admin: sortear times when there are no matches yet — hidden in rivalry
+          (rivalry rounds always have a single fixed pairing of the 2 members). */}
+          {isAdmin && matchesData.length === 0 && !isRivalry && (
             <button
               onClick={handleDrawTeams}
               disabled={busy || confirmedIds.length < (groupFormat === "singles" ? 2 : 4)}
@@ -1262,8 +1263,19 @@ function RoundExpandedDetails({
             </button>
           )}
 
-          {/* Admin: resortear times when matches exist but no result entered */}
-          {isAdmin && hasUnstartedMatches && (
+          {/* Admin: rivalry shortcut — create the single match for the 2 members */}
+          {isAdmin && matchesData.length === 0 && isRivalry && confirmedIds.length === 2 && (
+            <button
+              onClick={handleDrawTeams}
+              disabled={busy}
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-2 text-xs font-bold text-primary-foreground disabled:opacity-50"
+            >
+              <Trophy className="h-3.5 w-3.5" /> Iniciar confronto
+            </button>
+          )}
+
+          {/* Admin: resortear times when matches exist but no result entered (not for rivalry) */}
+          {isAdmin && hasUnstartedMatches && !isRivalry && (
             <button
               onClick={handleRedrawTeams}
               disabled={busy || confirmedIds.length < (groupFormat === "singles" ? 2 : 4)}
