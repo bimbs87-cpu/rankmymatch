@@ -120,6 +120,25 @@ export function usePendingMatch(groupId?: string) {
       const isRivalry =
         groupRes.data?.match_format === "singles" &&
         groupRes.data?.singles_group_type === "rivalry";
+
+      // Defensive guard: for rivalry rounds (which have a single match), if
+      // ANY match in the round is already completed, hide the pending card —
+      // even if the round.status field is somehow still "in_progress" or
+      // "scheduled" due to inconsistent data.
+      if (isRivalry) {
+        const { data: roundCompletedMatches } = await supabase
+          .from("matches")
+          .select("id")
+          .eq("round_id", match.round_id)
+          .eq("status", "completed")
+          .limit(1);
+        if (roundCompletedMatches && roundCompletedMatches.length > 0) {
+          setPendingMatch(null);
+          setIsLoading(false);
+          return;
+        }
+      }
+
       const resolvedSetsMode: PendingMatch["sets_mode"] = isRivalry
         ? "unlimited"
         : (((seasonRes.data as any)?.sets_mode as PendingMatch["sets_mode"]) || "fixed");
