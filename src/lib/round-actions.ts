@@ -163,38 +163,56 @@ export async function confirmPresence(roundId: string, userId: string) {
 }
 
 async function autoCreateRivalryMatchIfReady(roundId: string, actorId: string): Promise<void> {
-  const { data: roundRow } = await supabase
-    .from("rounds")
-    .select("id, group_id, match_format")
-    .eq("id", roundId)
-    .single();
-  if (!roundRow) return;
-  if (roundRow.match_format !== "singles") return;
+  const existing = inFlightRivalryDraw.get(roundId);
+  if (existing) {
+    console.info("[autoCreateRivalryMatch] dedup: reusing in-flight draw", { roundId });
+    return existing;
+  }
 
-  const { data: groupRow } = await supabase
-    .from("groups")
-    .select("singles_group_type")
-    .eq("id", roundRow.group_id)
-    .single();
-  if (groupRow?.singles_group_type !== "rivalry") return;
+  const run = (async () => {
+    const { data: roundRow } = await supabase
+      .from("rounds")
+      .select("id, group_id, match_format")
+      .eq("id", roundId)
+      .single();
+    if (!roundRow) return;
+    if (roundRow.match_format !== "singles") return;
 
-  // Already has a match? Skip.
-  const { count: matchCount } = await supabase
-    .from("matches")
-    .select("id", { count: "exact", head: true })
-    .eq("round_id", roundId);
-  if ((matchCount ?? 0) > 0) return;
+    const { data: groupRow } = await supabase
+      .from("groups")
+      .select("singles_group_type")
+      .eq("id", roundRow.group_id)
+      .single();
+    if (groupRow?.singles_group_type !== "rivalry") return;
 
-  // Need both members confirmed.
-  const { data: confirmed } = await supabase
-    .from("round_presence")
-    .select("user_id")
-    .eq("round_id", roundId)
-    .eq("status", "confirmed");
-  const confirmedIds = (confirmed || []).map((p) => p.user_id);
-  if (confirmedIds.length !== 2) return;
+    // Already has a match? Skip. (Re-checked inside the lock to close TOCTOU.)
+    const { count: matchCount } = await supabase
+      .from("matches")
+      .select("id", { count: "exact", head: true })
+      .eq("round_id", roundId);
+    if ((matchCount ?? 0) > 0) {
+      console.info("[autoCreateRivalryMatch] skip: match already exists", {
+        roundId,
+        matchCount,
+      });
+      return;
+    }
 
-  await drawTeams(roundId, confirmedIds, actorId);
+    const { data: confirmed } = await supabase
+      .from("round_presence")
+      .select("user_id")
+      .eq("round_id", roundId)
+      .eq("status", "confirmed");
+    const confirmedIds = (confirmed || []).map((p) => p.user_id);
+    if (confirmedIds.length !== 2) return;
+
+    console.info("[autoCreateRivalryMatch] creating match", { roundId, confirmedIds });
+    await drawTeams(roundId, confirmedIds, actorId);
+  })();
+
+  inFlightRivalryDraw.set(roundId, run);
+  run.finally(() => inFlightRivalryDraw.delete(roundId));
+  return run;
 }
 
 /**
