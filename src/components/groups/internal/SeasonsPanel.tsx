@@ -994,18 +994,20 @@ export function RoundExpandedDetails({
   const [adminPresenceOpen, setAdminPresenceOpen] = useState(false);
   const [roundStatus, setRoundStatus] = useState<"scheduled" | "in_progress" | "completed">("scheduled");
   const [isRivalry, setIsRivalry] = useState(false);
+  const [presenceOpen, setPresenceOpen] = useState(true);
+  const [presenceOpensAt, setPresenceOpensAt] = useState<Date | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       setLoading(true);
       const [{ data: round }, { data: pres }, { data: ms }, { data: members }, { data: season }, { data: group }] = await Promise.all([
-        supabase.from("rounds").select("max_players, group_id, status, scheduled_date, scheduled_time, match_format").eq("id", roundId).maybeSingle(),
+        supabase.from("rounds").select("max_players, group_id, status, scheduled_date, scheduled_time, match_format, presence_force_open_at").eq("id", roundId).maybeSingle(),
         supabase.from("round_presence").select("user_id, status, confirmed_at").eq("round_id", roundId),
         supabase.from("matches").select("id, status, match_number, winner_team, match_players(user_id, team), match_sets(set_number, score_team_a, score_team_b)").eq("round_id", roundId).order("match_number", { ascending: true }),
         supabase.from("group_members").select("user_id").eq("group_id", groupId).eq("status", "active"),
         supabase.from("seasons").select("sets_per_match, sets_mode, match_format").eq("id", seasonId).maybeSingle(),
-        supabase.from("groups").select("match_format, singles_group_type").eq("id", groupId).maybeSingle(),
+        supabase.from("groups").select("match_format, singles_group_type, presence_open_mode, presence_open_time").eq("id", groupId).maybeSingle(),
       ]);
       if (cancelled) return;
       const confirmedRows = (pres || []).filter((p) => p.status === "confirmed");
@@ -1073,6 +1075,32 @@ export function RoundExpandedDetails({
       if (cancelled) return;
       setEloDeltas(deltaMap);
       setScheduledDate(round?.scheduled_date ?? null);
+
+      // Compute presence-window state (admin force-open overrides config).
+      const presenceCfg = {
+        presence_open_mode: (group as any)?.presence_open_mode || "always",
+        presence_open_time: (group as any)?.presence_open_time || "10:00:00",
+      };
+      const forcedOpen =
+        !!(round as any)?.presence_force_open_at &&
+        new Date((round as any).presence_force_open_at) <= new Date();
+      const scheduledOpen = isPresenceOpen(
+        presenceCfg,
+        round?.scheduled_date ?? null,
+        round?.scheduled_time ?? null,
+        roundId,
+      );
+      setPresenceOpen(forcedOpen || scheduledOpen);
+      setPresenceOpensAt(
+        forcedOpen || scheduledOpen
+          ? null
+          : getPresenceOpenDate(
+              presenceCfg,
+              round?.scheduled_date ?? null,
+              round?.scheduled_time ?? null,
+              roundId,
+            ),
+      );
 
       if (allIds.size) {
         const { data: profs } = await supabase
