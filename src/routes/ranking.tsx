@@ -541,8 +541,9 @@ function RankingPage() {
         <div>
           <h1 className="font-display text-xl lg:text-2xl font-bold text-foreground">Ranking</h1>
           {selectedSeason && (
-            <p className="hidden lg:block mt-0.5 text-xs text-muted-foreground">
-              {(selectedSeason as any).groups?.name} • {selectedSeason.name}
+            <p className="hidden lg:flex mt-0.5 items-center gap-2 text-xs text-muted-foreground">
+              <span>{(selectedSeason as any).groups?.name} • {selectedSeason.name}</span>
+              <SeasonStatusBadge status={(selectedSeason as any).status} />
             </p>
           )}
         </div>
@@ -559,6 +560,18 @@ function RankingPage() {
           <div className="flex w-full items-center justify-center gap-2 rounded-2xl border border-border bg-card/80 px-4 py-2.5">
             <Layers className="h-3.5 w-3.5 text-primary" />
             <span className="text-sm font-semibold text-foreground">{(selectedSeason as any).groups?.name} • {selectedSeason.name}</span>
+            <SeasonStatusBadge status={(selectedSeason as any).status} />
+          </div>
+        </div>
+      )}
+
+      {selectedSeason && usedFallback && (selectedSeason as any).status !== "active" && (
+        <div className="px-5 mt-2 lg:px-0">
+          <div className="flex items-start gap-2 rounded-2xl border border-warning/30 bg-warning/10 px-3 py-2 text-xs text-warning-foreground/90">
+            <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5 text-warning" />
+            <span>
+              Sem temporada ativa disponível. Mostrando a última temporada jogada.
+            </span>
           </div>
         </div>
       )}
