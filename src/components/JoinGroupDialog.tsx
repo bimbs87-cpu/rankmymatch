@@ -315,13 +315,39 @@ export function JoinGroupDialog({
             <UserPlus className="h-7 w-7 text-primary" />
           </div>
           <h3 className="font-display text-base font-bold text-foreground">
-            Solicitar entrada
+            {capacity?.isFull ? "Entrar na lista de espera" : "Solicitar entrada"}
           </h3>
           <p className="text-center text-xs text-muted-foreground">
             {hasClaimables
               ? "Você já joga aqui? Selecione seu nome para vincular o histórico ao aprovar."
               : "Envie uma solicitação ao admin para entrar no grupo."}
           </p>
+
+          {capacity && capacity.memberLimit != null && (
+            <div className="mt-1 flex flex-wrap items-center justify-center gap-1.5">
+              <span
+                className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                  capacity.isFull
+                    ? "bg-amber-500/15 text-amber-600 ring-1 ring-amber-500/30"
+                    : "bg-primary/10 text-primary ring-1 ring-primary/20"
+                }`}
+              >
+                <Users className="h-2.5 w-2.5" />
+                {capacity.memberCount}/{capacity.memberLimit} vagas
+              </span>
+              {capacity.isFull && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[10px] font-bold text-foreground">
+                  <Clock className="h-2.5 w-2.5" />
+                  Você ficará em #{capacity.nextPosition}
+                </span>
+              )}
+            </div>
+          )}
+          {capacity?.isFull && (
+            <p className="mt-1 text-center text-[10px] text-amber-600/90 leading-snug">
+              Grupo cheio. Quando alguém sair, o admin será avisado para aprovar o próximo da fila.
+            </p>
+          )}
         </div>
 
         <div className="flex-1 overflow-y-auto min-h-0 space-y-3">
