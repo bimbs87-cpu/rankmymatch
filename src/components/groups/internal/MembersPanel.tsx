@@ -5,6 +5,7 @@ import { useAuth } from "@/hooks/use-auth";
 import {
   useGroupDetail,
   removeMember,
+  hardRemoveMember,
   updateMemberRole,
 } from "@/hooks/use-groups";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
@@ -18,7 +19,7 @@ import { ClaimInviteShareDialog } from "@/components/ClaimInviteShareDialog";
 import {
   Search, Filter, ArrowUpDown, KeyRound, Shield, Ghost, UserMinus, Pencil, GitMerge,
   Check, X, Trophy, ChevronRight, UserPlus, Share2, Crown, Flame, MessageCircle,
-  MailCheck, RotateCcw, Send,
+  MailCheck, RotateCcw, Send, Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -265,6 +266,22 @@ export function MembersPanel({ groupId }: Props) {
     catch { toast.error("Erro"); }
   };
 
+  const handleHardRemove = async (memberId: string, name?: string) => {
+    const ok = confirm(
+      `Remover ${name || "este jogador"} do grupo definitivamente?\n\n` +
+      `O jogador deixa de aparecer na lista de membros.\n` +
+      `O histórico de partidas é preservado.`,
+    );
+    if (!ok) return;
+    try {
+      await hardRemoveMember(memberId);
+      toast.success("Removido do grupo");
+      refresh();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erro ao remover");
+    }
+  };
+
   const FILTER_OPTS: { id: Filter; label: string; count?: number }[] = [
     { id: "all", label: "Todos", count: members.length },
     { id: "active", label: "Ativos", count: members.filter((m) => (m as { status?: string }).status === "active").length },
@@ -489,6 +506,13 @@ export function MembersPanel({ groupId }: Props) {
                     <>
                       <button onClick={() => setMergeFormerMember(m)} className="rounded-lg bg-primary/10 p-1.5 text-primary" title="Mesclar"><GitMerge className="h-3 w-3" /></button>
                       <button onClick={() => handleStartRename(m.user_id, m.profile?.name || "")} className="rounded-lg bg-muted p-1.5 text-muted-foreground" title="Renomear"><Pencil className="h-3 w-3" /></button>
+                      <button
+                        onClick={() => handleHardRemove(m.id, m.profile?.name)}
+                        className="rounded-lg bg-destructive/10 p-1.5 text-destructive hover:bg-destructive/20"
+                        title="Remover do grupo definitivamente"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </button>
                     </>
                   )
                 )}
@@ -535,6 +559,13 @@ export function MembersPanel({ groupId }: Props) {
                           <span className="hidden sm:inline">Convidar</span>
                         </button>
                       )}
+                      <button
+                        onClick={() => handleHardRemove(m.id, m.profile?.name)}
+                        className="rounded-lg bg-destructive/10 p-1.5 text-destructive hover:bg-destructive/20"
+                        title="Remover do grupo definitivamente"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </button>
                     </>
                   )
                 )}

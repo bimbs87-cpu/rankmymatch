@@ -684,6 +684,45 @@ export async function removeMember(memberId: string) {
   }
 }
 
+/**
+ * Hard-remove a member entirely from the group_members table.
+ *
+ * Use only for:
+ *  - Former members (status != 'active') the admin wants to fully purge.
+ *  - Placeholder/no-account players that were never claimed.
+ *
+ * Match history (matches/sets/rating events) is preserved by foreign-key-less
+ * design; the player simply stops appearing in the members panel.
+ *
+ * Caller is responsible for confirming with the admin.
+ */
+export async function hardRemoveMember(memberId: string) {
+  const { data: prev } = await supabase
+    .from("group_members")
+    .select("group_id, user_id, role, status")
+    .eq("id", memberId)
+    .maybeSingle();
+
+  if (!prev) throw new Error("Membro não encontrado");
+  if (prev.role === "creator") throw new Error("Não é possível remover o criador do grupo");
+
+  const { error } = await supabase
+    .from("group_members")
+    .delete()
+    .eq("id", memberId);
+  if (error) throw error;
+
+  const { logAudit } = await import("@/lib/audit-log");
+  await logAudit({
+    groupId: prev.group_id,
+    action: "member_hard_removed",
+    entityType: "group_member",
+    entityId: memberId,
+    oldData: prev,
+    newData: null,
+  });
+}
+
 export async function updateMemberRole(memberId: string, role: string) {
   const { data: prev } = await supabase
     .from("group_members")
