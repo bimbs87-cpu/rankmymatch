@@ -8,9 +8,11 @@ import { useAuth } from "@/hooks/use-auth";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { PlayerAvatarLink, PlayerNameLink } from "@/components/PlayerProfileViewer";
 import { DualEloChart } from "@/components/DualEloChart";
+import { ScoreEntryDialog } from "@/components/ScoreEntryDialog";
 import { computeDuelMedals } from "@/lib/duel-medals";
 import { buildMedalsTimeline } from "@/lib/duel-medals-timeline";
 import { promoteMatchToRankingServerFn, revertMatchPromotionServerFn } from "@/lib/promote-match.functions";
+import { logAudit } from "@/lib/audit-log";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "sonner";
 import {
@@ -29,6 +31,8 @@ import {
   ArrowUpCircle,
   Undo2,
   Loader2,
+  Edit3,
+  FileClock,
 } from "lucide-react";
 
 interface DuelPlayer {
