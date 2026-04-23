@@ -216,6 +216,7 @@ function GeneralSection({ group, onSaved }: { group: any; onSaved: () => void })
   const save = async () => {
     if (!name.trim()) { toast.error("Nome é obrigatório"); return; }
     setSaving(true);
+    const visibilityChanged = visibility !== initVis;
     const { error } = await supabase.from("groups").update({
       name: name.trim(),
       description: description.trim() || null,
@@ -223,7 +224,21 @@ function GeneralSection({ group, onSaved }: { group: any; onSaved: () => void })
       visibility,
     } as any).eq("id", group.id);
     if (error) toast.error("Erro ao salvar");
-    else { toast.success("Atualizado"); onSaved(); }
+    else {
+      toast.success("Atualizado");
+      if (visibilityChanged) {
+        // Best-effort audit log: record who changed the visibility and from what to what.
+        void logAudit({
+          groupId: group.id,
+          action: "group_visibility_changed",
+          entityType: "group",
+          entityId: group.id,
+          oldData: { visibility: initVis },
+          newData: { visibility },
+        });
+      }
+      onSaved();
+    }
     setSaving(false);
   };
 
