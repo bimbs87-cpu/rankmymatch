@@ -94,25 +94,46 @@ export async function createRound(data: {
   return round;
 }
 
+// In-flight guards to make user-triggered actions idempotent against rapid
+// double-clicks. Keys are scoped per round+user (or per round) so unrelated
+// actions don't block each other. Promises are cleared on settle.
+const inFlightConfirm = new Map<string, Promise<void>>();
+const inFlightRivalryDraw = new Map<string, Promise<void>>();
+
 export async function confirmPresence(roundId: string, userId: string) {
-  const { error } = await supabase.from("round_presence").upsert(
-    {
-      round_id: roundId,
-      user_id: userId,
-      status: "confirmed",
-      confirmed_at: new Date().toISOString(),
-    },
-    { onConflict: "round_id,user_id" }
-  );
-  if (error) {
-    const { error: insertError } = await supabase.from("round_presence").insert({
-      round_id: roundId,
-      user_id: userId,
-      status: "confirmed",
-      confirmed_at: new Date().toISOString(),
-    });
-    if (insertError) throw insertError;
+  const key = `${roundId}:${userId}`;
+  const existing = inFlightConfirm.get(key);
+  if (existing) {
+    console.info("[confirmPresence] dedup: reusing in-flight call", { key });
+    return existing;
   }
+
+  const run = (async () => {
+    console.info("[confirmPresence] start", { roundId, userId });
+    const { error } = await supabase.from("round_presence").upsert(
+      {
+        round_id: roundId,
+        user_id: userId,
+        status: "confirmed",
+        confirmed_at: new Date().toISOString(),
+      },
+      { onConflict: "round_id,user_id" }
+    );
+    if (error) {
+      const { error: insertError } = await supabase.from("round_presence").insert({
+        round_id: roundId,
+        user_id: userId,
+        status: "confirmed",
+        confirmed_at: new Date().toISOString(),
+      });
+      if (insertError) throw insertError;
+    }
+    console.info("[confirmPresence] upsert ok (idempotent)", { roundId, userId });
+  })();
+
+  inFlightConfirm.set(key, run);
+  run.finally(() => inFlightConfirm.delete(key));
+  await run;
 
   // GA4 event — presence confirmed
   try {
