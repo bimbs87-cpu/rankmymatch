@@ -131,10 +131,34 @@ export function JoinGroupDialog({
         if (!cancelled) setLoading(false);
       }
     })();
+
+    // Initial capacity load
+    void refreshCapacity();
+
+    // Realtime: listen to changes on group_members for this group
+    const channel = supabase
+      .channel(`join-dialog-capacity-${groupId}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "group_members", filter: `group_id=eq.${groupId}` },
+        () => {
+          void refreshCapacity();
+        },
+      )
+      .subscribe();
+
+    // Refresh on tab focus too
+    const onFocus = () => void refreshCapacity();
+    if (typeof window !== "undefined") window.addEventListener("focus", onFocus);
+
     return () => {
       cancelled = true;
+      try {
+        supabase.removeChannel(channel);
+      } catch {}
+      if (typeof window !== "undefined") window.removeEventListener("focus", onFocus);
     };
-  }, [open, groupId, userId]);
+  }, [open, groupId, userId, refreshCapacity]);
 
   const handleSubmit = async () => {
     setSubmitting(true);
