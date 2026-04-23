@@ -1,8 +1,14 @@
-import { useEffect, useState } from "react";
-import { UserPlus, X, Loader2, UserMinus, Ghost, Link2 } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { UserPlus, X, Loader2, UserMinus, Ghost, Link2, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { toast } from "sonner";
+
+interface CapacityInfo {
+  activeCount: number;
+  limit: number | null;
+  isFull: boolean;
+}
 
 interface ClaimablePlayer {
   user_id: string;
@@ -43,11 +49,31 @@ export function JoinGroupDialog({
   const [formers, setFormers] = useState<ClaimablePlayer[]>([]);
   const [selected, setSelected] = useState<ClaimablePlayer | null>(null);
   const [message, setMessage] = useState("");
+  const [capacity, setCapacity] = useState<CapacityInfo | null>(null);
+
+  const refreshCapacity = useCallback(async () => {
+    try {
+      const [{ data: groupRow }, { data: cnt }] = await Promise.all([
+        supabase.from("groups").select("member_limit").eq("id", groupId).maybeSingle(),
+        supabase.rpc("get_group_member_count", { _group_id: groupId }),
+      ]);
+      const limit = (groupRow as any)?.member_limit ?? null;
+      const activeCount = (cnt as number | null) ?? 0;
+      setCapacity({
+        activeCount,
+        limit,
+        isFull: limit != null && activeCount >= limit,
+      });
+    } catch (e) {
+      console.warn("refreshCapacity failed:", e);
+    }
+  }, [groupId]);
 
   useEffect(() => {
     if (!open) {
       setSelected(null);
       setMessage("");
+      setCapacity(null);
       return;
     }
     let cancelled = false;
@@ -105,10 +131,34 @@ export function JoinGroupDialog({
         if (!cancelled) setLoading(false);
       }
     })();
+
+    // Initial capacity load
+    void refreshCapacity();
+
+    // Realtime: listen to changes on group_members for this group
+    const channel = supabase
+      .channel(`join-dialog-capacity-${groupId}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "group_members", filter: `group_id=eq.${groupId}` },
+        () => {
+          void refreshCapacity();
+        },
+      )
+      .subscribe();
+
+    // Refresh on tab focus too
+    const onFocus = () => void refreshCapacity();
+    if (typeof window !== "undefined") window.addEventListener("focus", onFocus);
+
     return () => {
       cancelled = true;
+      try {
+        supabase.removeChannel(channel);
+      } catch {}
+      if (typeof window !== "undefined") window.removeEventListener("focus", onFocus);
     };
-  }, [open, groupId, userId]);
+  }, [open, groupId, userId, refreshCapacity]);
 
   const handleSubmit = async () => {
     setSubmitting(true);
@@ -256,6 +306,26 @@ export function JoinGroupDialog({
               ? "Você já joga aqui? Selecione seu nome para vincular o histórico ao aprovar."
               : "Envie uma solicitação ao admin para entrar no grupo."}
           </p>
+          {capacity && (
+            <div
+              className={`mt-1 flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors ${
+                capacity.isFull
+                  ? "border-destructive/40 bg-destructive/10 text-destructive"
+                  : "border-border bg-muted/30 text-muted-foreground"
+              }`}
+              aria-live="polite"
+            >
+              <Users className="h-3 w-3" />
+              {capacity.limit != null ? (
+                <span>
+                  {capacity.activeCount}/{capacity.limit} vagas
+                  {capacity.isFull ? " — grupo cheio" : ""}
+                </span>
+              ) : (
+                <span>{capacity.activeCount} membros ativos</span>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="flex-1 overflow-y-auto min-h-0 space-y-3">
@@ -311,11 +381,15 @@ export function JoinGroupDialog({
 
         <button
           onClick={handleSubmit}
-          disabled={submitting || loading}
+          disabled={submitting || loading || (capacity?.isFull ?? false)}
           className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-3 text-sm font-bold text-primary-foreground disabled:opacity-50"
         >
           {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />}
-          {selected ? "Pedir vinculação" : "Enviar solicitação"}
+          {capacity?.isFull
+            ? "Grupo cheio"
+            : selected
+              ? "Pedir vinculação"
+              : "Enviar solicitação"}
         </button>
       </div>
     </div>
