@@ -5,6 +5,7 @@ import { useAuth } from "@/hooks/use-auth";
 import {
   useGroupDetail,
   removeMember,
+  hardRemoveMember,
   updateMemberRole,
 } from "@/hooks/use-groups";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
@@ -18,7 +19,7 @@ import { ClaimInviteShareDialog } from "@/components/ClaimInviteShareDialog";
 import {
   Search, Filter, ArrowUpDown, KeyRound, Shield, Ghost, UserMinus, Pencil, GitMerge,
   Check, X, Trophy, ChevronRight, UserPlus, Share2, Crown, Flame, MessageCircle,
-  MailCheck, RotateCcw, Send,
+  MailCheck, RotateCcw, Send, Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -263,6 +264,22 @@ export function MembersPanel({ groupId }: Props) {
     if (!confirm(`Desvincular ${name || "este membro"}?`)) return;
     try { await removeMember(memberId); toast.success("Desvinculado"); refresh(); }
     catch { toast.error("Erro"); }
+  };
+
+  const handleHardRemove = async (memberId: string, name?: string) => {
+    const ok = confirm(
+      `Remover ${name || "este jogador"} do grupo definitivamente?\n\n` +
+      `O jogador deixa de aparecer na lista de membros.\n` +
+      `O histórico de partidas é preservado.`,
+    );
+    if (!ok) return;
+    try {
+      await hardRemoveMember(memberId);
+      toast.success("Removido do grupo");
+      refresh();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erro ao remover");
+    }
   };
 
   const FILTER_OPTS: { id: Filter; label: string; count?: number }[] = [
