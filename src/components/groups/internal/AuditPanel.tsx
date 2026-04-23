@@ -755,66 +755,81 @@ export function AuditPanel({ groupId }: Props) {
         </button>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2">
-        <label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Filtrar:</label>
-        <select
-          value={filter}
-          onChange={(e) => setFilter(e.target.value)}
-          className="rounded-lg border border-border bg-background px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-primary"
+      {!filterReady ? (
+        <div
+          className="flex items-center gap-2"
+          aria-busy="true"
+          aria-label="Restaurando filtro salvo"
         >
-          <option value="all">Todas as ações ({rows.length})</option>
-          <option value="__nudges__">Só cutucadas ({nudgeCount})</option>
-          <option value="__waitlist__">Só lista de espera ({waitlistCount})</option>
-          <option value="__round_movements__">Movimentações da rodada ({roundMovCount})</option>
-          {actions.map((a) => (
-            <option key={a} value={a}>
-              {ACTION_LABELS[a] || a}
-            </option>
-          ))}
-        </select>
-        {nudgeCount > 0 && (
-          <button
-            type="button"
-            onClick={() => setFilter(isNudgeFilter ? "all" : "__nudges__")}
-            className={`flex items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-bold transition-colors ${
-              isNudgeFilter
-                ? "border-warning/60 bg-warning/15 text-warning"
-                : "border-border bg-background text-muted-foreground hover:border-warning/40 hover:text-warning"
-            }`}
-            title="Atalho: filtra round_nudge + round_nudge_cooldown_reset"
+          <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+            Filtrar:
+          </span>
+          <div className="h-7 w-44 animate-pulse rounded-lg border border-border bg-muted/40" />
+          <div className="h-6 w-24 animate-pulse rounded-full border border-border bg-muted/30" />
+          <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
+        </div>
+      ) : (
+        <div className="flex flex-wrap items-center gap-2">
+          <label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Filtrar:</label>
+          <select
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+            className="rounded-lg border border-border bg-background px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-primary"
           >
-            🔔 Só cutucadas ({nudgeCount})
-          </button>
-        )}
-        {waitlistCount > 0 && (
-          <button
-            type="button"
-            onClick={() => setFilter(isWaitlistFilter ? "all" : "__waitlist__")}
-            className={`flex items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-bold transition-colors ${
-              isWaitlistFilter
-                ? "border-info/60 bg-info/15 text-info"
-                : "border-border bg-background text-muted-foreground hover:border-info/40 hover:text-info"
-            }`}
-            title="Atalho: filtra promoções automáticas e manuais da lista de espera"
-          >
-            🎟️ Só lista de espera ({waitlistCount})
-          </button>
-        )}
-        {roundMovCount > 0 && (
-          <button
-            type="button"
-            onClick={() => setFilter(isRoundMovFilter ? "all" : "__round_movements__")}
-            className={`flex items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-bold transition-colors ${
-              isRoundMovFilter
-                ? "border-primary/60 bg-primary/15 text-primary"
-                : "border-border bg-background text-muted-foreground hover:border-primary/40 hover:text-primary"
-            }`}
-            title="Timeline consolidada por rodada: cutucadas, lista de espera, abrir presença"
-          >
-            🎬 Movimentações da rodada ({roundMovCount})
-          </button>
-        )}
-      </div>
+            <option value="all">Todas as ações ({rows.length})</option>
+            <option value="__nudges__">Só cutucadas ({nudgeCount})</option>
+            <option value="__waitlist__">Só lista de espera ({waitlistCount})</option>
+            <option value="__round_movements__">Movimentações da rodada ({roundMovCount})</option>
+            {actions.map((a) => (
+              <option key={a} value={a}>
+                {ACTION_LABELS[a] || a}
+              </option>
+            ))}
+          </select>
+          {nudgeCount > 0 && (
+            <button
+              type="button"
+              onClick={() => setFilter(isNudgeFilter ? "all" : "__nudges__")}
+              className={`flex items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-bold transition-colors ${
+                isNudgeFilter
+                  ? "border-warning/60 bg-warning/15 text-warning"
+                  : "border-border bg-background text-muted-foreground hover:border-warning/40 hover:text-warning"
+              }`}
+              title="Atalho: filtra round_nudge + round_nudge_cooldown_reset"
+            >
+              🔔 Só cutucadas ({nudgeCount})
+            </button>
+          )}
+          {waitlistCount > 0 && (
+            <button
+              type="button"
+              onClick={() => setFilter(isWaitlistFilter ? "all" : "__waitlist__")}
+              className={`flex items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-bold transition-colors ${
+                isWaitlistFilter
+                  ? "border-info/60 bg-info/15 text-info"
+                  : "border-border bg-background text-muted-foreground hover:border-info/40 hover:text-info"
+              }`}
+              title="Atalho: filtra promoções automáticas e manuais da lista de espera"
+            >
+              🎟️ Só lista de espera ({waitlistCount})
+            </button>
+          )}
+          {roundMovCount > 0 && (
+            <button
+              type="button"
+              onClick={() => setFilter(isRoundMovFilter ? "all" : "__round_movements__")}
+              className={`flex items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-bold transition-colors ${
+                isRoundMovFilter
+                  ? "border-primary/60 bg-primary/15 text-primary"
+                  : "border-border bg-background text-muted-foreground hover:border-primary/40 hover:text-primary"
+              }`}
+              title="Timeline consolidada por rodada: cutucadas, lista de espera, abrir presença"
+            >
+              🎬 Movimentações da rodada ({roundMovCount})
+            </button>
+          )}
+        </div>
+      )}
 
       {isNudgeFilter && nudgeStats.total > 0 && (
         <div className="space-y-2 rounded-xl border border-warning/30 bg-warning/5 p-3">
