@@ -69,7 +69,7 @@ export const submitMatchScoreServerFn = createServerFn({ method: "POST" })
     const { matchId, seasonId, sets } = data;
     const { userId } = context;
 
-    // ---- 1. Load match + round + group, validate authorization & status ----
+    // ---- 1. Load match + round + group, validate authorization ----
     const { data: match, error: matchErr } = await supabaseAdmin
       .from("matches")
       .select("id, status, round_id, rounds:rounds!inner(group_id)")
@@ -78,9 +78,6 @@ export const submitMatchScoreServerFn = createServerFn({ method: "POST" })
 
     if (matchErr) throw new Error(matchErr.message);
     if (!match) throw new Error("Partida não encontrada");
-    if (match.status !== "scheduled") {
-      throw new Error("Esta partida já foi finalizada");
-    }
 
     const groupId = (match.rounds as unknown as { group_id: string } | null)?.group_id;
     if (!groupId) throw new Error("Grupo da rodada não encontrado");
@@ -91,6 +88,10 @@ export const submitMatchScoreServerFn = createServerFn({ method: "POST" })
     });
     if (adminErr) throw new Error(adminErr.message);
     if (!isAdmin) throw new Error("Apenas administradores do grupo podem registrar resultados");
+
+    // Editing an already-completed match is allowed: revert prior Elo first,
+    // then re-apply with the new score.
+    const isEdit = match.status === "completed";
 
     // ---- 2. Validate each set score ----
     for (const s of sets) {
@@ -112,7 +113,7 @@ export const submitMatchScoreServerFn = createServerFn({ method: "POST" })
     const teamB = players.filter((p) => p.team === "B").map((p) => p.user_id);
     if (!teamA.length || !teamB.length) throw new Error("Times incompletos");
 
-    // ---- 4. Determine winner FIRST (so we don't touch DB if invalid) ----
+    // ---- 4. Determine winner FIRST ----
     let setsA = 0;
     let setsB = 0;
     let gamesA = 0;
@@ -126,10 +127,15 @@ export const submitMatchScoreServerFn = createServerFn({ method: "POST" })
     const winnerTeam: "A" | "B" | null = setsA > setsB ? "A" : setsB > setsA ? "B" : null;
     if (!winnerTeam) throw new Error("Empate em sets — adicione o tiebreak");
 
-    // ---- 5. Mark match as completed FIRST (idempotency guard) ----
-    // We do this before writing sets/elo so that even if a later step fails,
-    // the match is no longer in "scheduled" state and the dashboard reflects
-    // reality. We also use .select() to assert the row actually updated.
+    // ---- 4.5 If editing, revert prior Elo BEFORE writing new sets ----
+    // (revertMatchEloServer reads current sets/winner_team to know how to
+    // rewind counters, so it must run before we overwrite either.)
+    if (isEdit) {
+      const { revertMatchEloServer } = await import("@/lib/elo-engine.server");
+      await revertMatchEloServer(matchId);
+    }
+
+    // ---- 5. Mark match as completed (idempotent on re-submit) ----
     const { data: updatedMatch, error: updateMatchErr } = await supabaseAdmin
       .from("matches")
       .update({
@@ -179,12 +185,11 @@ export const submitMatchScoreServerFn = createServerFn({ method: "POST" })
           ),
         ),
       );
-
-      // Single source of truth for round status (Parte 2 / Parte 5)
       await recomputeRoundStatusInternal(match.round_id);
     }
 
-    // ---- 8. Process Elo (idempotency guard: skip if already processed) ----
+    // ---- 8. Process Elo. After step 4.5 the events are gone for edits, so
+    // this always re-processes when needed. ----
     const { data: existingEvents } = await supabaseAdmin
       .from("rating_events")
       .select("id")
@@ -205,7 +210,7 @@ export const submitMatchScoreServerFn = createServerFn({ method: "POST" })
       });
     }
 
-    return { winnerTeam, setsA, setsB };
+    return { winnerTeam, setsA, setsB, edited: isEdit };
   });
 
 // processMatchEloServer is implemented in ./elo-engine.server.ts and re-exported above.
