@@ -74,10 +74,14 @@ export function ExplorePanel() {
 
   const { groups, isLoading } = usePublicGroups(search);
 
-  const handleCopyInvite = async (e: React.MouseEvent, groupId: string) => {
+  const handleCopyInvite = async (e: React.MouseEvent, groupId: string, canInvite: boolean) => {
     e.preventDefault();
     e.stopPropagation();
     if (!user) return;
+    if (!canInvite) {
+      toast.error("Você não tem permissão para gerar convites deste grupo.");
+      return;
+    }
     setCopyingId(groupId);
     try {
       const url = await getOrCreateInviteUrl(groupId, user.id);
