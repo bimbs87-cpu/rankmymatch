@@ -953,7 +953,7 @@ function SeasonRoundsInline({ groupId, seasonId, isAdmin, initialRoundId }: { gr
   );
 }
 
-function RoundExpandedDetails({
+export function RoundExpandedDetails({
   groupId,
   seasonId,
   roundId,
