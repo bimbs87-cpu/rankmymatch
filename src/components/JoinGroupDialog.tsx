@@ -1,14 +1,8 @@
-import { useCallback, useEffect, useState } from "react";
-import { UserPlus, X, Loader2, UserMinus, Ghost, Link2, Users } from "lucide-react";
+import { useEffect, useState } from "react";
+import { UserPlus, X, Loader2, UserMinus, Ghost, Link2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { toast } from "sonner";
-
-interface CapacityInfo {
-  activeCount: number;
-  limit: number | null;
-  isFull: boolean;
-}
 
 interface ClaimablePlayer {
   user_id: string;
@@ -49,25 +43,11 @@ export function JoinGroupDialog({
   const [formers, setFormers] = useState<ClaimablePlayer[]>([]);
   const [selected, setSelected] = useState<ClaimablePlayer | null>(null);
   const [message, setMessage] = useState("");
-  const [capacity, setCapacity] = useState<CapacityInfo | null>(null);
-
-  const refreshCapacity = useCallback(async () => {
-    try {
-      const [{ data: groupRow }, { data: cnt }] = await Promise.all([
-        supabase.from("groups").select("member_limit").eq("id", groupId).maybeSingle(),
-        supabase.rpc("get_group_member_count", { _group_id: groupId }),
-      ]);
-      const limit = (groupRow as any)?.member_limit ?? null;
-      const activeCount = (cnt as number | null) ?? 0;
-      setCapacity({
-        activeCount,
-        limit,
-        isFull: limit != null && activeCount >= limit,
-      });
-    } catch (e) {
-      console.warn("refreshCapacity failed:", e);
-    }
-  }, [groupId]);
+  const [capacity, setCapacity] = useState<{
+    activeCount: number;
+    limit: number | null;
+    isFull: boolean;
+  } | null>(null);
 
   useEffect(() => {
     if (!open) {
@@ -80,6 +60,25 @@ export function JoinGroupDialog({
     (async () => {
       setLoading(true);
       try {
+        // Load member_limit + active count to validate capacity client-side
+        // (the server-side approval also re-validates in approveJoinRequest).
+        const [{ data: groupRow }, { data: cnt }] = await Promise.all([
+          supabase
+            .from("groups")
+            .select("member_limit")
+            .eq("id", groupId)
+            .maybeSingle(),
+          supabase.rpc("get_group_member_count", { _group_id: groupId }),
+        ]);
+        const limit = (groupRow as any)?.member_limit ?? null;
+        const activeCount = (cnt as number | null) ?? 0;
+        if (!cancelled) {
+          setCapacity({
+            activeCount,
+            limit,
+            isFull: limit != null && activeCount >= limit,
+          });
+        }
         const { data: members } = await supabase
           .from("group_members")
           .select("user_id, status")
@@ -131,36 +130,18 @@ export function JoinGroupDialog({
         if (!cancelled) setLoading(false);
       }
     })();
-
-    // Initial capacity load
-    void refreshCapacity();
-
-    // Realtime: listen to changes on group_members for this group
-    const channel = supabase
-      .channel(`join-dialog-capacity-${groupId}`)
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "group_members", filter: `group_id=eq.${groupId}` },
-        () => {
-          void refreshCapacity();
-        },
-      )
-      .subscribe();
-
-    // Refresh on tab focus too
-    const onFocus = () => void refreshCapacity();
-    if (typeof window !== "undefined") window.addEventListener("focus", onFocus);
-
     return () => {
       cancelled = true;
-      try {
-        supabase.removeChannel(channel);
-      } catch {}
-      if (typeof window !== "undefined") window.removeEventListener("focus", onFocus);
     };
-  }, [open, groupId, userId, refreshCapacity]);
+  }, [open, groupId, userId]);
 
   const handleSubmit = async () => {
+    if (capacity?.isFull) {
+      toast.error(
+        `Grupo cheio (${capacity.activeCount}/${capacity.limit}). Peça ao admin para aumentar o limite ou liberar uma vaga.`,
+      );
+      return;
+    }
     setSubmitting(true);
     try {
       // All joins now go through admin approval (regardless of public/private).
@@ -304,27 +285,23 @@ export function JoinGroupDialog({
           <p className="text-center text-xs text-muted-foreground">
             {hasClaimables
               ? "Você já joga aqui? Selecione seu nome para vincular o histórico ao aprovar."
-              : "Envie uma solicitação ao admin para entrar no grupo."}
+              : "Toda entrada precisa de aprovação do admin do grupo."}
           </p>
-          {capacity && (
-            <div
-              className={`mt-1 flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors ${
-                capacity.isFull
-                  ? "border-destructive/40 bg-destructive/10 text-destructive"
-                  : "border-border bg-muted/30 text-muted-foreground"
-              }`}
-              aria-live="polite"
-            >
-              <Users className="h-3 w-3" />
-              {capacity.limit != null ? (
-                <span>
-                  {capacity.activeCount}/{capacity.limit} vagas
-                  {capacity.isFull ? " — grupo cheio" : ""}
-                </span>
-              ) : (
-                <span>{capacity.activeCount} membros ativos</span>
-              )}
+          {capacity?.isFull && (
+            <div className="mt-2 w-full rounded-2xl border border-destructive/40 bg-destructive/10 px-3 py-2 text-center">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-destructive">
+                Grupo cheio
+              </p>
+              <p className="mt-1 text-xs text-foreground">
+                {capacity.activeCount}/{capacity.limit} membros. O admin precisa
+                aumentar o limite ou liberar uma vaga antes que você possa entrar.
+              </p>
             </div>
+          )}
+          {capacity && !capacity.isFull && capacity.limit != null && (
+            <p className="text-center text-[10px] text-muted-foreground">
+              {capacity.activeCount}/{capacity.limit} vagas ocupadas
+            </p>
           )}
         </div>
 
@@ -381,8 +358,8 @@ export function JoinGroupDialog({
 
         <button
           onClick={handleSubmit}
-          disabled={submitting || loading || (capacity?.isFull ?? false)}
-          className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-3 text-sm font-bold text-primary-foreground disabled:opacity-50"
+          disabled={submitting || loading || capacity?.isFull}
+          className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-3 text-sm font-bold text-primary-foreground disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />}
           {capacity?.isFull

@@ -302,14 +302,37 @@ function GroupDetailPage() {
     setLeavingLoading(true);
     try {
       await leaveGroup(myMembership.id);
-      toast.success("Você saiu do grupo");
+      const groupName = group?.name || "o grupo";
+      const wasAdmin = myMembership.role === "admin";
+      const visibilityLabel =
+        group?.visibility === "public"
+          ? "público"
+          : group?.visibility === "private"
+            ? "privado"
+            : "oculto";
+      const reentryHint =
+        group?.visibility === "hidden"
+          ? "Você precisará de um convite do admin para voltar."
+          : "Você pode pedir para entrar novamente a qualquer momento.";
+      toast.success(`Você saiu de ${groupName}`, {
+        description: `Status atualizado para ex-membro${wasAdmin ? " (admin removido)" : ""}. Grupo ${visibilityLabel}. ${reentryHint}`,
+        duration: 6000,
+      });
+      // Refresh local state (member list + my role) before navigating away,
+      // so any quick back-navigation reflects reality and not stale data.
+      try {
+        await refresh();
+      } catch {
+        // ignore refresh errors — navigation is more important
+      }
+      setLeaveDialogOpen(false);
       navigate({ to: "/groups" });
     } catch (e: any) {
       console.error("[leaveGroup] failed:", e);
       toast.error(e?.message || "Erro ao sair do grupo");
+      setLeaveDialogOpen(false);
     } finally {
       setLeavingLoading(false);
-      setLeaveDialogOpen(false);
     }
   };
 
@@ -595,7 +618,10 @@ function GroupDetailPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div
             className="fixed inset-0 bg-black/60 backdrop-blur-sm"
-            onClick={() => setLeaveDialogOpen(false)}
+            onClick={() => {
+              if (leavingLoading) return;
+              setLeaveDialogOpen(false);
+            }}
           />
           <div className="relative w-[90%] max-w-sm rounded-3xl border border-border bg-card p-6 animate-in zoom-in-95 duration-200">
             <div className="flex flex-col items-center gap-4 text-center">
@@ -618,15 +644,23 @@ function GroupDetailPage() {
               <div className="flex w-full gap-3">
                 <button
                   onClick={() => setLeaveDialogOpen(false)}
-                  className="flex-1 rounded-2xl border border-border py-3 text-sm font-semibold text-foreground"
+                  disabled={leavingLoading}
+                  className="flex-1 rounded-2xl border border-border py-3 text-sm font-semibold text-foreground disabled:opacity-50"
                 >
                   Cancelar
                 </button>
                 <button
                   onClick={handleLeaveConfirm}
                   disabled={leavingLoading}
-                  className="flex-1 rounded-2xl bg-destructive py-3 text-sm font-bold text-destructive-foreground disabled:opacity-50"
+                  aria-busy={leavingLoading}
+                  className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-destructive py-3 text-sm font-bold text-destructive-foreground disabled:opacity-60 disabled:cursor-not-allowed"
                 >
+                  {leavingLoading && (
+                    <span
+                      className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-destructive-foreground/40 border-t-destructive-foreground"
+                      aria-hidden="true"
+                    />
+                  )}
                   {leavingLoading ? "Saindo..." : "Sair"}
                 </button>
               </div>
