@@ -239,6 +239,57 @@ export function RivalryDuelPage({ groupId, groupName, seasonId, seasonName }: Pr
     return data?.id || null;
   }
 
+  async function loadEditHistory() {
+    try {
+      const { data } = await supabase
+        .from("audit_logs")
+        .select("id, created_at, user_id, entity_id, old_data, new_data")
+        .eq("group_id", groupId)
+        .eq("action", "match_score_edited")
+        .order("created_at", { ascending: false })
+        .limit(20);
+
+      if (!data?.length) {
+        setEditHistory([]);
+        return;
+      }
+
+      const editorIds = Array.from(new Set(data.map((r) => r.user_id)));
+      const { data: profiles } = await supabase
+        .from("user_profiles")
+        .select("user_id, name, nickname")
+        .in("user_id", editorIds);
+      const nameMap = new Map(
+        (profiles || []).map((p) => [p.user_id, p.nickname || p.name || null]),
+      );
+
+      const fmtSets = (raw: unknown): string => {
+        if (!Array.isArray(raw)) return "—";
+        return (raw as Array<{ scoreA?: number; scoreB?: number; score_team_a?: number; score_team_b?: number }>)
+          .map((s) => {
+            const a = s.scoreA ?? s.score_team_a ?? 0;
+            const b = s.scoreB ?? s.score_team_b ?? 0;
+            return `${a}-${b}`;
+          })
+          .join(" • ");
+      };
+
+      setEditHistory(
+        data.map((r) => ({
+          id: r.id,
+          created_at: r.created_at,
+          user_id: r.user_id,
+          editor_name: nameMap.get(r.user_id) ?? null,
+          match_id: r.entity_id,
+          old_sets: fmtSets(r.old_data),
+          new_sets: fmtSets(r.new_data),
+        })),
+      );
+    } catch (err) {
+      console.error("Error loading edit history:", err);
+    }
+  }
+
   async function loadDuelMatches(gid: string, userIds: string[]): Promise<Omit<DuelMatch, "rating_change_by_user">[]> {
     // Get all rounds for this group
     const { data: rounds } = await supabase
