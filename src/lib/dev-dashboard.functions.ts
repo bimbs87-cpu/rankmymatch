@@ -1002,9 +1002,10 @@ export const getDevDashboard = createServerFn({ method: "GET" })
     const sankeyReferrer7d = buildSankey(segmentFunnel7d.referrer, "Ref");
 
     // ===== Top-10 segmentos com maior drop + causas automáticas =====
-    // Combina utm+referrer 7d, calcula maior drop entre etapas e infere causas
-    // a partir de signupAnomalies + sinais do segmento.
-    const ghostUserIdSet = new Set(ghostUsersIdsForCauses(authUsers, profileUserIdSet));
+    const profileUserIdSetEarly = new Set((allProfiles ?? []).map((p) => p.user_id));
+    const ghostUserIdSet = new Set(
+      authUsers.filter((u) => !profileUserIdSetEarly.has(u.id)).map((u) => u.id)
+    );
     const onbSignupSet = new Set(
       onbRows.filter((r) => r.step === "signup").map((r) => r.user_id)
     );
