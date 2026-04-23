@@ -40,29 +40,44 @@ serve(async (req) => {
       );
     }
 
-    // Compact commit list for the prompt
+    // Compact commit list for the prompt — include date for context
     const commitList = commits
-      .map((c, i) => `${i + 1}. [${c.sha}] ${c.message.split("\n")[0]}`)
+      .map((c, i) => {
+        const dateStr = c.date ? ` (${c.date.slice(0, 10)})` : "";
+        return `${i + 1}. [${c.sha}]${dateStr} ${c.message.split("\n")[0]}`;
+      })
       .join("\n");
 
-    const systemPrompt = `Você é um redator de release notes para o RankMyMatch, um app de ranking de padel em PT-BR.
+    const systemPrompt = `Você é um redator de release notes para o RankMyMatch, um app de ranking de padel/tênis em PT-BR.
 
-Recebe uma lista de commits do Git (que muitas vezes têm mensagens vagas tipo "Changes" ou "Work in progress") e deve AGRUPAR commits relacionados em 3 a 5 entradas de release notes claras, escritas para usuários finais — não desenvolvedores.
+Recebe uma lista de commits do Git e deve produzir release notes ESPECÍFICAS e DETALHADAS, escritas para usuários finais (não devs).
 
-Regras:
-- Escreva em português do Brasil, tom amigável e direto.
-- Cada entrada tem: type ("feature" | "improvement" | "fix"), title (curto, máx 70 chars, sem prefixos técnicos), description (1-2 frases explicando o benefício pro usuário).
-- Agrupe commits sobre o mesmo tema (ex: 5 commits de ajuste em push notifications viram UMA entrada "Notificações push corrigidas").
-- IGNORE commits sem informação útil (chore, merge, "Changes", "WIP") — não invente conteúdo.
-- Se não conseguir entender o que foi feito, diga genericamente "Ajustes internos" ao invés de inventar.
-- Cada entrada deve referenciar os SHAs dos commits que a originaram (campo "commit_shas" — array).`;
+OBJETIVO: cada commit que tenha conteúdo identificável vira UMA entrada própria. Só agrupe quando MÚLTIPLOS commits descrevem literalmente a mesma mudança (ex: "fix push" + "fix push retry" + "fix push log" = 1 entrada de push).
+
+Regras de qualidade (CRÍTICAS):
+- Prefira MAIS entradas específicas (8-15) a poucas entradas genéricas. O ideal é 1 entrada por mudança real.
+- Title: curto, concreto, descreve EXATAMENTE o que mudou (ex: "Chip de próxima rodada clicável", "Popover de Grupos com fundo sólido"). Sem jargão técnico, sem prefixos tipo "feat:".
+- Description: 1 frase explicando o impacto/benefício REAL pro usuário, mencionando a tela ou contexto quando aplicável (ex: "No menu Grupos do BottomNav, o chip agora vai direto pra rodada").
+- Type: "feature" (algo novo visível), "improvement" (algo já existia e ficou melhor), "fix" (corrigiu bug).
+- NUNCA escreva entradas vagas tipo "Ajustes de performance e estabilidade", "Melhorias gerais", "Ajustes internos". Se a mensagem do commit é muito vaga pra entender, IGNORE esse commit (não inclua) em vez de inventar uma entrada genérica.
+- IGNORE commits puramente internos: merge, revert, chore, ci, refactor sem impacto visível, "Changes", "WIP", "Lovable auto-sync", bumps de dependência sem efeito.
+- Use as palavras-chave da própria mensagem do commit pra inferir contexto (ex: "rivalry", "BottomNav", "changelog", "push") e cite-as no título/descrição.
+- Cada entrada referencia os SHAs que a originaram (campo "commit_shas").
+
+Exemplos de entradas BOAS (estilo desejado):
+- {type:"improvement", title:"Chip de próxima rodada clicável", description:"No menu Grupos do BottomNav (1 grupo), o chip de próxima rodada agora vai direto pra rodada."}
+- {type:"fix", title:"Popover de Grupos com fundo sólido", description:"Corrigido o popover do menu Grupos no desktop que estava sobrepondo a tela."}
+- {type:"improvement", title:"Tooltip com tempo de confirmação", description:"O ícone de presença na próxima rodada agora mostra 'Confirmado por você há X'."}
+
+Exemplo de entrada RUIM (NÃO faça):
+- {type:"improvement", title:"Ajustes de performance e estabilidade", description:"Fizemos uma série de ajustes internos..."} ← genérico demais, proibido.`;
 
     const userPrompt = `Última versão publicada: ${latestVersion ?? "nenhuma"}
 
 Commits recentes (mais novo primeiro):
 ${commitList}
 
-Agrupe em 3-5 entradas de release notes.`;
+Gere quantas entradas específicas forem necessárias (idealmente 1 por mudança real, sem agrupar coisas diferentes). Não force agrupamento — prefira mais entradas concretas a poucas genéricas.`;
 
     const aiRes = await fetch(
       "https://ai.gateway.lovable.dev/v1/chat/completions",
@@ -73,7 +88,7 @@ Agrupe em 3-5 entradas de release notes.`;
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "google/gemini-2.5-flash",
+          model: "google/gemini-2.5-pro",
           messages: [
             { role: "system", content: systemPrompt },
             { role: "user", content: userPrompt },
