@@ -52,6 +52,36 @@ export function JoinGroupDialog({
   const [formers, setFormers] = useState<ClaimablePlayer[]>([]);
   const [selected, setSelected] = useState<ClaimablePlayer | null>(null);
   const [message, setMessage] = useState("");
+  const [capacity, setCapacity] = useState<CapacityInfo | null>(null);
+
+  // Refresh capacity (member count + waitlist) — used on open + realtime updates.
+  const refreshCapacity = async () => {
+    try {
+      const [{ data: g }, { data: cnt }, { count: wlCount }] = await Promise.all([
+        supabase.from("groups").select("member_limit").eq("id", groupId).maybeSingle(),
+        supabase.rpc("get_group_member_count", { _group_id: groupId }),
+        supabase
+          .from("group_join_requests")
+          .select("id", { count: "exact", head: true })
+          .eq("group_id", groupId)
+          .eq("status", "pending")
+          .eq("is_waitlisted", true),
+      ]);
+      const memberLimit = (g as any)?.member_limit ?? null;
+      const memberCount = (cnt as number | null) ?? 0;
+      const waitlistCount = wlCount ?? 0;
+      const isFull = memberLimit != null && memberCount >= memberLimit;
+      setCapacity({
+        memberCount,
+        memberLimit,
+        isFull,
+        waitlistCount,
+        nextPosition: waitlistCount + 1,
+      });
+    } catch (e) {
+      console.warn("[JoinGroupDialog] refreshCapacity failed", e);
+    }
+  };
 
   useEffect(() => {
     if (!open) {
@@ -60,6 +90,7 @@ export function JoinGroupDialog({
       return;
     }
     let cancelled = false;
+    void refreshCapacity();
     (async () => {
       setLoading(true);
       try {
@@ -114,8 +145,29 @@ export function JoinGroupDialog({
         if (!cancelled) setLoading(false);
       }
     })();
+
+    // Realtime: keep capacity + waitlist position fresh while dialog is open
+    const channel = supabase
+      .channel(`join-dialog-capacity-${groupId}`)
+      .on(
+        "postgres_changes" as never,
+        { event: "*", schema: "public", table: "group_members", filter: `group_id=eq.${groupId}` },
+        () => { void refreshCapacity(); },
+      )
+      .on(
+        "postgres_changes" as never,
+        { event: "*", schema: "public", table: "group_join_requests", filter: `group_id=eq.${groupId}` },
+        () => { void refreshCapacity(); },
+      )
+      .subscribe();
+
+    const onFocus = () => { void refreshCapacity(); };
+    window.addEventListener("focus", onFocus);
+
     return () => {
       cancelled = true;
+      window.removeEventListener("focus", onFocus);
+      void supabase.removeChannel(channel);
     };
   }, [open, groupId, userId]);
 
