@@ -739,7 +739,7 @@ function NonMemberView({
               <UserPlus className="h-6 w-6" />
             </div>
             <span className="text-center text-sm font-bold leading-tight">
-              {group.is_public ? "Entrar no grupo" : "Solicitar entrada"}
+              Solicitar entrada
             </span>
           </button>
           {hasPlaceholders && (
