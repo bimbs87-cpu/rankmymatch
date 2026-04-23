@@ -407,6 +407,56 @@ export function RivalryDuelPage({ groupId, groupName, seasonId, seasonName }: Pr
     }
   }
 
+  function handleStartEdit(matchId: string) {
+    const m = matches.find((x) => x.id === matchId);
+    if (!m) return;
+    setEditingMatch(m);
+  }
+
+  async function handleEditSaved() {
+    if (!editingMatch) return;
+    const matchId = editingMatch.id;
+    // Capture pre-edit sets for the audit log
+    const oldSets = editingMatch.sets.map((s, i) => ({
+      setNumber: i + 1,
+      scoreA: s.scoreA,
+      scoreB: s.scoreB,
+    }));
+    setEditingMatch(null);
+
+    try {
+      // Fetch the new sets to record what changed
+      const { data: newSetsRows } = await supabase
+        .from("match_sets")
+        .select("set_number, score_team_a, score_team_b")
+        .eq("match_id", matchId)
+        .order("set_number", { ascending: true });
+
+      const newSets = (newSetsRows || []).map((s) => ({
+        setNumber: s.set_number,
+        scoreA: s.score_team_a,
+        scoreB: s.score_team_b,
+      }));
+
+      await logAudit({
+        groupId,
+        action: "match_score_edited",
+        entityType: "match",
+        entityId: matchId,
+        oldData: oldSets,
+        newData: newSets,
+      });
+
+      toast.success("Resultado atualizado — Elo recalculado");
+    } catch (err) {
+      console.error("Audit log failed:", err);
+    }
+
+    // Refresh duel data + edit history
+    void loadDuelData();
+    void loadEditHistory();
+  }
+
   if (loading) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
