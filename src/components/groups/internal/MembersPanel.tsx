@@ -19,7 +19,7 @@ import { ClaimInviteShareDialog } from "@/components/ClaimInviteShareDialog";
 import {
   Search, Filter, ArrowUpDown, KeyRound, Shield, Ghost, UserMinus, Pencil, GitMerge,
   Check, X, Trophy, ChevronRight, UserPlus, Share2, Crown, Flame, MessageCircle,
-  MailCheck, RotateCcw, Send, Trash2,
+  MailCheck, RotateCcw, Send, Trash2, Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
 
