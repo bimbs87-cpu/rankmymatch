@@ -984,6 +984,8 @@ function RoundExpandedDetails({
   const [reloadKey, setReloadKey] = useState(0);
   const [scoringMatchId, setScoringMatchId] = useState<string | null>(null);
   const [adminPresenceOpen, setAdminPresenceOpen] = useState(false);
+  const [roundStatus, setRoundStatus] = useState<"scheduled" | "in_progress" | "completed">("scheduled");
+  const [isRivalry, setIsRivalry] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -995,7 +997,7 @@ function RoundExpandedDetails({
         supabase.from("matches").select("id, status, match_number, winner_team, match_players(user_id, team), match_sets(set_number, score_team_a, score_team_b)").eq("round_id", roundId).order("match_number", { ascending: true }),
         supabase.from("group_members").select("user_id").eq("group_id", groupId).eq("status", "active"),
         supabase.from("seasons").select("sets_per_match, sets_mode, match_format").eq("id", seasonId).maybeSingle(),
-        supabase.from("groups").select("match_format").eq("id", groupId).maybeSingle(),
+        supabase.from("groups").select("match_format, singles_group_type").eq("id", groupId).maybeSingle(),
       ]);
       if (cancelled) return;
       const confirmedRows = (pres || []).filter((p) => p.status === "confirmed");
@@ -1009,11 +1011,24 @@ function RoundExpandedDetails({
         max: round?.max_players || 0,
       });
       setMatchesData(ms || []);
+      setRoundStatus((round?.status as any) || "scheduled");
 
       const fmt = (round?.match_format || season?.match_format || group?.match_format || "doubles") as string;
       setGroupFormat(fmt === "singles" || fmt === "1v1" ? "singles" : "doubles");
-      if (season?.sets_per_match) setSetsPerMatch(season.sets_per_match);
-      if (season?.sets_mode) setSetsMode(season.sets_mode as any);
+
+      // Rivalry override: regardless of season config, rivalry groups always
+      // play unlimited sets (the duel runs as long as players want).
+      const isRivalry =
+        group?.match_format === "singles" && group?.singles_group_type === "rivalry";
+      setIsRivalry(isRivalry);
+      if (isRivalry) {
+        setSetsPerMatch(99);
+        setSetsMode("unlimited");
+      } else {
+        if (season?.sets_per_match) setSetsPerMatch(season.sets_per_match);
+        if (season?.sets_mode) setSetsMode(season.sets_mode as any);
+      }
+
 
       const mine = user ? (pres || []).find((p) => p.user_id === user.id) : null;
       setMyStatus((mine?.status as any) ?? null);
@@ -1163,7 +1178,7 @@ function RoundExpandedDetails({
         <div className="text-[11px] text-muted-foreground">Carregando…</div>
       ) : (
         <>
-          {user && (
+          {user && roundStatus !== "completed" && (
             <div>
               {myStatus === "confirmed" ? (
                 <button
@@ -1182,6 +1197,12 @@ function RoundExpandedDetails({
                   Confirmar presença
                 </button>
               )}
+            </div>
+          )}
+
+          {roundStatus === "completed" && (
+            <div className="rounded-xl border border-success/30 bg-success/10 px-3 py-2 text-center text-xs font-semibold text-success">
+              ✓ Rodada encerrada
             </div>
           )}
 
@@ -1230,8 +1251,9 @@ function RoundExpandedDetails({
             </button>
           )}
 
-      {/* Admin: sortear times when there are no matches yet */}
-          {isAdmin && matchesData.length === 0 && (
+      {/* Admin: sortear times when there are no matches yet — hidden in rivalry
+          (rivalry rounds always have a single fixed pairing of the 2 members). */}
+          {isAdmin && matchesData.length === 0 && !isRivalry && (
             <button
               onClick={handleDrawTeams}
               disabled={busy || confirmedIds.length < (groupFormat === "singles" ? 2 : 4)}
@@ -1241,8 +1263,19 @@ function RoundExpandedDetails({
             </button>
           )}
 
-          {/* Admin: resortear times when matches exist but no result entered */}
-          {isAdmin && hasUnstartedMatches && (
+          {/* Admin: rivalry shortcut — create the single match for the 2 members */}
+          {isAdmin && matchesData.length === 0 && isRivalry && confirmedIds.length === 2 && (
+            <button
+              onClick={handleDrawTeams}
+              disabled={busy}
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-2 text-xs font-bold text-primary-foreground disabled:opacity-50"
+            >
+              <Trophy className="h-3.5 w-3.5" /> Iniciar confronto
+            </button>
+          )}
+
+          {/* Admin: resortear times when matches exist but no result entered (not for rivalry) */}
+          {isAdmin && hasUnstartedMatches && !isRivalry && (
             <button
               onClick={handleRedrawTeams}
               disabled={busy || confirmedIds.length < (groupFormat === "singles" ? 2 : 4)}
