@@ -1439,18 +1439,15 @@ function DashboardPage() {
             </div>
           ) : currentRanking ? (
             <div className="relative flex flex-col rounded-3xl border border-primary/20 bg-primary/5 p-3 min-h-[140px] lg:min-h-0">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Seu Ranking</p>
-
-              <Link to="/ranking" className="flex flex-1 flex-col">
-                {/* Top: Elo + delta — main visual */}
-                <div className="mt-1 flex items-baseline gap-1.5">
-                  <span className="font-display text-2xl font-extrabold leading-none text-foreground tabular-nums">
-                    {Math.round(currentRanking.rating)}
-                  </span>
-                  <span className="text-[10px] font-semibold text-muted-foreground">Elo</span>
+              <Link to="/ranking" className="flex flex-1 flex-col gap-2">
+                {/* Header: label + last delta chip */}
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    Seu Ranking
+                  </p>
                   {currentRanking.last_change !== null && Math.abs(currentRanking.last_change) >= 1 && (
                     <span
-                      className={`ml-auto inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-bold tabular-nums ${
+                      className={`inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-bold tabular-nums ${
                         currentRanking.last_change > 0
                           ? "bg-success/15 text-success"
                           : "bg-destructive/15 text-destructive"
@@ -1468,42 +1465,50 @@ function DashboardPage() {
                   )}
                 </div>
 
-                {/* Position + win rate inline */}
-                <div className="mt-2 flex items-center gap-2 text-[11px]">
-                  <span className="font-display text-base font-bold leading-none text-primary">
-                    {ordinalSuffix(currentRanking.position)}
+                {/* Hero: Elo + position side by side */}
+                <div className="flex items-baseline gap-2">
+                  <span className="font-display text-2xl font-extrabold leading-none text-foreground tabular-nums">
+                    {Math.round(currentRanking.rating)}
                   </span>
-                  <span className="text-muted-foreground">
-                    · <span className="font-semibold text-foreground">{winRate}%</span> aprov.
+                  <span className="text-[10px] font-semibold text-muted-foreground">Elo</span>
+                  <span className="ml-auto font-display text-base font-bold leading-none text-primary tabular-nums">
+                    {ordinalSuffix(currentRanking.position)}
                   </span>
                 </div>
 
-                {/* Last 5 results — V/D pills */}
-                {currentRanking.last_events.length > 0 && (
-                  <div className="mt-2 flex items-center gap-1">
-                    <span className="text-[8px] uppercase tracking-wider text-muted-foreground/70">Últ. 5</span>
-                    {currentRanking.last_events.slice(0, 5).map((delta, i) => (
-                      <span
-                        key={i}
-                        className={`flex h-4 w-4 items-center justify-center rounded text-[9px] font-bold ${
-                          delta > 0
-                            ? "bg-success/15 text-success"
-                            : delta < 0
-                              ? "bg-destructive/15 text-destructive"
-                              : "bg-muted text-muted-foreground"
-                        }`}
-                        title={`${delta > 0 ? "+" : ""}${Math.round(delta)} Elo`}
-                      >
-                        {delta > 0 ? "V" : delta < 0 ? "D" : "·"}
-                      </span>
-                    ))}
-                  </div>
-                )}
+                {/* Stats row: win rate + Últ.5 inline */}
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[11px] text-muted-foreground">
+                    <span className="font-semibold text-foreground">{winRate}%</span> aprov.
+                  </span>
+                  {currentRanking.last_events.length > 0 && (
+                    <div className="flex items-center gap-0.5">
+                      {currentRanking.last_events.slice(0, 5).map((delta, i) => (
+                        <span
+                          key={i}
+                          className={`flex h-3.5 w-3.5 items-center justify-center rounded text-[8px] font-bold ${
+                            delta > 0
+                              ? "bg-success/15 text-success"
+                              : delta < 0
+                                ? "bg-destructive/15 text-destructive"
+                                : "bg-muted text-muted-foreground"
+                          }`}
+                          title={`${delta > 0 ? "+" : ""}${Math.round(delta)} Elo`}
+                        >
+                          {delta > 0 ? "V" : delta < 0 ? "D" : "·"}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
 
-                <p className="mt-auto pt-2 text-[9px] text-muted-foreground/60 truncate">
-                  {currentRanking.group_name || ""}
-                  {currentRanking.rounds_total > 0 ? ` · ${currentRanking.rounds_completed}/${currentRanking.rounds_total}` : ""}
-                </p>
+                {/* Footer: group + rounds */}
+                {(currentRanking.group_name || currentRanking.rounds_total > 0) && (
+                  <p className="mt-auto text-[9px] text-muted-foreground/60 truncate">
+                    {currentRanking.group_name || ""}
+                    {currentRanking.rounds_total > 0 ? ` · ${currentRanking.rounds_completed}/${currentRanking.rounds_total}` : ""}
+                  </p>
+                )}
               </Link>
             </div>
           ) : (
