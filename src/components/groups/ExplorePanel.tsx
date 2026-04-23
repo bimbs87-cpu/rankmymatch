@@ -47,14 +47,33 @@ type FormatFilter = "all" | "doubles" | "singles";
 type SizeFilter = "all" | "small" | "medium" | "large";
 
 export function ExplorePanel() {
+  const { user } = useAuth();
   const [search, setSearch] = useState("");
   const [sport, setSport] = useState<SportFilter>("all");
   const [format, setFormat] = useState<FormatFilter>("all");
   const [size, setSize] = useState<SizeFilter>("all");
   const [sort, setSort] = useState<SortKey>("newest");
   const [showFilters, setShowFilters] = useState(false);
+  const [copyingId, setCopyingId] = useState<string | null>(null);
 
   const { groups, isLoading } = usePublicGroups(search);
+
+  const handleCopyInvite = async (e: React.MouseEvent, groupId: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!user) return;
+    setCopyingId(groupId);
+    try {
+      const url = await getOrCreateInviteUrl(groupId, user.id);
+      await navigator.clipboard.writeText(url);
+      toast.success("Link de convite copiado!");
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err?.message || "Erro ao gerar link");
+    } finally {
+      setCopyingId(null);
+    }
+  };
 
   const filtered = useMemo(() => {
     let list = groups.slice();
