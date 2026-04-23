@@ -1178,7 +1178,7 @@ function RoundExpandedDetails({
         <div className="text-[11px] text-muted-foreground">Carregando…</div>
       ) : (
         <>
-          {user && (
+          {user && roundStatus !== "completed" && (
             <div>
               {myStatus === "confirmed" ? (
                 <button
@@ -1197,6 +1197,12 @@ function RoundExpandedDetails({
                   Confirmar presença
                 </button>
               )}
+            </div>
+          )}
+
+          {roundStatus === "completed" && (
+            <div className="rounded-xl border border-success/30 bg-success/10 px-3 py-2 text-center text-xs font-semibold text-success">
+              ✓ Rodada encerrada
             </div>
           )}
 
