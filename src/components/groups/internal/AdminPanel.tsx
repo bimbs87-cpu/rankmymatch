@@ -25,6 +25,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { startRenewalCheckout, salesWhatsAppUrl } from "@/lib/payment-provider";
 import { useServerFn } from "@tanstack/react-start";
 import { detectDesyncedMatchesServerFn } from "@/lib/match-maintenance.functions";
+import { logAudit } from "@/lib/audit-log";
 
 type Section = "general" | "presence" | "members" | "invites" | "approvals" | "push" | "engagement" | "audit" | "maintenance" | "og-cache" | "advanced";
 
