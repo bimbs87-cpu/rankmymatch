@@ -808,6 +808,16 @@ export function AuditPanel({ groupId }: Props) {
             🎬 Movimentações da rodada ({roundMovCount})
           </button>
         )}
+        {filter !== "all" && (
+          <button
+            type="button"
+            onClick={() => setFilter("all")}
+            className="ml-auto flex items-center gap-1 rounded-full border border-border bg-background px-2.5 py-1 text-[10px] font-bold text-muted-foreground transition-colors hover:border-destructive/40 hover:text-destructive"
+            title="Voltar para 'Todas as ações' e limpar o filtro salvo"
+          >
+            ✕ Resetar filtro
+          </button>
+        )}
       </div>
 
       {isNudgeFilter && nudgeStats.total > 0 && (
