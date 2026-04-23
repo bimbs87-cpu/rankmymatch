@@ -526,7 +526,9 @@ export async function approveJoinRequest(requestId: string, groupId: string, use
     const { data: cnt } = await supabase.rpc("get_group_member_count", { _group_id: groupId });
     const current = (cnt as number | null) ?? 0;
     if (current >= limit) {
-      throw new Error(`Grupo cheio (${current}/${limit} membros). Aumente o limite ou remova membros antes de aprovar.`);
+      throw new Error(
+        `Grupo cheio (${current}/${limit}). Esta solicitação fica em lista de espera — aprove quando uma vaga abrir (alguém sair ou for desvinculado).`,
+      );
     }
   }
 
