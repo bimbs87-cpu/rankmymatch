@@ -5,7 +5,7 @@
  *
  * A "Ver todas" footer link still opens /notifications for the full list.
  */
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import {
   Bell,
@@ -62,11 +62,27 @@ export function NotificationsPopover({ children }: Props) {
   const { notifications, unreadCount, isLoading, markAllRead, markRead } = useNotifications();
   const recent = notifications.slice(0, 8);
 
+  // Guard against concurrent markAllRead calls when the popover is opened
+  // and closed rapidly (or re-opened before the previous call settles).
+  const markingRef = useRef(false);
+  const lastMarkedAtRef = useRef(0);
+
   // Auto-mark all as read when the popover opens.
   useEffect(() => {
-    if (open && unreadCount > 0) {
-      void markAllRead();
-    }
+    if (!open || unreadCount === 0) return;
+    if (markingRef.current) return;
+    // Debounce: ignore if we just marked within the last 1.5s.
+    if (Date.now() - lastMarkedAtRef.current < 1500) return;
+
+    markingRef.current = true;
+    void (async () => {
+      try {
+        await markAllRead();
+        lastMarkedAtRef.current = Date.now();
+      } finally {
+        markingRef.current = false;
+      }
+    })();
   }, [open, unreadCount, markAllRead]);
 
   const handleClick = async (n: (typeof notifications)[number]) => {
