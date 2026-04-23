@@ -2292,21 +2292,33 @@ function DashboardPage() {
 
                 {/* Chart */}
                 <div className="flex flex-1 flex-col">
-                  <div className="mb-1 flex items-center justify-between text-[10px] text-muted-foreground">
-                    <span>{ratingPoints.length > 0 ? `${ratingPoints.length} partidas` : ""}</span>
-                    {minRating != null && maxRating != null && (
-                      <span className="font-mono">
-                        {Math.round(minRating)} – {Math.round(maxRating)}
-                      </span>
-                    )}
-                  </div>
-                  <div className="h-[280px] max-h-[360px] flex-1">
-                    <EloEvolutionChart
-                      points={history.map((h) => ({ date: h.date, rating: h.rating }))}
-                      color="#84cc16"
-                      height={280}
-                    />
-                  </div>
+                  {currentRanking?.is_aggregate ? (
+                    <div className="flex flex-1 flex-col items-center justify-center rounded-xl border border-dashed border-border/60 bg-muted/10 p-6 text-center">
+                      <BarChart3 className="mb-2 h-8 w-8 text-muted-foreground/40" />
+                      <p className="text-xs font-semibold text-foreground">Visão geral combinada</p>
+                      <p className="mt-1 text-[10px] text-muted-foreground">
+                        Selecione uma temporada específica para ver a evolução do Elo.
+                      </p>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="mb-1 flex items-center justify-between text-[10px] text-muted-foreground">
+                        <span>{ratingPoints.length > 0 ? `${ratingPoints.length} partidas` : ""}</span>
+                        {minRating != null && maxRating != null && (
+                          <span className="font-mono">
+                            {Math.round(minRating)} – {Math.round(maxRating)}
+                          </span>
+                        )}
+                      </div>
+                      <div className="h-[280px] max-h-[360px] flex-1">
+                        <EloEvolutionChart
+                          points={history.map((h) => ({ date: h.date, rating: h.rating }))}
+                          color="#84cc16"
+                          height={280}
+                        />
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
             );
