@@ -306,6 +306,26 @@ export function JoinGroupDialog({
               ? "Você já joga aqui? Selecione seu nome para vincular o histórico ao aprovar."
               : "Envie uma solicitação ao admin para entrar no grupo."}
           </p>
+          {capacity && (
+            <div
+              className={`mt-1 flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors ${
+                capacity.isFull
+                  ? "border-destructive/40 bg-destructive/10 text-destructive"
+                  : "border-border bg-muted/30 text-muted-foreground"
+              }`}
+              aria-live="polite"
+            >
+              <Users className="h-3 w-3" />
+              {capacity.limit != null ? (
+                <span>
+                  {capacity.activeCount}/{capacity.limit} vagas
+                  {capacity.isFull ? " — grupo cheio" : ""}
+                </span>
+              ) : (
+                <span>{capacity.activeCount} membros ativos</span>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="flex-1 overflow-y-auto min-h-0 space-y-3">
