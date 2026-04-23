@@ -51,21 +51,13 @@ export async function createExtraRound(params: {
 }) {
   const { groupId, seasonId, actorId, scheduledDate, scheduledTime, location } = params;
 
-  // Fetch group defaults (capacity comes from courts × format, not legacy max_players)
+  // Fetch group defaults
   const { data: group, error: gErr } = await supabase
     .from("groups")
-    .select("name, match_format, max_players, simultaneous_courts, singles_group_type")
+    .select("name, match_format, max_players")
     .eq("id", groupId)
     .single();
   if (gErr || !group) throw new Error("Erro ao carregar grupo");
-
-  const { computeRoundCapacity } = await import("@/lib/round-capacity");
-  const roundCapacity = computeRoundCapacity({
-    match_format: group.match_format,
-    simultaneous_courts: group.simultaneous_courts ?? 1,
-    singles_group_type: group.singles_group_type ?? null,
-    max_players: group.max_players ?? null,
-  });
 
   // Insert as last for now; renumber afterwards.
   const { data: existing } = await supabase
@@ -81,7 +73,7 @@ export async function createExtraRound(params: {
     scheduled_date: scheduledDate,
     status: "scheduled" as const,
     match_format: group.match_format,
-    max_players: roundCapacity,
+    max_players: group.max_players,
     is_extra: true,
     ...(scheduledTime ? { scheduled_time: scheduledTime } : {}),
     ...(location && location.trim() ? { location: location.trim() } : {}),

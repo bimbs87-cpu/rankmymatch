@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { UserPlus, X, Loader2, UserMinus, Ghost, Link2 } from "lucide-react";
+import { UserPlus, X, Loader2, UserMinus, Ghost, Link2, Users, Clock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { toast } from "sonner";
@@ -9,6 +9,15 @@ interface ClaimablePlayer {
   name: string;
   avatar_url: string | null;
   kind: "placeholder" | "former";
+}
+
+interface CapacityInfo {
+  memberCount: number;
+  memberLimit: number | null;
+  isFull: boolean;
+  waitlistCount: number;
+  /** Predicted waitlist position if this user submits now (1-based). */
+  nextPosition: number;
 }
 
 interface Props {
@@ -43,42 +52,48 @@ export function JoinGroupDialog({
   const [formers, setFormers] = useState<ClaimablePlayer[]>([]);
   const [selected, setSelected] = useState<ClaimablePlayer | null>(null);
   const [message, setMessage] = useState("");
-  const [capacity, setCapacity] = useState<{
-    activeCount: number;
-    limit: number | null;
-    isFull: boolean;
-  } | null>(null);
+  const [capacity, setCapacity] = useState<CapacityInfo | null>(null);
+
+  // Refresh capacity (member count + waitlist) — used on open + realtime updates.
+  const refreshCapacity = async () => {
+    try {
+      const [{ data: g }, { data: cnt }, { count: wlCount }] = await Promise.all([
+        supabase.from("groups").select("member_limit").eq("id", groupId).maybeSingle(),
+        supabase.rpc("get_group_member_count", { _group_id: groupId }),
+        supabase
+          .from("group_join_requests")
+          .select("id", { count: "exact", head: true })
+          .eq("group_id", groupId)
+          .eq("status", "pending")
+          .eq("is_waitlisted", true),
+      ]);
+      const memberLimit = (g as any)?.member_limit ?? null;
+      const memberCount = (cnt as number | null) ?? 0;
+      const waitlistCount = wlCount ?? 0;
+      const isFull = memberLimit != null && memberCount >= memberLimit;
+      setCapacity({
+        memberCount,
+        memberLimit,
+        isFull,
+        waitlistCount,
+        nextPosition: waitlistCount + 1,
+      });
+    } catch (e) {
+      console.warn("[JoinGroupDialog] refreshCapacity failed", e);
+    }
+  };
 
   useEffect(() => {
     if (!open) {
       setSelected(null);
       setMessage("");
-      setCapacity(null);
       return;
     }
     let cancelled = false;
+    void refreshCapacity();
     (async () => {
       setLoading(true);
       try {
-        // Load member_limit + active count to validate capacity client-side
-        // (the server-side approval also re-validates in approveJoinRequest).
-        const [{ data: groupRow }, { data: cnt }] = await Promise.all([
-          supabase
-            .from("groups")
-            .select("member_limit")
-            .eq("id", groupId)
-            .maybeSingle(),
-          supabase.rpc("get_group_member_count", { _group_id: groupId }),
-        ]);
-        const limit = (groupRow as any)?.member_limit ?? null;
-        const activeCount = (cnt as number | null) ?? 0;
-        if (!cancelled) {
-          setCapacity({
-            activeCount,
-            limit,
-            isFull: limit != null && activeCount >= limit,
-          });
-        }
         const { data: members } = await supabase
           .from("group_members")
           .select("user_id, status")
@@ -130,18 +145,33 @@ export function JoinGroupDialog({
         if (!cancelled) setLoading(false);
       }
     })();
+
+    // Realtime: keep capacity + waitlist position fresh while dialog is open
+    const channel = supabase
+      .channel(`join-dialog-capacity-${groupId}`)
+      .on(
+        "postgres_changes" as never,
+        { event: "*", schema: "public", table: "group_members", filter: `group_id=eq.${groupId}` },
+        () => { void refreshCapacity(); },
+      )
+      .on(
+        "postgres_changes" as never,
+        { event: "*", schema: "public", table: "group_join_requests", filter: `group_id=eq.${groupId}` },
+        () => { void refreshCapacity(); },
+      )
+      .subscribe();
+
+    const onFocus = () => { void refreshCapacity(); };
+    window.addEventListener("focus", onFocus);
+
     return () => {
       cancelled = true;
+      window.removeEventListener("focus", onFocus);
+      void supabase.removeChannel(channel);
     };
   }, [open, groupId, userId]);
 
   const handleSubmit = async () => {
-    if (capacity?.isFull) {
-      toast.error(
-        `Grupo cheio (${capacity.activeCount}/${capacity.limit}). Peça ao admin para aumentar o limite ou liberar uma vaga.`,
-      );
-      return;
-    }
     setSubmitting(true);
     try {
       // All joins now go through admin approval (regardless of public/private).
@@ -200,10 +230,15 @@ export function JoinGroupDialog({
         console.warn("notifyGroupAdmins (join) falhou:", notifyErr);
       }
 
+      const isWaitlisted = capacity?.isFull ?? false;
+      const positionMsg = isWaitlisted
+        ? ` Você está na posição #${capacity?.nextPosition ?? "?"} da lista de espera.`
+        : "";
       toast.success(
-        selected
+        (selected
           ? "Solicitação enviada! O admin vai aprovar e vincular seu histórico."
-          : "Solicitação enviada! O admin vai revisar.",
+          : "Solicitação enviada! O admin vai revisar.") + positionMsg,
+        { duration: isWaitlisted ? 7000 : 4000 },
       );
       onJoined();
       onOpenChange(false);
@@ -280,27 +315,37 @@ export function JoinGroupDialog({
             <UserPlus className="h-7 w-7 text-primary" />
           </div>
           <h3 className="font-display text-base font-bold text-foreground">
-            Solicitar entrada
+            {capacity?.isFull ? "Entrar na lista de espera" : "Solicitar entrada"}
           </h3>
           <p className="text-center text-xs text-muted-foreground">
             {hasClaimables
               ? "Você já joga aqui? Selecione seu nome para vincular o histórico ao aprovar."
-              : "Toda entrada precisa de aprovação do admin do grupo."}
+              : "Envie uma solicitação ao admin para entrar no grupo."}
           </p>
-          {capacity?.isFull && (
-            <div className="mt-2 w-full rounded-2xl border border-destructive/40 bg-destructive/10 px-3 py-2 text-center">
-              <p className="text-[11px] font-bold uppercase tracking-wider text-destructive">
-                Grupo cheio
-              </p>
-              <p className="mt-1 text-xs text-foreground">
-                {capacity.activeCount}/{capacity.limit} membros. O admin precisa
-                aumentar o limite ou liberar uma vaga antes que você possa entrar.
-              </p>
+
+          {capacity && capacity.memberLimit != null && (
+            <div className="mt-1 flex flex-wrap items-center justify-center gap-1.5">
+              <span
+                className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold ring-1 ${
+                  capacity.isFull
+                    ? "bg-destructive/10 text-destructive ring-destructive/30"
+                    : "bg-primary/10 text-primary ring-primary/20"
+                }`}
+              >
+                <Users className="h-2.5 w-2.5" />
+                {capacity.memberCount}/{capacity.memberLimit} vagas
+              </span>
+              {capacity.isFull && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[10px] font-bold text-foreground">
+                  <Clock className="h-2.5 w-2.5" />
+                  Você ficará em #{capacity.nextPosition}
+                </span>
+              )}
             </div>
           )}
-          {capacity && !capacity.isFull && capacity.limit != null && (
-            <p className="text-center text-[10px] text-muted-foreground">
-              {capacity.activeCount}/{capacity.limit} vagas ocupadas
+          {capacity?.isFull && (
+            <p className="mt-1 text-center text-[10px] text-muted-foreground leading-snug">
+              Grupo cheio. Quando alguém sair, o admin será avisado para aprovar o próximo da fila.
             </p>
           )}
         </div>
@@ -358,15 +403,11 @@ export function JoinGroupDialog({
 
         <button
           onClick={handleSubmit}
-          disabled={submitting || loading || capacity?.isFull}
-          className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-3 text-sm font-bold text-primary-foreground disabled:opacity-50 disabled:cursor-not-allowed"
+          disabled={submitting || loading}
+          className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-3 text-sm font-bold text-primary-foreground disabled:opacity-50"
         >
           {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />}
-          {capacity?.isFull
-            ? "Grupo cheio"
-            : selected
-              ? "Pedir vinculação"
-              : "Enviar solicitação"}
+          {selected ? "Pedir vinculação" : "Enviar solicitação"}
         </button>
       </div>
     </div>

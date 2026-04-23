@@ -50,6 +50,8 @@ interface PendingItem {
   targetPlayerName: string | null;
   message: string | null;
   createdAt: string;
+  /** Waitlist position (1-based) when join_request is in waitlist mode. */
+  waitlistPosition?: number | null;
   /** match_result extras (kind === "match_result") */
   matchId?: string;
   seasonId?: string;
@@ -147,7 +149,7 @@ function AdminInboxPage() {
       const [reqsRes, claimsRes, groupsRes, prRes] = await Promise.all([
         supabase
           .from("group_join_requests")
-          .select("id, group_id, user_id, claimed_player_id, message, created_at")
+          .select("id, group_id, user_id, claimed_player_id, message, created_at, waitlist_position, is_waitlisted")
           .in("group_id", adminGroupIds)
           .eq("status", "pending"),
         supabase
@@ -218,6 +220,7 @@ function AdminInboxPage() {
             targetPlayerName: target?.name || null,
             message: r.message || null,
             createdAt: r.created_at,
+            waitlistPosition: (r as any).is_waitlisted ? (r as any).waitlist_position ?? null : null,
           };
         }),
         ...claims.map((c): PendingItem => {
@@ -827,6 +830,14 @@ function AdminInboxPage() {
                                 <span className="inline-flex items-center gap-1 rounded-full bg-destructive px-2 py-0.5 text-[10px] font-bold text-destructive-foreground">
                                   <AlertTriangle className="h-3 w-3" />
                                   CRÍTICO
+                                </span>
+                              )}
+                              {it.kind === "join_request" && it.waitlistPosition != null && (
+                                <span
+                                  className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary ring-1 ring-primary/20"
+                                  title="Posição na lista de espera (grupo cheio)"
+                                >
+                                  Fila #{it.waitlistPosition}
                                 </span>
                               )}
                               <span
