@@ -239,39 +239,57 @@ function GeneralSection({ group, onSaved }: { group: any; onSaved: () => void })
     const visibilityChanged = visibility !== initVis;
     const newLimit = memberLimitEnabled ? parsedLimit : null;
     const limitChanged = newLimit !== initMemberLimit;
+
+    // 1) Visibility goes through server-side validation (zod + admin check + audit).
+    //    This guarantees only allowed values reach the DB and the change is auditable
+    //    even if the user bypasses the client UI.
+    if (visibilityChanged) {
+      if (!session?.access_token) {
+        toast.error("Sessão expirou. Faça login novamente.");
+        setSaving(false);
+        return;
+      }
+      try {
+        const res = await updateVisibilityFn({
+          data: { groupId: group.id, visibility },
+          headers: { authorization: `Bearer ${session.access_token}` },
+        });
+        if (!res.ok) {
+          toast.error(res.error || "Falha ao alterar visibilidade");
+          setSaving(false);
+          return;
+        }
+      } catch (e: any) {
+        toast.error(e?.message || "Falha ao alterar visibilidade");
+        setSaving(false);
+        return;
+      }
+    }
+
+    // 2) Other fields go through the regular client-side update (RLS still applies).
     const { error } = await supabase.from("groups").update({
       name: name.trim(),
       description: description.trim() || null,
-      is_public: visibility === "public",
-      visibility,
       member_limit: newLimit,
     } as any).eq("id", group.id);
-    if (error) toast.error("Erro ao salvar");
-    else {
-      toast.success("Atualizado");
-      if (visibilityChanged) {
-        // Best-effort audit log: record who changed the visibility and from what to what.
-        void logAudit({
-          groupId: group.id,
-          action: "group_visibility_changed",
-          entityType: "group",
-          entityId: group.id,
-          oldData: { visibility: initVis },
-          newData: { visibility },
-        });
-      }
-      if (limitChanged) {
-        void logAudit({
-          groupId: group.id,
-          action: "group_member_limit_changed",
-          entityType: "group",
-          entityId: group.id,
-          oldData: { member_limit: initMemberLimit },
-          newData: { member_limit: newLimit },
-        });
-      }
-      onSaved();
+    if (error) {
+      toast.error("Erro ao salvar");
+      setSaving(false);
+      return;
     }
+
+    toast.success("Atualizado");
+    if (limitChanged) {
+      void logAudit({
+        groupId: group.id,
+        action: "group_member_limit_changed",
+        entityType: "group",
+        entityId: group.id,
+        oldData: { member_limit: initMemberLimit },
+        newData: { member_limit: newLimit },
+      });
+    }
+    onSaved();
     setSaving(false);
   };
 
