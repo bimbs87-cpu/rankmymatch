@@ -95,6 +95,41 @@ export async function createRound(data: {
 }
 
 export async function confirmPresence(roundId: string, userId: string) {
+  // Defense in depth: ensure the round's max_players never exceeds the group's
+  // structural capacity (simultaneous_courts × players-per-match). This protects
+  // legacy rounds created before capacity rules were enforced. The waiting list
+  // then naturally falls out from `confirmed_at` order beyond this cutoff.
+  try {
+    const { data: roundRow } = await supabase
+      .from("rounds")
+      .select("group_id, max_players, match_format")
+      .eq("id", roundId)
+      .maybeSingle();
+    if (roundRow) {
+      const { data: groupRow } = await supabase
+        .from("groups")
+        .select("simultaneous_courts, singles_group_type, max_players, match_format")
+        .eq("id", roundRow.group_id)
+        .maybeSingle();
+      if (groupRow) {
+        const capacity = computeRoundCapacity({
+          match_format: roundRow.match_format || groupRow.match_format,
+          simultaneous_courts: groupRow.simultaneous_courts ?? 1,
+          singles_group_type: groupRow.singles_group_type,
+          max_players: groupRow.max_players ?? null,
+        });
+        if ((roundRow.max_players ?? 0) > capacity) {
+          await supabase
+            .from("rounds")
+            .update({ max_players: capacity })
+            .eq("id", roundId);
+        }
+      }
+    }
+  } catch {
+    // Non-fatal: never block a confirmation because of a capacity sync glitch.
+  }
+
   const { error } = await supabase.from("round_presence").upsert(
     {
       round_id: roundId,

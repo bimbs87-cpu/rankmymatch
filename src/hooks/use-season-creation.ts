@@ -29,24 +29,21 @@ export async function createSeasonWithRounds(data: {
     const normalizedSeasonMatchFormat = normalizeSeasonMatchFormat(data.matchFormat);
     const isSingles = normalizedSeasonMatchFormat === "1v1";
 
-    // Singles round sizing:
-    // - rivalry: 2 players
-    // - league/casual: group's configured max_players (fallback 8)
-    let singlesMaxPlayers = 8;
-    if (isSingles) {
-      const { data: groupRow } = await supabase
-        .from("groups")
-        .select("singles_group_type, max_players")
-        .eq("id", data.groupId)
-        .single();
-      if (groupRow?.singles_group_type === "rivalry") {
-        singlesMaxPlayers = 2;
-      } else {
-        singlesMaxPlayers = groupRow?.max_players && groupRow.max_players >= 2
-          ? groupRow.max_players
-          : 8;
-      }
-    }
+    // Round capacity is derived from the group's structural config
+    // (simultaneous_courts × players-per-match). This guarantees a 2x2 group
+    // with 1 court only ever has 4 confirmed slots — extras go to waitlist.
+    const { computeRoundCapacity } = await import("@/lib/round-capacity");
+    const { data: groupRow } = await supabase
+      .from("groups")
+      .select("singles_group_type, max_players, simultaneous_courts, match_format")
+      .eq("id", data.groupId)
+      .single();
+    const roundCapacity = computeRoundCapacity({
+      match_format: isSingles ? "singles" : "doubles",
+      simultaneous_courts: groupRow?.simultaneous_courts ?? 1,
+      singles_group_type: groupRow?.singles_group_type ?? null,
+      max_players: groupRow?.max_players ?? null,
+    });
 
     const insertData: any = {
       group_id: data.groupId,
@@ -84,7 +81,7 @@ export async function createSeasonWithRounds(data: {
       round_number: idx + 1,
       scheduled_date: date,
       scheduled_time: data.scheduledTime || null,
-      max_players: isSingles ? singlesMaxPlayers : 8,
+      max_players: roundCapacity,
       match_format: isSingles ? "singles" : "doubles",
       status: "scheduled" as const,
     }));
