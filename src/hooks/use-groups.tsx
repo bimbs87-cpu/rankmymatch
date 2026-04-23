@@ -514,21 +514,34 @@ export async function joinGroup(groupId: string, userId: string, isPublic: boole
   }
 }
 
+/**
+ * Translate a raw Supabase/Postgres error into a friendly message when it
+ * matches the GROUP_FULL guard raised by the server-side trigger.
+ */
+function isGroupFullError(err: unknown): boolean {
+  const msg = (err as { message?: string } | null)?.message || "";
+  return msg.includes("GROUP_FULL");
+}
+
+function groupFullMessage(current: number | null, limit: number | null): string {
+  const counts = current != null && limit != null ? ` (${current}/${limit})` : "";
+  return `Grupo cheio${counts}. Esta solicitação fica em lista de espera — aprove quando uma vaga abrir (alguém sair ou for desvinculado).`;
+}
+
 export async function approveJoinRequest(requestId: string, groupId: string, userId: string, adminId: string) {
-  // Capacity check: respect member_limit if set
+  // Capacity pre-check: respect member_limit if set (avoids a round-trip when full).
+  // The server-side trigger enforces the same rule as a hard guarantee.
   const { data: g } = await supabase
     .from("groups")
     .select("member_limit, max_players")
     .eq("id", groupId)
     .maybeSingle();
-  const limit = (g as any)?.member_limit ?? null;
+  const limit = (g as { member_limit?: number | null } | null)?.member_limit ?? null;
   if (limit != null) {
     const { data: cnt } = await supabase.rpc("get_group_member_count", { _group_id: groupId });
     const current = (cnt as number | null) ?? 0;
     if (current >= limit) {
-      throw new Error(
-        `Grupo cheio (${current}/${limit}). Esta solicitação fica em lista de espera — aprove quando uma vaga abrir (alguém sair ou for desvinculado).`,
-      );
+      throw new Error(groupFullMessage(current, limit));
     }
   }
 
@@ -539,12 +552,16 @@ export async function approveJoinRequest(requestId: string, groupId: string, use
     .eq("id", requestId)
     .maybeSingle();
 
-  await supabase
+  const { error: updErr } = await supabase
     .from("group_join_requests")
     .update({ status: "approved", resolved_by: adminId, resolved_at: new Date().toISOString() })
     .eq("id", requestId);
+  if (updErr) {
+    if (isGroupFullError(updErr)) throw new Error(groupFullMessage(null, limit));
+    throw updErr;
+  }
 
-  const claimedId = (req as any)?.claimed_player_id as string | null;
+  const claimedId = (req as { claimed_player_id?: string | null } | null)?.claimed_player_id ?? null;
   if (claimedId) {
     // Merge placeholder/former player history into the new user
     const { error: mergeErr } = await supabase.rpc("merge_placeholder_player", {
@@ -552,17 +569,24 @@ export async function approveJoinRequest(requestId: string, groupId: string, use
       _real_user_id: userId,
       _group_id: groupId,
     });
-    if (mergeErr) throw mergeErr;
+    if (mergeErr) {
+      if (isGroupFullError(mergeErr)) throw new Error(groupFullMessage(null, limit));
+      throw mergeErr;
+    }
     // merge_placeholder_player already creates/activates the group_members row
     return;
   }
 
-  await supabase.from("group_members").insert({
+  const { error: insErr } = await supabase.from("group_members").insert({
     group_id: groupId,
     user_id: userId,
     role: "member",
     status: "active",
   });
+  if (insErr) {
+    if (isGroupFullError(insErr)) throw new Error(groupFullMessage(null, limit));
+    throw insErr;
+  }
 }
 
 export async function rejectJoinRequest(requestId: string, adminId: string) {

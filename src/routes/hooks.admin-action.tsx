@@ -108,6 +108,34 @@ export const Route = createFileRoute("/hooks/admin-action")({
               return Response.json({ ok: true, alreadyResolved: true });
 
             if (action === "approve") {
+              // Capacity check (server-side trigger also enforces this)
+              const { data: g } = await sb
+                .from("groups")
+                .select("member_limit")
+                .eq("id", req.group_id)
+                .maybeSingle();
+              const limit = (g as { member_limit?: number | null } | null)
+                ?.member_limit ?? null;
+              if (limit != null) {
+                const { data: cnt } = await sb.rpc(
+                  "get_group_member_count",
+                  { _group_id: req.group_id },
+                );
+                const current = (cnt as number | null) ?? 0;
+                if (current >= limit) {
+                  return Response.json(
+                    {
+                      ok: false,
+                      code: "GROUP_FULL",
+                      message: `Grupo cheio (${current}/${limit}). A solicitação permanece pendente até abrir vaga.`,
+                      current,
+                      limit,
+                    },
+                    { status: 409 },
+                  );
+                }
+              }
+
               const { error: upErr } = await sb
                 .from("group_members")
                 .upsert(
@@ -119,7 +147,19 @@ export const Route = createFileRoute("/hooks/admin-action")({
                   },
                   { onConflict: "group_id,user_id" },
                 );
-              if (upErr) throw upErr;
+              if (upErr) {
+                if ((upErr.message || "").includes("GROUP_FULL")) {
+                  return Response.json(
+                    {
+                      ok: false,
+                      code: "GROUP_FULL",
+                      message: "Grupo cheio. A solicitação permanece pendente até abrir vaga.",
+                    },
+                    { status: 409 },
+                  );
+                }
+                throw upErr;
+              }
             }
 
             const { error: resErr } = await sb
@@ -130,7 +170,19 @@ export const Route = createFileRoute("/hooks/admin-action")({
                 resolved_by: userId,
               })
               .eq("id", id);
-            if (resErr) throw resErr;
+            if (resErr) {
+              if ((resErr.message || "").includes("GROUP_FULL")) {
+                return Response.json(
+                  {
+                    ok: false,
+                    code: "GROUP_FULL",
+                    message: "Grupo cheio. A solicitação permanece pendente até abrir vaga.",
+                  },
+                  { status: 409 },
+                );
+              }
+              throw resErr;
+            }
           } else {
             // claim
             const { data: claim, error: claimErr } = await sb
@@ -154,7 +206,19 @@ export const Route = createFileRoute("/hooks/admin-action")({
                   _group_id: claim.group_id,
                 },
               );
-              if (rpcErr) throw rpcErr;
+              if (rpcErr) {
+                if ((rpcErr.message || "").includes("GROUP_FULL")) {
+                  return Response.json(
+                    {
+                      ok: false,
+                      code: "GROUP_FULL",
+                      message: "Grupo cheio. O vínculo permanece pendente até abrir vaga.",
+                    },
+                    { status: 409 },
+                  );
+                }
+                throw rpcErr;
+              }
             } else {
               const { error: updErr } = await sb
                 .from("player_claims")
