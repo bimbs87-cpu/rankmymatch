@@ -1850,13 +1850,13 @@ function MatchScoreCard({
           {sets.length === 0 ? (
             <span className="font-display text-2xl font-black text-muted-foreground/40">—</span>
           ) : (
-            <div className="flex items-center justify-center gap-1.5">
+            <div className={`flex justify-center ${match.match_format === "singles" ? "flex-col items-center gap-0.5" : "items-center gap-1.5"}`}>
               {sets.map((s: any, i: number) => {
                 const aSetWon = s.score_team_a > s.score_team_b;
                 const bSetWon = s.score_team_b > s.score_team_a;
                 return (
                   <div key={s.set_number} className="flex items-center gap-1.5">
-                    {i > 0 && (
+                    {i > 0 && match.match_format !== "singles" && (
                       <span className="font-display text-base font-bold text-muted-foreground/30">|</span>
                     )}
                     <div className="flex items-center gap-1">
