@@ -358,11 +358,15 @@ export function JoinGroupDialog({
 
         <button
           onClick={handleSubmit}
-          disabled={submitting || loading}
-          className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-3 text-sm font-bold text-primary-foreground disabled:opacity-50"
+          disabled={submitting || loading || capacity?.isFull}
+          className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-3 text-sm font-bold text-primary-foreground disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />}
-          {selected ? "Pedir vinculação" : "Enviar solicitação"}
+          {capacity?.isFull
+            ? "Grupo cheio"
+            : selected
+              ? "Pedir vinculação"
+              : "Enviar solicitação"}
         </button>
       </div>
     </div>
