@@ -5,6 +5,26 @@ import type { Tables } from "@/integrations/supabase/types";
 
 type Notification = Tables<"notifications">;
 
+type NotificationsReadEventDetail =
+  | { scope: "all" }
+  | { scope: "ids"; ids: string[] };
+
+const NOTIFICATIONS_READ_EVENT = "rmm:notifications:read";
+
+function emitNotificationsRead(detail: NotificationsReadEventDetail) {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new CustomEvent<NotificationsReadEventDetail>(NOTIFICATIONS_READ_EVENT, { detail }));
+}
+
+function markItemsRead(items: Notification[], detail: NotificationsReadEventDetail) {
+  if (detail.scope === "all") {
+    return items.map((item) => (item.read ? item : { ...item, read: true }));
+  }
+
+  const ids = new Set(detail.ids);
+  return items.map((item) => (ids.has(item.id) && !item.read ? { ...item, read: true } : item));
+}
+
 const ROUND_LIFECYCLE_TYPES = new Set([
   "round_created",
   "round_open",
