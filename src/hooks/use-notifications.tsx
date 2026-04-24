@@ -95,7 +95,7 @@ export function useNotifications() {
       const items = dedupeNotifications(rawItems);
       setAllNotifications(rawItems);
       setNotifications(items);
-      setUnreadCount(items.filter((n) => !n.read).length);
+      setUnreadCount(rawItems.filter((n) => !n.read).length);
     } catch (error) {
       console.error("Erro ao carregar notificações:", error);
       setAllNotifications([]);
