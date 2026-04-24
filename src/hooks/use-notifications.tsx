@@ -5,6 +5,26 @@ import type { Tables } from "@/integrations/supabase/types";
 
 type Notification = Tables<"notifications">;
 
+type NotificationsReadEventDetail =
+  | { scope: "all" }
+  | { scope: "ids"; ids: string[] };
+
+const NOTIFICATIONS_READ_EVENT = "rmm:notifications:read";
+
+function emitNotificationsRead(detail: NotificationsReadEventDetail) {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new CustomEvent<NotificationsReadEventDetail>(NOTIFICATIONS_READ_EVENT, { detail }));
+}
+
+function markItemsRead(items: Notification[], detail: NotificationsReadEventDetail) {
+  if (detail.scope === "all") {
+    return items.map((item) => (item.read ? item : { ...item, read: true }));
+  }
+
+  const ids = new Set(detail.ids);
+  return items.map((item) => (ids.has(item.id) && !item.read ? { ...item, read: true } : item));
+}
+
 const ROUND_LIFECYCLE_TYPES = new Set([
   "round_created",
   "round_open",
@@ -75,7 +95,7 @@ export function useNotifications() {
       const items = dedupeNotifications(rawItems);
       setAllNotifications(rawItems);
       setNotifications(items);
-      setUnreadCount(items.filter((n) => !n.read).length);
+      setUnreadCount(rawItems.filter((n) => !n.read).length);
     } catch (error) {
       console.error("Erro ao carregar notificações:", error);
       setAllNotifications([]);
@@ -95,6 +115,27 @@ export function useNotifications() {
   useEffect(() => {
     refreshRef.current = refresh;
   }, [refresh]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const handler = (event: Event) => {
+      const detail = (event as CustomEvent<NotificationsReadEventDetail>).detail;
+      if (!detail) return;
+
+      setAllNotifications((current) => markItemsRead(current, detail));
+      setNotifications((current) => markItemsRead(current, detail));
+      if (detail.scope === "all") {
+        setUnreadCount(0);
+        return;
+      }
+
+      setUnreadCount((current) => Math.max(0, current - detail.ids.length));
+    };
+
+    window.addEventListener(NOTIFICATIONS_READ_EVENT, handler);
+    return () => window.removeEventListener(NOTIFICATIONS_READ_EVENT, handler);
+  }, []);
 
   useEffect(() => {
     if (!user) return;
@@ -123,6 +164,8 @@ export function useNotifications() {
   const markAllRead = useCallback(async () => {
     if (!user) return;
 
+    emitNotificationsRead({ scope: "all" });
+
     await supabase
       .from("notifications")
       .update({ read: true })
@@ -141,6 +184,8 @@ export function useNotifications() {
             .filter((notification) => getRoundLifecycleKey(notification) === roundKey)
             .map((notification) => notification.id)
         : [id];
+
+      emitNotificationsRead({ scope: "ids", ids: idsToMark });
 
       await supabase.from("notifications").update({ read: true }).in("id", idsToMark);
       await refresh();
