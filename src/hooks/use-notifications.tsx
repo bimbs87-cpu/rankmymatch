@@ -117,6 +117,27 @@ export function useNotifications() {
   }, [refresh]);
 
   useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const handler = (event: Event) => {
+      const detail = (event as CustomEvent<NotificationsReadEventDetail>).detail;
+      if (!detail) return;
+
+      setAllNotifications((current) => markItemsRead(current, detail));
+      setNotifications((current) => markItemsRead(current, detail));
+      if (detail.scope === "all") {
+        setUnreadCount(0);
+        return;
+      }
+
+      setUnreadCount((current) => Math.max(0, current - detail.ids.length));
+    };
+
+    window.addEventListener(NOTIFICATIONS_READ_EVENT, handler);
+    return () => window.removeEventListener(NOTIFICATIONS_READ_EVENT, handler);
+  }, []);
+
+  useEffect(() => {
     if (!user) return;
 
     const channel = supabase
