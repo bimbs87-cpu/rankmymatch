@@ -127,31 +127,66 @@
   --sidebar-ring: oklch(0.88 0.22 120);
 }
 
-/* ====== LIGHT THEME override ====== */
+/* ====== LIGHT THEME — Court Daylight (professional, lime-aligned) ====== */
 .light {
-  --background: oklch(0.97 0.002 250);
-  --foreground: oklch(0.12 0.03 260);
+  /* Warm off-white background, evokes premium court / paper */
+  --background: oklch(0.985 0.006 130);
+  --foreground: oklch(0.18 0.02 160);
+  /* Cards — pure white with soft warmth */
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.12 0.03 260);
+  --card-foreground: oklch(0.18 0.02 160);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.12 0.03 260);
-  --primary: oklch(0.5 0.2 145);
+  --popover-foreground: oklch(0.18 0.02 160);
+  /* Primary — deep professional green (anchored to lime logo, but readable on white) */
+  --primary: oklch(0.55 0.18 142);
   --primary-foreground: oklch(0.99 0 0);
-  --secondary: oklch(0.95 0.005 250);
-  --secondary-foreground: oklch(0.2 0.03 260);
-  --muted: oklch(0.95 0.005 250);
-  --muted-foreground: oklch(0.45 0.02 260);
-  --accent: oklch(0.94 0.01 250);
-  --accent-foreground: oklch(0.15 0.03 260);
-  --destructive: oklch(0.58 0.24 27);
+  /* Secondary — soft sage tint */
+  --secondary: oklch(0.95 0.018 135);
+  --secondary-foreground: oklch(0.22 0.03 160);
+  /* Muted — neutral warm gray */
+  --muted: oklch(0.94 0.008 130);
+  --muted-foreground: oklch(0.48 0.015 160);
+  /* Accent — subtle lime wash */
+  --accent: oklch(0.93 0.04 130);
+  --accent-foreground: oklch(0.22 0.05 150);
+  /* Destructive */
+  --destructive: oklch(0.58 0.22 28);
   --destructive-foreground: oklch(0.99 0 0);
-  --border: oklch(0.9 0.005 250);
-  --input: oklch(0.9 0.005 250);
-  --ring: oklch(0.5 0.2 145);
-  --rally: oklch(0.5 0.2 145);
-  --rally-foreground: oklch(0.99 0 0);
-  --sport: oklch(0.5 0.2 145);
+  /* Borders — soft sage-gray */
+  --border: oklch(0.89 0.012 140);
+  --input: oklch(0.91 0.012 140);
+  --ring: oklch(0.55 0.18 142);
+  /* Semantic — calibrated for white bg */
+  --success: oklch(0.58 0.18 150);
+  --success-foreground: oklch(0.99 0 0);
+  --warning: oklch(0.72 0.16 75);
+  --warning-foreground: oklch(0.18 0.02 60);
+  --info: oklch(0.55 0.16 230);
+  --info-foreground: oklch(0.99 0 0);
+  /* Rally / Sport — lime accent (matches logo) for highlights */
+  --rally: oklch(0.78 0.22 128);
+  --rally-foreground: oklch(0.18 0.05 145);
+  --sport: oklch(0.55 0.18 142);
   --sport-foreground: oklch(0.99 0 0);
+  /* Ranking */
+  --rank-gold: oklch(0.78 0.16 85);
+  --rank-silver: oklch(0.72 0.012 250);
+  --rank-bronze: oklch(0.6 0.13 55);
+  /* Charts */
+  --chart-1: oklch(0.55 0.18 142);
+  --chart-2: oklch(0.78 0.22 128);
+  --chart-3: oklch(0.72 0.16 75);
+  --chart-4: oklch(0.55 0.16 230);
+  --chart-5: oklch(0.58 0.22 28);
+  /* Sidebar */
+  --sidebar: oklch(0.97 0.008 130);
+  --sidebar-foreground: oklch(0.18 0.02 160);
+  --sidebar-primary: oklch(0.55 0.18 142);
+  --sidebar-primary-foreground: oklch(0.99 0 0);
+  --sidebar-accent: oklch(0.93 0.04 130);
+  --sidebar-accent-foreground: oklch(0.22 0.05 150);
+  --sidebar-border: oklch(0.89 0.012 140);
+  --sidebar-ring: oklch(0.55 0.18 142);
 }
 
 @layer base {
