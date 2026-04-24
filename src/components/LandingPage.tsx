@@ -16,7 +16,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 import logoHorizontalDark from "@/assets/logo-horizontal-dark.png";
-import logoSquareNeon from "@/assets/logo-square-neon.png";
+import logoSquareNeon from "@/assets/logo-square-neon-trimmed.png";
 import heroDevices from "@/assets/landing-hero-devices.png";
 import heroMobile from "@/assets/landing-hero-mobile.png";
 import { useTheme } from "@/lib/theme";
@@ -179,9 +179,9 @@ export function LandingPage() {
         className="pointer-events-none fixed inset-0 z-0"
         style={{
           backgroundImage: `
-            radial-gradient(60vw 60vw at 12% 8%, color-mix(in oklab, var(--primary) 14%, transparent), transparent 65%),
-            radial-gradient(55vw 55vw at 92% 92%, color-mix(in oklab, var(--primary) 8%, transparent), transparent 70%),
-            radial-gradient(40vw 40vw at 88% 12%, color-mix(in oklab, var(--primary) 5%, transparent), transparent 70%)
+            radial-gradient(60vw 60vw at 12% 8%, color-mix(in oklab, var(--rally) 22%, transparent), transparent 65%),
+            radial-gradient(55vw 55vw at 92% 92%, color-mix(in oklab, var(--primary) 12%, transparent), transparent 70%),
+            radial-gradient(40vw 40vw at 88% 12%, color-mix(in oklab, var(--info) 10%, transparent), transparent 70%)
           `,
         }}
       />
@@ -203,11 +203,11 @@ export function LandingPage() {
         className="pointer-events-none fixed inset-0 z-0"
         style={{
           backgroundImage: `
-            radial-gradient(80vw 55vh at 50% -10%, color-mix(in oklab, var(--primary) 30%, transparent), transparent 70%),
-            radial-gradient(70vw 50vh at 110% 35%, color-mix(in oklab, var(--primary) 18%, transparent), transparent 75%),
-            radial-gradient(90vw 60vh at -10% 70%, color-mix(in oklab, var(--primary) 16%, transparent), transparent 75%),
-            radial-gradient(70vw 50vh at 50% 110%, color-mix(in oklab, var(--primary) 24%, transparent), transparent 70%),
-            linear-gradient(180deg, color-mix(in oklab, var(--background) 88%, var(--primary)) 0%, var(--background) 40%, var(--background) 65%, color-mix(in oklab, var(--background) 88%, var(--primary)) 100%)
+            radial-gradient(80vw 55vh at 50% -10%, color-mix(in oklab, var(--rally) 26%, transparent), transparent 70%),
+            radial-gradient(70vw 50vh at 110% 35%, color-mix(in oklab, var(--primary) 16%, transparent), transparent 75%),
+            radial-gradient(90vw 60vh at -10% 70%, color-mix(in oklab, var(--success) 14%, transparent), transparent 75%),
+            radial-gradient(70vw 50vh at 50% 110%, color-mix(in oklab, var(--rally) 18%, transparent), transparent 70%),
+            linear-gradient(180deg, color-mix(in oklab, var(--background) 84%, var(--rally)) 0%, var(--background) 38%, var(--background) 66%, color-mix(in oklab, var(--background) 86%, var(--primary)) 100%)
           `,
         }}
       />
@@ -229,7 +229,7 @@ export function LandingPage() {
             className={
               resolvedTheme === "dark"
                 ? "h-14 w-auto sm:h-16 lg:h-20"
-                : "h-20 w-auto sm:h-24 lg:h-28 xl:h-32"
+                : "h-28 w-auto drop-shadow-sm sm:h-32 lg:h-36 xl:h-40"
             }
           />
           <button
