@@ -222,20 +222,20 @@ export function LandingPage() {
       />
 
       <header className="relative z-20">
-        <div className="mx-auto flex max-w-7xl items-center justify-center px-5 pt-6 pb-3 sm:justify-between sm:px-8 sm:pt-4 sm:pb-4">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-5 pt-6 pb-3 sm:px-8 sm:pt-5 sm:pb-4">
           <img
             src={logoSrc}
             alt="RankMyMatch"
             className={
               resolvedTheme === "dark"
-                ? "h-auto w-3/4 max-w-[420px] sm:w-auto sm:h-16 lg:h-20"
-                : "h-16 w-auto sm:h-20 lg:h-24"
+                ? "h-14 w-auto sm:h-16 lg:h-20"
+                : "h-20 w-auto sm:h-24 lg:h-28 xl:h-32"
             }
           />
           <button
             onClick={() => handleGoogleLogin("header")}
             disabled={loading}
-            className="hidden items-center gap-2 rounded-full border border-border/70 bg-card/60 px-4 py-2 text-sm font-medium text-foreground backdrop-blur-md transition-all hover:border-primary/50 hover:bg-card sm:inline-flex"
+            className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-card/80 px-4 py-2 text-sm font-medium text-foreground shadow-sm backdrop-blur-md transition-all hover:border-primary/50 hover:bg-card hover:shadow-md sm:px-5 sm:py-2.5"
           >
             <GoogleIcon className="h-4 w-4" />
             Entrar
