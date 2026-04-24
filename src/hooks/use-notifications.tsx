@@ -164,6 +164,8 @@ export function useNotifications() {
   const markAllRead = useCallback(async () => {
     if (!user) return;
 
+    emitNotificationsRead({ scope: "all" });
+
     await supabase
       .from("notifications")
       .update({ read: true })
@@ -182,6 +184,8 @@ export function useNotifications() {
             .filter((notification) => getRoundLifecycleKey(notification) === roundKey)
             .map((notification) => notification.id)
         : [id];
+
+      emitNotificationsRead({ scope: "ids", ids: idsToMark });
 
       await supabase.from("notifications").update({ read: true }).in("id", idsToMark);
       await refresh();
