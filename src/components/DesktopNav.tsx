@@ -34,7 +34,7 @@ export function DesktopNav() {
   const shouldOpenDuelFromRanking = !!activeGroup && activeGroup.match_format === "singles" && (isRivalryGroup(activeGroup) || activeGroup.member_count <= 2);
 
   return (
-    <header className="hidden lg:block sticky top-0 z-40 -mx-8 px-8 pt-6 pb-3 bg-background/95 backdrop-blur border-b border-border/40">
+    <header className="hidden lg:block sticky top-3 z-40 -mx-5 mt-3 px-6 py-3 bg-background/85 backdrop-blur-xl border border-border/40 rounded-3xl shadow-[0_8px_24px_-12px_rgba(0,0,0,0.35)]">
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-6">
         {/* Left: avatar + name */}
         <Link to="/profile" aria-label="Abrir perfil" className="group flex items-center gap-3 min-w-0">
