@@ -198,27 +198,29 @@ function GlobalBackground() {
   }, []);
 
   const isDark = resolved === "dark";
-  // The persistent image background applies to every authenticated page (except / and /landing),
-  // on every viewport, on every route. Light theme keeps a "framed" look; dark theme is full-bleed.
+  // The persistent image background applies to every authenticated page (except /landing),
+  // on every viewport, on every route — for BOTH light and dark themes.
   const showImage = isAuthenticated && !isLoading && !isExcluded;
   const showDarkImage = showImage && isDark && darkLoaded;
   const showLightImage = showImage && !isDark && lightLoaded;
 
-  // When the dark image is showing we let it be the entire background — no solid tint, no auras.
-  const useImageOnlyDark = showDarkImage;
+  // When either themed image is showing we let it be the entire background — no solid tint, no auras.
+  const useImageBackground = showDarkImage || showLightImage;
 
-  // Mark body so global CSS can make wrappers transparent when the dark image is active.
+  // Mark body so global CSS can make wrappers transparent when the image background is active.
   useEffect(() => {
     if (typeof document === "undefined") return;
-    if (useImageOnlyDark) {
+    if (showDarkImage) {
       document.body.setAttribute("data-bg-image", "dark");
+    } else if (showLightImage) {
+      document.body.setAttribute("data-bg-image", "light");
     } else {
       document.body.removeAttribute("data-bg-image");
     }
     return () => {
       document.body.removeAttribute("data-bg-image");
     };
-  }, [useImageOnlyDark]);
+  }, [showDarkImage, showLightImage]);
 
   return (
     <>
