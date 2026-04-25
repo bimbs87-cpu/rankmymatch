@@ -199,6 +199,16 @@
     overscroll-behavior: none;
   }
 
+  /* When the persistent dark background image is active, let it show through:
+     transparent body + transparent for any element using bg-background.
+     Cards (bg-card), popovers, inputs, etc. keep their own surfaces. */
+  body[data-bg-image="dark"] {
+    background-color: transparent;
+  }
+  body[data-bg-image="dark"] .bg-background {
+    background-color: transparent !important;
+  }
+
   html {
     padding-top: env(safe-area-inset-top);
     padding-bottom: env(safe-area-inset-bottom);
