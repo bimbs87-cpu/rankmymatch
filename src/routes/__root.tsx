@@ -1,8 +1,8 @@
 import { Outlet, Link, createRootRoute, HeadContent, Scripts, useRouter, useLocation } from "@tanstack/react-router";
 import { AuthProvider, useAuth } from "@/hooks/use-auth";
 import { useTheme } from "@/lib/theme";
-import loggedInBgDesktopDark from "@/assets/loggedin-bg-desktop-dark.png";
-import loggedInBgDesktopLight from "@/assets/loggedin-bg-desktop-light.png";
+import loggedInBgDesktopDark from "@/assets/loggedin-bg-desktop-dark.webp";
+import loggedInBgDesktopLight from "@/assets/loggedin-bg-desktop-light.webp";
 import { trackPageview } from "@/lib/analytics";
 import { captureAcquisitionOnce } from "@/lib/acquisition-tracking";
 import { trackPageVisit } from "@/lib/visit-tracking";
@@ -219,14 +219,52 @@ function LoggedInDesktopBackground() {
   const { resolved } = useTheme();
   const path = location.pathname;
   const isExcluded = path === "/" || path === "/landing";
+  const [darkLoaded, setDarkLoaded] = useState(true);
+  const [lightLoaded, setLightLoaded] = useState(true);
+
+  // Preload both images once mounted so theme toggle is instant
+  useEffect(() => {
+    const preload = (src: string, onFail: () => void) => {
+      const img = new Image();
+      img.onerror = onFail;
+      img.src = src;
+      // Hint priority where supported
+      try { (img as HTMLImageElement & { fetchPriority?: string }).fetchPriority = "high"; } catch { /* noop */ }
+    };
+    preload(loggedInBgDesktopDark, () => setDarkLoaded(false));
+    preload(loggedInBgDesktopLight, () => setLightLoaded(false));
+  }, []);
+
   if (isLoading || !isAuthenticated || isExcluded) return null;
-  const bg = resolved === "light" ? loggedInBgDesktopLight : loggedInBgDesktopDark;
+
+  const isDark = resolved === "dark";
+  const showDark = isDark && darkLoaded;
+  const showLight = !isDark && lightLoaded;
+
   return (
-    <div
-      aria-hidden
-      className="pointer-events-none fixed inset-0 z-0 hidden lg:block bg-cover bg-center bg-no-repeat"
-      style={{ backgroundImage: `url(${bg})` }}
-    />
+    <>
+      {/* Gradient fallback (always rendered beneath images) */}
+      <div
+        aria-hidden
+        className="pointer-events-none fixed inset-0 z-0 hidden lg:block"
+        style={{
+          backgroundImage: isDark
+            ? "radial-gradient(70vw 60vh at 15% 30%, color-mix(in oklab, var(--primary) 22%, transparent), transparent 70%), linear-gradient(135deg, color-mix(in oklab, var(--background) 92%, var(--primary)) 0%, var(--background) 60%)"
+            : "radial-gradient(70vw 60vh at 15% 30%, color-mix(in oklab, var(--primary) 14%, transparent), transparent 70%), linear-gradient(135deg, color-mix(in oklab, var(--background) 96%, var(--primary)) 0%, var(--background) 60%)",
+        }}
+      />
+      {/* Both image layers stay mounted; opacity flips for instant theme swap */}
+      <div
+        aria-hidden
+        className="pointer-events-none fixed inset-0 z-0 hidden lg:block bg-cover bg-center bg-no-repeat transition-opacity duration-150"
+        style={{ backgroundImage: `url(${loggedInBgDesktopDark})`, opacity: showDark ? 1 : 0 }}
+      />
+      <div
+        aria-hidden
+        className="pointer-events-none fixed inset-0 z-0 hidden lg:block bg-cover bg-center bg-no-repeat transition-opacity duration-150"
+        style={{ backgroundImage: `url(${loggedInBgDesktopLight})`, opacity: showLight ? 1 : 0 }}
+      />
+    </>
   );
 }
 
