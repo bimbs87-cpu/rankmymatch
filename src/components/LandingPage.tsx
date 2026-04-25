@@ -304,125 +304,122 @@ export function LandingPage() {
         </div>
       </section>
 
-      {/* === Features === */}
-      <section className="relative z-10 border-t border-border/40">
-        <div className="mx-auto max-w-7xl px-5 py-10 sm:px-8 sm:py-16">
-          <div className="mx-auto max-w-2xl text-left sm:text-center">
-            <h2 className="text-2xl font-black tracking-tight sm:text-4xl">
-              Tudo o que seu <span className="text-primary">feirino</span> precisa
+      <section className="relative z-10 border-y border-border/60 bg-card/50 backdrop-blur-xl">
+        <div className="mx-auto grid max-w-7xl gap-8 px-5 py-14 sm:px-8 lg:grid-cols-[0.42fr_0.58fr] lg:py-20">
+          <div>
+            <p className="mb-3 text-[11px] font-black uppercase text-primary">Sistema completo</p>
+            <h2 className="font-display text-3xl font-black leading-tight text-foreground sm:text-5xl">
+              Do placar ao pódio, sem ruído operacional.
             </h2>
-            <p className="mt-2 text-sm text-muted-foreground sm:text-base">
-              Da rodada de quarta-feira ao campeonato anual. Sem planilha, sem confusão.
+            <p className="mt-4 text-base leading-relaxed text-muted-foreground">
+              Uma experiência mais editorial, clara e confiável para o público que chega em
+              /landing ou / antes de entrar.
             </p>
           </div>
 
-          <div className="mt-8 grid gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-3 sm:grid-cols-2">
             {features.map((f) => (
               <div
                 key={f.title}
-                className="group relative overflow-hidden rounded-2xl border border-border/60 bg-card/50 p-5 backdrop-blur-md transition-all hover:border-primary/40 hover:bg-card/70"
+                className="group border border-border/70 bg-background/70 p-5 shadow-sm backdrop-blur-xl transition-all hover:-translate-y-0.5 hover:border-primary/45 hover:shadow-xl hover:shadow-primary/10"
               >
-                <div
-                  aria-hidden
-                  className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/50 to-transparent opacity-60"
-                />
-                <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                <div className="mb-4 flex h-11 w-11 items-center justify-center bg-primary text-primary-foreground shadow-lg shadow-primary/20">
                   <f.icon className="h-5 w-5" />
                 </div>
-                <h3 className="text-base font-bold text-foreground">{f.title}</h3>
-                <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{f.desc}</p>
+                <h3 className="text-base font-black text-foreground">{f.title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{f.desc}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* === How it works === */}
-      <section className="relative z-10 border-t border-border/40">
-        <div className="mx-auto max-w-7xl px-5 py-10 sm:px-8 sm:py-16">
-          <div className="mx-auto max-w-2xl text-left sm:text-center">
-            <h2 className="text-2xl font-black tracking-tight sm:text-4xl">
-              Comece em <span className="text-primary">3 passos</span>
-            </h2>
-            <p className="mt-2 text-sm text-muted-foreground sm:text-base">
-              Do login à primeira partida em menos de 2 minutos.
-            </p>
-          </div>
-
-          <div className="mt-8 grid gap-3 sm:gap-4 sm:grid-cols-3">
-            {steps.map((s) => (
-              <div key={s.n} className="relative rounded-2xl border border-border/60 bg-card/50 p-5 backdrop-blur-md">
-                <div className="mb-3 inline-flex h-9 items-center justify-center rounded-full bg-primary/10 px-3 text-sm font-black text-primary">
-                  {s.n}
+      <section className="relative z-10">
+        <div className="mx-auto max-w-7xl px-5 py-14 sm:px-8 lg:py-20">
+          <div className="grid overflow-hidden border border-border/70 bg-card/75 shadow-2xl shadow-primary/10 backdrop-blur-xl lg:grid-cols-[0.95fr_1.05fr]">
+            <div className="p-6 sm:p-10 lg:p-12">
+              <p className="mb-3 text-[11px] font-black uppercase text-primary">Fluxo simples</p>
+              <h2 className="font-display text-3xl font-black leading-tight text-foreground sm:text-5xl">
+                Entre, crie o grupo e deixe o ranking trabalhar.
+              </h2>
+              <p className="mt-4 text-base leading-relaxed text-muted-foreground">
+                O produto substitui planilhas e conversas perdidas por um ritual claro para cada rodada.
+              </p>
+              <p className="mt-6 text-xs font-semibold text-muted-foreground">
+                <Zap className="mr-1 inline h-4 w-4 text-primary" />
+                Login em 1 clique, sem cartão para começar.
+              </p>
+            </div>
+            <div className="border-t border-border/70 lg:border-l lg:border-t-0">
+              {steps.map((s, index) => (
+                <div key={s.n} className="grid grid-cols-[76px_1fr] border-b border-border/70 last:border-b-0">
+                  <div className="flex items-center justify-center bg-secondary/70 font-display text-2xl font-black text-primary">
+                    {s.n}
+                  </div>
+                  <div className="p-5 sm:p-7">
+                    <div className="mb-2 flex items-center gap-2">
+                      <span className="h-1.5 w-1.5 rounded-full bg-rally" />
+                      <span className="text-[10px] font-black uppercase text-muted-foreground">Etapa {index + 1}</span>
+                    </div>
+                    <h3 className="text-lg font-black text-foreground">{s.title}</h3>
+                    <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{s.desc}</p>
+                  </div>
                 </div>
-                <h3 className="text-base font-bold text-foreground">{s.title}</h3>
-                <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{s.desc}</p>
-              </div>
-            ))}
-          </div>
-
-          <div className="mt-8 flex flex-col items-center gap-2">
-            <p className="text-xs text-muted-foreground">
-              <Zap className="mr-1 inline h-3.5 w-3.5 text-primary" />
-              Sem cadastro: 1 clique e você já está no ranking.
-            </p>
+              ))}
+            </div>
           </div>
         </div>
       </section>
 
-      {/* === Final CTA === */}
-      <section className="relative z-10 border-t border-border/40">
-        <div className="mx-auto max-w-5xl px-5 py-10 sm:px-8 sm:py-16">
-          <div className="relative overflow-hidden rounded-3xl border border-primary/30 bg-card/60 p-7 text-center backdrop-blur-xl sm:p-12">
+      <section className="relative z-10 pb-12 sm:pb-20">
+        <div className="mx-auto max-w-7xl px-5 sm:px-8">
+          <div className="relative overflow-hidden bg-foreground px-6 py-10 text-background shadow-2xl shadow-primary/20 sm:px-10 lg:px-14 lg:py-14">
             <div
               aria-hidden
-              className="pointer-events-none absolute inset-0 -z-10"
+              className="absolute inset-0 opacity-70"
               style={{
                 background:
-                  "radial-gradient(ellipse at top, color-mix(in oklab, var(--primary) 18%, transparent), transparent 70%)",
+                  "radial-gradient(44vw 30vw at 78% 16%, color-mix(in oklab, var(--rally) 44%, transparent), transparent 70%), radial-gradient(34vw 24vw at 8% 100%, color-mix(in oklab, var(--primary) 38%, transparent), transparent 72%)",
               }}
             />
-            <Sparkles className="mx-auto mb-3 h-8 w-8 text-primary" />
-            <h2 className="text-2xl font-black tracking-tight sm:text-4xl">
-              Bora subir no <span className="text-primary">ranking</span>?
-            </h2>
-            <p className="mx-auto mt-2 max-w-lg text-sm text-muted-foreground sm:text-base">
-              Junte-se a feirinos e clubes que já largaram a planilha. Entre com Google e crie seu primeiro grupo agora.
-            </p>
-            <div className="mx-auto mt-6 flex max-w-sm flex-col gap-3">
-              <CTAButton size="lg" className="w-full" location="final_cta" />
-              <AppleSignInButton
-                variant="outline"
-                onError={(msg) => setError(msg)}
-              />
+            <div className="relative z-10 grid items-center gap-8 lg:grid-cols-[1fr_auto]">
+              <div>
+                <div className="mb-4 inline-flex items-center gap-2 bg-background/10 px-3 py-1.5 text-[11px] font-black uppercase text-background backdrop-blur-md">
+                  <Star className="h-3.5 w-3.5" />
+                  Pronto para competir melhor
+                </div>
+                <h2 className="font-display text-3xl font-black leading-tight sm:text-5xl">
+                  Troque a planilha por uma experiência de ranking premium.
+                </h2>
+                <p className="mt-4 max-w-2xl text-sm leading-relaxed text-background/75 sm:text-base">
+                  Entre com Google, crie seu primeiro grupo e organize temporadas com visual profissional desde o primeiro acesso.
+                </p>
+              </div>
+              <div className="flex w-full max-w-sm flex-col gap-3 lg:w-[360px]">
+                <CTAButton size="lg" className="w-full shadow-none" location="final_cta" />
+                <AppleSignInButton variant="outline" onError={(msg) => setError(msg)} />
+                <p className="text-center text-[11px] text-background/65">
+                  Ao entrar, você concorda com nossos{" "}
+                  <Link to="/termos" className="underline hover:text-background">Termos</Link>
+                  {" "}e{" "}
+                  <Link to="/privacidade" className="underline hover:text-background">Privacidade</Link>.
+                </p>
+              </div>
             </div>
-            <p className="mt-3 text-[11px] text-muted-foreground">
-              Ao entrar, você concorda com nossos{" "}
-              <Link to="/termos" className="underline hover:text-foreground">Termos de Uso</Link>
-              {" "}e{" "}
-              <Link to="/privacidade" className="underline hover:text-foreground">Política de Privacidade</Link>.
-            </p>
           </div>
         </div>
       </section>
 
-      {/* === Footer === */}
-      <footer className="relative z-10 border-t border-border/40">
-        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 px-5 py-5 text-xs text-muted-foreground sm:flex-row sm:px-8">
-          <div className="flex items-center gap-2">
-            <img src={logoSrc} alt="RankMyMatch" className="h-6 w-auto" />
+      <footer className="relative z-10 border-t border-border/50 bg-card/45 backdrop-blur-xl">
+        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-5 py-6 text-xs text-muted-foreground sm:flex-row sm:px-8">
+          <div className="flex items-center gap-3">
+            <img src={logoSrc} alt="RankMyMatch" className={isLight ? "h-9 w-auto" : "h-7 w-auto"} />
             <span>© {new Date().getFullYear()} RankMyMatch</span>
           </div>
-          <div className="flex items-center gap-4">
-            <a href="/sobre-desenvolvimento" className="hover:text-foreground">
-              Sobre
-            </a>
-            <a href="/changelog" className="hover:text-foreground">
-              Changelog
-            </a>
-            <a href="/login" className="hover:text-foreground">
-              Entrar
-            </a>
+          <div className="flex items-center gap-5 font-semibold">
+            <a href="/sobre-desenvolvimento" className="hover:text-foreground">Sobre</a>
+            <a href="/changelog" className="hover:text-foreground">Changelog</a>
+            <a href="/login" className="hover:text-foreground">Entrar</a>
           </div>
         </div>
       </footer>
