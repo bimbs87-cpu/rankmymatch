@@ -180,7 +180,9 @@ function GlobalBackground() {
   const location = useLocation();
   const { resolved } = useTheme();
   const path = location.pathname;
-  const isExcluded = path === "/" || path === "/landing";
+  // Background is eternal once logged in — present on every authenticated route,
+  // including the homepage. Only the public /landing marketing page opts out.
+  const isExcluded = path === "/landing";
   const [darkLoaded, setDarkLoaded] = useState(true);
   const [lightLoaded, setLightLoaded] = useState(true);
 
