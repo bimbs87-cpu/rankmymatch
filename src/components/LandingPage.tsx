@@ -20,6 +20,8 @@ import {
 import logoHorizontalDark from "@/assets/logo-horizontal-dark.png";
 import logoHorizontalLightPremium from "@/assets/logo-horizontal-light-premium.png";
 import heroDevices from "@/assets/landing-hero-devices.png";
+import landingBgLightMobile from "@/assets/landing-bg-light-mobile.png";
+import landingBgLightDesktop from "@/assets/landing-bg-light-desktop.png";
 import { useTheme } from "@/lib/theme";
 import { AppleSignInButton } from "@/components/AppleSignInButton";
 
@@ -175,16 +177,36 @@ export function LandingPage() {
   return (
     <div className="relative min-h-[100dvh] w-full overflow-x-hidden bg-background text-foreground">
       <div aria-hidden className="pointer-events-none fixed inset-0 z-0 bg-background" />
+      {isLight && (
+        <>
+          <div
+            aria-hidden
+            className="pointer-events-none fixed inset-0 z-0 bg-cover bg-center bg-no-repeat sm:hidden"
+            style={{ backgroundImage: `url(${landingBgLightMobile})` }}
+          />
+          <div
+            aria-hidden
+            className="pointer-events-none fixed inset-0 z-0 hidden bg-cover bg-center bg-no-repeat sm:block"
+            style={{ backgroundImage: `url(${landingBgLightDesktop})` }}
+          />
+          <div
+            aria-hidden
+            className="pointer-events-none fixed inset-0 z-0"
+            style={{
+              backgroundImage:
+                "linear-gradient(180deg, color-mix(in oklab, var(--background) 55%, transparent) 0%, color-mix(in oklab, var(--background) 30%, transparent) 50%, color-mix(in oklab, var(--background) 70%, transparent) 100%)",
+            }}
+          />
+        </>
+      )}
       <div
         aria-hidden
         className="pointer-events-none fixed inset-0 z-0"
         style={{
           backgroundImage: isLight
             ? `
-              linear-gradient(135deg, color-mix(in oklab, var(--background) 90%, var(--rally)) 0%, var(--background) 36%, color-mix(in oklab, var(--background) 88%, var(--primary)) 100%),
-              radial-gradient(64vw 42vw at 76% 14%, color-mix(in oklab, var(--rally) 34%, transparent), transparent 62%),
-              radial-gradient(44vw 34vw at 5% 24%, color-mix(in oklab, var(--primary) 15%, transparent), transparent 66%),
-              radial-gradient(44vw 32vw at 50% 100%, color-mix(in oklab, var(--info) 12%, transparent), transparent 70%)
+              radial-gradient(64vw 42vw at 76% 14%, color-mix(in oklab, var(--rally) 18%, transparent), transparent 62%),
+              radial-gradient(44vw 34vw at 5% 24%, color-mix(in oklab, var(--primary) 8%, transparent), transparent 66%)
             `
             : `
               radial-gradient(80vw 55vh at 50% -10%, color-mix(in oklab, var(--rally) 26%, transparent), transparent 70%),
