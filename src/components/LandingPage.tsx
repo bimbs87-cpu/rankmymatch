@@ -14,11 +14,12 @@ import {
   Zap,
   CheckCircle2,
   ArrowRight,
+  Activity,
+  Star,
 } from "lucide-react";
 import logoHorizontalDark from "@/assets/logo-horizontal-dark.png";
-import logoSquareNeon from "@/assets/logo-square-neon-trimmed.png";
-import heroDevices from "@/assets/landing-hero-devices.png";
-import heroMobile from "@/assets/landing-hero-mobile.png";
+import logoHorizontalLightPremium from "@/assets/logo-horizontal-light-premium.png";
+import heroMonitorPremium from "@/assets/landing-hero-monitor-premium.png";
 import { useTheme } from "@/lib/theme";
 import { AppleSignInButton } from "@/components/AppleSignInButton";
 
@@ -48,7 +49,8 @@ function GoogleIcon({ className }: { className?: string }) {
 export function LandingPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const { resolved: resolvedTheme } = useTheme();
+  useTheme();
+  const isLight = true;
 
   const handleGoogleLogin = async (ctaLocation: string = "unknown") => {
     trackEvent("landing_cta_click", {
@@ -103,7 +105,7 @@ export function LandingPage() {
     }
   };
 
-  const logoSrc = resolvedTheme === "dark" ? logoHorizontalDark : logoSquareNeon;
+  const logoSrc = logoHorizontalLightPremium;
 
   const features = [
     {
@@ -171,71 +173,50 @@ export function LandingPage() {
   );
 
   return (
-    <div className="relative min-h-[100dvh] w-full overflow-x-hidden bg-background text-foreground">
-      {/* === Background layers === */}
+    <div className="light relative min-h-[100dvh] w-full overflow-x-hidden bg-background text-foreground">
       <div aria-hidden className="pointer-events-none fixed inset-0 z-0 bg-background" />
       <div
         aria-hidden
         className="pointer-events-none fixed inset-0 z-0"
         style={{
-          backgroundImage: `
-            radial-gradient(60vw 60vw at 12% 8%, color-mix(in oklab, var(--rally) 22%, transparent), transparent 65%),
-            radial-gradient(55vw 55vw at 92% 92%, color-mix(in oklab, var(--primary) 12%, transparent), transparent 70%),
-            radial-gradient(40vw 40vw at 88% 12%, color-mix(in oklab, var(--info) 10%, transparent), transparent 70%)
-          `,
+          backgroundImage: isLight
+            ? `
+              linear-gradient(135deg, color-mix(in oklab, var(--background) 90%, var(--rally)) 0%, var(--background) 36%, color-mix(in oklab, var(--background) 88%, var(--primary)) 100%),
+              radial-gradient(64vw 42vw at 76% 14%, color-mix(in oklab, var(--rally) 34%, transparent), transparent 62%),
+              radial-gradient(44vw 34vw at 5% 24%, color-mix(in oklab, var(--primary) 15%, transparent), transparent 66%),
+              radial-gradient(44vw 32vw at 50% 100%, color-mix(in oklab, var(--info) 12%, transparent), transparent 70%)
+            `
+            : `
+              radial-gradient(80vw 55vh at 50% -10%, color-mix(in oklab, var(--rally) 26%, transparent), transparent 70%),
+              radial-gradient(70vw 50vh at 110% 35%, color-mix(in oklab, var(--primary) 16%, transparent), transparent 75%),
+              radial-gradient(90vw 60vh at -10% 70%, color-mix(in oklab, var(--success) 14%, transparent), transparent 75%),
+              linear-gradient(180deg, color-mix(in oklab, var(--background) 84%, var(--rally)) 0%, var(--background) 48%, color-mix(in oklab, var(--background) 86%, var(--primary)) 100%)
+            `,
         }}
       />
       <div
         aria-hidden
-        className="pointer-events-none fixed inset-0 z-0 opacity-[0.05]"
+        className="pointer-events-none fixed inset-0 z-0 opacity-[0.18]"
         style={{
           backgroundImage:
-            "linear-gradient(to right, currentColor 1px, transparent 1px), linear-gradient(to bottom, currentColor 1px, transparent 1px)",
-          backgroundSize: "56px 56px",
-          maskImage: "radial-gradient(ellipse at center, black 30%, transparent 75%)",
-          WebkitMaskImage: "radial-gradient(ellipse at center, black 30%, transparent 75%)",
-        }}
-      />
-
-      {/* === Premium background (all viewports) === */}
-      <div
-        aria-hidden
-        className="pointer-events-none fixed inset-0 z-0"
-        style={{
-          backgroundImage: `
-            radial-gradient(80vw 55vh at 50% -10%, color-mix(in oklab, var(--rally) 26%, transparent), transparent 70%),
-            radial-gradient(70vw 50vh at 110% 35%, color-mix(in oklab, var(--primary) 16%, transparent), transparent 75%),
-            radial-gradient(90vw 60vh at -10% 70%, color-mix(in oklab, var(--success) 14%, transparent), transparent 75%),
-            radial-gradient(70vw 50vh at 50% 110%, color-mix(in oklab, var(--rally) 18%, transparent), transparent 70%),
-            linear-gradient(180deg, color-mix(in oklab, var(--background) 84%, var(--rally)) 0%, var(--background) 38%, var(--background) 66%, color-mix(in oklab, var(--background) 86%, var(--primary)) 100%)
-          `,
-        }}
-      />
-      <div
-        aria-hidden
-        className="pointer-events-none fixed inset-0 z-0 opacity-[0.12] mix-blend-overlay"
-        style={{
-          backgroundImage:
-            "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.75  0 0 0 0 1  0 0 0 0 0.55  0 0 0 0.55 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>\")",
-          backgroundSize: "260px 260px",
+            "linear-gradient(115deg, transparent 0 42%, color-mix(in oklab, var(--primary) 16%, transparent) 42% 42.12%, transparent 42.12% 100%), linear-gradient(to right, color-mix(in oklab, var(--foreground) 7%, transparent) 1px, transparent 1px), linear-gradient(to bottom, color-mix(in oklab, var(--foreground) 6%, transparent) 1px, transparent 1px)",
+          backgroundSize: "100% 100%, 72px 72px, 72px 72px",
+          maskImage: "linear-gradient(to bottom, black 0%, black 62%, transparent 100%)",
+          WebkitMaskImage: "linear-gradient(to bottom, black 0%, black 62%, transparent 100%)",
         }}
       />
 
       <header className="relative z-20">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-5 pt-6 pb-3 sm:px-8 sm:pt-5 sm:pb-4">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-5 py-5 sm:px-8 lg:py-6">
           <img
             src={logoSrc}
             alt="RankMyMatch"
-            className={
-              resolvedTheme === "dark"
-                ? "h-14 w-auto sm:h-16 lg:h-20"
-                : "h-28 w-auto drop-shadow-sm sm:h-32 lg:h-36 xl:h-40"
-            }
+            className="h-16 w-auto max-w-[68vw] drop-shadow-sm sm:h-20 lg:h-24"
           />
           <button
             onClick={() => handleGoogleLogin("header")}
             disabled={loading}
-            className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-card/80 px-4 py-2 text-sm font-medium text-foreground shadow-sm backdrop-blur-md transition-all hover:border-primary/50 hover:bg-card hover:shadow-md sm:px-5 sm:py-2.5"
+            className="inline-flex items-center gap-2 rounded-full border border-border/80 bg-card/90 px-4 py-2 text-sm font-semibold text-foreground shadow-lg shadow-primary/10 backdrop-blur-xl transition-all hover:border-primary/60 hover:bg-card sm:px-5 sm:py-2.5"
           >
             <GoogleIcon className="h-4 w-4" />
             Entrar
@@ -243,231 +224,198 @@ export function LandingPage() {
         </div>
       </header>
 
-      {/* === Hero === */}
       <section className="relative z-10">
-        <div className="mx-auto grid max-w-7xl items-center gap-6 px-5 pb-8 pt-2 sm:px-8 sm:pb-12 sm:pt-6 lg:grid-cols-[1.05fr_1fr] lg:gap-12 lg:pb-16 lg:pt-10">
-          {/* Text column */}
-          <div className="text-left">
-            <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-border/60 bg-card/40 px-3 py-1 backdrop-blur-sm">
-              <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
-              <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-                Para feirinos, clube e amigos
+        <div className="mx-auto grid min-h-[calc(100dvh-116px)] max-w-7xl items-center gap-8 px-5 pb-10 pt-2 sm:px-8 lg:grid-cols-[0.86fr_1.14fr] lg:gap-6 lg:pb-14">
+          <div className="relative z-10 max-w-2xl text-left">
+            <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-border/80 bg-card/80 px-3 py-1.5 shadow-sm backdrop-blur-xl">
+              <span className="h-2 w-2 rounded-full bg-rally shadow-[0_0_18px_color-mix(in_oklab,var(--rally)_80%,transparent)]" />
+              <span className="text-[11px] font-bold uppercase text-muted-foreground">
+                Ranking premium para grupos de raquete
               </span>
             </div>
 
-            <h1 className="font-black leading-[1.05] tracking-tight text-[28px] sm:text-5xl lg:text-6xl">
-              <span className="block text-foreground">Registre seu</span>
-              <span className="block">
-                <span className="bg-gradient-to-r from-primary via-primary to-primary/70 bg-clip-text text-transparent">
-                  grupo
-                </span>
-                <span className="text-foreground"> em um só lugar.</span>
-              </span>
+            <h1 className="font-display text-[2.7rem] font-black leading-[0.96] text-foreground sm:text-6xl lg:text-7xl">
+              A central de performance do seu grupo.
             </h1>
 
-            <p className="mt-4 max-w-xl text-[13px] leading-relaxed text-muted-foreground sm:text-base lg:text-lg lg:hidden whitespace-nowrap">
-              Rankings, gestão de temporadas e muito informação
-            </p>
-            <p className="mt-4 hidden max-w-xl text-sm leading-relaxed text-muted-foreground sm:text-base lg:block lg:text-lg">
-              <span className="font-semibold text-foreground">Estatísticas avançadas</span>, ranking Elo, gestão de
-              temporadas para padel, tênis, beach tennis e mais.
+            <p className="mt-6 max-w-xl text-base leading-relaxed text-muted-foreground sm:text-lg">
+              Organize temporadas, registre jogos e transforme cada resultado em ranking Elo,
+              estatísticas e disputas claras — com aparência de produto profissional.
             </p>
 
-            {/* Mobile-only CTA: appears right below the tagline, before the hero image */}
-            <div className="mt-5 flex flex-col items-start gap-2.5 lg:hidden">
-              <CTAButton size="lg" className="w-full" location="hero_mobile" />
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <div className="mt-7 flex flex-col items-start gap-3 sm:flex-row sm:items-center">
+              <CTAButton size="lg" className="w-full sm:w-auto" location="hero_primary" />
+              <div className="flex items-center gap-2 rounded-full border border-border/70 bg-card/70 px-3 py-2 text-xs font-medium text-muted-foreground backdrop-blur-xl">
                 <CheckCircle2 className="h-4 w-4 text-primary" />
-                <span>Grátis para começar · sem cartão</span>
-              </div>
-              {error && <p className="text-sm text-destructive">{error}</p>}
-            </div>
-
-            {/* Mobile-only hero image (between CTA and sports list) */}
-            <div className="relative mt-6 -mx-5 overflow-hidden lg:hidden">
-              <div
-                aria-hidden
-                className="pointer-events-none absolute inset-0 -z-10 blur-3xl"
-                style={{
-                  background:
-                    "radial-gradient(closest-side, color-mix(in oklab, var(--primary) 22%, transparent), transparent 70%)",
-                }}
-              />
-              <img
-                src={heroMobile}
-                alt="RankMyMatch no celular: ranking, pódio e estatísticas"
-                className="relative block w-[135%] max-w-none h-auto -ml-[17.5%]"
-                loading="eager"
-              />
-            </div>
-
-            {/* Desktop-only CTA */}
-            <div className="mt-5 hidden flex-col items-start gap-2.5 sm:flex-row sm:items-center sm:gap-4 lg:flex lg:justify-start">
-              <CTAButton size="lg" className="w-full sm:w-auto" location="hero_desktop" />
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <CheckCircle2 className="h-4 w-4 text-primary" />
-                <span>Grátis para começar · sem cartão</span>
+                Grátis para começar · sem cartão
               </div>
             </div>
+            {error && <p className="mt-3 text-sm text-destructive">{error}</p>}
 
-            {error && <p className="mt-3 hidden text-sm text-destructive lg:block">{error}</p>}
+            <div className="mt-8 grid max-w-xl grid-cols-3 gap-2 sm:gap-3">
+              {[
+                { value: "Elo", label: "ranking vivo" },
+                { value: "3min", label: "para criar" },
+                { value: "Multi", label: "grupo" },
+              ].map((stat) => (
+                <div key={stat.label} className="border-l border-primary/35 bg-card/45 px-3 py-2.5 backdrop-blur-sm">
+                  <div className="font-display text-xl font-black text-foreground sm:text-2xl">{stat.value}</div>
+                  <div className="text-[10px] font-semibold uppercase text-muted-foreground">{stat.label}</div>
+                </div>
+              ))}
+            </div>
 
-            <div className="mt-6">
-              <p className="mb-2 text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
-                Esportes suportados
-              </p>
-              <div className="flex flex-wrap gap-1.5">
-                {sports.map((s) => (
-                  <span
-                    key={s}
-                    className="rounded-full border border-border/70 bg-card/50 px-2.5 py-1 text-[11px] font-medium text-foreground/80 backdrop-blur-sm"
-                  >
-                    {s}
-                  </span>
-                ))}
-              </div>
+            <div className="mt-7 flex flex-wrap gap-2">
+              {sports.map((s) => (
+                <span
+                  key={s}
+                  className="rounded-full border border-border/70 bg-card/55 px-3 py-1.5 text-[11px] font-bold text-foreground/80 shadow-sm backdrop-blur-xl"
+                >
+                  {s}
+                </span>
+              ))}
             </div>
           </div>
 
-          {/* Desktop hero image */}
-          <div className="relative hidden lg:block">
+          <div className="relative -mx-12 min-h-[320px] sm:-mx-16 lg:mx-0 lg:min-h-[620px]">
             <div
               aria-hidden
-              className="pointer-events-none absolute inset-0 -z-10 blur-3xl"
-              style={{
-                background:
-                  "radial-gradient(closest-side, color-mix(in oklab, var(--primary) 18%, transparent), transparent 70%)",
-              }}
+              className="absolute inset-x-[10%] bottom-[7%] h-[26%] rounded-full blur-3xl"
+              style={{ background: "color-mix(in oklab, var(--primary) 26%, transparent)" }}
             />
             <img
-              src={heroDevices}
-              alt="RankMyMatch em desktop, tablet e celular: ranking, perfil e estatísticas"
-              className="relative w-full rounded-2xl object-contain"
+              src={heroMonitorPremium}
+              alt="RankMyMatch em um monitor com ranking e estatísticas"
+              className="relative z-10 ml-auto block w-[132%] max-w-none object-contain drop-shadow-2xl sm:w-[118%] lg:absolute lg:right-[-16%] lg:top-[47%] lg:w-[128%] lg:-translate-y-1/2 xl:right-[-22%] xl:w-[138%]"
               loading="eager"
             />
+            <div className="absolute left-8 top-8 z-20 hidden max-w-[230px] border border-border/70 bg-card/80 p-4 shadow-2xl shadow-primary/15 backdrop-blur-2xl lg:block">
+              <div className="mb-3 flex items-center justify-between">
+                <Activity className="h-5 w-5 text-primary" />
+                <span className="rounded-full bg-primary/10 px-2 py-1 text-[10px] font-black text-primary">LIVE</span>
+              </div>
+              <p className="text-sm font-black text-foreground">Ranking, rodadas e histórico em uma só visão.</p>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* === Features === */}
-      <section className="relative z-10 border-t border-border/40">
-        <div className="mx-auto max-w-7xl px-5 py-10 sm:px-8 sm:py-16">
-          <div className="mx-auto max-w-2xl text-left sm:text-center">
-            <h2 className="text-2xl font-black tracking-tight sm:text-4xl">
-              Tudo o que seu <span className="text-primary">feirino</span> precisa
+      <section className="relative z-10 border-y border-border/60 bg-card/50 backdrop-blur-xl">
+        <div className="mx-auto grid max-w-7xl gap-8 px-5 py-14 sm:px-8 lg:grid-cols-[0.42fr_0.58fr] lg:py-20">
+          <div>
+            <p className="mb-3 text-[11px] font-black uppercase text-primary">Sistema completo</p>
+            <h2 className="font-display text-3xl font-black leading-tight text-foreground sm:text-5xl">
+              Do placar ao pódio, sem ruído operacional.
             </h2>
-            <p className="mt-2 text-sm text-muted-foreground sm:text-base">
-              Da rodada de quarta-feira ao campeonato anual. Sem planilha, sem confusão.
+            <p className="mt-4 text-base leading-relaxed text-muted-foreground">
+              Uma experiência mais editorial, clara e confiável para o público que chega em
+              /landing ou / antes de entrar.
             </p>
           </div>
 
-          <div className="mt-8 grid gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-3 sm:grid-cols-2">
             {features.map((f) => (
               <div
                 key={f.title}
-                className="group relative overflow-hidden rounded-2xl border border-border/60 bg-card/50 p-5 backdrop-blur-md transition-all hover:border-primary/40 hover:bg-card/70"
+                className="group border border-border/70 bg-background/70 p-5 shadow-sm backdrop-blur-xl transition-all hover:-translate-y-0.5 hover:border-primary/45 hover:shadow-xl hover:shadow-primary/10"
               >
-                <div
-                  aria-hidden
-                  className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/50 to-transparent opacity-60"
-                />
-                <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                <div className="mb-4 flex h-11 w-11 items-center justify-center bg-primary text-primary-foreground shadow-lg shadow-primary/20">
                   <f.icon className="h-5 w-5" />
                 </div>
-                <h3 className="text-base font-bold text-foreground">{f.title}</h3>
-                <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{f.desc}</p>
+                <h3 className="text-base font-black text-foreground">{f.title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{f.desc}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* === How it works === */}
-      <section className="relative z-10 border-t border-border/40">
-        <div className="mx-auto max-w-7xl px-5 py-10 sm:px-8 sm:py-16">
-          <div className="mx-auto max-w-2xl text-left sm:text-center">
-            <h2 className="text-2xl font-black tracking-tight sm:text-4xl">
-              Comece em <span className="text-primary">3 passos</span>
-            </h2>
-            <p className="mt-2 text-sm text-muted-foreground sm:text-base">
-              Do login à primeira partida em menos de 2 minutos.
-            </p>
-          </div>
-
-          <div className="mt-8 grid gap-3 sm:gap-4 sm:grid-cols-3">
-            {steps.map((s) => (
-              <div key={s.n} className="relative rounded-2xl border border-border/60 bg-card/50 p-5 backdrop-blur-md">
-                <div className="mb-3 inline-flex h-9 items-center justify-center rounded-full bg-primary/10 px-3 text-sm font-black text-primary">
-                  {s.n}
+      <section className="relative z-10">
+        <div className="mx-auto max-w-7xl px-5 py-14 sm:px-8 lg:py-20">
+          <div className="grid overflow-hidden border border-border/70 bg-card/75 shadow-2xl shadow-primary/10 backdrop-blur-xl lg:grid-cols-[0.95fr_1.05fr]">
+            <div className="p-6 sm:p-10 lg:p-12">
+              <p className="mb-3 text-[11px] font-black uppercase text-primary">Fluxo simples</p>
+              <h2 className="font-display text-3xl font-black leading-tight text-foreground sm:text-5xl">
+                Entre, crie o grupo e deixe o ranking trabalhar.
+              </h2>
+              <p className="mt-4 text-base leading-relaxed text-muted-foreground">
+                O produto substitui planilhas e conversas perdidas por um ritual claro para cada rodada.
+              </p>
+              <p className="mt-6 text-xs font-semibold text-muted-foreground">
+                <Zap className="mr-1 inline h-4 w-4 text-primary" />
+                Login em 1 clique, sem cartão para começar.
+              </p>
+            </div>
+            <div className="border-t border-border/70 lg:border-l lg:border-t-0">
+              {steps.map((s, index) => (
+                <div key={s.n} className="grid grid-cols-[76px_1fr] border-b border-border/70 last:border-b-0">
+                  <div className="flex items-center justify-center bg-secondary/70 font-display text-2xl font-black text-primary">
+                    {s.n}
+                  </div>
+                  <div className="p-5 sm:p-7">
+                    <div className="mb-2 flex items-center gap-2">
+                      <span className="h-1.5 w-1.5 rounded-full bg-rally" />
+                      <span className="text-[10px] font-black uppercase text-muted-foreground">Etapa {index + 1}</span>
+                    </div>
+                    <h3 className="text-lg font-black text-foreground">{s.title}</h3>
+                    <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{s.desc}</p>
+                  </div>
                 </div>
-                <h3 className="text-base font-bold text-foreground">{s.title}</h3>
-                <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{s.desc}</p>
-              </div>
-            ))}
-          </div>
-
-          <div className="mt-8 flex flex-col items-center gap-2">
-            <p className="text-xs text-muted-foreground">
-              <Zap className="mr-1 inline h-3.5 w-3.5 text-primary" />
-              Sem cadastro: 1 clique e você já está no ranking.
-            </p>
+              ))}
+            </div>
           </div>
         </div>
       </section>
 
-      {/* === Final CTA === */}
-      <section className="relative z-10 border-t border-border/40">
-        <div className="mx-auto max-w-5xl px-5 py-10 sm:px-8 sm:py-16">
-          <div className="relative overflow-hidden rounded-3xl border border-primary/30 bg-card/60 p-7 text-center backdrop-blur-xl sm:p-12">
+      <section className="relative z-10 pb-12 sm:pb-20">
+        <div className="mx-auto max-w-7xl px-5 sm:px-8">
+          <div className="relative overflow-hidden bg-foreground px-6 py-10 text-background shadow-2xl shadow-primary/20 sm:px-10 lg:px-14 lg:py-14">
             <div
               aria-hidden
-              className="pointer-events-none absolute inset-0 -z-10"
+              className="absolute inset-0 opacity-70"
               style={{
                 background:
-                  "radial-gradient(ellipse at top, color-mix(in oklab, var(--primary) 18%, transparent), transparent 70%)",
+                  "radial-gradient(44vw 30vw at 78% 16%, color-mix(in oklab, var(--rally) 44%, transparent), transparent 70%), radial-gradient(34vw 24vw at 8% 100%, color-mix(in oklab, var(--primary) 38%, transparent), transparent 72%)",
               }}
             />
-            <Sparkles className="mx-auto mb-3 h-8 w-8 text-primary" />
-            <h2 className="text-2xl font-black tracking-tight sm:text-4xl">
-              Bora subir no <span className="text-primary">ranking</span>?
-            </h2>
-            <p className="mx-auto mt-2 max-w-lg text-sm text-muted-foreground sm:text-base">
-              Junte-se a feirinos e clubes que já largaram a planilha. Entre com Google e crie seu primeiro grupo agora.
-            </p>
-            <div className="mx-auto mt-6 flex max-w-sm flex-col gap-3">
-              <CTAButton size="lg" className="w-full" location="final_cta" />
-              <AppleSignInButton
-                variant="outline"
-                onError={(msg) => setError(msg)}
-              />
+            <div className="relative z-10 grid items-center gap-8 lg:grid-cols-[1fr_auto]">
+              <div>
+                <div className="mb-4 inline-flex items-center gap-2 bg-background/10 px-3 py-1.5 text-[11px] font-black uppercase text-background backdrop-blur-md">
+                  <Star className="h-3.5 w-3.5" />
+                  Pronto para competir melhor
+                </div>
+                <h2 className="font-display text-3xl font-black leading-tight sm:text-5xl">
+                  Troque a planilha por uma experiência de ranking premium.
+                </h2>
+                <p className="mt-4 max-w-2xl text-sm leading-relaxed text-background/75 sm:text-base">
+                  Entre com Google, crie seu primeiro grupo e organize temporadas com visual profissional desde o primeiro acesso.
+                </p>
+              </div>
+              <div className="flex w-full max-w-sm flex-col gap-3 lg:w-[360px]">
+                <CTAButton size="lg" className="w-full shadow-none" location="final_cta" />
+                <AppleSignInButton variant="outline" onError={(msg) => setError(msg)} />
+                <p className="text-center text-[11px] text-background/65">
+                  Ao entrar, você concorda com nossos{" "}
+                  <Link to="/termos" className="underline hover:text-background">Termos</Link>
+                  {" "}e{" "}
+                  <Link to="/privacidade" className="underline hover:text-background">Privacidade</Link>.
+                </p>
+              </div>
             </div>
-            <p className="mt-3 text-[11px] text-muted-foreground">
-              Ao entrar, você concorda com nossos{" "}
-              <Link to="/termos" className="underline hover:text-foreground">Termos de Uso</Link>
-              {" "}e{" "}
-              <Link to="/privacidade" className="underline hover:text-foreground">Política de Privacidade</Link>.
-            </p>
           </div>
         </div>
       </section>
 
-      {/* === Footer === */}
-      <footer className="relative z-10 border-t border-border/40">
-        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 px-5 py-5 text-xs text-muted-foreground sm:flex-row sm:px-8">
-          <div className="flex items-center gap-2">
-            <img src={logoSrc} alt="RankMyMatch" className="h-6 w-auto" />
+      <footer className="relative z-10 border-t border-border/50 bg-card/45 backdrop-blur-xl">
+        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-5 py-6 text-xs text-muted-foreground sm:flex-row sm:px-8">
+          <div className="flex items-center gap-3">
+            <img src={logoSrc} alt="RankMyMatch" className="h-9 w-auto" />
             <span>© {new Date().getFullYear()} RankMyMatch</span>
           </div>
-          <div className="flex items-center gap-4">
-            <a href="/sobre-desenvolvimento" className="hover:text-foreground">
-              Sobre
-            </a>
-            <a href="/changelog" className="hover:text-foreground">
-              Changelog
-            </a>
-            <a href="/login" className="hover:text-foreground">
-              Entrar
-            </a>
+          <div className="flex items-center gap-5 font-semibold">
+            <a href="/sobre-desenvolvimento" className="hover:text-foreground">Sobre</a>
+            <a href="/changelog" className="hover:text-foreground">Changelog</a>
+            <a href="/login" className="hover:text-foreground">Entrar</a>
           </div>
         </div>
       </footer>
