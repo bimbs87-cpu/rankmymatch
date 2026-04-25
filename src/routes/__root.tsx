@@ -253,15 +253,16 @@ function LoggedInDesktopBackground() {
             : "radial-gradient(70vw 60vh at 15% 30%, color-mix(in oklab, var(--primary) 14%, transparent), transparent 70%), linear-gradient(135deg, color-mix(in oklab, var(--background) 96%, var(--primary)) 0%, var(--background) 60%)",
         }}
       />
-      {/* Both image layers stay mounted; opacity flips for instant theme swap */}
+      {/* Both image layers stay mounted; opacity flips for instant theme swap.
+          Inset + rounded corners give the background a soft, "framed" feel. */}
       <div
         aria-hidden
-        className="pointer-events-none fixed inset-0 z-0 hidden lg:block bg-cover bg-center bg-no-repeat transition-opacity duration-150"
+        className="pointer-events-none fixed inset-3 z-0 hidden lg:block bg-cover bg-center bg-no-repeat rounded-3xl transition-opacity duration-150"
         style={{ backgroundImage: `url(${loggedInBgDesktopDark})`, opacity: showDark ? 1 : 0 }}
       />
       <div
         aria-hidden
-        className="pointer-events-none fixed inset-0 z-0 hidden lg:block bg-cover bg-center bg-no-repeat transition-opacity duration-150"
+        className="pointer-events-none fixed inset-3 z-0 hidden lg:block bg-cover bg-center bg-no-repeat rounded-3xl transition-opacity duration-150"
         style={{ backgroundImage: `url(${loggedInBgDesktopLight})`, opacity: showLight ? 1 : 0 }}
       />
     </>
