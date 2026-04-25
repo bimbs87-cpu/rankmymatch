@@ -154,10 +154,12 @@ export function LandingPage() {
     size = "md",
     className = "",
     location = "unknown",
+    label = "Entrar com Google",
   }: {
     size?: "md" | "lg";
     className?: string;
     location?: string;
+    label?: string;
   }) => (
     <button
       onClick={() => handleGoogleLogin(location)}
@@ -167,7 +169,7 @@ export function LandingPage() {
       } ${className}`}
     >
       <GoogleIcon className={size === "lg" ? "h-5 w-5" : "h-4 w-4"} />
-      {loading ? "Entrando..." : "Entrar com Google"}
+      {loading ? "Entrando..." : label}
       <ArrowRight
         className={`transition-transform group-hover:translate-x-0.5 ${size === "lg" ? "h-5 w-5" : "h-4 w-4"}`}
       />
@@ -241,7 +243,7 @@ export function LandingPage() {
             className="inline-flex items-center gap-2 rounded-full border border-border/80 bg-card/90 px-4 py-2 text-sm font-semibold text-foreground shadow-lg shadow-primary/10 backdrop-blur-xl transition-all hover:border-primary/60 hover:bg-card sm:px-5 sm:py-2.5"
           >
             <GoogleIcon className="h-4 w-4" />
-            Entrar
+            {loading ? "Entrando..." : "Login"}
           </button>
         </div>
       </header>
@@ -267,7 +269,7 @@ export function LandingPage() {
             </p>
 
             <div className="mt-8 flex flex-col items-start gap-3 sm:flex-row sm:items-center">
-              <CTAButton size="lg" className="w-full sm:w-auto" location="hero_primary" />
+              <CTAButton size="lg" className="w-full sm:w-auto" location="hero_primary" label="Criar meu grupo" />
               <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
                 <CheckCircle2 className="h-4 w-4 text-primary" />
                 Grátis para começar · sem cartão
@@ -449,7 +451,14 @@ export function LandingPage() {
           <div className="flex items-center gap-5 font-semibold">
             <a href="/sobre-desenvolvimento" className="hover:text-foreground">Sobre</a>
             <a href="/changelog" className="hover:text-foreground">Changelog</a>
-            <a href="/login" className="hover:text-foreground">Entrar</a>
+            <button
+              type="button"
+              onClick={() => handleGoogleLogin("footer")}
+              disabled={loading}
+              className="hover:text-foreground disabled:opacity-60"
+            >
+              {loading ? "Entrando..." : "Entrar"}
+            </button>
           </div>
         </div>
       </footer>
