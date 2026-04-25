@@ -180,7 +180,9 @@ function GlobalBackground() {
   const location = useLocation();
   const { resolved } = useTheme();
   const path = location.pathname;
-  const isExcluded = path === "/" || path === "/landing";
+  // Background is eternal once logged in — present on every authenticated route,
+  // including the homepage. Only the public /landing marketing page opts out.
+  const isExcluded = path === "/landing";
   const [darkLoaded, setDarkLoaded] = useState(true);
   const [lightLoaded, setLightLoaded] = useState(true);
 
@@ -196,37 +198,39 @@ function GlobalBackground() {
   }, []);
 
   const isDark = resolved === "dark";
-  // The persistent image background applies to every authenticated page (except / and /landing),
-  // on every viewport, on every route. Light theme keeps a "framed" look; dark theme is full-bleed.
+  // The persistent image background applies to every authenticated page (except /landing),
+  // on every viewport, on every route — for BOTH light and dark themes.
   const showImage = isAuthenticated && !isLoading && !isExcluded;
   const showDarkImage = showImage && isDark && darkLoaded;
   const showLightImage = showImage && !isDark && lightLoaded;
 
-  // When the dark image is showing we let it be the entire background — no solid tint, no auras.
-  const useImageOnlyDark = showDarkImage;
+  // When either themed image is showing we let it be the entire background — no solid tint, no auras.
+  const useImageBackground = showDarkImage || showLightImage;
 
-  // Mark body so global CSS can make wrappers transparent when the dark image is active.
+  // Mark body so global CSS can make wrappers transparent when the image background is active.
   useEffect(() => {
     if (typeof document === "undefined") return;
-    if (useImageOnlyDark) {
+    if (showDarkImage) {
       document.body.setAttribute("data-bg-image", "dark");
+    } else if (showLightImage) {
+      document.body.setAttribute("data-bg-image", "light");
     } else {
       document.body.removeAttribute("data-bg-image");
     }
     return () => {
       document.body.removeAttribute("data-bg-image");
     };
-  }, [useImageOnlyDark]);
+  }, [showDarkImage, showLightImage]);
 
   return (
     <>
-      {/* Solid background fallback (hidden when the dark image takes over) */}
-      {!useImageOnlyDark && (
+      {/* Solid background fallback (hidden when an image background takes over) */}
+      {!useImageBackground && (
         <div aria-hidden className="pointer-events-none fixed inset-0 z-0 bg-background" />
       )}
 
-      {/* Mobile/tablet auras — kept on light theme and on logged-out pages */}
-      {!useImageOnlyDark && (
+      {/* Mobile/tablet auras — kept on logged-out pages only */}
+      {!useImageBackground && (
         <div
           aria-hidden
           className="pointer-events-none fixed inset-0 z-0 lg:hidden"
@@ -242,8 +246,8 @@ function GlobalBackground() {
         />
       )}
 
-      {/* Desktop subtle tint — also hidden when dark image is the background */}
-      {!useImageOnlyDark && (
+      {/* Desktop subtle tint — also hidden when an image background is active */}
+      {!useImageBackground && (
         <div
           aria-hidden
           className="pointer-events-none fixed inset-0 z-0 hidden lg:block"
@@ -253,14 +257,15 @@ function GlobalBackground() {
         />
       )}
 
-      {/* Dark gradient fallback under the image (in case it fails to load) */}
-      {showImage && isDark && (
+      {/* Themed gradient fallback under the image (in case it fails to load) */}
+      {showImage && (
         <div
           aria-hidden
           className="pointer-events-none fixed inset-0 z-0"
           style={{
-            backgroundImage:
-              "radial-gradient(70vw 60vh at 15% 30%, color-mix(in oklab, var(--primary) 22%, transparent), transparent 70%), linear-gradient(135deg, color-mix(in oklab, var(--background) 92%, var(--primary)) 0%, var(--background) 60%)",
+            backgroundImage: isDark
+              ? "radial-gradient(70vw 60vh at 15% 30%, color-mix(in oklab, var(--primary) 22%, transparent), transparent 70%), linear-gradient(135deg, color-mix(in oklab, var(--background) 92%, var(--primary)) 0%, var(--background) 60%)"
+              : "radial-gradient(70vw 60vh at 15% 30%, color-mix(in oklab, var(--primary) 14%, transparent), transparent 70%), linear-gradient(135deg, #fafafa 0%, #ffffff 60%)",
           }}
         />
       )}
@@ -274,17 +279,17 @@ function GlobalBackground() {
         />
       )}
 
-      {/* Light image — framed, desktop only */}
+      {/* Light image — full-bleed, all viewports, persistent for the entire authenticated session */}
       {showImage && (
         <div
           aria-hidden
-          className="pointer-events-none fixed inset-3 z-0 hidden lg:block bg-cover bg-center bg-no-repeat rounded-3xl transition-opacity duration-150"
+          className="pointer-events-none fixed inset-0 z-0 bg-cover bg-center bg-no-repeat transition-opacity duration-150"
           style={{ backgroundImage: `url(${loggedInBgDesktopLight})`, opacity: showLightImage ? 1 : 0 }}
         />
       )}
 
       {/* Subtle noise on mobile when no image dominates */}
-      {!useImageOnlyDark && (
+      {!useImageBackground && (
         <div
           aria-hidden
           className="pointer-events-none fixed inset-0 z-0 opacity-[0.10] mix-blend-overlay lg:hidden"
