@@ -205,6 +205,19 @@ function GlobalBackground() {
   // When the dark image is showing we let it be the entire background — no solid tint, no auras.
   const useImageOnlyDark = showDarkImage;
 
+  // Mark body so global CSS can make wrappers transparent when the dark image is active.
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    if (useImageOnlyDark) {
+      document.body.setAttribute("data-bg-image", "dark");
+    } else {
+      document.body.removeAttribute("data-bg-image");
+    }
+    return () => {
+      document.body.removeAttribute("data-bg-image");
+    };
+  }, [useImageOnlyDark]);
+
   return (
     <>
       {/* Solid background fallback (hidden when the dark image takes over) */}
