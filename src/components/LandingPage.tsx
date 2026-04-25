@@ -14,11 +14,12 @@ import {
   Zap,
   CheckCircle2,
   ArrowRight,
+  Activity,
+  Star,
 } from "lucide-react";
 import logoHorizontalDark from "@/assets/logo-horizontal-dark.png";
-import logoSquareNeon from "@/assets/logo-square-neon-trimmed.png";
-import heroDevices from "@/assets/landing-hero-devices.png";
-import heroMobile from "@/assets/landing-hero-mobile.png";
+import logoHorizontalLightPremium from "@/assets/logo-horizontal-light-premium.png";
+import heroMonitorPremium from "@/assets/landing-hero-monitor-premium.png";
 import { useTheme } from "@/lib/theme";
 import { AppleSignInButton } from "@/components/AppleSignInButton";
 
@@ -103,7 +104,8 @@ export function LandingPage() {
     }
   };
 
-  const logoSrc = resolvedTheme === "dark" ? logoHorizontalDark : logoSquareNeon;
+  const isLight = resolvedTheme === "light";
+  const logoSrc = isLight ? logoHorizontalLightPremium : logoHorizontalDark;
 
   const features = [
     {
