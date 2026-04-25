@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 import logoHorizontalDark from "@/assets/logo-horizontal-dark.png";
 import logoHorizontalLightPremium from "@/assets/logo-horizontal-light-premium.png";
-import heroMonitorPremium from "@/assets/landing-hero-monitor-premium.png";
+import heroDevices from "@/assets/landing-hero-devices.png";
 import { useTheme } from "@/lib/theme";
 import { AppleSignInButton } from "@/components/AppleSignInButton";
 
@@ -49,8 +49,8 @@ function GoogleIcon({ className }: { className?: string }) {
 export function LandingPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  useTheme();
-  const isLight = true;
+  const { resolved } = useTheme();
+  const isLight = resolved === "light";
 
   const handleGoogleLogin = async (ctaLocation: string = "unknown") => {
     trackEvent("landing_cta_click", {
@@ -105,7 +105,7 @@ export function LandingPage() {
     }
   };
 
-  const logoSrc = logoHorizontalLightPremium;
+  const logoSrc = isLight ? logoHorizontalLightPremium : logoHorizontalDark;
 
   const features = [
     {
@@ -173,7 +173,7 @@ export function LandingPage() {
   );
 
   return (
-    <div className="light relative min-h-[100dvh] w-full overflow-x-hidden bg-background text-foreground">
+    <div className="relative min-h-[100dvh] w-full overflow-x-hidden bg-background text-foreground">
       <div aria-hidden className="pointer-events-none fixed inset-0 z-0 bg-background" />
       <div
         aria-hidden
@@ -284,9 +284,9 @@ export function LandingPage() {
               style={{ background: "color-mix(in oklab, var(--primary) 26%, transparent)" }}
             />
             <img
-              src={heroMonitorPremium}
-              alt="RankMyMatch em um monitor com ranking e estatísticas"
-              className="relative z-10 ml-auto block w-[132%] max-w-none object-contain drop-shadow-2xl sm:w-[118%] lg:absolute lg:right-[-16%] lg:top-[47%] lg:w-[128%] lg:-translate-y-1/2 xl:right-[-22%] xl:w-[138%]"
+              src={heroDevices}
+              alt="RankMyMatch em desktop, tablet e mobile"
+              className="relative z-10 ml-auto block w-[120%] max-w-none object-contain drop-shadow-2xl sm:w-[110%] lg:absolute lg:right-[-10%] lg:top-[50%] lg:w-[120%] lg:-translate-y-1/2 xl:right-[-14%] xl:w-[126%]"
               loading="eager"
             />
             <div className="absolute left-8 top-8 z-20 hidden max-w-[230px] border border-border/70 bg-card/80 p-4 shadow-2xl shadow-primary/15 backdrop-blur-2xl lg:block">
