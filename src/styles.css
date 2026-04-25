@@ -199,13 +199,13 @@
     overscroll-behavior: none;
   }
 
-  /* When the persistent dark background image is active, let it show through:
+  /* When the persistent image background is active (light or dark), let it show through:
      transparent body + transparent for any element using bg-background.
      Cards (bg-card), popovers, inputs, etc. keep their own surfaces. */
-  body[data-bg-image="dark"] {
+  body[data-bg-image] {
     background-color: transparent;
   }
-  body[data-bg-image="dark"] .bg-background {
+  body[data-bg-image] .bg-background {
     background-color: transparent !important;
   }
 
