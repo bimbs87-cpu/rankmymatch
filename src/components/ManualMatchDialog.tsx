@@ -56,11 +56,17 @@ async function loadScheduledRoundMatchups(roundId: string): Promise<Matchup[]> {
 
   if (error || !matches?.length) return [];
 
-  return (matches as Array<{
-    id: string;
-    match_number: number | null;
-    match_players: Array<{ user_id: string; team: string }> | null;
-  }>).map((match) => ({
+  const uniqueMatches = Array.from(
+    new Map(
+      (matches as Array<{
+        id: string;
+        match_number: number | null;
+        match_players: Array<{ user_id: string; team: string }> | null;
+      }>).map((match) => [match.match_number ?? match.id, match]),
+    ).values(),
+  ).slice(0, 3);
+
+  return uniqueMatches.map((match) => ({
     teamA: (match.match_players || []).filter((player) => player.team === "A").map((player) => player.user_id),
     teamB: (match.match_players || []).filter((player) => player.team === "B").map((player) => player.user_id),
     scoreA: 0,
@@ -430,7 +436,24 @@ export function ManualMatchDialog({
           .eq("round_id", roundId)
           .order("match_number", { ascending: true });
         if (error) throw error;
-        scheduledMatches = data || [];
+        const seen = new Set<number | string>();
+        const duplicateMatches: Array<{ id: string; match_number: number | null }> = [];
+        scheduledMatches = [];
+        for (const scheduled of data || []) {
+          const key = scheduled.match_number ?? scheduled.id;
+          if (seen.has(key)) duplicateMatches.push(scheduled);
+          else {
+            seen.add(key);
+            scheduledMatches.push(scheduled);
+          }
+        }
+        scheduledMatches = scheduledMatches.slice(0, matchups.length);
+        duplicateMatches.push(...((data || []).slice(matchups.length + duplicateMatches.length)));
+        if (duplicateMatches.length) {
+          const duplicateIds = duplicateMatches.map((m) => m.id);
+          await supabase.from("match_players").delete().in("match_id", duplicateIds);
+          await supabase.from("matches").delete().in("id", duplicateIds);
+        }
         if (scheduledMatches.length !== matchups.length) {
           throw new Error("A rodada não possui os 3 confrontos esperados");
         }
