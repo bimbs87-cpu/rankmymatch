@@ -174,7 +174,7 @@ export function LandingPage() {
   );
 
   return (
-    <div className="light relative min-h-[100dvh] w-full overflow-x-hidden bg-background text-foreground">
+    <div className="relative min-h-[100dvh] w-full overflow-x-hidden bg-background text-foreground">
       <div aria-hidden className="pointer-events-none fixed inset-0 z-0 bg-background" />
       <div
         aria-hidden
