@@ -22,6 +22,8 @@ import logoHorizontalLightPremium from "@/assets/logo-horizontal-light-premium.p
 import heroDevices from "@/assets/landing-hero-devices.png";
 import landingBgLightMobile from "@/assets/landing-bg-light-mobile.png";
 import landingBgLightDesktop from "@/assets/landing-bg-light-desktop.png";
+import landingBgDarkMobile from "@/assets/landing-bg-dark-mobile.png";
+import landingBgDarkDesktop from "@/assets/landing-bg-dark-desktop.png";
 import { useTheme } from "@/lib/theme";
 import { AppleSignInButton } from "@/components/AppleSignInButton";
 
@@ -197,6 +199,28 @@ export function LandingPage() {
             style={{
               backgroundImage:
                 "linear-gradient(180deg, color-mix(in oklab, var(--background) 55%, transparent) 0%, color-mix(in oklab, var(--background) 30%, transparent) 50%, color-mix(in oklab, var(--background) 70%, transparent) 100%)",
+            }}
+          />
+        </>
+      )}
+      {!isLight && (
+        <>
+          <div
+            aria-hidden
+            className="pointer-events-none fixed inset-0 z-0 bg-cover bg-center bg-no-repeat sm:hidden"
+            style={{ backgroundImage: `url(${landingBgDarkMobile})` }}
+          />
+          <div
+            aria-hidden
+            className="pointer-events-none fixed inset-0 z-0 hidden bg-cover bg-center bg-no-repeat sm:block"
+            style={{ backgroundImage: `url(${landingBgDarkDesktop})` }}
+          />
+          <div
+            aria-hidden
+            className="pointer-events-none fixed inset-0 z-0"
+            style={{
+              backgroundImage:
+                "linear-gradient(180deg, color-mix(in oklab, var(--background) 50%, transparent) 0%, color-mix(in oklab, var(--background) 25%, transparent) 50%, color-mix(in oklab, var(--background) 65%, transparent) 100%)",
             }}
           />
         </>
