@@ -106,7 +106,8 @@ export function LandingPage() {
     }
   };
 
-  const logoSrc = logoHorizontalLightPremium;
+  const logoSrc = isLight ? logoHorizontalLightPremium : logoHorizontalDark;
+  const heroSrc = isLight ? heroDevices : heroDevices;
 
   const features = [
     {
