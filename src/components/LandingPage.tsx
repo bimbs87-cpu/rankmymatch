@@ -154,10 +154,12 @@ export function LandingPage() {
     size = "md",
     className = "",
     location = "unknown",
+    label = "Entrar com Google",
   }: {
     size?: "md" | "lg";
     className?: string;
     location?: string;
+    label?: string;
   }) => (
     <button
       onClick={() => handleGoogleLogin(location)}
@@ -167,7 +169,7 @@ export function LandingPage() {
       } ${className}`}
     >
       <GoogleIcon className={size === "lg" ? "h-5 w-5" : "h-4 w-4"} />
-      {loading ? "Entrando..." : "Entrar com Google"}
+      {loading ? "Entrando..." : label}
       <ArrowRight
         className={`transition-transform group-hover:translate-x-0.5 ${size === "lg" ? "h-5 w-5" : "h-4 w-4"}`}
       />
