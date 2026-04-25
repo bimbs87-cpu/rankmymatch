@@ -1,5 +1,8 @@
-import { Outlet, Link, createRootRoute, HeadContent, Scripts, useRouter } from "@tanstack/react-router";
+import { Outlet, Link, createRootRoute, HeadContent, Scripts, useRouter, useLocation } from "@tanstack/react-router";
 import { AuthProvider, useAuth } from "@/hooks/use-auth";
+import { useTheme } from "@/lib/theme";
+import loggedInBgDesktopDark from "@/assets/loggedin-bg-desktop-dark.png";
+import loggedInBgDesktopLight from "@/assets/loggedin-bg-desktop-light.png";
 import { trackPageview } from "@/lib/analytics";
 import { captureAcquisitionOnce } from "@/lib/acquisition-tracking";
 import { trackPageVisit } from "@/lib/visit-tracking";
@@ -177,6 +180,9 @@ function RootComponent() {
               }}
             />
 
+            {/* Desktop: themed image background for logged-in app pages (not / or /landing) */}
+            <LoggedInDesktopBackground />
+
             {/* Shared noise texture (very subtle on desktop) */}
             <div
               aria-hidden
@@ -205,6 +211,23 @@ function AuthDesktopNav() {
   const { isAuthenticated, isLoading } = useAuth();
   if (isLoading || !isAuthenticated) return null;
   return <DesktopNav />;
+}
+
+function LoggedInDesktopBackground() {
+  const { isAuthenticated, isLoading } = useAuth();
+  const location = useLocation();
+  const { resolved } = useTheme();
+  const path = location.pathname;
+  const isExcluded = path === "/" || path === "/landing";
+  if (isLoading || !isAuthenticated || isExcluded) return null;
+  const bg = resolved === "light" ? loggedInBgDesktopLight : loggedInBgDesktopDark;
+  return (
+    <div
+      aria-hidden
+      className="pointer-events-none fixed inset-0 z-0 hidden lg:block bg-cover bg-center bg-no-repeat"
+      style={{ backgroundImage: `url(${bg})` }}
+    />
+  );
 }
 
 function AuthNav() {
