@@ -257,7 +257,7 @@ function LoggedInDesktopBackground() {
           Inset + rounded corners give the background a soft, "framed" feel. */}
       <div
         aria-hidden
-        className="pointer-events-none fixed inset-3 z-0 hidden lg:block bg-cover bg-center bg-no-repeat rounded-3xl transition-opacity duration-150"
+        className="pointer-events-none fixed inset-0 z-0 hidden lg:block bg-cover bg-center bg-no-repeat transition-opacity duration-150"
         style={{ backgroundImage: `url(${loggedInBgDesktopDark})`, opacity: showDark ? 1 : 0 }}
       />
       <div
