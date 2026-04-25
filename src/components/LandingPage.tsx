@@ -225,51 +225,54 @@ export function LandingPage() {
       </header>
 
       <section className="relative z-10">
-        <div className="mx-auto grid min-h-[calc(100dvh-116px)] max-w-7xl items-center gap-8 px-5 pb-10 pt-2 sm:px-8 lg:grid-cols-[0.86fr_1.14fr] lg:gap-6 lg:pb-14">
-          <div className="relative z-10 max-w-2xl text-left">
-            <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-border/80 bg-card/80 px-3 py-1.5 shadow-sm backdrop-blur-xl">
+        <div className="mx-auto grid max-w-7xl items-center gap-10 px-5 pb-16 pt-6 sm:px-8 lg:grid-cols-12 lg:gap-10 lg:pb-20 lg:pt-10">
+          {/* Coluna texto — 5/12, alinhamento à esquerda, ritmo vertical consistente */}
+          <div className="relative z-10 lg:col-span-5">
+            <div className="inline-flex items-center gap-2 rounded-full border border-border/80 bg-card/80 px-3 py-1.5 shadow-sm backdrop-blur-xl">
               <span className="h-2 w-2 rounded-full bg-rally shadow-[0_0_18px_color-mix(in_oklab,var(--rally)_80%,transparent)]" />
-              <span className="text-[11px] font-bold uppercase text-muted-foreground">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
                 Ranking premium para grupos de raquete
               </span>
             </div>
 
-            <h1 className="font-display text-[2.7rem] font-black leading-[0.96] text-foreground sm:text-6xl lg:text-7xl">
+            <h1 className="mt-6 font-display text-[2.5rem] font-black leading-[1.02] tracking-tight text-foreground sm:text-5xl lg:text-[3.75rem]">
               A central de performance do seu grupo.
             </h1>
 
-            <p className="mt-6 max-w-xl text-base leading-relaxed text-muted-foreground sm:text-lg">
+            <p className="mt-5 max-w-md text-base leading-relaxed text-muted-foreground sm:text-lg">
               Organize temporadas, registre jogos e transforme cada resultado em ranking Elo,
-              estatísticas e disputas claras — com aparência de produto profissional.
+              estatísticas e disputas claras.
             </p>
 
-            <div className="mt-7 flex flex-col items-start gap-3 sm:flex-row sm:items-center">
+            <div className="mt-8 flex flex-col items-start gap-3 sm:flex-row sm:items-center">
               <CTAButton size="lg" className="w-full sm:w-auto" location="hero_primary" />
-              <div className="flex items-center gap-2 rounded-full border border-border/70 bg-card/70 px-3 py-2 text-xs font-medium text-muted-foreground backdrop-blur-xl">
+              <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
                 <CheckCircle2 className="h-4 w-4 text-primary" />
                 Grátis para começar · sem cartão
               </div>
             </div>
             {error && <p className="mt-3 text-sm text-destructive">{error}</p>}
 
-            <div className="mt-8 grid max-w-xl grid-cols-3 gap-2 sm:gap-3">
+            {/* Stats — alinhados em grid simétrico, agrupados (proximidade) */}
+            <div className="mt-10 grid max-w-md grid-cols-3 gap-px overflow-hidden rounded-xl border border-border/70 bg-border/70">
               {[
                 { value: "Elo", label: "ranking vivo" },
                 { value: "3min", label: "para criar" },
                 { value: "Multi", label: "grupo" },
               ].map((stat) => (
-                <div key={stat.label} className="border-l border-primary/35 bg-card/45 px-3 py-2.5 backdrop-blur-sm">
-                  <div className="font-display text-xl font-black text-foreground sm:text-2xl">{stat.value}</div>
-                  <div className="text-[10px] font-semibold uppercase text-muted-foreground">{stat.label}</div>
+                <div key={stat.label} className="bg-card/80 px-4 py-3 backdrop-blur-sm">
+                  <div className="font-display text-2xl font-black leading-none text-foreground">{stat.value}</div>
+                  <div className="mt-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{stat.label}</div>
                 </div>
               ))}
             </div>
 
-            <div className="mt-7 flex flex-wrap gap-2">
+            {/* Esportes — chips menores, agrupados próximos aos stats (continuidade) */}
+            <div className="mt-5 flex flex-wrap gap-1.5">
               {sports.map((s) => (
                 <span
                   key={s}
-                  className="rounded-full border border-border/70 bg-card/55 px-3 py-1.5 text-[11px] font-bold text-foreground/80 shadow-sm backdrop-blur-xl"
+                  className="rounded-full border border-border/60 bg-card/40 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground"
                 >
                   {s}
                 </span>
@@ -277,28 +280,37 @@ export function LandingPage() {
             </div>
           </div>
 
-          <div className="relative min-h-[320px] lg:min-h-[560px]">
+          {/* Coluna imagem — 7/12, com card LIVE como elemento sobreposto (figura-fundo) */}
+          <div className="relative lg:col-span-7">
             <div
               aria-hidden
-              className="absolute inset-x-[10%] bottom-[7%] h-[26%] rounded-full blur-3xl"
-              style={{ background: "color-mix(in oklab, var(--primary) 26%, transparent)" }}
+              className="absolute inset-x-[8%] bottom-[6%] h-[28%] rounded-full blur-3xl"
+              style={{ background: "color-mix(in oklab, var(--primary) 28%, transparent)" }}
             />
             <img
               src={heroDevices}
               alt="RankMyMatch em desktop, tablet e mobile"
-              className="relative z-10 mx-auto block w-full max-w-[640px] object-contain drop-shadow-2xl lg:max-w-none"
+              className="relative z-10 mx-auto block w-full max-w-[680px] object-contain drop-shadow-2xl lg:max-w-none"
               loading="eager"
             />
-            <div className="absolute left-2 top-2 z-20 hidden max-w-[230px] border border-border/70 bg-card/80 p-4 shadow-2xl shadow-primary/15 backdrop-blur-2xl lg:block">
-              <div className="mb-3 flex items-center justify-between">
-                <Activity className="h-5 w-5 text-primary" />
-                <span className="rounded-full bg-primary/10 px-2 py-1 text-[10px] font-black text-primary">LIVE</span>
+            {/* Badge LIVE — posicionado no canto superior, fora da área dos dispositivos */}
+            <div className="absolute -top-2 right-0 z-20 hidden max-w-[240px] rounded-xl border border-border/70 bg-card/90 p-4 shadow-2xl shadow-primary/15 backdrop-blur-2xl lg:block">
+              <div className="mb-2 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="relative flex h-2 w-2">
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-rally opacity-75" />
+                    <span className="relative inline-flex h-2 w-2 rounded-full bg-rally" />
+                  </span>
+                  <Activity className="h-4 w-4 text-primary" />
+                </div>
+                <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-primary">Live</span>
               </div>
-              <p className="text-sm font-black text-foreground">Ranking, rodadas e histórico em uma só visão.</p>
+              <p className="text-sm font-bold leading-snug text-foreground">Ranking, rodadas e histórico em uma só visão.</p>
             </div>
           </div>
         </div>
       </section>
+
 
       <section className="relative z-10 border-y border-border/60 bg-card/50 backdrop-blur-xl">
         <div className="mx-auto grid max-w-7xl gap-8 px-5 py-14 sm:px-8 lg:grid-cols-[0.42fr_0.58fr] lg:py-20">
