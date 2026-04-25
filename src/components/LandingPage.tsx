@@ -451,7 +451,14 @@ export function LandingPage() {
           <div className="flex items-center gap-5 font-semibold">
             <a href="/sobre-desenvolvimento" className="hover:text-foreground">Sobre</a>
             <a href="/changelog" className="hover:text-foreground">Changelog</a>
-            <a href="/login" className="hover:text-foreground">Entrar</a>
+            <button
+              type="button"
+              onClick={() => handleGoogleLogin("footer")}
+              disabled={loading}
+              className="hover:text-foreground disabled:opacity-60"
+            >
+              {loading ? "Entrando..." : "Entrar"}
+            </button>
           </div>
         </div>
       </footer>
