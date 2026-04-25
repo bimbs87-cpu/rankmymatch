@@ -84,14 +84,16 @@ export function usePendingMatch(groupId?: string) {
         supabase.from("matches").select("id, match_players(user_id)").eq("round_id", match.round_id),
       ]);
 
+      const rawRoundMatches = (roundMatchesRes.data as any[]) || [];
       const roundUniquePlayerIds = new Set(
-        ((roundMatchesRes.data as any[]) || []).flatMap((roundMatch) =>
+        rawRoundMatches.flatMap((roundMatch) =>
           ((roundMatch.match_players as Array<{ user_id: string }> | null) || []).map((player) => player.user_id),
         ),
       );
+      const rawRoundMatchCount = (totalRes as any)?.count ?? rawRoundMatches.length ?? 1;
       const isKingOfCourtRound =
         (groupRes.data?.match_format || "doubles") === "doubles" &&
-        (((totalRes as any)?.count ?? 1) === 3) &&
+        rawRoundMatchCount >= 3 &&
         roundUniquePlayerIds.size === 4;
 
       const playerIds = (playersRes.data || []).map((p) => p.user_id);
@@ -141,9 +143,13 @@ export function usePendingMatch(groupId?: string) {
 
       const resolvedSetsMode: PendingMatch["sets_mode"] = isRivalry
         ? "unlimited"
+        : isKingOfCourtRound
+        ? "fixed"
         : (((seasonRes.data as any)?.sets_mode as PendingMatch["sets_mode"]) || "fixed");
       const resolvedSetsPerMatch = isRivalry
         ? 99
+        : isKingOfCourtRound
+        ? 1
         : (seasonRes.data?.sets_per_match || 3);
 
       setPendingMatch({
@@ -158,7 +164,7 @@ export function usePendingMatch(groupId?: string) {
         group_match_format: groupRes.data?.match_format || "doubles",
         sets_per_match: resolvedSetsPerMatch,
         sets_mode: resolvedSetsMode,
-        total_matches_in_round: (totalRes as any)?.count ?? 1,
+        total_matches_in_round: isKingOfCourtRound ? 3 : rawRoundMatchCount,
         is_king_of_court_round: isKingOfCourtRound,
         teamA: buildTeam("A"),
         teamB: buildTeam("B"),
