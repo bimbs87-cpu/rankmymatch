@@ -27,14 +27,29 @@ export function useTheme() {
     const stored = (localStorage.getItem("rmm-theme") as Theme) || "dark";
     setThemeState(stored);
     setMounted(true);
+
+    // Listen for theme changes from other useTheme() instances (or other tabs)
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent<Theme>).detail;
+      const next = detail || ((localStorage.getItem("rmm-theme") as Theme) || "dark");
+      setThemeState(next);
+    };
+    window.addEventListener("rmm-theme-change", handler);
+    window.addEventListener("storage", handler);
+    return () => {
+      window.removeEventListener("rmm-theme-change", handler);
+      window.removeEventListener("storage", handler);
+    };
   }, []);
 
   const resolved = mounted ? getResolvedTheme(theme) : "dark";
 
   useEffect(() => {
+    if (!mounted) return;
     applyTheme(theme);
     localStorage.setItem("rmm-theme", theme);
-  }, [theme]);
+    window.dispatchEvent(new CustomEvent("rmm-theme-change", { detail: theme }));
+  }, [theme, mounted]);
 
   useEffect(() => {
     if (theme !== "system") return;
