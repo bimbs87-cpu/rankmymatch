@@ -106,6 +106,7 @@ export async function createRound(data: {
 const inFlightConfirm = new Map<string, Promise<void>>();
 const inFlightRivalryDraw = new Map<string, Promise<void>>();
 const inFlightAutoDraw = new Map<string, Promise<void>>();
+const inFlightDrawTeams = new Map<string, Promise<any[]>>();
 
 export async function confirmPresence(roundId: string, userId: string) {
   const key = `${roundId}:${userId}`;
@@ -695,23 +696,54 @@ function buildSinglesPairs(orderedIds: string[], roundNumber = 1): Array<[string
 
 // Shuffle and draw teams for 2v2 padel matches; for singles, pair by Elo (King of the Court).
 export async function drawTeams(roundId: string, confirmedPlayerIds: string[], actorId?: string) {
+  const existingDraw = inFlightDrawTeams.get(roundId);
+  if (existingDraw) return existingDraw;
+
+  const run = (async () => {
   const { data: roundData } = await supabase
     .from("rounds")
     .select("round_number, group_id, match_format, season_id")
     .eq("id", roundId)
     .single();
 
+  const { data: groupData } = roundData?.group_id
+    ? await supabase
+      .from("groups")
+      .select("simultaneous_courts")
+      .eq("id", roundData.group_id)
+      .maybeSingle()
+    : { data: null } as any;
+
   const isSingles = roundData?.match_format === "singles";
+  const isOneCourtDoubles = !isSingles && (groupData?.simultaneous_courts ?? 1) === 1;
   const playersPerMatch = isSingles ? 2 : 4;
+
+  const { data: existingMatches } = await supabase
+    .from("matches")
+    .select("id")
+    .eq("round_id", roundId)
+    .limit(1);
+  if (existingMatches?.length) return existingMatches as any[];
+
+  let eligiblePlayerIds = confirmedPlayerIds;
+  if (isOneCourtDoubles) {
+    const { data: confirmedRows } = await supabase
+      .from("round_presence")
+      .select("user_id, confirmed_at")
+      .eq("round_id", roundId)
+      .eq("status", "confirmed")
+      .order("confirmed_at", { ascending: true });
+    eligiblePlayerIds = (confirmedRows || []).map((p) => p.user_id).slice(0, 4);
+  }
 
   let pairings: Array<string[]> = [];
 
-  if (isSingles && roundData?.season_id && confirmedPlayerIds.length >= 2 && confirmedPlayerIds.length % 2 === 0) {
+  if (isSingles && roundData?.season_id && eligiblePlayerIds.length >= 2 && eligiblePlayerIds.length % 2 === 0) {
     const { data: snapshots } = await supabase
       .from("ranking_snapshots")
       .select("user_id, rating, snapshot_date")
       .eq("season_id", roundData.season_id)
-      .in("user_id", confirmedPlayerIds)
+      .in("user_id", eligiblePlayerIds)
       .order("snapshot_date", { ascending: false });
 
     const ratingMap = new Map<string, number>();
@@ -719,7 +751,7 @@ export async function drawTeams(roundId: string, confirmedPlayerIds: string[], a
       if (!ratingMap.has(s.user_id)) ratingMap.set(s.user_id, Number(s.rating));
     });
 
-    const ordered = [...confirmedPlayerIds]
+    const ordered = [...eligiblePlayerIds]
       .map((id) => ({ id, rating: ratingMap.get(id) ?? 1000, r: Math.random() }))
       .sort((a, b) => (b.rating - a.rating) || (a.r - b.r))
       .map((x) => x.id);
@@ -730,12 +762,12 @@ export async function drawTeams(roundId: string, confirmedPlayerIds: string[], a
 
   // Doubles King of the Court: exactly 4 players → 3 matches with fixed
   // partner rotation so every player partners with every other player once.
-  if (!isSingles && confirmedPlayerIds.length === 4 && roundData?.season_id) {
+  if (!isSingles && eligiblePlayerIds.length === 4 && roundData?.season_id) {
     const { data: snapshots } = await supabase
       .from("ranking_snapshots")
       .select("user_id, rating, snapshot_date")
       .eq("season_id", roundData.season_id)
-      .in("user_id", confirmedPlayerIds)
+      .in("user_id", eligiblePlayerIds)
       .order("snapshot_date", { ascending: false });
 
     const ratingMap = new Map<string, number>();
@@ -743,7 +775,7 @@ export async function drawTeams(roundId: string, confirmedPlayerIds: string[], a
       if (!ratingMap.has(s.user_id)) ratingMap.set(s.user_id, Number(s.rating));
     });
 
-    const ordered = [...confirmedPlayerIds]
+    const ordered = [...eligiblePlayerIds]
       .map((id) => ({ id, rating: ratingMap.get(id) ?? 1000, r: Math.random() }))
       .sort((a, b) => (b.rating - a.rating) || (a.r - b.r))
       .map((x) => x.id);
@@ -753,7 +785,7 @@ export async function drawTeams(roundId: string, confirmedPlayerIds: string[], a
   }
 
   if (pairings.length === 0) {
-    const shuffled = [...confirmedPlayerIds];
+    const shuffled = [...eligiblePlayerIds];
     for (let i = shuffled.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
@@ -855,6 +887,11 @@ export async function drawTeams(roundId: string, confirmedPlayerIds: string[], a
   }
 
   return createdMatches;
+  })();
+
+  inFlightDrawTeams.set(roundId, run);
+  run.finally(() => inFlightDrawTeams.delete(roundId));
+  return run;
 }
 
 export async function deleteMatch(matchId: string) {
