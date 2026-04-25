@@ -269,7 +269,7 @@ export function LandingPage() {
             </p>
 
             <div className="mt-8 flex flex-col items-start gap-3 sm:flex-row sm:items-center">
-              <CTAButton size="lg" className="w-full sm:w-auto" location="hero_primary" />
+              <CTAButton size="lg" className="w-full sm:w-auto" location="hero_primary" label="Criar meu grupo" />
               <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
                 <CheckCircle2 className="h-4 w-4 text-primary" />
                 Grátis para começar · sem cartão
