@@ -243,7 +243,7 @@ export function LandingPage() {
             className="inline-flex items-center gap-2 rounded-full border border-border/80 bg-card/90 px-4 py-2 text-sm font-semibold text-foreground shadow-lg shadow-primary/10 backdrop-blur-xl transition-all hover:border-primary/60 hover:bg-card sm:px-5 sm:py-2.5"
           >
             <GoogleIcon className="h-4 w-4" />
-            Entrar
+            {loading ? "Entrando..." : "Login"}
           </button>
         </div>
       </header>
