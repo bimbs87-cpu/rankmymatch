@@ -153,46 +153,8 @@ function RootComponent() {
       <UserProfileProvider>
         <PlayerProfileViewerProvider>
           <InstallFlowProvider>
-            {/* === Premium global background === */}
-            <div aria-hidden className="pointer-events-none fixed inset-0 z-0 bg-background" />
-
-            {/* Mobile/tablet auras (intense) */}
-            <div
-              aria-hidden
-              className="pointer-events-none fixed inset-0 z-0 lg:hidden"
-              style={{
-                backgroundImage: `
-                  radial-gradient(80vw 55vh at 50% -10%, color-mix(in oklab, var(--primary) 28%, transparent), transparent 70%),
-                  radial-gradient(70vw 50vh at 110% 35%, color-mix(in oklab, var(--primary) 16%, transparent), transparent 75%),
-                  radial-gradient(90vw 60vh at -10% 70%, color-mix(in oklab, var(--primary) 14%, transparent), transparent 75%),
-                  radial-gradient(70vw 50vh at 50% 110%, color-mix(in oklab, var(--primary) 22%, transparent), transparent 70%),
-                  linear-gradient(180deg, color-mix(in oklab, var(--background) 90%, var(--primary)) 0%, var(--background) 40%, var(--background) 65%, color-mix(in oklab, var(--background) 90%, var(--primary)) 100%)
-                `,
-              }}
-            />
-
-            {/* Desktop: subtle solid tint, no grid/auras to avoid hard edges */}
-            <div
-              aria-hidden
-              className="pointer-events-none fixed inset-0 z-0 hidden lg:block"
-              style={{
-                background: "color-mix(in oklab, var(--background) 96%, var(--primary))",
-              }}
-            />
-
-            {/* Desktop: themed image background for logged-in app pages (not / or /landing) */}
-            <LoggedInDesktopBackground />
-
-            {/* Shared noise texture (very subtle on desktop) */}
-            <div
-              aria-hidden
-              className="pointer-events-none fixed inset-0 z-0 opacity-[0.10] mix-blend-overlay lg:hidden"
-              style={{
-                backgroundImage:
-                  "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.75  0 0 0 0 1  0 0 0 0 0.55  0 0 0 0.55 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>\")",
-                backgroundSize: "260px 260px",
-              }}
-            />
+            {/* Global background layers — adapt based on auth + theme */}
+            <GlobalBackground />
             <div className="relative z-10 mx-auto max-w-lg lg:max-w-7xl lg:px-8 min-h-screen">
               <PendingDeletionBanner />
               <AuthDesktopNav />
