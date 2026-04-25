@@ -50,6 +50,7 @@ export function LandingPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   useTheme();
+  const isLight = true;
 
   const handleGoogleLogin = async (ctaLocation: string = "unknown") => {
     trackEvent("landing_cta_click", {
@@ -210,11 +211,7 @@ export function LandingPage() {
           <img
             src={logoSrc}
             alt="RankMyMatch"
-            className={
-              isLight
-                ? "h-16 w-auto max-w-[68vw] drop-shadow-sm sm:h-20 lg:h-24"
-                : "h-14 w-auto sm:h-16 lg:h-20"
-            }
+            className="h-16 w-auto max-w-[68vw] drop-shadow-sm sm:h-20 lg:h-24"
           />
           <button
             onClick={() => handleGoogleLogin("header")}
@@ -412,7 +409,7 @@ export function LandingPage() {
       <footer className="relative z-10 border-t border-border/50 bg-card/45 backdrop-blur-xl">
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-5 py-6 text-xs text-muted-foreground sm:flex-row sm:px-8">
           <div className="flex items-center gap-3">
-            <img src={logoSrc} alt="RankMyMatch" className={isLight ? "h-9 w-auto" : "h-7 w-auto"} />
+            <img src={logoSrc} alt="RankMyMatch" className="h-9 w-auto" />
             <span>© {new Date().getFullYear()} RankMyMatch</span>
           </div>
           <div className="flex items-center gap-5 font-semibold">
