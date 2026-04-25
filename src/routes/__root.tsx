@@ -185,8 +185,24 @@ function GlobalBackground() {
   const isExcluded = path === "/landing";
   const [darkLoaded, setDarkLoaded] = useState(true);
   const [lightLoaded, setLightLoaded] = useState(true);
+  // Track desktop viewport — image backgrounds are desktop-only (lg ≥ 1024px).
+  // Mobile keeps a solid premium background (auras + tint) for performance and a sharper feel.
+  const [isDesktop, setIsDesktop] = useState<boolean>(() => {
+    if (typeof window === "undefined") return true;
+    return window.matchMedia("(min-width: 1024px)").matches;
+  });
 
   useEffect(() => {
+    if (typeof window === "undefined") return;
+    const mql = window.matchMedia("(min-width: 1024px)");
+    const onChange = () => setIsDesktop(mql.matches);
+    onChange();
+    mql.addEventListener("change", onChange);
+    return () => mql.removeEventListener("change", onChange);
+  }, []);
+
+  useEffect(() => {
+    if (!isDesktop) return;
     const preload = (src: string, onFail: () => void) => {
       const img = new Image();
       img.onerror = onFail;
@@ -195,12 +211,12 @@ function GlobalBackground() {
     };
     preload(loggedInBgDesktopDark, () => setDarkLoaded(false));
     preload(loggedInBgDesktopLight, () => setLightLoaded(false));
-  }, []);
+  }, [isDesktop]);
 
   const isDark = resolved === "dark";
   // The persistent image background applies to every authenticated page (except /landing),
-  // on every viewport, on every route — for BOTH light and dark themes.
-  const showImage = isAuthenticated && !isLoading && !isExcluded;
+  // on desktop only, on every route — for BOTH light and dark themes.
+  const showImage = isAuthenticated && !isLoading && !isExcluded && isDesktop;
   const showDarkImage = showImage && isDark && darkLoaded;
   const showLightImage = showImage && !isDark && lightLoaded;
 
