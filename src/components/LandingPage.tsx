@@ -285,9 +285,9 @@ export function LandingPage() {
               style={{ background: "color-mix(in oklab, var(--primary) 26%, transparent)" }}
             />
             <img
-              src={heroMonitorPremium}
-              alt="RankMyMatch em um monitor com ranking e estatísticas"
-              className="relative z-10 ml-auto block w-[132%] max-w-none object-contain drop-shadow-2xl sm:w-[118%] lg:absolute lg:right-[-16%] lg:top-[47%] lg:w-[128%] lg:-translate-y-1/2 xl:right-[-22%] xl:w-[138%]"
+              src={heroDevices}
+              alt="RankMyMatch em desktop, tablet e mobile"
+              className="relative z-10 ml-auto block w-[120%] max-w-none object-contain drop-shadow-2xl sm:w-[110%] lg:absolute lg:right-[-10%] lg:top-[50%] lg:w-[120%] lg:-translate-y-1/2 xl:right-[-14%] xl:w-[126%]"
               loading="eager"
             />
             <div className="absolute left-8 top-8 z-20 hidden max-w-[230px] border border-border/70 bg-card/80 p-4 shadow-2xl shadow-primary/15 backdrop-blur-2xl lg:block">
