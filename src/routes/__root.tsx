@@ -175,7 +175,7 @@ function AuthDesktopNav() {
   return <DesktopNav />;
 }
 
-function LoggedInDesktopBackground() {
+function GlobalBackground() {
   const { isAuthenticated, isLoading } = useAuth();
   const location = useLocation();
   const { resolved } = useTheme();
@@ -184,49 +184,104 @@ function LoggedInDesktopBackground() {
   const [darkLoaded, setDarkLoaded] = useState(true);
   const [lightLoaded, setLightLoaded] = useState(true);
 
-  // Preload both images once mounted so theme toggle is instant
   useEffect(() => {
     const preload = (src: string, onFail: () => void) => {
       const img = new Image();
       img.onerror = onFail;
       img.src = src;
-      // Hint priority where supported
       try { (img as HTMLImageElement & { fetchPriority?: string }).fetchPriority = "high"; } catch { /* noop */ }
     };
     preload(loggedInBgDesktopDark, () => setDarkLoaded(false));
     preload(loggedInBgDesktopLight, () => setLightLoaded(false));
   }, []);
 
-  if (isLoading || !isAuthenticated || isExcluded) return null;
-
   const isDark = resolved === "dark";
-  const showDark = isDark && darkLoaded;
-  const showLight = !isDark && lightLoaded;
+  // The persistent image background applies to every authenticated page (except / and /landing),
+  // on every viewport, on every route. Light theme keeps a "framed" look; dark theme is full-bleed.
+  const showImage = isAuthenticated && !isLoading && !isExcluded;
+  const showDarkImage = showImage && isDark && darkLoaded;
+  const showLightImage = showImage && !isDark && lightLoaded;
+
+  // When the dark image is showing we let it be the entire background — no solid tint, no auras.
+  const useImageOnlyDark = showDarkImage;
 
   return (
     <>
-      {/* Gradient fallback (always rendered beneath images) */}
-      <div
-        aria-hidden
-        className="pointer-events-none fixed inset-0 z-0 hidden lg:block"
-        style={{
-          backgroundImage: isDark
-            ? "radial-gradient(70vw 60vh at 15% 30%, color-mix(in oklab, var(--primary) 22%, transparent), transparent 70%), linear-gradient(135deg, color-mix(in oklab, var(--background) 92%, var(--primary)) 0%, var(--background) 60%)"
-            : "radial-gradient(70vw 60vh at 15% 30%, color-mix(in oklab, var(--primary) 14%, transparent), transparent 70%), linear-gradient(135deg, color-mix(in oklab, var(--background) 96%, var(--primary)) 0%, var(--background) 60%)",
-        }}
-      />
-      {/* Both image layers stay mounted; opacity flips for instant theme swap.
-          Inset + rounded corners give the background a soft, "framed" feel. */}
-      <div
-        aria-hidden
-        className="pointer-events-none fixed inset-0 z-0 hidden lg:block bg-cover bg-center bg-no-repeat transition-opacity duration-150"
-        style={{ backgroundImage: `url(${loggedInBgDesktopDark})`, opacity: showDark ? 1 : 0 }}
-      />
-      <div
-        aria-hidden
-        className="pointer-events-none fixed inset-3 z-0 hidden lg:block bg-cover bg-center bg-no-repeat rounded-3xl transition-opacity duration-150"
-        style={{ backgroundImage: `url(${loggedInBgDesktopLight})`, opacity: showLight ? 1 : 0 }}
-      />
+      {/* Solid background fallback (hidden when the dark image takes over) */}
+      {!useImageOnlyDark && (
+        <div aria-hidden className="pointer-events-none fixed inset-0 z-0 bg-background" />
+      )}
+
+      {/* Mobile/tablet auras — kept on light theme and on logged-out pages */}
+      {!useImageOnlyDark && (
+        <div
+          aria-hidden
+          className="pointer-events-none fixed inset-0 z-0 lg:hidden"
+          style={{
+            backgroundImage: `
+              radial-gradient(80vw 55vh at 50% -10%, color-mix(in oklab, var(--primary) 28%, transparent), transparent 70%),
+              radial-gradient(70vw 50vh at 110% 35%, color-mix(in oklab, var(--primary) 16%, transparent), transparent 75%),
+              radial-gradient(90vw 60vh at -10% 70%, color-mix(in oklab, var(--primary) 14%, transparent), transparent 75%),
+              radial-gradient(70vw 50vh at 50% 110%, color-mix(in oklab, var(--primary) 22%, transparent), transparent 70%),
+              linear-gradient(180deg, color-mix(in oklab, var(--background) 90%, var(--primary)) 0%, var(--background) 40%, var(--background) 65%, color-mix(in oklab, var(--background) 90%, var(--primary)) 100%)
+            `,
+          }}
+        />
+      )}
+
+      {/* Desktop subtle tint — also hidden when dark image is the background */}
+      {!useImageOnlyDark && (
+        <div
+          aria-hidden
+          className="pointer-events-none fixed inset-0 z-0 hidden lg:block"
+          style={{
+            background: "color-mix(in oklab, var(--background) 96%, var(--primary))",
+          }}
+        />
+      )}
+
+      {/* Dark gradient fallback under the image (in case it fails to load) */}
+      {showImage && isDark && (
+        <div
+          aria-hidden
+          className="pointer-events-none fixed inset-0 z-0"
+          style={{
+            backgroundImage:
+              "radial-gradient(70vw 60vh at 15% 30%, color-mix(in oklab, var(--primary) 22%, transparent), transparent 70%), linear-gradient(135deg, color-mix(in oklab, var(--background) 92%, var(--primary)) 0%, var(--background) 60%)",
+          }}
+        />
+      )}
+
+      {/* Dark image — full-bleed, all viewports, persistent for the entire authenticated session */}
+      {showImage && (
+        <div
+          aria-hidden
+          className="pointer-events-none fixed inset-0 z-0 bg-cover bg-center bg-no-repeat transition-opacity duration-150"
+          style={{ backgroundImage: `url(${loggedInBgDesktopDark})`, opacity: showDarkImage ? 1 : 0 }}
+        />
+      )}
+
+      {/* Light image — framed, desktop only */}
+      {showImage && (
+        <div
+          aria-hidden
+          className="pointer-events-none fixed inset-3 z-0 hidden lg:block bg-cover bg-center bg-no-repeat rounded-3xl transition-opacity duration-150"
+          style={{ backgroundImage: `url(${loggedInBgDesktopLight})`, opacity: showLightImage ? 1 : 0 }}
+        />
+      )}
+
+      {/* Subtle noise on mobile when no image dominates */}
+      {!useImageOnlyDark && (
+        <div
+          aria-hidden
+          className="pointer-events-none fixed inset-0 z-0 opacity-[0.10] mix-blend-overlay lg:hidden"
+          style={{
+            backgroundImage:
+              "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.75  0 0 0 0 1  0 0 0 0 0.55  0 0 0 0.55 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>\")",
+            backgroundSize: "260px 260px",
+          }}
+        />
+      )}
     </>
   );
 }
