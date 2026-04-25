@@ -49,7 +49,7 @@ function GoogleIcon({ className }: { className?: string }) {
 export function LandingPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const { resolved: resolvedTheme } = useTheme();
+  useTheme();
 
   const handleGoogleLogin = async (ctaLocation: string = "unknown") => {
     trackEvent("landing_cta_click", {
@@ -104,8 +104,7 @@ export function LandingPage() {
     }
   };
 
-  const isLight = resolvedTheme === "light";
-  const logoSrc = isLight ? logoHorizontalLightPremium : logoHorizontalDark;
+  const logoSrc = logoHorizontalLightPremium;
 
   const features = [
     {
