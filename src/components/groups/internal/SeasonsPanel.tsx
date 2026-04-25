@@ -995,6 +995,7 @@ export function RoundExpandedDetails({
   const [adminPresenceOpen, setAdminPresenceOpen] = useState(false);
   const [roundStatus, setRoundStatus] = useState<"scheduled" | "in_progress" | "completed">("scheduled");
   const [isRivalry, setIsRivalry] = useState(false);
+  const [isKingOfCourtRound, setIsKingOfCourtRound] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -1006,7 +1007,7 @@ export function RoundExpandedDetails({
         supabase.from("matches").select("id, status, match_number, winner_team, match_players(user_id, team), match_sets(set_number, score_team_a, score_team_b)").eq("round_id", roundId).order("match_number", { ascending: true }),
         supabase.from("group_members").select("user_id").eq("group_id", groupId).eq("status", "active"),
         supabase.from("seasons").select("sets_per_match, sets_mode, match_format").eq("id", seasonId).maybeSingle(),
-        supabase.from("groups").select("match_format, singles_group_type").eq("id", groupId).maybeSingle(),
+        supabase.from("groups").select("match_format, singles_group_type, simultaneous_courts").eq("id", groupId).maybeSingle(),
       ]);
       if (cancelled) return;
       const confirmedRows = (pres || []).filter((p) => p.status === "confirmed");
@@ -1019,11 +1020,16 @@ export function RoundExpandedDetails({
         pending: pendingCount,
         max: round?.max_players || 0,
       });
-      setMatchesData(ms || []);
       setRoundStatus((round?.status as any) || "scheduled");
 
       const fmt = (round?.match_format || season?.match_format || group?.match_format || "doubles") as string;
       setGroupFormat(fmt === "singles" || fmt === "1v1" ? "singles" : "doubles");
+      const isKingRound = fmt !== "singles" && (group?.simultaneous_courts ?? 1) === 1;
+      setIsKingOfCourtRound(isKingRound);
+      const uniqueMatches = Array.from(
+        new Map(((ms || []) as any[]).map((m: any) => [m.match_number ?? m.id, m])).values(),
+      );
+      setMatchesData(isKingRound ? uniqueMatches.slice(0, 3) : (ms || []));
 
       // Rivalry override: regardless of season config, rivalry groups always
       // play unlimited sets (the duel runs as long as players want).
@@ -1033,6 +1039,9 @@ export function RoundExpandedDetails({
       if (isRivalry) {
         setSetsPerMatch(99);
         setSetsMode("unlimited");
+      } else if (isKingRound) {
+        setSetsPerMatch(1);
+        setSetsMode("fixed");
       } else {
         if (season?.sets_per_match) setSetsPerMatch(season.sets_per_match);
         if (season?.sets_mode) setSetsMode(season.sets_mode as any);
