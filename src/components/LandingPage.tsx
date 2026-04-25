@@ -50,8 +50,8 @@ function GoogleIcon({ className }: { className?: string }) {
 export function LandingPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  useTheme();
-  const isLight = true;
+  const { resolved } = useTheme();
+  const isLight = resolved === "light";
 
   const handleGoogleLogin = async (ctaLocation: string = "unknown") => {
     trackEvent("landing_cta_click", {
