@@ -294,7 +294,7 @@ export function LandingPage() {
               loading="eager"
             />
             {/* Badge LIVE — posicionado no canto superior esquerdo, acima dos dispositivos */}
-            <div className="absolute left-0 top-2 z-20 hidden max-w-[260px] rounded-xl border border-border/70 bg-card/90 p-4 shadow-2xl shadow-primary/15 backdrop-blur-2xl lg:block">
+            <div className="absolute left-0 top-[-80px] z-20 hidden max-w-[260px] rounded-xl border border-border/70 bg-card/90 p-4 shadow-2xl shadow-primary/15 backdrop-blur-2xl lg:block">
               <div className="mb-2 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <span className="relative flex h-2 w-2">
