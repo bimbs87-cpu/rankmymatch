@@ -17,7 +17,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { ROOT_META, ROOT_JSONLD } from "@/lib/seo-meta";
 import { ROOT_LINKS } from "@/lib/pwa-links";
 import "../styles.css";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 function NotFoundComponent() {
   return (
