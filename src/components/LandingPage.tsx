@@ -277,7 +277,7 @@ export function LandingPage() {
             </div>
           </div>
 
-          <div className="relative -mx-12 min-h-[320px] sm:-mx-16 lg:mx-0 lg:min-h-[620px]">
+          <div className="relative min-h-[320px] lg:min-h-[560px]">
             <div
               aria-hidden
               className="absolute inset-x-[10%] bottom-[7%] h-[26%] rounded-full blur-3xl"
@@ -286,10 +286,10 @@ export function LandingPage() {
             <img
               src={heroDevices}
               alt="RankMyMatch em desktop, tablet e mobile"
-              className="relative z-10 ml-auto block w-[120%] max-w-none object-contain drop-shadow-2xl sm:w-[110%] lg:absolute lg:right-[-10%] lg:top-[50%] lg:w-[120%] lg:-translate-y-1/2 xl:right-[-14%] xl:w-[126%]"
+              className="relative z-10 mx-auto block w-full max-w-[640px] object-contain drop-shadow-2xl lg:max-w-none"
               loading="eager"
             />
-            <div className="absolute left-8 top-8 z-20 hidden max-w-[230px] border border-border/70 bg-card/80 p-4 shadow-2xl shadow-primary/15 backdrop-blur-2xl lg:block">
+            <div className="absolute left-2 top-2 z-20 hidden max-w-[230px] border border-border/70 bg-card/80 p-4 shadow-2xl shadow-primary/15 backdrop-blur-2xl lg:block">
               <div className="mb-3 flex items-center justify-between">
                 <Activity className="h-5 w-5 text-primary" />
                 <span className="rounded-full bg-primary/10 px-2 py-1 text-[10px] font-black text-primary">LIVE</span>
