@@ -20,7 +20,6 @@ import {
 import logoHorizontalDark from "@/assets/logo-horizontal-dark.png";
 import logoHorizontalLightPremium from "@/assets/logo-horizontal-light-premium.png";
 import heroDevices from "@/assets/landing-hero-devices.png";
-import heroMonitorPremium from "@/assets/landing-hero-monitor-premium.png";
 import { useTheme } from "@/lib/theme";
 import { AppleSignInButton } from "@/components/AppleSignInButton";
 
