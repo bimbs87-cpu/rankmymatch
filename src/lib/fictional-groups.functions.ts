@@ -1069,13 +1069,16 @@ export const generateOneFictionalGroup = createServerFn({ method: "POST" })
     const bp = BLUEPRINTS[data.index];
     if (!bp) throw new Error(`Invalid blueprint index ${data.index}`);
 
-    // Idempotência: pula se já existe grupo fictício com o mesmo nome
-    const { data: existing } = await supabaseAdmin
+    // Idempotência: pula se já existe grupo fictício com o mesmo nome.
+    // Usamos `limit(1)` em vez de `maybeSingle()` para evitar erro caso
+    // existam duplicatas legadas.
+    const { data: existingRows } = await supabaseAdmin
       .from("groups")
       .select("id")
       .eq("name", bp.name)
       .eq("is_fictional", true)
-      .maybeSingle();
+      .limit(1);
+    const existing = existingRows?.[0];
     if (existing) {
       return { groupId: existing.id, name: bp.name, skipped: true, index: data.index };
     }
@@ -1084,8 +1087,28 @@ export const generateOneFictionalGroup = createServerFn({ method: "POST" })
     const rng = mulberry32(seed);
     const roundsCount = clampRoundsCount(data.roundsCount, 8);
 
-    const { groupId } = await buildOneFictionalGroup(bp, rng, context.userId, roundsCount);
-    return { groupId, name: bp.name, skipped: false, index: data.index };
+    try {
+      const { groupId } = await buildOneFictionalGroup(bp, rng, context.userId, roundsCount);
+      return { groupId, name: bp.name, skipped: false, index: data.index };
+    } catch (err: any) {
+      // Race condition: alguém criou o mesmo grupo enquanto rodávamos. O
+      // índice único `groups_fictional_name_uniq` garante atomicidade — basta
+      // recuperar o registro vencedor.
+      const msg = String(err?.message ?? err ?? "");
+      if (msg.includes("groups_fictional_name_uniq") || err?.code === "23505") {
+        const { data: again } = await supabaseAdmin
+          .from("groups")
+          .select("id")
+          .eq("name", bp.name)
+          .eq("is_fictional", true)
+          .limit(1);
+        const winner = again?.[0];
+        if (winner) {
+          return { groupId: winner.id, name: bp.name, skipped: true, index: data.index };
+        }
+      }
+      throw err;
+    }
   });
 
 // ----- SIMULATE NEW ROUND(S) ------------------------------------------------
