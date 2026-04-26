@@ -576,12 +576,15 @@ async function buildOneFictionalGroup(
   const { error: profErr } = await supabaseAdmin.from("user_profiles").insert(profileRows);
   if (profErr) throw new Error(`profiles: ${profErr.message}`);
 
-  // 2) Cria o grupo
+  // 2) Cria o grupo (com foto aleatória do esporte)
+  const sportImages = SPORT_IMAGES[blueprint.sport] ?? [];
+  const imageUrl = sportImages.length > 0 ? pick(sportImages, rng) : null;
   const { data: groupInsert, error: groupErr } = await supabaseAdmin
     .from("groups")
     .insert({
       name: blueprint.name,
       description: blueprint.description,
+      image_url: imageUrl,
       sport: blueprint.sport,
       match_format: blueprint.match_format,
       singles_group_type: blueprint.singles_group_type,
