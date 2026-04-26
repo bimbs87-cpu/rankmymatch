@@ -231,7 +231,8 @@ export function FictionalGroupsTab() {
               </CardContent>
             </Card>
           ))}
-        </div>
+          </div>
+        </>
       )}
 
       <AlertDialog open={confirmWipe} onOpenChange={setConfirmWipe}>
