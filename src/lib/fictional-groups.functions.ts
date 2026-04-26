@@ -223,6 +223,38 @@ function genFullName(used: Set<string>, rng: () => number): string {
   return `${pick(FIRST_NAMES, rng)} ${pick(LAST_NAMES, rng)} ${Math.floor(rng() * 99)}`;
 }
 
+// Apelidos curtos, no estilo de quem realmente cadastrou conta
+const NICKNAME_POOL = [
+  "Tuca", "Rafa", "Gugu", "Léo", "Bia", "Dudu", "Caco", "Lipe", "Téo", "Nico",
+  "Guto", "Vini", "Bruno", "Kiko", "Zé", "Pedrão", "Mati", "Pipo", "Chico",
+  "Dani", "Mari", "Cami", "Lulu", "Rê", "Babi", "Ju", "Lia", "Manu", "Ale",
+  "Tiba", "Rod", "Fê", "Henri", "Dé", "Cacá", "Tom", "Edu", "Vitão", "Felps",
+];
+function genNickname(name: string, used: Set<string>, rng: () => number): string {
+  const first = name.split(" ")[0] ?? "";
+  const candidates = [
+    pick(NICKNAME_POOL, rng),
+    first.slice(0, 4),
+    `${first.slice(0, 3)}${Math.floor(rng() * 99)}`,
+    `${first.toLowerCase()}.${pick(["br","sp","rj","mg"], rng)}`,
+  ];
+  for (const c of candidates) {
+    const v = c.replace(/\s+/g, "").slice(0, 16);
+    if (v && !used.has(v.toLowerCase())) {
+      used.add(v.toLowerCase());
+      return v;
+    }
+  }
+  return `${first}${Math.floor(rng() * 999)}`;
+}
+// DiceBear (sem chave) — gera avatar consistente por seed; parece "real"
+function genDicebearUrl(seed: string, rng: () => number): string {
+  const styles = ["avataaars", "personas", "lorelei", "notionists", "adventurer"];
+  const style = pick(styles, rng);
+  const safeSeed = encodeURIComponent(seed);
+  return `https://api.dicebear.com/7.x/${style}/svg?seed=${safeSeed}`;
+}
+
 // Pequena ELO pra evolução plausível
 function applyElo(
   ratingA: number,
@@ -358,12 +390,18 @@ async function deleteFictionalCascade(): Promise<{ deletedGroups: number }> {
   await deleteInChunks("group_members", "group_id", groupIds);
   await deleteInChunks("groups", "id", groupIds);
 
-  // Remove perfis placeholder restantes
+  // Remove perfis fictícios restantes (todos têm created_by_admin setado)
   if (memberUserIds.length) {
-    await deleteInChunks("user_profiles", "user_id", memberUserIds, {
-      col: "is_placeholder",
-      val: true,
-    });
+    const PCHUNK = 200;
+    for (let i = 0; i < memberUserIds.length; i += PCHUNK) {
+      const slice = memberUserIds.slice(i, i + PCHUNK);
+      const { error } = await supabaseAdmin
+        .from("user_profiles")
+        .delete()
+        .in("user_id", slice)
+        .not("created_by_admin", "is", null);
+      if (error) console.error("[fictional] delete user_profiles chunk failed", error.message);
+    }
   }
 
   return { deletedGroups: groupIds.length };
@@ -426,7 +464,7 @@ export const deleteFictionalGroup = createServerFn({ method: "POST" })
         .from("user_profiles")
         .delete()
         .in("user_id", memberUserIds)
-        .eq("is_placeholder", true);
+        .not("created_by_admin", "is", null);
     }
 
     return { ok: true };
@@ -574,22 +612,37 @@ async function buildOneFictionalGroup(
   const usedNames = new Set<string>();
   const completedCount = clampRoundsCount(roundsCount, 8);
 
-  // 1) Cria perfis placeholder
+  // 1) Cria perfis fictícios — ~60% aparentam ter conta vinculada
+  //    (nickname + avatar), ~40% ficam como placeholders ("Sem conta")
   const totalPlayers = blueprint.member_limit;
+  const usedNicks = new Set<string>();
+  const linkedCount = Math.max(
+    Math.ceil(totalPlayers * 0.6),
+    Math.min(totalPlayers, 1),
+  );
+  const linkedFlags = shuffle(
+    Array.from({ length: totalPlayers }, (_, i) => i < linkedCount),
+    rng,
+  );
   const profileRows: {
     user_id: string;
     name: string;
     nickname: string | null;
+    avatar_url: string | null;
+    avatar_type: string | null;
     is_placeholder: boolean;
     created_by_admin: string;
   }[] = [];
   for (let i = 0; i < totalPlayers; i++) {
     const fullName = genFullName(usedNames, rng);
+    const linked = linkedFlags[i];
     profileRows.push({
       user_id: randUuid(),
       name: fullName,
-      nickname: null,
-      is_placeholder: true,
+      nickname: linked ? genNickname(fullName, usedNicks, rng) : null,
+      avatar_url: linked ? genDicebearUrl(fullName, rng) : null,
+      avatar_type: linked ? "preset" : null,
+      is_placeholder: !linked,
       created_by_admin: callerUserId,
     });
   }
