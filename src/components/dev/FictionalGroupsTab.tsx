@@ -92,6 +92,16 @@ export function FictionalGroupsTab() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const newSeasonMut = useMutation({
+    mutationFn: async (groupId: string) =>
+      newSeason({ headers: await getServerFnAuthHeaders(), data: { groupId } }),
+    onSuccess: (res) => {
+      toast.success(`Nova temporada criada: ${res.seasonName}`);
+      qc.invalidateQueries({ queryKey: ["fictional-groups"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const groups = data?.groups ?? [];
   const generating = generateMut.isPending;
   const wiping = wipeMut.isPending;
