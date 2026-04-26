@@ -223,29 +223,47 @@ function genFullName(used: Set<string>, rng: () => number): string {
   return `${pick(FIRST_NAMES, rng)} ${pick(LAST_NAMES, rng)} ${Math.floor(rng() * 99)}`;
 }
 
-// Apelidos curtos, no estilo de quem realmente cadastrou conta
+// Apelidos curtos da vida real (sem números, estilo "como os amigos te chamam")
 const NICKNAME_POOL = [
   "Tuca", "Rafa", "Gugu", "Léo", "Bia", "Dudu", "Caco", "Lipe", "Téo", "Nico",
   "Guto", "Vini", "Bruno", "Kiko", "Zé", "Pedrão", "Mati", "Pipo", "Chico",
   "Dani", "Mari", "Cami", "Lulu", "Rê", "Babi", "Ju", "Lia", "Manu", "Ale",
   "Tiba", "Rod", "Fê", "Henri", "Dé", "Cacá", "Tom", "Edu", "Vitão", "Felps",
+  "Bigode", "Capitão", "Loirinho", "Magrão", "Neném", "Tigrão", "Coxinha",
+  "Boi", "Dentinho", "Pelé", "Russo", "Alemão", "Japa", "Baiano", "Mineirin",
+  "Carioca", "Gordo", "Negão", "Branquinho", "Xerife", "Professor", "Doutor",
 ];
+const NICKNAME_SUFFIXES = ["zinho", "zão", "ão", "inho"];
 function genNickname(name: string, used: Set<string>, rng: () => number): string {
-  const first = name.split(" ")[0] ?? "";
-  const candidates = [
+  const first = (name.split(" ")[0] ?? "").trim();
+  const candidates: string[] = [
     pick(NICKNAME_POOL, rng),
+    first,
     first.slice(0, 4),
-    `${first.slice(0, 3)}${Math.floor(rng() * 99)}`,
-    `${first.toLowerCase()}.${pick(["br","sp","rj","mg"], rng)}`,
+    first.slice(0, 3),
+    `${first.slice(0, 4)}${pick(NICKNAME_SUFFIXES, rng)}`,
+    pick(NICKNAME_POOL, rng),
+    pick(NICKNAME_POOL, rng),
   ];
   for (const c of candidates) {
-    const v = c.replace(/\s+/g, "").slice(0, 16);
-    if (v && !used.has(v.toLowerCase())) {
+    const v = c.replace(/[\s\d]+/g, "").slice(0, 16);
+    if (v && v.length >= 2 && !used.has(v.toLowerCase())) {
       used.add(v.toLowerCase());
       return v;
     }
   }
-  return `${first}${Math.floor(rng() * 999)}`;
+  // Fallback determinístico sem números: combina nick + sufixo
+  for (const base of NICKNAME_POOL) {
+    for (const suf of NICKNAME_SUFFIXES) {
+      const v = `${base}${suf}`.slice(0, 16);
+      if (!used.has(v.toLowerCase())) {
+        used.add(v.toLowerCase());
+        return v;
+      }
+    }
+  }
+  used.add(first.toLowerCase());
+  return first;
 }
 // DiceBear (sem chave) — gera avatar consistente por seed; parece "real"
 function genDicebearUrl(seed: string, rng: () => number): string {
@@ -603,6 +621,142 @@ async function simulateOneRound(
   return { roundId, matches: numMatches };
 }
 
+// Recalcula player_stats_by_season + ranking_snapshots a partir das partidas
+// concluídas e dos rating_events. Necessário para popular TOP 3, ranking e
+// painéis de "matches_played" para os grupos fictícios.
+async function recomputeStatsAndSnapshots(
+  groupId: string,
+  seasonId: string,
+  matchFormat: "singles" | "doubles",
+) {
+  const { data: rounds } = await supabaseAdmin
+    .from("rounds").select("id").eq("season_id", seasonId);
+  const roundIds = (rounds ?? []).map((r) => r.id);
+  if (!roundIds.length) return;
+
+  const { data: matches } = await supabaseAdmin
+    .from("matches")
+    .select("id, winner_team")
+    .in("round_id", roundIds)
+    .eq("status", "completed");
+  const matchIds = (matches ?? []).map((m) => m.id);
+  if (!matchIds.length) return;
+  const winnerByMatch = new Map<string, string | null>();
+  for (const m of matches ?? []) winnerByMatch.set(m.id, m.winner_team);
+
+  const { data: mps } = await supabaseAdmin
+    .from("match_players")
+    .select("match_id, user_id, team")
+    .in("match_id", matchIds);
+  const { data: sets } = await supabaseAdmin
+    .from("match_sets")
+    .select("match_id, score_team_a, score_team_b")
+    .in("match_id", matchIds);
+
+  type Stats = {
+    matches_played: number; matches_won: number;
+    sets_won: number; sets_lost: number;
+    games_won: number; games_lost: number;
+    win_streak_current: number; win_streak_max: number;
+  };
+  const stats = new Map<string, Stats>();
+  const ensure = (uid: string): Stats => {
+    let s = stats.get(uid);
+    if (!s) {
+      s = { matches_played: 0, matches_won: 0, sets_won: 0, sets_lost: 0,
+        games_won: 0, games_lost: 0, win_streak_current: 0, win_streak_max: 0 };
+      stats.set(uid, s);
+    }
+    return s;
+  };
+
+  const setsByMatch = new Map<string, { a: number; b: number }[]>();
+  for (const s of sets ?? []) {
+    const arr = setsByMatch.get(s.match_id) ?? [];
+    arr.push({ a: s.score_team_a, b: s.score_team_b });
+    setsByMatch.set(s.match_id, arr);
+  }
+  const playersByMatch = new Map<string, { user_id: string; team: string }[]>();
+  for (const p of mps ?? []) {
+    const arr = playersByMatch.get(p.match_id) ?? [];
+    arr.push(p);
+    playersByMatch.set(p.match_id, arr);
+  }
+
+  for (const matchId of matchIds) {
+    const ps = playersByMatch.get(matchId) ?? [];
+    const winner = winnerByMatch.get(matchId);
+    const ss = setsByMatch.get(matchId) ?? [];
+    let setsA = 0, setsB = 0, gamesA = 0, gamesB = 0;
+    for (const s of ss) {
+      gamesA += s.a; gamesB += s.b;
+      if (s.a > s.b) setsA++; else if (s.b > s.a) setsB++;
+    }
+    for (const p of ps) {
+      const s = ensure(p.user_id);
+      const onA = p.team === "A";
+      s.matches_played++;
+      s.sets_won += onA ? setsA : setsB;
+      s.sets_lost += onA ? setsB : setsA;
+      s.games_won += onA ? gamesA : gamesB;
+      s.games_lost += onA ? gamesB : gamesA;
+      const won = (onA && winner === "A") || (!onA && winner === "B");
+      if (won) {
+        s.matches_won++;
+        s.win_streak_current++;
+        if (s.win_streak_current > s.win_streak_max) s.win_streak_max = s.win_streak_current;
+      } else {
+        s.win_streak_current = 0;
+      }
+    }
+  }
+
+  await supabaseAdmin.from("player_stats_by_season").delete().eq("season_id", seasonId);
+  const statsRows = [...stats.entries()].map(([uid, s]) => ({
+    season_id: seasonId, user_id: uid, ...s,
+    rounds_present: 0, rounds_absent: 0, reliability_score: 0,
+  }));
+  if (statsRows.length) {
+    await supabaseAdmin.from("player_stats_by_season").insert(statsRows);
+  }
+
+  const { data: events } = await supabaseAdmin
+    .from("rating_events")
+    .select("user_id, rating_after, created_at")
+    .eq("season_id", seasonId)
+    .order("created_at", { ascending: true });
+  const ratings = new Map<string, number>();
+  for (const e of events ?? []) ratings.set(e.user_id, Number(e.rating_after));
+
+  const ranked = [...ratings.entries()]
+    .map(([uid, rating]) => ({ uid, rating }))
+    .sort((a, b) => b.rating - a.rating);
+
+  await supabaseAdmin.from("ranking_snapshots").delete().eq("season_id", seasonId);
+  const snapshotDate = new Date().toISOString().slice(0, 10);
+  const snapshotRows = ranked.map((r, idx) => {
+    const s = stats.get(r.uid);
+    return {
+      season_id: seasonId, user_id: r.uid,
+      rating: r.rating, position: idx + 1,
+      is_eligible: (s?.matches_played ?? 0) > 0,
+      match_format: matchFormat,
+      matches_played: s?.matches_played ?? 0,
+      matches_won: s?.matches_won ?? 0,
+      sets_won: s?.sets_won ?? 0,
+      sets_lost: s?.sets_lost ?? 0,
+      games_won: s?.games_won ?? 0,
+      games_lost: s?.games_lost ?? 0,
+      snapshot_date: snapshotDate,
+    };
+  });
+  if (snapshotRows.length) {
+    await supabaseAdmin.from("ranking_snapshots").insert(snapshotRows);
+  }
+
+  await supabaseAdmin.from("groups").update({ updated_at: new Date().toISOString() }).eq("id", groupId);
+}
+
 async function buildOneFictionalGroup(
   blueprint: GroupBlueprint,
   rng: () => number,
@@ -747,6 +901,8 @@ async function buildOneFictionalGroup(
     status: "scheduled",
   });
 
+  await recomputeStatsAndSnapshots(groupId, seasonId, blueprint.match_format);
+
   return { groupId, completedRounds: completedCount };
 }
 
@@ -877,6 +1033,8 @@ export const simulateRoundForFictional = createServerFn({ method: "POST" })
       totalMatches += matches;
       nextNum++;
     }
+
+    await recomputeStatsAndSnapshots(g.id, season.id, ctx.matchFormat);
 
     return {
       ok: true,
