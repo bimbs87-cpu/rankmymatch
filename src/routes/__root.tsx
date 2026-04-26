@@ -83,9 +83,27 @@ function RootShell({ children }: { children: React.ReactNode }) {
             __html: `(function(){try{var ua=navigator.userAgent;var isIos=/iPad|iPhone|iPod/.test(ua)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);if(isIos&&'serviceWorker' in navigator){navigator.serviceWorker.getRegistrations().then(function(rs){rs.forEach(function(r){r.unregister();});}).catch(function(){});if(typeof caches!=='undefined'){caches.keys().then(function(ks){ks.forEach(function(k){caches.delete(k);});}).catch(function(){});}}}catch(e){}})();`,
           }}
         />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var isAndroid=/Android/i.test(navigator.userAgent);var standalone=window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches;if(isAndroid&&standalone){document.documentElement.setAttribute('data-android-pwa-launch','true');}}catch(e){}})();`,
+          }}
+        />
+        <style
+          dangerouslySetInnerHTML={{
+            __html: `#android-launch-splash{display:none;position:fixed;inset:0;z-index:2147483647;background:var(--background);align-items:center;justify-content:center}html[data-android-pwa-launch="true"] #android-launch-splash{display:flex}#android-launch-splash img{width:100%;height:100%;object-fit:contain}`,
+          }}
+        />
         <HeadContent />
       </head>
       <body>
+        <div id="android-launch-splash" aria-hidden="true">
+          <img src="/android-splash.png" alt="" />
+        </div>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{if(document.documentElement.getAttribute('data-android-pwa-launch')==='true'){var done=function(){setTimeout(function(){document.documentElement.setAttribute('data-android-pwa-launch','done');},900);};if(document.readyState==='complete'){done();}else{window.addEventListener('load',done,{once:true});}setTimeout(function(){document.documentElement.setAttribute('data-android-pwa-launch','done');},2800);}}catch(e){}})();`,
+          }}
+        />
         {children}
         <Scripts />
       </body>
