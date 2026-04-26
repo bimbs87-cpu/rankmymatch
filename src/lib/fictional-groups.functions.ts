@@ -64,6 +64,10 @@ type GroupBlueprint = {
   fixed_day: number; // 0..6
 };
 
+function toSeasonMatchFormat(matchFormat: string) {
+  return matchFormat === "singles" || matchFormat === "1v1" ? "1v1" : "2v2";
+}
+
 const BLUEPRINTS: GroupBlueprint[] = [
   {
     name: "Padel das Quintas SP",
@@ -446,7 +450,7 @@ async function buildOneFictionalGroup(
       group_id: groupId,
       name: `Temporada ${today.getFullYear()}`,
       status: "active",
-      match_format: blueprint.match_format,
+      match_format: toSeasonMatchFormat(blueprint.match_format),
       sets_mode: "best_of_3",
       sets_per_match: 3,
       duration_type: "3_months",
@@ -660,7 +664,7 @@ export const simulateRoundForFictional = createServerFn({ method: "POST" })
           group_id: g.id,
           name: `Temporada ${today.getFullYear()}`,
           status: "active",
-          match_format: g.match_format,
+          match_format: toSeasonMatchFormat(g.match_format),
           sets_mode: "best_of_3",
           sets_per_match: 3,
           duration_type: "3_months",
