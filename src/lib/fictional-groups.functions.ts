@@ -390,12 +390,18 @@ async function deleteFictionalCascade(): Promise<{ deletedGroups: number }> {
   await deleteInChunks("group_members", "group_id", groupIds);
   await deleteInChunks("groups", "id", groupIds);
 
-  // Remove perfis placeholder restantes
+  // Remove perfis fictícios restantes (todos têm created_by_admin setado)
   if (memberUserIds.length) {
-    await deleteInChunks("user_profiles", "user_id", memberUserIds, {
-      col: "is_placeholder",
-      val: true,
-    });
+    const PCHUNK = 200;
+    for (let i = 0; i < memberUserIds.length; i += PCHUNK) {
+      const slice = memberUserIds.slice(i, i + PCHUNK);
+      const { error } = await supabaseAdmin
+        .from("user_profiles")
+        .delete()
+        .in("user_id", slice)
+        .not("created_by_admin", "is", null);
+      if (error) console.error("[fictional] delete user_profiles chunk failed", error.message);
+    }
   }
 
   return { deletedGroups: groupIds.length };
