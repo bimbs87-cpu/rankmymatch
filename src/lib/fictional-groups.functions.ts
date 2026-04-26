@@ -285,7 +285,7 @@ function genRealPhotoUrl(rng: () => number): string {
 // Gera avatar para membro "logado": ~55% foto real (Google-like), ~45% avatar premium.
 // Garante que TODO membro logado tenha imagem associada.
 function genLinkedAvatar(rng: () => number): { url: string; type: string } {
-  if (rng() < 0.55) return { url: genRealPhotoUrl(rng), type: "url" };
+  if (rng() < 0.55) return { url: genRealPhotoUrl(rng), type: "google" };
   return { url: genPremiumAvatarKey(rng), type: "preset" };
 }
 
