@@ -2,10 +2,11 @@ import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { createGroup } from "@/hooks/use-groups";
 import { useNavigate } from "@tanstack/react-router";
-import { X, Globe, Lock, Users, UserRound, ArrowLeft } from "lucide-react";
+import { X, Globe, Lock, Users, UserRound, ArrowLeft, History } from "lucide-react";
 import { toast } from "sonner";
 import { GroupImageUpload } from "@/components/GroupImageUpload";
 import { supabase } from "@/integrations/supabase/client";
+import { createRetroactiveSeason, type RetroactiveSpacing } from "@/lib/retroactive-season";
 
 interface Props {
   open: boolean;
