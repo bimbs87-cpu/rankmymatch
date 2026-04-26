@@ -40,6 +40,7 @@ import {
   X as XIcon,
 } from "lucide-react";
 import { DeleteAccountDialog } from "@/components/DeleteAccountDialog";
+import { InstallInstructionsDialog } from "@/components/InstallInstructionsDialog";
 import { ExportMyDataButton } from "@/components/ExportMyDataButton";
 import {
   Dialog,
@@ -98,6 +99,9 @@ function ProfilePage() {
   const [avatarPickerOpen, setAvatarPickerOpen] = useState(false);
   const [savingAvatar, setSavingAvatar] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [installInstructionsOpen, setInstallInstructionsOpen] = useState(false);
+  const [dangerZoneOpen, setDangerZoneOpen] = useState(false);
+  const [dangerExpanded, setDangerExpanded] = useState(false);
   const { theme, cycleTheme, resolved } = useTheme();
   const { canInstall, isInstalled, isIos, startInstall } = useInstallFlow();
 
