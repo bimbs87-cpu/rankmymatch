@@ -335,8 +335,8 @@ interface GroupFormProps {
   setName: (v: string) => void;
   description: string;
   setDescription: (v: string) => void;
-  isPublic: boolean;
-  setIsPublic: (v: boolean) => void;
+  visibility: Visibility;
+  setVisibility: (v: Visibility) => void;
   maxPlayers: number;
   setMaxPlayers: (v: number) => void;
   sport: string;
@@ -366,7 +366,7 @@ function GroupForm({
   singlesGroupType,
   name, setName,
   description, setDescription,
-  isPublic, setIsPublic,
+  visibility, setVisibility,
   maxPlayers, setMaxPlayers,
   sport, setSport,
   imageUrl, setImageUrl,
