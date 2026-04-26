@@ -7,13 +7,14 @@ import {
   deleteAllFictionalGroups,
   deleteFictionalGroup,
   simulateRoundForFictional,
+  startNewSeasonForFictional,
 } from "@/lib/fictional-groups.functions";
 import { getServerFnAuthHeaders } from "@/lib/server-fn-auth";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Loader2, Sparkles, Trash2, Play, RefreshCw, Users, Calendar } from "lucide-react";
+import { Loader2, Sparkles, Trash2, Play, RefreshCw, Users, Calendar, Trophy, FlagTriangleRight } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -32,6 +33,7 @@ export function FictionalGroupsTab() {
   const delAll = useServerFn(deleteAllFictionalGroups);
   const delOne = useServerFn(deleteFictionalGroup);
   const sim = useServerFn(simulateRoundForFictional);
+  const newSeason = useServerFn(startNewSeasonForFictional);
 
   const { data, isLoading } = useQuery({
     queryKey: ["fictional-groups"],
@@ -85,6 +87,16 @@ export function FictionalGroupsTab() {
       }),
     onSuccess: (res) => {
       toast.success(`${res.roundsSimulated} rodada(s) simulada(s) — ${res.matches} partidas`);
+      qc.invalidateQueries({ queryKey: ["fictional-groups"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const newSeasonMut = useMutation({
+    mutationFn: async (groupId: string) =>
+      newSeason({ headers: await getServerFnAuthHeaders(), data: { groupId } }),
+    onSuccess: (res) => {
+      toast.success(`Nova temporada criada: ${res.seasonName}`);
       qc.invalidateQueries({ queryKey: ["fictional-groups"] });
     },
     onError: (e: Error) => toast.error(e.message),
@@ -201,24 +213,46 @@ export function FictionalGroupsTab() {
                   )}
                   <Badge variant="outline">{g.member_limit} pessoas</Badge>
                 </div>
-                <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                  <span className="flex items-center gap-1">
-                    <Users className="h-3 w-3" /> {g.memberCount}
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <Calendar className="h-3 w-3" /> {g.roundCount} rodadas
-                  </span>
-                  <span>{g.seasonCount} temp.</span>
+                <div className="space-y-1.5 text-xs text-muted-foreground">
+                  <div className="flex items-center gap-3">
+                    <span className="flex items-center gap-1">
+                      <Users className="h-3 w-3" /> {g.memberCount} membros
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <Trophy className="h-3 w-3" /> {g.finishedSeasonsCount} encerrada{g.finishedSeasonsCount === 1 ? "" : "s"}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1 text-foreground/80">
+                    <Calendar className="h-3 w-3" />
+                    {g.activeSeasonName ? (
+                      <span className="truncate">
+                        <span className="font-medium">{g.activeSeasonName}</span>
+                        {" · "}
+                        {g.activeSeasonRounds} rodada{g.activeSeasonRounds === 1 ? "" : "s"}
+                      </span>
+                    ) : (
+                      <span className="italic">Sem temporada ativa</span>
+                    )}
+                  </div>
                 </div>
-                <div className="flex gap-2 pt-2">
+                <div className="flex flex-wrap gap-2 pt-2">
                   <Button
                     size="sm"
                     variant="outline"
-                    className="flex-1"
+                    className="flex-1 min-w-[140px]"
                     onClick={() => simMut.mutate(g.id)}
-                    disabled={simMut.isPending}
+                    disabled={simMut.isPending || newSeasonMut.isPending}
                   >
                     <Play className="h-3 w-3 mr-1" /> Simular {simRoundsCount} rodada{simRoundsCount > 1 ? "s" : ""}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => newSeasonMut.mutate(g.id)}
+                    disabled={simMut.isPending || newSeasonMut.isPending}
+                    title="Encerra a temporada ativa e cria uma nova"
+                  >
+                    <FlagTriangleRight className="h-3 w-3 mr-1" /> Nova temporada
                   </Button>
                   <Button
                     size="sm"

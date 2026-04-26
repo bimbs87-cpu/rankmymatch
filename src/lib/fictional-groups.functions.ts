@@ -225,26 +225,41 @@ export const listFictionalGroups = createServerFn({ method: "GET" })
     if (error) throw new Error(error.message);
 
     const ids = (groups ?? []).map((g) => g.id);
-    let memberCounts: Record<string, number> = {};
-    let roundCounts: Record<string, number> = {};
-    let seasonCounts: Record<string, number> = {};
+    const memberCounts: Record<string, number> = {};
+    const finishedSeasonCounts: Record<string, number> = {};
+    const activeSeasonByGroup: Record<string, { id: string; name: string }> = {};
+    const activeRoundCounts: Record<string, number> = {};
     if (ids.length) {
-      const [{ data: gm }, { data: rs }, { data: ss }] = await Promise.all([
+      const [{ data: gm }, { data: ss }] = await Promise.all([
         supabaseAdmin.from("group_members").select("group_id").in("group_id", ids).eq("status", "active"),
-        supabaseAdmin.from("rounds").select("group_id").in("group_id", ids),
-        supabaseAdmin.from("seasons").select("group_id, status").in("group_id", ids),
+        supabaseAdmin.from("seasons").select("id, group_id, status, name, created_at").in("group_id", ids).order("created_at", { ascending: false }),
       ]);
       for (const r of gm ?? []) memberCounts[r.group_id] = (memberCounts[r.group_id] ?? 0) + 1;
-      for (const r of rs ?? []) roundCounts[r.group_id] = (roundCounts[r.group_id] ?? 0) + 1;
-      for (const r of ss ?? []) seasonCounts[r.group_id] = (seasonCounts[r.group_id] ?? 0) + 1;
+      for (const s of ss ?? []) {
+        if (s.status === "finished") {
+          finishedSeasonCounts[s.group_id] = (finishedSeasonCounts[s.group_id] ?? 0) + 1;
+        } else if (s.status === "active" && !activeSeasonByGroup[s.group_id]) {
+          activeSeasonByGroup[s.group_id] = { id: s.id, name: s.name };
+        }
+      }
+      const activeSeasonIds = Object.values(activeSeasonByGroup).map((s) => s.id);
+      if (activeSeasonIds.length) {
+        const { data: rs } = await supabaseAdmin
+          .from("rounds")
+          .select("group_id, season_id, status")
+          .in("season_id", activeSeasonIds)
+          .eq("status", "completed");
+        for (const r of rs ?? []) activeRoundCounts[r.group_id] = (activeRoundCounts[r.group_id] ?? 0) + 1;
+      }
     }
 
     return {
       groups: (groups ?? []).map((g) => ({
         ...g,
         memberCount: memberCounts[g.id] ?? 0,
-        roundCount: roundCounts[g.id] ?? 0,
-        seasonCount: seasonCounts[g.id] ?? 0,
+        activeSeasonName: activeSeasonByGroup[g.id]?.name ?? null,
+        activeSeasonRounds: activeRoundCounts[g.id] ?? 0,
+        finishedSeasonsCount: finishedSeasonCounts[g.id] ?? 0,
       })),
     };
   });
@@ -753,4 +768,48 @@ export const simulateRoundForFictional = createServerFn({ method: "POST" })
       matches: totalMatches,
       roundNumber: nextNum - 1,
     };
+  });
+
+// ----- START NEW SEASON -----------------------------------------------------
+export const startNewSeasonForFictional = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { groupId: string; name?: string }) => data)
+  .handler(async ({ context, data }) => {
+    await ensureAppAdmin(context.userId);
+    const { data: g } = await supabaseAdmin
+      .from("groups")
+      .select("id, is_fictional, match_format")
+      .eq("id", data.groupId)
+      .maybeSingle();
+    if (!g || !g.is_fictional) throw new Error("Group is not fictional");
+
+    const today = new Date();
+    const todayIso = today.toISOString().slice(0, 10);
+
+    // Encerra todas as temporadas ativas
+    await supabaseAdmin
+      .from("seasons")
+      .update({ status: "finished", end_date: todayIso })
+      .eq("group_id", g.id)
+      .eq("status", "active");
+
+    // Cria nova temporada ativa
+    const { data: created, error: seasonErr } = await supabaseAdmin
+      .from("seasons")
+      .insert({
+        group_id: g.id,
+        name: data.name?.trim() || `Temporada ${today.getFullYear()} #${Math.floor(today.getTime() / 1000) % 1000}`,
+        status: "active",
+        match_format: toSeasonMatchFormat(g.match_format),
+        sets_mode: "fixed",
+        sets_per_match: 3,
+        duration_type: "3_months",
+        start_date: todayIso,
+        created_by: context.userId,
+      })
+      .select("id, name")
+      .single();
+    if (seasonErr || !created) throw new Error(`season: ${seasonErr?.message}`);
+
+    return { ok: true, seasonId: created.id, seasonName: created.name };
   });
