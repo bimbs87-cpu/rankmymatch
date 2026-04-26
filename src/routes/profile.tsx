@@ -651,6 +651,7 @@ function ProfilePage() {
       />
 
       <DeleteAccountDialog open={deleteOpen} onOpenChange={setDeleteOpen} />
+      <InstallInstructionsDialog open={installInstructionsOpen} onOpenChange={setInstallInstructionsOpen} />
 
       <AvatarPickerDialog
         open={avatarPickerOpen}
