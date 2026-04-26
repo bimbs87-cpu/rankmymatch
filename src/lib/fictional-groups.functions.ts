@@ -606,22 +606,37 @@ async function buildOneFictionalGroup(
   const usedNames = new Set<string>();
   const completedCount = clampRoundsCount(roundsCount, 8);
 
-  // 1) Cria perfis placeholder
+  // 1) Cria perfis fictícios — ~60% aparentam ter conta vinculada
+  //    (nickname + avatar), ~40% ficam como placeholders ("Sem conta")
   const totalPlayers = blueprint.member_limit;
+  const usedNicks = new Set<string>();
+  const linkedCount = Math.max(
+    Math.ceil(totalPlayers * 0.6),
+    Math.min(totalPlayers, 1),
+  );
+  const linkedFlags = shuffle(
+    Array.from({ length: totalPlayers }, (_, i) => i < linkedCount),
+    rng,
+  );
   const profileRows: {
     user_id: string;
     name: string;
     nickname: string | null;
+    avatar_url: string | null;
+    avatar_type: string | null;
     is_placeholder: boolean;
     created_by_admin: string;
   }[] = [];
   for (let i = 0; i < totalPlayers; i++) {
     const fullName = genFullName(usedNames, rng);
+    const linked = linkedFlags[i];
     profileRows.push({
       user_id: randUuid(),
       name: fullName,
-      nickname: null,
-      is_placeholder: true,
+      nickname: linked ? genNickname(fullName, usedNicks, rng) : null,
+      avatar_url: linked ? genDicebearUrl(fullName, rng) : null,
+      avatar_type: linked ? "dicebear" : null,
+      is_placeholder: !linked,
       created_by_admin: callerUserId,
     });
   }
