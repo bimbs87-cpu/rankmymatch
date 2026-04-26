@@ -125,6 +125,15 @@ function ChangelogPage() {
     {} as Record<string, ReleaseNote[]>,
   );
 
+  // Sort items within each group by released_at desc, then version desc
+  for (const key of Object.keys(grouped)) {
+    grouped[key].sort((a, b) => {
+      const dt = new Date(b.released_at).getTime() - new Date(a.released_at).getTime();
+      if (dt !== 0) return dt;
+      return compareVersionsDesc(a.version, b.version);
+    });
+  }
+
   const groupedEntries = Object.entries(grouped).sort(([a], [b]) =>
     compareVersionsDesc(a, b),
   );
