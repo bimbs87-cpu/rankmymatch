@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { createGroup } from "@/hooks/use-groups";
 import { useNavigate } from "@tanstack/react-router";
-import { X, Globe, Lock, Users, UserRound, ArrowLeft, History } from "lucide-react";
+import { X, Globe, Lock, EyeOff, Users, UserRound, ArrowLeft, History, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { GroupImageUpload } from "@/components/GroupImageUpload";
 import { supabase } from "@/integrations/supabase/client";
@@ -15,6 +15,7 @@ interface Props {
 
 type MatchFormat = "doubles" | "singles";
 type SinglesGroupType = "rivalry" | "league" | "casual";
+type Visibility = "public" | "private" | "hidden";
 type Step = "format" | "singles_type" | "form";
 
 const SINGLES_SPORTS = [
@@ -38,7 +39,7 @@ export function CreateGroupDialog({ open, onClose }: Props) {
   const [singlesGroupType, setSinglesGroupType] = useState<SinglesGroupType>("league");
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [isPublic, setIsPublic] = useState(true);
+  const [visibility, setVisibility] = useState<Visibility>("public");
   const [maxPlayers, setMaxPlayers] = useState(20);
   const [sport, setSport] = useState("padel");
   const [imageUrl, setImageUrl] = useState<string | null>(null);
@@ -61,7 +62,7 @@ export function CreateGroupDialog({ open, onClose }: Props) {
     setSinglesGroupType("league");
     setName("");
     setDescription("");
-    setIsPublic(true);
+    setVisibility("public");
     setMaxPlayers(20);
     setSport("padel");
     setImageUrl(null);
