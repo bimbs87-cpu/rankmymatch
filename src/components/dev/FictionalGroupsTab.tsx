@@ -3,7 +3,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
   listFictionalGroups,
-  generateFictionalGroups,
+  generateOneFictionalGroup,
+  getFictionalPlan,
   deleteAllFictionalGroups,
   deleteFictionalGroup,
   simulateRoundForFictional,
@@ -29,7 +30,8 @@ import {
 export function FictionalGroupsTab() {
   const qc = useQueryClient();
   const list = useServerFn(listFictionalGroups);
-  const gen = useServerFn(generateFictionalGroups);
+  const genOne = useServerFn(generateOneFictionalGroup);
+  const plan = useServerFn(getFictionalPlan);
   const delAll = useServerFn(deleteAllFictionalGroups);
   const delOne = useServerFn(deleteFictionalGroup);
   const sim = useServerFn(simulateRoundForFictional);
@@ -44,20 +46,50 @@ export function FictionalGroupsTab() {
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [roundsCount, setRoundsCount] = useState<number>(8);
   const [simRoundsCount, setSimRoundsCount] = useState<number>(1);
+  const [genProgress, setGenProgress] = useState<{ current: number; total: number } | null>(null);
 
   const clampRounds = (n: number) => Math.max(1, Math.min(15, Math.floor(n || 1)));
 
   const generateMut = useMutation({
-    mutationFn: async (wipeExisting: boolean) =>
-      gen({
-        headers: await getServerFnAuthHeaders(),
-        data: { wipeExisting, roundsCount: clampRounds(roundsCount) },
-      }),
+    mutationFn: async (wipeExisting: boolean) => {
+      const headers = await getServerFnAuthHeaders();
+      const planRes = await plan({ headers });
+      const total = planRes.total;
+      const seed = Date.now() & 0x7fffffff;
+      const rounds = clampRounds(roundsCount);
+      let created = 0;
+      let skipped = 0;
+      const errors: string[] = [];
+      setGenProgress({ current: 0, total });
+      for (let i = 0; i < total; i++) {
+        try {
+          const res = await genOne({
+            headers,
+            data: { index: i, seed, roundsCount: rounds, wipeFirst: wipeExisting && i === 0 },
+          });
+          if (res.skipped) skipped++;
+          else created++;
+        } catch (err) {
+          errors.push(`${planRes.names[i]}: ${(err as Error).message}`);
+        }
+        setGenProgress({ current: i + 1, total });
+        qc.invalidateQueries({ queryKey: ["fictional-groups"] });
+      }
+      setGenProgress(null);
+      return { created, skipped, total, errors };
+    },
     onSuccess: (res) => {
-      toast.success(`${res.total} grupos gerados (${res.roundsPerGroup} rodadas cada)`);
+      if (res.errors.length) {
+        toast.error(`${res.created} criados, ${res.errors.length} falharam: ${res.errors[0]}`);
+      } else {
+        toast.success(`${res.created} grupos gerados${res.skipped ? ` (${res.skipped} já existiam)` : ""}`);
+      }
       qc.invalidateQueries({ queryKey: ["fictional-groups"] });
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => {
+      setGenProgress(null);
+      toast.error(e.message);
+    },
   });
 
   const wipeMut = useMutation({
@@ -142,7 +174,9 @@ export function FictionalGroupsTab() {
               ) : (
                 <Sparkles className="h-4 w-4 mr-2" />
               )}
-              Gerar 10 grupos
+              {generating && genProgress
+                ? `Gerando ${genProgress.current}/${genProgress.total}…`
+                : "Gerar 10 grupos"}
             </Button>
             <Button
               variant="outline"

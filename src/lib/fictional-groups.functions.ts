@@ -291,6 +291,23 @@ export const listFictionalGroups = createServerFn({ method: "GET" })
   });
 
 // ----- DELETE ALL -----------------------------------------------------------
+async function deleteInChunks(
+  table: string,
+  column: string,
+  ids: string[],
+  extraEq?: { col: string; val: string | number | boolean }
+) {
+  const CHUNK = 200;
+  for (let i = 0; i < ids.length; i += CHUNK) {
+    const slice = ids.slice(i, i + CHUNK);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let q: any = supabaseAdmin.from(table as never).delete().in(column, slice);
+    if (extraEq) q = q.eq(extraEq.col, extraEq.val);
+    const { error } = await q;
+    if (error) console.error(`[fictional] delete ${table} chunk failed`, error.message);
+  }
+}
+
 async function deleteFictionalCascade(): Promise<{ deletedGroups: number }> {
   const { data: groups } = await supabaseAdmin
     .from("groups")
@@ -306,44 +323,47 @@ async function deleteFictionalCascade(): Promise<{ deletedGroups: number }> {
   const seasonIdsSet = new Set<string>();
   for (const r of rounds ?? []) if (r.season_id) seasonIdsSet.add(r.season_id);
 
-  const { data: matches } = roundIds.length
-    ? await supabaseAdmin.from("matches").select("id").in("round_id", roundIds)
-    : { data: [] as { id: string }[] };
-  const matchIds = (matches ?? []).map((m) => m.id);
+  // Coleta matches em chunks (round_ids podem ser muitos)
+  const matchIds: string[] = [];
+  const RCHUNK = 200;
+  for (let i = 0; i < roundIds.length; i += RCHUNK) {
+    const slice = roundIds.slice(i, i + RCHUNK);
+    const { data: m } = await supabaseAdmin.from("matches").select("id").in("round_id", slice);
+    if (m) matchIds.push(...m.map((x) => x.id));
+  }
 
   // Coleta placeholder users desses grupos pra remover perfis depois
   const { data: members } = await supabaseAdmin
     .from("group_members").select("user_id").in("group_id", groupIds);
   const memberUserIds = Array.from(new Set((members ?? []).map((m) => m.user_id)));
 
-  // Cascade delete (respeitando ordem por FKs implícitas via group_id)
+  // Cascade delete (ordem importa: filhos antes dos pais)
   if (matchIds.length) {
-    await supabaseAdmin.from("match_sets").delete().in("match_id", matchIds);
-    await supabaseAdmin.from("match_players").delete().in("match_id", matchIds);
-    await supabaseAdmin.from("rating_events").delete().in("match_id", matchIds);
-    await supabaseAdmin.from("matches").delete().in("id", matchIds);
+    await deleteInChunks("match_sets", "match_id", matchIds);
+    await deleteInChunks("match_players", "match_id", matchIds);
+    await deleteInChunks("rating_events", "match_id", matchIds);
+    await deleteInChunks("matches", "id", matchIds);
   }
   if (roundIds.length) {
-    await supabaseAdmin.from("courts").delete().in("round_id", roundIds);
-    await supabaseAdmin.from("round_presence").delete().in("round_id", roundIds);
-    await supabaseAdmin.from("rounds").delete().in("id", roundIds);
+    await deleteInChunks("courts", "round_id", roundIds);
+    await deleteInChunks("round_presence", "round_id", roundIds);
+    await deleteInChunks("rounds", "id", roundIds);
   }
   const seasonIds = Array.from(seasonIdsSet);
   if (seasonIds.length) {
-    await supabaseAdmin.from("ranking_snapshots").delete().in("season_id", seasonIds);
-    await supabaseAdmin.from("player_stats_by_season").delete().in("season_id", seasonIds);
-    await supabaseAdmin.from("seasons").delete().in("id", seasonIds);
+    await deleteInChunks("ranking_snapshots", "season_id", seasonIds);
+    await deleteInChunks("player_stats_by_season", "season_id", seasonIds);
+    await deleteInChunks("seasons", "id", seasonIds);
   }
-  await supabaseAdmin.from("group_members").delete().in("group_id", groupIds);
-  await supabaseAdmin.from("groups").delete().in("id", groupIds);
+  await deleteInChunks("group_members", "group_id", groupIds);
+  await deleteInChunks("groups", "id", groupIds);
 
-  // Remove perfis placeholder que sobraram só nesses grupos
+  // Remove perfis placeholder restantes
   if (memberUserIds.length) {
-    await supabaseAdmin
-      .from("user_profiles")
-      .delete()
-      .in("user_id", memberUserIds)
-      .eq("is_placeholder", true);
+    await deleteInChunks("user_profiles", "user_id", memberUserIds, {
+      col: "is_placeholder",
+      val: true,
+    });
   }
 
   return { deletedGroups: groupIds.length };
@@ -678,29 +698,45 @@ async function buildOneFictionalGroup(
 }
 
 // ----- GENERATE -------------------------------------------------------------
-export const generateFictionalGroups = createServerFn({ method: "POST" })
+// Total de blueprints disponíveis (lido pelo cliente para iterar).
+export const getFictionalPlan = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await ensureAppAdmin(context.userId);
+    return { total: BLUEPRINTS.length, names: BLUEPRINTS.map((b) => b.name) };
+  });
+
+// Cria UM grupo fictício por chamada, evitando timeout.
+export const generateOneFictionalGroup = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(
-    (data: { wipeExisting?: boolean; seed?: number; roundsCount?: number }) => data
+    (data: { index: number; seed?: number; roundsCount?: number; wipeFirst?: boolean }) => data
   )
   .handler(async ({ context, data }) => {
     await ensureAppAdmin(context.userId);
-    if (data.wipeExisting) await deleteFictionalCascade();
+    if (data.wipeFirst && data.index === 0) {
+      await deleteFictionalCascade();
+    }
+    const bp = BLUEPRINTS[data.index];
+    if (!bp) throw new Error(`Invalid blueprint index ${data.index}`);
 
-    const seed = data.seed ?? Date.now() & 0x7fffffff;
+    // Idempotência: pula se já existe grupo fictício com o mesmo nome
+    const { data: existing } = await supabaseAdmin
+      .from("groups")
+      .select("id")
+      .eq("name", bp.name)
+      .eq("is_fictional", true)
+      .maybeSingle();
+    if (existing) {
+      return { groupId: existing.id, name: bp.name, skipped: true, index: data.index };
+    }
+
+    const seed = (data.seed ?? Date.now() & 0x7fffffff) + data.index * 7919;
     const rng = mulberry32(seed);
     const roundsCount = clampRoundsCount(data.roundsCount, 8);
 
-    const created: { groupId: string; name: string }[] = [];
-    for (const bp of BLUEPRINTS) {
-      try {
-        const { groupId } = await buildOneFictionalGroup(bp, rng, context.userId, roundsCount);
-        created.push({ groupId, name: bp.name });
-      } catch (err) {
-        console.error("[fictional] failed to build", bp.name, err);
-      }
-    }
-    return { created, total: created.length, roundsPerGroup: roundsCount };
+    const { groupId } = await buildOneFictionalGroup(bp, rng, context.userId, roundsCount);
+    return { groupId, name: bp.name, skipped: false, index: data.index };
   });
 
 // ----- SIMULATE NEW ROUND(S) ------------------------------------------------
