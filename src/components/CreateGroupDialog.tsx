@@ -342,6 +342,20 @@ interface GroupFormProps {
   setImageUrl: (v: string | null) => void;
   submitting: boolean;
   onSubmit: () => void;
+  createRetroSeason: boolean;
+  setCreateRetroSeason: (v: boolean) => void;
+  retroSeasonName: string;
+  setRetroSeasonName: (v: string) => void;
+  retroStartDate: string;
+  setRetroStartDate: (v: string) => void;
+  retroEndDate: string;
+  setRetroEndDate: (v: string) => void;
+  retroTotalRounds: number;
+  setRetroTotalRounds: (v: number) => void;
+  retroSpacing: RetroactiveSpacing;
+  setRetroSpacing: (v: RetroactiveSpacing) => void;
+  retroWeekday: number;
+  setRetroWeekday: (v: number) => void;
 }
 
 function GroupForm({
@@ -355,6 +369,13 @@ function GroupForm({
   imageUrl, setImageUrl,
   submitting,
   onSubmit,
+  createRetroSeason, setCreateRetroSeason,
+  retroSeasonName, setRetroSeasonName,
+  retroStartDate, setRetroStartDate,
+  retroEndDate, setRetroEndDate,
+  retroTotalRounds, setRetroTotalRounds,
+  retroSpacing, setRetroSpacing,
+  retroWeekday, setRetroWeekday,
 }: GroupFormProps) {
   const isSingles = matchFormat === "singles";
   const formatLabel = isSingles ? "Singles (1x1)" : "Duplas (2x2)";
