@@ -440,7 +440,7 @@ async function simulateOneRound(
         status: "completed",
         winner_team: winnerTeam,
         counts_for_ranking: true,
-        result_type: "completed",
+        result_type: "normal",
       }).select("id").single();
     if (matchErr || !matchIns) throw new Error(`match: ${matchErr?.message}`);
     const matchId = matchIns.id;
