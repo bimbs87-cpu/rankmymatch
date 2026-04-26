@@ -137,7 +137,7 @@ export function ExplorePanel() {
     }
   };
 
-  const filtered = useMemo(() => {
+  const { realGroups, demoGroups } = useMemo(() => {
     let list = groups.slice();
     if (sport !== "all") list = list.filter((g) => g.sport === sport);
     if (format !== "all") list = list.filter((g) => g.match_format === format);
@@ -152,8 +152,12 @@ export function ExplorePanel() {
     if (sort === "biggest") list.sort((a, b) => b.member_count - a.member_count);
     else if (sort === "smallest") list.sort((a, b) => a.member_count - b.member_count);
     // newest is the default order from the API
-    return list;
+    const real = list.filter((g) => !(g as any).is_fictional);
+    const demo = list.filter((g) => (g as any).is_fictional);
+    return { realGroups: real, demoGroups: demo };
   }, [groups, sport, format, size, sort]);
+
+  const filteredCount = realGroups.length + demoGroups.length;
 
   return (
     <div className="space-y-4">
