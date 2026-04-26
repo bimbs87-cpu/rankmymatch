@@ -333,7 +333,15 @@ function GroupCard({
         <p className="mt-0.5 text-[11px] text-muted-foreground">
           {g.member_count} membro{g.member_count !== 1 ? "s" : ""} ·{" "}
           {g.match_format === "singles" ? "Singles" : "Doubles"} ·{" "}
-          {g.sport === "tennis" ? "Tênis" : "Padel"}
+          {g.sport === "tennis"
+            ? "Tênis"
+            : g.sport === "beach_tennis"
+              ? "Beach Tennis"
+              : g.sport === "squash"
+                ? "Squash"
+                : g.sport === "pickleball"
+                  ? "Pickleball"
+                  : "Padel"}
         </p>
         {g.description && (
           <p className="mt-1.5 line-clamp-2 text-[11px] text-muted-foreground/80">{g.description}</p>
