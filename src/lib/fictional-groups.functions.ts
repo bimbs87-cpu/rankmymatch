@@ -641,7 +641,7 @@ async function buildOneFictionalGroup(
       name: fullName,
       nickname: linked ? genNickname(fullName, usedNicks, rng) : null,
       avatar_url: linked ? genDicebearUrl(fullName, rng) : null,
-      avatar_type: linked ? "dicebear" : null,
+      avatar_type: linked ? "preset" : null,
       is_placeholder: !linked,
       created_by_admin: callerUserId,
     });
