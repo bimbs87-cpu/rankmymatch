@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { Search, Users, Globe, Lock, Filter, SlidersHorizontal, Compass, Crown, EyeOff, Copy, Loader2, Sparkles } from "lucide-react";
+import { Search, Users, Globe, Lock, Filter, SlidersHorizontal, Compass, Crown, EyeOff, Copy, Loader2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { usePublicGroups } from "@/hooks/use-groups";
 import { useAuth } from "@/hooks/use-auth";
