@@ -163,7 +163,21 @@ export function FictionalGroupsTab() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <>
+          <div className="flex flex-wrap items-end gap-3 rounded-lg border border-border bg-card/40 p-3">
+            <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
+              Rodadas a simular por clique (1–15)
+              <input
+                type="number"
+                min={1}
+                max={15}
+                value={simRoundsCount}
+                onChange={(e) => setSimRoundsCount(clampRounds(Number(e.target.value)))}
+                className="w-24 rounded-md border border-border bg-background px-2 py-1 text-sm text-foreground"
+              />
+            </label>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {groups.map((g) => (
             <Card key={g.id} className="flex flex-col">
               <CardHeader className="pb-2">
