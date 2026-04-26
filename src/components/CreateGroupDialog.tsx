@@ -244,6 +244,20 @@ export function CreateGroupDialog({ open, onClose }: Props) {
               setImageUrl={setImageUrl}
               submitting={submitting}
               onSubmit={handleSubmit}
+              createRetroSeason={createRetroSeason}
+              setCreateRetroSeason={setCreateRetroSeason}
+              retroSeasonName={retroSeasonName}
+              setRetroSeasonName={setRetroSeasonName}
+              retroStartDate={retroStartDate}
+              setRetroStartDate={setRetroStartDate}
+              retroEndDate={retroEndDate}
+              setRetroEndDate={setRetroEndDate}
+              retroTotalRounds={retroTotalRounds}
+              setRetroTotalRounds={setRetroTotalRounds}
+              retroSpacing={retroSpacing}
+              setRetroSpacing={setRetroSpacing}
+              retroWeekday={retroWeekday}
+              setRetroWeekday={setRetroWeekday}
             />
           )}
         </div>
