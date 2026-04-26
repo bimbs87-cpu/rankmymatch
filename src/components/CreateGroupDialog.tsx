@@ -107,6 +107,25 @@ export function CreateGroupDialog({ open, onClose }: Props) {
   const handleSubmit = async () => {
     if (!name.trim() || !user || submitting) return;
 
+    if (createRetroSeason) {
+      if (!retroSeasonName.trim()) {
+        toast.error("Informe um nome para a temporada.");
+        return;
+      }
+      if (!retroStartDate || !retroEndDate) {
+        toast.error("Informe as datas de início e encerramento.");
+        return;
+      }
+      if (retroEndDate < retroStartDate) {
+        toast.error("A data de encerramento deve ser igual ou após o início.");
+        return;
+      }
+      if (!retroTotalRounds || retroTotalRounds < 1) {
+        toast.error("Informe quantas rodadas houve na temporada.");
+        return;
+      }
+    }
+
     setSubmitting(true);
 
     try {
@@ -128,6 +147,29 @@ export function CreateGroupDialog({ open, onClose }: Props) {
           .eq("id", group.id);
 
         if (updateImageError) throw updateImageError;
+      }
+
+      if (createRetroSeason && group) {
+        try {
+          await createRetroactiveSeason({
+            groupId: group.id,
+            userId: user.id,
+            matchFormat,
+            singlesGroupType: matchFormat === "singles" ? singlesGroupType : null,
+            simultaneousCourts: 1,
+            maxPlayers,
+            name: retroSeasonName.trim(),
+            startDate: retroStartDate,
+            endDate: retroEndDate,
+            totalRounds: retroTotalRounds,
+            spacing: retroSpacing,
+            fixedWeekday: retroSpacing === "fixed_weekday" ? retroWeekday : undefined,
+          });
+          toast.success("Temporada retroativa criada! Lance os resultados em cada rodada.");
+        } catch (seasonErr: any) {
+          console.error("Erro ao criar temporada retroativa:", seasonErr);
+          toast.error(seasonErr?.message || "Grupo criado, mas falhou ao criar a temporada.");
+        }
       }
 
       resetForm();
