@@ -446,8 +446,8 @@ async function simulateOneRound(
     const matchId = matchIns.id;
 
     await supabaseAdmin.from("match_players").insert([
-      ...teamA.map((u) => ({ match_id: matchId, user_id: u, team: "team_a" })),
-      ...teamB.map((u) => ({ match_id: matchId, user_id: u, team: "team_b" })),
+      ...teamA.map((u) => ({ match_id: matchId, user_id: u, team: "A" })),
+      ...teamB.map((u) => ({ match_id: matchId, user_id: u, team: "B" })),
     ]);
 
     // Sets — best of 3
