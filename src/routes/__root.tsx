@@ -18,6 +18,11 @@ import { ROOT_META, ROOT_JSONLD } from "@/lib/seo-meta";
 import { ROOT_LINKS } from "@/lib/pwa-links";
 import "../styles.css";
 import { useEffect, useState } from "react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+
+const queryClient = new QueryClient({
+  defaultOptions: { queries: { staleTime: 30_000, refetchOnWindowFocus: false } },
+});
 
 function NotFoundComponent() {
   return (
@@ -149,23 +154,25 @@ function RootComponent() {
 
 
   return (
-    <AuthProvider>
-      <UserProfileProvider>
-        <PlayerProfileViewerProvider>
-          <InstallFlowProvider>
-            {/* Global background layers — adapt based on auth + theme */}
-            <GlobalBackground />
-            <div className="relative z-10 mx-auto max-w-lg lg:max-w-7xl lg:px-8 min-h-screen">
-              <PendingDeletionBanner />
-              <AuthDesktopNav />
-              <Outlet />
-            </div>
-            <AuthNav />
-            <Toaster richColors position="top-center" />
-          </InstallFlowProvider>
-        </PlayerProfileViewerProvider>
-      </UserProfileProvider>
-    </AuthProvider>
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <UserProfileProvider>
+          <PlayerProfileViewerProvider>
+            <InstallFlowProvider>
+              {/* Global background layers — adapt based on auth + theme */}
+              <GlobalBackground />
+              <div className="relative z-10 mx-auto max-w-lg lg:max-w-7xl lg:px-8 min-h-screen">
+                <PendingDeletionBanner />
+                <AuthDesktopNav />
+                <Outlet />
+              </div>
+              <AuthNav />
+              <Toaster richColors position="top-center" />
+            </InstallFlowProvider>
+          </PlayerProfileViewerProvider>
+        </UserProfileProvider>
+      </AuthProvider>
+    </QueryClientProvider>
   );
 }
 
