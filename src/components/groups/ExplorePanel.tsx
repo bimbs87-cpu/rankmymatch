@@ -291,7 +291,6 @@ function GroupCard({
   onCopyInvite: (e: React.MouseEvent, groupId: string, canInvite: boolean) => void;
 }) {
   const isHiddenAdmin = g.is_hidden_admin === true;
-  const isFictional = g.is_fictional === true;
   return (
     <Link
       to="/groups/$groupId"
@@ -299,9 +298,7 @@ function GroupCard({
       className={`group flex items-start gap-3 rounded-2xl border bg-card p-4 transition-all hover:border-primary/40 hover:shadow-lg active:scale-[0.99] ${
         isHiddenAdmin
           ? "border-dashed border-muted-foreground/40"
-          : isFictional
-            ? "border-border/60 bg-card/60"
-            : "border-border"
+          : "border-border"
       }`}
     >
       <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl bg-primary/10 ring-1 ring-primary/20">
@@ -324,12 +321,6 @@ function GroupCard({
           {isHiddenAdmin && (
             <span className="inline-flex flex-shrink-0 items-center gap-0.5 rounded-full bg-muted px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-muted-foreground ring-1 ring-border">
               Oculto
-            </span>
-          )}
-          {isFictional && (
-            <span className="inline-flex flex-shrink-0 items-center gap-0.5 rounded-full bg-muted px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-muted-foreground ring-1 ring-border">
-              <Sparkles className="h-2.5 w-2.5" />
-              Demo
             </span>
           )}
           {g.is_premium && (
