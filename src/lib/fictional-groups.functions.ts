@@ -68,45 +68,40 @@ function toSeasonMatchFormat(matchFormat: string) {
   return matchFormat === "singles" || matchFormat === "1v1" ? "1v1" : "2v2";
 }
 
-// Pool de imagens curadas por esporte (Unsplash). IDs verificados manualmente
-// para garantir que a foto realmente representa o esporte. Pool grande para
-// permitir unicidade entre grupos do mesmo esporte.
+// Pool de imagens geradas via Lovable AI (Nano Banana 2) e armazenadas no
+// bucket público `group-images/fictional/`. Cada foto representa fielmente o
+// esporte (padel real com paredes de vidro, beach tennis em areia com raquetes
+// sem cordas, tênis em quadra de saibro/dura). Pool grande para garantir
+// unicidade entre grupos do mesmo esporte.
+const STORAGE_BASE =
+  "https://oeizpqyvnmickosoynrr.supabase.co/storage/v1/object/public/group-images/fictional";
+
 const SPORT_IMAGES: Record<(typeof SPORTS)[number], string[]> = {
   padel: [
-    "https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=800&q=80&auto=format&fit=crop", // padel court
-    "https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?w=800&q=80&auto=format&fit=crop", // padel rackets
-    "https://images.unsplash.com/photo-1599474924187-334a4ae5bd3c?w=800&q=80&auto=format&fit=crop", // padel ball
-    "https://images.unsplash.com/photo-1612872087720-bb876e2e67d1?w=800&q=80&auto=format&fit=crop", // padel night court
-    "https://images.unsplash.com/photo-1687204209553-7833ca9f4f74?w=800&q=80&auto=format&fit=crop", // padel match
-    "https://images.unsplash.com/photo-1664302559210-93986d093aa7?w=800&q=80&auto=format&fit=crop", // padel glass court
-    "https://images.unsplash.com/photo-1719391425657-c20cdcb5cc7e?w=800&q=80&auto=format&fit=crop", // padel indoor
-    "https://images.unsplash.com/photo-1721366073194-2c2c63e75c1d?w=800&q=80&auto=format&fit=crop", // padel doubles
-    "https://images.unsplash.com/photo-1721324573999-39438a1d22b7?w=800&q=80&auto=format&fit=crop", // padel racket close
-    "https://images.unsplash.com/photo-1593766827228-8737b4534aa6?w=800&q=80&auto=format&fit=crop", // padel club
+    `${STORAGE_BASE}/padel-1-1777242500369.png`,
+    `${STORAGE_BASE}/padel-2-1777242518766.png`,
+    `${STORAGE_BASE}/padel-3-1777242535367.png`,
+    `${STORAGE_BASE}/padel-4-1777242548665.png`,
+    `${STORAGE_BASE}/padel-5-1777242566911.png`,
+    `${STORAGE_BASE}/padel-6-1777242581787.png`,
+    `${STORAGE_BASE}/padel-7-1777242595065.png`,
+    `${STORAGE_BASE}/padel-8-1777242611005.png`,
   ],
   tennis: [
-    "https://images.unsplash.com/photo-1622279457486-62dcc4a431d6?w=800&q=80&auto=format&fit=crop", // tennis court
-    "https://images.unsplash.com/photo-1542144582-1ba00456b5e3?w=800&q=80&auto=format&fit=crop", // tennis player
-    "https://images.unsplash.com/photo-1591491634026-77cd95c0aa5e?w=800&q=80&auto=format&fit=crop", // tennis racket
-    "https://images.unsplash.com/photo-1530915365347-e35b749a0381?w=800&q=80&auto=format&fit=crop", // tennis serve
-    "https://images.unsplash.com/photo-1554068864-b66c2b7d5d8c?w=800&q=80&auto=format&fit=crop", // tennis clay
-    "https://images.unsplash.com/photo-1545809074-59472b3f5ecc?w=800&q=80&auto=format&fit=crop", // tennis ball net
-    "https://images.unsplash.com/photo-1551773228-6a8a2e294f5a?w=800&q=80&auto=format&fit=crop", // tennis match
-    "https://images.unsplash.com/photo-1533123275131-a36cf94baeae?w=800&q=80&auto=format&fit=crop", // tennis ball
-    "https://images.unsplash.com/photo-1617083934551-ac1f1b1b8a3d?w=800&q=80&auto=format&fit=crop", // tennis court aerial
-    "https://images.unsplash.com/photo-1531315396756-905d68d21b56?w=800&q=80&auto=format&fit=crop", // tennis player swing
+    `${STORAGE_BASE}/tennis-1-1777242629691.png`,
+    `${STORAGE_BASE}/tennis-2-1777242646900.png`,
+    `${STORAGE_BASE}/tennis-3-1777242662495.png`,
+    `${STORAGE_BASE}/tennis-4-1777242681167.png`,
+    `${STORAGE_BASE}/tennis-5-1777242696833.png`,
+    `${STORAGE_BASE}/tennis-6-1777242720900.png`,
+    `${STORAGE_BASE}/tennis-7-1777242736152.png`,
+    `${STORAGE_BASE}/tennis-8-1777242754864.png`,
   ],
   beach_tennis: [
-    "https://images.unsplash.com/photo-1605264522060-32c4ef67ed79?w=800&q=80&auto=format&fit=crop", // beach tennis court
-    "https://images.unsplash.com/photo-1591491653056-4e0f7a8a7a48?w=800&q=80&auto=format&fit=crop", // beach paddle
-    "https://images.unsplash.com/photo-1612872087720-bb876e2e67d1?w=800&q=80&auto=format&fit=crop", // beach sand court
-    "https://images.unsplash.com/photo-1530870110042-98b2cb110834?w=800&q=80&auto=format&fit=crop", // beach volley/tennis sand
-    "https://images.unsplash.com/photo-1592656094267-764a45160876?w=800&q=80&auto=format&fit=crop", // beach players
-    "https://images.unsplash.com/photo-1622279457486-62dcc4a431d6?w=800&q=80&auto=format&fit=crop", // racket sand
-    "https://images.unsplash.com/photo-1519861531473-9200262188bf?w=800&q=80&auto=format&fit=crop", // beach sport
-    "https://images.unsplash.com/photo-1551958219-acbc608c6377?w=800&q=80&auto=format&fit=crop", // beach net
-    "https://images.unsplash.com/photo-1599050751795-6cdaafbc2319?w=800&q=80&auto=format&fit=crop", // beach players action
-    "https://images.unsplash.com/photo-1531315396756-905d68d21b56?w=800&q=80&auto=format&fit=crop", // beach paddle hit
+    `${STORAGE_BASE}/beach_tennis-1-1777242769232.png`,
+    `${STORAGE_BASE}/beach_tennis-2-1777242784663.png`,
+    `${STORAGE_BASE}/beach_tennis-3-1777242799499.png`,
+    `${STORAGE_BASE}/beach_tennis-4-1777242815315.png`,
   ],
 };
 
