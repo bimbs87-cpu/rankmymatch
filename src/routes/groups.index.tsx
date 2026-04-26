@@ -15,12 +15,16 @@ import { Menu, Plus, Compass, Users } from "lucide-react";
 const ONBOARDING_SKIP_KEY = "rmm-onboarding-skipped";
 
 export const Route = createFileRoute("/groups/")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    view: search.view === "explore" ? ("explore" as const) : undefined,
+  }),
   component: GroupsIndexPage,
 });
 
 function GroupsIndexPage() {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
+  const { view: viewParam } = Route.useSearch();
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) navigate({ to: "/login" });
@@ -29,10 +33,15 @@ function GroupsIndexPage() {
   const { groups: myGroups, isLoading: myLoading, refresh } = useMyGroups();
   const { groups: pendingGroups, refresh: refreshPending } = useMyPendingJoinRequests();
 
-  const [view, setView] = useState<"group" | "explore">("group");
+  const [view, setView] = useState<"group" | "explore">(viewParam === "explore" ? "explore" : "group");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [showCreate, setShowCreate] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+
+  // React to URL changes (e.g. clicking "Ver todos / Explorar" while already on /groups)
+  useEffect(() => {
+    if (viewParam === "explore") setView("explore");
+  }, [viewParam]);
 
   // Auto-select first group when loaded
   useEffect(() => {
