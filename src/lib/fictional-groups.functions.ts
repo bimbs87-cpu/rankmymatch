@@ -678,29 +678,45 @@ async function buildOneFictionalGroup(
 }
 
 // ----- GENERATE -------------------------------------------------------------
-export const generateFictionalGroups = createServerFn({ method: "POST" })
+// Total de blueprints disponíveis (lido pelo cliente para iterar).
+export const getFictionalPlan = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await ensureAppAdmin(context.userId);
+    return { total: BLUEPRINTS.length, names: BLUEPRINTS.map((b) => b.name) };
+  });
+
+// Cria UM grupo fictício por chamada, evitando timeout.
+export const generateOneFictionalGroup = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(
-    (data: { wipeExisting?: boolean; seed?: number; roundsCount?: number }) => data
+    (data: { index: number; seed?: number; roundsCount?: number; wipeFirst?: boolean }) => data
   )
   .handler(async ({ context, data }) => {
     await ensureAppAdmin(context.userId);
-    if (data.wipeExisting) await deleteFictionalCascade();
+    if (data.wipeFirst && data.index === 0) {
+      await deleteFictionalCascade();
+    }
+    const bp = BLUEPRINTS[data.index];
+    if (!bp) throw new Error(`Invalid blueprint index ${data.index}`);
 
-    const seed = data.seed ?? Date.now() & 0x7fffffff;
+    // Idempotência: pula se já existe grupo fictício com o mesmo nome
+    const { data: existing } = await supabaseAdmin
+      .from("groups")
+      .select("id")
+      .eq("name", bp.name)
+      .eq("is_fictional", true)
+      .maybeSingle();
+    if (existing) {
+      return { groupId: existing.id, name: bp.name, skipped: true, index: data.index };
+    }
+
+    const seed = (data.seed ?? Date.now() & 0x7fffffff) + data.index * 7919;
     const rng = mulberry32(seed);
     const roundsCount = clampRoundsCount(data.roundsCount, 8);
 
-    const created: { groupId: string; name: string }[] = [];
-    for (const bp of BLUEPRINTS) {
-      try {
-        const { groupId } = await buildOneFictionalGroup(bp, rng, context.userId, roundsCount);
-        created.push({ groupId, name: bp.name });
-      } catch (err) {
-        console.error("[fictional] failed to build", bp.name, err);
-      }
-    }
-    return { created, total: created.length, roundsPerGroup: roundsCount };
+    const { groupId } = await buildOneFictionalGroup(bp, rng, context.userId, roundsCount);
+    return { groupId, name: bp.name, skipped: false, index: data.index };
   });
 
 // ----- SIMULATE NEW ROUND(S) ------------------------------------------------
