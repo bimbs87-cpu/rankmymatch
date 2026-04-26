@@ -7,13 +7,14 @@ import {
   deleteAllFictionalGroups,
   deleteFictionalGroup,
   simulateRoundForFictional,
+  startNewSeasonForFictional,
 } from "@/lib/fictional-groups.functions";
 import { getServerFnAuthHeaders } from "@/lib/server-fn-auth";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Loader2, Sparkles, Trash2, Play, RefreshCw, Users, Calendar } from "lucide-react";
+import { Loader2, Sparkles, Trash2, Play, RefreshCw, Users, Calendar, Trophy, FlagTriangleRight } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
