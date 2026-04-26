@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
 import { removePushSubscriptionFn, upsertPushSubscriptionFn } from "@/lib/push.functions";
 import { getServerFnAuthHeaders } from "@/lib/server-fn-auth";
@@ -72,32 +73,51 @@ export function usePushSubscription() {
   }, [supported]);
 
   const subscribe = useCallback(async (): Promise<boolean> => {
-    if (!supported || !user) return false;
+    if (!supported) {
+      toast.error("Notificações não suportadas neste navegador");
+      return false;
+    }
+    if (!user) {
+      toast.error("Faça login para ativar notificações");
+      return false;
+    }
     setBusy(true);
     try {
       const reg = await getPushRegistration();
-      if (!reg) throw new Error("Service worker indisponível");
+      if (!reg) throw new Error("Service worker indisponível neste navegador");
 
       const perm = await Notification.requestPermission();
       setStatus(perm as PushStatus);
-      if (perm !== "granted") return false;
+      if (perm === "denied") {
+        toast.error("Permissão negada. Habilite notificações nas configurações do navegador.");
+        return false;
+      }
+      if (perm !== "granted") {
+        toast.message("Permissão não concedida — toque em Ativar e escolha Permitir/Sempre.");
+        return false;
+      }
 
       // Get public key
       const res = await fetch("/api/push/vapid-public-key");
-      if (!res.ok) throw new Error("Falha ao obter chave pública");
+      if (!res.ok) throw new Error(`Falha ao obter chave pública (HTTP ${res.status})`);
       const { publicKey } = (await res.json()) as { publicKey: string };
       if (!publicKey) throw new Error("Chave pública vazia");
 
       let sub = await reg.pushManager.getSubscription();
       if (!sub) {
         const keyBytes = urlBase64ToUint8Array(publicKey);
-        // Copy into a fresh ArrayBuffer to satisfy strict DOM typings.
         const appServerKey = new Uint8Array(keyBytes.length);
         appServerKey.set(keyBytes);
-        sub = await reg.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: appServerKey.buffer,
-        });
+        try {
+          sub = await reg.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: appServerKey.buffer,
+          });
+        } catch (subErr) {
+          console.error("[push] pushManager.subscribe failed", subErr);
+          const msg = subErr instanceof Error ? subErr.message : String(subErr);
+          throw new Error(`Falha no registro push: ${msg}`);
+        }
       }
 
       const json = sub.toJSON() as {
@@ -120,9 +140,12 @@ export function usePushSubscription() {
       });
 
       setIsSubscribed(true);
+      toast.success("Notificações ativadas! 🔔");
       return true;
     } catch (err) {
       console.error("[push] subscribe failed", err);
+      const msg = err instanceof Error ? err.message : "Erro desconhecido ao ativar notificações";
+      toast.error(msg);
       return false;
     } finally {
       setBusy(false);
