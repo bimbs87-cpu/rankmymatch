@@ -154,23 +154,25 @@ function RootComponent() {
 
 
   return (
-    <AuthProvider>
-      <UserProfileProvider>
-        <PlayerProfileViewerProvider>
-          <InstallFlowProvider>
-            {/* Global background layers — adapt based on auth + theme */}
-            <GlobalBackground />
-            <div className="relative z-10 mx-auto max-w-lg lg:max-w-7xl lg:px-8 min-h-screen">
-              <PendingDeletionBanner />
-              <AuthDesktopNav />
-              <Outlet />
-            </div>
-            <AuthNav />
-            <Toaster richColors position="top-center" />
-          </InstallFlowProvider>
-        </PlayerProfileViewerProvider>
-      </UserProfileProvider>
-    </AuthProvider>
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <UserProfileProvider>
+          <PlayerProfileViewerProvider>
+            <InstallFlowProvider>
+              {/* Global background layers — adapt based on auth + theme */}
+              <GlobalBackground />
+              <div className="relative z-10 mx-auto max-w-lg lg:max-w-7xl lg:px-8 min-h-screen">
+                <PendingDeletionBanner />
+                <AuthDesktopNav />
+                <Outlet />
+              </div>
+              <AuthNav />
+              <Toaster richColors position="top-center" />
+            </InstallFlowProvider>
+          </PlayerProfileViewerProvider>
+        </UserProfileProvider>
+      </AuthProvider>
+    </QueryClientProvider>
   );
 }
 
