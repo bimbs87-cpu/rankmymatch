@@ -2039,14 +2039,14 @@ function DashboardPage() {
 
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1.5">
-                          <p className="text-sm font-semibold text-foreground truncate">
+                          <p className="min-w-0 flex-1 text-sm font-semibold text-foreground truncate">
                             {r.group_name}
                           </p>
-                          <span className={`rounded-md px-1.5 py-0.5 text-[10px] font-semibold ${statusCls}`}>
+                          <span className={`shrink-0 rounded-md px-1.5 py-0.5 text-[10px] font-semibold ${statusCls}`}>
                             {statusLabel}
                           </span>
                           {dayBadge && (
-                            <span className={`rounded-md px-1.5 py-0.5 text-[10px] font-semibold ${
+                            <span className={`shrink-0 rounded-md px-1.5 py-0.5 text-[10px] font-semibold ${
                               daysUntil === 0 ? "bg-primary/15 text-primary" : daysUntil === 1 ? "bg-info/15 text-info" : "bg-muted text-muted-foreground"
                             }`}>
                               {dayBadge}
