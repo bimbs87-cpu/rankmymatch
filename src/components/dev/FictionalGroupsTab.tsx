@@ -3,7 +3,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
   listFictionalGroups,
-  generateFictionalGroups,
+  generateOneFictionalGroup,
+  getFictionalPlan,
   deleteAllFictionalGroups,
   deleteFictionalGroup,
   simulateRoundForFictional,
