@@ -741,6 +741,7 @@ export type Database = {
           fixed_day: number | null
           id: string
           image_url: string | null
+          is_fictional: boolean
           is_public: boolean
           match_format: string
           max_players: number
@@ -750,6 +751,8 @@ export type Database = {
           og_cover_url: string | null
           presence_open_mode: string
           presence_open_time: string
+          public_code: string
+          requires_approval: boolean
           simultaneous_courts: number
           singles_group_type: string | null
           slots_per_round: number
@@ -766,6 +769,7 @@ export type Database = {
           fixed_day?: number | null
           id?: string
           image_url?: string | null
+          is_fictional?: boolean
           is_public?: boolean
           match_format?: string
           max_players?: number
@@ -775,6 +779,8 @@ export type Database = {
           og_cover_url?: string | null
           presence_open_mode?: string
           presence_open_time?: string
+          public_code: string
+          requires_approval?: boolean
           simultaneous_courts?: number
           singles_group_type?: string | null
           slots_per_round?: number
@@ -791,6 +797,7 @@ export type Database = {
           fixed_day?: number | null
           id?: string
           image_url?: string | null
+          is_fictional?: boolean
           is_public?: boolean
           match_format?: string
           max_players?: number
@@ -800,6 +807,8 @@ export type Database = {
           og_cover_url?: string | null
           presence_open_mode?: string
           presence_open_time?: string
+          public_code?: string
+          requires_approval?: boolean
           simultaneous_courts?: number
           singles_group_type?: string | null
           slots_per_round?: number
@@ -2101,6 +2110,22 @@ export type Database = {
         Args: { payload: Json; queue_name: string }
         Returns: number
       }
+      find_group_by_public_code: {
+        Args: { _code: string }
+        Returns: {
+          description: string
+          id: string
+          image_url: string
+          match_format: string
+          member_count: number
+          name: string
+          requires_approval: boolean
+          singles_group_type: string
+          sport: string
+          visibility: string
+        }[]
+      }
+      generate_group_public_code: { Args: never; Returns: string }
       get_due_deletions: {
         Args: never
         Returns: {
