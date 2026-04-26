@@ -449,7 +449,7 @@ async function buildOneFictionalGroup(
       match_format: blueprint.match_format,
       sets_mode: "best_of_3",
       sets_per_match: 3,
-      duration_type: "indefinite",
+      duration_type: "3_months",
       start_date: startDate,
       created_by: callerUserId,
     })
