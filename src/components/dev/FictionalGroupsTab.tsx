@@ -33,6 +33,7 @@ export function FictionalGroupsTab() {
   const delAll = useServerFn(deleteAllFictionalGroups);
   const delOne = useServerFn(deleteFictionalGroup);
   const sim = useServerFn(simulateRoundForFictional);
+  const newSeason = useServerFn(startNewSeasonForFictional);
 
   const { data, isLoading } = useQuery({
     queryKey: ["fictional-groups"],
