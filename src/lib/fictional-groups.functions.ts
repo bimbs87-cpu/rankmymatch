@@ -265,12 +265,28 @@ function genNickname(name: string, used: Set<string>, rng: () => number): string
   used.add(first.toLowerCase());
   return first;
 }
-// DiceBear (sem chave) — gera avatar consistente por seed; parece "real"
-function genDicebearUrl(seed: string, rng: () => number): string {
-  const styles = ["avataaars", "personas", "lorelei", "notionists", "adventurer"];
-  const style = pick(styles, rng);
-  const safeSeed = encodeURIComponent(seed);
-  return `https://api.dicebear.com/7.x/${style}/svg?seed=${safeSeed}`;
+// IDs de avatares premium do app (espelham src/lib/avatar-data.ts).
+// Usar IDs garante que PlayerAvatar resolva para o asset bundled.
+const PREMIUM_AVATAR_SPORTS = ["padel", "tennis", "beach", "squash", "pickle"] as const;
+function genPremiumAvatarKey(rng: () => number): string {
+  const sport = pick([...PREMIUM_AVATAR_SPORTS], rng);
+  const num = String(1 + Math.floor(rng() * 16)).padStart(2, "0");
+  return `avatar:${sport}-${num}`;
+}
+
+// Foto "real" estilo perfil Google — randomuser.me serve retratos reais.
+// Mistura gêneros e índices 0-99 para variedade.
+function genRealPhotoUrl(rng: () => number): string {
+  const gender = rng() < 0.5 ? "men" : "women";
+  const idx = Math.floor(rng() * 99);
+  return `https://randomuser.me/api/portraits/${gender}/${idx}.jpg`;
+}
+
+// Gera avatar para membro "logado": ~55% foto real (Google-like), ~45% avatar premium.
+// Garante que TODO membro logado tenha imagem associada.
+function genLinkedAvatar(rng: () => number): { url: string; type: string } {
+  if (rng() < 0.55) return { url: genRealPhotoUrl(rng), type: "google" };
+  return { url: genPremiumAvatarKey(rng), type: "preset" };
 }
 
 // Pequena ELO pra evolução plausível
@@ -790,12 +806,13 @@ async function buildOneFictionalGroup(
   for (let i = 0; i < totalPlayers; i++) {
     const fullName = genFullName(usedNames, rng);
     const linked = linkedFlags[i];
+    const avatar = linked ? genLinkedAvatar(rng) : null;
     profileRows.push({
       user_id: randUuid(),
       name: fullName,
       nickname: linked ? genNickname(fullName, usedNicks, rng) : null,
-      avatar_url: linked ? genDicebearUrl(fullName, rng) : null,
-      avatar_type: linked ? "preset" : null,
+      avatar_url: avatar?.url ?? null,
+      avatar_type: avatar?.type ?? null,
       is_placeholder: !linked,
       created_by_admin: callerUserId,
     });
