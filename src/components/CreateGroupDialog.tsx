@@ -645,3 +645,30 @@ function GroupForm({
     </div>
   );
 }
+
+function VisibilityOption({
+  active,
+  onClick,
+  icon,
+  label,
+}: {
+  active: boolean;
+  onClick: () => void;
+  icon: React.ReactNode;
+  label: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`flex flex-col items-center justify-center gap-1 rounded-2xl border p-3 text-xs font-semibold transition-colors ${
+        active
+          ? "border-primary bg-primary/10 text-primary"
+          : "border-border bg-background text-muted-foreground hover:border-primary/30"
+      }`}
+    >
+      {icon}
+      {label}
+    </button>
+  );
+}
