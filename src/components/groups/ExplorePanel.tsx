@@ -262,45 +262,16 @@ export function ExplorePanel() {
             <p className="mt-1 text-xs text-muted-foreground">Tente ajustar os filtros ou a busca.</p>
           </div>
         ) : (
-          <div className="space-y-5">
-            {realGroups.length > 0 && (
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                {realGroups.map((g) => (
-                  <GroupCard
-                    key={g.id}
-                    g={g}
-                    copyingId={copyingId}
-                    inviteInfoById={inviteInfoById}
-                    onCopyInvite={handleCopyInvite}
-                  />
-                ))}
-              </div>
-            )}
-
-            {demoGroups.length > 0 && (
-              <div>
-                <div className="mb-2 flex items-center gap-2 px-1">
-                  <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground ring-1 ring-border">
-                    <Sparkles className="h-2.5 w-2.5" />
-                    Demo
-                  </span>
-                  <p className="text-[11px] text-muted-foreground">
-                    Grupos de exemplo para você ver como o RankMyMatch funciona.
-                  </p>
-                </div>
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                  {demoGroups.map((g) => (
-                    <GroupCard
-                      key={g.id}
-                      g={g}
-                      copyingId={copyingId}
-                      inviteInfoById={inviteInfoById}
-                      onCopyInvite={handleCopyInvite}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            {allGroups.map((g) => (
+              <GroupCard
+                key={g.id}
+                g={g}
+                copyingId={copyingId}
+                inviteInfoById={inviteInfoById}
+                onCopyInvite={handleCopyInvite}
+              />
+            ))}
           </div>
         )}
       </div>
