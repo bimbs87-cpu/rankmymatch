@@ -313,10 +313,10 @@ function GroupDetailPage() {
     }
   };
 
-  // Non-member view for PRIVATE groups: just shows the join request screen.
-  // Public groups fall through to the regular view (read-only) with a floating CTA.
+  // Public groups: visitors (logged in or not) see the full dashboard with floating CTA.
+  // Private groups still gate non-members behind the simple landing.
   const isPublicGroup = group.visibility === "public" || group.is_public;
-  if (isAuthenticated && !isMember && !isPublicGroup) {
+  if (!isMember && !isPublicGroup) {
     return (
       <NonMemberView
         group={group}
@@ -543,67 +543,6 @@ function GroupDetailPage() {
         </main>
       </div>
 
-      {/* Floating visitor CTA — public group, not yet a member */}
-      {showVisitorCta && (
-        <div className="pointer-events-none fixed inset-x-0 bottom-24 z-40 flex justify-center px-4 lg:bottom-6">
-          <div className="pointer-events-auto flex w-full max-w-lg items-center gap-2 rounded-2xl border border-primary/40 bg-card/95 p-2 shadow-[0_12px_32px_-12px_rgba(0,0,0,0.7)] backdrop-blur">
-            <div className="hidden min-w-0 flex-1 px-2 sm:block">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-primary">Visitante</p>
-              <p className="truncate text-xs text-muted-foreground">Você está vendo este grupo</p>
-            </div>
-            {isAuthenticated ? (
-              <>
-                {hasPlaceholders && (
-                  <button
-                    onClick={() => setClaimOpen(true)}
-                    className="flex items-center gap-1.5 rounded-xl border border-primary/40 bg-primary/5 px-3 py-2 text-xs font-bold text-foreground transition active:scale-95"
-                  >
-                    <Link2 className="h-4 w-4 text-primary" />
-                    Vincular
-                  </button>
-                )}
-                <button
-                  onClick={() => setJoinDialogOpen(true)}
-                  className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-primary px-3 py-2 text-xs font-bold text-primary-foreground transition active:scale-95 sm:flex-none"
-                >
-                  <UserPlus className="h-4 w-4" />
-                  Solicitar entrada
-                </button>
-              </>
-            ) : (
-              <Link
-                to="/login"
-                className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-primary px-3 py-2 text-xs font-bold text-primary-foreground transition active:scale-95"
-              >
-                <UserPlus className="h-4 w-4" />
-                Entrar para participar
-              </Link>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Visitor dialogs (public group, non-member) */}
-      {showVisitorCta && user && (
-        <>
-          <JoinGroupDialog
-            open={joinDialogOpen}
-            onOpenChange={setJoinDialogOpen}
-            groupId={groupId}
-            isPublicGroup={group.is_public}
-            userId={user.id}
-            onJoined={refresh}
-          />
-          <ClaimPlayerDialog
-            open={claimOpen}
-            onOpenChange={setClaimOpen}
-            groupId={groupId}
-            claimerUserId={user.id}
-            onClaimed={refresh}
-          />
-        </>
-      )}
-
       {/* Dialogs */}
       <InviteLinkDialog
         open={inviteOpen}
@@ -654,6 +593,68 @@ function GroupDetailPage() {
         groupId={groupId}
         isAdmin={isAdmin}
       />
+
+      {/* Visitor CTA + dialogs for non-members on public groups */}
+      {showVisitorCta && (
+        <>
+          <div className="pointer-events-none fixed inset-x-0 bottom-24 z-40 flex justify-center px-4 lg:bottom-6">
+            <div className="pointer-events-auto flex items-center gap-2 rounded-2xl border border-border bg-card/95 px-3 py-2 shadow-2xl backdrop-blur">
+              <span className="hidden text-xs font-medium text-muted-foreground sm:inline">
+                Quer participar?
+              </span>
+              {isAuthenticated ? (
+                <>
+                  <button
+                    onClick={() => setJoinDialogOpen(true)}
+                    className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-3 py-2 text-xs font-bold text-primary-foreground transition hover:opacity-90"
+                  >
+                    <UserPlus className="h-3.5 w-3.5" />
+                    Solicitar entrada
+                  </button>
+                  {hasPlaceholders && (
+                    <button
+                      onClick={() => setClaimOpen(true)}
+                      className="inline-flex items-center gap-1.5 rounded-xl border border-primary/40 bg-primary/10 px-3 py-2 text-xs font-bold text-primary transition hover:bg-primary/20"
+                    >
+                      <Link2 className="h-3.5 w-3.5" />
+                      Vincular
+                    </button>
+                  )}
+                </>
+              ) : (
+                <Link
+                  to="/login"
+                  search={{ redirect: `/groups/${groupId}` }}
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-3 py-2 text-xs font-bold text-primary-foreground transition hover:opacity-90"
+                >
+                  <UserPlus className="h-3.5 w-3.5" />
+                  Entrar para participar
+                </Link>
+              )}
+            </div>
+          </div>
+
+          {user && (
+            <JoinGroupDialog
+              open={joinDialogOpen}
+              onOpenChange={setJoinDialogOpen}
+              groupId={groupId}
+              isPublicGroup={group.is_public}
+              userId={user.id}
+              onJoined={refresh}
+            />
+          )}
+          {user && (
+            <ClaimPlayerDialog
+              open={claimOpen}
+              onOpenChange={setClaimOpen}
+              groupId={groupId}
+              claimerUserId={user.id}
+              onClaimed={refresh}
+            />
+          )}
+        </>
+      )}
 
       {/* Leave dialog */}
       {leaveDialogOpen && (
