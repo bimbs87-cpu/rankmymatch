@@ -505,25 +505,15 @@ export async function createGroup(data: {
   return group;
 }
 
-export async function joinGroup(groupId: string, userId: string, isPublic: boolean) {
-  if (isPublic) {
-    // Direct join for public groups
-    const { error } = await supabase.from("group_members").insert({
-      group_id: groupId,
-      user_id: userId,
-      role: "member",
-      status: "active",
-    });
-    if (error) throw error;
-  } else {
-    // Request to join for private groups
-    const { error } = await supabase.from("group_join_requests").insert({
-      group_id: groupId,
-      user_id: userId,
-      status: "pending",
-    });
-    if (error) throw error;
-  }
+export async function joinGroup(groupId: string, userId: string, _isPublic: boolean) {
+  // Fase 3: every join now requires admin approval (regardless of visibility).
+  // _isPublic is kept for back-compat but ignored.
+  const { error } = await supabase.from("group_join_requests").insert({
+    group_id: groupId,
+    user_id: userId,
+    status: "pending",
+  });
+  if (error) throw error;
 }
 
 /**
