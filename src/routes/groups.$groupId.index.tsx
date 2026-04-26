@@ -313,8 +313,10 @@ function GroupDetailPage() {
     }
   };
 
-  // Non-member view (visiting public group)
-  if (isAuthenticated && !isMember) {
+  // Non-member view for PRIVATE groups: just shows the join request screen.
+  // Public groups fall through to the regular view (read-only) with a floating CTA.
+  const isPublicGroup = group.visibility === "public" || group.is_public;
+  if (isAuthenticated && !isMember && !isPublicGroup) {
     return (
       <NonMemberView
         group={group}
@@ -351,6 +353,8 @@ function GroupDetailPage() {
       />
     );
   }
+
+  const showVisitorCta = isPublicGroup && !isMember;
 
   // Member view
   const badges: SidebarBadges = {
