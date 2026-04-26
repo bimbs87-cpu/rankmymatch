@@ -1,5 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { LandingPage } from "@/components/LandingPage";
+import { OnboardingNoGroupScreen } from "@/components/onboarding/OnboardingNoGroupScreen";
+import { useMyPendingJoinRequests } from "@/hooks/use-groups";
 import { abbreviateName } from "@/lib/utils";
 import logoHorizontalDark from "@/assets/logo-horizontal-dark.png";
 import logoHorizontalLight from "@/assets/logo-horizontal-light.png";
