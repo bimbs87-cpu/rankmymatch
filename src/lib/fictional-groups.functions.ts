@@ -429,7 +429,7 @@ async function simulateOneRound(
     const avgB = teamB.reduce((s, u) => s + ctx.ratings[u], 0) / teamB.length;
     const expectedA = 1 / (1 + Math.pow(10, (avgB - avgA) / 400));
     const winnerIsA = rng() < expectedA;
-    const winnerTeam = winnerIsA ? "team_a" : "team_b";
+    const winnerTeam = winnerIsA ? "A" : "B";
 
     const { data: matchIns, error: matchErr } = await supabaseAdmin
       .from("matches").insert({
@@ -446,8 +446,8 @@ async function simulateOneRound(
     const matchId = matchIns.id;
 
     await supabaseAdmin.from("match_players").insert([
-      ...teamA.map((u) => ({ match_id: matchId, user_id: u, team: "team_a" })),
-      ...teamB.map((u) => ({ match_id: matchId, user_id: u, team: "team_b" })),
+      ...teamA.map((u) => ({ match_id: matchId, user_id: u, team: "A" })),
+      ...teamB.map((u) => ({ match_id: matchId, user_id: u, team: "B" })),
     ]);
 
     // Sets — best of 3
