@@ -320,6 +320,7 @@ export function GroupsNavMenu({ groups, renderTrigger, panelClassName }: Props) 
           <div className="mt-2 border-t border-border/60 pt-1">
             <Link
               to="/groups"
+              search={{ view: "explore" }}
               onClick={() => setOpen(false)}
               className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
             >
