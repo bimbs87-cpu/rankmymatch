@@ -457,33 +457,44 @@ function GroupForm({
       {/* Visibilidade */}
       <div>
         <label className="mb-2 block text-xs font-medium text-muted-foreground">Visibilidade</label>
-        <div className="flex gap-2">
-          <button
-            onClick={() => setIsPublic(true)}
-            className={`flex flex-1 items-center justify-center gap-2 rounded-2xl border p-3 text-sm font-medium transition-colors ${
-              isPublic
-                ? "border-primary bg-primary/10 text-primary"
-                : "border-border bg-background text-muted-foreground"
-            }`}
-          >
-            <Globe className="h-4 w-4" />
-            Público
-          </button>
-          <button
-            onClick={() => setIsPublic(false)}
-            className={`flex flex-1 items-center justify-center gap-2 rounded-2xl border p-3 text-sm font-medium transition-colors ${
-              !isPublic
-                ? "border-primary bg-primary/10 text-primary"
-                : "border-border bg-background text-muted-foreground"
-            }`}
-          >
-            <Lock className="h-4 w-4" />
-            Privado
-          </button>
+        <div className="grid grid-cols-3 gap-2">
+          <VisibilityOption
+            active={visibility === "public"}
+            onClick={() => setVisibility("public")}
+            icon={<Globe className="h-4 w-4" />}
+            label="Público"
+          />
+          <VisibilityOption
+            active={visibility === "private"}
+            onClick={() => setVisibility("private")}
+            icon={<Lock className="h-4 w-4" />}
+            label="Privado"
+          />
+          <VisibilityOption
+            active={visibility === "hidden"}
+            onClick={() => setVisibility("hidden")}
+            icon={<EyeOff className="h-4 w-4" />}
+            label="Oculto"
+          />
         </div>
         <p className="mt-1.5 text-xs text-muted-foreground">
-          {isPublic ? "Qualquer um pode encontrar e entrar." : "Entrada somente por convite ou aprovação."}
+          {visibility === "public"
+            ? "Aparece nas buscas. Qualquer um pode pedir entrada."
+            : visibility === "private"
+              ? "Aparece nas buscas, mas só entra com aprovação."
+              : "Não aparece em lugar nenhum. Acesso só pelo código RMM-XXXXXX."}
         </p>
+
+        {/* Aprovação obrigatória — Fase 3 */}
+        <div className="mt-2 flex items-start gap-2 rounded-xl border border-primary/20 bg-primary/5 px-3 py-2">
+          <ShieldCheck className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-primary" />
+          <p className="text-[11px] leading-snug text-foreground">
+            <span className="font-semibold">Aprovação obrigatória:</span>{" "}
+            <span className="text-muted-foreground">
+              toda entrada precisa do seu OK. Você protege o ranking e o histórico do grupo.
+            </span>
+          </p>
+        </div>
       </div>
 
       {/* Max Players — hide for rivalry */}
