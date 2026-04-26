@@ -1034,6 +1034,8 @@ export const simulateRoundForFictional = createServerFn({ method: "POST" })
       nextNum++;
     }
 
+    await recomputeStatsAndSnapshots(g.id, season.id, ctx.matchFormat);
+
     return {
       ok: true,
       roundsSimulated: roundsToSim,
