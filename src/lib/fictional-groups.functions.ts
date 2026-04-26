@@ -636,30 +636,33 @@ async function buildOneFictionalGroup(
 // ----- GENERATE -------------------------------------------------------------
 export const generateFictionalGroups = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: { wipeExisting?: boolean; seed?: number }) => data)
+  .inputValidator(
+    (data: { wipeExisting?: boolean; seed?: number; roundsCount?: number }) => data
+  )
   .handler(async ({ context, data }) => {
     await ensureAppAdmin(context.userId);
     if (data.wipeExisting) await deleteFictionalCascade();
 
     const seed = data.seed ?? Date.now() & 0x7fffffff;
     const rng = mulberry32(seed);
+    const roundsCount = clampRoundsCount(data.roundsCount, 8);
 
     const created: { groupId: string; name: string }[] = [];
     for (const bp of BLUEPRINTS) {
       try {
-        const { groupId } = await buildOneFictionalGroup(bp, rng, context.userId);
+        const { groupId } = await buildOneFictionalGroup(bp, rng, context.userId, roundsCount);
         created.push({ groupId, name: bp.name });
       } catch (err) {
         console.error("[fictional] failed to build", bp.name, err);
       }
     }
-    return { created, total: created.length };
+    return { created, total: created.length, roundsPerGroup: roundsCount };
   });
 
-// ----- SIMULATE NEW ROUND ---------------------------------------------------
+// ----- SIMULATE NEW ROUND(S) ------------------------------------------------
 export const simulateRoundForFictional = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: { groupId: string }) => data)
+  .inputValidator((data: { groupId: string; roundsCount?: number }) => data)
   .handler(async ({ context, data }) => {
     await ensureAppAdmin(context.userId);
     const { data: g } = await supabaseAdmin
@@ -713,108 +716,41 @@ export const simulateRoundForFictional = createServerFn({ method: "POST" })
     for (const u of playerIds) ratings[u] = 1000;
     for (const e of lastEvents ?? []) ratings[e.user_id] = e.rating_after;
 
-    // Próximo número de rodada
+    // Próximo número de rodada (considera apenas rodadas concluídas)
     const { data: lastRound } = await supabaseAdmin
       .from("rounds").select("round_number").eq("group_id", g.id)
+      .eq("status", "completed")
       .order("round_number", { ascending: false }).limit(1).maybeSingle();
-    const nextNum = (lastRound?.round_number ?? 0) + 1;
+    let nextNum = (lastRound?.round_number ?? 0) + 1;
 
-    const isSingles = g.match_format === "singles";
-    const today = new Date();
-    const { data: roundIns } = await supabaseAdmin
-      .from("rounds").insert({
-        group_id: g.id,
-        season_id: season.id,
-        round_number: nextNum,
-        match_format: g.match_format,
-        max_players: g.member_limit ?? playerIds.length,
-        scheduled_date: today.toISOString().slice(0, 10),
-        scheduled_time: "19:00:00",
-        status: "completed",
-      }).select("id").single();
-    if (!roundIns) throw new Error("round insert failed");
-
-    const { data: courtIns } = await supabaseAdmin
-      .from("courts").insert({ round_id: roundIns.id, court_number: 1, name: "Quadra 1" })
-      .select("id").single();
+    const ctx: SimContext = {
+      groupId: g.id,
+      seasonId: season.id,
+      matchFormat: g.match_format === "singles" ? "singles" : "doubles",
+      memberLimit: g.member_limit ?? playerIds.length,
+      playerIds,
+      ratings,
+    };
 
     const rng = mulberry32(Date.now() & 0x7fffffff);
-    const shuffled = shuffle(playerIds, rng);
-    const groupSize = isSingles ? 2 : 4;
-    const numMatches = Math.floor(shuffled.length / groupSize);
+    const roundsToSim = clampRoundsCount(data.roundsCount, 1);
+    const today = new Date();
+    let totalMatches = 0;
+    const firstRound = nextNum;
 
-    for (let m = 0; m < numMatches; m++) {
-      const slice = shuffled.slice(m * groupSize, (m + 1) * groupSize);
-      const teamA = isSingles ? [slice[0]] : [slice[0], slice[1]];
-      const teamB = isSingles ? [slice[1]] : [slice[2], slice[3]];
-      const avgA = teamA.reduce((s, u) => s + ratings[u], 0) / teamA.length;
-      const avgB = teamB.reduce((s, u) => s + ratings[u], 0) / teamB.length;
-      const expectedA = 1 / (1 + Math.pow(10, (avgB - avgA) / 400));
-      const winnerIsA = rng() < expectedA;
-      const winnerTeam = winnerIsA ? "team_a" : "team_b";
-
-      const { data: matchIns } = await supabaseAdmin
-        .from("matches").insert({
-          round_id: roundIns.id,
-          court_id: courtIns?.id ?? null,
-          match_format: g.match_format,
-          match_number: m + 1,
-          status: "completed",
-          winner_team: winnerTeam,
-          counts_for_ranking: true,
-          result_type: "completed",
-        }).select("id").single();
-      if (!matchIns) continue;
-
-      await supabaseAdmin.from("match_players").insert([
-        ...teamA.map((u) => ({ match_id: matchIns.id, user_id: u, team: "team_a" })),
-        ...teamB.map((u) => ({ match_id: matchIns.id, user_id: u, team: "team_b" })),
-      ]);
-      // sets
-      const setRows: { match_id: string; set_number: number; score_team_a: number; score_team_b: number; is_tiebreak: boolean }[] = [];
-      let setsA = 0, setsB = 0, setNum = 1;
-      while (setsA < 2 && setsB < 2) {
-        const aWinsSet = winnerIsA ? rng() > 0.25 : rng() < 0.25;
-        setRows.push({
-          match_id: matchIns.id,
-          set_number: setNum,
-          score_team_a: aWinsSet ? 6 : Math.floor(rng() * 5),
-          score_team_b: aWinsSet ? Math.floor(rng() * 5) : 6,
-          is_tiebreak: false,
-        });
-        if (aWinsSet) setsA++; else setsB++;
-        setNum++;
-      }
-      await supabaseAdmin.from("match_sets").insert(setRows);
-
-      const allUsers = [...teamA, ...teamB];
-      const rEvents = allUsers.map((u) => {
-        const onTeamA = teamA.includes(u);
-        const opponents = onTeamA ? teamB : teamA;
-        const myRating = ratings[u];
-        const oppAvg = opponents.reduce((s, x) => s + ratings[x], 0) / opponents.length;
-        const expected = 1 / (1 + Math.pow(10, (oppAvg - myRating) / 400));
-        const won = (onTeamA && winnerIsA) || (!onTeamA && !winnerIsA);
-        const delta = Math.round(32 * ((won ? 1 : 0) - expected));
-        ratings[u] = myRating + delta;
-        return {
-          match_id: matchIns.id,
-          user_id: u,
-          season_id: season.id,
-          rating_before: myRating - delta + delta,
-          rating_after: ratings[u],
-          rating_change: delta,
-          k_factor: 32,
-          match_format: g.match_format,
-          actual_score: won ? 1 : 0,
-          expected_score: Number(expected.toFixed(4)),
-        };
-      });
-      // corrige rating_before (foi confuso acima, usa snapshot pré-delta)
-      for (let i = 0; i < rEvents.length; i++) {
-        rEvents[i].rating_before = rEvents[i].rating_after - rEvents[i].rating_change;
-      }
-      await supabaseAdmin.from("rating_events").insert(rEvents);
+    for (let i = 0; i < roundsToSim; i++) {
+      const dt = new Date(today.getTime() - (roundsToSim - 1 - i) * 24 * 3600_000);
+      const { matches } = await simulateOneRound(ctx, nextNum, dt.toISOString().slice(0, 10), rng);
+      totalMatches += matches;
+      nextNum++;
     }
-    return { ok: true, roundNumber: nextNum, matches: numMatches };
+
+    return {
+      ok: true,
+      roundsSimulated: roundsToSim,
+      firstRound,
+      lastRound: nextNum - 1,
+      matches: totalMatches,
+      roundNumber: nextNum - 1,
+    };
   });
