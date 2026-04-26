@@ -274,7 +274,12 @@ export function useMyPendingJoinRequests() {
 export function usePublicGroups(search: string) {
   const { user } = useAuth();
   const [groups, setGroups] = useState<
-    (Group & { member_count: number; is_premium?: boolean; is_hidden_admin?: boolean })[]
+    (Group & {
+      member_count: number;
+      is_premium?: boolean;
+      is_hidden_admin?: boolean;
+      is_fictional?: boolean;
+    })[]
   >([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -288,8 +293,10 @@ export function usePublicGroups(search: string) {
           .select("*")
           .eq("status", "active")
           .neq("visibility", "hidden")
+          // Real groups first, fictional as social proof at the bottom
+          .order("is_fictional", { ascending: true })
           .order("created_at", { ascending: false })
-          .limit(20);
+          .limit(30);
 
         if (search.trim()) {
           query = query.ilike("name", `%${search.trim()}%`);
