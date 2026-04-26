@@ -223,6 +223,38 @@ function genFullName(used: Set<string>, rng: () => number): string {
   return `${pick(FIRST_NAMES, rng)} ${pick(LAST_NAMES, rng)} ${Math.floor(rng() * 99)}`;
 }
 
+// Apelidos curtos, no estilo de quem realmente cadastrou conta
+const NICKNAME_POOL = [
+  "Tuca", "Rafa", "Gugu", "Léo", "Bia", "Dudu", "Caco", "Lipe", "Téo", "Nico",
+  "Guto", "Vini", "Bruno", "Kiko", "Zé", "Pedrão", "Mati", "Pipo", "Chico",
+  "Dani", "Mari", "Cami", "Lulu", "Rê", "Babi", "Ju", "Lia", "Manu", "Ale",
+  "Tiba", "Rod", "Fê", "Henri", "Dé", "Cacá", "Tom", "Edu", "Vitão", "Felps",
+];
+function genNickname(name: string, used: Set<string>, rng: () => number): string {
+  const first = name.split(" ")[0] ?? "";
+  const candidates = [
+    pick(NICKNAME_POOL, rng),
+    first.slice(0, 4),
+    `${first.slice(0, 3)}${Math.floor(rng() * 99)}`,
+    `${first.toLowerCase()}.${pick(["br","sp","rj","mg"], rng)}`,
+  ];
+  for (const c of candidates) {
+    const v = c.replace(/\s+/g, "").slice(0, 16);
+    if (v && !used.has(v.toLowerCase())) {
+      used.add(v.toLowerCase());
+      return v;
+    }
+  }
+  return `${first}${Math.floor(rng() * 999)}`;
+}
+// DiceBear (sem chave) — gera avatar consistente por seed; parece "real"
+function genDicebearUrl(seed: string, rng: () => number): string {
+  const styles = ["avataaars", "personas", "lorelei", "notionists", "adventurer"];
+  const style = pick(styles, rng);
+  const safeSeed = encodeURIComponent(seed);
+  return `https://api.dicebear.com/7.x/${style}/svg?seed=${safeSeed}`;
+}
+
 // Pequena ELO pra evolução plausível
 function applyElo(
   ratingA: number,
