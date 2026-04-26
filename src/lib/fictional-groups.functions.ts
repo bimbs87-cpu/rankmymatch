@@ -420,6 +420,7 @@ async function buildOneFictionalGroup(
       presence_open_mode: "1_day_before",
       presence_open_time: "10:00:00",
       created_by: callerUserId,
+      public_code: "", // trigger set_group_public_code preenche automaticamente
     })
     .select("id")
     .single();
