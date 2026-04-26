@@ -643,10 +643,37 @@ export const simulateRoundForFictional = createServerFn({ method: "POST" })
       .maybeSingle();
     if (!g || !g.is_fictional) throw new Error("Group is not fictional");
 
-    const { data: season } = await supabaseAdmin
-      .from("seasons").select("id").eq("group_id", g.id).eq("status", "active")
-      .order("created_at", { ascending: false }).limit(1).maybeSingle();
-    if (!season) throw new Error("No active season");
+    let { data: season } = await supabaseAdmin
+      .from("seasons")
+      .select("id")
+      .eq("group_id", g.id)
+      .eq("status", "active")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (!season) {
+      const today = new Date();
+      const { data: createdSeason, error: seasonErr } = await supabaseAdmin
+        .from("seasons")
+        .insert({
+          group_id: g.id,
+          name: `Temporada ${today.getFullYear()}`,
+          status: "active",
+          match_format: g.match_format,
+          sets_mode: "best_of_3",
+          sets_per_match: 3,
+          duration_type: "3_months",
+          start_date: today.toISOString().slice(0, 10),
+          created_by: context.userId,
+        })
+        .select("id")
+        .single();
+      if (seasonErr || !createdSeason) {
+        throw new Error(`Could not create active season: ${seasonErr?.message ?? "unknown error"}`);
+      }
+      season = createdSeason;
+    }
 
     const { data: members } = await supabaseAdmin
       .from("group_members").select("user_id").eq("group_id", g.id).eq("status", "active");
