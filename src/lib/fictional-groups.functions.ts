@@ -665,7 +665,7 @@ export const simulateRoundForFictional = createServerFn({ method: "POST" })
           name: `Temporada ${today.getFullYear()}`,
           status: "active",
           match_format: toSeasonMatchFormat(g.match_format),
-          sets_mode: "best_of_3",
+          sets_mode: "fixed",
           sets_per_match: 3,
           duration_type: "3_months",
           start_date: today.toISOString().slice(0, 10),
