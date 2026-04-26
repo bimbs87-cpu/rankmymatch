@@ -16,6 +16,7 @@ import { getDevDashboard } from "@/lib/dev-dashboard.functions";
 import { sendMonthlyReportNow } from "@/lib/monthly-report.functions";
 import { FunnelSankeyCard, type SankeyData } from "@/components/dev/FunnelSankeyCard";
 import { TopDropSegmentsCard, type DropSegmentRow } from "@/components/dev/TopDropSegmentsCard";
+import { FictionalGroupsTab } from "@/components/dev/FictionalGroupsTab";
 import { toast } from "sonner";
 import { FileText, Send } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
