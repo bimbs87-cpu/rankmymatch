@@ -223,28 +223,130 @@ function genFullName(used: Set<string>, rng: () => number): string {
   return `${pick(FIRST_NAMES, rng)} ${pick(LAST_NAMES, rng)} ${Math.floor(rng() * 99)}`;
 }
 
-// Apelidos curtos da vida real (sem números, estilo "como os amigos te chamam")
-const NICKNAME_POOL = [
-  "Tuca", "Rafa", "Gugu", "Léo", "Bia", "Dudu", "Caco", "Lipe", "Téo", "Nico",
-  "Guto", "Vini", "Bruno", "Kiko", "Zé", "Pedrão", "Mati", "Pipo", "Chico",
-  "Dani", "Mari", "Cami", "Lulu", "Rê", "Babi", "Ju", "Lia", "Manu", "Ale",
-  "Tiba", "Rod", "Fê", "Henri", "Dé", "Cacá", "Tom", "Edu", "Vitão", "Felps",
-  "Bigode", "Capitão", "Loirinho", "Magrão", "Neném", "Tigrão", "Coxinha",
-  "Boi", "Dentinho", "Pelé", "Russo", "Alemão", "Japa", "Baiano", "Mineirin",
-  "Carioca", "Gordo", "Negão", "Branquinho", "Xerife", "Professor", "Doutor",
-];
-const NICKNAME_SUFFIXES = ["zinho", "zão", "ão", "inho"];
+// Mapa de apelidos brasileiros REAIS por primeiro nome.
+// Apelidos típicos como amigos/família chamam (Rodrigo→Digo, Fernando→Nando, etc.)
+const REAL_NICKNAMES: Record<string, string[]> = {
+  // Masculinos
+  rodrigo: ["Digo", "Rod", "Rodriguinho"],
+  fernando: ["Nando", "Fer", "Fefo"],
+  eduardo: ["Edu", "Du", "Dudu"],
+  ricardo: ["Rick", "Cadu", "Ricardinho"],
+  leonardo: ["Léo", "Leozinho", "Nardo"],
+  guilherme: ["Gui", "Guigui", "Guilermo"],
+  gustavo: ["Guto", "Guga", "Tavinho"],
+  henrique: ["Henri", "Rique", "Riquinho"],
+  felipe: ["Lipe", "Felps", "Felipinho"],
+  carlos: ["Cacá", "Carlinhos", "Carlão"],
+  joao: ["Jão", "Joãozinho", "Juca"],
+  joão: ["Jão", "Joãozinho", "Juca"],
+  pedro: ["Pedrão", "Pedrinho", "Pê"],
+  paulo: ["Paulinho", "Paulão", "Polo"],
+  thiago: ["Tiago", "Thi", "Thiaguinho"],
+  tiago: ["Thi", "Tiaguinho", "Tiagão"],
+  marcelo: ["Marcelinho", "Celo", "Marcs"],
+  marcos: ["Marquinhos", "Marcão", "Marcs"],
+  bruno: ["Bruninho", "Brunão", "Bru"],
+  daniel: ["Dani", "Dan", "Danilinho"],
+  vinicius: ["Vini", "Vinny", "Viniciu"],
+  vinícius: ["Vini", "Vinny", "Viniciu"],
+  gabriel: ["Gabi", "Biel", "Gabs"],
+  rafael: ["Rafa", "Rafinha", "Rafs"],
+  lucas: ["Luquinhas", "Lu", "Lucão"],
+  matheus: ["Mateuzinho", "Theus", "Matt"],
+  mateus: ["Mateuzinho", "Theus", "Matt"],
+  diego: ["Di", "Dieguinho", "Diegão"],
+  andre: ["Andrézinho", "Dé", "Deco"],
+  andré: ["Andrézinho", "Dé", "Deco"],
+  alexandre: ["Xande", "Xandinho", "Ale"],
+  antonio: ["Tonho", "Toninho", "Tony"],
+  antônio: ["Tonho", "Toninho", "Tony"],
+  jose: ["Zé", "Zézinho", "Zeca"],
+  josé: ["Zé", "Zézinho", "Zeca"],
+  francisco: ["Chico", "Chiquinho", "Cisco"],
+  roberto: ["Beto", "Robertinho", "Tinho"],
+  ronaldo: ["Naldo", "Ronald", "Ronaldinho"],
+  fabio: ["Fabinho", "Fabs", "Fá"],
+  fábio: ["Fabinho", "Fabs", "Fá"],
+  sergio: ["Sérgio", "Sergi", "Sergião"],
+  sérgio: ["Sergi", "Sergião", "Serginho"],
+  gean: ["Geãn", "Geca", "Geanzinho"],
+  igor: ["Igorzinho", "Igorão", "Igs"],
+  caio: ["Caiozinho", "Cá", "Caião"],
+  arthur: ["Tutu", "Arts", "Arthurzinho"],
+  artur: ["Tutu", "Arts", "Arturzinho"],
+  bernardo: ["Berna", "Nardo", "Berninho"],
+  miguel: ["Migs", "Miguelzinho", "Mig"],
+  enzo: ["Enzinho", "Enz", "Enzão"],
+  davi: ["Davizinho", "Dá", "Davs"],
+  noah: ["Nono", "Nô", "Noahzinho"],
+  // Femininos
+  fernanda: ["Fê", "Nanda", "Fefa"],
+  juliana: ["Ju", "Juju", "Juli"],
+  mariana: ["Mari", "Mariazinha", "Maa"],
+  camila: ["Cami", "Mila", "Camis"],
+  isabela: ["Isa", "Bela", "Isinha"],
+  isabella: ["Isa", "Bela", "Isinha"],
+  patricia: ["Paty", "Pati", "Patsy"],
+  patrícia: ["Paty", "Pati", "Patsy"],
+  daniela: ["Dani", "Dada", "Danny"],
+  rafaela: ["Rafa", "Rafinha", "Rafs"],
+  gabriela: ["Gabi", "Gabs", "Gá"],
+  natalia: ["Nati", "Naty", "Natinha"],
+  natália: ["Nati", "Naty", "Natinha"],
+  amanda: ["Mandinha", "Mandy", "Amandinha"],
+  beatriz: ["Bia", "Bebel", "Biazinha"],
+  larissa: ["Lari", "Lá", "Lariz"],
+  vanessa: ["Vá", "Vanessinha", "Nessa"],
+  carolina: ["Carol", "Caca", "Carolzinha"],
+  caroline: ["Carol", "Caca", "Carolzinha"],
+  valentina: ["Valê", "Tina", "Valentininha"],
+  helena: ["Lena", "Helê", "Lena"],
+  alice: ["Lili", "Ali", "Alicinha"],
+  laura: ["Lau", "Laurinha", "Lalá"],
+  manuela: ["Manu", "Manuzinha", "Mané"],
+  livia: ["Lívs", "Livi", "Liv"],
+  lívia: ["Lívs", "Livi", "Liv"],
+  giovanna: ["Gi", "Gigi", "Giovi"],
+  sofia: ["Sô", "Sofs", "Sofinha"],
+  yasmin: ["Yas", "Mimi", "Yasminzinha"],
+  ana: ["Aninha", "Anita", "Naná"],
+  julia: ["Ju", "Juju", "Juli"],
+  júlia: ["Ju", "Juju", "Juli"],
+  bruna: ["Bru", "Bruninha", "Brunoca"],
+  renata: ["Rê", "Renatinha", "Naty"],
+  carla: ["Carlinha", "Carlota", "Cá"],
+  paula: ["Paulinha", "Pau", "Paulão"],
+  monica: ["Moni", "Mô", "Moninha"],
+  mônica: ["Moni", "Mô", "Moninha"],
+  cristina: ["Cris", "Tina", "Cristininha"],
+  luciana: ["Lu", "Luci", "Lulu"],
+  lucia: ["Lu", "Lucinha", "Lulu"],
+  lúcia: ["Lu", "Lucinha", "Lulu"],
+  olivia: ["Olí", "Liv", "Olivinha"],
+  olívia: ["Olí", "Liv", "Olivinha"],
+};
+
+// Pool curinga só pra fallback (apelidos genéricos brasileiros)
+const FALLBACK_NICKS = ["Tuca", "Cacá", "Chico", "Zé", "Bia", "Lulu", "Naná", "Téo", "Dé", "Fê"];
+
+function normalizeKey(s: string): string {
+  return s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+}
+
 function genNickname(name: string, used: Set<string>, rng: () => number): string {
   const first = (name.split(" ")[0] ?? "").trim();
-  const candidates: string[] = [
-    pick(NICKNAME_POOL, rng),
-    first,
-    first.slice(0, 4),
-    first.slice(0, 3),
-    `${first.slice(0, 4)}${pick(NICKNAME_SUFFIXES, rng)}`,
-    pick(NICKNAME_POOL, rng),
-    pick(NICKNAME_POOL, rng),
-  ];
+  const key = normalizeKey(first);
+  const pool = REAL_NICKNAMES[key] ?? REAL_NICKNAMES[first.toLowerCase()];
+  const candidates: string[] = [];
+  if (pool && pool.length) {
+    // Prioriza apelidos reais do mapa
+    candidates.push(...shuffle([...pool], rng));
+  }
+  // Depois primeiro nome inteiro / encurtado
+  candidates.push(first, first.slice(0, 4), first.slice(0, 3));
+  // Por fim, pool genérico
+  candidates.push(pick(FALLBACK_NICKS, rng), pick(FALLBACK_NICKS, rng));
+
   for (const c of candidates) {
     const v = c.replace(/[\s\d]+/g, "").slice(0, 16);
     if (v && v.length >= 2 && !used.has(v.toLowerCase())) {
@@ -252,14 +354,12 @@ function genNickname(name: string, used: Set<string>, rng: () => number): string
       return v;
     }
   }
-  // Fallback determinístico sem números: combina nick + sufixo
-  for (const base of NICKNAME_POOL) {
-    for (const suf of NICKNAME_SUFFIXES) {
-      const v = `${base}${suf}`.slice(0, 16);
-      if (!used.has(v.toLowerCase())) {
-        used.add(v.toLowerCase());
-        return v;
-      }
+  // Fallback: nome + Jr/Filho (sem números)
+  for (const suf of ["Jr", "Filho", "Neto"]) {
+    const v = `${first}${suf}`.slice(0, 16);
+    if (!used.has(v.toLowerCase())) {
+      used.add(v.toLowerCase());
+      return v;
     }
   }
   used.add(first.toLowerCase());
