@@ -68,6 +68,32 @@ function toSeasonMatchFormat(matchFormat: string) {
   return matchFormat === "singles" || matchFormat === "1v1" ? "1v1" : "2v2";
 }
 
+// Pool de imagens "realistas" por esporte (Unsplash, sem hotlink restrito)
+// Parecem fotos tiradas por integrantes do grupo — quadras, jogadores, ambiente.
+const SPORT_IMAGES: Record<(typeof SPORTS)[number], string[]> = {
+  padel: [
+    "https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=800&q=80&auto=format&fit=crop",
+    "https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?w=800&q=80&auto=format&fit=crop",
+    "https://images.unsplash.com/photo-1599474924187-334a4ae5bd3c?w=800&q=80&auto=format&fit=crop",
+    "https://images.unsplash.com/photo-1591491653056-4e0f7a8a7a48?w=800&q=80&auto=format&fit=crop",
+    "https://images.unsplash.com/photo-1612872087720-bb876e2e67d1?w=800&q=80&auto=format&fit=crop",
+  ],
+  tennis: [
+    "https://images.unsplash.com/photo-1622279457486-62dcc4a431d6?w=800&q=80&auto=format&fit=crop",
+    "https://images.unsplash.com/photo-1542144582-1ba00456b5e3?w=800&q=80&auto=format&fit=crop",
+    "https://images.unsplash.com/photo-1591491634026-77cd95c0aa5e?w=800&q=80&auto=format&fit=crop",
+    "https://images.unsplash.com/photo-1560012754-0d3a31a7c50c?w=800&q=80&auto=format&fit=crop",
+    "https://images.unsplash.com/photo-1530915365347-e35b749a0381?w=800&q=80&auto=format&fit=crop",
+  ],
+  beach_tennis: [
+    "https://images.unsplash.com/photo-1531315396756-905d68d21b56?w=800&q=80&auto=format&fit=crop",
+    "https://images.unsplash.com/photo-1599050751795-6cdaafbc2319?w=800&q=80&auto=format&fit=crop",
+    "https://images.unsplash.com/photo-1519861531473-9200262188bf?w=800&q=80&auto=format&fit=crop",
+    "https://images.unsplash.com/photo-1530870110042-98b2cb110834?w=800&q=80&auto=format&fit=crop",
+    "https://images.unsplash.com/photo-1592656094267-764a45160876?w=800&q=80&auto=format&fit=crop",
+  ],
+};
+
 const BLUEPRINTS: GroupBlueprint[] = [
   {
     name: "Padel das Quintas SP",
@@ -80,7 +106,7 @@ const BLUEPRINTS: GroupBlueprint[] = [
   },
   {
     name: "Tênis Vila Mariana",
-    description: "Tenistas da Vila Mariana — duplas competitivas semanais.",
+    description: "",
     sport: "tennis",
     match_format: "doubles",
     singles_group_type: null,
@@ -98,7 +124,7 @@ const BLUEPRINTS: GroupBlueprint[] = [
   },
   {
     name: "Tênis Singles Moema",
-    description: "Singles aos sábados pela manhã — torneio rotativo.",
+    description: "",
     sport: "tennis",
     match_format: "singles",
     singles_group_type: "tournament",
@@ -116,7 +142,7 @@ const BLUEPRINTS: GroupBlueprint[] = [
   },
   {
     name: "Beach Tennis Barra",
-    description: "Beach Tennis na Barra da Tijuca — clima carioca!",
+    description: "",
     sport: "beach_tennis",
     match_format: "doubles",
     singles_group_type: null,
@@ -134,7 +160,7 @@ const BLUEPRINTS: GroupBlueprint[] = [
   },
   {
     name: "Padel Belo Horizonte",
-    description: "Quadra coberta em BH — duplas todo domingo de manhã.",
+    description: "",
     sport: "padel",
     match_format: "doubles",
     singles_group_type: null,
@@ -152,7 +178,7 @@ const BLUEPRINTS: GroupBlueprint[] = [
   },
   {
     name: "Padel Iniciantes Brasília",
-    description: "Grupo de iniciantes em Brasília — venha treinar com a gente!",
+    description: "",
     sport: "padel",
     match_format: "doubles",
     singles_group_type: null,
@@ -550,12 +576,15 @@ async function buildOneFictionalGroup(
   const { error: profErr } = await supabaseAdmin.from("user_profiles").insert(profileRows);
   if (profErr) throw new Error(`profiles: ${profErr.message}`);
 
-  // 2) Cria o grupo
+  // 2) Cria o grupo (com foto aleatória do esporte)
+  const sportImages = SPORT_IMAGES[blueprint.sport] ?? [];
+  const imageUrl = sportImages.length > 0 ? pick(sportImages, rng) : null;
   const { data: groupInsert, error: groupErr } = await supabaseAdmin
     .from("groups")
     .insert({
       name: blueprint.name,
       description: blueprint.description,
+      image_url: imageUrl,
       sport: blueprint.sport,
       match_format: blueprint.match_format,
       singles_group_type: blueprint.singles_group_type,
