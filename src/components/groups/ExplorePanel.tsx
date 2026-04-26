@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { Search, Users, Globe, Lock, Filter, SlidersHorizontal, Compass, Crown, EyeOff, Copy, Loader2, Sparkles } from "lucide-react";
+import { Search, Users, Globe, Lock, Filter, SlidersHorizontal, Compass, Crown, EyeOff, Copy, Loader2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { usePublicGroups } from "@/hooks/use-groups";
 import { useAuth } from "@/hooks/use-auth";
@@ -137,7 +137,7 @@ export function ExplorePanel() {
     }
   };
 
-  const { realGroups, demoGroups } = useMemo(() => {
+  const allGroups = useMemo(() => {
     let list = groups.slice();
     if (sport !== "all") list = list.filter((g) => g.sport === sport);
     if (format !== "all") list = list.filter((g) => g.match_format === format);
@@ -152,12 +152,10 @@ export function ExplorePanel() {
     if (sort === "biggest") list.sort((a, b) => b.member_count - a.member_count);
     else if (sort === "smallest") list.sort((a, b) => a.member_count - b.member_count);
     // newest is the default order from the API
-    const real = list.filter((g) => !(g as any).is_fictional);
-    const demo = list.filter((g) => (g as any).is_fictional);
-    return { realGroups: real, demoGroups: demo };
+    return list;
   }, [groups, sport, format, size, sort]);
 
-  const filteredCount = realGroups.length + demoGroups.length;
+  const filteredCount = allGroups.length;
 
   return (
     <div className="space-y-4">
@@ -264,45 +262,16 @@ export function ExplorePanel() {
             <p className="mt-1 text-xs text-muted-foreground">Tente ajustar os filtros ou a busca.</p>
           </div>
         ) : (
-          <div className="space-y-5">
-            {realGroups.length > 0 && (
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                {realGroups.map((g) => (
-                  <GroupCard
-                    key={g.id}
-                    g={g}
-                    copyingId={copyingId}
-                    inviteInfoById={inviteInfoById}
-                    onCopyInvite={handleCopyInvite}
-                  />
-                ))}
-              </div>
-            )}
-
-            {demoGroups.length > 0 && (
-              <div>
-                <div className="mb-2 flex items-center gap-2 px-1">
-                  <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground ring-1 ring-border">
-                    <Sparkles className="h-2.5 w-2.5" />
-                    Demo
-                  </span>
-                  <p className="text-[11px] text-muted-foreground">
-                    Grupos de exemplo para você ver como o RankMyMatch funciona.
-                  </p>
-                </div>
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                  {demoGroups.map((g) => (
-                    <GroupCard
-                      key={g.id}
-                      g={g}
-                      copyingId={copyingId}
-                      inviteInfoById={inviteInfoById}
-                      onCopyInvite={handleCopyInvite}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            {allGroups.map((g) => (
+              <GroupCard
+                key={g.id}
+                g={g}
+                copyingId={copyingId}
+                inviteInfoById={inviteInfoById}
+                onCopyInvite={handleCopyInvite}
+              />
+            ))}
           </div>
         )}
       </div>
@@ -322,7 +291,6 @@ function GroupCard({
   onCopyInvite: (e: React.MouseEvent, groupId: string, canInvite: boolean) => void;
 }) {
   const isHiddenAdmin = g.is_hidden_admin === true;
-  const isFictional = g.is_fictional === true;
   return (
     <Link
       to="/groups/$groupId"
@@ -330,9 +298,7 @@ function GroupCard({
       className={`group flex items-start gap-3 rounded-2xl border bg-card p-4 transition-all hover:border-primary/40 hover:shadow-lg active:scale-[0.99] ${
         isHiddenAdmin
           ? "border-dashed border-muted-foreground/40"
-          : isFictional
-            ? "border-border/60 bg-card/60"
-            : "border-border"
+          : "border-border"
       }`}
     >
       <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl bg-primary/10 ring-1 ring-primary/20">
@@ -355,12 +321,6 @@ function GroupCard({
           {isHiddenAdmin && (
             <span className="inline-flex flex-shrink-0 items-center gap-0.5 rounded-full bg-muted px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-muted-foreground ring-1 ring-border">
               Oculto
-            </span>
-          )}
-          {isFictional && (
-            <span className="inline-flex flex-shrink-0 items-center gap-0.5 rounded-full bg-muted px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-muted-foreground ring-1 ring-border">
-              <Sparkles className="h-2.5 w-2.5" />
-              Demo
             </span>
           )}
           {g.is_premium && (

@@ -40,12 +40,19 @@ export function FictionalGroupsTab() {
 
   const [confirmWipe, setConfirmWipe] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  const [roundsCount, setRoundsCount] = useState<number>(8);
+  const [simRoundsCount, setSimRoundsCount] = useState<number>(1);
+
+  const clampRounds = (n: number) => Math.max(1, Math.min(15, Math.floor(n || 1)));
 
   const generateMut = useMutation({
     mutationFn: async (wipeExisting: boolean) =>
-      gen({ headers: await getServerFnAuthHeaders(), data: { wipeExisting } }),
+      gen({
+        headers: await getServerFnAuthHeaders(),
+        data: { wipeExisting, roundsCount: clampRounds(roundsCount) },
+      }),
     onSuccess: (res) => {
-      toast.success(`${res.total} grupos gerados`);
+      toast.success(`${res.total} grupos gerados (${res.roundsPerGroup} rodadas cada)`);
       qc.invalidateQueries({ queryKey: ["fictional-groups"] });
     },
     onError: (e: Error) => toast.error(e.message),
@@ -72,9 +79,12 @@ export function FictionalGroupsTab() {
 
   const simMut = useMutation({
     mutationFn: async (groupId: string) =>
-      sim({ headers: await getServerFnAuthHeaders(), data: { groupId } }),
+      sim({
+        headers: await getServerFnAuthHeaders(),
+        data: { groupId, roundsCount: clampRounds(simRoundsCount) },
+      }),
     onSuccess: (res) => {
-      toast.success(`Rodada ${res.roundNumber} simulada (${res.matches} partidas)`);
+      toast.success(`${res.roundsSimulated} rodada(s) simulada(s) — ${res.matches} partidas`);
       qc.invalidateQueries({ queryKey: ["fictional-groups"] });
     },
     onError: (e: Error) => toast.error(e.message),
@@ -99,34 +109,46 @@ export function FictionalGroupsTab() {
             isolamento total dos dados reais.
           </CardDescription>
         </CardHeader>
-        <CardContent className="flex flex-wrap gap-2">
-          <Button
-            onClick={() => generateMut.mutate(false)}
-            disabled={generating || wiping}
-          >
-            {generating ? (
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            ) : (
-              <Sparkles className="h-4 w-4 mr-2" />
-            )}
-            Gerar 10 grupos
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => generateMut.mutate(true)}
-            disabled={generating || wiping}
-          >
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Recriar tudo (limpa antes)
-          </Button>
-          <Button
-            variant="destructive"
-            onClick={() => setConfirmWipe(true)}
-            disabled={generating || wiping || groups.length === 0}
-          >
-            <Trash2 className="h-4 w-4 mr-2" />
-            Apagar todos
-          </Button>
+        <CardContent className="space-y-3">
+          <div className="flex flex-wrap items-end gap-3">
+            <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
+              Rodadas concluídas por grupo (1–15)
+              <input
+                type="number"
+                min={1}
+                max={15}
+                value={roundsCount}
+                onChange={(e) => setRoundsCount(clampRounds(Number(e.target.value)))}
+                className="w-24 rounded-md border border-border bg-background px-2 py-1 text-sm text-foreground"
+              />
+            </label>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button onClick={() => generateMut.mutate(false)} disabled={generating || wiping}>
+              {generating ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Sparkles className="h-4 w-4 mr-2" />
+              )}
+              Gerar 10 grupos
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => generateMut.mutate(true)}
+              disabled={generating || wiping}
+            >
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Recriar tudo (limpa antes)
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => setConfirmWipe(true)}
+              disabled={generating || wiping || groups.length === 0}
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Apagar todos
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
@@ -141,7 +163,21 @@ export function FictionalGroupsTab() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <>
+          <div className="flex flex-wrap items-end gap-3 rounded-lg border border-border bg-card/40 p-3">
+            <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
+              Rodadas a simular por clique (1–15)
+              <input
+                type="number"
+                min={1}
+                max={15}
+                value={simRoundsCount}
+                onChange={(e) => setSimRoundsCount(clampRounds(Number(e.target.value)))}
+                className="w-24 rounded-md border border-border bg-background px-2 py-1 text-sm text-foreground"
+              />
+            </label>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {groups.map((g) => (
             <Card key={g.id} className="flex flex-col">
               <CardHeader className="pb-2">
@@ -182,7 +218,7 @@ export function FictionalGroupsTab() {
                     onClick={() => simMut.mutate(g.id)}
                     disabled={simMut.isPending}
                   >
-                    <Play className="h-3 w-3 mr-1" /> Simular rodada
+                    <Play className="h-3 w-3 mr-1" /> Simular {simRoundsCount} rodada{simRoundsCount > 1 ? "s" : ""}
                   </Button>
                   <Button
                     size="sm"
@@ -195,7 +231,8 @@ export function FictionalGroupsTab() {
               </CardContent>
             </Card>
           ))}
-        </div>
+          </div>
+        </>
       )}
 
       <AlertDialog open={confirmWipe} onOpenChange={setConfirmWipe}>
