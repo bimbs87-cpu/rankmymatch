@@ -505,6 +505,122 @@ function GroupForm({
         </div>
       )}
 
+      {/* Retroactive season */}
+      <div className="rounded-2xl border border-border bg-background/50 p-3">
+        <button
+          type="button"
+          onClick={() => setCreateRetroSeason(!createRetroSeason)}
+          className="flex w-full items-start gap-3 text-left"
+        >
+          <div className={`mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded border-2 transition-colors ${createRetroSeason ? "border-primary bg-primary" : "border-border"}`}>
+            {createRetroSeason && <span className="text-[10px] font-bold text-primary-foreground">✓</span>}
+          </div>
+          <div className="flex-1">
+            <div className="flex items-center gap-2">
+              <History className="h-3.5 w-3.5 text-muted-foreground" />
+              <span className="text-xs font-semibold text-foreground">Temporada já encerrada ou em andamento</span>
+            </div>
+            <p className="mt-0.5 text-[11px] text-muted-foreground">
+              Cria a estrutura (rodadas com datas passadas). Você lança os resultados depois.
+            </p>
+          </div>
+        </button>
+
+        {createRetroSeason && (
+          <div className="mt-3 space-y-3 border-t border-border pt-3">
+            <div>
+              <label className="mb-1 block text-[11px] font-medium text-muted-foreground">Nome da temporada *</label>
+              <input
+                value={retroSeasonName}
+                onChange={(e) => setRetroSeasonName(e.target.value)}
+                placeholder="Ex: Temporada 2024"
+                maxLength={60}
+                className="w-full rounded-xl border border-border bg-background px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="mb-1 block text-[11px] font-medium text-muted-foreground">Início *</label>
+                <input
+                  type="date"
+                  value={retroStartDate}
+                  onChange={(e) => setRetroStartDate(e.target.value)}
+                  className="w-full rounded-xl border border-border bg-background px-3 py-2 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-[11px] font-medium text-muted-foreground">Encerramento *</label>
+                <input
+                  type="date"
+                  value={retroEndDate}
+                  onChange={(e) => setRetroEndDate(e.target.value)}
+                  className="w-full rounded-xl border border-border bg-background px-3 py-2 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="mb-1 block text-[11px] font-medium text-muted-foreground">Quantas rodadas tiveram? *</label>
+              <input
+                type="number"
+                min={1}
+                max={200}
+                value={retroTotalRounds}
+                onChange={(e) => setRetroTotalRounds(Math.max(1, Number(e.target.value) || 1))}
+                className="w-full rounded-xl border border-border bg-background px-3 py-2 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-[11px] font-medium text-muted-foreground">Distribuição das datas</label>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setRetroSpacing("fixed_weekday")}
+                  className={`flex-1 rounded-xl border px-2 py-2 text-[11px] font-medium transition-colors ${
+                    retroSpacing === "fixed_weekday"
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "border-border bg-background text-muted-foreground"
+                  }`}
+                >
+                  Dia fixo da semana
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRetroSpacing("evenly")}
+                  className={`flex-1 rounded-xl border px-2 py-2 text-[11px] font-medium transition-colors ${
+                    retroSpacing === "evenly"
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "border-border bg-background text-muted-foreground"
+                  }`}
+                >
+                  Distribuir uniformemente
+                </button>
+              </div>
+            </div>
+            {retroSpacing === "fixed_weekday" && (
+              <div>
+                <label className="mb-1 block text-[11px] font-medium text-muted-foreground">Dia da semana</label>
+                <div className="grid grid-cols-7 gap-1">
+                  {["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"].map((label, idx) => (
+                    <button
+                      type="button"
+                      key={label}
+                      onClick={() => setRetroWeekday(idx)}
+                      className={`rounded-lg border py-1.5 text-[10px] font-semibold transition-colors ${
+                        retroWeekday === idx
+                          ? "border-primary bg-primary/10 text-primary"
+                          : "border-border bg-background text-muted-foreground"
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
       <button
         onClick={onSubmit}
         disabled={!name.trim() || submitting}
