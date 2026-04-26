@@ -109,34 +109,46 @@ export function FictionalGroupsTab() {
             isolamento total dos dados reais.
           </CardDescription>
         </CardHeader>
-        <CardContent className="flex flex-wrap gap-2">
-          <Button
-            onClick={() => generateMut.mutate(false)}
-            disabled={generating || wiping}
-          >
-            {generating ? (
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            ) : (
-              <Sparkles className="h-4 w-4 mr-2" />
-            )}
-            Gerar 10 grupos
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => generateMut.mutate(true)}
-            disabled={generating || wiping}
-          >
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Recriar tudo (limpa antes)
-          </Button>
-          <Button
-            variant="destructive"
-            onClick={() => setConfirmWipe(true)}
-            disabled={generating || wiping || groups.length === 0}
-          >
-            <Trash2 className="h-4 w-4 mr-2" />
-            Apagar todos
-          </Button>
+        <CardContent className="space-y-3">
+          <div className="flex flex-wrap items-end gap-3">
+            <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
+              Rodadas concluídas por grupo (1–15)
+              <input
+                type="number"
+                min={1}
+                max={15}
+                value={roundsCount}
+                onChange={(e) => setRoundsCount(clampRounds(Number(e.target.value)))}
+                className="w-24 rounded-md border border-border bg-background px-2 py-1 text-sm text-foreground"
+              />
+            </label>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button onClick={() => generateMut.mutate(false)} disabled={generating || wiping}>
+              {generating ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Sparkles className="h-4 w-4 mr-2" />
+              )}
+              Gerar 10 grupos
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => generateMut.mutate(true)}
+              disabled={generating || wiping}
+            >
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Recriar tudo (limpa antes)
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => setConfirmWipe(true)}
+              disabled={generating || wiping || groups.length === 0}
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Apagar todos
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
