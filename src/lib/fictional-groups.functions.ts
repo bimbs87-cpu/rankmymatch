@@ -295,12 +295,13 @@ async function deleteInChunks(
   table: string,
   column: string,
   ids: string[],
-  extraEq?: { col: string; val: unknown }
+  extraEq?: { col: string; val: string | number | boolean }
 ) {
   const CHUNK = 200;
   for (let i = 0; i < ids.length; i += CHUNK) {
     const slice = ids.slice(i, i + CHUNK);
-    let q = supabaseAdmin.from(table as never).delete().in(column, slice);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let q: any = supabaseAdmin.from(table as never).delete().in(column, slice);
     if (extraEq) q = q.eq(extraEq.col, extraEq.val);
     const { error } = await q;
     if (error) console.error(`[fictional] delete ${table} chunk failed`, error.message);
