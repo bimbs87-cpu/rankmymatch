@@ -16,6 +16,7 @@ import { getDevDashboard } from "@/lib/dev-dashboard.functions";
 import { sendMonthlyReportNow } from "@/lib/monthly-report.functions";
 import { FunnelSankeyCard, type SankeyData } from "@/components/dev/FunnelSankeyCard";
 import { TopDropSegmentsCard, type DropSegmentRow } from "@/components/dev/TopDropSegmentsCard";
+import { FictionalGroupsTab } from "@/components/dev/FictionalGroupsTab";
 import { toast } from "sonner";
 import { FileText, Send } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -131,12 +132,13 @@ function DevDashboardPage() {
 
       <main className="mx-auto max-w-7xl px-4 py-6">
         <Tabs defaultValue="overview" className="w-full">
-          <TabsList className="mb-6 grid w-full grid-cols-3 sm:grid-cols-6 max-w-3xl">
+          <TabsList className="mb-6 grid w-full grid-cols-3 sm:grid-cols-7 max-w-4xl">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="signups">Cadastros</TabsTrigger>
             <TabsTrigger value="acquisition">Aquisição</TabsTrigger>
             <TabsTrigger value="funnel">Funil</TabsTrigger>
             <TabsTrigger value="retention">Retenção</TabsTrigger>
+            <TabsTrigger value="fictional">Fictícios</TabsTrigger>
             <TabsTrigger value="changelog">Changelog</TabsTrigger>
           </TabsList>
 
@@ -158,6 +160,10 @@ function DevDashboardPage() {
 
           <TabsContent value="retention">
             <RetentionTab cohorts={data.cohorts} />
+          </TabsContent>
+
+          <TabsContent value="fictional">
+            <FictionalGroupsTab />
           </TabsContent>
 
           <TabsContent value="changelog">
