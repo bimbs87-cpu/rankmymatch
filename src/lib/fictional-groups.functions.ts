@@ -806,12 +806,13 @@ async function buildOneFictionalGroup(
   for (let i = 0; i < totalPlayers; i++) {
     const fullName = genFullName(usedNames, rng);
     const linked = linkedFlags[i];
+    const avatar = linked ? genLinkedAvatar(rng) : null;
     profileRows.push({
       user_id: randUuid(),
       name: fullName,
       nickname: linked ? genNickname(fullName, usedNicks, rng) : null,
-      avatar_url: linked ? genDicebearUrl(fullName, rng) : null,
-      avatar_type: linked ? "preset" : null,
+      avatar_url: avatar?.url ?? null,
+      avatar_type: avatar?.type ?? null,
       is_placeholder: !linked,
       created_by_admin: callerUserId,
     });
