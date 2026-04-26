@@ -8,6 +8,7 @@ import {
   deleteFictionalGroup,
   simulateRoundForFictional,
 } from "@/lib/fictional-groups.functions";
+import { getServerFnAuthHeaders } from "@/lib/server-fn-auth";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -34,14 +35,15 @@ export function FictionalGroupsTab() {
 
   const { data, isLoading } = useQuery({
     queryKey: ["fictional-groups"],
-    queryFn: () => list(),
+    queryFn: async () => list({ headers: await getServerFnAuthHeaders() }),
   });
 
   const [confirmWipe, setConfirmWipe] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
 
   const generateMut = useMutation({
-    mutationFn: (wipeExisting: boolean) => gen({ data: { wipeExisting } }),
+    mutationFn: async (wipeExisting: boolean) =>
+      gen({ headers: await getServerFnAuthHeaders(), data: { wipeExisting } }),
     onSuccess: (res) => {
       toast.success(`${res.total} grupos gerados`);
       qc.invalidateQueries({ queryKey: ["fictional-groups"] });
@@ -50,7 +52,7 @@ export function FictionalGroupsTab() {
   });
 
   const wipeMut = useMutation({
-    mutationFn: () => delAll(),
+    mutationFn: async () => delAll({ headers: await getServerFnAuthHeaders() }),
     onSuccess: (res) => {
       toast.success(`${res.deletedGroups} grupos removidos`);
       qc.invalidateQueries({ queryKey: ["fictional-groups"] });
@@ -59,7 +61,8 @@ export function FictionalGroupsTab() {
   });
 
   const delOneMut = useMutation({
-    mutationFn: (groupId: string) => delOne({ data: { groupId } }),
+    mutationFn: async (groupId: string) =>
+      delOne({ headers: await getServerFnAuthHeaders(), data: { groupId } }),
     onSuccess: () => {
       toast.success("Grupo removido");
       qc.invalidateQueries({ queryKey: ["fictional-groups"] });
@@ -68,7 +71,8 @@ export function FictionalGroupsTab() {
   });
 
   const simMut = useMutation({
-    mutationFn: (groupId: string) => sim({ data: { groupId } }),
+    mutationFn: async (groupId: string) =>
+      sim({ headers: await getServerFnAuthHeaders(), data: { groupId } }),
     onSuccess: (res) => {
       toast.success(`Rodada ${res.roundNumber} simulada (${res.matches} partidas)`);
       qc.invalidateQueries({ queryKey: ["fictional-groups"] });
