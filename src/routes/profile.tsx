@@ -590,8 +590,12 @@ function ProfilePage() {
                 right={<span className="text-xs text-muted-foreground">{theme === "system" ? "Sistema" : theme === "dark" ? "Escuro" : "Claro"}</span>}
                 onClick={cycleTheme}
               />
-              {canInstall && !isInstalled ? (
-                <MenuItem icon={<Download className="h-4 w-4 text-muted-foreground" />} label={isIos ? "Instalar (iOS)" : "Instalar app"} onClick={startInstall} />
+              {!isInstalled ? (
+                <MenuItem
+                  icon={<Download className="h-4 w-4 text-muted-foreground" />}
+                  label={canInstall ? (isIos ? "Instalar (iOS)" : "Instalar app") : "Como instalar o app"}
+                  onClick={canInstall ? startInstall : () => setInstallInstructionsOpen(true)}
+                />
               ) : null}
               <MenuItemLink to="/privacidade" icon={<ShieldCheck className="h-4 w-4 text-muted-foreground" />} label="Política de Privacidade" />
               <MenuItemLink to="/termos" icon={<FileText className="h-4 w-4 text-muted-foreground" />} label="Termos de Uso" />
@@ -600,10 +604,47 @@ function ProfilePage() {
                 <LogOut className="h-4 w-4" />
                 <span className="flex-1 text-sm font-medium">Sair da conta</span>
               </button>
-              <button onClick={() => setDeleteOpen(true)} className="flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-destructive transition-colors hover:bg-destructive/10">
-                <Trash2 className="h-4 w-4" />
-                <span className="flex-1 text-sm font-medium">Excluir minha conta</span>
+
+              {/* Zona de perigo — exclusão progressiva (4 cliques) */}
+              <button
+                onClick={() => {
+                  setDangerZoneOpen((v) => !v);
+                  if (dangerZoneOpen) setDangerExpanded(false);
+                }}
+                className="mt-2 flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-muted-foreground transition-colors hover:bg-accent"
+              >
+                <ShieldAlert className="h-4 w-4" />
+                <span className="flex-1 text-sm font-medium">Configurações avançadas da conta</span>
+                <ChevronDown className={`h-4 w-4 transition-transform ${dangerZoneOpen ? "rotate-180" : ""}`} />
               </button>
+
+              {dangerZoneOpen && (
+                <div className="mx-1 mt-1 space-y-2 rounded-2xl border border-destructive/30 bg-destructive/5 p-3">
+                  <div className="flex items-start gap-2 text-xs text-muted-foreground">
+                    <AlertTriangle className="h-4 w-4 shrink-0 text-destructive" />
+                    <p>
+                      <strong className="text-destructive">Zona de perigo.</strong> Ações abaixo são
+                      permanentes e podem ser irreversíveis.
+                    </p>
+                  </div>
+                  {!dangerExpanded ? (
+                    <button
+                      onClick={() => setDangerExpanded(true)}
+                      className="w-full rounded-xl border border-destructive/40 bg-card px-4 py-2.5 text-xs font-semibold text-destructive transition-colors hover:bg-destructive/10"
+                    >
+                      Mostrar opção de excluir conta
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => setDeleteOpen(true)}
+                      className="flex w-full items-center gap-3 rounded-xl border border-destructive/60 bg-destructive/10 px-4 py-3 text-left text-destructive transition-colors hover:bg-destructive/20"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      <span className="flex-1 text-sm font-bold">Excluir minha conta</span>
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           </>
         }
