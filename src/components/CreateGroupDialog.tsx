@@ -133,7 +133,9 @@ export function CreateGroupDialog({ open, onClose }: Props) {
       const group = await createGroup({
         name: name.trim(),
         description: description.trim(),
-        is_public: isPublic,
+        visibility,
+        is_public: visibility === "public",
+        requires_approval: true,
         max_players: maxPlayers,
         sport,
         userId: user.id,
@@ -177,7 +179,7 @@ export function CreateGroupDialog({ open, onClose }: Props) {
       onClose();
       toast.success("Grupo criado com sucesso!");
       void import("@/lib/analytics").then(({ trackConversion }) =>
-        trackConversion("create_group", { sport, match_format: matchFormat, is_public: isPublic, group_id: group.id }),
+        trackConversion("create_group", { sport, match_format: matchFormat, visibility, group_id: group.id }),
       );
       void import("@/lib/onboarding-events").then(({ trackOnboardingStep }) =>
         trackOnboardingStep("created_first_group", { group_id: group.id, sport }),
@@ -235,8 +237,8 @@ export function CreateGroupDialog({ open, onClose }: Props) {
               setName={setName}
               description={description}
               setDescription={setDescription}
-              isPublic={isPublic}
-              setIsPublic={setIsPublic}
+              visibility={visibility}
+              setVisibility={setVisibility}
               maxPlayers={maxPlayers}
               setMaxPlayers={setMaxPlayers}
               sport={sport}
