@@ -40,12 +40,19 @@ export function FictionalGroupsTab() {
 
   const [confirmWipe, setConfirmWipe] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  const [roundsCount, setRoundsCount] = useState<number>(8);
+  const [simRoundsCount, setSimRoundsCount] = useState<number>(1);
+
+  const clampRounds = (n: number) => Math.max(1, Math.min(15, Math.floor(n || 1)));
 
   const generateMut = useMutation({
     mutationFn: async (wipeExisting: boolean) =>
-      gen({ headers: await getServerFnAuthHeaders(), data: { wipeExisting } }),
+      gen({
+        headers: await getServerFnAuthHeaders(),
+        data: { wipeExisting, roundsCount: clampRounds(roundsCount) },
+      }),
     onSuccess: (res) => {
-      toast.success(`${res.total} grupos gerados`);
+      toast.success(`${res.total} grupos gerados (${res.roundsPerGroup} rodadas cada)`);
       qc.invalidateQueries({ queryKey: ["fictional-groups"] });
     },
     onError: (e: Error) => toast.error(e.message),
@@ -72,9 +79,12 @@ export function FictionalGroupsTab() {
 
   const simMut = useMutation({
     mutationFn: async (groupId: string) =>
-      sim({ headers: await getServerFnAuthHeaders(), data: { groupId } }),
+      sim({
+        headers: await getServerFnAuthHeaders(),
+        data: { groupId, roundsCount: clampRounds(simRoundsCount) },
+      }),
     onSuccess: (res) => {
-      toast.success(`Rodada ${res.roundNumber} simulada (${res.matches} partidas)`);
+      toast.success(`${res.roundsSimulated} rodada(s) simulada(s) — ${res.matches} partidas`);
       qc.invalidateQueries({ queryKey: ["fictional-groups"] });
     },
     onError: (e: Error) => toast.error(e.message),
