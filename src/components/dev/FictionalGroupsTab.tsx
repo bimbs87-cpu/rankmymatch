@@ -218,7 +218,7 @@ export function FictionalGroupsTab() {
                     onClick={() => simMut.mutate(g.id)}
                     disabled={simMut.isPending}
                   >
-                    <Play className="h-3 w-3 mr-1" /> Simular rodada
+                    <Play className="h-3 w-3 mr-1" /> Simular {simRoundsCount} rodada{simRoundsCount > 1 ? "s" : ""}
                   </Button>
                   <Button
                     size="sm"
