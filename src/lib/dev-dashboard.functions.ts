@@ -537,15 +537,24 @@ export const getDevDashboard = createServerFn({ method: "GET" })
     };
 
     const thirtyDaysAgo = new Date(now - 30 * dayMs).toISOString();
-    const { data: visitsRaw } = await supabaseAdmin
-      .from("page_visits")
-      .select(
-        "session_id, user_id, path, referrer_host, utm_source, utm_medium, utm_campaign, invite_code, is_first_visit, device_type, created_at"
-      )
-      .gte("created_at", thirtyDaysAgo)
-      .order("created_at", { ascending: false })
-      .limit(50000);
-    const visits: VisitRow[] = (visitsRaw ?? []) as VisitRow[];
+    // Paginação manual: PostgREST aplica max-rows (~1000) mesmo com .limit() maior.
+    // Usamos .range() em páginas até esgotar.
+    const visits: VisitRow[] = [];
+    const PAGE_SIZE = 1000;
+    for (let from = 0; from < 100000; from += PAGE_SIZE) {
+      const { data: pageRows, error: pageErr } = await supabaseAdmin
+        .from("page_visits")
+        .select(
+          "session_id, user_id, path, referrer_host, utm_source, utm_medium, utm_campaign, invite_code, is_first_visit, device_type, created_at"
+        )
+        .gte("created_at", thirtyDaysAgo)
+        .order("created_at", { ascending: false })
+        .range(from, from + PAGE_SIZE - 1);
+      if (pageErr) break;
+      const rows = (pageRows ?? []) as VisitRow[];
+      visits.push(...rows);
+      if (rows.length < PAGE_SIZE) break;
+    }
 
     const visits24h = visits.filter(
       (v) => now - new Date(v.created_at).getTime() < dayMs
