@@ -594,6 +594,68 @@ function GroupDetailPage() {
         isAdmin={isAdmin}
       />
 
+      {/* Visitor CTA + dialogs for non-members on public groups */}
+      {showVisitorCta && (
+        <>
+          <div className="pointer-events-none fixed inset-x-0 bottom-24 z-40 flex justify-center px-4 lg:bottom-6">
+            <div className="pointer-events-auto flex items-center gap-2 rounded-2xl border border-border bg-card/95 px-3 py-2 shadow-2xl backdrop-blur">
+              <span className="hidden text-xs font-medium text-muted-foreground sm:inline">
+                Quer participar?
+              </span>
+              {isAuthenticated ? (
+                <>
+                  <button
+                    onClick={() => setJoinDialogOpen(true)}
+                    className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-3 py-2 text-xs font-bold text-primary-foreground transition hover:opacity-90"
+                  >
+                    <UserPlus className="h-3.5 w-3.5" />
+                    Solicitar entrada
+                  </button>
+                  {hasPlaceholders && (
+                    <button
+                      onClick={() => setClaimOpen(true)}
+                      className="inline-flex items-center gap-1.5 rounded-xl border border-primary/40 bg-primary/10 px-3 py-2 text-xs font-bold text-primary transition hover:bg-primary/20"
+                    >
+                      <Link2 className="h-3.5 w-3.5" />
+                      Vincular
+                    </button>
+                  )}
+                </>
+              ) : (
+                <Link
+                  to="/login"
+                  search={{ redirect: `/groups/${groupId}` }}
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-3 py-2 text-xs font-bold text-primary-foreground transition hover:opacity-90"
+                >
+                  <UserPlus className="h-3.5 w-3.5" />
+                  Entrar para participar
+                </Link>
+              )}
+            </div>
+          </div>
+
+          {user && (
+            <JoinGroupDialog
+              open={joinDialogOpen}
+              onOpenChange={setJoinDialogOpen}
+              groupId={groupId}
+              isPublicGroup={group.is_public}
+              userId={user.id}
+              onJoined={refresh}
+            />
+          )}
+          {user && (
+            <ClaimPlayerDialog
+              open={claimOpen}
+              onOpenChange={setClaimOpen}
+              groupId={groupId}
+              claimerUserId={user.id}
+              onClaimed={refresh}
+            />
+          )}
+        </>
+      )}
+
       {/* Leave dialog */}
       {leaveDialogOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
