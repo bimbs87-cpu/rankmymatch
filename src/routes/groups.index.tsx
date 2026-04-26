@@ -8,8 +8,11 @@ import { TrophyLoadingBar } from "@/components/TrophyLoadingBar";
 import { GroupSidebar } from "@/components/groups/GroupSidebar";
 import { GroupDashboardPanel } from "@/components/groups/GroupDashboardPanel";
 import { ExplorePanel } from "@/components/groups/ExplorePanel";
+import { OnboardingNoGroupScreen } from "@/components/onboarding/OnboardingNoGroupScreen";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Menu, Plus, Compass, Users } from "lucide-react";
+
+const ONBOARDING_SKIP_KEY = "rmm-onboarding-skipped";
 
 export const Route = createFileRoute("/groups/")({
   component: GroupsIndexPage,
