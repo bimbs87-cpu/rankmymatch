@@ -2,10 +2,11 @@ import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { createGroup } from "@/hooks/use-groups";
 import { useNavigate } from "@tanstack/react-router";
-import { X, Globe, Lock, Users, UserRound, ArrowLeft } from "lucide-react";
+import { X, Globe, Lock, Users, UserRound, ArrowLeft, History } from "lucide-react";
 import { toast } from "sonner";
 import { GroupImageUpload } from "@/components/GroupImageUpload";
 import { supabase } from "@/integrations/supabase/client";
+import { createRetroactiveSeason, type RetroactiveSpacing } from "@/lib/retroactive-season";
 
 interface Props {
   open: boolean;
@@ -43,6 +44,15 @@ export function CreateGroupDialog({ open, onClose }: Props) {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
+  // Retroactive season fields
+  const [createRetroSeason, setCreateRetroSeason] = useState(false);
+  const [retroSeasonName, setRetroSeasonName] = useState("");
+  const [retroStartDate, setRetroStartDate] = useState("");
+  const [retroEndDate, setRetroEndDate] = useState("");
+  const [retroTotalRounds, setRetroTotalRounds] = useState<number>(8);
+  const [retroSpacing, setRetroSpacing] = useState<RetroactiveSpacing>("fixed_weekday");
+  const [retroWeekday, setRetroWeekday] = useState<number>(3); // Wed default
+
   if (!open) return null;
 
   const resetForm = () => {
@@ -55,6 +65,13 @@ export function CreateGroupDialog({ open, onClose }: Props) {
     setMaxPlayers(20);
     setSport("padel");
     setImageUrl(null);
+    setCreateRetroSeason(false);
+    setRetroSeasonName("");
+    setRetroStartDate("");
+    setRetroEndDate("");
+    setRetroTotalRounds(8);
+    setRetroSpacing("fixed_weekday");
+    setRetroWeekday(3);
   };
 
   const handleSelectFormat = (format: MatchFormat) => {
@@ -90,6 +107,25 @@ export function CreateGroupDialog({ open, onClose }: Props) {
   const handleSubmit = async () => {
     if (!name.trim() || !user || submitting) return;
 
+    if (createRetroSeason) {
+      if (!retroSeasonName.trim()) {
+        toast.error("Informe um nome para a temporada.");
+        return;
+      }
+      if (!retroStartDate || !retroEndDate) {
+        toast.error("Informe as datas de início e encerramento.");
+        return;
+      }
+      if (retroEndDate < retroStartDate) {
+        toast.error("A data de encerramento deve ser igual ou após o início.");
+        return;
+      }
+      if (!retroTotalRounds || retroTotalRounds < 1) {
+        toast.error("Informe quantas rodadas houve na temporada.");
+        return;
+      }
+    }
+
     setSubmitting(true);
 
     try {
@@ -111,6 +147,29 @@ export function CreateGroupDialog({ open, onClose }: Props) {
           .eq("id", group.id);
 
         if (updateImageError) throw updateImageError;
+      }
+
+      if (createRetroSeason && group) {
+        try {
+          await createRetroactiveSeason({
+            groupId: group.id,
+            userId: user.id,
+            matchFormat,
+            singlesGroupType: matchFormat === "singles" ? singlesGroupType : null,
+            simultaneousCourts: 1,
+            maxPlayers,
+            name: retroSeasonName.trim(),
+            startDate: retroStartDate,
+            endDate: retroEndDate,
+            totalRounds: retroTotalRounds,
+            spacing: retroSpacing,
+            fixedWeekday: retroSpacing === "fixed_weekday" ? retroWeekday : undefined,
+          });
+          toast.success("Temporada retroativa criada! Lance os resultados em cada rodada.");
+        } catch (seasonErr: any) {
+          console.error("Erro ao criar temporada retroativa:", seasonErr);
+          toast.error(seasonErr?.message || "Grupo criado, mas falhou ao criar a temporada.");
+        }
       }
 
       resetForm();
@@ -185,6 +244,20 @@ export function CreateGroupDialog({ open, onClose }: Props) {
               setImageUrl={setImageUrl}
               submitting={submitting}
               onSubmit={handleSubmit}
+              createRetroSeason={createRetroSeason}
+              setCreateRetroSeason={setCreateRetroSeason}
+              retroSeasonName={retroSeasonName}
+              setRetroSeasonName={setRetroSeasonName}
+              retroStartDate={retroStartDate}
+              setRetroStartDate={setRetroStartDate}
+              retroEndDate={retroEndDate}
+              setRetroEndDate={setRetroEndDate}
+              retroTotalRounds={retroTotalRounds}
+              setRetroTotalRounds={setRetroTotalRounds}
+              retroSpacing={retroSpacing}
+              setRetroSpacing={setRetroSpacing}
+              retroWeekday={retroWeekday}
+              setRetroWeekday={setRetroWeekday}
             />
           )}
         </div>
@@ -208,7 +281,7 @@ function FormatSelection({ onSelect }: { onSelect: (format: MatchFormat) => void
         <div>
           <h3 className="font-display text-sm font-bold text-foreground">Duplas (2x2)</h3>
           <p className="mt-0.5 text-xs text-muted-foreground">4 jogadores por partida</p>
-          <p className="mt-0.5 text-xs text-muted-foreground/70">Formato padrão de padel</p>
+          <p className="mt-0.5 text-xs text-muted-foreground/70">Formato padrão de duplas em tênis, padel, beach tennis e pickleball</p>
         </div>
       </button>
 
@@ -269,6 +342,20 @@ interface GroupFormProps {
   setImageUrl: (v: string | null) => void;
   submitting: boolean;
   onSubmit: () => void;
+  createRetroSeason: boolean;
+  setCreateRetroSeason: (v: boolean) => void;
+  retroSeasonName: string;
+  setRetroSeasonName: (v: string) => void;
+  retroStartDate: string;
+  setRetroStartDate: (v: string) => void;
+  retroEndDate: string;
+  setRetroEndDate: (v: string) => void;
+  retroTotalRounds: number;
+  setRetroTotalRounds: (v: number) => void;
+  retroSpacing: RetroactiveSpacing;
+  setRetroSpacing: (v: RetroactiveSpacing) => void;
+  retroWeekday: number;
+  setRetroWeekday: (v: number) => void;
 }
 
 function GroupForm({
@@ -282,6 +369,13 @@ function GroupForm({
   imageUrl, setImageUrl,
   submitting,
   onSubmit,
+  createRetroSeason, setCreateRetroSeason,
+  retroSeasonName, setRetroSeasonName,
+  retroStartDate, setRetroStartDate,
+  retroEndDate, setRetroEndDate,
+  retroTotalRounds, setRetroTotalRounds,
+  retroSpacing, setRetroSpacing,
+  retroWeekday, setRetroWeekday,
 }: GroupFormProps) {
   const isSingles = matchFormat === "singles";
   const formatLabel = isSingles ? "Singles (1x1)" : "Duplas (2x2)";
@@ -410,6 +504,122 @@ function GroupForm({
           </div>
         </div>
       )}
+
+      {/* Retroactive season */}
+      <div className="rounded-2xl border border-border bg-background/50 p-3">
+        <button
+          type="button"
+          onClick={() => setCreateRetroSeason(!createRetroSeason)}
+          className="flex w-full items-start gap-3 text-left"
+        >
+          <div className={`mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded border-2 transition-colors ${createRetroSeason ? "border-primary bg-primary" : "border-border"}`}>
+            {createRetroSeason && <span className="text-[10px] font-bold text-primary-foreground">✓</span>}
+          </div>
+          <div className="flex-1">
+            <div className="flex items-center gap-2">
+              <History className="h-3.5 w-3.5 text-muted-foreground" />
+              <span className="text-xs font-semibold text-foreground">Temporada já encerrada ou em andamento</span>
+            </div>
+            <p className="mt-0.5 text-[11px] text-muted-foreground">
+              Cria a estrutura (rodadas com datas passadas). Você lança os resultados depois.
+            </p>
+          </div>
+        </button>
+
+        {createRetroSeason && (
+          <div className="mt-3 space-y-3 border-t border-border pt-3">
+            <div>
+              <label className="mb-1 block text-[11px] font-medium text-muted-foreground">Nome da temporada *</label>
+              <input
+                value={retroSeasonName}
+                onChange={(e) => setRetroSeasonName(e.target.value)}
+                placeholder="Ex: Temporada 2024"
+                maxLength={60}
+                className="w-full rounded-xl border border-border bg-background px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="mb-1 block text-[11px] font-medium text-muted-foreground">Início *</label>
+                <input
+                  type="date"
+                  value={retroStartDate}
+                  onChange={(e) => setRetroStartDate(e.target.value)}
+                  className="w-full rounded-xl border border-border bg-background px-3 py-2 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-[11px] font-medium text-muted-foreground">Encerramento *</label>
+                <input
+                  type="date"
+                  value={retroEndDate}
+                  onChange={(e) => setRetroEndDate(e.target.value)}
+                  className="w-full rounded-xl border border-border bg-background px-3 py-2 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="mb-1 block text-[11px] font-medium text-muted-foreground">Quantas rodadas tiveram? *</label>
+              <input
+                type="number"
+                min={1}
+                max={200}
+                value={retroTotalRounds}
+                onChange={(e) => setRetroTotalRounds(Math.max(1, Number(e.target.value) || 1))}
+                className="w-full rounded-xl border border-border bg-background px-3 py-2 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-[11px] font-medium text-muted-foreground">Distribuição das datas</label>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setRetroSpacing("fixed_weekday")}
+                  className={`flex-1 rounded-xl border px-2 py-2 text-[11px] font-medium transition-colors ${
+                    retroSpacing === "fixed_weekday"
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "border-border bg-background text-muted-foreground"
+                  }`}
+                >
+                  Dia fixo da semana
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRetroSpacing("evenly")}
+                  className={`flex-1 rounded-xl border px-2 py-2 text-[11px] font-medium transition-colors ${
+                    retroSpacing === "evenly"
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "border-border bg-background text-muted-foreground"
+                  }`}
+                >
+                  Distribuir uniformemente
+                </button>
+              </div>
+            </div>
+            {retroSpacing === "fixed_weekday" && (
+              <div>
+                <label className="mb-1 block text-[11px] font-medium text-muted-foreground">Dia da semana</label>
+                <div className="grid grid-cols-7 gap-1">
+                  {["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"].map((label, idx) => (
+                    <button
+                      type="button"
+                      key={label}
+                      onClick={() => setRetroWeekday(idx)}
+                      className={`rounded-lg border py-1.5 text-[10px] font-semibold transition-colors ${
+                        retroWeekday === idx
+                          ? "border-primary bg-primary/10 text-primary"
+                          : "border-border bg-background text-muted-foreground"
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
 
       <button
         onClick={onSubmit}
