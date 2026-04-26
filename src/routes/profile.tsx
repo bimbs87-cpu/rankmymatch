@@ -20,6 +20,7 @@ import { toast } from "sonner";
 import {
   LogOut,
   ChevronRight,
+  ChevronDown,
   Settings,
   Award,
   History,
@@ -36,6 +37,8 @@ import {
   Sparkles,
   Trash2,
   ShieldCheck,
+  ShieldAlert,
+  AlertTriangle,
   FileText,
   X as XIcon,
 } from "lucide-react";
