@@ -208,7 +208,7 @@ function FormatSelection({ onSelect }: { onSelect: (format: MatchFormat) => void
         <div>
           <h3 className="font-display text-sm font-bold text-foreground">Duplas (2x2)</h3>
           <p className="mt-0.5 text-xs text-muted-foreground">4 jogadores por partida</p>
-          <p className="mt-0.5 text-xs text-muted-foreground/70">Formato padrão de padel</p>
+          <p className="mt-0.5 text-xs text-muted-foreground/70">Formato padrão de duplas em tênis, padel, beach tennis e pickleball</p>
         </div>
       </button>
 
