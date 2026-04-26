@@ -8,8 +8,11 @@ import { TrophyLoadingBar } from "@/components/TrophyLoadingBar";
 import { GroupSidebar } from "@/components/groups/GroupSidebar";
 import { GroupDashboardPanel } from "@/components/groups/GroupDashboardPanel";
 import { ExplorePanel } from "@/components/groups/ExplorePanel";
+import { OnboardingNoGroupScreen } from "@/components/onboarding/OnboardingNoGroupScreen";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Menu, Plus, Compass, Users } from "lucide-react";
+
+const ONBOARDING_SKIP_KEY = "rmm-onboarding-skipped";
 
 export const Route = createFileRoute("/groups/")({
   component: GroupsIndexPage,
@@ -98,6 +101,31 @@ function GroupsIndexPage() {
           </button>
         </Link>
       </div>
+    );
+  }
+
+  // Brand-new user (no groups, no pending requests) — force the guided onboarding
+  // unless they already chose to skip it for this session.
+  const skipped =
+    typeof window !== "undefined" && window.sessionStorage.getItem(ONBOARDING_SKIP_KEY) === "1";
+  const hasPending = pendingGroups.some((p) => p.request_status === "pending");
+  if (!myLoading && myGroups.length === 0 && !hasPending && !skipped) {
+    return (
+      <OnboardingNoGroupScreen
+        onSkip={() => {
+          try {
+            window.sessionStorage.setItem(ONBOARDING_SKIP_KEY, "1");
+          } catch {
+            // ignore
+          }
+          // Re-render: we just want to fall through to the empty Explore state.
+          setView("explore");
+        }}
+        onCompleted={() => {
+          refresh();
+          refreshPending();
+        }}
+      />
     );
   }
 

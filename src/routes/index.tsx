@@ -1,5 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { LandingPage } from "@/components/LandingPage";
+import { OnboardingNoGroupScreen } from "@/components/onboarding/OnboardingNoGroupScreen";
+import { useMyPendingJoinRequests } from "@/hooks/use-groups";
 import { abbreviateName } from "@/lib/utils";
 import logoHorizontalDark from "@/assets/logo-horizontal-dark.png";
 import logoHorizontalLight from "@/assets/logo-horizontal-light.png";
@@ -103,6 +105,37 @@ function IndexRoute() {
   const { isAuthenticated, isLoading } = useAuth();
   if (isLoading) return <TrophyLoadingBar />;
   if (!isAuthenticated) return <LandingPage />;
+  return <DashboardOrOnboarding />;
+}
+
+const ONBOARDING_SKIP_KEY = "rmm-onboarding-skipped";
+
+function DashboardOrOnboarding() {
+  const { groups: myGroups, isLoading: groupsLoading } = useMyGroups();
+  const { groups: pending, isLoading: pendingLoading } = useMyPendingJoinRequests();
+  const [skipped, setSkipped] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    return window.sessionStorage.getItem(ONBOARDING_SKIP_KEY) === "1";
+  });
+
+  if (groupsLoading || pendingLoading) return <TrophyLoadingBar />;
+
+  const hasGroup = myGroups.length > 0;
+  const hasPending = pending.some((p) => p.request_status === "pending");
+  if (!hasGroup && !hasPending && !skipped) {
+    return (
+      <OnboardingNoGroupScreen
+        onSkip={() => {
+          try {
+            window.sessionStorage.setItem(ONBOARDING_SKIP_KEY, "1");
+          } catch {
+            // ignore
+          }
+          setSkipped(true);
+        }}
+      />
+    );
+  }
   return <DashboardPage />;
 }
 
