@@ -104,6 +104,31 @@ function GroupsIndexPage() {
     );
   }
 
+  // Brand-new user (no groups, no pending requests) — force the guided onboarding
+  // unless they already chose to skip it for this session.
+  const skipped =
+    typeof window !== "undefined" && window.sessionStorage.getItem(ONBOARDING_SKIP_KEY) === "1";
+  const hasPending = pendingGroups.some((p) => p.request_status === "pending");
+  if (!myLoading && myGroups.length === 0 && !hasPending && !skipped) {
+    return (
+      <OnboardingNoGroupScreen
+        onSkip={() => {
+          try {
+            window.sessionStorage.setItem(ONBOARDING_SKIP_KEY, "1");
+          } catch {
+            // ignore
+          }
+          // Re-render: we just want to fall through to the empty Explore state.
+          setView("explore");
+        }}
+        onCompleted={() => {
+          refresh();
+          refreshPending();
+        }}
+      />
+    );
+  }
+
   const selectedGroup = myGroups.find((g) => g.id === selectedId) || null;
 
   const handleSelectGroup = (id: string) => {
