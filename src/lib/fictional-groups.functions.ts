@@ -901,6 +901,8 @@ async function buildOneFictionalGroup(
     status: "scheduled",
   });
 
+  await recomputeStatsAndSnapshots(groupId, seasonId, blueprint.match_format);
+
   return { groupId, completedRounds: completedCount };
 }
 
