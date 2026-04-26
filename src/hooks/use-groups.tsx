@@ -446,20 +446,32 @@ export function useGroupDetail(groupId: string) {
   return { group, memberCount, members, myRole, isAdmin, isCreator, pendingRequests, isLoading, refresh };
 }
 
+export type GroupVisibility = "public" | "private" | "hidden";
+
 export async function createGroup(data: {
   name: string;
   description?: string;
-  is_public: boolean;
+  /** @deprecated use `visibility`. Kept for back-compat. */
+  is_public?: boolean;
+  visibility?: GroupVisibility;
   max_players: number;
   sport: string;
   userId: string;
   match_format?: string;
   singles_group_type?: string;
+  /** Always true for newly-created groups (Fase 3). Defaults to true. */
+  requires_approval?: boolean;
 }) {
+  // Resolve visibility: prefer explicit `visibility`, fallback to `is_public`.
+  const visibility: GroupVisibility =
+    data.visibility ?? (data.is_public === false ? "private" : "public");
+
   const insertData: any = {
     name: data.name,
     description: data.description || "",
-    is_public: data.is_public,
+    is_public: visibility === "public",
+    visibility,
+    requires_approval: data.requires_approval ?? true,
     max_players: data.max_players,
     sport: data.sport,
     created_by: data.userId,
@@ -493,25 +505,15 @@ export async function createGroup(data: {
   return group;
 }
 
-export async function joinGroup(groupId: string, userId: string, isPublic: boolean) {
-  if (isPublic) {
-    // Direct join for public groups
-    const { error } = await supabase.from("group_members").insert({
-      group_id: groupId,
-      user_id: userId,
-      role: "member",
-      status: "active",
-    });
-    if (error) throw error;
-  } else {
-    // Request to join for private groups
-    const { error } = await supabase.from("group_join_requests").insert({
-      group_id: groupId,
-      user_id: userId,
-      status: "pending",
-    });
-    if (error) throw error;
-  }
+export async function joinGroup(groupId: string, userId: string, _isPublic: boolean) {
+  // Fase 3: every join now requires admin approval (regardless of visibility).
+  // _isPublic is kept for back-compat but ignored.
+  const { error } = await supabase.from("group_join_requests").insert({
+    group_id: groupId,
+    user_id: userId,
+    status: "pending",
+  });
+  if (error) throw error;
 }
 
 /**

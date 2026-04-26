@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { createGroup } from "@/hooks/use-groups";
 import { useNavigate } from "@tanstack/react-router";
-import { X, Globe, Lock, Users, UserRound, ArrowLeft, History } from "lucide-react";
+import { X, Globe, Lock, EyeOff, Users, UserRound, ArrowLeft, History, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { GroupImageUpload } from "@/components/GroupImageUpload";
 import { supabase } from "@/integrations/supabase/client";
@@ -15,6 +15,7 @@ interface Props {
 
 type MatchFormat = "doubles" | "singles";
 type SinglesGroupType = "rivalry" | "league" | "casual";
+type Visibility = "public" | "private" | "hidden";
 type Step = "format" | "singles_type" | "form";
 
 const SINGLES_SPORTS = [
@@ -38,7 +39,7 @@ export function CreateGroupDialog({ open, onClose }: Props) {
   const [singlesGroupType, setSinglesGroupType] = useState<SinglesGroupType>("league");
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [isPublic, setIsPublic] = useState(true);
+  const [visibility, setVisibility] = useState<Visibility>("public");
   const [maxPlayers, setMaxPlayers] = useState(20);
   const [sport, setSport] = useState("padel");
   const [imageUrl, setImageUrl] = useState<string | null>(null);
@@ -61,7 +62,7 @@ export function CreateGroupDialog({ open, onClose }: Props) {
     setSinglesGroupType("league");
     setName("");
     setDescription("");
-    setIsPublic(true);
+    setVisibility("public");
     setMaxPlayers(20);
     setSport("padel");
     setImageUrl(null);
@@ -132,7 +133,9 @@ export function CreateGroupDialog({ open, onClose }: Props) {
       const group = await createGroup({
         name: name.trim(),
         description: description.trim(),
-        is_public: isPublic,
+        visibility,
+        is_public: visibility === "public",
+        requires_approval: true,
         max_players: maxPlayers,
         sport,
         userId: user.id,
@@ -176,7 +179,7 @@ export function CreateGroupDialog({ open, onClose }: Props) {
       onClose();
       toast.success("Grupo criado com sucesso!");
       void import("@/lib/analytics").then(({ trackConversion }) =>
-        trackConversion("create_group", { sport, match_format: matchFormat, is_public: isPublic, group_id: group.id }),
+        trackConversion("create_group", { sport, match_format: matchFormat, visibility, group_id: group.id }),
       );
       void import("@/lib/onboarding-events").then(({ trackOnboardingStep }) =>
         trackOnboardingStep("created_first_group", { group_id: group.id, sport }),
@@ -234,8 +237,8 @@ export function CreateGroupDialog({ open, onClose }: Props) {
               setName={setName}
               description={description}
               setDescription={setDescription}
-              isPublic={isPublic}
-              setIsPublic={setIsPublic}
+              visibility={visibility}
+              setVisibility={setVisibility}
               maxPlayers={maxPlayers}
               setMaxPlayers={setMaxPlayers}
               sport={sport}
@@ -332,8 +335,8 @@ interface GroupFormProps {
   setName: (v: string) => void;
   description: string;
   setDescription: (v: string) => void;
-  isPublic: boolean;
-  setIsPublic: (v: boolean) => void;
+  visibility: Visibility;
+  setVisibility: (v: Visibility) => void;
   maxPlayers: number;
   setMaxPlayers: (v: number) => void;
   sport: string;
@@ -363,7 +366,7 @@ function GroupForm({
   singlesGroupType,
   name, setName,
   description, setDescription,
-  isPublic, setIsPublic,
+  visibility, setVisibility,
   maxPlayers, setMaxPlayers,
   sport, setSport,
   imageUrl, setImageUrl,
@@ -454,33 +457,44 @@ function GroupForm({
       {/* Visibilidade */}
       <div>
         <label className="mb-2 block text-xs font-medium text-muted-foreground">Visibilidade</label>
-        <div className="flex gap-2">
-          <button
-            onClick={() => setIsPublic(true)}
-            className={`flex flex-1 items-center justify-center gap-2 rounded-2xl border p-3 text-sm font-medium transition-colors ${
-              isPublic
-                ? "border-primary bg-primary/10 text-primary"
-                : "border-border bg-background text-muted-foreground"
-            }`}
-          >
-            <Globe className="h-4 w-4" />
-            Público
-          </button>
-          <button
-            onClick={() => setIsPublic(false)}
-            className={`flex flex-1 items-center justify-center gap-2 rounded-2xl border p-3 text-sm font-medium transition-colors ${
-              !isPublic
-                ? "border-primary bg-primary/10 text-primary"
-                : "border-border bg-background text-muted-foreground"
-            }`}
-          >
-            <Lock className="h-4 w-4" />
-            Privado
-          </button>
+        <div className="grid grid-cols-3 gap-2">
+          <VisibilityOption
+            active={visibility === "public"}
+            onClick={() => setVisibility("public")}
+            icon={<Globe className="h-4 w-4" />}
+            label="Público"
+          />
+          <VisibilityOption
+            active={visibility === "private"}
+            onClick={() => setVisibility("private")}
+            icon={<Lock className="h-4 w-4" />}
+            label="Privado"
+          />
+          <VisibilityOption
+            active={visibility === "hidden"}
+            onClick={() => setVisibility("hidden")}
+            icon={<EyeOff className="h-4 w-4" />}
+            label="Oculto"
+          />
         </div>
         <p className="mt-1.5 text-xs text-muted-foreground">
-          {isPublic ? "Qualquer um pode encontrar e entrar." : "Entrada somente por convite ou aprovação."}
+          {visibility === "public"
+            ? "Aparece nas buscas. Qualquer um pode pedir entrada."
+            : visibility === "private"
+              ? "Aparece nas buscas, mas só entra com aprovação."
+              : "Não aparece em lugar nenhum. Acesso só pelo código RMM-XXXXXX."}
         </p>
+
+        {/* Aprovação obrigatória — Fase 3 */}
+        <div className="mt-2 flex items-start gap-2 rounded-xl border border-primary/20 bg-primary/5 px-3 py-2">
+          <ShieldCheck className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-primary" />
+          <p className="text-[11px] leading-snug text-foreground">
+            <span className="font-semibold">Aprovação obrigatória:</span>{" "}
+            <span className="text-muted-foreground">
+              toda entrada precisa do seu OK. Você protege o ranking e o histórico do grupo.
+            </span>
+          </p>
+        </div>
       </div>
 
       {/* Max Players — hide for rivalry */}
@@ -629,5 +643,32 @@ function GroupForm({
         {submitting ? "Criando..." : "Criar Grupo"}
       </button>
     </div>
+  );
+}
+
+function VisibilityOption({
+  active,
+  onClick,
+  icon,
+  label,
+}: {
+  active: boolean;
+  onClick: () => void;
+  icon: React.ReactNode;
+  label: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`flex flex-col items-center justify-center gap-1 rounded-2xl border p-3 text-xs font-semibold transition-colors ${
+        active
+          ? "border-primary bg-primary/10 text-primary"
+          : "border-border bg-background text-muted-foreground hover:border-primary/30"
+      }`}
+    >
+      {icon}
+      {label}
+    </button>
   );
 }
