@@ -44,6 +44,15 @@ export function CreateGroupDialog({ open, onClose }: Props) {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
+  // Retroactive season fields
+  const [createRetroSeason, setCreateRetroSeason] = useState(false);
+  const [retroSeasonName, setRetroSeasonName] = useState("");
+  const [retroStartDate, setRetroStartDate] = useState("");
+  const [retroEndDate, setRetroEndDate] = useState("");
+  const [retroTotalRounds, setRetroTotalRounds] = useState<number>(8);
+  const [retroSpacing, setRetroSpacing] = useState<RetroactiveSpacing>("fixed_weekday");
+  const [retroWeekday, setRetroWeekday] = useState<number>(3); // Wed default
+
   if (!open) return null;
 
   const resetForm = () => {
@@ -56,6 +65,13 @@ export function CreateGroupDialog({ open, onClose }: Props) {
     setMaxPlayers(20);
     setSport("padel");
     setImageUrl(null);
+    setCreateRetroSeason(false);
+    setRetroSeasonName("");
+    setRetroStartDate("");
+    setRetroEndDate("");
+    setRetroTotalRounds(8);
+    setRetroSpacing("fixed_weekday");
+    setRetroWeekday(3);
   };
 
   const handleSelectFormat = (format: MatchFormat) => {
