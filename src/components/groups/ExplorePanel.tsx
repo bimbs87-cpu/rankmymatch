@@ -245,7 +245,9 @@ export function ExplorePanel() {
         <div className="mb-2 flex items-center justify-between px-1">
           <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
             <Filter className="mr-1 inline h-3 w-3" />
-            {isLoading ? "Buscando..." : `${filtered.length} resultado${filtered.length !== 1 ? "s" : ""}`}
+            {isLoading
+              ? "Buscando..."
+              : `${filteredCount} resultado${filteredCount !== 1 ? "s" : ""}`}
           </p>
         </div>
 
@@ -255,104 +257,163 @@ export function ExplorePanel() {
               <div key={i} className="h-24 animate-pulse rounded-2xl bg-muted/30" />
             ))}
           </div>
-        ) : filtered.length === 0 ? (
+        ) : filteredCount === 0 ? (
           <div className="rounded-2xl border border-dashed border-border bg-card/40 p-8 text-center">
             <Search className="mx-auto mb-3 h-8 w-8 text-muted-foreground/40" />
             <p className="text-sm font-bold text-foreground">Nada encontrado</p>
             <p className="mt-1 text-xs text-muted-foreground">Tente ajustar os filtros ou a busca.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
-            {filtered.map((g) => {
-              const isHiddenAdmin = (g as any).is_hidden_admin === true;
-              return (
-                <Link
-                  key={g.id}
-                  to="/groups/$groupId"
-                  params={{ groupId: g.id }}
-                  className={`group flex items-start gap-3 rounded-2xl border bg-card p-4 transition-all hover:border-primary/40 hover:shadow-lg active:scale-[0.99] ${
-                    isHiddenAdmin ? "border-dashed border-muted-foreground/40" : "border-border"
-                  }`}
-                >
-                  <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl bg-primary/10 ring-1 ring-primary/20">
-                    {g.image_url ? (
-                      <img src={g.image_url} alt="" className="h-full w-full rounded-xl object-cover" />
-                    ) : (
-                      <Users className="h-5 w-5 text-primary" />
-                    )}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-1.5">
-                      <span className="truncate text-sm font-bold text-foreground">{g.name}</span>
-                      {isHiddenAdmin ? (
-                        <EyeOff className="h-3 w-3 flex-shrink-0 text-muted-foreground" />
-                      ) : g.is_public ? (
-                        <Globe className="h-3 w-3 flex-shrink-0 text-muted-foreground" />
-                      ) : (
-                        <Lock className="h-3 w-3 flex-shrink-0 text-muted-foreground" />
-                      )}
-                      {isHiddenAdmin && (
-                        <span className="inline-flex flex-shrink-0 items-center gap-0.5 rounded-full bg-muted px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-muted-foreground ring-1 ring-border">
-                          Oculto
-                        </span>
-                      )}
-                      {g.is_premium && (
-                        <span className="inline-flex flex-shrink-0 items-center gap-0.5 rounded-full bg-[var(--rank-gold)]/15 px-1.5 py-0.5 text-[9px] font-bold text-[var(--rank-gold)] ring-1 ring-[var(--rank-gold)]/40">
-                          <Crown className="h-2.5 w-2.5" />
-                          PREMIUM
-                        </span>
-                      )}
-                    </div>
-                    <p className="mt-0.5 text-[11px] text-muted-foreground">
-                      {g.member_count} membro{g.member_count !== 1 ? "s" : ""} ·{" "}
-                      {g.match_format === "singles" ? "Singles" : "Doubles"} ·{" "}
-                      {g.sport === "tennis" ? "Tênis" : "Padel"}
-                    </p>
-                    {g.description && (
-                      <p className="mt-1.5 line-clamp-2 text-[11px] text-muted-foreground/80">{g.description}</p>
-                    )}
-                    {isHiddenAdmin && (
-                      <div className="mt-2 space-y-1.5">
-                        <p className="text-[10px] text-muted-foreground/80">
-                          Só você vê este grupo aqui — compartilhe o convite para novos jogadores entrarem.
-                        </p>
-                        <button
-                          type="button"
-                          onClick={(e) => handleCopyInvite(e, g.id, isHiddenAdmin)}
-                          disabled={copyingId === g.id}
-                          className="inline-flex items-center gap-1.5 rounded-full border border-primary/40 bg-primary/10 px-2.5 py-1 text-[11px] font-semibold text-primary transition-colors hover:bg-primary/20 disabled:opacity-50"
-                        >
-                          {copyingId === g.id ? (
-                            <Loader2 className="h-3 w-3 animate-spin" />
-                          ) : (
-                            <Copy className="h-3 w-3" />
-                          )}
-                          Copiar convite
-                        </button>
-                        {inviteInfoById[g.id] && (() => {
-                          const info = inviteInfoById[g.id];
-                          const parts: string[] = [];
-                          if (info.expiresAt) parts.push(formatExpiresAt(info.expiresAt));
-                          if (info.maxUses != null) {
-                            const remaining = Math.max(0, info.maxUses - info.useCount);
-                            parts.push(`${remaining} de ${info.maxUses} usos restantes`);
-                          } else {
-                            parts.push("usos ilimitados");
-                          }
-                          return (
-                            <p className="text-[10px] text-muted-foreground/70">{parts.join(" · ")}</p>
-                          );
-                        })()}
-                      </div>
-                    )}
-                  </div>
-                </Link>
-              );
-            })}
+          <div className="space-y-5">
+            {realGroups.length > 0 && (
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                {realGroups.map((g) => (
+                  <GroupCard
+                    key={g.id}
+                    g={g}
+                    copyingId={copyingId}
+                    inviteInfoById={inviteInfoById}
+                    onCopyInvite={handleCopyInvite}
+                  />
+                ))}
+              </div>
+            )}
+
+            {demoGroups.length > 0 && (
+              <div>
+                <div className="mb-2 flex items-center gap-2 px-1">
+                  <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground ring-1 ring-border">
+                    <Sparkles className="h-2.5 w-2.5" />
+                    Demo
+                  </span>
+                  <p className="text-[11px] text-muted-foreground">
+                    Grupos de exemplo para você ver como o RankMyMatch funciona.
+                  </p>
+                </div>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                  {demoGroups.map((g) => (
+                    <GroupCard
+                      key={g.id}
+                      g={g}
+                      copyingId={copyingId}
+                      inviteInfoById={inviteInfoById}
+                      onCopyInvite={handleCopyInvite}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
     </div>
+  );
+}
+
+function GroupCard({
+  g,
+  copyingId,
+  inviteInfoById,
+  onCopyInvite,
+}: {
+  g: any;
+  copyingId: string | null;
+  inviteInfoById: Record<string, InviteInfo>;
+  onCopyInvite: (e: React.MouseEvent, groupId: string, canInvite: boolean) => void;
+}) {
+  const isHiddenAdmin = g.is_hidden_admin === true;
+  const isFictional = g.is_fictional === true;
+  return (
+    <Link
+      to="/groups/$groupId"
+      params={{ groupId: g.id }}
+      className={`group flex items-start gap-3 rounded-2xl border bg-card p-4 transition-all hover:border-primary/40 hover:shadow-lg active:scale-[0.99] ${
+        isHiddenAdmin
+          ? "border-dashed border-muted-foreground/40"
+          : isFictional
+            ? "border-border/60 bg-card/60"
+            : "border-border"
+      }`}
+    >
+      <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl bg-primary/10 ring-1 ring-primary/20">
+        {g.image_url ? (
+          <img src={g.image_url} alt="" className="h-full w-full rounded-xl object-cover" />
+        ) : (
+          <Users className="h-5 w-5 text-primary" />
+        )}
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="truncate text-sm font-bold text-foreground">{g.name}</span>
+          {isHiddenAdmin ? (
+            <EyeOff className="h-3 w-3 flex-shrink-0 text-muted-foreground" />
+          ) : g.is_public ? (
+            <Globe className="h-3 w-3 flex-shrink-0 text-muted-foreground" />
+          ) : (
+            <Lock className="h-3 w-3 flex-shrink-0 text-muted-foreground" />
+          )}
+          {isHiddenAdmin && (
+            <span className="inline-flex flex-shrink-0 items-center gap-0.5 rounded-full bg-muted px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-muted-foreground ring-1 ring-border">
+              Oculto
+            </span>
+          )}
+          {isFictional && (
+            <span className="inline-flex flex-shrink-0 items-center gap-0.5 rounded-full bg-muted px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-muted-foreground ring-1 ring-border">
+              <Sparkles className="h-2.5 w-2.5" />
+              Demo
+            </span>
+          )}
+          {g.is_premium && (
+            <span className="inline-flex flex-shrink-0 items-center gap-0.5 rounded-full bg-[var(--rank-gold)]/15 px-1.5 py-0.5 text-[9px] font-bold text-[var(--rank-gold)] ring-1 ring-[var(--rank-gold)]/40">
+              <Crown className="h-2.5 w-2.5" />
+              PREMIUM
+            </span>
+          )}
+        </div>
+        <p className="mt-0.5 text-[11px] text-muted-foreground">
+          {g.member_count} membro{g.member_count !== 1 ? "s" : ""} ·{" "}
+          {g.match_format === "singles" ? "Singles" : "Doubles"} ·{" "}
+          {g.sport === "tennis" ? "Tênis" : "Padel"}
+        </p>
+        {g.description && (
+          <p className="mt-1.5 line-clamp-2 text-[11px] text-muted-foreground/80">{g.description}</p>
+        )}
+        {isHiddenAdmin && (
+          <div className="mt-2 space-y-1.5">
+            <p className="text-[10px] text-muted-foreground/80">
+              Só você vê este grupo aqui — compartilhe o convite para novos jogadores entrarem.
+            </p>
+            <button
+              type="button"
+              onClick={(e) => onCopyInvite(e, g.id, isHiddenAdmin)}
+              disabled={copyingId === g.id}
+              className="inline-flex items-center gap-1.5 rounded-full border border-primary/40 bg-primary/10 px-2.5 py-1 text-[11px] font-semibold text-primary transition-colors hover:bg-primary/20 disabled:opacity-50"
+            >
+              {copyingId === g.id ? (
+                <Loader2 className="h-3 w-3 animate-spin" />
+              ) : (
+                <Copy className="h-3 w-3" />
+              )}
+              Copiar convite
+            </button>
+            {inviteInfoById[g.id] && (() => {
+              const info = inviteInfoById[g.id];
+              const parts: string[] = [];
+              if (info.expiresAt) parts.push(formatExpiresAt(info.expiresAt));
+              if (info.maxUses != null) {
+                const remaining = Math.max(0, info.maxUses - info.useCount);
+                parts.push(`${remaining} de ${info.maxUses} usos restantes`);
+              } else {
+                parts.push("usos ilimitados");
+              }
+              return (
+                <p className="text-[10px] text-muted-foreground/70">{parts.join(" · ")}</p>
+              );
+            })()}
+          </div>
+        )}
+      </div>
+    </Link>
   );
 }
 
