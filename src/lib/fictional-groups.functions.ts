@@ -223,29 +223,47 @@ function genFullName(used: Set<string>, rng: () => number): string {
   return `${pick(FIRST_NAMES, rng)} ${pick(LAST_NAMES, rng)} ${Math.floor(rng() * 99)}`;
 }
 
-// Apelidos curtos, no estilo de quem realmente cadastrou conta
+// Apelidos curtos da vida real (sem números, estilo "como os amigos te chamam")
 const NICKNAME_POOL = [
   "Tuca", "Rafa", "Gugu", "Léo", "Bia", "Dudu", "Caco", "Lipe", "Téo", "Nico",
   "Guto", "Vini", "Bruno", "Kiko", "Zé", "Pedrão", "Mati", "Pipo", "Chico",
   "Dani", "Mari", "Cami", "Lulu", "Rê", "Babi", "Ju", "Lia", "Manu", "Ale",
   "Tiba", "Rod", "Fê", "Henri", "Dé", "Cacá", "Tom", "Edu", "Vitão", "Felps",
+  "Bigode", "Capitão", "Loirinho", "Magrão", "Neném", "Tigrão", "Coxinha",
+  "Boi", "Dentinho", "Pelé", "Russo", "Alemão", "Japa", "Baiano", "Mineirin",
+  "Carioca", "Gordo", "Negão", "Branquinho", "Xerife", "Professor", "Doutor",
 ];
+const NICKNAME_SUFFIXES = ["zinho", "zão", "ão", "inho"];
 function genNickname(name: string, used: Set<string>, rng: () => number): string {
-  const first = name.split(" ")[0] ?? "";
-  const candidates = [
+  const first = (name.split(" ")[0] ?? "").trim();
+  const candidates: string[] = [
     pick(NICKNAME_POOL, rng),
+    first,
     first.slice(0, 4),
-    `${first.slice(0, 3)}${Math.floor(rng() * 99)}`,
-    `${first.toLowerCase()}.${pick(["br","sp","rj","mg"], rng)}`,
+    first.slice(0, 3),
+    `${first.slice(0, 4)}${pick(NICKNAME_SUFFIXES, rng)}`,
+    pick(NICKNAME_POOL, rng),
+    pick(NICKNAME_POOL, rng),
   ];
   for (const c of candidates) {
-    const v = c.replace(/\s+/g, "").slice(0, 16);
-    if (v && !used.has(v.toLowerCase())) {
+    const v = c.replace(/[\s\d]+/g, "").slice(0, 16);
+    if (v && v.length >= 2 && !used.has(v.toLowerCase())) {
       used.add(v.toLowerCase());
       return v;
     }
   }
-  return `${first}${Math.floor(rng() * 999)}`;
+  // Fallback determinístico sem números: combina nick + sufixo
+  for (const base of NICKNAME_POOL) {
+    for (const suf of NICKNAME_SUFFIXES) {
+      const v = `${base}${suf}`.slice(0, 16);
+      if (!used.has(v.toLowerCase())) {
+        used.add(v.toLowerCase());
+        return v;
+      }
+    }
+  }
+  used.add(first.toLowerCase());
+  return first;
 }
 // DiceBear (sem chave) — gera avatar consistente por seed; parece "real"
 function genDicebearUrl(seed: string, rng: () => number): string {
