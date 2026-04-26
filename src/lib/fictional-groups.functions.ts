@@ -464,7 +464,7 @@ export const deleteFictionalGroup = createServerFn({ method: "POST" })
         .from("user_profiles")
         .delete()
         .in("user_id", memberUserIds)
-        .eq("is_placeholder", true);
+        .not("created_by_admin", "is", null);
     }
 
     return { ok: true };
