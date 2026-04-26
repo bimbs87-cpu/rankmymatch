@@ -769,3 +769,47 @@ export const simulateRoundForFictional = createServerFn({ method: "POST" })
       roundNumber: nextNum - 1,
     };
   });
+
+// ----- START NEW SEASON -----------------------------------------------------
+export const startNewSeasonForFictional = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { groupId: string; name?: string }) => data)
+  .handler(async ({ context, data }) => {
+    await ensureAppAdmin(context.userId);
+    const { data: g } = await supabaseAdmin
+      .from("groups")
+      .select("id, is_fictional, match_format")
+      .eq("id", data.groupId)
+      .maybeSingle();
+    if (!g || !g.is_fictional) throw new Error("Group is not fictional");
+
+    const today = new Date();
+    const todayIso = today.toISOString().slice(0, 10);
+
+    // Encerra todas as temporadas ativas
+    await supabaseAdmin
+      .from("seasons")
+      .update({ status: "finished", end_date: todayIso })
+      .eq("group_id", g.id)
+      .eq("status", "active");
+
+    // Cria nova temporada ativa
+    const { data: created, error: seasonErr } = await supabaseAdmin
+      .from("seasons")
+      .insert({
+        group_id: g.id,
+        name: data.name?.trim() || `Temporada ${today.getFullYear()} #${Math.floor(today.getTime() / 1000) % 1000}`,
+        status: "active",
+        match_format: toSeasonMatchFormat(g.match_format),
+        sets_mode: "fixed",
+        sets_per_match: 3,
+        duration_type: "3_months",
+        start_date: todayIso,
+        created_by: context.userId,
+      })
+      .select("id, name")
+      .single();
+    if (seasonErr || !created) throw new Error(`season: ${seasonErr?.message}`);
+
+    return { ok: true, seasonId: created.id, seasonName: created.name };
+  });
