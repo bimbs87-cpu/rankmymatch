@@ -174,7 +174,9 @@ export function FictionalGroupsTab() {
               ) : (
                 <Sparkles className="h-4 w-4 mr-2" />
               )}
-              Gerar 10 grupos
+              {generating && genProgress
+                ? `Gerando ${genProgress.current}/${genProgress.total}…`
+                : "Gerar 10 grupos"}
             </Button>
             <Button
               variant="outline"
