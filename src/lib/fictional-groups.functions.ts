@@ -429,7 +429,7 @@ async function simulateOneRound(
     const avgB = teamB.reduce((s, u) => s + ctx.ratings[u], 0) / teamB.length;
     const expectedA = 1 / (1 + Math.pow(10, (avgB - avgA) / 400));
     const winnerIsA = rng() < expectedA;
-    const winnerTeam = winnerIsA ? "team_a" : "team_b";
+    const winnerTeam = winnerIsA ? "A" : "B";
 
     const { data: matchIns, error: matchErr } = await supabaseAdmin
       .from("matches").insert({
