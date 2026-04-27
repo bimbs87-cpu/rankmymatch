@@ -1267,10 +1267,13 @@ export const getDevDashboard = createServerFn({ method: "GET" })
       if (v.user_id) authedSessionUserIds.add(v.user_id);
     });
     const authedSessionWithoutSignupEvent = Array.from(authedSessionUserIds)
-      .filter(
-        (uid) =>
-          authUserIdSet.has(uid) && !onboardingSignupUserIds.has(uid)
-      )
+      .filter((uid) => {
+        if (!authUserIdSet.has(uid)) return false;
+        if (onboardingSignupUserIds.has(uid)) return false;
+        const u = authUsers.find((x) => x.id === uid);
+        if (!u) return false;
+        return new Date(u.created_at).getTime() >= instrumentationCutoff;
+      })
       .slice(0, 50)
       .map((uid) => {
         const u = authUsers.find((x) => x.id === uid);
