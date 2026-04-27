@@ -15,9 +15,9 @@ import { Menu, Plus, Compass, Users } from "lucide-react";
 const ONBOARDING_SKIP_KEY = "rmm-onboarding-skipped";
 
 export const Route = createFileRoute("/groups/")({
-  validateSearch: (search: Record<string, unknown>) => ({
-    view: search.view === "explore" ? ("explore" as const) : undefined,
-  }),
+  validateSearch: (search: Record<string, unknown>): { view?: "explore" } => {
+    return search.view === "explore" ? { view: "explore" } : {};
+  },
   component: GroupsIndexPage,
 });
 
