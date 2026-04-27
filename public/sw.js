@@ -2,7 +2,7 @@
 // Keeps a pure pass-through fetch handler (required for the PWA install prompt
 // without ever intercepting OAuth) and adds Web Push support for round
 // notifications + admin moderation actions (Aprovar/Recusar inline).
-const SW_VERSION = "v8-2026-04-26-android-assets-v3";
+const SW_VERSION = "v9-2026-04-26-android-icon-v4";
 
 self.addEventListener("install", () => {
   self.skipWaiting();
@@ -47,8 +47,8 @@ self.addEventListener("push", (event) => {
 
   const options = {
     body: payload.body || "",
-    icon: payload.icon || "/android-icon-192-v3.png",
-    badge: payload.badge || "/android-icon-192-v3.png",
+    icon: payload.icon || "/android-icon-192-v4.png",
+    badge: payload.badge || "/android-icon-192-v4.png",
     tag: payload.tag || payload.type || "rankmymatch",
     renotify: true,
     data: {
@@ -86,16 +86,16 @@ async function handleAdminAction(action, data) {
         body: ok
           ? "Solicitação processada com sucesso."
           : "Não foi possível processar. Abra o app para tentar novamente.",
-        icon: "/android-icon-192-v3.png",
-        badge: "/android-icon-192-v3.png",
+        icon: "/android-icon-192-v4.png",
+        badge: "/android-icon-192-v4.png",
         tag: `admin-action-result-${id}`,
       }
     );
   } catch {
     await self.registration.showNotification("Falha na ação", {
       body: "Sem conexão. Abra o app para responder.",
-      icon: "/android-icon-192-v3.png",
-      badge: "/android-icon-192-v3.png",
+      icon: "/android-icon-192-v4.png",
+      badge: "/android-icon-192-v4.png",
       tag: `admin-action-result-${id}`,
     });
   }
