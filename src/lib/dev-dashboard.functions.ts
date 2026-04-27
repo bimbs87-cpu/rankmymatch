@@ -1215,12 +1215,27 @@ export const getDevDashboard = createServerFn({ method: "GET" })
     };
 
     // ===== Anomalias de signup (4 categorias) =====
-    // 1. Ghost users: auth.users SEM user_profiles
+    // Cutoff: ignora registros anteriores à instrumentação do painel.
+    // Usa o primeiro evento de onboarding como marco — qualquer usuário
+    // criado antes disso não tinha como gerar o evento e não é anomalia.
+    const firstOnbTs = onbRows.reduce<number>((min, r) => {
+      const t = new Date(r.created_at).getTime();
+      return Number.isFinite(t) && t < min ? t : min;
+    }, Number.POSITIVE_INFINITY);
+    const instrumentationCutoff = Number.isFinite(firstOnbTs)
+      ? firstOnbTs
+      : now - 30 * dayMs;
+
+    // 1. Ghost users: auth.users SEM user_profiles (apenas pós-instrumentação)
     const profileUserIdSet = new Set(
       (allProfiles ?? []).map((p) => p.user_id)
     );
     const ghostUsers = authUsers
-      .filter((u) => !profileUserIdSet.has(u.id))
+      .filter(
+        (u) =>
+          !profileUserIdSet.has(u.id) &&
+          new Date(u.created_at).getTime() >= instrumentationCutoff
+      )
       .map((u) => ({
         user_id: u.id,
         email: u.email ?? null,
@@ -1231,11 +1246,11 @@ export const getDevDashboard = createServerFn({ method: "GET" })
     const onboardingSignupUserIds = new Set(
       onbRows.filter((r) => r.step === "signup").map((r) => r.user_id)
     );
-    // Considera só usuários cadastrados nos últimos 30d (período em que temos onbRows)
+    // Apenas usuários criados após a instrumentação (antes não tinha tracking)
     const signupWithoutOnbEvent = authUsers
       .filter(
         (u) =>
-          new Date(u.created_at).getTime() >= now - 30 * dayMs &&
+          new Date(u.created_at).getTime() >= instrumentationCutoff &&
           !onboardingSignupUserIds.has(u.id) &&
           profileUserIdSet.has(u.id)
       )
