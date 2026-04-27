@@ -47,8 +47,8 @@ self.addEventListener("push", (event) => {
 
   const options = {
     body: payload.body || "",
-    icon: payload.icon || "/android-icon-192-v3.png",
-    badge: payload.badge || "/android-icon-192-v3.png",
+    icon: payload.icon || "/android-icon-192-v4.png",
+    badge: payload.badge || "/android-icon-192-v4.png",
     tag: payload.tag || payload.type || "rankmymatch",
     renotify: true,
     data: {
@@ -86,16 +86,16 @@ async function handleAdminAction(action, data) {
         body: ok
           ? "Solicitação processada com sucesso."
           : "Não foi possível processar. Abra o app para tentar novamente.",
-        icon: "/android-icon-192-v3.png",
-        badge: "/android-icon-192-v3.png",
+        icon: "/android-icon-192-v4.png",
+        badge: "/android-icon-192-v4.png",
         tag: `admin-action-result-${id}`,
       }
     );
   } catch {
     await self.registration.showNotification("Falha na ação", {
       body: "Sem conexão. Abra o app para responder.",
-      icon: "/android-icon-192-v3.png",
-      badge: "/android-icon-192-v3.png",
+      icon: "/android-icon-192-v4.png",
+      badge: "/android-icon-192-v4.png",
       tag: `admin-action-result-${id}`,
     });
   }
