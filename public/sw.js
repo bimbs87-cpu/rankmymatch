@@ -2,7 +2,7 @@
 // Keeps a pure pass-through fetch handler (required for the PWA install prompt
 // without ever intercepting OAuth) and adds Web Push support for round
 // notifications + admin moderation actions (Aprovar/Recusar inline).
-const SW_VERSION = "v8-2026-04-26-android-assets-v3";
+const SW_VERSION = "v9-2026-04-26-android-icon-v4";
 
 self.addEventListener("install", () => {
   self.skipWaiting();
