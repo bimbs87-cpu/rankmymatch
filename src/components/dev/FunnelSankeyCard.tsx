@@ -55,11 +55,11 @@ function SankeyChart({ data }: { data: SankeyData }) {
           labelPadding={8}
           labelTextColor={{ from: "color", modifiers: [["darker", 2]] }}
           theme={{
-            text: { fontSize: 11, fill: "hsl(var(--foreground))" },
+            text: { fontSize: 11, fill: "var(--foreground)" },
             tooltip: {
               container: {
-                background: "hsl(var(--popover))",
-                color: "hsl(var(--popover-foreground))",
+                background: "var(--popover)",
+                color: "var(--popover-foreground)",
                 fontSize: 12,
                 borderRadius: 8,
                 padding: "6px 10px",
