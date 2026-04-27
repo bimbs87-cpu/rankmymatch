@@ -858,14 +858,15 @@ function OverviewTab({ data }: { data: DashboardData }) {
                 <YAxis allowDecimals={false} className="text-xs" />
                 <Tooltip
                   contentStyle={{
-                    background: "hsl(var(--card))",
-                    border: "1px solid hsl(var(--border))",
+                    background: "var(--card)",
+                    border: "1px solid var(--border)",
                     borderRadius: "0.5rem",
+                    color: "var(--card-foreground)",
                   }}
                 />
                 <Legend />
-                <Line type="monotone" dataKey="users" name="Logins (last_sign_in)" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} />
-                <Line type="monotone" dataKey="signups" name="Novos cadastros" stroke="hsl(var(--accent))" strokeWidth={2} dot={false} />
+                <Line type="monotone" dataKey="users" name="Logins (last_sign_in)" stroke="var(--primary)" strokeWidth={2} dot={false} />
+                <Line type="monotone" dataKey="signups" name="Novos cadastros" stroke="var(--accent)" strokeWidth={2} dot={false} />
               </LineChart>
             </ResponsiveContainer>
           </div>
