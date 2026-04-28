@@ -1903,21 +1903,26 @@ function DashboardPage() {
                       };
                       const items: Shortcut[] = [];
 
-                      // 1. Confirmar presença (urgente, contextual)
+                      // 1. Confirmar presença (urgente, contextual) — inline confirm, no navigation
                       if (nextMatch && nextMatch.my_presence_status !== "confirmed" && nextMatch.presence_is_open) {
+                        const isConfirming = confirmingRoundId === nextMatch.round_id;
                         items.push({
                           key: "confirm",
                           priority: 1,
                           node: (
-                            <Link
-                              to="/groups/$groupId"
-                              params={{ groupId: nextMatch.group_id }}
-                              search={{ view: "seasons", season: nextMatch.season_id || "", round: nextMatch.round_id } as any}
-                              className="flex items-center gap-2 rounded-2xl border border-warning/30 bg-warning/5 px-3 py-2 text-xs font-semibold text-warning transition-colors hover:bg-warning/10"
+                            <button
+                              type="button"
+                              onClick={() => handleConfirmPresence(nextMatch.round_id, nextMatch.group_name)}
+                              disabled={isConfirming}
+                              className="flex items-center gap-2 rounded-2xl border border-warning/30 bg-warning/5 px-3 py-2 text-xs font-semibold text-warning transition-colors hover:bg-warning/10 disabled:opacity-60"
                             >
-                              <Calendar className="h-4 w-4 shrink-0" />
-                              <span className="truncate">Confirmar presença</span>
-                            </Link>
+                              {isConfirming ? (
+                                <Loader2 className="h-4 w-4 shrink-0 animate-spin" />
+                              ) : (
+                                <Check className="h-4 w-4 shrink-0" />
+                              )}
+                              <span className="truncate">{isConfirming ? "Confirmando..." : "Confirmar presença"}</span>
+                            </button>
                           ),
                         });
                       }
