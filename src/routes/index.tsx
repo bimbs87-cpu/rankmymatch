@@ -1950,12 +1950,25 @@ function DashboardPage() {
             <div className="flex flex-row gap-4">
               {visibleNextMatchCardJSX ? (
                 <div className="flex-1 min-w-0">{visibleNextMatchCardJSX}</div>
-              ) : !isDuplicateOfPendingMatch ? (
+              ) : !isDuplicateOfPendingMatch && extraVisible.length === 0 ? (
                 <div className="flex-1 min-w-0 flex items-center justify-center rounded-3xl border border-dashed border-border bg-card/50 p-6">
                   <p className="text-xs text-muted-foreground">Nenhum confronto próximo agendado</p>
                 </div>
               ) : (
                 null
+              )}
+              {extraVisible.map((r) => (
+                <div key={r.id} className="flex-1 min-w-0">{renderExtraPendingCard(r)}</div>
+              ))}
+              {extraOverflowCount > 0 && (
+                <Link
+                  to="/seasons"
+                  className="flex w-[120px] shrink-0 flex-col items-center justify-center gap-1 rounded-3xl border border-dashed border-border bg-card/50 p-4 text-center transition-colors hover:bg-accent/30"
+                >
+                  <Bell className="h-4 w-4 text-warning" />
+                  <span className="text-xs font-semibold text-foreground">+{extraOverflowCount} mais</span>
+                  <span className="text-[10px] text-muted-foreground">Ver todas</span>
+                </Link>
               )}
               <div className="w-[260px] shrink-0">
                 <div className="rounded-3xl border border-border bg-card p-4 h-full">
