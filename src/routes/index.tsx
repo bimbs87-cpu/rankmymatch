@@ -2546,9 +2546,23 @@ function DashboardPage() {
         </section>
 
         {/* Seu próximo confronto — mobile/tablet only (desktop version is rendered inside the right column above) */}
-        {visibleNextMatchCardJSX && (
-          <section className="lg:hidden">
+        {(visibleNextMatchCardJSX || extraVisible.length > 0) && (
+          <section className="lg:hidden space-y-3">
             {visibleNextMatchCardJSX}
+            {extraVisible.length > 0 && (
+              <div className={`grid gap-3 ${extraVisible.length === 1 && !visibleNextMatchCardJSX ? "grid-cols-1" : "grid-cols-2"}`}>
+                {extraVisible.map((r) => renderExtraPendingCard(r))}
+              </div>
+            )}
+            {extraOverflowCount > 0 && (
+              <Link
+                to="/seasons"
+                className="flex items-center justify-center gap-1.5 rounded-2xl border border-dashed border-border bg-card/50 px-3 py-2 text-xs font-semibold text-muted-foreground transition-colors hover:bg-accent/30"
+              >
+                <Bell className="h-3.5 w-3.5 text-warning" />
+                +{extraOverflowCount} {extraOverflowCount === 1 ? "outra rodada" : "outras rodadas"} aguardando confirmação
+              </Link>
+            )}
           </section>
         )}
 
