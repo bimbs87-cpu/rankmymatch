@@ -1238,10 +1238,20 @@ function DashboardPage() {
         </p>
       );
       if (state === 2) {
+        const presenceRound = upcomingRounds.find((r) => r.id === nextMatch.round_id);
+        const confirmed = presenceRound?.confirmed_count ?? 0;
+        const maxPlayers = presenceRound?.max_players ?? 0;
         subStatusNode = (
           <div className="mt-1 space-y-0.5">
-            <p className="text-[11px] font-medium text-primary">Você confirmou presença</p>
-            <p className="text-[11px] text-muted-foreground">Aguardando organização dos jogos</p>
+            <p className="flex items-center gap-1 text-[11px] font-medium text-primary">
+              <CheckCircle2 className="h-3 w-3" />
+              Você confirmou presença
+            </p>
+            <p className="text-[11px] text-muted-foreground">
+              {maxPlayers > 0
+                ? `${confirmed} de ${maxPlayers} confirmados · aguardando organização`
+                : `${confirmed} confirmado${confirmed === 1 ? "" : "s"} · aguardando organização`}
+            </p>
           </div>
         );
       } else if (state === 3) {
