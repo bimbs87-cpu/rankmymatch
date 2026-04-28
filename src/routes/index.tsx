@@ -1324,28 +1324,60 @@ function DashboardPage() {
             </div>
           </div>
           <div className="mt-3 flex gap-2">
-            <Link
-              to="/groups/$groupId"
-              params={{ groupId: nextMatch.group_id }}
-              search={{ view: "seasons", season: nextMatch.season_id || "", round: nextMatch.round_id } as any}
-              className={`flex flex-1 items-center justify-center gap-1.5 rounded-2xl px-3 py-2 text-xs font-semibold transition-colors ${
-                showRegister
-                  ? "bg-primary text-primary-foreground active:bg-primary/90"
-                  : "border border-primary/30 bg-primary/5 text-primary active:bg-primary/10"
-              }`}
-            >
-              {showRegister ? (
-                <>
-                  <Trophy className="h-3.5 w-3.5" />
-                  Registrar resultado
-                </>
-              ) : (
-                <>
+            {state === 3 ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => handleConfirmPresence(nextMatch.round_id, nextMatch.group_name)}
+                  disabled={confirmingRoundId === nextMatch.round_id}
+                  className="flex flex-1 items-center justify-center gap-1.5 rounded-2xl bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground transition-colors active:bg-primary/90 disabled:opacity-60"
+                >
+                  {confirmingRoundId === nextMatch.round_id ? (
+                    <>
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      Confirmando...
+                    </>
+                  ) : (
+                    <>
+                      <Check className="h-3.5 w-3.5" />
+                      Confirmar presença
+                    </>
+                  )}
+                </button>
+                <Link
+                  to="/groups/$groupId"
+                  params={{ groupId: nextMatch.group_id }}
+                  search={{ view: "seasons", season: nextMatch.season_id || "", round: nextMatch.round_id } as any}
+                  className="flex items-center justify-center gap-1.5 rounded-2xl border border-primary/30 bg-primary/5 px-3 py-2 text-xs font-semibold text-primary transition-colors active:bg-primary/10"
+                  aria-label="Ver rodada"
+                >
                   <Calendar className="h-3.5 w-3.5" />
-                  Ver rodada
-                </>
-              )}
-            </Link>
+                </Link>
+              </>
+            ) : (
+              <Link
+                to="/groups/$groupId"
+                params={{ groupId: nextMatch.group_id }}
+                search={{ view: "seasons", season: nextMatch.season_id || "", round: nextMatch.round_id } as any}
+                className={`flex flex-1 items-center justify-center gap-1.5 rounded-2xl px-3 py-2 text-xs font-semibold transition-colors ${
+                  showRegister
+                    ? "bg-primary text-primary-foreground active:bg-primary/90"
+                    : "border border-primary/30 bg-primary/5 text-primary active:bg-primary/10"
+                }`}
+              >
+                {showRegister ? (
+                  <>
+                    <Trophy className="h-3.5 w-3.5" />
+                    Registrar resultado
+                  </>
+                ) : (
+                  <>
+                    <Calendar className="h-3.5 w-3.5" />
+                    Ver rodada
+                  </>
+                )}
+              </Link>
+            )}
           </div>
         </div>
       </>
