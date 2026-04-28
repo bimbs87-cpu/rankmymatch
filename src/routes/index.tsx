@@ -1402,6 +1402,79 @@ function DashboardPage() {
   );
   const visibleNextMatchCardJSX = isDuplicateOfPendingMatch ? null : nextMatchCardJSX;
 
+  // Other rounds (across groups) where presence window is open and the user
+  // has not yet confirmed — used to render side-by-side action cards when
+  // multiple groups have pending presence at the same time.
+  const todayIso = new Date().toISOString().slice(0, 10);
+  const extraPendingPresenceRounds = upcomingRounds
+    .filter((r) => {
+      if (nextMatch && r.id === nextMatch.round_id) return false;
+      if (r.my_status === "confirmed") return false;
+      if (r.scheduled_date && r.scheduled_date < todayIso) return false;
+      const cfg = { presence_open_mode: r.presence_open_mode, presence_open_time: r.presence_open_time };
+      return isPresenceOpen(cfg, r.scheduled_date, r.scheduled_time, r.id);
+    })
+    .sort((a, b) => {
+      const dA = a.scheduled_date || "9999-12-31";
+      const dB = b.scheduled_date || "9999-12-31";
+      if (dA !== dB) return dA < dB ? -1 : 1;
+      return (a.scheduled_time || "23:59") < (b.scheduled_time || "23:59") ? -1 : 1;
+    });
+
+  /** Compact action card for an "extra" pending-presence round. */
+  const renderExtraPendingCard = (r: UpcomingRound) => {
+    const isConfirming = confirmingRoundId === r.id;
+    return (
+      <div
+        key={r.id}
+        className="flex flex-col rounded-3xl border border-warning/30 bg-gradient-to-br from-warning/10 via-warning/5 to-transparent p-4"
+      >
+        <div className="mb-2 flex items-center justify-between">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-warning">
+            Confirmação aberta
+          </span>
+          {r.scheduled_date && (
+            <span className="text-[10px] text-muted-foreground">
+              {formatDate(r.scheduled_date)}
+              {r.scheduled_time ? ` · ${r.scheduled_time.slice(0, 5)}` : ""}
+            </span>
+          )}
+        </div>
+        <p className="font-display text-sm font-bold text-foreground leading-tight truncate">
+          {r.group_name}
+        </p>
+        <p className="mt-0.5 text-[11px] text-muted-foreground truncate">
+          Rodada {r.round_number ?? "—"} · {r.confirmed_count}
+          {r.max_players ? `/${r.max_players}` : ""} confirmados
+        </p>
+        <button
+          type="button"
+          onClick={() => handleConfirmPresence(r.id, r.group_name)}
+          disabled={isConfirming}
+          className="mt-3 flex items-center justify-center gap-1.5 rounded-2xl bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground transition-colors active:bg-primary/90 disabled:opacity-60"
+        >
+          {isConfirming ? (
+            <>
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              Confirmando...
+            </>
+          ) : (
+            <>
+              <Check className="h-3.5 w-3.5" />
+              Confirmar presença
+            </>
+          )}
+        </button>
+      </div>
+    );
+  };
+
+  // Visible extras: at most 1 alongside the main card (so the row stays at 2
+  // cards). Anything beyond becomes a "+N mais" link to the rounds list below.
+  const extraVisibleCount = visibleNextMatchCardJSX ? 1 : 2;
+  const extraVisible = extraPendingPresenceRounds.slice(0, extraVisibleCount);
+  const extraOverflowCount = Math.max(0, extraPendingPresenceRounds.length - extraVisibleCount);
+
   return (
     <div
       ref={scrollRef}
