@@ -54,7 +54,10 @@ import {
   CalendarPlus,
   ListChecks,
   Medal,
+  Check,
+  CheckCircle2,
 } from "lucide-react";
+import { confirmPresence } from "@/lib/round-actions";
 
 const DESKTOP_NAV = [
   { to: "/" as const, icon: Home, label: "Início" },
@@ -295,7 +298,53 @@ function DashboardPage() {
   const { pendingMatch, refresh: refreshPending } = usePendingMatch();
   const [adminGroupIds, setAdminGroupIds] = useState<Set<string>>(new Set());
   const [groupStats, setGroupStats] = useState<Map<string, { seasons: number; rounds_completed: number; rounds_total: number }>>(new Map());
+  const [confirmingRoundId, setConfirmingRoundId] = useState<string | null>(null);
   const { displayName, nickname, avatarUrl: profileAvatarUrl } = useUserProfile();
+
+  /**
+   * Confirms presence for a round inline (no navigation).
+   * Updates local state optimistically so the next-match card and shortcuts
+   * reflect the confirmation immediately, then shows a success toast.
+   */
+  const handleConfirmPresence = useCallback(
+    async (roundId: string, groupName: string) => {
+      if (!user) return;
+      if (confirmingRoundId) return;
+      setConfirmingRoundId(roundId);
+      try {
+        await confirmPresence(roundId, user.id);
+        // Optimistic local updates
+        setNextMatch((prev) =>
+          prev && prev.round_id === roundId
+            ? { ...prev, my_presence_status: "confirmed" }
+            : prev,
+        );
+        setUpcomingRounds((prev) =>
+          prev.map((r) =>
+            r.id === roundId
+              ? {
+                  ...r,
+                  my_status: "confirmed",
+                  confirmed_count: r.my_status === "confirmed" ? r.confirmed_count : r.confirmed_count + 1,
+                  pending_count: r.my_status === "pending" ? Math.max(0, r.pending_count - 1) : r.pending_count,
+                }
+              : r,
+          ),
+        );
+        toast.success("Presença confirmada", {
+          description: `Você confirmou presença em ${groupName}.`,
+        });
+      } catch (err: any) {
+        console.error("[handleConfirmPresence] error", err);
+        toast.error("Não foi possível confirmar", {
+          description: err?.message || "Tente novamente em instantes.",
+        });
+      } finally {
+        setConfirmingRoundId(null);
+      }
+    },
+    [user, confirmingRoundId],
+  );
 
   // Check which groups user is admin of
   useEffect(() => {
@@ -1189,10 +1238,20 @@ function DashboardPage() {
         </p>
       );
       if (state === 2) {
+        const presenceRound = upcomingRounds.find((r) => r.id === nextMatch.round_id);
+        const confirmed = presenceRound?.confirmed_count ?? 0;
+        const maxPlayers = presenceRound?.max_players ?? 0;
         subStatusNode = (
           <div className="mt-1 space-y-0.5">
-            <p className="text-[11px] font-medium text-primary">Você confirmou presença</p>
-            <p className="text-[11px] text-muted-foreground">Aguardando organização dos jogos</p>
+            <p className="flex items-center gap-1 text-[11px] font-medium text-primary">
+              <CheckCircle2 className="h-3 w-3" />
+              Você confirmou presença
+            </p>
+            <p className="text-[11px] text-muted-foreground">
+              {maxPlayers > 0
+                ? `${confirmed} de ${maxPlayers} confirmados · aguardando organização`
+                : `${confirmed} confirmado${confirmed === 1 ? "" : "s"} · aguardando organização`}
+            </p>
           </div>
         );
       } else if (state === 3) {
@@ -1275,28 +1334,60 @@ function DashboardPage() {
             </div>
           </div>
           <div className="mt-3 flex gap-2">
-            <Link
-              to="/groups/$groupId"
-              params={{ groupId: nextMatch.group_id }}
-              search={{ view: "seasons", season: nextMatch.season_id || "", round: nextMatch.round_id } as any}
-              className={`flex flex-1 items-center justify-center gap-1.5 rounded-2xl px-3 py-2 text-xs font-semibold transition-colors ${
-                showRegister
-                  ? "bg-primary text-primary-foreground active:bg-primary/90"
-                  : "border border-primary/30 bg-primary/5 text-primary active:bg-primary/10"
-              }`}
-            >
-              {showRegister ? (
-                <>
-                  <Trophy className="h-3.5 w-3.5" />
-                  Registrar resultado
-                </>
-              ) : (
-                <>
+            {state === 3 ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => handleConfirmPresence(nextMatch.round_id, nextMatch.group_name)}
+                  disabled={confirmingRoundId === nextMatch.round_id}
+                  className="flex flex-1 items-center justify-center gap-1.5 rounded-2xl bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground transition-colors active:bg-primary/90 disabled:opacity-60"
+                >
+                  {confirmingRoundId === nextMatch.round_id ? (
+                    <>
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      Confirmando...
+                    </>
+                  ) : (
+                    <>
+                      <Check className="h-3.5 w-3.5" />
+                      Confirmar presença
+                    </>
+                  )}
+                </button>
+                <Link
+                  to="/groups/$groupId"
+                  params={{ groupId: nextMatch.group_id }}
+                  search={{ view: "seasons", season: nextMatch.season_id || "", round: nextMatch.round_id } as any}
+                  className="flex items-center justify-center gap-1.5 rounded-2xl border border-primary/30 bg-primary/5 px-3 py-2 text-xs font-semibold text-primary transition-colors active:bg-primary/10"
+                  aria-label="Ver rodada"
+                >
                   <Calendar className="h-3.5 w-3.5" />
-                  Ver rodada
-                </>
-              )}
-            </Link>
+                </Link>
+              </>
+            ) : (
+              <Link
+                to="/groups/$groupId"
+                params={{ groupId: nextMatch.group_id }}
+                search={{ view: "seasons", season: nextMatch.season_id || "", round: nextMatch.round_id } as any}
+                className={`flex flex-1 items-center justify-center gap-1.5 rounded-2xl px-3 py-2 text-xs font-semibold transition-colors ${
+                  showRegister
+                    ? "bg-primary text-primary-foreground active:bg-primary/90"
+                    : "border border-primary/30 bg-primary/5 text-primary active:bg-primary/10"
+                }`}
+              >
+                {showRegister ? (
+                  <>
+                    <Trophy className="h-3.5 w-3.5" />
+                    Registrar resultado
+                  </>
+                ) : (
+                  <>
+                    <Calendar className="h-3.5 w-3.5" />
+                    Ver rodada
+                  </>
+                )}
+              </Link>
+            )}
           </div>
         </div>
       </>
@@ -1310,6 +1401,79 @@ function DashboardPage() {
     pendingMatch.round_id === nextMatch.round_id,
   );
   const visibleNextMatchCardJSX = isDuplicateOfPendingMatch ? null : nextMatchCardJSX;
+
+  // Other rounds (across groups) where presence window is open and the user
+  // has not yet confirmed — used to render side-by-side action cards when
+  // multiple groups have pending presence at the same time.
+  const todayIso = new Date().toISOString().slice(0, 10);
+  const extraPendingPresenceRounds = upcomingRounds
+    .filter((r) => {
+      if (nextMatch && r.id === nextMatch.round_id) return false;
+      if (r.my_status === "confirmed") return false;
+      if (r.scheduled_date && r.scheduled_date < todayIso) return false;
+      const cfg = { presence_open_mode: r.presence_open_mode, presence_open_time: r.presence_open_time };
+      return isPresenceOpen(cfg, r.scheduled_date, r.scheduled_time, r.id);
+    })
+    .sort((a, b) => {
+      const dA = a.scheduled_date || "9999-12-31";
+      const dB = b.scheduled_date || "9999-12-31";
+      if (dA !== dB) return dA < dB ? -1 : 1;
+      return (a.scheduled_time || "23:59") < (b.scheduled_time || "23:59") ? -1 : 1;
+    });
+
+  /** Compact action card for an "extra" pending-presence round. */
+  const renderExtraPendingCard = (r: UpcomingRound) => {
+    const isConfirming = confirmingRoundId === r.id;
+    return (
+      <div
+        key={r.id}
+        className="flex flex-col rounded-3xl border border-warning/30 bg-gradient-to-br from-warning/10 via-warning/5 to-transparent p-4"
+      >
+        <div className="mb-2 flex items-center justify-between">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-warning">
+            Confirmação aberta
+          </span>
+          {r.scheduled_date && (
+            <span className="text-[10px] text-muted-foreground">
+              {formatDate(r.scheduled_date)}
+              {r.scheduled_time ? ` · ${r.scheduled_time.slice(0, 5)}` : ""}
+            </span>
+          )}
+        </div>
+        <p className="font-display text-sm font-bold text-foreground leading-tight truncate">
+          {r.group_name}
+        </p>
+        <p className="mt-0.5 text-[11px] text-muted-foreground truncate">
+          Rodada {r.round_number ?? "—"} · {r.confirmed_count}
+          {r.max_players ? `/${r.max_players}` : ""} confirmados
+        </p>
+        <button
+          type="button"
+          onClick={() => handleConfirmPresence(r.id, r.group_name)}
+          disabled={isConfirming}
+          className="mt-3 flex items-center justify-center gap-1.5 rounded-2xl bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground transition-colors active:bg-primary/90 disabled:opacity-60"
+        >
+          {isConfirming ? (
+            <>
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              Confirmando...
+            </>
+          ) : (
+            <>
+              <Check className="h-3.5 w-3.5" />
+              Confirmar presença
+            </>
+          )}
+        </button>
+      </div>
+    );
+  };
+
+  // Visible extras: at most 1 alongside the main card (so the row stays at 2
+  // cards). Anything beyond becomes a "+N mais" link to the rounds list below.
+  const extraVisibleCount = visibleNextMatchCardJSX ? 1 : 2;
+  const extraVisible = extraPendingPresenceRounds.slice(0, extraVisibleCount);
+  const extraOverflowCount = Math.max(0, extraPendingPresenceRounds.length - extraVisibleCount);
 
   return (
     <div
@@ -1786,12 +1950,25 @@ function DashboardPage() {
             <div className="flex flex-row gap-4">
               {visibleNextMatchCardJSX ? (
                 <div className="flex-1 min-w-0">{visibleNextMatchCardJSX}</div>
-              ) : !isDuplicateOfPendingMatch ? (
+              ) : !isDuplicateOfPendingMatch && extraVisible.length === 0 ? (
                 <div className="flex-1 min-w-0 flex items-center justify-center rounded-3xl border border-dashed border-border bg-card/50 p-6">
                   <p className="text-xs text-muted-foreground">Nenhum confronto próximo agendado</p>
                 </div>
               ) : (
                 null
+              )}
+              {extraVisible.map((r) => (
+                <div key={r.id} className="flex-1 min-w-0">{renderExtraPendingCard(r)}</div>
+              ))}
+              {extraOverflowCount > 0 && (
+                <Link
+                  to="/seasons"
+                  className="flex w-[120px] shrink-0 flex-col items-center justify-center gap-1 rounded-3xl border border-dashed border-border bg-card/50 p-4 text-center transition-colors hover:bg-accent/30"
+                >
+                  <Bell className="h-4 w-4 text-warning" />
+                  <span className="text-xs font-semibold text-foreground">+{extraOverflowCount} mais</span>
+                  <span className="text-[10px] text-muted-foreground">Ver todas</span>
+                </Link>
               )}
               <div className="w-[260px] shrink-0">
                 <div className="rounded-3xl border border-border bg-card p-4 h-full">
@@ -1812,21 +1989,26 @@ function DashboardPage() {
                       };
                       const items: Shortcut[] = [];
 
-                      // 1. Confirmar presença (urgente, contextual)
+                      // 1. Confirmar presença (urgente, contextual) — inline confirm, no navigation
                       if (nextMatch && nextMatch.my_presence_status !== "confirmed" && nextMatch.presence_is_open) {
+                        const isConfirming = confirmingRoundId === nextMatch.round_id;
                         items.push({
                           key: "confirm",
                           priority: 1,
                           node: (
-                            <Link
-                              to="/groups/$groupId"
-                              params={{ groupId: nextMatch.group_id }}
-                              search={{ view: "seasons", season: nextMatch.season_id || "", round: nextMatch.round_id } as any}
-                              className="flex items-center gap-2 rounded-2xl border border-warning/30 bg-warning/5 px-3 py-2 text-xs font-semibold text-warning transition-colors hover:bg-warning/10"
+                            <button
+                              type="button"
+                              onClick={() => handleConfirmPresence(nextMatch.round_id, nextMatch.group_name)}
+                              disabled={isConfirming}
+                              className="flex items-center gap-2 rounded-2xl border border-warning/30 bg-warning/5 px-3 py-2 text-xs font-semibold text-warning transition-colors hover:bg-warning/10 disabled:opacity-60"
                             >
-                              <Calendar className="h-4 w-4 shrink-0" />
-                              <span className="truncate">Confirmar presença</span>
-                            </Link>
+                              {isConfirming ? (
+                                <Loader2 className="h-4 w-4 shrink-0 animate-spin" />
+                              ) : (
+                                <Check className="h-4 w-4 shrink-0" />
+                              )}
+                              <span className="truncate">{isConfirming ? "Confirmando..." : "Confirmar presença"}</span>
+                            </button>
                           ),
                         });
                       }
@@ -2364,9 +2546,23 @@ function DashboardPage() {
         </section>
 
         {/* Seu próximo confronto — mobile/tablet only (desktop version is rendered inside the right column above) */}
-        {visibleNextMatchCardJSX && (
-          <section className="lg:hidden">
+        {(visibleNextMatchCardJSX || extraVisible.length > 0) && (
+          <section className="lg:hidden space-y-3">
             {visibleNextMatchCardJSX}
+            {extraVisible.length > 0 && (
+              <div className={`grid gap-3 ${extraVisible.length === 1 && !visibleNextMatchCardJSX ? "grid-cols-1" : "grid-cols-2"}`}>
+                {extraVisible.map((r) => renderExtraPendingCard(r))}
+              </div>
+            )}
+            {extraOverflowCount > 0 && (
+              <Link
+                to="/seasons"
+                className="flex items-center justify-center gap-1.5 rounded-2xl border border-dashed border-border bg-card/50 px-3 py-2 text-xs font-semibold text-muted-foreground transition-colors hover:bg-accent/30"
+              >
+                <Bell className="h-3.5 w-3.5 text-warning" />
+                +{extraOverflowCount} {extraOverflowCount === 1 ? "outra rodada" : "outras rodadas"} aguardando confirmação
+              </Link>
+            )}
           </section>
         )}
 
