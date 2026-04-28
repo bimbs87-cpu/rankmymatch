@@ -298,7 +298,53 @@ function DashboardPage() {
   const { pendingMatch, refresh: refreshPending } = usePendingMatch();
   const [adminGroupIds, setAdminGroupIds] = useState<Set<string>>(new Set());
   const [groupStats, setGroupStats] = useState<Map<string, { seasons: number; rounds_completed: number; rounds_total: number }>>(new Map());
+  const [confirmingRoundId, setConfirmingRoundId] = useState<string | null>(null);
   const { displayName, nickname, avatarUrl: profileAvatarUrl } = useUserProfile();
+
+  /**
+   * Confirms presence for a round inline (no navigation).
+   * Updates local state optimistically so the next-match card and shortcuts
+   * reflect the confirmation immediately, then shows a success toast.
+   */
+  const handleConfirmPresence = useCallback(
+    async (roundId: string, groupName: string) => {
+      if (!user) return;
+      if (confirmingRoundId) return;
+      setConfirmingRoundId(roundId);
+      try {
+        await confirmPresence(roundId, user.id);
+        // Optimistic local updates
+        setNextMatch((prev) =>
+          prev && prev.round_id === roundId
+            ? { ...prev, my_presence_status: "confirmed" }
+            : prev,
+        );
+        setUpcomingRounds((prev) =>
+          prev.map((r) =>
+            r.id === roundId
+              ? {
+                  ...r,
+                  my_status: "confirmed",
+                  confirmed_count: r.my_status === "confirmed" ? r.confirmed_count : r.confirmed_count + 1,
+                  pending_count: r.my_status === "pending" ? Math.max(0, r.pending_count - 1) : r.pending_count,
+                }
+              : r,
+          ),
+        );
+        toast.success("Presença confirmada", {
+          description: `Você confirmou presença em ${groupName}.`,
+        });
+      } catch (err: any) {
+        console.error("[handleConfirmPresence] error", err);
+        toast.error("Não foi possível confirmar", {
+          description: err?.message || "Tente novamente em instantes.",
+        });
+      } finally {
+        setConfirmingRoundId(null);
+      }
+    },
+    [user, confirmingRoundId],
+  );
 
   // Check which groups user is admin of
   useEffect(() => {
