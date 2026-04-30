@@ -127,8 +127,24 @@ export const submitMatchScoreServerFn = createServerFn({ method: "POST" })
       if (s.scoreA > s.scoreB) setsA++;
       else if (s.scoreB > s.scoreA) setsB++;
     }
-    const winnerTeam: "A" | "B" | null = setsA > setsB ? "A" : setsB > setsA ? "B" : null;
-    if (!winnerTeam) throw new Error("Empate em sets — adicione o tiebreak");
+    let winnerTeam: "A" | "B" | null = setsA > setsB ? "A" : setsB > setsA ? "B" : null;
+    if (!winnerTeam) {
+      // Sets tied. For rivalry / flexible singles groups (where matches can
+      // end early), break the tie by total games. Otherwise reject.
+      const { data: groupRow } = await supabaseAdmin
+        .from("groups")
+        .select("match_format, singles_group_type")
+        .eq("id", groupId)
+        .maybeSingle();
+      const allowGamesTiebreak =
+        groupRow?.match_format === "singles" &&
+        (groupRow?.singles_group_type === "rivalry" || groupRow?.singles_group_type === "flexible");
+      if (allowGamesTiebreak && gamesA !== gamesB) {
+        winnerTeam = gamesA > gamesB ? "A" : "B";
+      } else {
+        throw new Error("Empate em sets — adicione o tiebreak");
+      }
+    }
 
     // ---- 4.5 If editing, revert prior Elo BEFORE writing new sets ----
     // (revertMatchEloServer reads current sets/winner_team to know how to
