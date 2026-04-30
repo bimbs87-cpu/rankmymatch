@@ -375,7 +375,9 @@ export function ScoreEntryDialog({
               actorId,
               type: "match_result",
               title: "Resultado registrado! 🏆",
-              body: isSingles
+              body: result.winnerTeam === null
+                ? `Empate ${result.setsA}x${result.setsB}. Confira o resultado!`
+                : isSingles
                 ? `${winnerName} venceu por ${result.setsA}x${result.setsB}. Confira o resultado!`
                 : `Time ${result.winnerTeam} venceu ${result.setsA}x${result.setsB}. Confira o resultado!`,
               data: { matchId, seasonId, roundId: roundIdForNotify },
