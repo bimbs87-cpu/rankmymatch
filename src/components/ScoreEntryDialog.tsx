@@ -654,7 +654,7 @@ export function ScoreEntryDialog({
                       className="flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary"
                     >
                       {p.name}
-                      {p.userId && matchState.matchWinner && (
+                      {p.userId && (matchState.matchWinner || matchState.isDraw) && (
                         <span
                           className={`tabular-nums font-bold ${
                             (eloDeltas[p.userId] ?? 0) > 0
@@ -681,7 +681,7 @@ export function ScoreEntryDialog({
                       className="flex items-center gap-1 rounded-full bg-info/10 px-2 py-0.5 text-[10px] font-medium text-info"
                     >
                       {p.name}
-                      {p.userId && matchState.matchWinner && (
+                      {p.userId && (matchState.matchWinner || matchState.isDraw) && (
                         <span
                           className={`tabular-nums font-bold ${
                             (eloDeltas[p.userId] ?? 0) > 0
