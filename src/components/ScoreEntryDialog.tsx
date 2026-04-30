@@ -390,7 +390,9 @@ export function ScoreEntryDialog({
       }
 
       toast.success(
-        isSingles
+        result.winnerTeam === null
+          ? `Empate registrado ${result.setsA}-${result.setsB}!`
+          : isSingles
           ? `${winnerName} venceu por ${result.setsA} set${result.setsA > 1 ? "s" : ""} a ${result.setsB}!`
           : `Partida finalizada! Time ${result.winnerTeam} venceu ${result.setsA}-${result.setsB}`
       );
