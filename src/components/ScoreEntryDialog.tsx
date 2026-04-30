@@ -769,11 +769,13 @@ export function ScoreEntryDialog({
             </button>
           )}
 
-          {matchState.matchWinner && matchState.canSubmit && (
+          {(matchState.matchWinner || matchState.isDraw) && matchState.canSubmit && (
             <div className="mt-4 flex items-center justify-center gap-2 rounded-2xl bg-success/10 py-2.5">
               <Trophy className="h-4 w-4 text-success" />
               <span className="text-sm font-semibold text-success">
-                {isSingles
+                {matchState.isDraw
+                  ? `Empate ${matchState.setsA}-${matchState.setsB} (${matchState.gamesA}-${matchState.gamesB} games)`
+                  : isSingles
                   ? `${matchState.matchWinner === "A" ? playerAName : playerBName} venceu ${matchState.setsA}-${matchState.setsB}`
                   : `Time ${matchState.matchWinner} vence ${matchState.setsA}-${matchState.setsB}`
                 }
@@ -781,7 +783,7 @@ export function ScoreEntryDialog({
             </div>
           )}
 
-          {matchState.matchWinner && matchState.canSubmit && (
+          {(matchState.matchWinner || matchState.isDraw) && matchState.canSubmit && (
             <p className="mt-1.5 text-center text-xs text-muted-foreground">
               Sets: {sets.map((s) => `${s.scoreA}-${s.scoreB}`).join(" • ")}
             </p>
