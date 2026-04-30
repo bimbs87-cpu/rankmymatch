@@ -81,15 +81,19 @@ export async function processMatchEloServer(result: MatchResultServer) {
 
   const expectedA = expectedScore(avgRatingA, avgRatingB);
   const expectedB = 1 - expectedA;
-  const actualA = result.winnerTeam === "A" ? 1 : 0;
+  const isDraw = result.winnerTeam === null;
+  const actualA = isDraw ? 0.5 : result.winnerTeam === "A" ? 1 : 0;
   const actualB = 1 - actualA;
 
-  const mm = marginMultiplier(
-    result.winnerTeam === "A" ? result.setsTeamA : result.setsTeamB,
-    result.winnerTeam === "A" ? result.setsTeamB : result.setsTeamA,
-    result.winnerTeam === "A" ? result.gamesTeamA : result.gamesTeamB,
-    result.winnerTeam === "A" ? result.gamesTeamB : result.gamesTeamA,
-  );
+  // For draws, no margin bonus (symmetric outcome)
+  const mm = isDraw
+    ? 1
+    : marginMultiplier(
+        result.winnerTeam === "A" ? result.setsTeamA : result.setsTeamB,
+        result.winnerTeam === "A" ? result.setsTeamB : result.setsTeamA,
+        result.winnerTeam === "A" ? result.gamesTeamA : result.gamesTeamB,
+        result.winnerTeam === "A" ? result.gamesTeamB : result.gamesTeamA,
+      );
 
   const ratingEvents: Array<{
     user_id: string;
