@@ -27,7 +27,8 @@ export interface MatchResultServer {
   seasonId: string;
   teamA: string[];
   teamB: string[];
-  winnerTeam: "A" | "B";
+  /** null indicates a draw (no winner) — only valid for groups that allow draws. */
+  winnerTeam: "A" | "B" | null;
   setsTeamA: number;
   setsTeamB: number;
   gamesTeamA: number;
