@@ -236,10 +236,16 @@ export function ScoreEntryDialog({
     let canSubmit = false;
 
     if (isUnlimitedSets || isFlexibleSets) {
-      // Flexible/Unlimited: whoever has more sets wins; canSubmit when there is a leader
-      if (allValid && setsA !== setsB && setResults.some((r) => r.valid)) {
-        matchWinner = setsA > setsB ? "A" : "B";
-        canSubmit = true;
+      // Flexible/Unlimited (rivalry/avulso): leader by sets; if tied in sets,
+      // fall back to total games. If still tied, allow nothing.
+      if (allValid && setResults.some((r) => r.valid)) {
+        if (setsA !== setsB) {
+          matchWinner = setsA > setsB ? "A" : "B";
+          canSubmit = true;
+        } else if (gamesA !== gamesB) {
+          matchWinner = gamesA > gamesB ? "A" : "B";
+          canSubmit = true;
+        }
       }
     } else {
       const neededToWin = maxSets === 1 ? 1 : 2;
