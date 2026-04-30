@@ -165,7 +165,7 @@ export const submitMatchScoreServerFn = createServerFn({ method: "POST" })
       .update({
         status: "completed",
         winner_team: winnerTeam,
-        result_type: "normal",
+        result_type: isDraw ? "draw" : "normal",
       })
       .eq("id", matchId)
       .select("id, status")
