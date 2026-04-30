@@ -51,10 +51,8 @@ export function previewMatchEloChanges(params: {
     gamesTeamA > gamesTeamB ? "A" : gamesTeamB > gamesTeamA ? "B" : null;
 
   const result: Record<string, number> = {};
-  if (!winnerTeam) {
-    for (const p of [...teamA, ...teamB]) result[p.userId] = 0;
-    return result;
-  }
+  // If sets AND games are tied, treat as a draw (rivalry/flexible only — caller decides).
+  const isDraw = winnerTeam === null && (setsTeamA + setsTeamB > 0 || gamesTeamA + gamesTeamB > 0);
 
   const ratingOf = (p: PlayerEloInput) => p.rating ?? INITIAL_RATING;
   const avgA = teamA.reduce((s, p) => s + ratingOf(p), 0) / Math.max(teamA.length, 1);
@@ -63,16 +61,23 @@ export function previewMatchEloChanges(params: {
   const expectedA = expectedScore(avgA, avgB);
   const expectedB = 1 - expectedA;
 
-  const mm = marginMultiplier(
-    winnerTeam === "A" ? setsTeamA : setsTeamB,
-    winnerTeam === "A" ? setsTeamB : setsTeamA,
-    winnerTeam === "A" ? gamesTeamA : gamesTeamB,
-    winnerTeam === "A" ? gamesTeamB : gamesTeamA,
-  );
+  const mm = winnerTeam
+    ? marginMultiplier(
+        winnerTeam === "A" ? setsTeamA : setsTeamB,
+        winnerTeam === "A" ? setsTeamB : setsTeamA,
+        winnerTeam === "A" ? gamesTeamA : gamesTeamB,
+        winnerTeam === "A" ? gamesTeamB : gamesTeamA,
+      )
+    : 1;
 
   const compute = (p: PlayerEloInput, isTeamA: boolean) => {
     const expected = isTeamA ? expectedA : expectedB;
-    const actual = (isTeamA && winnerTeam === "A") || (!isTeamA && winnerTeam === "B") ? 1 : 0;
+    const actual = isDraw
+      ? 0.5
+      : (isTeamA && winnerTeam === "A") || (!isTeamA && winnerTeam === "B")
+      ? 1
+      : 0;
+    if (!winnerTeam && !isDraw) return 0;
     const k = kFactor(p.matchesPlayed ?? 0);
     return Math.round(k * mm * (actual - expected) * 100) / 100;
   };
