@@ -270,7 +270,7 @@ export function ScoreEntryDialog({
   const eloDeltas = useMemo(() => {
     const idsA = teamA.map((p) => p.userId).filter(Boolean) as string[];
     const idsB = teamB.map((p) => p.userId).filter(Boolean) as string[];
-    if (!idsA.length || !idsB.length || !matchState.matchWinner) return {};
+    if (!idsA.length || !idsB.length || (!matchState.matchWinner && !matchState.isDraw)) return {};
     return previewMatchEloChanges({
       teamA: idsA.map((id) => ({
         userId: id,
@@ -297,7 +297,7 @@ export function ScoreEntryDialog({
   };
 
   const renderEloBadge = (uid?: string) => {
-    if (!uid || !matchState.matchWinner) return null;
+    if (!uid || (!matchState.matchWinner && !matchState.isDraw)) return null;
     const d = eloDeltas[uid] ?? 0;
     const positive = d > 0;
     const negative = d < 0;
