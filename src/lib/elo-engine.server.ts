@@ -131,7 +131,7 @@ export async function processMatchEloServer(result: MatchResultServer) {
     const change = Math.round(k * mm * (actual - expected) * 100) / 100;
     const newRating = current.rating + change;
     const isWinner =
-      (isTeamA && result.winnerTeam === "A") || (!isTeamA && result.winnerTeam === "B");
+      !isDraw && ((isTeamA && result.winnerTeam === "A") || (!isTeamA && result.winnerTeam === "B"));
 
     ratingEvents.push({
       user_id: pid,
