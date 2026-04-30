@@ -233,17 +233,21 @@ export function ScoreEntryDialog({
     const allValid = setResults.every((r) => r.valid);
 
     let matchWinner: "A" | "B" | null = null;
+    let isDraw = false;
     let canSubmit = false;
 
     if (isUnlimitedSets || isFlexibleSets) {
       // Flexible/Unlimited (rivalry/avulso): leader by sets; if tied in sets,
-      // fall back to total games. If still tied, allow nothing.
+      // fall back to total games. If still tied, allow a DRAW.
       if (allValid && setResults.some((r) => r.valid)) {
         if (setsA !== setsB) {
           matchWinner = setsA > setsB ? "A" : "B";
           canSubmit = true;
         } else if (gamesA !== gamesB) {
           matchWinner = gamesA > gamesB ? "A" : "B";
+          canSubmit = true;
+        } else {
+          isDraw = true;
           canSubmit = true;
         }
       }
