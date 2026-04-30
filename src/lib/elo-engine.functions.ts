@@ -128,9 +128,10 @@ export const submitMatchScoreServerFn = createServerFn({ method: "POST" })
       else if (s.scoreB > s.scoreA) setsB++;
     }
     let winnerTeam: "A" | "B" | null = setsA > setsB ? "A" : setsB > setsA ? "B" : null;
+    let isDraw = false;
     if (!winnerTeam) {
       // Sets tied. For rivalry / flexible singles groups (where matches can
-      // end early), break the tie by total games. Otherwise reject.
+      // end early), break the tie by total games — or accept a full draw.
       const { data: groupRow } = await supabaseAdmin
         .from("groups")
         .select("match_format, singles_group_type")
@@ -139,8 +140,12 @@ export const submitMatchScoreServerFn = createServerFn({ method: "POST" })
       const allowGamesTiebreak =
         groupRow?.match_format === "singles" &&
         (groupRow?.singles_group_type === "rivalry" || groupRow?.singles_group_type === "flexible");
-      if (allowGamesTiebreak && gamesA !== gamesB) {
-        winnerTeam = gamesA > gamesB ? "A" : "B";
+      if (allowGamesTiebreak) {
+        if (gamesA !== gamesB) {
+          winnerTeam = gamesA > gamesB ? "A" : "B";
+        } else {
+          isDraw = true;
+        }
       } else {
         throw new Error("Empate em sets — adicione o tiebreak");
       }
@@ -160,7 +165,7 @@ export const submitMatchScoreServerFn = createServerFn({ method: "POST" })
       .update({
         status: "completed",
         winner_team: winnerTeam,
-        result_type: "normal",
+        result_type: isDraw ? "draw" : "normal",
       })
       .eq("id", matchId)
       .select("id, status")

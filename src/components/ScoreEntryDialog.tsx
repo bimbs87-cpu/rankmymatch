@@ -233,17 +233,21 @@ export function ScoreEntryDialog({
     const allValid = setResults.every((r) => r.valid);
 
     let matchWinner: "A" | "B" | null = null;
+    let isDraw = false;
     let canSubmit = false;
 
     if (isUnlimitedSets || isFlexibleSets) {
       // Flexible/Unlimited (rivalry/avulso): leader by sets; if tied in sets,
-      // fall back to total games. If still tied, allow nothing.
+      // fall back to total games. If still tied, allow a DRAW.
       if (allValid && setResults.some((r) => r.valid)) {
         if (setsA !== setsB) {
           matchWinner = setsA > setsB ? "A" : "B";
           canSubmit = true;
         } else if (gamesA !== gamesB) {
           matchWinner = gamesA > gamesB ? "A" : "B";
+          canSubmit = true;
+        } else {
+          isDraw = true;
           canSubmit = true;
         }
       }
@@ -259,14 +263,14 @@ export function ScoreEntryDialog({
         ? allValid && setResults.some((r) => r.valid) && sets.length < maxSets
         : !matchWinner && sets.length < maxSets && allValid && setResults.some((r) => r.valid);
 
-    return { setsA, setsB, gamesA, gamesB, setResults, matchWinner, canSubmit, needsMoreSets };
+    return { setsA, setsB, gamesA, gamesB, setResults, matchWinner, isDraw, canSubmit, needsMoreSets };
   }, [sets, maxSets, isUnlimitedSets, isFlexibleSets]);
 
   // Preview Elo deltas for the current scoreboard (only when there is a winner)
   const eloDeltas = useMemo(() => {
     const idsA = teamA.map((p) => p.userId).filter(Boolean) as string[];
     const idsB = teamB.map((p) => p.userId).filter(Boolean) as string[];
-    if (!idsA.length || !idsB.length || !matchState.matchWinner) return {};
+    if (!idsA.length || !idsB.length || (!matchState.matchWinner && !matchState.isDraw)) return {};
     return previewMatchEloChanges({
       teamA: idsA.map((id) => ({
         userId: id,
@@ -293,7 +297,7 @@ export function ScoreEntryDialog({
   };
 
   const renderEloBadge = (uid?: string) => {
-    if (!uid || !matchState.matchWinner) return null;
+    if (!uid || (!matchState.matchWinner && !matchState.isDraw)) return null;
     const d = eloDeltas[uid] ?? 0;
     const positive = d > 0;
     const negative = d < 0;
@@ -371,7 +375,9 @@ export function ScoreEntryDialog({
               actorId,
               type: "match_result",
               title: "Resultado registrado! 🏆",
-              body: isSingles
+              body: result.winnerTeam === null
+                ? `Empate ${result.setsA}x${result.setsB}. Confira o resultado!`
+                : isSingles
                 ? `${winnerName} venceu por ${result.setsA}x${result.setsB}. Confira o resultado!`
                 : `Time ${result.winnerTeam} venceu ${result.setsA}x${result.setsB}. Confira o resultado!`,
               data: { matchId, seasonId, roundId: roundIdForNotify },
@@ -386,7 +392,9 @@ export function ScoreEntryDialog({
       }
 
       toast.success(
-        isSingles
+        result.winnerTeam === null
+          ? `Empate registrado ${result.setsA}-${result.setsB}!`
+          : isSingles
           ? `${winnerName} venceu por ${result.setsA} set${result.setsA > 1 ? "s" : ""} a ${result.setsB}!`
           : `Partida finalizada! Time ${result.winnerTeam} venceu ${result.setsA}-${result.setsB}`
       );
@@ -646,7 +654,7 @@ export function ScoreEntryDialog({
                       className="flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary"
                     >
                       {p.name}
-                      {p.userId && matchState.matchWinner && (
+                      {p.userId && (matchState.matchWinner || matchState.isDraw) && (
                         <span
                           className={`tabular-nums font-bold ${
                             (eloDeltas[p.userId] ?? 0) > 0
@@ -673,7 +681,7 @@ export function ScoreEntryDialog({
                       className="flex items-center gap-1 rounded-full bg-info/10 px-2 py-0.5 text-[10px] font-medium text-info"
                     >
                       {p.name}
-                      {p.userId && matchState.matchWinner && (
+                      {p.userId && (matchState.matchWinner || matchState.isDraw) && (
                         <span
                           className={`tabular-nums font-bold ${
                             (eloDeltas[p.userId] ?? 0) > 0
@@ -765,11 +773,13 @@ export function ScoreEntryDialog({
             </button>
           )}
 
-          {matchState.matchWinner && matchState.canSubmit && (
+          {(matchState.matchWinner || matchState.isDraw) && matchState.canSubmit && (
             <div className="mt-4 flex items-center justify-center gap-2 rounded-2xl bg-success/10 py-2.5">
               <Trophy className="h-4 w-4 text-success" />
               <span className="text-sm font-semibold text-success">
-                {isSingles
+                {matchState.isDraw
+                  ? `Empate ${matchState.setsA}-${matchState.setsB} (${matchState.gamesA}-${matchState.gamesB} games)`
+                  : isSingles
                   ? `${matchState.matchWinner === "A" ? playerAName : playerBName} venceu ${matchState.setsA}-${matchState.setsB}`
                   : `Time ${matchState.matchWinner} vence ${matchState.setsA}-${matchState.setsB}`
                 }
@@ -777,7 +787,7 @@ export function ScoreEntryDialog({
             </div>
           )}
 
-          {matchState.matchWinner && matchState.canSubmit && (
+          {(matchState.matchWinner || matchState.isDraw) && matchState.canSubmit && (
             <p className="mt-1.5 text-center text-xs text-muted-foreground">
               Sets: {sets.map((s) => `${s.scoreA}-${s.scoreB}`).join(" • ")}
             </p>
