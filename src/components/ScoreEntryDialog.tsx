@@ -263,7 +263,7 @@ export function ScoreEntryDialog({
         ? allValid && setResults.some((r) => r.valid) && sets.length < maxSets
         : !matchWinner && sets.length < maxSets && allValid && setResults.some((r) => r.valid);
 
-    return { setsA, setsB, gamesA, gamesB, setResults, matchWinner, canSubmit, needsMoreSets };
+    return { setsA, setsB, gamesA, gamesB, setResults, matchWinner, isDraw, canSubmit, needsMoreSets };
   }, [sets, maxSets, isUnlimitedSets, isFlexibleSets]);
 
   // Preview Elo deltas for the current scoreboard (only when there is a winner)
