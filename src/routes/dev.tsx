@@ -1027,6 +1027,7 @@ function SignupsTab({ signups }: { signups: DashboardData["signups"] }) {
                   <TableHead>Último login</TableHead>
                   <TableHead>Origem</TableHead>
                   <TableHead>Grupo criado</TableHead>
+                  <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -1070,11 +1071,26 @@ function SignupsTab({ signups }: { signups: DashboardData["signups"] }) {
                         <span className="text-xs text-muted-foreground">—</span>
                       )}
                     </TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        disabled={deletingId === s.user_id}
+                        onClick={() => handleHardDelete(s.user_id, s.email || s.name || s.user_id)}
+                        title="Remover usuário completamente (libera o e-mail para reuso em testes)"
+                      >
+                        {deletingId === s.user_id ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-3.5 w-3.5" />
+                        )}
+                      </Button>
+                    </TableCell>
                   </TableRow>
                 ))}
                 {filtered.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                    <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
                       Nenhum cadastro encontrado
                     </TableCell>
                   </TableRow>
