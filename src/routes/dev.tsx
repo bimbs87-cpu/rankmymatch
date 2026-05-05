@@ -964,20 +964,34 @@ function OverviewTab({ data }: { data: DashboardData }) {
 function SignupsTab({ signups }: { signups: DashboardData["signups"] }) {
   const [search, setSearch] = useState("");
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [confirmTarget, setConfirmTarget] = useState<{ userId: string; label: string } | null>(null);
+  const [confirmText, setConfirmText] = useState("");
   const [localSignups, setLocalSignups] = useState(signups);
   useEffect(() => { setLocalSignups(signups); }, [signups]);
+  const hardDeleteFn = useServerFn(devHardDeleteUserFn);
 
-  const handleHardDelete = async (userId: string, label: string) => {
-    if (!window.confirm(`Apagar COMPLETAMENTE "${label}"?\n\nIsso remove auth, perfil, grupos criados, partidas e tudo associado. O e-mail poderá ser reusado em testes.\n\nEsta ação é IRREVERSÍVEL.`)) return;
+  const askHardDelete = (userId: string, label: string) => {
+    setConfirmText("");
+    setConfirmTarget({ userId, label });
+  };
+
+  const performHardDelete = async () => {
+    if (!confirmTarget) return;
+    const { userId, label } = confirmTarget;
     setDeletingId(userId);
     try {
-      const res = await devHardDeleteUserFn({ data: { userId } });
-      if (res.success) {
-        toast.success("Usuário removido completamente");
+      const headers = await getServerFnAuthHeaders();
+      const res = await hardDeleteFn({ headers, data: { userId } } as Parameters<typeof hardDeleteFn>[0]);
+      if (res?.success) {
+        toast.success(`${label} removido completamente`);
       } else {
-        toast.warning(`Removido com avisos: ${res.errors.slice(0, 2).join("; ")}`);
+        const errs = Array.isArray(res?.errors) ? res.errors : [];
+        toast.warning(
+          errs.length ? `Removido com avisos: ${errs.slice(0, 2).join("; ")}` : "Removido com avisos",
+        );
       }
       setLocalSignups((prev) => prev.filter((s) => s.user_id !== userId));
+      setConfirmTarget(null);
     } catch (e: any) {
       toast.error(e?.message || "Falha ao remover");
     } finally {
