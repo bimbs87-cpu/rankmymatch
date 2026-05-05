@@ -184,16 +184,16 @@ export function SeasonsPanel({ groupId, isAdmin, initialSeasonId, initialRoundId
       {/* Group-wide summary cards (totais do grupo todo) */}
       <GroupSummaryCards groupId={groupId} />
 
-      {/* Last completed round — expanded by default */}
+      {/* Next upcoming round — hero, in highlight at the top */}
+      <LastAndNextRoundCards groupId={groupId} isAdmin={isAdmin} variant="next" groupName={groupName} />
+
+      {/* Last completed round */}
       <LastAndNextRoundCards groupId={groupId} isAdmin={isAdmin} variant="last" />
 
       {/* Mini timeline showing season spans */}
       {seasons.length > 0 && (
         <SeasonsTimeline seasons={seasons.map((s: any) => ({ ...s, group_id: groupId })) as any} onSelect={handleTimelineSelect} />
       )}
-
-      {/* Next upcoming round — collapsed by default */}
-      <LastAndNextRoundCards groupId={groupId} isAdmin={isAdmin} variant="next" />
 
       {/* Quick filter chips */}
       {seasons.length > 0 && (
