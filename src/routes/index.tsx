@@ -1527,24 +1527,35 @@ function DashboardPage() {
           Rodada {r.round_number ?? "—"} · {r.confirmed_count}
           {r.max_players ? `/${r.max_players}` : ""} confirmados
         </p>
-        <button
-          type="button"
-          onClick={() => handleConfirmPresence(r.id, r.group_name)}
-          disabled={isConfirming}
-          className="mt-3 flex items-center justify-center gap-1.5 rounded-2xl bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground transition-colors active:bg-primary/90 disabled:opacity-60"
-        >
-          {isConfirming ? (
-            <>
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              Confirmando...
-            </>
-          ) : (
-            <>
-              <Check className="h-3.5 w-3.5" />
-              Confirmar presença
-            </>
-          )}
-        </button>
+        <div className="mt-3 flex gap-2">
+          <button
+            type="button"
+            onClick={() => handleConfirmPresence(r.id, r.group_name)}
+            disabled={isConfirming}
+            className="flex flex-1 items-center justify-center gap-1.5 rounded-2xl bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground transition-colors active:bg-primary/90 disabled:opacity-60"
+          >
+            {isConfirming ? (
+              <>
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                Confirmando...
+              </>
+            ) : (
+              <>
+                <Check className="h-3.5 w-3.5" />
+                Vou
+              </>
+            )}
+          </button>
+          <button
+            type="button"
+            onClick={() => handleDeclinePresence(r.id, r.group_name)}
+            disabled={isConfirming}
+            className="flex items-center justify-center gap-1.5 rounded-2xl border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs font-semibold text-destructive transition-colors active:bg-destructive/10 disabled:opacity-60"
+          >
+            <XCircle className="h-3.5 w-3.5" />
+            Não vou
+          </button>
+        </div>
       </div>
     );
   };
