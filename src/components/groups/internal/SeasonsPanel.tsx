@@ -21,6 +21,7 @@ import { LastAndNextRoundCards } from "./LastAndNextRoundCards";
 import { createExtraRound as createExtraRoundFn } from "@/lib/extra-round";
 import { ScoreEntryDialog } from "@/components/ScoreEntryDialog";
 import { AdminAddPresenceDialog } from "@/components/AdminAddPresenceDialog";
+import { CancelRoundDialog } from "@/components/CancelRoundDialog";
 import { UserPlus } from "lucide-react";
 
 type SeasonFilter = "all" | "active" | "finished";
@@ -87,6 +88,7 @@ export function SeasonsPanel({ groupId, isAdmin, initialSeasonId, initialRoundId
   const [quickCreateOpen, setQuickCreateOpen] = useState(false);
   const [groupFormat, setGroupFormat] = useState<string>("doubles");
   const [groupFixedDay, setGroupFixedDay] = useState<number | null>(null);
+  const [groupName, setGroupName] = useState<string | null>(null);
   const filterStorageKey = `agenda-filter:${groupId}`;
   const [filter, setFilterState] = useState<SeasonFilter>(() => {
     if (typeof window === "undefined") return "all";
@@ -132,12 +134,13 @@ export function SeasonsPanel({ groupId, isAdmin, initialSeasonId, initialRoundId
   useEffect(() => {
     supabase
       .from("groups")
-      .select("match_format, fixed_day")
+      .select("match_format, fixed_day, name")
       .eq("id", groupId)
       .single()
       .then(({ data }) => {
         if (data?.match_format) setGroupFormat(data.match_format);
         if (data && "fixed_day" in data) setGroupFixedDay((data as any).fixed_day ?? null);
+        if (data?.name) setGroupName(data.name);
       });
   }, [groupId]);
 
@@ -182,16 +185,16 @@ export function SeasonsPanel({ groupId, isAdmin, initialSeasonId, initialRoundId
       {/* Group-wide summary cards (totais do grupo todo) */}
       <GroupSummaryCards groupId={groupId} />
 
-      {/* Last completed round — expanded by default */}
+      {/* Next upcoming round — hero, in highlight at the top */}
+      <LastAndNextRoundCards groupId={groupId} isAdmin={isAdmin} variant="next" groupName={groupName} />
+
+      {/* Last completed round */}
       <LastAndNextRoundCards groupId={groupId} isAdmin={isAdmin} variant="last" />
 
       {/* Mini timeline showing season spans */}
       {seasons.length > 0 && (
         <SeasonsTimeline seasons={seasons.map((s: any) => ({ ...s, group_id: groupId })) as any} onSelect={handleTimelineSelect} />
       )}
-
-      {/* Next upcoming round — collapsed by default */}
-      <LastAndNextRoundCards groupId={groupId} isAdmin={isAdmin} variant="next" />
 
       {/* Quick filter chips */}
       {seasons.length > 0 && (
@@ -604,13 +607,9 @@ function SeasonRoundsInline({ groupId, seasonId, isAdmin, initialRoundId }: { gr
     setSaving(false);
   };
 
-  const cancelRound = async (id: string) => {
-    if (!window.confirm("Cancelar esta rodada?")) return;
-    setSaving(true);
-    const { error } = await supabase.from("rounds").update({ status: "cancelled" }).eq("id", id);
-    if (error) toast.error("Erro ao cancelar");
-    else { toast.success("Rodada cancelada"); refresh(); }
-    setSaving(false);
+  const [cancelTarget, setCancelTarget] = useState<any | null>(null);
+  const cancelRound = (r: any) => {
+    setCancelTarget(r);
   };
 
   const createExtraRound = async () => {
@@ -877,7 +876,7 @@ function SeasonRoundsInline({ groupId, seasonId, isAdmin, initialRoundId }: { gr
                     <button onClick={() => { setEditingRoundId(r.id); setEditDates((p) => ({ ...p, [r.id]: r.scheduled_date || "" })); }} className="flex items-center gap-1 rounded-lg bg-info/10 px-2.5 py-1 text-[11px] font-semibold text-info">
                       <Pencil className="h-3 w-3" /> Alterar data
                     </button>
-                    <button onClick={() => cancelRound(r.id)} disabled={saving} className="flex items-center gap-1 rounded-lg bg-destructive/10 px-2.5 py-1 text-[11px] font-semibold text-destructive">
+                    <button onClick={() => cancelRound(r)} disabled={saving} className="flex items-center gap-1 rounded-lg bg-destructive/10 px-2.5 py-1 text-[11px] font-semibold text-destructive">
                       <Ban className="h-3 w-3" /> Cancelar
                     </button>
                   </>
@@ -888,6 +887,17 @@ function SeasonRoundsInline({ groupId, seasonId, isAdmin, initialRoundId }: { gr
         );
       })}
       {extraRoundUI}
+
+      {cancelTarget && (
+        <CancelRoundDialog
+          open={!!cancelTarget}
+          onOpenChange={(o) => { if (!o) setCancelTarget(null); }}
+          roundId={cancelTarget.id}
+          roundNumber={cancelTarget.round_number}
+          scheduledDate={cancelTarget.scheduled_date}
+          onCancelled={() => { setCancelTarget(null); refresh(); }}
+        />
+      )}
 
       {pushTargetRound && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-4 sm:items-center" onClick={() => !sendingPush && setPushTargetRound(null)}>

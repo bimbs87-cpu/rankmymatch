@@ -57,8 +57,10 @@ import {
   Check,
   CheckCircle2,
   XCircle,
+  Ban,
 } from "lucide-react";
 import { confirmPresence, cancelPresence } from "@/lib/round-actions";
+import { CancelRoundDialog } from "@/components/CancelRoundDialog";
 
 const DESKTOP_NAV = [
   { to: "/" as const, icon: Home, label: "Início" },
@@ -300,6 +302,7 @@ function DashboardPage() {
   const [adminGroupIds, setAdminGroupIds] = useState<Set<string>>(new Set());
   const [groupStats, setGroupStats] = useState<Map<string, { seasons: number; rounds_completed: number; rounds_total: number }>>(new Map());
   const [confirmingRoundId, setConfirmingRoundId] = useState<string | null>(null);
+  const [cancelRoundTarget, setCancelRoundTarget] = useState<NextMatchInfo | null>(null);
   const { displayName, nickname, avatarUrl: profileAvatarUrl } = useUserProfile();
 
   /**
@@ -1420,6 +1423,17 @@ function DashboardPage() {
                 >
                   <Calendar className="h-3.5 w-3.5" />
                 </Link>
+                {adminGroupIds.has(nextMatch.group_id) && (
+                  <button
+                    type="button"
+                    onClick={() => setCancelRoundTarget(nextMatch)}
+                    className="flex items-center justify-center rounded-2xl border border-destructive/30 bg-destructive/5 px-3 py-2 text-destructive transition-colors active:bg-destructive/10"
+                    aria-label="Cancelar rodada"
+                    title="Cancelar rodada"
+                  >
+                    <Ban className="h-3.5 w-3.5" />
+                  </button>
+                )}
               </>
             ) : state === 2 ? (
               <>
@@ -1441,6 +1455,17 @@ function DashboardPage() {
                   >
                     <XCircle className="h-3.5 w-3.5" />
                     Não vou mais
+                  </button>
+                )}
+                {adminGroupIds.has(nextMatch.group_id) && (
+                  <button
+                    type="button"
+                    onClick={() => setCancelRoundTarget(nextMatch)}
+                    className="flex items-center justify-center rounded-2xl border border-destructive/30 bg-destructive/5 px-3 py-2 text-destructive transition-colors active:bg-destructive/10"
+                    aria-label="Cancelar rodada"
+                    title="Cancelar rodada"
+                  >
+                    <Ban className="h-3.5 w-3.5" />
                   </button>
                 )}
               </>
