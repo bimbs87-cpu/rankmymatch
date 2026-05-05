@@ -396,7 +396,7 @@ async function generatePdf(d: MonthlyReportData): Promise<Uint8Array> {
     newPageIfNeeded(20);
     let x = margin;
     cols.forEach((c, i) => {
-      page.drawText(c, { x, y, size: 9, font: fontBold, color: muted });
+      page.drawText(sanitize(c), { x, y, size: 9, font: fontBold, color: muted });
       x += widths[i];
     });
     y -= 12;
