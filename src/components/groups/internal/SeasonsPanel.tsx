@@ -133,12 +133,13 @@ export function SeasonsPanel({ groupId, isAdmin, initialSeasonId, initialRoundId
   useEffect(() => {
     supabase
       .from("groups")
-      .select("match_format, fixed_day")
+      .select("match_format, fixed_day, name")
       .eq("id", groupId)
       .single()
       .then(({ data }) => {
         if (data?.match_format) setGroupFormat(data.match_format);
         if (data && "fixed_day" in data) setGroupFixedDay((data as any).fixed_day ?? null);
+        if (data?.name) setGroupName(data.name);
       });
   }, [groupId]);
 
