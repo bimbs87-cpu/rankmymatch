@@ -413,7 +413,7 @@ async function generatePdf(d: MonthlyReportData): Promise<Uint8Array> {
     cells.forEach((c, i) => {
       const maxChars = Math.floor(widths[i] / 5.2);
       const truncated = c.length > maxChars ? c.slice(0, maxChars - 1) + "…" : c;
-      page.drawText(truncated, { x, y, size: 9, font, color: text });
+      page.drawText(sanitize(truncated), { x, y, size: 9, font, color: text });
       x += widths[i];
     });
     y -= 13;
