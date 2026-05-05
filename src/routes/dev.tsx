@@ -13,6 +13,7 @@ import {
 } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
 import { getDevDashboard } from "@/lib/dev-dashboard.functions";
+import { devHardDeleteUserFn } from "@/lib/dev-user-admin.functions";
 import { sendMonthlyReportNow } from "@/lib/monthly-report.functions";
 import { FunnelSankeyCard, type SankeyData } from "@/components/dev/FunnelSankeyCard";
 import { TopDropSegmentsCard, type DropSegmentRow } from "@/components/dev/TopDropSegmentsCard";
