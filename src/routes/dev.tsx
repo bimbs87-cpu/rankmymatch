@@ -1102,7 +1102,7 @@ function SignupsTab({ signups }: { signups: DashboardData["signups"] }) {
                         size="sm"
                         variant="destructive"
                         disabled={deletingId === s.user_id}
-                        onClick={() => handleHardDelete(s.user_id, s.email || s.name || s.user_id)}
+                        onClick={() => askHardDelete(s.user_id, s.email || s.name || s.user_id)}
                         title="Remover usuário completamente (libera o e-mail para reuso em testes)"
                       >
                         {deletingId === s.user_id ? (
