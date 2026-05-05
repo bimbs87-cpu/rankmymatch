@@ -1586,6 +1586,7 @@ export type Database = {
           created_at: string
           id: string
           position_in_queue: number | null
+          rejoin_requested_at: string | null
           round_id: string
           status: string
           updated_at: string
@@ -1596,6 +1597,7 @@ export type Database = {
           created_at?: string
           id?: string
           position_in_queue?: number | null
+          rejoin_requested_at?: string | null
           round_id: string
           status?: string
           updated_at?: string
@@ -1606,6 +1608,7 @@ export type Database = {
           created_at?: string
           id?: string
           position_in_queue?: number | null
+          rejoin_requested_at?: string | null
           round_id?: string
           status?: string
           updated_at?: string
