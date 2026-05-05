@@ -353,7 +353,7 @@ async function generatePdf(d: MonthlyReportData): Promise<Uint8Array> {
   const kv = (label: string, value: string) => {
     newPageIfNeeded(16);
     drawText(label, { size: 10, color: muted });
-    page.drawText(value, {
+    page.drawText(sanitize(value), {
       x: 595 - margin - font.widthOfTextAtSize(value, 10),
       y,
       size: 10,
