@@ -501,6 +501,10 @@ async function uploadPdfAndSign(
 }
 
 // ===== Envio de e-mail =====
+const SITE_NAME = "rankmymatch";
+const SENDER_DOMAIN = "notify.rankmymatch.app";
+const FROM_DOMAIN = "rankmymatch.app";
+
 async function enqueueReportEmail(
   recipient: string,
   payload: {
@@ -510,22 +514,42 @@ async function enqueueReportEmail(
     idempotencySuffix: string;
   }
 ): Promise<void> {
-  // Reutiliza o pgmq enfileirando direto via RPC (evita HTTP loopback).
-  // Consumido pelo dispatcher process-email-queue.
+  // Renderiza template e enfileira payload completo (igual ao send.ts transacional).
+  const React = await import("react");
+  const { render: renderAsync } = await import("@react-email/components");
+  const { TEMPLATES } = await import("@/lib/email-templates/registry");
+
+  const tpl = TEMPLATES["monthly-report"];
+  if (!tpl) throw new Error("Template 'monthly-report' não registrado");
+
+  const templateData = {
+    periodLabel: payload.periodLabel,
+    downloadUrl: payload.downloadUrl,
+    summary: payload.summary,
+  };
+  const element = React.createElement(tpl.component, templateData);
+  const html = await renderAsync(element);
+  const text = await renderAsync(element, { plainText: true });
+  const subject =
+    typeof tpl.subject === "function" ? tpl.subject(templateData) : tpl.subject;
+
   const messageId = crypto.randomUUID();
   const idempotencyKey = `monthly-report-${payload.idempotencySuffix}-${recipient}`;
+
   const { error } = await supabaseAdmin.rpc("enqueue_email" as never, {
     queue_name: "transactional_emails",
     payload: {
-      template_name: "monthly-report",
-      recipient_email: recipient,
       message_id: messageId,
+      to: recipient,
+      from: `${SITE_NAME} <noreply@${FROM_DOMAIN}>`,
+      sender_domain: SENDER_DOMAIN,
+      subject,
+      html,
+      text,
+      purpose: "transactional",
+      label: "monthly-report",
       idempotency_key: idempotencyKey,
-      template_data: {
-        periodLabel: payload.periodLabel,
-        downloadUrl: payload.downloadUrl,
-        summary: payload.summary,
-      },
+      queued_at: new Date().toISOString(),
     } as never,
   } as never);
   if (error) throw new Error(`Falha ao enfileirar e-mail: ${error.message}`);
