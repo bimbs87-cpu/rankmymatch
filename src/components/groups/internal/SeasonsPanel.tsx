@@ -182,11 +182,11 @@ export function SeasonsPanel({ groupId, isAdmin, initialSeasonId, initialRoundId
         )}
       </div>
 
+      {/* Next/active round — hero, ALWAYS at the very top so it's the first thing the user sees */}
+      <LastAndNextRoundCards groupId={groupId} isAdmin={isAdmin} variant="next" groupName={groupName} />
+
       {/* Group-wide summary cards (totais do grupo todo) */}
       <GroupSummaryCards groupId={groupId} />
-
-      {/* Next upcoming round — hero, in highlight at the top */}
-      <LastAndNextRoundCards groupId={groupId} isAdmin={isAdmin} variant="next" groupName={groupName} />
 
       {/* Last completed round */}
       <LastAndNextRoundCards groupId={groupId} isAdmin={isAdmin} variant="last" />
