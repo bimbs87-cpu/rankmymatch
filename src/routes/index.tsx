@@ -57,7 +57,7 @@ import {
   Check,
   CheckCircle2,
 } from "lucide-react";
-import { confirmPresence } from "@/lib/round-actions";
+import { confirmPresence, cancelPresence } from "@/lib/round-actions";
 
 const DESKTOP_NAV = [
   { to: "/" as const, icon: Home, label: "Início" },
