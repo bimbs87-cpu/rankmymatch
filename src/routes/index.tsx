@@ -302,6 +302,7 @@ function DashboardPage() {
   const [adminGroupIds, setAdminGroupIds] = useState<Set<string>>(new Set());
   const [groupStats, setGroupStats] = useState<Map<string, { seasons: number; rounds_completed: number; rounds_total: number }>>(new Map());
   const [confirmingRoundId, setConfirmingRoundId] = useState<string | null>(null);
+  const [cancelRoundTarget, setCancelRoundTarget] = useState<NextMatchInfo | null>(null);
   const { displayName, nickname, avatarUrl: profileAvatarUrl } = useUserProfile();
 
   /**
