@@ -159,7 +159,7 @@ function ChooseStep({
         <ChoiceCard
           icon={Plus}
           title="Criar meu grupo"
-          subtitle="Para organizar a sua feirinha, racha ou rivalidade"
+          subtitle="Para organizar o seu grupo, racha ou rivalidade"
           accent="primary"
           recommended
           onClick={onCreate}
