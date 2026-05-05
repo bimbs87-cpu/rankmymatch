@@ -57,6 +57,7 @@ import {
   Check,
   CheckCircle2,
   XCircle,
+  Ban,
 } from "lucide-react";
 import { confirmPresence, cancelPresence } from "@/lib/round-actions";
 import { CancelRoundDialog } from "@/components/CancelRoundDialog";
