@@ -65,7 +65,7 @@ export const devHardDeleteUserFn = createServerFn({ method: "POST" })
     ];
 
     for (const table of cleanupTables) {
-      const { error } = await supabaseAdmin.from(table).delete().eq("user_id", targetId);
+      const { error } = await (supabaseAdmin as any).from(table).delete().eq("user_id", targetId);
       if (error && !/relation .* does not exist/i.test(error.message)) {
         errors.push(`${table}: ${error.message}`);
       }
