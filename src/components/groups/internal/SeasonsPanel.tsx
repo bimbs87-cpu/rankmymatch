@@ -21,6 +21,7 @@ import { LastAndNextRoundCards } from "./LastAndNextRoundCards";
 import { createExtraRound as createExtraRoundFn } from "@/lib/extra-round";
 import { ScoreEntryDialog } from "@/components/ScoreEntryDialog";
 import { AdminAddPresenceDialog } from "@/components/AdminAddPresenceDialog";
+import { CancelRoundDialog } from "@/components/CancelRoundDialog";
 import { UserPlus } from "lucide-react";
 
 type SeasonFilter = "all" | "active" | "finished";
