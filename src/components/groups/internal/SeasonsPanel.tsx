@@ -888,6 +888,17 @@ function SeasonRoundsInline({ groupId, seasonId, isAdmin, initialRoundId }: { gr
       })}
       {extraRoundUI}
 
+      {cancelTarget && (
+        <CancelRoundDialog
+          open={!!cancelTarget}
+          onOpenChange={(o) => { if (!o) setCancelTarget(null); }}
+          roundId={cancelTarget.id}
+          roundNumber={cancelTarget.round_number}
+          scheduledDate={cancelTarget.scheduled_date}
+          onCancelled={() => { setCancelTarget(null); refresh(); }}
+        />
+      )}
+
       {pushTargetRound && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-4 sm:items-center" onClick={() => !sendingPush && setPushTargetRound(null)}>
           <div className="w-full max-w-md rounded-2xl border border-border bg-card p-4 shadow-xl space-y-3" onClick={(e) => e.stopPropagation()}>
