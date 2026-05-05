@@ -1423,6 +1423,17 @@ function DashboardPage() {
                 >
                   <Calendar className="h-3.5 w-3.5" />
                 </Link>
+                {adminGroupIds.has(nextMatch.group_id) && (
+                  <button
+                    type="button"
+                    onClick={() => setCancelRoundTarget(nextMatch)}
+                    className="flex items-center justify-center rounded-2xl border border-destructive/30 bg-destructive/5 px-3 py-2 text-destructive transition-colors active:bg-destructive/10"
+                    aria-label="Cancelar rodada"
+                    title="Cancelar rodada"
+                  >
+                    <Ban className="h-3.5 w-3.5" />
+                  </button>
+                )}
               </>
             ) : state === 2 ? (
               <>
