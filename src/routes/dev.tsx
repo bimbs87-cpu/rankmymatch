@@ -978,7 +978,7 @@ function SignupsTab({ signups }: { signups: DashboardData["signups"] }) {
   );
 
   const filtered = useMemo(() => {
-    return signups.filter((s) => {
+    return localSignups.filter((s) => {
       if (originFilter !== "all" && s.origin !== originFilter) return false;
       if (!search.trim()) return true;
       const q = search.toLowerCase();
@@ -988,7 +988,7 @@ function SignupsTab({ signups }: { signups: DashboardData["signups"] }) {
         s.first_group_name?.toLowerCase().includes(q)
       );
     });
-  }, [signups, search, originFilter]);
+  }, [localSignups, search, originFilter]);
 
   return (
     <div className="space-y-4">
