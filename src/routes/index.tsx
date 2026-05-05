@@ -56,6 +56,7 @@ import {
   Medal,
   Check,
   CheckCircle2,
+  XCircle,
 } from "lucide-react";
 import { confirmPresence, cancelPresence } from "@/lib/round-actions";
 
