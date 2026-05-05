@@ -606,13 +606,9 @@ function SeasonRoundsInline({ groupId, seasonId, isAdmin, initialRoundId }: { gr
     setSaving(false);
   };
 
-  const cancelRound = async (id: string) => {
-    if (!window.confirm("Cancelar esta rodada?")) return;
-    setSaving(true);
-    const { error } = await supabase.from("rounds").update({ status: "cancelled" }).eq("id", id);
-    if (error) toast.error("Erro ao cancelar");
-    else { toast.success("Rodada cancelada"); refresh(); }
-    setSaving(false);
+  const [cancelTarget, setCancelTarget] = useState<any | null>(null);
+  const cancelRound = (r: any) => {
+    setCancelTarget(r);
   };
 
   const createExtraRound = async () => {
