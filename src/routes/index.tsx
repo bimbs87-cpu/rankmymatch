@@ -1397,9 +1397,19 @@ function DashboardPage() {
                   ) : (
                     <>
                       <Check className="h-3.5 w-3.5" />
-                      Confirmar presença
+                      Vou
                     </>
                   )}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleDeclinePresence(nextMatch.round_id, nextMatch.group_name)}
+                  disabled={confirmingRoundId === nextMatch.round_id}
+                  className="flex items-center justify-center gap-1.5 rounded-2xl border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs font-semibold text-destructive transition-colors active:bg-destructive/10 disabled:opacity-60"
+                  aria-label="Não vou"
+                >
+                  <XCircle className="h-3.5 w-3.5" />
+                  Não vou
                 </button>
                 <Link
                   to="/groups/$groupId"
@@ -1410,6 +1420,29 @@ function DashboardPage() {
                 >
                   <Calendar className="h-3.5 w-3.5" />
                 </Link>
+              </>
+            ) : state === 2 ? (
+              <>
+                <Link
+                  to="/groups/$groupId"
+                  params={{ groupId: nextMatch.group_id }}
+                  search={{ view: "seasons", season: nextMatch.season_id || "", round: nextMatch.round_id } as any}
+                  className="flex flex-1 items-center justify-center gap-1.5 rounded-2xl border border-primary/30 bg-primary/5 px-3 py-2 text-xs font-semibold text-primary transition-colors active:bg-primary/10"
+                >
+                  <Calendar className="h-3.5 w-3.5" />
+                  Ver rodada
+                </Link>
+                {nextMatch.presence_is_open && (
+                  <button
+                    type="button"
+                    onClick={() => handleDeclinePresence(nextMatch.round_id, nextMatch.group_name)}
+                    disabled={confirmingRoundId === nextMatch.round_id}
+                    className="flex items-center justify-center gap-1.5 rounded-2xl border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs font-semibold text-destructive transition-colors active:bg-destructive/10 disabled:opacity-60"
+                  >
+                    <XCircle className="h-3.5 w-3.5" />
+                    Não vou mais
+                  </button>
+                )}
               </>
             ) : (
               <Link
