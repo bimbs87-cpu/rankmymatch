@@ -1126,6 +1126,66 @@ function SignupsTab({ signups }: { signups: DashboardData["signups"] }) {
           </div>
         </CardContent>
       </Card>
+
+      <AlertDialog open={!!confirmTarget} onOpenChange={(o) => !o && !deletingId && setConfirmTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-destructive flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5" />
+              Remover usuário COMPLETAMENTE?
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3 text-sm">
+                <p>
+                  Você está prestes a apagar <strong>{confirmTarget?.label}</strong> de forma irreversível.
+                </p>
+                <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-xs">
+                  <p className="font-semibold mb-1">O que será apagado:</p>
+                  <ul className="list-disc list-inside space-y-0.5">
+                    <li>Conta de autenticação e perfil</li>
+                    <li>Grupos criados pelo usuário (em cascata)</li>
+                    <li>Participações em grupos, presenças e partidas</li>
+                    <li>Notificações, push, comentários, claims</li>
+                    <li>Histórico de Elo, sessões, exportações e logs</li>
+                  </ul>
+                  <p className="mt-2 text-muted-foreground">
+                    O e-mail poderá ser reutilizado como primeiro acesso em testes.
+                  </p>
+                </div>
+                <div>
+                  <label className="text-xs font-medium">
+                    Para confirmar, digite <code className="bg-muted px-1 rounded">APAGAR</code>:
+                  </label>
+                  <Input
+                    autoFocus
+                    value={confirmText}
+                    onChange={(e) => setConfirmText(e.target.value)}
+                    placeholder="APAGAR"
+                    className="mt-1"
+                  />
+                </div>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={!!deletingId}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={confirmText !== "APAGAR" || !!deletingId}
+              onClick={(e) => {
+                e.preventDefault();
+                void performHardDelete();
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deletingId ? (
+                <><Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> Removendo…</>
+              ) : (
+                <>Apagar definitivamente</>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
