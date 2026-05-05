@@ -87,6 +87,7 @@ export function SeasonsPanel({ groupId, isAdmin, initialSeasonId, initialRoundId
   const [quickCreateOpen, setQuickCreateOpen] = useState(false);
   const [groupFormat, setGroupFormat] = useState<string>("doubles");
   const [groupFixedDay, setGroupFixedDay] = useState<number | null>(null);
+  const [groupName, setGroupName] = useState<string | null>(null);
   const filterStorageKey = `agenda-filter:${groupId}`;
   const [filter, setFilterState] = useState<SeasonFilter>(() => {
     if (typeof window === "undefined") return "all";
