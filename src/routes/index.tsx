@@ -59,6 +59,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { confirmPresence, cancelPresence } from "@/lib/round-actions";
+import { CancelRoundDialog } from "@/components/CancelRoundDialog";
 
 const DESKTOP_NAV = [
   { to: "/" as const, icon: Home, label: "Início" },
