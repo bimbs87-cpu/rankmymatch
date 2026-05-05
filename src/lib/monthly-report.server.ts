@@ -467,7 +467,7 @@ async function generatePdf(d: MonthlyReportData): Promise<Uint8Array> {
   const total = pdfDoc.getPageCount();
   for (let i = 0; i < total; i++) {
     const p = pdfDoc.getPage(i);
-    p.drawText(`RankMyMatch · ${d.periodLabel} · página ${i + 1}/${total}`, {
+    p.drawText(sanitize(`RankMyMatch · ${d.periodLabel} · página ${i + 1}/${total}`), {
       x: margin,
       y: 24,
       size: 8,
