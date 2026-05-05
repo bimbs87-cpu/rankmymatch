@@ -328,6 +328,7 @@ function DashboardPage() {
                   my_status: "confirmed",
                   confirmed_count: r.my_status === "confirmed" ? r.confirmed_count : r.confirmed_count + 1,
                   pending_count: r.my_status === "pending" ? Math.max(0, r.pending_count - 1) : r.pending_count,
+                  declined_count: r.my_status === "declined" ? Math.max(0, r.declined_count - 1) : r.declined_count,
                 }
               : r,
           ),
@@ -338,6 +339,51 @@ function DashboardPage() {
       } catch (err: any) {
         console.error("[handleConfirmPresence] error", err);
         toast.error("Não foi possível confirmar", {
+          description: err?.message || "Tente novamente em instantes.",
+        });
+      } finally {
+        setConfirmingRoundId(null);
+      }
+    },
+    [user, confirmingRoundId],
+  );
+
+  /**
+   * Marks the user as declined ("Não vou") for a round inline.
+   * Works both when no response has been given yet, and when the user
+   * had previously confirmed (acts as "Não vou mais").
+   */
+  const handleDeclinePresence = useCallback(
+    async (roundId: string, groupName: string) => {
+      if (!user) return;
+      if (confirmingRoundId) return;
+      setConfirmingRoundId(roundId);
+      try {
+        await cancelPresence(roundId, user.id);
+        setNextMatch((prev) =>
+          prev && prev.round_id === roundId
+            ? { ...prev, my_presence_status: "declined" }
+            : prev,
+        );
+        setUpcomingRounds((prev) =>
+          prev.map((r) =>
+            r.id === roundId
+              ? {
+                  ...r,
+                  my_status: "declined",
+                  confirmed_count: r.my_status === "confirmed" ? Math.max(0, r.confirmed_count - 1) : r.confirmed_count,
+                  pending_count: r.my_status === "pending" ? Math.max(0, r.pending_count - 1) : r.pending_count,
+                  declined_count: r.my_status === "declined" ? r.declined_count : r.declined_count + 1,
+                }
+              : r,
+          ),
+        );
+        toast.success("Resposta registrada", {
+          description: `Você marcou que não vai em ${groupName}.`,
+        });
+      } catch (err: any) {
+        console.error("[handleDeclinePresence] error", err);
+        toast.error("Não foi possível registrar", {
           description: err?.message || "Tente novamente em instantes.",
         });
       } finally {
