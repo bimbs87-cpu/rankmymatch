@@ -3027,6 +3027,20 @@ function DashboardPage() {
         </section>
       </div>
 
+      {cancelRoundTarget && (
+        <CancelRoundDialog
+          open={!!cancelRoundTarget}
+          onOpenChange={(open) => { if (!open) setCancelRoundTarget(null); }}
+          roundId={cancelRoundTarget.round_id}
+          roundNumber={cancelRoundTarget.round_number}
+          scheduledDate={cancelRoundTarget.scheduled_date}
+          groupName={cancelRoundTarget.group_name}
+          onCancelled={() => {
+            setCancelRoundTarget(null);
+            loadDashboard();
+          }}
+        />
+      )}
     </div>
   );
 }
