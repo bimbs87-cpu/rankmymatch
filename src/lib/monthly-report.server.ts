@@ -274,13 +274,34 @@ async function generatePdf(d: MonthlyReportData): Promise<Uint8Array> {
     }
   };
 
+  // pdf-lib's StandardFonts (WinAnsi) cannot encode many unicode chars
+  // (→, ·, …, –, —, etc). Replace them with ASCII-safe equivalents.
+  const sanitize = (s: string) =>
+    String(s ?? "")
+      .replace(/→/g, "->")
+      .replace(/←/g, "<-")
+      .replace(/↑/g, "^")
+      .replace(/↓/g, "v")
+      .replace(/[·•]/g, "-")
+      .replace(/…/g, "...")
+      .replace(/[–—]/g, "-")
+      .replace(/[“”]/g, '"')
+      .replace(/[‘’]/g, "'")
+      // strip any remaining non-WinAnsi (latin1) chars
+      .replace(/[^\x00-\xFF]/g, "?");
+
+  const safeDraw = (
+    str: string,
+    opts: Parameters<typeof page.drawText>[1],
+  ) => page.drawText(sanitize(str), opts);
+
   const drawText = (
     str: string,
     opts: { size?: number; bold?: boolean; color?: ReturnType<typeof rgb>; x?: number } = {}
   ) => {
     const size = opts.size ?? 10;
     const f = opts.bold ? fontBold : font;
-    page.drawText(str, {
+    page.drawText(sanitize(str), {
       x: opts.x ?? margin,
       y,
       size,
