@@ -274,13 +274,34 @@ async function generatePdf(d: MonthlyReportData): Promise<Uint8Array> {
     }
   };
 
+  // pdf-lib's StandardFonts (WinAnsi) cannot encode many unicode chars
+  // (→, ·, …, –, —, etc). Replace them with ASCII-safe equivalents.
+  const sanitize = (s: string) =>
+    String(s ?? "")
+      .replace(/→/g, "->")
+      .replace(/←/g, "<-")
+      .replace(/↑/g, "^")
+      .replace(/↓/g, "v")
+      .replace(/[·•]/g, "-")
+      .replace(/…/g, "...")
+      .replace(/[–—]/g, "-")
+      .replace(/[“”]/g, '"')
+      .replace(/[‘’]/g, "'")
+      // strip any remaining non-WinAnsi (latin1) chars
+      .replace(/[^\x00-\xFF]/g, "?");
+
+  const safeDraw = (
+    str: string,
+    opts: Parameters<typeof page.drawText>[1],
+  ) => page.drawText(sanitize(str), opts);
+
   const drawText = (
     str: string,
     opts: { size?: number; bold?: boolean; color?: ReturnType<typeof rgb>; x?: number } = {}
   ) => {
     const size = opts.size ?? 10;
     const f = opts.bold ? fontBold : font;
-    page.drawText(str, {
+    page.drawText(sanitize(str), {
       x: opts.x ?? margin,
       y,
       size,
@@ -332,7 +353,7 @@ async function generatePdf(d: MonthlyReportData): Promise<Uint8Array> {
   const kv = (label: string, value: string) => {
     newPageIfNeeded(16);
     drawText(label, { size: 10, color: muted });
-    page.drawText(value, {
+    page.drawText(sanitize(value), {
       x: 595 - margin - font.widthOfTextAtSize(value, 10),
       y,
       size: 10,
@@ -375,7 +396,7 @@ async function generatePdf(d: MonthlyReportData): Promise<Uint8Array> {
     newPageIfNeeded(20);
     let x = margin;
     cols.forEach((c, i) => {
-      page.drawText(c, { x, y, size: 9, font: fontBold, color: muted });
+      page.drawText(sanitize(c), { x, y, size: 9, font: fontBold, color: muted });
       x += widths[i];
     });
     y -= 12;
@@ -392,7 +413,7 @@ async function generatePdf(d: MonthlyReportData): Promise<Uint8Array> {
     cells.forEach((c, i) => {
       const maxChars = Math.floor(widths[i] / 5.2);
       const truncated = c.length > maxChars ? c.slice(0, maxChars - 1) + "…" : c;
-      page.drawText(truncated, { x, y, size: 9, font, color: text });
+      page.drawText(sanitize(truncated), { x, y, size: 9, font, color: text });
       x += widths[i];
     });
     y -= 13;
@@ -446,7 +467,7 @@ async function generatePdf(d: MonthlyReportData): Promise<Uint8Array> {
   const total = pdfDoc.getPageCount();
   for (let i = 0; i < total; i++) {
     const p = pdfDoc.getPage(i);
-    p.drawText(`RankMyMatch · ${d.periodLabel} · página ${i + 1}/${total}`, {
+    p.drawText(sanitize(`RankMyMatch · ${d.periodLabel} · página ${i + 1}/${total}`), {
       x: margin,
       y: 24,
       size: 8,
