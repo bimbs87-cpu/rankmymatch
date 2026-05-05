@@ -56,8 +56,9 @@ import {
   Medal,
   Check,
   CheckCircle2,
+  XCircle,
 } from "lucide-react";
-import { confirmPresence } from "@/lib/round-actions";
+import { confirmPresence, cancelPresence } from "@/lib/round-actions";
 
 const DESKTOP_NAV = [
   { to: "/" as const, icon: Home, label: "Início" },
@@ -327,6 +328,7 @@ function DashboardPage() {
                   my_status: "confirmed",
                   confirmed_count: r.my_status === "confirmed" ? r.confirmed_count : r.confirmed_count + 1,
                   pending_count: r.my_status === "pending" ? Math.max(0, r.pending_count - 1) : r.pending_count,
+                  declined_count: r.my_status === "declined" ? Math.max(0, r.declined_count - 1) : r.declined_count,
                 }
               : r,
           ),
@@ -337,6 +339,51 @@ function DashboardPage() {
       } catch (err: any) {
         console.error("[handleConfirmPresence] error", err);
         toast.error("Não foi possível confirmar", {
+          description: err?.message || "Tente novamente em instantes.",
+        });
+      } finally {
+        setConfirmingRoundId(null);
+      }
+    },
+    [user, confirmingRoundId],
+  );
+
+  /**
+   * Marks the user as declined ("Não vou") for a round inline.
+   * Works both when no response has been given yet, and when the user
+   * had previously confirmed (acts as "Não vou mais").
+   */
+  const handleDeclinePresence = useCallback(
+    async (roundId: string, groupName: string) => {
+      if (!user) return;
+      if (confirmingRoundId) return;
+      setConfirmingRoundId(roundId);
+      try {
+        await cancelPresence(roundId, user.id);
+        setNextMatch((prev) =>
+          prev && prev.round_id === roundId
+            ? { ...prev, my_presence_status: "declined" }
+            : prev,
+        );
+        setUpcomingRounds((prev) =>
+          prev.map((r) =>
+            r.id === roundId
+              ? {
+                  ...r,
+                  my_status: "declined",
+                  confirmed_count: r.my_status === "confirmed" ? Math.max(0, r.confirmed_count - 1) : r.confirmed_count,
+                  pending_count: r.my_status === "pending" ? Math.max(0, r.pending_count - 1) : r.pending_count,
+                  declined_count: r.my_status === "declined" ? r.declined_count : r.declined_count + 1,
+                }
+              : r,
+          ),
+        );
+        toast.success("Resposta registrada", {
+          description: `Você marcou que não vai em ${groupName}.`,
+        });
+      } catch (err: any) {
+        console.error("[handleDeclinePresence] error", err);
+        toast.error("Não foi possível registrar", {
           description: err?.message || "Tente novamente em instantes.",
         });
       } finally {
@@ -1350,9 +1397,19 @@ function DashboardPage() {
                   ) : (
                     <>
                       <Check className="h-3.5 w-3.5" />
-                      Confirmar presença
+                      Vou
                     </>
                   )}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleDeclinePresence(nextMatch.round_id, nextMatch.group_name)}
+                  disabled={confirmingRoundId === nextMatch.round_id}
+                  className="flex items-center justify-center gap-1.5 rounded-2xl border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs font-semibold text-destructive transition-colors active:bg-destructive/10 disabled:opacity-60"
+                  aria-label="Não vou"
+                >
+                  <XCircle className="h-3.5 w-3.5" />
+                  Não vou
                 </button>
                 <Link
                   to="/groups/$groupId"
@@ -1363,6 +1420,29 @@ function DashboardPage() {
                 >
                   <Calendar className="h-3.5 w-3.5" />
                 </Link>
+              </>
+            ) : state === 2 ? (
+              <>
+                <Link
+                  to="/groups/$groupId"
+                  params={{ groupId: nextMatch.group_id }}
+                  search={{ view: "seasons", season: nextMatch.season_id || "", round: nextMatch.round_id } as any}
+                  className="flex flex-1 items-center justify-center gap-1.5 rounded-2xl border border-primary/30 bg-primary/5 px-3 py-2 text-xs font-semibold text-primary transition-colors active:bg-primary/10"
+                >
+                  <Calendar className="h-3.5 w-3.5" />
+                  Ver rodada
+                </Link>
+                {nextMatch.presence_is_open && (
+                  <button
+                    type="button"
+                    onClick={() => handleDeclinePresence(nextMatch.round_id, nextMatch.group_name)}
+                    disabled={confirmingRoundId === nextMatch.round_id}
+                    className="flex items-center justify-center gap-1.5 rounded-2xl border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs font-semibold text-destructive transition-colors active:bg-destructive/10 disabled:opacity-60"
+                  >
+                    <XCircle className="h-3.5 w-3.5" />
+                    Não vou mais
+                  </button>
+                )}
               </>
             ) : (
               <Link
@@ -1447,24 +1527,35 @@ function DashboardPage() {
           Rodada {r.round_number ?? "—"} · {r.confirmed_count}
           {r.max_players ? `/${r.max_players}` : ""} confirmados
         </p>
-        <button
-          type="button"
-          onClick={() => handleConfirmPresence(r.id, r.group_name)}
-          disabled={isConfirming}
-          className="mt-3 flex items-center justify-center gap-1.5 rounded-2xl bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground transition-colors active:bg-primary/90 disabled:opacity-60"
-        >
-          {isConfirming ? (
-            <>
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              Confirmando...
-            </>
-          ) : (
-            <>
-              <Check className="h-3.5 w-3.5" />
-              Confirmar presença
-            </>
-          )}
-        </button>
+        <div className="mt-3 flex gap-2">
+          <button
+            type="button"
+            onClick={() => handleConfirmPresence(r.id, r.group_name)}
+            disabled={isConfirming}
+            className="flex flex-1 items-center justify-center gap-1.5 rounded-2xl bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground transition-colors active:bg-primary/90 disabled:opacity-60"
+          >
+            {isConfirming ? (
+              <>
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                Confirmando...
+              </>
+            ) : (
+              <>
+                <Check className="h-3.5 w-3.5" />
+                Vou
+              </>
+            )}
+          </button>
+          <button
+            type="button"
+            onClick={() => handleDeclinePresence(r.id, r.group_name)}
+            disabled={isConfirming}
+            className="flex items-center justify-center gap-1.5 rounded-2xl border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs font-semibold text-destructive transition-colors active:bg-destructive/10 disabled:opacity-60"
+          >
+            <XCircle className="h-3.5 w-3.5" />
+            Não vou
+          </button>
+        </div>
       </div>
     );
   };

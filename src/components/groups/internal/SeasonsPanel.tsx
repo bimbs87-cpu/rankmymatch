@@ -1252,16 +1252,35 @@ export function RoundExpandedDetails({
                   disabled={busy}
                   className="flex w-full items-center justify-center gap-2 rounded-xl border border-destructive/30 bg-destructive/10 py-2 text-xs font-semibold text-destructive disabled:opacity-50"
                 >
-                  Cancelar presença
+                  Não vou mais
                 </button>
+              ) : myStatus === "declined" || myStatus === "absent" ? (
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleConfirm}
+                    disabled={busy}
+                    className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary py-2 text-xs font-bold text-primary-foreground disabled:opacity-50"
+                  >
+                    Mudei de ideia · Vou
+                  </button>
+                </div>
               ) : (
-                <button
-                  onClick={handleConfirm}
-                  disabled={busy}
-                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-2 text-xs font-bold text-primary-foreground disabled:opacity-50"
-                >
-                  Confirmar presença
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleConfirm}
+                    disabled={busy}
+                    className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary py-2 text-xs font-bold text-primary-foreground disabled:opacity-50"
+                  >
+                    Vou
+                  </button>
+                  <button
+                    onClick={handleCancel}
+                    disabled={busy}
+                    className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-destructive/30 bg-destructive/10 py-2 text-xs font-semibold text-destructive disabled:opacity-50"
+                  >
+                    Não vou
+                  </button>
+                </div>
               )}
             </div>
           )}

@@ -1,6 +1,6 @@
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, Loader2, Users, Boxes, Trophy, Activity, ShieldCheck, ExternalLink, Compass, UserPlus, UserCheck, UserX, AlertTriangle, Clock, Sparkles, Eye, MousePointerClick, Globe, Smartphone, TrendingUp, LogIn } from "lucide-react";
+import { ArrowLeft, Loader2, Users, Boxes, Trophy, Activity, ShieldCheck, ExternalLink, Compass, UserPlus, UserCheck, UserX, AlertTriangle, Clock, Sparkles, Eye, MousePointerClick, Globe, Smartphone, TrendingUp, LogIn, Trash2 } from "lucide-react";
 import {
   LineChart,
   Line,
@@ -13,6 +13,7 @@ import {
 } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
 import { getDevDashboard } from "@/lib/dev-dashboard.functions";
+import { devHardDeleteUserFn } from "@/lib/dev-user-admin.functions";
 import { sendMonthlyReportNow } from "@/lib/monthly-report.functions";
 import { FunnelSankeyCard, type SankeyData } from "@/components/dev/FunnelSankeyCard";
 import { TopDropSegmentsCard, type DropSegmentRow } from "@/components/dev/TopDropSegmentsCard";
@@ -950,12 +951,34 @@ function OverviewTab({ data }: { data: DashboardData }) {
 
 function SignupsTab({ signups }: { signups: DashboardData["signups"] }) {
   const [search, setSearch] = useState("");
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [localSignups, setLocalSignups] = useState(signups);
+  useEffect(() => { setLocalSignups(signups); }, [signups]);
+
+  const handleHardDelete = async (userId: string, label: string) => {
+    if (!window.confirm(`Apagar COMPLETAMENTE "${label}"?\n\nIsso remove auth, perfil, grupos criados, partidas e tudo associado. O e-mail poderá ser reusado em testes.\n\nEsta ação é IRREVERSÍVEL.`)) return;
+    setDeletingId(userId);
+    try {
+      const res = await devHardDeleteUserFn({ data: { userId } });
+      if (res.success) {
+        toast.success("Usuário removido completamente");
+      } else {
+        toast.warning(`Removido com avisos: ${res.errors.slice(0, 2).join("; ")}`);
+      }
+      setLocalSignups((prev) => prev.filter((s) => s.user_id !== userId));
+    } catch (e: any) {
+      toast.error(e?.message || "Falha ao remover");
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   const [originFilter, setOriginFilter] = useState<"all" | "invite" | "direct" | "unknown">(
     "all"
   );
 
   const filtered = useMemo(() => {
-    return signups.filter((s) => {
+    return localSignups.filter((s) => {
       if (originFilter !== "all" && s.origin !== originFilter) return false;
       if (!search.trim()) return true;
       const q = search.toLowerCase();
@@ -965,7 +988,7 @@ function SignupsTab({ signups }: { signups: DashboardData["signups"] }) {
         s.first_group_name?.toLowerCase().includes(q)
       );
     });
-  }, [signups, search, originFilter]);
+  }, [localSignups, search, originFilter]);
 
   return (
     <div className="space-y-4">
@@ -1004,6 +1027,7 @@ function SignupsTab({ signups }: { signups: DashboardData["signups"] }) {
                   <TableHead>Último login</TableHead>
                   <TableHead>Origem</TableHead>
                   <TableHead>Grupo criado</TableHead>
+                  <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -1047,11 +1071,26 @@ function SignupsTab({ signups }: { signups: DashboardData["signups"] }) {
                         <span className="text-xs text-muted-foreground">—</span>
                       )}
                     </TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        disabled={deletingId === s.user_id}
+                        onClick={() => handleHardDelete(s.user_id, s.email || s.name || s.user_id)}
+                        title="Remover usuário completamente (libera o e-mail para reuso em testes)"
+                      >
+                        {deletingId === s.user_id ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-3.5 w-3.5" />
+                        )}
+                      </Button>
+                    </TableCell>
                   </TableRow>
                 ))}
                 {filtered.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                    <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
                       Nenhum cadastro encontrado
                     </TableCell>
                   </TableRow>
