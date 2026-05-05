@@ -951,6 +951,28 @@ function OverviewTab({ data }: { data: DashboardData }) {
 
 function SignupsTab({ signups }: { signups: DashboardData["signups"] }) {
   const [search, setSearch] = useState("");
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [localSignups, setLocalSignups] = useState(signups);
+  useEffect(() => { setLocalSignups(signups); }, [signups]);
+
+  const handleHardDelete = async (userId: string, label: string) => {
+    if (!window.confirm(`Apagar COMPLETAMENTE "${label}"?\n\nIsso remove auth, perfil, grupos criados, partidas e tudo associado. O e-mail poderá ser reusado em testes.\n\nEsta ação é IRREVERSÍVEL.`)) return;
+    setDeletingId(userId);
+    try {
+      const res = await devHardDeleteUserFn({ data: { userId } });
+      if (res.success) {
+        toast.success("Usuário removido completamente");
+      } else {
+        toast.warning(`Removido com avisos: ${res.errors.slice(0, 2).join("; ")}`);
+      }
+      setLocalSignups((prev) => prev.filter((s) => s.user_id !== userId));
+    } catch (e: any) {
+      toast.error(e?.message || "Falha ao remover");
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   const [originFilter, setOriginFilter] = useState<"all" | "invite" | "direct" | "unknown">(
     "all"
   );
