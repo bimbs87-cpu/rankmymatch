@@ -1,5 +1,17 @@
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
+import { getServerFnAuthHeaders } from "@/lib/server-fn-auth";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { ArrowLeft, Loader2, Users, Boxes, Trophy, Activity, ShieldCheck, ExternalLink, Compass, UserPlus, UserCheck, UserX, AlertTriangle, Clock, Sparkles, Eye, MousePointerClick, Globe, Smartphone, TrendingUp, LogIn, Trash2 } from "lucide-react";
 import {
   LineChart,
