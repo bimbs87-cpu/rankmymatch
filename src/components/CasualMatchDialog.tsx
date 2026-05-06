@@ -370,17 +370,10 @@ export function CasualMatchDialog({ open, onOpenChange, onSaved }: Props) {
 
           {/* Sets with per-set lineup */}
           <div>
-            <div className="mb-2 flex items-center justify-between">
+            <div className="mb-2">
               <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
                 Sets
               </span>
-              <button
-                type="button"
-                onClick={addSet}
-                className="flex items-center gap-1 rounded-lg bg-primary/10 px-2 py-1 text-[11px] font-bold text-primary"
-              >
-                <Plus className="h-3 w-3" /> Set
-              </button>
             </div>
             <div className="space-y-3">
               {sets.map((s, i) => (
@@ -402,6 +395,13 @@ export function CasualMatchDialog({ open, onOpenChange, onSaved }: Props) {
                 />
               ))}
             </div>
+            <button
+              type="button"
+              onClick={addSet}
+              className="mt-3 flex w-full items-center justify-center gap-1 rounded-lg border border-dashed border-primary/40 bg-primary/5 px-2 py-2 text-[11px] font-bold text-primary hover:bg-primary/10"
+            >
+              <Plus className="h-3 w-3" /> Adicionar set
+            </button>
             {winner && (
               <p className="mt-2 text-[11px] font-semibold text-success">
                 <Check className="mr-1 inline h-3 w-3" />
