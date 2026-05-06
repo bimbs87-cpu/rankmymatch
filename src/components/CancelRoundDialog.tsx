@@ -126,7 +126,7 @@ export function CancelRoundDialog({
 
   return (
     <AlertDialog open={open} onOpenChange={(o) => !busy && onOpenChange(o)}>
-      <AlertDialogContent className="max-w-md">
+      <AlertDialogContent className="max-w-md bg-card border-border shadow-2xl backdrop-blur-none">
         <AlertDialogHeader>
           <div className="mb-1 flex items-center gap-2">
             <div className="flex h-9 w-9 items-center justify-center rounded-full bg-destructive/10">
