@@ -1085,13 +1085,23 @@ function SignupsTab({ signups }: { signups: DashboardData["signups"] }) {
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      {s.first_group_name ? (
-                        <div>
-                          <div className="font-medium text-sm">{s.first_group_name}</div>
-                          <div className="text-xs text-muted-foreground">
-                            {s.first_group_sport} · {s.first_group_members} membros
-                            {s.groups_created > 1 && ` · +${s.groups_created - 1}`}
-                          </div>
+                      {s.member_groups && s.member_groups.length > 0 ? (
+                        <div className="flex flex-wrap gap-1 max-w-[260px]">
+                          {s.member_groups.slice(0, 4).map((g) => (
+                            <Badge
+                              key={g.id}
+                              variant={g.role === "creator" ? "default" : g.role === "admin" ? "secondary" : "outline"}
+                              className="text-[10px] font-normal"
+                              title={`${g.sport ?? ""} · ${g.role}`}
+                            >
+                              {g.name}
+                            </Badge>
+                          ))}
+                          {s.member_groups.length > 4 && (
+                            <Badge variant="outline" className="text-[10px]">
+                              +{s.member_groups.length - 4}
+                            </Badge>
+                          )}
                         </div>
                       ) : (
                         <span className="text-xs text-muted-foreground">—</span>
