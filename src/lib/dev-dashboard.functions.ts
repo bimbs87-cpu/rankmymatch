@@ -229,6 +229,7 @@ export const getDevDashboard = createServerFn({ method: "GET" })
         has_profile: Boolean(profile),
         has_match: userIdsWithMatch.has(u.id),
         is_placeholder: Boolean(profile?.is_placeholder),
+        member_groups: memberGroupsByUser.get(u.id) ?? [],
       };
     });
 
