@@ -302,6 +302,8 @@ export type Database = {
           score_team_a: number
           score_team_b: number
           set_number: number
+          team_a_participant_ids: string[]
+          team_b_participant_ids: string[]
         }
         Insert: {
           created_at?: string
@@ -311,6 +313,8 @@ export type Database = {
           score_team_a?: number
           score_team_b?: number
           set_number: number
+          team_a_participant_ids?: string[]
+          team_b_participant_ids?: string[]
         }
         Update: {
           created_at?: string
@@ -320,6 +324,8 @@ export type Database = {
           score_team_a?: number
           score_team_b?: number
           set_number?: number
+          team_a_participant_ids?: string[]
+          team_b_participant_ids?: string[]
         }
         Relationships: [
           {

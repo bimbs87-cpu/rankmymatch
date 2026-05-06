@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { useUserProfile } from "@/hooks/use-user-profile";
 import { toast } from "sonner";
-import { Plus, Trash2, Loader2, Users, User, Calendar, MapPin, Search, Check } from "lucide-react";
+import { Plus, Trash2, Loader2, Users, User, Calendar, MapPin, Search, Check, X } from "lucide-react";
 
 interface Props {
   open: boolean;
@@ -19,19 +19,23 @@ interface Contact {
   linked_user_id: string | null;
 }
 
-interface Slot {
-  // Either a saved contact, an app user (linked), or just a free name
+interface Participant {
+  key: string; // stable client id
   contactId: string | null;
   linkedUserId: string | null;
   name: string;
+  isOwner?: boolean;
 }
 
 interface SetRow {
   a: string;
   b: string;
+  teamAKeys: string[];
+  teamBKeys: string[];
 }
 
-const emptySlot = (): Slot => ({ contactId: null, linkedUserId: null, name: "" });
+let _kid = 0;
+const newKey = () => `p_${++_kid}_${Date.now()}`;
 
 export function CasualMatchDialog({ open, onOpenChange, onSaved }: Props) {
   const { user } = useAuth();
@@ -39,12 +43,12 @@ export function CasualMatchDialog({ open, onOpenChange, onSaved }: Props) {
   const [format, setFormat] = useState<"singles" | "doubles">("doubles");
   const [playedOn, setPlayedOn] = useState<string>(() => new Date().toISOString().slice(0, 10));
   const [location, setLocation] = useState("");
-  // Team A: index 0 is the owner (you). For doubles, index 1 is partner.
-  const [teamA, setTeamA] = useState<Slot[]>([emptySlot(), emptySlot()]);
-  const [teamB, setTeamB] = useState<Slot[]>([emptySlot(), emptySlot()]);
-  const [sets, setSets] = useState<SetRow[]>([{ a: "", b: "" }]);
+  const [participants, setParticipants] = useState<Participant[]>([]);
+  const [sets, setSets] = useState<SetRow[]>([]);
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [saving, setSaving] = useState(false);
+
+  const perSide = format === "singles" ? 1 : 2;
 
   useEffect(() => {
     if (!open || !user) return;
@@ -58,17 +62,72 @@ export function CasualMatchDialog({ open, onOpenChange, onSaved }: Props) {
 
   // Reset form when opening
   useEffect(() => {
-    if (open) {
+    if (open && user) {
       setFormat("doubles");
       setPlayedOn(new Date().toISOString().slice(0, 10));
       setLocation("");
-      setTeamA([emptySlot(), emptySlot()]);
-      setTeamB([emptySlot(), emptySlot()]);
-      setSets([{ a: "", b: "" }]);
+      const ownerKey = newKey();
+      setParticipants([
+        { key: ownerKey, contactId: null, linkedUserId: user.id, name: displayName || "Você", isOwner: true },
+      ]);
+      setSets([{ a: "", b: "", teamAKeys: [ownerKey], teamBKeys: [] }]);
     }
-  }, [open]);
+  }, [open, user, displayName]);
 
-  const slotsPerTeam = format === "singles" ? 1 : 2;
+  const addParticipant = () => {
+    setParticipants((prev) => [...prev, { key: newKey(), contactId: null, linkedUserId: null, name: "" }]);
+  };
+
+  const removeParticipant = (key: string) => {
+    setParticipants((prev) => prev.filter((p) => p.key !== key));
+    setSets((prev) =>
+      prev.map((s) => ({
+        ...s,
+        teamAKeys: s.teamAKeys.filter((k) => k !== key),
+        teamBKeys: s.teamBKeys.filter((k) => k !== key),
+      })),
+    );
+  };
+
+  const updateParticipant = (key: string, patch: Partial<Participant>) => {
+    setParticipants((prev) => prev.map((p) => (p.key === key ? { ...p, ...patch } : p)));
+  };
+
+  const togglePlayerInSet = (setIdx: number, key: string, team: "a" | "b") => {
+    setSets((prev) =>
+      prev.map((s, i) => {
+        if (i !== setIdx) return s;
+        const aKeys = s.teamAKeys.filter((k) => k !== key);
+        const bKeys = s.teamBKeys.filter((k) => k !== key);
+        const wasInTeam = s.teamAKeys.includes(key) ? "a" : s.teamBKeys.includes(key) ? "b" : null;
+        if (wasInTeam === team) {
+          return { ...s, teamAKeys: aKeys, teamBKeys: bKeys };
+        }
+        if (team === "a") {
+          const next = [...aKeys, key];
+          return { ...s, teamAKeys: next.slice(-perSide), teamBKeys: bKeys };
+        } else {
+          const next = [...bKeys, key];
+          return { ...s, teamAKeys: aKeys, teamBKeys: next.slice(-perSide) };
+        }
+      }),
+    );
+  };
+
+  const addSet = () => {
+    setSets((prev) => {
+      const last = prev[prev.length - 1];
+      return [
+        ...prev,
+        {
+          a: "",
+          b: "",
+          teamAKeys: last ? [...last.teamAKeys] : [],
+          teamBKeys: last ? [...last.teamBKeys] : [],
+        },
+      ];
+    });
+  };
 
   const winner = useMemo(() => {
     let a = 0, b = 0;
@@ -83,52 +142,35 @@ export function CasualMatchDialog({ open, onOpenChange, onSaved }: Props) {
     return a > b ? "a" : b > a ? "b" : null;
   }, [sets]);
 
-  const updateSlot = (team: "a" | "b", idx: number, patch: Partial<Slot>) => {
-    const setter = team === "a" ? setTeamA : setTeamB;
-    setter((prev) => prev.map((s, i) => (i === idx ? { ...s, ...patch } : s)));
-  };
-
   const handleSave = async () => {
     if (!user) return;
-    // Validate slots (excluding owner slot 0 of teamA which is auto)
-    const collect = (team: Slot[], n: number, isOwnerTeamA: boolean) => {
-      const arr: Slot[] = [];
-      for (let i = 0; i < n; i++) {
-        if (isOwnerTeamA && i === 0) {
-          arr.push({ contactId: null, linkedUserId: user.id, name: displayName || "Você" });
-        } else {
-          const s = team[i];
-          if (!s.name.trim()) throw new Error("Preencha todos os nomes dos jogadores");
-          arr.push(s);
-        }
-      }
-      return arr;
-    };
-
-    let aSlots: Slot[];
-    let bSlots: Slot[];
-    try {
-      aSlots = collect(teamA, slotsPerTeam, true);
-      bSlots = collect(teamB, slotsPerTeam, false);
-    } catch (e: any) {
-      toast.error(e.message);
+    // Validate participants
+    if (participants.some((p) => !p.name.trim())) {
+      toast.error("Preencha o nome de todos os jogadores");
       return;
     }
+    // Validate sets
     const validSets = sets.filter((s) => s.a !== "" && s.b !== "");
     if (validSets.length === 0) {
       toast.error("Adicione ao menos 1 set com pontuação");
       return;
     }
+    for (let i = 0; i < validSets.length; i++) {
+      const s = validSets[i];
+      if (s.teamAKeys.length !== perSide || s.teamBKeys.length !== perSide) {
+        toast.error(`Set ${i + 1}: selecione ${perSide} jogador(es) em cada lado`);
+        return;
+      }
+    }
 
     setSaving(true);
     try {
-      // Auto-create personal_contacts for free names without contactId/linkedUserId
-      const ensureContact = async (s: Slot): Promise<Slot> => {
-        if (s.contactId || s.linkedUserId) return s;
-        const trimmed = s.name.trim();
-        // dedupe by case-insensitive name
+      // Auto-create contacts for free names
+      const ensure = async (p: Participant): Promise<Participant> => {
+        if (p.contactId || p.linkedUserId) return p;
+        const trimmed = p.name.trim();
         const existing = contacts.find((c) => c.display_name.toLowerCase() === trimmed.toLowerCase());
-        if (existing) return { ...s, contactId: existing.id };
+        if (existing) return { ...p, contactId: existing.id };
         const { data, error } = await supabase
           .from("personal_contacts")
           .insert({ owner_user_id: user.id, display_name: trimmed })
@@ -136,11 +178,22 @@ export function CasualMatchDialog({ open, onOpenChange, onSaved }: Props) {
           .single();
         if (error) throw error;
         setContacts((prev) => [...prev, data as Contact]);
-        return { ...s, contactId: data.id };
+        return { ...p, contactId: data.id };
       };
 
-      for (let i = 0; i < aSlots.length; i++) aSlots[i] = await ensureContact(aSlots[i]);
-      for (let i = 0; i < bSlots.length; i++) bSlots[i] = await ensureContact(bSlots[i]);
+      const resolved: Participant[] = [];
+      for (const p of participants) resolved.push(await ensure(p));
+
+      // Determine each participant's "primary" team by majority across sets
+      const teamFor = (key: string): "a" | "b" => {
+        let a = 0, b = 0;
+        for (const s of validSets) {
+          if (s.teamAKeys.includes(key)) a++;
+          if (s.teamBKeys.includes(key)) b++;
+        }
+        if (a === 0 && b === 0) return resolved.find((r) => r.key === key)?.isOwner ? "a" : "b";
+        return a >= b ? "a" : "b";
+      };
 
       const { data: match, error: mErr } = await supabase
         .from("casual_matches")
@@ -155,32 +208,44 @@ export function CasualMatchDialog({ open, onOpenChange, onSaved }: Props) {
         .single();
       if (mErr) throw mErr;
 
-      const participants = [
-        ...aSlots.map((s, i) => ({
-          match_id: match.id,
-          team: "a",
-          contact_id: s.contactId,
-          linked_user_id: s.linkedUserId,
-          display_name: s.name.trim(),
-          is_owner: i === 0,
-        })),
-        ...bSlots.map((s) => ({
-          match_id: match.id,
-          team: "b",
-          contact_id: s.contactId,
-          linked_user_id: s.linkedUserId,
-          display_name: s.name.trim(),
-          is_owner: false,
-        })),
-      ];
-      const { error: pErr } = await supabase.from("casual_match_participants").insert(participants);
+      const partRows = resolved.map((p) => ({
+        match_id: match.id,
+        team: teamFor(p.key),
+        contact_id: p.contactId,
+        linked_user_id: p.linkedUserId,
+        display_name: p.name.trim(),
+        is_owner: !!p.isOwner,
+      }));
+      const { data: insertedParts, error: pErr } = await supabase
+        .from("casual_match_participants")
+        .insert(partRows)
+        .select("id, display_name, linked_user_id, contact_id, is_owner");
       if (pErr) throw pErr;
+
+      // Map client key → DB participant id
+      const keyToId = new Map<string, string>();
+      const used = new Set<string>();
+      for (const p of resolved) {
+        const match = (insertedParts || []).find((row) => {
+          if (used.has(row.id)) return false;
+          if (p.linkedUserId && row.linked_user_id === p.linkedUserId) return true;
+          if (p.contactId && row.contact_id === p.contactId) return true;
+          if (!p.linkedUserId && !p.contactId && row.display_name === p.name.trim()) return true;
+          return false;
+        });
+        if (match) {
+          keyToId.set(p.key, match.id);
+          used.add(match.id);
+        }
+      }
 
       const setRows = validSets.map((s, i) => ({
         match_id: match.id,
         set_number: i + 1,
         score_team_a: parseInt(s.a, 10) || 0,
         score_team_b: parseInt(s.b, 10) || 0,
+        team_a_participant_ids: s.teamAKeys.map((k) => keyToId.get(k)).filter(Boolean) as string[],
+        team_b_participant_ids: s.teamBKeys.map((k) => keyToId.get(k)).filter(Boolean) as string[],
       }));
       const { error: sErr } = await supabase.from("casual_match_sets").insert(setRows);
       if (sErr) throw sErr;
@@ -201,7 +266,7 @@ export function CasualMatchDialog({ open, onOpenChange, onSaved }: Props) {
         <DialogHeader>
           <DialogTitle>Registrar partida avulsa</DialogTitle>
           <DialogDescription className="text-xs">
-            Para jogos-treino fora dos seus grupos. Não conta para Elo, mas vira estatística sua.
+            Cadastre os jogadores e monte os times de cada set — pode trocar duplas a cada set.
           </DialogDescription>
         </DialogHeader>
 
@@ -254,30 +319,56 @@ export function CasualMatchDialog({ open, onOpenChange, onSaved }: Props) {
             </label>
           </div>
 
-          {/* Teams */}
-          <div className="space-y-3">
-            <TeamEditor
-              label="Seu time"
-              accent="primary"
-              slots={teamA}
-              setSlot={(idx, patch) => updateSlot("a", idx, patch)}
-              n={slotsPerTeam}
-              ownerName={displayName || "Você"}
-              isOwnerTeam
-              contacts={contacts}
-            />
-            <div className="text-center text-xs font-bold text-muted-foreground">VS</div>
-            <TeamEditor
-              label="Adversários"
-              accent="destructive"
-              slots={teamB}
-              setSlot={(idx, patch) => updateSlot("b", idx, patch)}
-              n={slotsPerTeam}
-              contacts={contacts}
-            />
+          {/* Participants roster */}
+          <div className="rounded-xl border border-border bg-background/40 p-3">
+            <div className="mb-2 flex items-center justify-between">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                Jogadores ({participants.length})
+              </span>
+              <button
+                type="button"
+                onClick={addParticipant}
+                className="flex items-center gap-1 rounded-lg bg-primary/10 px-2 py-1 text-[11px] font-bold text-primary"
+              >
+                <Plus className="h-3 w-3" /> Jogador
+              </button>
+            </div>
+            <div className="space-y-2">
+              {participants.map((p) => (
+                <div key={p.key} className="flex items-center gap-2">
+                  {p.isOwner ? (
+                    <div className="flex flex-1 items-center gap-2 rounded-lg bg-primary/10 px-3 py-2 text-sm">
+                      <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">EU</div>
+                      <span className="font-semibold">{p.name}</span>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="flex-1">
+                        <ContactPicker
+                          value={p}
+                          onChange={(patch) => updateParticipant(p.key, patch)}
+                          contacts={contacts}
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => removeParticipant(p.key)}
+                        className="text-muted-foreground hover:text-destructive"
+                        aria-label="Remover jogador"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </>
+                  )}
+                </div>
+              ))}
+            </div>
+            <p className="mt-2 text-[10px] text-muted-foreground">
+              Adicione todos que jogaram. Em cada set abaixo, clique nos nomes para montar os times daquele set.
+            </p>
           </div>
 
-          {/* Sets */}
+          {/* Sets with per-set lineup */}
           <div>
             <div className="mb-2 flex items-center justify-between">
               <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
@@ -285,51 +376,36 @@ export function CasualMatchDialog({ open, onOpenChange, onSaved }: Props) {
               </span>
               <button
                 type="button"
-                onClick={() => setSets((s) => [...s, { a: "", b: "" }])}
+                onClick={addSet}
                 className="flex items-center gap-1 rounded-lg bg-primary/10 px-2 py-1 text-[11px] font-bold text-primary"
               >
                 <Plus className="h-3 w-3" /> Set
               </button>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-3">
               {sets.map((s, i) => (
-                <div key={i} className="flex items-center gap-2">
-                  <span className="w-12 text-xs text-muted-foreground">Set {i + 1}</span>
-                  <input
-                    type="number"
-                    min={0}
-                    value={s.a}
-                    onChange={(e) =>
-                      setSets((prev) => prev.map((x, j) => (j === i ? { ...x, a: e.target.value } : x)))
-                    }
-                    className="w-16 rounded-lg border border-border bg-background px-2 py-1.5 text-center text-sm"
-                  />
-                  <span className="text-muted-foreground">×</span>
-                  <input
-                    type="number"
-                    min={0}
-                    value={s.b}
-                    onChange={(e) =>
-                      setSets((prev) => prev.map((x, j) => (j === i ? { ...x, b: e.target.value } : x)))
-                    }
-                    className="w-16 rounded-lg border border-border bg-background px-2 py-1.5 text-center text-sm"
-                  />
-                  {sets.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => setSets((prev) => prev.filter((_, j) => j !== i))}
-                      className="ml-auto text-muted-foreground hover:text-destructive"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  )}
-                </div>
+                <SetEditor
+                  key={i}
+                  index={i}
+                  setRow={s}
+                  perSide={perSide}
+                  participants={participants}
+                  onTogglePlayer={(key, team) => togglePlayerInSet(i, key, team)}
+                  onScoreChange={(field, val) =>
+                    setSets((prev) => prev.map((x, j) => (j === i ? { ...x, [field]: val } : x)))
+                  }
+                  onRemove={
+                    sets.length > 1
+                      ? () => setSets((prev) => prev.filter((_, j) => j !== i))
+                      : undefined
+                  }
+                />
               ))}
             </div>
             {winner && (
               <p className="mt-2 text-[11px] font-semibold text-success">
                 <Check className="mr-1 inline h-3 w-3" />
-                Vencedor: {winner === "a" ? "Seu time" : "Adversários"}
+                Vencedor: Time {winner === "a" ? "A" : "B"}
               </p>
             )}
           </div>
@@ -359,50 +435,104 @@ export function CasualMatchDialog({ open, onOpenChange, onSaved }: Props) {
   );
 }
 
-function TeamEditor({
-  label,
-  accent,
-  slots,
-  setSlot,
-  n,
-  ownerName,
-  isOwnerTeam,
-  contacts,
+function SetEditor({
+  index,
+  setRow,
+  perSide,
+  participants,
+  onTogglePlayer,
+  onScoreChange,
+  onRemove,
 }: {
-  label: string;
-  accent: "primary" | "destructive";
-  slots: Slot[];
-  setSlot: (idx: number, patch: Partial<Slot>) => void;
-  n: number;
-  ownerName?: string;
-  isOwnerTeam?: boolean;
-  contacts: Contact[];
+  index: number;
+  setRow: SetRow;
+  perSide: number;
+  participants: Participant[];
+  onTogglePlayer: (key: string, team: "a" | "b") => void;
+  onScoreChange: (field: "a" | "b", val: string) => void;
+  onRemove?: () => void;
 }) {
+  const teamOf = (key: string): "a" | "b" | null =>
+    setRow.teamAKeys.includes(key) ? "a" : setRow.teamBKeys.includes(key) ? "b" : null;
+
   return (
-    <div className={`rounded-xl border p-3 ${accent === "primary" ? "border-primary/30 bg-primary/5" : "border-destructive/30 bg-destructive/5"}`}>
-      <p className={`mb-2 text-[10px] font-bold uppercase tracking-wider ${accent === "primary" ? "text-primary" : "text-destructive"}`}>
-        {label}
-      </p>
-      <div className="space-y-2">
-        {Array.from({ length: n }).map((_, i) => {
-          if (isOwnerTeam && i === 0) {
+    <div className="rounded-xl border border-border bg-background/40 p-3">
+      <div className="mb-2 flex items-center justify-between">
+        <span className="text-xs font-bold">Set {index + 1}</span>
+        {onRemove && (
+          <button
+            type="button"
+            onClick={onRemove}
+            className="text-muted-foreground hover:text-destructive"
+            aria-label="Remover set"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </button>
+        )}
+      </div>
+
+      {/* Player chips with A/B toggles */}
+      <div className="mb-2 space-y-1.5">
+        {participants.length === 0 || participants.some((p) => !p.name.trim()) ? (
+          <p className="text-[11px] italic text-muted-foreground">
+            Cadastre os jogadores acima para montar os times.
+          </p>
+        ) : (
+          participants.map((p) => {
+            const t = teamOf(p.key);
             return (
-              <div key={i} className="flex items-center gap-2 rounded-lg bg-background/60 px-3 py-2 text-sm">
-                <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">EU</div>
-                <span className="font-semibold">{ownerName}</span>
+              <div key={p.key} className="flex items-center gap-2">
+                <span className="flex-1 truncate text-xs">{p.name || "—"}</span>
+                <button
+                  type="button"
+                  onClick={() => onTogglePlayer(p.key, "a")}
+                  className={`rounded-md px-2 py-0.5 text-[10px] font-bold transition ${
+                    t === "a"
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-primary/10 text-primary hover:bg-primary/20"
+                  }`}
+                >
+                  Time A
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onTogglePlayer(p.key, "b")}
+                  className={`rounded-md px-2 py-0.5 text-[10px] font-bold transition ${
+                    t === "b"
+                      ? "bg-destructive text-destructive-foreground"
+                      : "bg-destructive/10 text-destructive hover:bg-destructive/20"
+                  }`}
+                >
+                  Time B
+                </button>
               </div>
             );
-          }
-          return (
-            <ContactPicker
-              key={i}
-              value={slots[i]}
-              onChange={(patch) => setSlot(i, patch)}
-              contacts={contacts}
-              placeholder={isOwnerTeam ? "Nome do parceiro" : `Adversário ${i + 1}`}
-            />
-          );
-        })}
+          })
+        )}
+        <p className="text-[10px] text-muted-foreground">
+          Selecione {perSide} {perSide === 1 ? "jogador" : "jogadores"} em cada lado.
+        </p>
+      </div>
+
+      {/* Score */}
+      <div className="flex items-center justify-center gap-2 border-t border-border pt-2">
+        <span className="text-[10px] font-bold uppercase text-primary">A</span>
+        <input
+          type="number"
+          min={0}
+          value={setRow.a}
+          onChange={(e) => onScoreChange("a", e.target.value)}
+          className="w-16 rounded-lg border border-border bg-background px-2 py-1.5 text-center text-sm"
+        />
+        <span className="text-muted-foreground">×</span>
+        <input
+          type="number"
+          min={0}
+          value={setRow.b}
+          onChange={(e) => onScoreChange("b", e.target.value)}
+          className="w-16 rounded-lg border border-border bg-background px-2 py-1.5 text-center text-sm"
+        />
+        <span className="text-[10px] font-bold uppercase text-destructive">B</span>
       </div>
     </div>
   );
@@ -412,12 +542,10 @@ function ContactPicker({
   value,
   onChange,
   contacts,
-  placeholder,
 }: {
-  value: Slot;
-  onChange: (patch: Partial<Slot>) => void;
+  value: Participant;
+  onChange: (patch: Partial<Participant>) => void;
   contacts: Contact[];
-  placeholder: string;
 }) {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const filtered = useMemo(() => {
@@ -435,10 +563,10 @@ function ContactPicker({
           onChange={(e) => onChange({ name: e.target.value, contactId: null, linkedUserId: null })}
           onFocus={() => setShowSuggestions(true)}
           onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
-          placeholder={placeholder}
+          placeholder="Nome do jogador"
           className="flex-1 bg-transparent py-2 text-sm outline-none"
         />
-        {value.contactId && <Check className="h-3.5 w-3.5 text-success" />}
+        {(value.contactId || value.linkedUserId) && <Check className="h-3.5 w-3.5 text-success" />}
       </div>
       {showSuggestions && filtered.length > 0 && (
         <div className="absolute left-0 right-0 top-full z-50 mt-1 max-h-40 overflow-y-auto rounded-lg border border-border bg-popover p-1 shadow-lg">
