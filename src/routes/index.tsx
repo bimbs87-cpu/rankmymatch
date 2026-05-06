@@ -686,6 +686,7 @@ function DashboardPage() {
       rating_change: 0,
     }));
 
+    let combinedRecent: any[] = [];
     if (events?.length) {
       const matchIds = events.map((e: any) => e.match_id);
       const roundIds = events.map((e: any) => (e.matches as any)?.round_id).filter(Boolean);
