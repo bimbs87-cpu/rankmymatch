@@ -19,6 +19,7 @@ import { Route as RankingInfoRouteImport } from './routes/ranking-info'
 import { Route as RankingRouteImport } from './routes/ranking'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as PrivacidadeRouteImport } from './routes/privacidade'
+import { Route as PartidasAvulsasRouteImport } from './routes/partidas-avulsas'
 import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as LandingRouteImport } from './routes/landing'
@@ -107,6 +108,11 @@ const ProfileRoute = ProfileRouteImport.update({
 const PrivacidadeRoute = PrivacidadeRouteImport.update({
   id: '/privacidade',
   path: '/privacidade',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PartidasAvulsasRoute = PartidasAvulsasRouteImport.update({
+  id: '/partidas-avulsas',
+  path: '/partidas-avulsas',
   getParentRoute: () => rootRouteImport,
 } as any)
 const NotificationsRoute = NotificationsRouteImport.update({
@@ -326,6 +332,7 @@ export interface FileRoutesByFullPath {
   '/landing': typeof LandingRoute
   '/login': typeof LoginRoute
   '/notifications': typeof NotificationsRoute
+  '/partidas-avulsas': typeof PartidasAvulsasRoute
   '/privacidade': typeof PrivacidadeRoute
   '/profile': typeof ProfileRoute
   '/ranking': typeof RankingRoute
@@ -376,6 +383,7 @@ export interface FileRoutesByTo {
   '/landing': typeof LandingRoute
   '/login': typeof LoginRoute
   '/notifications': typeof NotificationsRoute
+  '/partidas-avulsas': typeof PartidasAvulsasRoute
   '/privacidade': typeof PrivacidadeRoute
   '/profile': typeof ProfileRoute
   '/ranking': typeof RankingRoute
@@ -425,6 +433,7 @@ export interface FileRoutesById {
   '/landing': typeof LandingRoute
   '/login': typeof LoginRoute
   '/notifications': typeof NotificationsRoute
+  '/partidas-avulsas': typeof PartidasAvulsasRoute
   '/privacidade': typeof PrivacidadeRoute
   '/profile': typeof ProfileRoute
   '/ranking': typeof RankingRoute
@@ -478,6 +487,7 @@ export interface FileRouteTypes {
     | '/landing'
     | '/login'
     | '/notifications'
+    | '/partidas-avulsas'
     | '/privacidade'
     | '/profile'
     | '/ranking'
@@ -528,6 +538,7 @@ export interface FileRouteTypes {
     | '/landing'
     | '/login'
     | '/notifications'
+    | '/partidas-avulsas'
     | '/privacidade'
     | '/profile'
     | '/ranking'
@@ -576,6 +587,7 @@ export interface FileRouteTypes {
     | '/landing'
     | '/login'
     | '/notifications'
+    | '/partidas-avulsas'
     | '/privacidade'
     | '/profile'
     | '/ranking'
@@ -628,6 +640,7 @@ export interface RootRouteChildren {
   LandingRoute: typeof LandingRoute
   LoginRoute: typeof LoginRoute
   NotificationsRoute: typeof NotificationsRoute
+  PartidasAvulsasRoute: typeof PartidasAvulsasRoute
   PrivacidadeRoute: typeof PrivacidadeRoute
   ProfileRoute: typeof ProfileRoute
   RankingRoute: typeof RankingRoute
@@ -730,6 +743,13 @@ declare module '@tanstack/react-router' {
       path: '/privacidade'
       fullPath: '/privacidade'
       preLoaderRoute: typeof PrivacidadeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/partidas-avulsas': {
+      id: '/partidas-avulsas'
+      path: '/partidas-avulsas'
+      fullPath: '/partidas-avulsas'
+      preLoaderRoute: typeof PartidasAvulsasRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/notifications': {
@@ -1090,6 +1110,7 @@ const rootRouteChildren: RootRouteChildren = {
   LandingRoute: LandingRoute,
   LoginRoute: LoginRoute,
   NotificationsRoute: NotificationsRoute,
+  PartidasAvulsasRoute: PartidasAvulsasRoute,
   PrivacidadeRoute: PrivacidadeRoute,
   ProfileRoute: ProfileRoute,
   RankingRoute: RankingRoute,
