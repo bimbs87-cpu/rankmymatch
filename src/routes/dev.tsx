@@ -1052,7 +1052,7 @@ function SignupsTab({ signups }: { signups: DashboardData["signups"] }) {
                   <TableHead>Cadastro</TableHead>
                   <TableHead>Último login</TableHead>
                   <TableHead>Origem</TableHead>
-                  <TableHead>Grupo criado</TableHead>
+                  <TableHead>Grupos</TableHead>
                   <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
