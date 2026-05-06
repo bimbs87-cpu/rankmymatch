@@ -202,7 +202,15 @@ function CasualMatchesPage() {
           ) : (
             <div className="space-y-2">
               {matches.map((m) => (
-                <MatchCard key={m.id} match={m} onDelete={() => handleDelete(m.id)} />
+                <MatchCard
+                  key={m.id}
+                  match={m}
+                  onDelete={() => handleDelete(m.id)}
+                  onEdit={() => {
+                    setEditId(m.id);
+                    setDialogOpen(true);
+                  }}
+                />
               ))}
             </div>
           )}
