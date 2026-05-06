@@ -245,6 +245,131 @@ export type Database = {
         }
         Relationships: []
       }
+      casual_match_participants: {
+        Row: {
+          contact_id: string | null
+          created_at: string
+          display_name: string
+          id: string
+          is_owner: boolean
+          linked_user_id: string | null
+          match_id: string
+          team: string
+        }
+        Insert: {
+          contact_id?: string | null
+          created_at?: string
+          display_name: string
+          id?: string
+          is_owner?: boolean
+          linked_user_id?: string | null
+          match_id: string
+          team: string
+        }
+        Update: {
+          contact_id?: string | null
+          created_at?: string
+          display_name?: string
+          id?: string
+          is_owner?: boolean
+          linked_user_id?: string | null
+          match_id?: string
+          team?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "casual_match_participants_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "personal_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "casual_match_participants_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "casual_matches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      casual_match_sets: {
+        Row: {
+          created_at: string
+          id: string
+          is_tiebreak: boolean
+          match_id: string
+          score_team_a: number
+          score_team_b: number
+          set_number: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_tiebreak?: boolean
+          match_id: string
+          score_team_a?: number
+          score_team_b?: number
+          set_number: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_tiebreak?: boolean
+          match_id?: string
+          score_team_a?: number
+          score_team_b?: number
+          set_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "casual_match_sets_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "casual_matches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      casual_matches: {
+        Row: {
+          created_at: string
+          id: string
+          location: string | null
+          match_format: string
+          notes: string | null
+          owner_user_id: string
+          played_at_time: string | null
+          played_on: string
+          updated_at: string
+          winner_team: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          location?: string | null
+          match_format?: string
+          notes?: string | null
+          owner_user_id: string
+          played_at_time?: string | null
+          played_on?: string
+          updated_at?: string
+          winner_team?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          location?: string | null
+          match_format?: string
+          notes?: string | null
+          owner_user_id?: string
+          played_at_time?: string | null
+          played_on?: string
+          updated_at?: string
+          winner_team?: string | null
+        }
+        Relationships: []
+      }
       comment_reactions: {
         Row: {
           comment_id: string
@@ -1221,6 +1346,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      personal_contacts: {
+        Row: {
+          created_at: string
+          display_name: string
+          id: string
+          linked_user_id: string | null
+          nickname: string | null
+          notes: string | null
+          owner_user_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          display_name: string
+          id?: string
+          linked_user_id?: string | null
+          nickname?: string | null
+          notes?: string | null
+          owner_user_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string
+          id?: string
+          linked_user_id?: string | null
+          nickname?: string | null
+          notes?: string | null
+          owner_user_id?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       player_claims: {
         Row: {

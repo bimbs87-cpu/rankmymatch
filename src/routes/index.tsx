@@ -61,6 +61,7 @@ import {
 } from "lucide-react";
 import { confirmPresence, cancelPresence } from "@/lib/round-actions";
 import { CancelRoundDialog } from "@/components/CancelRoundDialog";
+import { CasualMatchDialog } from "@/components/CasualMatchDialog";
 
 const DESKTOP_NAV = [
   { to: "/" as const, icon: Home, label: "Início" },
@@ -303,6 +304,7 @@ function DashboardPage() {
   const [groupStats, setGroupStats] = useState<Map<string, { seasons: number; rounds_completed: number; rounds_total: number }>>(new Map());
   const [confirmingRoundId, setConfirmingRoundId] = useState<string | null>(null);
   const [cancelRoundTarget, setCancelRoundTarget] = useState<NextMatchInfo | null>(null);
+  const [casualDialogOpen, setCasualDialogOpen] = useState(false);
   const { displayName, nickname, avatarUrl: profileAvatarUrl } = useUserProfile();
 
   /**
@@ -1831,12 +1833,25 @@ function DashboardPage() {
               <span className="text-[10px] text-muted-foreground/60">Jogue para aparecer</span>
             </Link>
           )}
-          <Link to="/groups" className="flex flex-col items-center justify-center gap-1.5 rounded-3xl bg-primary p-5 lg:p-3 text-primary-foreground transition-transform active:scale-[0.97]">
-            <Plus className="h-7 w-7 lg:h-5 lg:w-5" strokeWidth={2.5} />
-            <span className="text-sm font-semibold">Criar / Entrar</span>
-            <span className="text-[10px] opacity-70">em um grupo</span>
-          </Link>
+          <div className="flex flex-col gap-2">
+            <Link to="/groups" className="flex items-center justify-center gap-2 rounded-2xl bg-primary px-4 py-2.5 text-primary-foreground transition-transform active:scale-[0.97]">
+              <Plus className="h-4 w-4" strokeWidth={2.5} />
+              <span className="text-xs font-semibold">Criar / Entrar em grupo</span>
+            </Link>
+            <button
+              type="button"
+              onClick={() => setCasualDialogOpen(true)}
+              className="flex items-center justify-center gap-2 rounded-2xl border border-primary/30 bg-primary/10 px-4 py-2.5 text-primary transition-transform active:scale-[0.97]"
+            >
+              <Swords className="h-4 w-4" strokeWidth={2.5} />
+              <span className="text-xs font-semibold">Registrar partida avulsa</span>
+            </button>
+            <Link to="/partidas-avulsas" className="text-center text-[10px] text-muted-foreground/70 hover:text-foreground">
+              Ver minhas partidas avulsas →
+            </Link>
+          </div>
         </section>
+
 
         {/* Próximo confronto pendente */}
         {pendingMatch && (
@@ -3041,6 +3056,12 @@ function DashboardPage() {
           }}
         />
       )}
+
+      <CasualMatchDialog
+        open={casualDialogOpen}
+        onOpenChange={setCasualDialogOpen}
+        onSaved={() => loadDashboard()}
+      />
     </div>
   );
 }
