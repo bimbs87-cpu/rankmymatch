@@ -3056,6 +3056,12 @@ function DashboardPage() {
           }}
         />
       )}
+
+      <CasualMatchDialog
+        open={casualDialogOpen}
+        onOpenChange={setCasualDialogOpen}
+        onSaved={() => loadDashboard()}
+      />
     </div>
   );
 }
