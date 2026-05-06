@@ -248,21 +248,40 @@ export function CasualMatchDialog({ open, onOpenChange, onSaved, editMatchId }: 
         return a >= b ? "a" : "b";
       };
 
-      const { data: match, error: mErr } = await supabase
-        .from("casual_matches")
-        .insert({
-          owner_user_id: user.id,
-          match_format: format,
-          played_on: playedOn,
-          location: location.trim() || null,
-          winner_team: winner,
-        })
-        .select("id")
-        .single();
-      if (mErr) throw mErr;
+      let matchId: string;
+      if (editMatchId) {
+        const { error: uErr } = await supabase
+          .from("casual_matches")
+          .update({
+            match_format: format,
+            played_on: playedOn,
+            location: location.trim() || null,
+            winner_team: winner,
+          })
+          .eq("id", editMatchId);
+        if (uErr) throw uErr;
+        // Replace participants and sets
+        await supabase.from("casual_match_sets").delete().eq("match_id", editMatchId);
+        await supabase.from("casual_match_participants").delete().eq("match_id", editMatchId);
+        matchId = editMatchId;
+      } else {
+        const { data: match, error: mErr } = await supabase
+          .from("casual_matches")
+          .insert({
+            owner_user_id: user.id,
+            match_format: format,
+            played_on: playedOn,
+            location: location.trim() || null,
+            winner_team: winner,
+          })
+          .select("id")
+          .single();
+        if (mErr) throw mErr;
+        matchId = match.id;
+      }
 
       const partRows = resolved.map((p) => ({
-        match_id: match.id,
+        match_id: matchId,
         team: teamFor(p.key),
         contact_id: p.contactId,
         linked_user_id: p.linkedUserId,
@@ -279,21 +298,21 @@ export function CasualMatchDialog({ open, onOpenChange, onSaved, editMatchId }: 
       const keyToId = new Map<string, string>();
       const used = new Set<string>();
       for (const p of resolved) {
-        const match = (insertedParts || []).find((row) => {
+        const matchRow = (insertedParts || []).find((row) => {
           if (used.has(row.id)) return false;
           if (p.linkedUserId && row.linked_user_id === p.linkedUserId) return true;
           if (p.contactId && row.contact_id === p.contactId) return true;
           if (!p.linkedUserId && !p.contactId && row.display_name === p.name.trim()) return true;
           return false;
         });
-        if (match) {
-          keyToId.set(p.key, match.id);
-          used.add(match.id);
+        if (matchRow) {
+          keyToId.set(p.key, matchRow.id);
+          used.add(matchRow.id);
         }
       }
 
       const setRows = validSets.map((s, i) => ({
-        match_id: match.id,
+        match_id: matchId,
         set_number: i + 1,
         score_team_a: parseInt(s.a, 10) || 0,
         score_team_b: parseInt(s.b, 10) || 0,
@@ -303,7 +322,7 @@ export function CasualMatchDialog({ open, onOpenChange, onSaved, editMatchId }: 
       const { error: sErr } = await supabase.from("casual_match_sets").insert(setRows);
       if (sErr) throw sErr;
 
-      toast.success("Partida registrada!");
+      toast.success(editMatchId ? "Partida atualizada!" : "Partida registrada!");
       onSaved?.();
       onOpenChange(false);
     } catch (e: any) {
