@@ -167,13 +167,24 @@ export function CasualMatchDialog({ open, onOpenChange, onSaved }: Props) {
     try {
       // Auto-create contacts for free names
       const ensure = async (p: Participant): Promise<Participant> => {
-        if (p.contactId || p.linkedUserId) return p;
+        if (p.contactId) return p;
         const trimmed = p.name.trim();
-        const existing = contacts.find((c) => c.display_name.toLowerCase() === trimmed.toLowerCase());
+        // Match by linked_user_id first (so a user picked from app reuses their contact)
+        if (p.linkedUserId) {
+          const existingLinked = contacts.find((c) => c.linked_user_id === p.linkedUserId);
+          if (existingLinked) return { ...p, contactId: existingLinked.id };
+        }
+        const existing = contacts.find(
+          (c) => !p.linkedUserId && c.display_name.toLowerCase() === trimmed.toLowerCase() && !c.linked_user_id,
+        );
         if (existing) return { ...p, contactId: existing.id };
         const { data, error } = await supabase
           .from("personal_contacts")
-          .insert({ owner_user_id: user.id, display_name: trimmed })
+          .insert({
+            owner_user_id: user.id,
+            display_name: trimmed,
+            linked_user_id: p.linkedUserId,
+          })
           .select("id, display_name, nickname, linked_user_id")
           .single();
         if (error) throw error;
