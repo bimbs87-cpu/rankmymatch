@@ -10,6 +10,8 @@ interface Props {
   open: boolean;
   onOpenChange: (o: boolean) => void;
   onSaved?: () => void;
+  /** When provided, the dialog loads the match for editing instead of creating a new one. */
+  editMatchId?: string | null;
 }
 
 interface Contact {
@@ -37,7 +39,7 @@ interface SetRow {
 let _kid = 0;
 const newKey = () => `p_${++_kid}_${Date.now()}`;
 
-export function CasualMatchDialog({ open, onOpenChange, onSaved }: Props) {
+export function CasualMatchDialog({ open, onOpenChange, onSaved, editMatchId }: Props) {
   const { user } = useAuth();
   const { displayName } = useUserProfile();
   const [format, setFormat] = useState<"singles" | "doubles">("doubles");
@@ -60,9 +62,9 @@ export function CasualMatchDialog({ open, onOpenChange, onSaved }: Props) {
       .then(({ data }) => setContacts((data as Contact[]) || []));
   }, [open, user]);
 
-  // Reset form when opening
+  // Reset form when opening (only when NOT editing)
   useEffect(() => {
-    if (open && user) {
+    if (open && user && !editMatchId) {
       setFormat("doubles");
       setPlayedOn(new Date().toISOString().slice(0, 10));
       setLocation("");
@@ -72,7 +74,47 @@ export function CasualMatchDialog({ open, onOpenChange, onSaved }: Props) {
       ]);
       setSets([{ a: "", b: "", teamAKeys: [ownerKey], teamBKeys: [] }]);
     }
-  }, [open, user, displayName]);
+  }, [open, user, displayName, editMatchId]);
+
+  // Load existing match for edit
+  useEffect(() => {
+    if (!open || !user || !editMatchId) return;
+    let cancelled = false;
+    (async () => {
+      const [{ data: m }, { data: parts }, { data: setsData }] = await Promise.all([
+        supabase.from("casual_matches").select("id, match_format, played_on, location").eq("id", editMatchId).single(),
+        supabase.from("casual_match_participants").select("id, team, contact_id, linked_user_id, display_name, is_owner").eq("match_id", editMatchId),
+        supabase.from("casual_match_sets").select("set_number, score_team_a, score_team_b, team_a_participant_ids, team_b_participant_ids").eq("match_id", editMatchId).order("set_number"),
+      ]);
+      if (cancelled || !m) return;
+      setFormat((m.match_format as "singles" | "doubles") || "doubles");
+      setPlayedOn(m.played_on);
+      setLocation(m.location || "");
+      const idToKey = new Map<string, string>();
+      const ps: Participant[] = (parts || []).map((p: any) => {
+        const k = newKey();
+        idToKey.set(p.id, k);
+        return {
+          key: k,
+          contactId: p.contact_id,
+          linkedUserId: p.linked_user_id,
+          name: p.display_name,
+          isOwner: !!p.is_owner,
+        };
+      });
+      setParticipants(ps);
+      const ss: SetRow[] = (setsData || []).map((s: any) => ({
+        a: String(s.score_team_a),
+        b: String(s.score_team_b),
+        teamAKeys: ((s.team_a_participant_ids as string[]) || []).map((id) => idToKey.get(id)).filter(Boolean) as string[],
+        teamBKeys: ((s.team_b_participant_ids as string[]) || []).map((id) => idToKey.get(id)).filter(Boolean) as string[],
+      }));
+      if (ss.length > 0) setSets(ss);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [open, user, editMatchId]);
 
   const addParticipant = () => {
     setParticipants((prev) => [...prev, { key: newKey(), contactId: null, linkedUserId: null, name: "" }]);
@@ -206,21 +248,40 @@ export function CasualMatchDialog({ open, onOpenChange, onSaved }: Props) {
         return a >= b ? "a" : "b";
       };
 
-      const { data: match, error: mErr } = await supabase
-        .from("casual_matches")
-        .insert({
-          owner_user_id: user.id,
-          match_format: format,
-          played_on: playedOn,
-          location: location.trim() || null,
-          winner_team: winner,
-        })
-        .select("id")
-        .single();
-      if (mErr) throw mErr;
+      let matchId: string;
+      if (editMatchId) {
+        const { error: uErr } = await supabase
+          .from("casual_matches")
+          .update({
+            match_format: format,
+            played_on: playedOn,
+            location: location.trim() || null,
+            winner_team: winner,
+          })
+          .eq("id", editMatchId);
+        if (uErr) throw uErr;
+        // Replace participants and sets
+        await supabase.from("casual_match_sets").delete().eq("match_id", editMatchId);
+        await supabase.from("casual_match_participants").delete().eq("match_id", editMatchId);
+        matchId = editMatchId;
+      } else {
+        const { data: match, error: mErr } = await supabase
+          .from("casual_matches")
+          .insert({
+            owner_user_id: user.id,
+            match_format: format,
+            played_on: playedOn,
+            location: location.trim() || null,
+            winner_team: winner,
+          })
+          .select("id")
+          .single();
+        if (mErr) throw mErr;
+        matchId = match.id;
+      }
 
       const partRows = resolved.map((p) => ({
-        match_id: match.id,
+        match_id: matchId,
         team: teamFor(p.key),
         contact_id: p.contactId,
         linked_user_id: p.linkedUserId,
@@ -237,21 +298,21 @@ export function CasualMatchDialog({ open, onOpenChange, onSaved }: Props) {
       const keyToId = new Map<string, string>();
       const used = new Set<string>();
       for (const p of resolved) {
-        const match = (insertedParts || []).find((row) => {
+        const matchRow = (insertedParts || []).find((row) => {
           if (used.has(row.id)) return false;
           if (p.linkedUserId && row.linked_user_id === p.linkedUserId) return true;
           if (p.contactId && row.contact_id === p.contactId) return true;
           if (!p.linkedUserId && !p.contactId && row.display_name === p.name.trim()) return true;
           return false;
         });
-        if (match) {
-          keyToId.set(p.key, match.id);
-          used.add(match.id);
+        if (matchRow) {
+          keyToId.set(p.key, matchRow.id);
+          used.add(matchRow.id);
         }
       }
 
       const setRows = validSets.map((s, i) => ({
-        match_id: match.id,
+        match_id: matchId,
         set_number: i + 1,
         score_team_a: parseInt(s.a, 10) || 0,
         score_team_b: parseInt(s.b, 10) || 0,
@@ -261,7 +322,7 @@ export function CasualMatchDialog({ open, onOpenChange, onSaved }: Props) {
       const { error: sErr } = await supabase.from("casual_match_sets").insert(setRows);
       if (sErr) throw sErr;
 
-      toast.success("Partida registrada!");
+      toast.success(editMatchId ? "Partida atualizada!" : "Partida registrada!");
       onSaved?.();
       onOpenChange(false);
     } catch (e: any) {
@@ -275,7 +336,7 @@ export function CasualMatchDialog({ open, onOpenChange, onSaved }: Props) {
     <Dialog open={open} onOpenChange={(o) => !saving && onOpenChange(o)}>
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto bg-card border-border">
         <DialogHeader>
-          <DialogTitle>Registrar partida avulsa</DialogTitle>
+          <DialogTitle>{editMatchId ? "Editar partida avulsa" : "Registrar partida avulsa"}</DialogTitle>
           <DialogDescription className="text-xs">
             Cadastre os jogadores e monte os times de cada set — pode trocar duplas a cada set.
           </DialogDescription>
@@ -409,10 +470,13 @@ export function CasualMatchDialog({ open, onOpenChange, onSaved }: Props) {
             <button
               type="button"
               onClick={addSet}
-              className="mt-3 flex w-full items-center justify-center gap-1 rounded-lg border border-dashed border-primary/40 bg-primary/5 px-2 py-2 text-[11px] font-bold text-primary hover:bg-primary/10"
+              className="mt-3 flex w-full items-center justify-center gap-1 rounded-lg border-2 border-dashed border-primary/50 bg-primary/10 px-2 py-2.5 text-xs font-bold text-primary hover:bg-primary/20"
             >
-              <Plus className="h-3 w-3" /> Adicionar set
+              <Plus className="h-3.5 w-3.5" /> Adicionar outro set
             </button>
+            <p className="mt-1.5 text-center text-[10px] text-muted-foreground">
+              Jogou mais sets? Adicione antes de salvar.
+            </p>
             {winner && (
               <p className="mt-2 text-[11px] font-semibold text-success">
                 <Check className="mr-1 inline h-3 w-3" />
@@ -437,7 +501,12 @@ export function CasualMatchDialog({ open, onOpenChange, onSaved }: Props) {
               className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-bold text-primary-foreground disabled:opacity-50"
             >
               {saving && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-              Salvar partida
+              {(() => {
+                const filled = sets.filter((s) => s.a !== "" && s.b !== "").length;
+                const base = editMatchId ? "Salvar alterações" : "Salvar partida";
+                if (filled === 0) return base;
+                return `${base} com ${filled} set${filled > 1 ? "s" : ""}`;
+              })()}
             </button>
           </div>
         </div>

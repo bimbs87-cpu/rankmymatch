@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState, useMemo } from "react";
-import { ArrowLeft, Plus, Trophy, Users, Calendar, MapPin, Trash2, Loader2, BarChart3, User, Target, Award } from "lucide-react";
+import { ArrowLeft, Plus, Trophy, Users, Calendar, MapPin, Trash2, Loader2, BarChart3, User, Target, Award, Pencil } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { CasualMatchDialog } from "@/components/CasualMatchDialog";
@@ -30,6 +30,7 @@ function CasualMatchesPage() {
   const [matches, setMatches] = useState<CasualMatchRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [editId, setEditId] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
@@ -201,14 +202,30 @@ function CasualMatchesPage() {
           ) : (
             <div className="space-y-2">
               {matches.map((m) => (
-                <MatchCard key={m.id} match={m} onDelete={() => handleDelete(m.id)} />
+                <MatchCard
+                  key={m.id}
+                  match={m}
+                  onDelete={() => handleDelete(m.id)}
+                  onEdit={() => {
+                    setEditId(m.id);
+                    setDialogOpen(true);
+                  }}
+                />
               ))}
             </div>
           )}
         </section>
       </main>
 
-      <CasualMatchDialog open={dialogOpen} onOpenChange={setDialogOpen} onSaved={() => setReloadKey((k) => k + 1)} />
+      <CasualMatchDialog
+        open={dialogOpen}
+        onOpenChange={(o) => {
+          setDialogOpen(o);
+          if (!o) setEditId(null);
+        }}
+        onSaved={() => setReloadKey((k) => k + 1)}
+        editMatchId={editId}
+      />
     </div>
   );
 }
@@ -243,7 +260,7 @@ function RankList({ title, data, accent }: { title: string; data: [string, { cou
   );
 }
 
-function MatchCard({ match, onDelete }: { match: CasualMatchRow; onDelete: () => void }) {
+function MatchCard({ match, onDelete, onEdit }: { match: CasualMatchRow; onDelete: () => void; onEdit: () => void }) {
   const owner = match.participants.find((p) => p.is_owner);
   const myTeam = owner?.team || "a";
   const myMates = match.participants.filter((p) => p.team === myTeam && !p.is_owner);
@@ -272,6 +289,9 @@ function MatchCard({ match, onDelete }: { match: CasualMatchRow; onDelete: () =>
           </p>
           {score && <p className="mt-1 font-mono text-xs font-bold tracking-wider">{score}</p>}
         </div>
+        <button onClick={onEdit} className="shrink-0 rounded-md p-1 text-muted-foreground hover:bg-primary/10 hover:text-primary" aria-label="Editar">
+          <Pencil className="h-3.5 w-3.5" />
+        </button>
         <button onClick={onDelete} className="shrink-0 rounded-md p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive">
           <Trash2 className="h-3.5 w-3.5" />
         </button>
