@@ -217,7 +217,15 @@ function CasualMatchesPage() {
         </section>
       </main>
 
-      <CasualMatchDialog open={dialogOpen} onOpenChange={setDialogOpen} onSaved={() => setReloadKey((k) => k + 1)} />
+      <CasualMatchDialog
+        open={dialogOpen}
+        onOpenChange={(o) => {
+          setDialogOpen(o);
+          if (!o) setEditId(null);
+        }}
+        onSaved={() => setReloadKey((k) => k + 1)}
+        editMatchId={editId}
+      />
     </div>
   );
 }
