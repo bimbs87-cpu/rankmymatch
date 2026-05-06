@@ -321,17 +321,10 @@ export function CasualMatchDialog({ open, onOpenChange, onSaved }: Props) {
 
           {/* Participants roster */}
           <div className="rounded-xl border border-border bg-background/40 p-3">
-            <div className="mb-2 flex items-center justify-between">
+            <div className="mb-2">
               <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
                 Jogadores ({participants.length})
               </span>
-              <button
-                type="button"
-                onClick={addParticipant}
-                className="flex items-center gap-1 rounded-lg bg-primary/10 px-2 py-1 text-[11px] font-bold text-primary"
-              >
-                <Plus className="h-3 w-3" /> Jogador
-              </button>
             </div>
             <div className="space-y-2">
               {participants.map((p) => (
