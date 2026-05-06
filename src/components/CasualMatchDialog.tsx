@@ -10,6 +10,8 @@ interface Props {
   open: boolean;
   onOpenChange: (o: boolean) => void;
   onSaved?: () => void;
+  /** When provided, the dialog loads the match for editing instead of creating a new one. */
+  editMatchId?: string | null;
 }
 
 interface Contact {
