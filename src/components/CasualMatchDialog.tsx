@@ -356,6 +356,13 @@ export function CasualMatchDialog({ open, onOpenChange, onSaved }: Props) {
                 </div>
               ))}
             </div>
+            <button
+              type="button"
+              onClick={addParticipant}
+              className="mt-3 flex w-full items-center justify-center gap-1 rounded-lg border border-dashed border-primary/40 bg-primary/5 px-2 py-2 text-[11px] font-bold text-primary hover:bg-primary/10"
+            >
+              <Plus className="h-3 w-3" /> Adicionar jogador
+            </button>
             <p className="mt-2 text-[10px] text-muted-foreground">
               Adicione todos que jogaram. Em cada set abaixo, clique nos nomes para montar os times daquele set.
             </p>
