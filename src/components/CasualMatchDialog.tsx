@@ -548,11 +548,37 @@ function ContactPicker({
   contacts: Contact[];
 }) {
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const filtered = useMemo(() => {
+  const [userResults, setUserResults] = useState<{ user_id: string; name: string; nickname: string | null }[]>([]);
+  const [searchingUsers, setSearchingUsers] = useState(false);
+
+  const filteredContacts = useMemo(() => {
     const q = value.name.trim().toLowerCase();
     if (!q) return contacts.slice(0, 5);
     return contacts.filter((c) => c.display_name.toLowerCase().includes(q)).slice(0, 5);
   }, [value.name, contacts]);
+
+  // Search platform users (debounced)
+  useEffect(() => {
+    const q = value.name.trim();
+    if (q.length < 2 || value.linkedUserId) {
+      setUserResults([]);
+      return;
+    }
+    const t = setTimeout(async () => {
+      setSearchingUsers(true);
+      const { data } = await supabase
+        .from("user_profiles")
+        .select("user_id, name, nickname")
+        .eq("is_placeholder", false)
+        .or(`name.ilike.%${q}%,nickname.ilike.%${q}%`)
+        .limit(5);
+      // Exclude users already linked via existing contacts
+      const linkedIds = new Set(contacts.map((c) => c.linked_user_id).filter(Boolean) as string[]);
+      setUserResults((data || []).filter((u) => !linkedIds.has(u.user_id)));
+      setSearchingUsers(false);
+    }, 300);
+    return () => clearTimeout(t);
+  }, [value.name, value.linkedUserId, contacts]);
 
   return (
     <div className="relative">
@@ -562,30 +588,65 @@ function ContactPicker({
           value={value.name}
           onChange={(e) => onChange({ name: e.target.value, contactId: null, linkedUserId: null })}
           onFocus={() => setShowSuggestions(true)}
-          onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
-          placeholder="Nome do jogador"
+          onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+          placeholder="Nome ou buscar usuário"
           className="flex-1 bg-transparent py-2 text-sm outline-none"
         />
         {(value.contactId || value.linkedUserId) && <Check className="h-3.5 w-3.5 text-success" />}
       </div>
-      {showSuggestions && filtered.length > 0 && (
-        <div className="absolute left-0 right-0 top-full z-50 mt-1 max-h-40 overflow-y-auto rounded-lg border border-border bg-popover p-1 shadow-lg">
-          {filtered.map((c) => (
-            <button
-              type="button"
-              key={c.id}
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={() => {
-                onChange({ name: c.display_name, contactId: c.id, linkedUserId: c.linked_user_id });
-                setShowSuggestions(false);
-              }}
-              className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm hover:bg-accent"
-            >
-              <User className="h-3 w-3 text-muted-foreground" />
-              <span className="flex-1 truncate">{c.display_name}</span>
-              {c.linked_user_id && <span className="text-[9px] text-primary">app</span>}
-            </button>
-          ))}
+      {showSuggestions && (filteredContacts.length > 0 || userResults.length > 0 || searchingUsers) && (
+        <div className="absolute left-0 right-0 top-full z-50 mt-1 max-h-60 overflow-y-auto rounded-lg border border-border bg-popover p-1 shadow-lg">
+          {filteredContacts.length > 0 && (
+            <>
+              <p className="px-2 py-1 text-[9px] font-bold uppercase tracking-wider text-muted-foreground">Meus contatos</p>
+              {filteredContacts.map((c) => (
+                <button
+                  type="button"
+                  key={c.id}
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => {
+                    onChange({ name: c.display_name, contactId: c.id, linkedUserId: c.linked_user_id });
+                    setShowSuggestions(false);
+                  }}
+                  className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm hover:bg-accent"
+                >
+                  <User className="h-3 w-3 text-muted-foreground" />
+                  <span className="flex-1 truncate">{c.display_name}</span>
+                  {c.linked_user_id && <span className="text-[9px] text-primary">vinculado</span>}
+                </button>
+              ))}
+            </>
+          )}
+          {userResults.length > 0 && (
+            <>
+              <p className="px-2 py-1 text-[9px] font-bold uppercase tracking-wider text-muted-foreground">Usuários do app</p>
+              {userResults.map((u) => (
+                <button
+                  type="button"
+                  key={u.user_id}
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => {
+                    onChange({
+                      name: u.nickname || u.name,
+                      contactId: null,
+                      linkedUserId: u.user_id,
+                    });
+                    setShowSuggestions(false);
+                  }}
+                  className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm hover:bg-accent"
+                >
+                  <User className="h-3 w-3 text-primary" />
+                  <span className="flex-1 truncate">{u.nickname || u.name}</span>
+                  <span className="text-[9px] text-primary">app</span>
+                </button>
+              ))}
+            </>
+          )}
+          {searchingUsers && (
+            <p className="px-2 py-1.5 text-[10px] text-muted-foreground">
+              <Loader2 className="mr-1 inline h-3 w-3 animate-spin" /> buscando…
+            </p>
+          )}
         </div>
       )}
     </div>
