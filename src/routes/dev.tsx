@@ -1011,7 +1011,8 @@ function SignupsTab({ signups }: { signups: DashboardData["signups"] }) {
       return (
         s.email?.toLowerCase().includes(q) ||
         s.name?.toLowerCase().includes(q) ||
-        s.first_group_name?.toLowerCase().includes(q)
+        s.first_group_name?.toLowerCase().includes(q) ||
+        s.member_groups?.some((g) => g.name.toLowerCase().includes(q))
       );
     });
   }, [localSignups, search, originFilter]);
