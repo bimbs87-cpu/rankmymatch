@@ -304,6 +304,7 @@ function DashboardPage() {
   const [groupStats, setGroupStats] = useState<Map<string, { seasons: number; rounds_completed: number; rounds_total: number }>>(new Map());
   const [confirmingRoundId, setConfirmingRoundId] = useState<string | null>(null);
   const [cancelRoundTarget, setCancelRoundTarget] = useState<NextMatchInfo | null>(null);
+  const [casualDialogOpen, setCasualDialogOpen] = useState(false);
   const { displayName, nickname, avatarUrl: profileAvatarUrl } = useUserProfile();
 
   /**
