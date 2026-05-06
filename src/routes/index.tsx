@@ -759,9 +759,7 @@ function DashboardPage() {
         if (b._sort_date !== a._sort_date) return b._sort_date - a._sort_date;
         return (b._match_number_sort || 0) - (a._match_number_sort || 0);
       });
-      var combinedRecent: any[] = mapped;
-    } else {
-      var combinedRecent: any[] = [];
+      combinedRecent = mapped;
     }
 
     // 2b. Casual (avulsa) matches
