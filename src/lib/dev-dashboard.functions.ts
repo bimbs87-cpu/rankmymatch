@@ -167,19 +167,26 @@ export const getDevDashboard = createServerFn({ method: "GET" })
       });
     }
 
-    // ===== inferir origem via primeira membership não-criadora =====
+    // ===== inferir origem via primeira membership não-criadora + listar grupos por usuário =====
     const { data: allMemberships } = await supabaseAdmin
       .from("group_members")
-      .select("user_id, group_id, joined_at, role")
+      .select("user_id, group_id, joined_at, role, status")
       .in("user_id", sentinelIds)
       .order("joined_at", { ascending: true });
 
+    const groupById = new Map((groups ?? []).map((g) => [g.id, g]));
     const firstNonCreatorJoinByUser = new Map<string, string>();
+    const memberGroupsByUser = new Map<string, { id: string; name: string; sport: string | null; role: string }[]>();
     (allMemberships ?? []).forEach((m) => {
-      if (m.role === "creator") return;
-      if (!firstNonCreatorJoinByUser.has(m.user_id)) {
+      if (m.role !== "creator" && !firstNonCreatorJoinByUser.has(m.user_id)) {
         firstNonCreatorJoinByUser.set(m.user_id, m.joined_at);
       }
+      if (m.status !== "active") return;
+      const g = groupById.get(m.group_id);
+      if (!g) return;
+      const arr = memberGroupsByUser.get(m.user_id) ?? [];
+      arr.push({ id: g.id, name: g.name, sport: g.sport, role: m.role });
+      memberGroupsByUser.set(m.user_id, arr);
     });
 
     // ===== matches por usuário (pra funil) =====
