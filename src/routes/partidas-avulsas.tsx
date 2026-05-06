@@ -289,6 +289,9 @@ function MatchCard({ match, onDelete, onEdit }: { match: CasualMatchRow; onDelet
           </p>
           {score && <p className="mt-1 font-mono text-xs font-bold tracking-wider">{score}</p>}
         </div>
+        <button onClick={onEdit} className="shrink-0 rounded-md p-1 text-muted-foreground hover:bg-primary/10 hover:text-primary" aria-label="Editar">
+          <Pencil className="h-3.5 w-3.5" />
+        </button>
         <button onClick={onDelete} className="shrink-0 rounded-md p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive">
           <Trash2 className="h-3.5 w-3.5" />
         </button>
