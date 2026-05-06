@@ -758,10 +758,75 @@ function DashboardPage() {
         if (b._sort_date !== a._sort_date) return b._sort_date - a._sort_date;
         return (b._match_number_sort || 0) - (a._match_number_sort || 0);
       });
-      setRecentMatches(mapped);
+      var combinedRecent: any[] = mapped;
     } else {
-      setRecentMatches([]);
+      var combinedRecent: any[] = [];
     }
+
+    // 2b. Casual (avulsa) matches
+    try {
+      const { data: cMatches } = await supabase
+        .from("casual_matches")
+        .select("id, match_format, played_on, location, winner_team")
+        .eq("owner_user_id", user.id)
+        .order("played_on", { ascending: false })
+        .limit(8);
+      if (cMatches && cMatches.length > 0) {
+        const cIds = cMatches.map((c) => c.id);
+        const [{ data: cParts }, { data: cSets }] = await Promise.all([
+          supabase
+            .from("casual_match_participants")
+            .select("match_id, team, display_name, is_owner")
+            .in("match_id", cIds),
+          supabase
+            .from("casual_match_sets")
+            .select("match_id, set_number, score_team_a, score_team_b")
+            .in("match_id", cIds)
+            .order("set_number"),
+        ]);
+        const casualMapped = cMatches.map((m) => {
+          const parts = (cParts || []).filter((p: any) => p.match_id === m.id);
+          const owner = parts.find((p: any) => p.is_owner);
+          const myTeam = owner?.team || "a";
+          const partner = parts.find((p: any) => p.team === myTeam && !p.is_owner);
+          const opponents = parts.filter((p: any) => p.team !== myTeam);
+          const setsForMatch = (cSets || []).filter((s: any) => s.match_id === m.id);
+          const score = setsForMatch.length
+            ? setsForMatch.map((s: any) => `${s.score_team_a}-${s.score_team_b}`).join(" / ")
+            : "—";
+          const ts = new Date(m.played_on + "T12:00:00").getTime();
+          return {
+            id: m.id,
+            match_number: null,
+            winner_team: m.winner_team,
+            my_team: myTeam,
+            round_id: null,
+            round_number: null,
+            group_id: null,
+            group_name: m.location ? `Avulsa · ${m.location}` : "Partida avulsa",
+            season_id: null,
+            score_display: score,
+            rating_change: null,
+            created_at: m.played_on,
+            match_date: m.played_on,
+            partner_name: partner?.display_name?.split(/\s+/)[0] || null,
+            opponent_names: opponents.map((o: any) => o.display_name?.split(/\s+/)[0]).filter(Boolean),
+            is_casual: true,
+            _sort_date: ts,
+            _match_number_sort: 0,
+          };
+        });
+        combinedRecent = [...combinedRecent, ...casualMapped];
+      }
+    } catch (e) {
+      console.error("[recent] casual fetch error", e);
+    }
+
+    combinedRecent.sort((a: any, b: any) => {
+      if (b._sort_date !== a._sort_date) return b._sort_date - a._sort_date;
+      return (b._match_number_sort || 0) - (a._match_number_sort || 0);
+    });
+    setRecentMatches(combinedRecent);
 
     // 3. My rankings — all seasons (active + ended) where the user has a snapshot
     const { data: seasonsList } = await supabase
