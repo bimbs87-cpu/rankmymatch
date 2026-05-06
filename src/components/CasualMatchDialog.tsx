@@ -336,7 +336,7 @@ export function CasualMatchDialog({ open, onOpenChange, onSaved, editMatchId }: 
     <Dialog open={open} onOpenChange={(o) => !saving && onOpenChange(o)}>
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto bg-card border-border">
         <DialogHeader>
-          <DialogTitle>Registrar partida avulsa</DialogTitle>
+          <DialogTitle>{editMatchId ? "Editar partida avulsa" : "Registrar partida avulsa"}</DialogTitle>
           <DialogDescription className="text-xs">
             Cadastre os jogadores e monte os times de cada set — pode trocar duplas a cada set.
           </DialogDescription>
