@@ -66,6 +66,7 @@ type SignupRow = {
   first_group_name: string | null;
   first_group_sport: string | null;
   first_group_members: number;
+  member_groups: { id: string; name: string; sport: string | null; role: string }[];
   origin: "invite" | "direct" | "unknown";
   has_profile: boolean;
   has_match: boolean;
