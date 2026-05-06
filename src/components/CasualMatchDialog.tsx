@@ -39,7 +39,7 @@ interface SetRow {
 let _kid = 0;
 const newKey = () => `p_${++_kid}_${Date.now()}`;
 
-export function CasualMatchDialog({ open, onOpenChange, onSaved }: Props) {
+export function CasualMatchDialog({ open, onOpenChange, onSaved, editMatchId }: Props) {
   const { user } = useAuth();
   const { displayName } = useUserProfile();
   const [format, setFormat] = useState<"singles" | "doubles">("doubles");
