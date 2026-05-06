@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState, useMemo } from "react";
-import { ArrowLeft, Plus, Trophy, Users, Calendar, MapPin, Trash2, Loader2, BarChart3, User, Target, Award } from "lucide-react";
+import { ArrowLeft, Plus, Trophy, Users, Calendar, MapPin, Trash2, Loader2, BarChart3, User, Target, Award, Pencil } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { CasualMatchDialog } from "@/components/CasualMatchDialog";
