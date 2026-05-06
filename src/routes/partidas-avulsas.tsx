@@ -30,6 +30,7 @@ function CasualMatchesPage() {
   const [matches, setMatches] = useState<CasualMatchRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [editId, setEditId] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
