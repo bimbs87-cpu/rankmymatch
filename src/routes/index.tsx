@@ -221,6 +221,7 @@ interface RecentMatch {
   match_date: string;
   partner_name: string | null;
   opponent_names: string[];
+  is_casual?: boolean;
 }
 
 interface RankingOption {
