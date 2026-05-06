@@ -498,7 +498,12 @@ export function CasualMatchDialog({ open, onOpenChange, onSaved, editMatchId }: 
               className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-bold text-primary-foreground disabled:opacity-50"
             >
               {saving && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-              Salvar partida
+              {(() => {
+                const filled = sets.filter((s) => s.a !== "" && s.b !== "").length;
+                const base = editMatchId ? "Salvar alterações" : "Salvar partida";
+                if (filled === 0) return base;
+                return `${base} com ${filled} set${filled > 1 ? "s" : ""}`;
+              })()}
             </button>
           </div>
         </div>
