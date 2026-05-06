@@ -470,10 +470,13 @@ export function CasualMatchDialog({ open, onOpenChange, onSaved, editMatchId }: 
             <button
               type="button"
               onClick={addSet}
-              className="mt-3 flex w-full items-center justify-center gap-1 rounded-lg border border-dashed border-primary/40 bg-primary/5 px-2 py-2 text-[11px] font-bold text-primary hover:bg-primary/10"
+              className="mt-3 flex w-full items-center justify-center gap-1 rounded-lg border-2 border-dashed border-primary/50 bg-primary/10 px-2 py-2.5 text-xs font-bold text-primary hover:bg-primary/20"
             >
-              <Plus className="h-3 w-3" /> Adicionar set
+              <Plus className="h-3.5 w-3.5" /> Adicionar outro set
             </button>
+            <p className="mt-1.5 text-center text-[10px] text-muted-foreground">
+              Jogou mais sets? Adicione antes de salvar.
+            </p>
             {winner && (
               <p className="mt-2 text-[11px] font-semibold text-success">
                 <Check className="mr-1 inline h-3 w-3" />
