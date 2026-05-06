@@ -62,9 +62,9 @@ export function CasualMatchDialog({ open, onOpenChange, onSaved, editMatchId }: 
       .then(({ data }) => setContacts((data as Contact[]) || []));
   }, [open, user]);
 
-  // Reset form when opening
+  // Reset form when opening (only when NOT editing)
   useEffect(() => {
-    if (open && user) {
+    if (open && user && !editMatchId) {
       setFormat("doubles");
       setPlayedOn(new Date().toISOString().slice(0, 10));
       setLocation("");
@@ -74,7 +74,47 @@ export function CasualMatchDialog({ open, onOpenChange, onSaved, editMatchId }: 
       ]);
       setSets([{ a: "", b: "", teamAKeys: [ownerKey], teamBKeys: [] }]);
     }
-  }, [open, user, displayName]);
+  }, [open, user, displayName, editMatchId]);
+
+  // Load existing match for edit
+  useEffect(() => {
+    if (!open || !user || !editMatchId) return;
+    let cancelled = false;
+    (async () => {
+      const [{ data: m }, { data: parts }, { data: setsData }] = await Promise.all([
+        supabase.from("casual_matches").select("id, match_format, played_on, location").eq("id", editMatchId).single(),
+        supabase.from("casual_match_participants").select("id, team, contact_id, linked_user_id, display_name, is_owner").eq("match_id", editMatchId),
+        supabase.from("casual_match_sets").select("set_number, score_team_a, score_team_b, team_a_participant_ids, team_b_participant_ids").eq("match_id", editMatchId).order("set_number"),
+      ]);
+      if (cancelled || !m) return;
+      setFormat((m.match_format as "singles" | "doubles") || "doubles");
+      setPlayedOn(m.played_on);
+      setLocation(m.location || "");
+      const idToKey = new Map<string, string>();
+      const ps: Participant[] = (parts || []).map((p: any) => {
+        const k = newKey();
+        idToKey.set(p.id, k);
+        return {
+          key: k,
+          contactId: p.contact_id,
+          linkedUserId: p.linked_user_id,
+          name: p.display_name,
+          isOwner: !!p.is_owner,
+        };
+      });
+      setParticipants(ps);
+      const ss: SetRow[] = (setsData || []).map((s: any) => ({
+        a: String(s.score_team_a),
+        b: String(s.score_team_b),
+        teamAKeys: ((s.team_a_participant_ids as string[]) || []).map((id) => idToKey.get(id)).filter(Boolean) as string[],
+        teamBKeys: ((s.team_b_participant_ids as string[]) || []).map((id) => idToKey.get(id)).filter(Boolean) as string[],
+      }));
+      if (ss.length > 0) setSets(ss);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [open, user, editMatchId]);
 
   const addParticipant = () => {
     setParticipants((prev) => [...prev, { key: newKey(), contactId: null, linkedUserId: null, name: "" }]);
