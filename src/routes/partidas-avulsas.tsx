@@ -260,7 +260,7 @@ function RankList({ title, data, accent }: { title: string; data: [string, { cou
   );
 }
 
-function MatchCard({ match, onDelete }: { match: CasualMatchRow; onDelete: () => void }) {
+function MatchCard({ match, onDelete, onEdit }: { match: CasualMatchRow; onDelete: () => void; onEdit: () => void }) {
   const owner = match.participants.find((p) => p.is_owner);
   const myTeam = owner?.team || "a";
   const myMates = match.participants.filter((p) => p.team === myTeam && !p.is_owner);
