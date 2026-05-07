@@ -30,6 +30,15 @@ export function BottomNav() {
 
   return (
     <>
+      {isAppAdmin && (
+        <Link
+          to="/dev"
+          aria-label="Painel /dev"
+          className="fixed bottom-24 left-4 z-50 inline-flex h-12 w-12 items-center justify-center rounded-full border border-primary/40 bg-primary text-primary-foreground shadow-lg transition-transform hover:scale-105 lg:hidden"
+        >
+          <Wrench className="h-5 w-5" />
+        </Link>
+      )}
       {adminPending > 0 && (
         <Link
           to="/admin/inbox"
