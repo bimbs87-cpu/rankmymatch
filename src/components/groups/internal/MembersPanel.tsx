@@ -39,6 +39,7 @@ interface PendingInvite {
 export function MembersPanel({ groupId }: Props) {
   const { user } = useAuth();
   const { members, isAdmin, refresh } = useGroupDetail(groupId);
+  const { isAppAdmin } = useAppAdmin();
   const [rankingData, setRankingData] = useState<Record<string, { rating: number; position: number | null; matches_played: number; matches_won: number }>>({});
   const [presenceData, setPresenceData] = useState<Record<string, number>>({});
   const [placeholderUserIds, setPlaceholderUserIds] = useState<Set<string>>(new Set());
