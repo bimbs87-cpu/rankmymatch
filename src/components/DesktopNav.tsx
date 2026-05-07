@@ -1,5 +1,6 @@
 import { Link, useLocation } from "@tanstack/react-router";
-import { Home, User, Crown, Users, Bell, BarChart3 } from "lucide-react";
+import { Home, User, Crown, Users, Bell, BarChart3, Wrench } from "lucide-react";
+import { useAppAdmin } from "@/hooks/use-app-admin";
 import { useNotifications } from "@/hooks/use-notifications";
 import { useAdminPendingCount } from "@/hooks/use-admin-pending-count";
 import { useUserProfile } from "@/hooks/use-user-profile";
@@ -26,6 +27,7 @@ export function DesktopNav() {
   const totalBadge = unreadCount + adminPending;
   const { displayName, nickname, avatarUrl } = useUserProfile();
   const { groups: myGroups } = useMyGroups();
+  const { isAppAdmin } = useAppAdmin();
   const headerName = nickname || displayName || "Você";
   const activeGroupIdFromPath = location.pathname.match(/^\/groups\/([0-9a-f-]{36})/i)?.[1] ?? null;
   const activeGroup = myGroups.find((group) => group.id === activeGroupIdFromPath) ?? myGroups[0];
@@ -149,6 +151,15 @@ export function DesktopNav() {
         <div className="flex items-center gap-2">
           {myGroups.length > 0 && (
             <GroupSwitcherPopover groups={myGroups} activeGroupId={activeGroupId} activeGroupName={activeGroupName} />
+          )}
+          {isAppAdmin && (
+            <Link
+              to="/dev"
+              aria-label="Painel /dev"
+              className="rounded-full border border-primary/40 bg-primary/10 p-2.5 transition-colors hover:bg-primary/20"
+            >
+              <Wrench className="h-4 w-4 text-primary" />
+            </Link>
           )}
           {adminPending > 0 && (
             <Link

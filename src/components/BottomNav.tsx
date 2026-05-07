@@ -1,9 +1,10 @@
 import { Link, useLocation } from "@tanstack/react-router";
-import { Home, Users, User, Crown, BarChart3, Inbox, CalendarClock } from "lucide-react";
+import { Home, Users, User, Crown, BarChart3, Inbox, CalendarClock, Wrench } from "lucide-react";
 import { APP_VERSION } from "@/lib/app-version";
 import { useNewReleasesCount } from "@/hooks/use-new-releases";
 import { useAdminPendingCount } from "@/hooks/use-admin-pending-count";
 import { useMyGroups } from "@/hooks/use-groups";
+import { useAppAdmin } from "@/hooks/use-app-admin";
 import { GroupsNavMenu } from "@/components/GroupsNavMenu";
 import { SafeBoundary } from "@/components/SafeBoundary";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -22,12 +23,22 @@ export function BottomNav() {
   const newReleases = useNewReleasesCount();
   const { count: adminPending } = useAdminPendingCount();
   const { groups: myGroups } = useMyGroups();
+  const { isAppAdmin } = useAppAdmin();
   const activeGroupId = location.pathname.match(/^\/groups\/([0-9a-f-]{36})/i)?.[1] ?? null;
   const activeGroup = myGroups.find((group) => group.id === activeGroupId) ?? null;
   const shouldOpenDuelFromRanking = !!activeGroup && activeGroup.match_format === "singles" && (isRivalryGroup(activeGroup) || activeGroup.member_count <= 2);
 
   return (
     <>
+      {isAppAdmin && (
+        <Link
+          to="/dev"
+          aria-label="Painel /dev"
+          className="fixed bottom-24 left-4 z-50 inline-flex h-12 w-12 items-center justify-center rounded-full border border-primary/40 bg-primary text-primary-foreground shadow-lg transition-transform hover:scale-105 lg:hidden"
+        >
+          <Wrench className="h-5 w-5" />
+        </Link>
+      )}
       {adminPending > 0 && (
         <Link
           to="/admin/inbox"
