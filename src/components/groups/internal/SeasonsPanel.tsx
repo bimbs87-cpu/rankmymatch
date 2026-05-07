@@ -978,12 +978,15 @@ export function RoundExpandedDetails({
   roundId,
   isAdmin,
   onChanged,
+  hidePresenceActions = false,
 }: {
   groupId: string;
   seasonId: string;
   roundId: string;
   isAdmin: boolean;
   onChanged: () => void;
+  /** When true, hides the inline "Vou / Não vou" buttons (parent already renders them). */
+  hidePresenceActions?: boolean;
 }) {
   const { user } = useAuth();
   const [presence, setPresence] = useState<{ confirmed: number; declined: number; pending: number; max: number }>({
@@ -1254,7 +1257,7 @@ export function RoundExpandedDetails({
       ) : (
         <>
           {/* ============== INCOMPLETE ROUND FLOW ============== */}
-          {!isCompleted && user && (
+          {!isCompleted && user && !hidePresenceActions && (
             <div>
               {myStatus === "confirmed" ? (
                 <button

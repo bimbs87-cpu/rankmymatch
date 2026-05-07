@@ -40,8 +40,10 @@ import {
   ShieldAlert,
   AlertTriangle,
   FileText,
+  Wrench,
   X as XIcon,
 } from "lucide-react";
+import { useAppAdmin } from "@/hooks/use-app-admin";
 import { DeleteAccountDialog } from "@/components/DeleteAccountDialog";
 import { InstallInstructionsDialog } from "@/components/InstallInstructionsDialog";
 import { ExportMyDataButton } from "@/components/ExportMyDataButton";
@@ -107,6 +109,7 @@ function ProfilePage() {
   const [dangerExpanded, setDangerExpanded] = useState(false);
   const { theme, cycleTheme, resolved } = useTheme();
   const { canInstall, isInstalled, isIos, startInstall } = useInstallFlow();
+  const { isAppAdmin } = useAppAdmin();
 
   // Edit form state
   const [editName, setEditName] = useState("");
@@ -599,6 +602,13 @@ function ProfilePage() {
               ) : null}
               <MenuItemLink to="/privacidade" icon={<ShieldCheck className="h-4 w-4 text-muted-foreground" />} label="Política de Privacidade" />
               <MenuItemLink to="/termos" icon={<FileText className="h-4 w-4 text-muted-foreground" />} label="Termos de Uso" />
+              {isAppAdmin && (
+                <MenuItem
+                  icon={<Wrench className="h-4 w-4 text-primary" />}
+                  label="Painel /dev"
+                  onClick={() => navigate({ to: "/dev" })}
+                />
+              )}
               <ExportMyDataButton />
               <button onClick={handleLogout} className="mt-2 flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-destructive transition-colors hover:bg-destructive/10">
                 <LogOut className="h-4 w-4" />

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
+import { useAppAdmin } from "@/hooks/use-app-admin";
 import {
   useGroupDetail,
   removeMember,
@@ -39,6 +40,7 @@ interface PendingInvite {
 export function MembersPanel({ groupId }: Props) {
   const { user } = useAuth();
   const { members, isAdmin, refresh } = useGroupDetail(groupId);
+  const { isAppAdmin } = useAppAdmin();
   const [rankingData, setRankingData] = useState<Record<string, { rating: number; position: number | null; matches_played: number; matches_won: number }>>({});
   const [presenceData, setPresenceData] = useState<Record<string, number>>({});
   const [placeholderUserIds, setPlaceholderUserIds] = useState<Set<string>>(new Set());
@@ -441,7 +443,7 @@ export function MembersPanel({ groupId }: Props) {
               </PlayerAvatarLink>
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-1.5">
-                  {(isFormer || isPlaceholder) && isAdmin && renamingUserId === m.user_id ? (
+                  {(isFormer || isPlaceholder || isAppAdmin) && isAdmin && renamingUserId === m.user_id ? (
                     <input
                       value={renameValue}
                       onChange={(e) => setRenameValue(e.target.value)}
@@ -576,6 +578,22 @@ export function MembersPanel({ groupId }: Props) {
                         {removingId === m.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
                       </button>
                     </>
+                  )
+                )}
+                {isAppAdmin && !isFormer && !isPlaceholder && (
+                  renamingUserId === m.user_id ? (
+                    <>
+                      <button onClick={handleSaveRename} disabled={renameSaving} className="rounded-lg bg-success/10 p-1.5 text-success" title="Salvar"><Check className="h-3 w-3" /></button>
+                      <button onClick={() => setRenamingUserId(null)} className="rounded-lg bg-muted p-1.5 text-muted-foreground" title="Cancelar"><X className="h-3 w-3" /></button>
+                    </>
+                  ) : (
+                    <button
+                      onClick={() => handleStartRename(m.user_id, m.profile?.name || "")}
+                      className="rounded-lg bg-primary/10 p-1.5 text-primary hover:bg-primary/20"
+                      title="Renomear (dev)"
+                    >
+                      <Pencil className="h-3 w-3" />
+                    </button>
                   )
                 )}
                 {isAdmin && !isFormer && !isMe && m.role !== "creator" && (
