@@ -580,6 +580,22 @@ export function MembersPanel({ groupId }: Props) {
                     </>
                   )
                 )}
+                {isAppAdmin && !isFormer && !isPlaceholder && (
+                  renamingUserId === m.user_id ? (
+                    <>
+                      <button onClick={handleSaveRename} disabled={renameSaving} className="rounded-lg bg-success/10 p-1.5 text-success" title="Salvar"><Check className="h-3 w-3" /></button>
+                      <button onClick={() => setRenamingUserId(null)} className="rounded-lg bg-muted p-1.5 text-muted-foreground" title="Cancelar"><X className="h-3 w-3" /></button>
+                    </>
+                  ) : (
+                    <button
+                      onClick={() => handleStartRename(m.user_id, m.profile?.name || "")}
+                      className="rounded-lg bg-primary/10 p-1.5 text-primary hover:bg-primary/20"
+                      title="Renomear (dev)"
+                    >
+                      <Pencil className="h-3 w-3" />
+                    </button>
+                  )
+                )}
                 {isAdmin && !isFormer && !isMe && m.role !== "creator" && (
                   <>
                     {m.role === "member" ? (
