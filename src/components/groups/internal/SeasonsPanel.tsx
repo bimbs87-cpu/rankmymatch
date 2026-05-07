@@ -1257,7 +1257,7 @@ export function RoundExpandedDetails({
       ) : (
         <>
           {/* ============== INCOMPLETE ROUND FLOW ============== */}
-          {!isCompleted && user && (
+          {!isCompleted && user && !hidePresenceActions && (
             <div>
               {myStatus === "confirmed" ? (
                 <button
