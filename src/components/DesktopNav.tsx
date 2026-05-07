@@ -1,5 +1,6 @@
 import { Link, useLocation } from "@tanstack/react-router";
-import { Home, User, Crown, Users, Bell, BarChart3 } from "lucide-react";
+import { Home, User, Crown, Users, Bell, BarChart3, Wrench } from "lucide-react";
+import { useAppAdmin } from "@/hooks/use-app-admin";
 import { useNotifications } from "@/hooks/use-notifications";
 import { useAdminPendingCount } from "@/hooks/use-admin-pending-count";
 import { useUserProfile } from "@/hooks/use-user-profile";
