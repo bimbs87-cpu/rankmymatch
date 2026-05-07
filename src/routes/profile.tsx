@@ -109,6 +109,7 @@ function ProfilePage() {
   const [dangerExpanded, setDangerExpanded] = useState(false);
   const { theme, cycleTheme, resolved } = useTheme();
   const { canInstall, isInstalled, isIos, startInstall } = useInstallFlow();
+  const { isAppAdmin } = useAppAdmin();
 
   // Edit form state
   const [editName, setEditName] = useState("");
