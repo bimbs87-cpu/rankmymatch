@@ -23,6 +23,7 @@ export function BottomNav() {
   const newReleases = useNewReleasesCount();
   const { count: adminPending } = useAdminPendingCount();
   const { groups: myGroups } = useMyGroups();
+  const { isAppAdmin } = useAppAdmin();
   const activeGroupId = location.pathname.match(/^\/groups\/([0-9a-f-]{36})/i)?.[1] ?? null;
   const activeGroup = myGroups.find((group) => group.id === activeGroupId) ?? null;
   const shouldOpenDuelFromRanking = !!activeGroup && activeGroup.match_format === "singles" && (isRivalryGroup(activeGroup) || activeGroup.member_count <= 2);
