@@ -141,6 +141,35 @@ export function LastAndNextRoundCards({ groupId, isAdmin, variant = "last", grou
     };
   }, [groupId, variant]);
 
+  // Realtime: refresh when our presence in this round changes (e.g. confirmed
+  // from the home dashboard, then user lands on the agenda tab).
+  useEffect(() => {
+    if (!round?.id) return;
+    const channel = supabase
+      .channel(`last-next-presence-${variant}-${round.id}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "round_presence", filter: `round_id=eq.${round.id}` },
+        () => setReloadKey((k) => k + 1),
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [round?.id, variant]);
+
+  // Refetch on tab focus / visibility — covers the cross-tab navigation case
+  // where realtime hasn't reconnected yet.
+  useEffect(() => {
+    const onFocus = () => setReloadKey((k) => k + 1);
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onFocus);
+    return () => {
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onFocus);
+    };
+  }, []);
+
   if (loading) {
     return <div className="h-20 animate-pulse rounded-2xl bg-muted/30" />;
   }
