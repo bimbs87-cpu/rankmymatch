@@ -1,0 +1,1 @@
+DELETE FROM public.release_notes WHERE version IN ('v0.35.10', 'v0.35.11');
