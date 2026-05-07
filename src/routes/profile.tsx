@@ -40,8 +40,10 @@ import {
   ShieldAlert,
   AlertTriangle,
   FileText,
+  Wrench,
   X as XIcon,
 } from "lucide-react";
+import { useAppAdmin } from "@/hooks/use-app-admin";
 import { DeleteAccountDialog } from "@/components/DeleteAccountDialog";
 import { InstallInstructionsDialog } from "@/components/InstallInstructionsDialog";
 import { ExportMyDataButton } from "@/components/ExportMyDataButton";
