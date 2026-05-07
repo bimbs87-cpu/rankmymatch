@@ -1,9 +1,10 @@
 import { Link, useLocation } from "@tanstack/react-router";
-import { Home, Users, User, Crown, BarChart3, Inbox, CalendarClock } from "lucide-react";
+import { Home, Users, User, Crown, BarChart3, Inbox, CalendarClock, Wrench } from "lucide-react";
 import { APP_VERSION } from "@/lib/app-version";
 import { useNewReleasesCount } from "@/hooks/use-new-releases";
 import { useAdminPendingCount } from "@/hooks/use-admin-pending-count";
 import { useMyGroups } from "@/hooks/use-groups";
+import { useAppAdmin } from "@/hooks/use-app-admin";
 import { GroupsNavMenu } from "@/components/GroupsNavMenu";
 import { SafeBoundary } from "@/components/SafeBoundary";
 import { Skeleton } from "@/components/ui/skeleton";
