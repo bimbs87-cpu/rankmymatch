@@ -323,6 +323,7 @@ export function LastAndNextRoundCards({ groupId, isAdmin, variant = "last", grou
             roundId={round.id}
             isAdmin={isAdmin}
             onChanged={() => setReloadKey((k) => k + 1)}
+            hidePresenceActions={isNext}
           />
         )}
       </div>
