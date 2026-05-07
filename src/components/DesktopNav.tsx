@@ -27,6 +27,7 @@ export function DesktopNav() {
   const totalBadge = unreadCount + adminPending;
   const { displayName, nickname, avatarUrl } = useUserProfile();
   const { groups: myGroups } = useMyGroups();
+  const { isAppAdmin } = useAppAdmin();
   const headerName = nickname || displayName || "Você";
   const activeGroupIdFromPath = location.pathname.match(/^\/groups\/([0-9a-f-]{36})/i)?.[1] ?? null;
   const activeGroup = myGroups.find((group) => group.id === activeGroupIdFromPath) ?? myGroups[0];
