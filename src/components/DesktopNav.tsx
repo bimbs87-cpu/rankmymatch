@@ -152,6 +152,15 @@ export function DesktopNav() {
           {myGroups.length > 0 && (
             <GroupSwitcherPopover groups={myGroups} activeGroupId={activeGroupId} activeGroupName={activeGroupName} />
           )}
+          {isAppAdmin && (
+            <Link
+              to="/dev"
+              aria-label="Painel /dev"
+              className="rounded-full border border-primary/40 bg-primary/10 p-2.5 transition-colors hover:bg-primary/20"
+            >
+              <Wrench className="h-4 w-4 text-primary" />
+            </Link>
+          )}
           {adminPending > 0 && (
             <Link
               to="/admin/inbox"
