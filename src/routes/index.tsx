@@ -409,7 +409,9 @@ function DashboardPage() {
       .in("role", ["creator", "admin"])
       .eq("status", "active")
       .then(({ data }) => {
-        setAdminGroupIds(new Set((data || []).map((d) => d.group_id)));
+        const ids = new Set((data || []).map((d) => d.group_id));
+        console.log("[adminGroupIds] loaded", ids);
+        setAdminGroupIds(ids);
       });
   }, [user, myGroups]);
 
