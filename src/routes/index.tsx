@@ -2540,6 +2540,45 @@ function DashboardPage() {
                         </button>
                       )}
 
+                      {/* Admin cancel button */}
+                      {adminGroupIds.has(r.group_id) && r.status !== "cancelled" && r.status !== "completed" && (
+                        <button
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setCancelRoundTarget({
+                              round_id: r.id,
+                              group_id: r.group_id,
+                              group_name: r.group_name,
+                              season_id: r.season_id,
+                              season_name: r.season_name,
+                              round_number: r.round_number,
+                              scheduled_date: r.scheduled_date,
+                              scheduled_time: r.scheduled_time,
+                              has_pairing: false,
+                              partner_name: null,
+                              opponent_names: [],
+                              match_id: null,
+                              match_status: null,
+                              my_presence_status: r.my_status,
+                              match_format: "doubles",
+                              singles_group_type: null,
+                              is_rivalry: false,
+                              has_any_completed_match: false,
+                              presence_open_mode: r.presence_open_mode,
+                              presence_open_time: r.presence_open_time,
+                              presence_is_open: false,
+                              presence_opens_at: null,
+                            });
+                          }}
+                          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-destructive/30 bg-destructive/5 text-destructive transition-colors active:bg-destructive/10"
+                          aria-label="Cancelar rodada"
+                          title="Cancelar rodada"
+                        >
+                          <Ban className="h-3.5 w-3.5" />
+                        </button>
+                      )}
+
                       <div className="shrink-0 flex flex-col items-end gap-1 min-w-[72px]">
                         <p className="font-display text-sm font-bold text-foreground tabular-nums leading-none">
                           {r.confirmed_count}/{r.max_players}
