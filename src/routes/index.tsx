@@ -1391,7 +1391,7 @@ function DashboardPage() {
       <>
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            {headerLabel}{debugAdmin && isAdminOfNext ? " [ADMIN]" : ""}
+            {headerLabel}
           </h2>
           <span className="rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-primary">
             {formatBadge}
