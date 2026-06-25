@@ -1291,8 +1291,7 @@ function DashboardPage() {
     })();
 
     const headerLabel = state === 4 ? "Duelo" : "Seu próximo confronto";
-    const isAdminOfNext = adminGroupIds.has(nextMatch.group_id);
-    const debugAdmin = true; // TODO: remove after debug
+
 
     let titleNode: React.ReactNode;
     let subStatusNode: React.ReactNode = null;
