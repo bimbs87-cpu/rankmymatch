@@ -1038,6 +1038,8 @@ export function RoundExpandedDetails({
         max: round?.max_players || 0,
       });
       setRoundStatus((round?.status as any) || "scheduled");
+      setRoundNumber((round as any)?.round_number ?? null);
+
 
       const fmt = (round?.match_format || season?.match_format || group?.match_format || "doubles") as string;
       setGroupFormat(fmt === "singles" || fmt === "1v1" ? "singles" : "doubles");
