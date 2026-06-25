@@ -1506,11 +1506,32 @@ export function RoundExpandedDetails({
             alreadyConfirmedIds={confirmedIds}
             onAdded={() => setReloadKey((k) => k + 1)}
           />
+
+          {isAdmin && roundStatus !== "cancelled" && (
+            <button
+              type="button"
+              onClick={() => setCancelOpen(true)}
+              className="mt-1 flex w-full items-center justify-center gap-1.5 rounded-xl border border-destructive/30 bg-destructive/5 py-2 text-[11px] font-semibold text-destructive hover:bg-destructive/10"
+            >
+              <Ban className="h-3.5 w-3.5" />
+              Cancelar rodada {roundNumber ?? ""}
+            </button>
+          )}
+
+          <CancelRoundDialog
+            open={cancelOpen}
+            onOpenChange={setCancelOpen}
+            roundId={roundId}
+            roundNumber={roundNumber}
+            scheduledDate={scheduledDate}
+            onCancelled={() => { setCancelOpen(false); setReloadKey((k) => k + 1); onChanged(); }}
+          />
         </>
       )}
     </div>
   );
 }
+
 
 function Stat({ label, value, tone }: { label: string; value: string; tone: "success" | "muted" | "warning" | "primary" }) {
   const toneClass = {
