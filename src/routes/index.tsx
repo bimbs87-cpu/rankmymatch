@@ -247,6 +247,7 @@ interface RankingOption {
 const ALL_RANKINGS_ID = "__all__";
 
 function DashboardPage() {
+  console.log("[DashboardPage] render");
   let authData: ReturnType<typeof useAuth>;
   try {
     authData = useAuth();
@@ -409,7 +410,9 @@ function DashboardPage() {
       .in("role", ["creator", "admin"])
       .eq("status", "active")
       .then(({ data }) => {
-        setAdminGroupIds(new Set((data || []).map((d) => d.group_id)));
+        const ids = new Set((data || []).map((d) => d.group_id));
+        console.log("[adminGroupIds] loaded", ids);
+        setAdminGroupIds(ids);
       });
   }, [user, myGroups]);
 
@@ -1300,6 +1303,8 @@ function DashboardPage() {
     })();
 
     const headerLabel = state === 4 ? "Duelo" : "Seu próximo confronto";
+    const isAdminOfNext = adminGroupIds.has(nextMatch.group_id);
+    const debugAdmin = true; // TODO: remove after debug
 
     let titleNode: React.ReactNode;
     let subStatusNode: React.ReactNode = null;
@@ -1399,7 +1404,7 @@ function DashboardPage() {
       <>
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            {headerLabel}
+            {headerLabel}{debugAdmin && isAdminOfNext ? " [ADMIN]" : ""}
           </h2>
           <span className="rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-primary">
             {formatBadge}
@@ -1537,28 +1542,41 @@ function DashboardPage() {
                 )}
               </>
             ) : (
-              <Link
-                to="/groups/$groupId"
-                params={{ groupId: nextMatch.group_id }}
-                search={{ view: "seasons", season: nextMatch.season_id || "", round: nextMatch.round_id } as any}
-                className={`flex flex-1 items-center justify-center gap-1.5 rounded-2xl px-3 py-2 text-xs font-semibold transition-colors ${
-                  showRegister
-                    ? "bg-primary text-primary-foreground active:bg-primary/90"
-                    : "border border-primary/30 bg-primary/5 text-primary active:bg-primary/10"
-                }`}
-              >
-                {showRegister ? (
-                  <>
-                    <Trophy className="h-3.5 w-3.5" />
-                    Registrar resultado
-                  </>
-                ) : (
-                  <>
-                    <Calendar className="h-3.5 w-3.5" />
-                    Ver rodada
-                  </>
+              <>
+                <Link
+                  to="/groups/$groupId"
+                  params={{ groupId: nextMatch.group_id }}
+                  search={{ view: "seasons", season: nextMatch.season_id || "", round: nextMatch.round_id } as any}
+                  className={`flex flex-1 items-center justify-center gap-1.5 rounded-2xl px-3 py-2 text-xs font-semibold transition-colors ${
+                    showRegister
+                      ? "bg-primary text-primary-foreground active:bg-primary/90"
+                      : "border border-primary/30 bg-primary/5 text-primary active:bg-primary/10"
+                  }`}
+                >
+                  {showRegister ? (
+                    <>
+                      <Trophy className="h-3.5 w-3.5" />
+                      Registrar resultado
+                    </>
+                  ) : (
+                    <>
+                      <Calendar className="h-3.5 w-3.5" />
+                      Ver rodada
+                    </>
+                  )}
+                </Link>
+                {adminGroupIds.has(nextMatch.group_id) && (
+                  <button
+                    type="button"
+                    onClick={() => setCancelRoundTarget(nextMatch)}
+                    className="flex items-center justify-center rounded-2xl border border-destructive/30 bg-destructive/5 px-3 py-2 text-destructive transition-colors active:bg-destructive/10"
+                    aria-label="Cancelar rodada"
+                    title="Cancelar rodada"
+                  >
+                    <Ban className="h-3.5 w-3.5" />
+                  </button>
                 )}
-              </Link>
+              </>
             )}
           </div>
         </div>
@@ -2524,6 +2542,45 @@ function DashboardPage() {
                           className="hidden xl:flex shrink-0 items-center gap-1 rounded-full bg-primary px-3 py-1.5 text-[11px] font-semibold text-primary-foreground transition-all hover:bg-primary/90 active:scale-95"
                         >
                           ✓ Confirmar
+                        </button>
+                      )}
+
+                      {/* Admin cancel button */}
+                      {adminGroupIds.has(r.group_id) && r.status !== "cancelled" && r.status !== "completed" && (
+                        <button
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setCancelRoundTarget({
+                              round_id: r.id,
+                              group_id: r.group_id,
+                              group_name: r.group_name,
+                              season_id: r.season_id,
+                              season_name: r.season_name,
+                              round_number: r.round_number,
+                              scheduled_date: r.scheduled_date,
+                              scheduled_time: r.scheduled_time,
+                              has_pairing: false,
+                              partner_name: null,
+                              opponent_names: [],
+                              match_id: null,
+                              match_status: null,
+                              my_presence_status: r.my_status,
+                              match_format: "doubles",
+                              singles_group_type: null,
+                              is_rivalry: false,
+                              has_any_completed_match: false,
+                              presence_open_mode: r.presence_open_mode,
+                              presence_open_time: r.presence_open_time,
+                              presence_is_open: false,
+                              presence_opens_at: null,
+                            });
+                          }}
+                          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-destructive/30 bg-destructive/5 text-destructive transition-colors active:bg-destructive/10"
+                          aria-label="Cancelar rodada"
+                          title="Cancelar rodada"
+                        >
+                          <Ban className="h-3.5 w-3.5" />
                         </button>
                       )}
 
