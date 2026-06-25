@@ -247,6 +247,7 @@ interface RankingOption {
 const ALL_RANKINGS_ID = "__all__";
 
 function DashboardPage() {
+  console.log("[DashboardPage] render");
   let authData: ReturnType<typeof useAuth>;
   try {
     authData = useAuth();
