@@ -403,21 +403,7 @@ function DashboardPage() {
     [user, confirmingRoundId],
   );
 
-  // Check which groups user is admin of
-  useEffect(() => {
-    if (!user || !myGroups.length) return;
-    supabase
-      .from("group_members")
-      .select("group_id, role")
-      .eq("user_id", user.id)
-      .in("role", ["creator", "admin"])
-      .eq("status", "active")
-      .then(({ data }) => {
-        const ids = new Set((data || []).map((d) => d.group_id));
-        console.log("[adminGroupIds] loaded", ids);
-        setAdminGroupIds(ids);
-      });
-  }, [user, myGroups]);
+
 
   // Load per-group stats: seasons count, rounds completed/total
   useEffect(() => {
