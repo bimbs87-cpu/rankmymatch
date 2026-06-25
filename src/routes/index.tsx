@@ -1319,7 +1319,6 @@ function DashboardPage() {
           <span className="text-foreground">
             {nextMatch.opponent_names.length > 0 ? nextMatch.opponent_names.join(" & ") : "Adversários"}
           </span>
-          {debugAdmin && isAdminOfNext ? " [ADMIN]" : ""}
         </p>
       );
     } else if (state === 4) {
