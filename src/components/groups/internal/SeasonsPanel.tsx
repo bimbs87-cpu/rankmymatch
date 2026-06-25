@@ -1507,7 +1507,7 @@ export function RoundExpandedDetails({
             onAdded={() => setReloadKey((k) => k + 1)}
           />
 
-          {isAdmin && roundStatus !== "cancelled" && (
+          {isAdmin && (roundStatus as string) !== "cancelled" && (
             <button
               type="button"
               onClick={() => setCancelOpen(true)}
