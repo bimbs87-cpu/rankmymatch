@@ -302,7 +302,10 @@ function DashboardPage() {
   const touchStartY = useRef(0);
   const isPulling = useRef(false);
   const { pendingMatch, refresh: refreshPending } = usePendingMatch();
-  const [adminGroupIds, setAdminGroupIds] = useState<Set<string>>(new Set());
+  // Derived synchronously from myGroups (no async fetch needed)
+  const adminGroupIds = new Set(
+    myGroups.filter((g) => g.my_role === "creator" || g.my_role === "admin").map((g) => g.id),
+  );
   const [groupStats, setGroupStats] = useState<Map<string, { seasons: number; rounds_completed: number; rounds_total: number }>>(new Map());
   const [confirmingRoundId, setConfirmingRoundId] = useState<string | null>(null);
   const [cancelRoundTarget, setCancelRoundTarget] = useState<NextMatchInfo | null>(null);
