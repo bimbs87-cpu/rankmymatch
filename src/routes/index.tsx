@@ -1303,6 +1303,8 @@ function DashboardPage() {
     })();
 
     const headerLabel = state === 4 ? "Duelo" : "Seu próximo confronto";
+    const isAdminOfNext = adminGroupIds.has(nextMatch.group_id);
+    const debugAdmin = true; // TODO: remove after debug
 
     let titleNode: React.ReactNode;
     let subStatusNode: React.ReactNode = null;
@@ -1318,6 +1320,7 @@ function DashboardPage() {
           <span className="text-foreground">
             {nextMatch.opponent_names.length > 0 ? nextMatch.opponent_names.join(" & ") : "Adversários"}
           </span>
+          {debugAdmin && isAdminOfNext ? " [ADMIN]" : ""}
         </p>
       );
     } else if (state === 4) {
