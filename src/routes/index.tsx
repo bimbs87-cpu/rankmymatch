@@ -1537,28 +1537,41 @@ function DashboardPage() {
                 )}
               </>
             ) : (
-              <Link
-                to="/groups/$groupId"
-                params={{ groupId: nextMatch.group_id }}
-                search={{ view: "seasons", season: nextMatch.season_id || "", round: nextMatch.round_id } as any}
-                className={`flex flex-1 items-center justify-center gap-1.5 rounded-2xl px-3 py-2 text-xs font-semibold transition-colors ${
-                  showRegister
-                    ? "bg-primary text-primary-foreground active:bg-primary/90"
-                    : "border border-primary/30 bg-primary/5 text-primary active:bg-primary/10"
-                }`}
-              >
-                {showRegister ? (
-                  <>
-                    <Trophy className="h-3.5 w-3.5" />
-                    Registrar resultado
-                  </>
-                ) : (
-                  <>
-                    <Calendar className="h-3.5 w-3.5" />
-                    Ver rodada
-                  </>
+              <>
+                <Link
+                  to="/groups/$groupId"
+                  params={{ groupId: nextMatch.group_id }}
+                  search={{ view: "seasons", season: nextMatch.season_id || "", round: nextMatch.round_id } as any}
+                  className={`flex flex-1 items-center justify-center gap-1.5 rounded-2xl px-3 py-2 text-xs font-semibold transition-colors ${
+                    showRegister
+                      ? "bg-primary text-primary-foreground active:bg-primary/90"
+                      : "border border-primary/30 bg-primary/5 text-primary active:bg-primary/10"
+                  }`}
+                >
+                  {showRegister ? (
+                    <>
+                      <Trophy className="h-3.5 w-3.5" />
+                      Registrar resultado
+                    </>
+                  ) : (
+                    <>
+                      <Calendar className="h-3.5 w-3.5" />
+                      Ver rodada
+                    </>
+                  )}
+                </Link>
+                {adminGroupIds.has(nextMatch.group_id) && (
+                  <button
+                    type="button"
+                    onClick={() => setCancelRoundTarget(nextMatch)}
+                    className="flex items-center justify-center rounded-2xl border border-destructive/30 bg-destructive/5 px-3 py-2 text-destructive transition-colors active:bg-destructive/10"
+                    aria-label="Cancelar rodada"
+                    title="Cancelar rodada"
+                  >
+                    <Ban className="h-3.5 w-3.5" />
+                  </button>
                 )}
-              </Link>
+              </>
             )}
           </div>
         </div>
