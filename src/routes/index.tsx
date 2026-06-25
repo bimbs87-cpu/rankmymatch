@@ -1283,7 +1283,7 @@ function DashboardPage() {
   // Build the "Seu próximo confronto" card JSX once — used in both mobile and desktop layouts
   const nextMatchCardJSX = (() => {
     if (!nextMatch) return null;
-    console.log("[nextMatchCard] group_id", nextMatch.group_id, "adminGroupIds", adminGroupIds, "has", adminGroupIds.has(nextMatch.group_id));
+    const isAdminOfNext = adminGroupIds.has(nextMatch.group_id);
     const isConfirmed = nextMatch.my_presence_status === "confirmed";
     let state: 1 | 2 | 3 | 4 | 5 = 2;
     if (nextMatch.is_rivalry) state = 4;
