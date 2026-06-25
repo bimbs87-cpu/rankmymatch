@@ -1009,6 +1009,10 @@ export function RoundExpandedDetails({
   const [roundStatus, setRoundStatus] = useState<"scheduled" | "in_progress" | "completed">("scheduled");
   const [isRivalry, setIsRivalry] = useState(false);
   const [isKingOfCourtRound, setIsKingOfCourtRound] = useState(false);
+  const [cancelOpen, setCancelOpen] = useState(false);
+  const [roundNumber, setRoundNumber] = useState<number | null>(null);
+
+
 
   useEffect(() => {
     let cancelled = false;
