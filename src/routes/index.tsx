@@ -247,7 +247,6 @@ interface RankingOption {
 const ALL_RANKINGS_ID = "__all__";
 
 function DashboardPage() {
-  console.log("[DashboardPage] render");
   let authData: ReturnType<typeof useAuth>;
   try {
     authData = useAuth();
@@ -302,7 +301,10 @@ function DashboardPage() {
   const touchStartY = useRef(0);
   const isPulling = useRef(false);
   const { pendingMatch, refresh: refreshPending } = usePendingMatch();
-  const [adminGroupIds, setAdminGroupIds] = useState<Set<string>>(new Set());
+  // Derived synchronously from myGroups (no async fetch needed)
+  const adminGroupIds = new Set(
+    myGroups.filter((g) => g.my_role === "creator" || g.my_role === "admin").map((g) => g.id),
+  );
   const [groupStats, setGroupStats] = useState<Map<string, { seasons: number; rounds_completed: number; rounds_total: number }>>(new Map());
   const [confirmingRoundId, setConfirmingRoundId] = useState<string | null>(null);
   const [cancelRoundTarget, setCancelRoundTarget] = useState<NextMatchInfo | null>(null);
@@ -400,21 +402,7 @@ function DashboardPage() {
     [user, confirmingRoundId],
   );
 
-  // Check which groups user is admin of
-  useEffect(() => {
-    if (!user || !myGroups.length) return;
-    supabase
-      .from("group_members")
-      .select("group_id, role")
-      .eq("user_id", user.id)
-      .in("role", ["creator", "admin"])
-      .eq("status", "active")
-      .then(({ data }) => {
-        const ids = new Set((data || []).map((d) => d.group_id));
-        console.log("[adminGroupIds] loaded", ids);
-        setAdminGroupIds(ids);
-      });
-  }, [user, myGroups]);
+
 
   // Load per-group stats: seasons count, rounds completed/total
   useEffect(() => {
@@ -1303,8 +1291,7 @@ function DashboardPage() {
     })();
 
     const headerLabel = state === 4 ? "Duelo" : "Seu próximo confronto";
-    const isAdminOfNext = adminGroupIds.has(nextMatch.group_id);
-    const debugAdmin = true; // TODO: remove after debug
+
 
     let titleNode: React.ReactNode;
     let subStatusNode: React.ReactNode = null;
@@ -1404,7 +1391,7 @@ function DashboardPage() {
       <>
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            {headerLabel}{debugAdmin && isAdminOfNext ? " [ADMIN]" : ""}
+            {headerLabel}
           </h2>
           <span className="rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-primary">
             {formatBadge}
