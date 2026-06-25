@@ -1009,13 +1009,17 @@ export function RoundExpandedDetails({
   const [roundStatus, setRoundStatus] = useState<"scheduled" | "in_progress" | "completed">("scheduled");
   const [isRivalry, setIsRivalry] = useState(false);
   const [isKingOfCourtRound, setIsKingOfCourtRound] = useState(false);
+  const [cancelOpen, setCancelOpen] = useState(false);
+  const [roundNumber, setRoundNumber] = useState<number | null>(null);
+
+
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       setLoading(true);
       const [{ data: round }, { data: pres }, { data: ms }, { data: members }, { data: season }, { data: group }] = await Promise.all([
-        supabase.from("rounds").select("max_players, group_id, status, scheduled_date, scheduled_time, match_format").eq("id", roundId).maybeSingle(),
+        supabase.from("rounds").select("max_players, group_id, status, scheduled_date, scheduled_time, match_format, round_number").eq("id", roundId).maybeSingle(),
         supabase.from("round_presence").select("user_id, status, confirmed_at").eq("round_id", roundId),
         supabase.from("matches").select("id, status, match_number, winner_team, match_players(user_id, team), match_sets(set_number, score_team_a, score_team_b)").eq("round_id", roundId).order("match_number", { ascending: true }),
         supabase.from("group_members").select("user_id").eq("group_id", groupId).eq("status", "active"),
@@ -1034,6 +1038,8 @@ export function RoundExpandedDetails({
         max: round?.max_players || 0,
       });
       setRoundStatus((round?.status as any) || "scheduled");
+      setRoundNumber((round as any)?.round_number ?? null);
+
 
       const fmt = (round?.match_format || season?.match_format || group?.match_format || "doubles") as string;
       setGroupFormat(fmt === "singles" || fmt === "1v1" ? "singles" : "doubles");
@@ -1500,11 +1506,32 @@ export function RoundExpandedDetails({
             alreadyConfirmedIds={confirmedIds}
             onAdded={() => setReloadKey((k) => k + 1)}
           />
+
+          {isAdmin && (roundStatus as string) !== "cancelled" && (
+            <button
+              type="button"
+              onClick={() => setCancelOpen(true)}
+              className="mt-1 flex w-full items-center justify-center gap-1.5 rounded-xl border border-destructive/30 bg-destructive/5 py-2 text-[11px] font-semibold text-destructive hover:bg-destructive/10"
+            >
+              <Ban className="h-3.5 w-3.5" />
+              Cancelar rodada {roundNumber ?? ""}
+            </button>
+          )}
+
+          <CancelRoundDialog
+            open={cancelOpen}
+            onOpenChange={setCancelOpen}
+            roundId={roundId}
+            roundNumber={roundNumber}
+            scheduledDate={scheduledDate}
+            onCancelled={() => { setCancelOpen(false); setReloadKey((k) => k + 1); onChanged(); }}
+          />
         </>
       )}
     </div>
   );
 }
+
 
 function Stat({ label, value, tone }: { label: string; value: string; tone: "success" | "muted" | "warning" | "primary" }) {
   const toneClass = {
