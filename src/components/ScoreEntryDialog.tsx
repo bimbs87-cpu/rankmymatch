@@ -731,7 +731,7 @@ export function ScoreEntryDialog({
             {sets.map((set, idx) => {
               const result = matchState.setResults[idx];
               const isLastAndRemovable = idx === sets.length - 1 && sets.length > 1;
-              const setLabel = `Set ${idx + 1}`;
+              const setLabel = set.isTiebreak ? `Tie-break` : `Set ${idx + 1}`;
 
               return (
                 <div key={idx} className={`rounded-2xl border p-3 ${
@@ -740,7 +740,10 @@ export function ScoreEntryDialog({
                   "border-border bg-background"
                 }`}>
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-semibold text-muted-foreground">{setLabel}</span>
+                    <span className="text-xs font-semibold text-muted-foreground">
+                      {setLabel}
+                      {set.isTiebreak && <span className="ml-1 text-[9px] font-bold uppercase text-primary">(super tie-break)</span>}
+                    </span>
                     <div className="flex items-center gap-2">
                       {result?.valid && result.winner && (
                         <span className={`text-[10px] font-semibold ${result.winner === "A" ? "text-primary" : "text-info"}`}>
@@ -781,11 +784,35 @@ export function ScoreEntryDialog({
             })}
           </div>
 
-          {matchState.needsMoreSets && (
-            <button onClick={addSet} className="mt-3 w-full rounded-2xl border border-dashed border-border py-2.5 text-xs font-medium text-muted-foreground">
-              + Adicionar Set {sets.length + 1}
-            </button>
-          )}
+          {matchState.needsMoreSets && (() => {
+            const canOfferTiebreak =
+              isSingles &&
+              isUnlimitedSets &&
+              sets.length === 2 &&
+              matchState.setsA === 1 &&
+              matchState.setsB === 1 &&
+              !sets.some((s) => s.isTiebreak);
+            return (
+              <div className="mt-3 space-y-2">
+                <button
+                  type="button"
+                  onClick={() => addSet()}
+                  className="w-full rounded-2xl border border-dashed border-border py-2.5 text-xs font-medium text-muted-foreground hover:border-primary/40 hover:text-primary"
+                >
+                  + Adicionar Set {sets.length + 1}
+                </button>
+                {canOfferTiebreak && (
+                  <button
+                    type="button"
+                    onClick={() => addSet({ tiebreak: true })}
+                    className="w-full rounded-2xl border border-primary/30 bg-primary/5 py-2.5 text-xs font-semibold text-primary hover:bg-primary/10"
+                  >
+                    Fechar em super tie-break (10 pts)
+                  </button>
+                )}
+              </div>
+            );
+          })()}
 
           {(matchState.matchWinner || matchState.isDraw) && matchState.canSubmit && (
             <div className="mt-4 flex items-center justify-center gap-2 rounded-2xl bg-success/10 py-2.5">
