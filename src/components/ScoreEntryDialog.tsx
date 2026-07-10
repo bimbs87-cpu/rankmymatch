@@ -93,15 +93,19 @@ export function ScoreEntryDialog({
   // Pending result for this match (if any). Admins see "approve/edit/reject".
   const { pending, refresh: refreshPending } = useMatchPendingResult(matchId);
 
+  // Heuristic: any legacy set with either side reaching >=10 games is treated
+  // as a tie-break (super tie-break in rivalry).
+  const detectTiebreak = (a: number, b: number) => Math.max(a, b) >= 10;
+
   // Initial sets: prefer existing official sets; otherwise prefill from
   // pending submission so the admin sees what the player proposed.
   const initialSets = existingSets?.length
-    ? existingSets.map((s) => ({ scoreA: s.scoreA, scoreB: s.scoreB }))
+    ? existingSets.map((s) => ({ scoreA: s.scoreA, scoreB: s.scoreB, isTiebreak: detectTiebreak(s.scoreA, s.scoreB) }))
     : pending?.sets?.length
-    ? pending.sets.map((s) => ({ scoreA: s.scoreA, scoreB: s.scoreB }))
-    : [{ scoreA: 0, scoreB: 0 }];
+    ? pending.sets.map((s) => ({ scoreA: s.scoreA, scoreB: s.scoreB, isTiebreak: detectTiebreak(s.scoreA, s.scoreB) }))
+    : [{ scoreA: 0, scoreB: 0, isTiebreak: false }];
 
-  const [sets, setSets] = useState<{ scoreA: number; scoreB: number }[]>(initialSets);
+  const [sets, setSets] = useState<{ scoreA: number; scoreB: number; isTiebreak?: boolean }[]>(initialSets);
   const [submitting, setSubmitting] = useState(false);
   const [saveStep, setSaveStep] = useState(0);
   const [saveStepLabel, setSaveStepLabel] = useState("");
@@ -127,7 +131,7 @@ export function ScoreEntryDialog({
     if (userEdited) return;
     if (existingSets?.length) return;
     if (pending?.sets?.length) {
-      setSets(pending.sets.map((s) => ({ scoreA: s.scoreA, scoreB: s.scoreB })));
+      setSets(pending.sets.map((s) => ({ scoreA: s.scoreA, scoreB: s.scoreB, isTiebreak: detectTiebreak(s.scoreA, s.scoreB) })));
     }
   }, [pending, existingSets, userEdited]);
 
