@@ -1390,8 +1390,13 @@ export function RoundExpandedDetails({
               <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
                 Partidas
               </p>
+              {isAdmin && matchesData.length > 1 && matchesData.some((mm: any) => mm.status !== "completed") && (
+                <p className="mb-1 text-[9px] text-muted-foreground/80">
+                  Use as setas para reordenar a sequência dos jogos.
+                </p>
+              )}
               <div className="space-y-1.5">
-                {matchesData.map((m: any) => {
+                {matchesData.map((m: any, idx: number) => {
                   const teamA = (m.match_players || []).filter((mp: any) => mp.team === "A");
                   const teamB = (m.match_players || []).filter((mp: any) => mp.team === "B");
                   const sets = (m.match_sets || []).slice().sort((a: any, b: any) => a.set_number - b.set_number);
@@ -1405,9 +1410,57 @@ export function RoundExpandedDetails({
                   const canEnterScore = isAdmin || iAmInMatch;
                   const isCompletedWithSets = m.status === "completed" && sets.length > 0;
                   const showEnterBtn = canEnterScore && (m.status !== "completed" || (isCompletedWithSets && isAdmin));
+
+                  const prev = matchesData[idx - 1];
+                  const next = matchesData[idx + 1];
+                  const canMoveUp = isAdmin && !!prev && m.status !== "completed" && prev.status !== "completed";
+                  const canMoveDown = isAdmin && !!next && m.status !== "completed" && next.status !== "completed";
+                  const swapOrder = async (other: any) => {
+                    if (!other) return;
+                    const tmp = 1_000_000 + Math.floor(Math.random() * 1_000_000);
+                    const a = { id: m.id, n: m.match_number };
+                    const b = { id: other.id, n: other.match_number };
+                    try {
+                      await supabase.from("matches").update({ match_number: tmp }).eq("id", a.id);
+                      await supabase.from("matches").update({ match_number: a.n }).eq("id", b.id);
+                      await supabase.from("matches").update({ match_number: b.n }).eq("id", a.id);
+                      setReloadKey((k) => k + 1);
+                      onChanged();
+                    } catch (e: any) {
+                      toast.error(e?.message || "Não foi possível reordenar");
+                    }
+                  };
+
                   return (
                     <div key={m.id} className="rounded-lg border border-border bg-card/40 px-2 py-1.5 text-[11px] space-y-1">
                       <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-1 shrink-0">
+                          <span className="rounded bg-muted/60 px-1 py-0.5 text-[9px] font-bold tabular-nums text-muted-foreground">
+                            #{m.match_number ?? "?"}
+                          </span>
+                          {(canMoveUp || canMoveDown) && (
+                            <div className="flex flex-col">
+                              <button
+                                type="button"
+                                onClick={() => canMoveUp && swapOrder(prev)}
+                                disabled={!canMoveUp}
+                                aria-label="Mover para cima"
+                                className="flex h-3 w-4 items-center justify-center rounded text-muted-foreground hover:text-primary disabled:opacity-30"
+                              >
+                                <ChevronUp className="h-3 w-3" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => canMoveDown && swapOrder(next)}
+                                disabled={!canMoveDown}
+                                aria-label="Mover para baixo"
+                                className="flex h-3 w-4 items-center justify-center rounded text-muted-foreground hover:text-primary disabled:opacity-30"
+                              >
+                                <ChevronDown className="h-3 w-3" />
+                              </button>
+                            </div>
+                          )}
+                        </div>
                         <div className="min-w-0 flex-1 truncate">
                           {renderTeam(teamA, "A")}
                           <span className="text-muted-foreground"> vs </span>
