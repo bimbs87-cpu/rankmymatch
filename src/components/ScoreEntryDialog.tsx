@@ -53,6 +53,16 @@ function isValidSetScore(a: number, b: number): { valid: boolean; reason?: strin
   return { valid: false, reason: "Placar inválido" };
 }
 
+function isValidTiebreakScore(a: number, b: number): { valid: boolean; reason?: string } {
+  if (a === 0 && b === 0) return { valid: false, reason: "Placar vazio" };
+  if (a === b) return { valid: false, reason: "Empate não é permitido" };
+  const winner = Math.max(a, b);
+  const loser = Math.min(a, b);
+  if (winner < 10) return { valid: false, reason: "Vencer com no mínimo 10" };
+  if (winner - loser < 2) return { valid: false, reason: "Diferença mínima de 2" };
+  return { valid: true };
+}
+
 export function ScoreEntryDialog({
   matchId,
   seasonId,
@@ -83,15 +93,19 @@ export function ScoreEntryDialog({
   // Pending result for this match (if any). Admins see "approve/edit/reject".
   const { pending, refresh: refreshPending } = useMatchPendingResult(matchId);
 
+  // Heuristic: any legacy set with either side reaching >=10 games is treated
+  // as a tie-break (super tie-break in rivalry).
+  const detectTiebreak = (a: number, b: number) => Math.max(a, b) >= 10;
+
   // Initial sets: prefer existing official sets; otherwise prefill from
   // pending submission so the admin sees what the player proposed.
   const initialSets = existingSets?.length
-    ? existingSets.map((s) => ({ scoreA: s.scoreA, scoreB: s.scoreB }))
+    ? existingSets.map((s) => ({ scoreA: s.scoreA, scoreB: s.scoreB, isTiebreak: detectTiebreak(s.scoreA, s.scoreB) }))
     : pending?.sets?.length
-    ? pending.sets.map((s) => ({ scoreA: s.scoreA, scoreB: s.scoreB }))
-    : [{ scoreA: 0, scoreB: 0 }];
+    ? pending.sets.map((s) => ({ scoreA: s.scoreA, scoreB: s.scoreB, isTiebreak: detectTiebreak(s.scoreA, s.scoreB) }))
+    : [{ scoreA: 0, scoreB: 0, isTiebreak: false }];
 
-  const [sets, setSets] = useState<{ scoreA: number; scoreB: number }[]>(initialSets);
+  const [sets, setSets] = useState<{ scoreA: number; scoreB: number; isTiebreak?: boolean }[]>(initialSets);
   const [submitting, setSubmitting] = useState(false);
   const [saveStep, setSaveStep] = useState(0);
   const [saveStepLabel, setSaveStepLabel] = useState("");
@@ -117,7 +131,7 @@ export function ScoreEntryDialog({
     if (userEdited) return;
     if (existingSets?.length) return;
     if (pending?.sets?.length) {
-      setSets(pending.sets.map((s) => ({ scoreA: s.scoreA, scoreB: s.scoreB })));
+      setSets(pending.sets.map((s) => ({ scoreA: s.scoreA, scoreB: s.scoreB, isTiebreak: detectTiebreak(s.scoreA, s.scoreB) })));
     }
   }, [pending, existingSets, userEdited]);
 
@@ -185,18 +199,18 @@ export function ScoreEntryDialog({
   const updateScore = (setIndex: number, team: "A" | "B", value: number) => {
     setUserEdited(true);
     setSets((prev) =>
-      prev.map((s, i) =>
-        i === setIndex
-          ? { ...s, [team === "A" ? "scoreA" : "scoreB"]: Math.max(0, Math.min(7, value)) }
-          : s
-      )
+      prev.map((s, i) => {
+        if (i !== setIndex) return s;
+        const cap = s.isTiebreak ? 30 : 7;
+        return { ...s, [team === "A" ? "scoreA" : "scoreB"]: Math.max(0, Math.min(cap, value)) };
+      })
     );
   };
 
-  const addSet = () => {
+  const addSet = (opts?: { tiebreak?: boolean }) => {
     if (sets.length < maxSets) {
       setUserEdited(true);
-      setSets([...sets, { scoreA: 0, scoreB: 0 }]);
+      setSets([...sets, { scoreA: 0, scoreB: 0, isTiebreak: !!opts?.tiebreak }]);
     }
   };
 
@@ -219,7 +233,7 @@ export function ScoreEntryDialog({
         setResults.push({ winner: null, valid: false, reason: "Placar vazio" });
         continue;
       }
-      const validation = isValidSetScore(s.scoreA, s.scoreB);
+      const validation = s.isTiebreak ? isValidTiebreakScore(s.scoreA, s.scoreB) : isValidSetScore(s.scoreA, s.scoreB);
       if (!validation.valid) {
         setResults.push({ winner: null, valid: false, reason: validation.reason });
         continue;
@@ -717,7 +731,7 @@ export function ScoreEntryDialog({
             {sets.map((set, idx) => {
               const result = matchState.setResults[idx];
               const isLastAndRemovable = idx === sets.length - 1 && sets.length > 1;
-              const setLabel = `Set ${idx + 1}`;
+              const setLabel = set.isTiebreak ? `Tie-break` : `Set ${idx + 1}`;
 
               return (
                 <div key={idx} className={`rounded-2xl border p-3 ${
@@ -726,7 +740,10 @@ export function ScoreEntryDialog({
                   "border-border bg-background"
                 }`}>
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-semibold text-muted-foreground">{setLabel}</span>
+                    <span className="text-xs font-semibold text-muted-foreground">
+                      {setLabel}
+                      {set.isTiebreak && <span className="ml-1 text-[9px] font-bold uppercase text-primary">(super tie-break)</span>}
+                    </span>
                     <div className="flex items-center gap-2">
                       {result?.valid && result.winner && (
                         <span className={`text-[10px] font-semibold ${result.winner === "A" ? "text-primary" : "text-info"}`}>
@@ -767,11 +784,35 @@ export function ScoreEntryDialog({
             })}
           </div>
 
-          {matchState.needsMoreSets && (
-            <button onClick={addSet} className="mt-3 w-full rounded-2xl border border-dashed border-border py-2.5 text-xs font-medium text-muted-foreground">
-              + Adicionar Set {sets.length + 1}
-            </button>
-          )}
+          {matchState.needsMoreSets && (() => {
+            const canOfferTiebreak =
+              isSingles &&
+              isUnlimitedSets &&
+              sets.length === 2 &&
+              matchState.setsA === 1 &&
+              matchState.setsB === 1 &&
+              !sets.some((s) => s.isTiebreak);
+            return (
+              <div className="mt-3 space-y-2">
+                <button
+                  type="button"
+                  onClick={() => addSet()}
+                  className="w-full rounded-2xl border border-dashed border-border py-2.5 text-xs font-medium text-muted-foreground hover:border-primary/40 hover:text-primary"
+                >
+                  + Adicionar Set {sets.length + 1}
+                </button>
+                {canOfferTiebreak && (
+                  <button
+                    type="button"
+                    onClick={() => addSet({ tiebreak: true })}
+                    className="w-full rounded-2xl border border-primary/30 bg-primary/5 py-2.5 text-xs font-semibold text-primary hover:bg-primary/10"
+                  >
+                    Fechar em super tie-break (10 pts)
+                  </button>
+                )}
+              </div>
+            );
+          })()}
 
           {(matchState.matchWinner || matchState.isDraw) && matchState.canSubmit && (
             <div className="mt-4 flex items-center justify-center gap-2 rounded-2xl bg-success/10 py-2.5">
