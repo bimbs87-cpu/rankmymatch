@@ -199,18 +199,18 @@ export function ScoreEntryDialog({
   const updateScore = (setIndex: number, team: "A" | "B", value: number) => {
     setUserEdited(true);
     setSets((prev) =>
-      prev.map((s, i) =>
-        i === setIndex
-          ? { ...s, [team === "A" ? "scoreA" : "scoreB"]: Math.max(0, Math.min(7, value)) }
-          : s
-      )
+      prev.map((s, i) => {
+        if (i !== setIndex) return s;
+        const cap = s.isTiebreak ? 30 : 7;
+        return { ...s, [team === "A" ? "scoreA" : "scoreB"]: Math.max(0, Math.min(cap, value)) };
+      })
     );
   };
 
-  const addSet = () => {
+  const addSet = (opts?: { tiebreak?: boolean }) => {
     if (sets.length < maxSets) {
       setUserEdited(true);
-      setSets([...sets, { scoreA: 0, scoreB: 0 }]);
+      setSets([...sets, { scoreA: 0, scoreB: 0, isTiebreak: !!opts?.tiebreak }]);
     }
   };
 
@@ -233,7 +233,7 @@ export function ScoreEntryDialog({
         setResults.push({ winner: null, valid: false, reason: "Placar vazio" });
         continue;
       }
-      const validation = isValidSetScore(s.scoreA, s.scoreB);
+      const validation = s.isTiebreak ? isValidTiebreakScore(s.scoreA, s.scoreB) : isValidSetScore(s.scoreA, s.scoreB);
       if (!validation.valid) {
         setResults.push({ winner: null, valid: false, reason: validation.reason });
         continue;
