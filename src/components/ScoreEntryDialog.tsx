@@ -53,6 +53,16 @@ function isValidSetScore(a: number, b: number): { valid: boolean; reason?: strin
   return { valid: false, reason: "Placar inválido" };
 }
 
+function isValidTiebreakScore(a: number, b: number): { valid: boolean; reason?: string } {
+  if (a === 0 && b === 0) return { valid: false, reason: "Placar vazio" };
+  if (a === b) return { valid: false, reason: "Empate não é permitido" };
+  const winner = Math.max(a, b);
+  const loser = Math.min(a, b);
+  if (winner < 10) return { valid: false, reason: "Vencer com no mínimo 10" };
+  if (winner - loser < 2) return { valid: false, reason: "Diferença mínima de 2" };
+  return { valid: true };
+}
+
 export function ScoreEntryDialog({
   matchId,
   seasonId,
