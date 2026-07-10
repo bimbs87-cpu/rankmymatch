@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import {
-  Trophy, Calendar, Plus, ChevronRight, ChevronDown, CircleDot, CheckCircle2,
+  Trophy, Calendar, Plus, ChevronRight, ChevronDown, ChevronUp, CircleDot, CheckCircle2,
   Clock, MapPin, Pencil, Ban, X, Settings, Check, Flag, RotateCcw, Trash2, PlusCircle, Bell,
   Medal, TrendingUp, TrendingDown, Zap, Crown, Activity, Users,
 } from "lucide-react";
