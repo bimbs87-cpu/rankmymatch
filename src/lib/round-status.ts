@@ -20,10 +20,12 @@ export type RoundStatus = "scheduled" | "in_progress" | "completed";
  */
 export function deriveRoundStatus(matchStatuses: string[]): RoundStatus {
   if (!matchStatuses.length) return "scheduled";
-  const allCompleted = matchStatuses.every((s) => s === "completed");
-  if (allCompleted) return "completed";
+  // "not_played" / "cancelled" matches are terminal: they don't block the round.
+  const isTerminal = (s: string) => s === "completed" || s === "not_played" || s === "cancelled";
+  if (matchStatuses.every(isTerminal)) return "completed";
   return "in_progress";
 }
+
 
 /**
  * Recompute and persist the status of a round.
