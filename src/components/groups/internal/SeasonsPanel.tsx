@@ -1409,7 +1409,29 @@ export function RoundExpandedDetails({
                   const iAmInMatch = !!user && (m.match_players || []).some((mp: any) => mp.user_id === user.id);
                   const canEnterScore = isAdmin || iAmInMatch;
                   const isCompletedWithSets = m.status === "completed" && sets.length > 0;
-                  const showEnterBtn = canEnterScore && (m.status !== "completed" || (isCompletedWithSets && isAdmin));
+                  const isNotPlayed = m.status === "not_played";
+                  const showEnterBtn = canEnterScore && !isNotPlayed && (m.status !== "completed" || (isCompletedWithSets && isAdmin));
+                  const canMarkNotPlayed = isAdmin && !isNotPlayed && sets.length === 0 && m.status !== "completed";
+                  const toggleNotPlayed = async (next: boolean) => {
+                    try {
+                      const { error } = await supabase
+                        .from("matches")
+                        .update(
+                          next
+                            ? { status: "not_played", result_type: "not_played", winner_team: null }
+                            : { status: "scheduled", result_type: null },
+                        )
+                        .eq("id", m.id);
+                      if (error) throw error;
+                      await recomputeRoundStatus(roundId);
+                      setReloadKey((k) => k + 1);
+                      onChanged();
+                      toast.success(next ? "Partida marcada como não jogada" : "Partida reaberta");
+                    } catch (e: any) {
+                      toast.error(e?.message || "Não foi possível atualizar a partida");
+                    }
+                  };
+
 
                   const prev = matchesData[idx - 1];
                   const next = matchesData[idx + 1];
