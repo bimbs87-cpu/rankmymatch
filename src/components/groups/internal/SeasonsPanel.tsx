@@ -1494,7 +1494,11 @@ export function RoundExpandedDetails({
                             <span key={s.set_number} className="rounded bg-muted px-1.5 py-0.5 font-display font-bold tabular-nums">
                               {s.score_team_a}-{s.score_team_b}
                             </span>
-                          )) : (
+                          )) : isNotPlayed ? (
+                            <span className="rounded-full bg-muted px-1.5 py-0.5 text-[9px] font-semibold text-muted-foreground">
+                              Não jogada
+                            </span>
+                          ) : (
                             <span className="rounded-full bg-info/10 px-1.5 py-0.5 text-[9px] font-semibold text-info">
                               {m.status === "scheduled" ? "Agendada" : "Em andamento"}
                             </span>
@@ -1510,6 +1514,25 @@ export function RoundExpandedDetails({
                           {sets.length > 0 ? "Editar resultado" : (isAdmin ? "Lançar resultado" : "Enviar resultado")}
                         </button>
                       )}
+                      {canMarkNotPlayed && (
+                        <button
+                          onClick={() => toggleNotPlayed(true)}
+                          className="flex w-full items-center justify-center gap-1 rounded-md border border-border py-1 text-[10px] font-semibold text-muted-foreground hover:bg-muted/40"
+                        >
+                          <Ban className="h-3 w-3" />
+                          Marcar como não jogada
+                        </button>
+                      )}
+                      {isAdmin && isNotPlayed && (
+                        <button
+                          onClick={() => toggleNotPlayed(false)}
+                          className="flex w-full items-center justify-center gap-1 rounded-md border border-border py-1 text-[10px] font-semibold text-muted-foreground hover:bg-muted/40"
+                        >
+                          <RotateCcw className="h-3 w-3" />
+                          Reabrir partida
+                        </button>
+                      )}
+
                     </div>
                   );
                 })}
