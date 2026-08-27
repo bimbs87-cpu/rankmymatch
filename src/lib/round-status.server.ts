@@ -5,9 +5,11 @@ export type RoundStatus = "scheduled" | "in_progress" | "completed";
 
 function derive(statuses: string[]): RoundStatus {
   if (!statuses.length) return "scheduled";
-  if (statuses.every((s) => s === "completed")) return "completed";
+  const isTerminal = (s: string) => s === "completed" || s === "not_played" || s === "cancelled";
+  if (statuses.every(isTerminal)) return "completed";
   return "in_progress";
 }
+
 
 /**
  * Server-internal helper (no auth check) — call from other server functions
