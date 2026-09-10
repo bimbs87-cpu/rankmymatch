@@ -22,6 +22,8 @@ import { createExtraRound as createExtraRoundFn } from "@/lib/extra-round";
 import { ScoreEntryDialog } from "@/components/ScoreEntryDialog";
 import { AdminAddPresenceDialog } from "@/components/AdminAddPresenceDialog";
 import { CancelRoundDialog } from "@/components/CancelRoundDialog";
+import { ExtendSeasonDialog } from "./ExtendSeasonDialog";
+import { CalendarPlus } from "lucide-react";
 import { recomputeRoundStatus } from "@/lib/round-status";
 import { UserPlus } from "lucide-react";
 
@@ -396,7 +398,7 @@ function SeasonAccordion({
       {expanded && (
         <div className="border-t border-border bg-background/40">
           <SeasonFinalRanking seasonId={season.id} isActive={isActive} />
-          <SeasonRoundsInline groupId={groupId} seasonId={season.id} isAdmin={isAdmin} initialRoundId={initialRoundId} />
+          <SeasonRoundsInline groupId={groupId} seasonId={season.id} isAdmin={isAdmin} initialRoundId={initialRoundId} season={season} onSeasonChanged={onChanged} />
           {isAdmin && <SeasonStatusActions season={season} onChanged={onChanged} />}
         </div>
       )}
@@ -536,7 +538,8 @@ function SeasonStatusActions({ season, onChanged }: { season: any; onChanged: ()
   );
 }
 
-function SeasonRoundsInline({ groupId, seasonId, isAdmin, initialRoundId }: { groupId: string; seasonId: string; isAdmin: boolean; initialRoundId?: string }) {
+function SeasonRoundsInline({ groupId, seasonId, isAdmin, initialRoundId, season, onSeasonChanged }: { groupId: string; seasonId: string; isAdmin: boolean; initialRoundId?: string; season?: any; onSeasonChanged?: () => void }) {
+  const [showExtend, setShowExtend] = useState(false);
   const { user } = useAuth();
   const { rounds, isLoading, refresh } = useSeasonRounds(seasonId);
   const [editing, setEditing] = useState(false);
@@ -700,7 +703,24 @@ function SeasonRoundsInline({ groupId, seasonId, isAdmin, initialRoundId }: { gr
   };
 
   const extraRoundUI = isAdmin && (
-    <div className="pt-1">
+    <div className="pt-1 space-y-2">
+      <button
+        onClick={() => setShowExtend(true)}
+        className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-primary/40 bg-primary/10 px-3 py-2 text-[11px] font-bold text-primary hover:bg-primary/20"
+      >
+        <CalendarPlus className="h-3.5 w-3.5" />
+        Estender temporada
+      </button>
+      {season && (
+        <ExtendSeasonDialog
+          open={showExtend}
+          onOpenChange={setShowExtend}
+          season={season}
+          groupId={groupId}
+          rounds={rounds}
+          onExtended={() => { refresh(); onSeasonChanged?.(); }}
+        />
+      )}
       {showExtraForm ? (
         <div className="rounded-xl border border-primary/30 bg-card/50 p-3 space-y-2">
           <div>
