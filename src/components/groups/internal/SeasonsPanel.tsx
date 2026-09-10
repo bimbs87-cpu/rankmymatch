@@ -1549,12 +1549,9 @@ export function RoundExpandedDetails({
               </div>
               {isAdmin && (
                 <BatchScoreEntry
-                  key={matchesData.map((m: any) => m.id).join("-")}
+                  key={matchesData.map((m: any) => `${m.id}:${(m.match_sets || []).length}`).join("-")}
                   matches={matchesData.filter(
-                    (m: any) =>
-                      m.status !== "completed" &&
-                      m.status !== "not_played" &&
-                      (m.match_players || []).length > 0,
+                    (m: any) => m.status !== "not_played" && (m.match_players || []).length > 0,
                   )}
                   seasonId={seasonId}
                   defaultSets={setsPerMatch > 5 ? 1 : Math.max(1, setsPerMatch)}
@@ -1564,6 +1561,7 @@ export function RoundExpandedDetails({
                   }}
                 />
               )}
+
             </div>
           )}
 
