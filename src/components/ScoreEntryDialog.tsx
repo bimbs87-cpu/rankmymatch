@@ -52,7 +52,7 @@ function isValidSetScore(a: number, b: number): { valid: boolean; reason?: strin
 }
 
 
-function isValidTiebreakScore(a: number, b: number): { valid: boolean; reason?: string } {
+function isValidTiebreakScore(a: number, b: number): { valid: boolean; reason?: string; partial?: boolean } {
   if (a === 0 && b === 0) return { valid: false, reason: "Placar vazio" };
   if (a === b) return { valid: false, reason: "Empate não é permitido" };
   const winner = Math.max(a, b);
