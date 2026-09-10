@@ -1544,8 +1544,26 @@ export function RoundExpandedDetails({
                   );
                 })}
               </div>
+              {isAdmin && (
+                <BatchScoreEntry
+                  key={matchesData.map((m: any) => m.id).join("-")}
+                  matches={matchesData.filter(
+                    (m: any) =>
+                      m.status !== "completed" &&
+                      m.status !== "not_played" &&
+                      (m.match_players || []).length > 0,
+                  )}
+                  seasonId={seasonId}
+                  defaultSets={setsPerMatch > 5 ? 1 : Math.max(1, setsPerMatch)}
+                  onSaved={() => {
+                    setReloadKey((k) => k + 1);
+                    onChanged();
+                  }}
+                />
+              )}
             </div>
           )}
+
 
           {/* ============== COMPLETED ROUND — PROFESSIONAL RECAP ============== */}
           {isCompleted && (
