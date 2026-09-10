@@ -2209,17 +2209,11 @@ function BatchScoreEntry({
     <div className="mt-2 space-y-2 rounded-xl border border-primary/30 bg-primary/5 p-2">
       <div className="flex items-center justify-between">
         <p className="text-[10px] font-bold uppercase tracking-wider text-primary">
-          Lançar em lote
+          Placares das partidas
         </p>
-        <button
-          type="button"
-          onClick={() => setOpen(false)}
-          className="text-muted-foreground hover:text-foreground"
-          aria-label="Fechar"
-        >
-          <X className="h-3.5 w-3.5" />
-        </button>
+        <span className="text-[9px] text-muted-foreground">Preencha tudo e salve de uma vez</span>
       </div>
+
 
       {matches.map((m: any) => (
         <div key={m.id} className="rounded-lg border border-border bg-card/60 p-2 space-y-1.5">
