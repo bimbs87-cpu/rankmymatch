@@ -1227,9 +1227,18 @@ export function RoundExpandedDetails({
     0,
   );
 
-  // Compute per-player season aggregate from this round's rating events
-  const playerAgg: Record<string, { delta: number; before: number; after: number; name: string; avatar: string | null }> = {};
-  for (const m of playedMatches) {
+  // Compute per-player round aggregate from this round's rating events.
+  // The starting rating is the one from the player's FIRST match in the round
+  // (by match order) and the final rating is that start plus the total change,
+  // so "antes → depois" always matches the delta shown next to it.
+  const aggSource = playedMatches
+    .slice()
+    .sort((a: any, b: any) => (a.match_number ?? 0) - (b.match_number ?? 0));
+  const playerAgg: Record<
+    string,
+    { delta: number; before: number; after: number; name: string; avatar: string | null }
+  > = {};
+  for (const m of aggSource) {
     const dmap = eloDeltas[m.id] || {};
     for (const mp of (m.match_players || [])) {
       const ev = dmap[mp.user_id];
@@ -1238,12 +1247,19 @@ export function RoundExpandedDetails({
       const profName = mp.profile?.nickname || mp.profile?.name || "Jogador";
       const avatar = mp.profile?.avatar_url ?? null;
       if (!prev) {
-        playerAgg[mp.user_id] = { delta: ev.delta, before: ev.before, after: ev.after, name: profName, avatar };
-      } else {
         playerAgg[mp.user_id] = {
-          delta: prev.delta + ev.delta,
-          before: Math.min(prev.before, ev.before),
-          after: ev.after,
+          delta: ev.delta,
+          before: ev.before,
+          after: ev.before + ev.delta,
+          name: profName,
+          avatar,
+        };
+      } else {
+        const delta = prev.delta + ev.delta;
+        playerAgg[mp.user_id] = {
+          delta,
+          before: prev.before,
+          after: prev.before + delta,
           name: profName,
           avatar,
         };
@@ -1253,6 +1269,7 @@ export function RoundExpandedDetails({
   const playerAggList = Object.entries(playerAgg)
     .map(([uid, v]) => ({ userId: uid, ...v }))
     .sort((a, b) => b.delta - a.delta);
+
   const mvp = playerAggList[0];
   const flop = playerAggList[playerAggList.length - 1];
   const totalEloMoved = playerAggList.reduce((acc, p) => acc + Math.abs(p.delta), 0);
