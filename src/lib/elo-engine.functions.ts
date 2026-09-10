@@ -30,16 +30,13 @@ function kFactor(matchesPlayed: number): number {
 }
 
 function isValidSetScore(a: number, b: number): { valid: boolean; reason?: string } {
-  if (a === b) return { valid: false, reason: "Empate não é permitido" };
   if (a === 0 && b === 0) return { valid: false, reason: "Placar vazio" };
-  const winner = Math.max(a, b);
-  const loser = Math.min(a, b);
-  if (winner === 6 && loser <= 4) return { valid: true };
-  if (winner === 7 && (loser === 5 || loser === 6)) return { valid: true };
-  if (winner > 7) return { valid: false, reason: "Placar máximo é 7" };
-  if (winner < 6) return { valid: false, reason: "Mínimo 6 games para vencer" };
-  return { valid: false, reason: "Placar inválido" };
+  // Unfinished sets (e.g. 4x3 when court time ran out) are accepted: the games
+  // still count for the ranking. Only impossible scores are rejected.
+  if (Math.max(a, b) > 30) return { valid: false, reason: "Placar muito alto" };
+  return { valid: true };
 }
+
 
 // ============================================================================
 // Input schema
@@ -130,26 +127,28 @@ export const submitMatchScoreServerFn = createServerFn({ method: "POST" })
     let winnerTeam: "A" | "B" | null = setsA > setsB ? "A" : setsB > setsA ? "B" : null;
     let isDraw = false;
     if (!winnerTeam) {
-      // Sets tied. For rivalry / flexible singles groups (where matches can
-      // end early), break the tie by total games — or accept a full draw.
-      const { data: groupRow } = await supabaseAdmin
-        .from("groups")
-        .select("match_format, singles_group_type")
-        .eq("id", groupId)
-        .maybeSingle();
-      const allowGamesTiebreak =
-        groupRow?.match_format === "singles" &&
-        (groupRow?.singles_group_type === "rivalry" || groupRow?.singles_group_type === "flexible");
-      if (allowGamesTiebreak) {
-        if (gamesA !== gamesB) {
-          winnerTeam = gamesA > gamesB ? "A" : "B";
-        } else {
-          isDraw = true;
-        }
+      // Sets tied (including interrupted matches with unfinished sets):
+      // break the tie by total games.
+      if (gamesA !== gamesB) {
+        winnerTeam = gamesA > gamesB ? "A" : "B";
       } else {
-        throw new Error("Empate em sets — adicione o tiebreak");
+        // Fully tied. Only rivalry / flexible singles groups accept a draw.
+        const { data: groupRow } = await supabaseAdmin
+          .from("groups")
+          .select("match_format, singles_group_type")
+          .eq("id", groupId)
+          .maybeSingle();
+        const allowDraw =
+          groupRow?.match_format === "singles" &&
+          (groupRow?.singles_group_type === "rivalry" || groupRow?.singles_group_type === "flexible");
+        if (allowDraw) {
+          isDraw = true;
+        } else {
+          throw new Error("Empate total — ajuste o placar ou adicione o tiebreak");
+        }
       }
     }
+
 
     // ---- 4.5 If editing, revert prior Elo BEFORE writing new sets ----
     // (revertMatchEloServer reads current sets/winner_team to know how to

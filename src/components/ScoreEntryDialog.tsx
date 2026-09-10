@@ -39,21 +39,20 @@ interface Props {
   onSaved: () => void;
 }
 
-function isValidSetScore(a: number, b: number): { valid: boolean; reason?: string } {
-  if (a === b) return { valid: false, reason: "Empate não é permitido" };
+function isValidSetScore(a: number, b: number): { valid: boolean; reason?: string; partial?: boolean } {
   if (a === 0 && b === 0) return { valid: false, reason: "Placar vazio" };
-  // Standard tennis/padel: 6-X or X-6 with valid margins
   const winner = Math.max(a, b);
   const loser = Math.min(a, b);
+  if (winner > 7) return { valid: false, reason: `Placar máximo é 7` };
+  // Completed sets: 6-X or 7-5/7-6
   if (winner === 6 && loser <= 4) return { valid: true };
   if (winner === 7 && (loser === 5 || loser === 6)) return { valid: true };
-  // Allow tiebreak-like scores
-  if (winner > 7) return { valid: false, reason: `Placar máximo é 7` };
-  if (winner < 6) return { valid: false, reason: `Mínimo 6 games para vencer` };
-  return { valid: false, reason: "Placar inválido" };
+  // Anything else (4x3, 6x5, 4x4...) is an unfinished set: games still count.
+  return { valid: true, partial: true };
 }
 
-function isValidTiebreakScore(a: number, b: number): { valid: boolean; reason?: string } {
+
+function isValidTiebreakScore(a: number, b: number): { valid: boolean; reason?: string; partial?: boolean } {
   if (a === 0 && b === 0) return { valid: false, reason: "Placar vazio" };
   if (a === b) return { valid: false, reason: "Empate não é permitido" };
   const winner = Math.max(a, b);
@@ -224,7 +223,7 @@ export function ScoreEntryDialog({
   // Compute match state
   const matchState = useMemo(() => {
     let setsA = 0, setsB = 0, gamesA = 0, gamesB = 0;
-    const setResults: { winner: "A" | "B" | null; valid: boolean; reason?: string }[] = [];
+    const setResults: { winner: "A" | "B" | null; valid: boolean; reason?: string; partial?: boolean }[] = [];
 
     for (const s of sets) {
       gamesA += s.scoreA;
@@ -238,13 +237,15 @@ export function ScoreEntryDialog({
         setResults.push({ winner: null, valid: false, reason: validation.reason });
         continue;
       }
-      const winner = s.scoreA > s.scoreB ? "A" as const : "B" as const;
+      const winner = s.scoreA === s.scoreB ? null : s.scoreA > s.scoreB ? ("A" as const) : ("B" as const);
       if (winner === "A") setsA++;
-      else setsB++;
-      setResults.push({ winner, valid: true });
+      else if (winner === "B") setsB++;
+      setResults.push({ winner, valid: true, partial: validation.partial });
     }
 
     const allValid = setResults.every((r) => r.valid);
+    const hasScores = setResults.some((r) => r.valid);
+    const hasPartial = setResults.some((r) => r.partial);
 
     let matchWinner: "A" | "B" | null = null;
     let isDraw = false;
@@ -253,31 +254,37 @@ export function ScoreEntryDialog({
     if (isUnlimitedSets || isFlexibleSets) {
       // Flexible/Unlimited (rivalry/avulso): leader by sets; if tied in sets,
       // fall back to total games. If still tied, allow a DRAW.
-      if (allValid && setResults.some((r) => r.valid)) {
+      if (allValid && hasScores) {
         if (setsA !== setsB) {
           matchWinner = setsA > setsB ? "A" : "B";
-          canSubmit = true;
         } else if (gamesA !== gamesB) {
           matchWinner = gamesA > gamesB ? "A" : "B";
-          canSubmit = true;
         } else {
           isDraw = true;
-          canSubmit = true;
         }
+        canSubmit = true;
       }
     } else {
       const neededToWin = maxSets === 1 ? 1 : 2;
       matchWinner = setsA >= neededToWin ? "A" : setsB >= neededToWin ? "B" : null;
       canSubmit = matchWinner !== null && allValid;
+      // Interrupted match (time ran out, unfinished set): allow closing it as
+      // long as there is a leader by sets or by total games.
+      if (!canSubmit && allValid && hasScores && hasPartial) {
+        if (setsA !== setsB) matchWinner = setsA > setsB ? "A" : "B";
+        else if (gamesA !== gamesB) matchWinner = gamesA > gamesB ? "A" : "B";
+        canSubmit = matchWinner !== null;
+      }
     }
 
     // Whether to allow adding another set
     const needsMoreSets =
       isUnlimitedSets || isFlexibleSets
-        ? allValid && setResults.some((r) => r.valid) && sets.length < maxSets
-        : !matchWinner && sets.length < maxSets && allValid && setResults.some((r) => r.valid);
+        ? allValid && hasScores && sets.length < maxSets
+        : setsA < (maxSets === 1 ? 1 : 2) && setsB < (maxSets === 1 ? 1 : 2) && sets.length < maxSets && allValid && hasScores;
 
-    return { setsA, setsB, gamesA, gamesB, setResults, matchWinner, isDraw, canSubmit, needsMoreSets };
+    return { setsA, setsB, gamesA, gamesB, setResults, matchWinner, isDraw, canSubmit, needsMoreSets, hasPartial };
+
   }, [sets, maxSets, isUnlimitedSets, isFlexibleSets]);
 
   // Preview Elo deltas for the current scoreboard (only when there is a winner)
@@ -745,6 +752,11 @@ export function ScoreEntryDialog({
                       {set.isTiebreak && <span className="ml-1 text-[9px] font-bold uppercase text-primary">(super tie-break)</span>}
                     </span>
                     <div className="flex items-center gap-2">
+                      {result?.partial && (
+                        <span className="rounded-full bg-warning/15 px-2 py-0.5 text-[9px] font-bold uppercase text-warning">
+                          Set incompleto
+                        </span>
+                      )}
                       {result?.valid && result.winner && (
                         <span className={`text-[10px] font-semibold ${result.winner === "A" ? "text-primary" : "text-info"}`}>
                           {isSingles
@@ -753,6 +765,7 @@ export function ScoreEntryDialog({
                           } ✓
                         </span>
                       )}
+
                       {!result?.valid && result?.reason && (set.scoreA > 0 || set.scoreB > 0) && (
                         <span className="flex items-center gap-1 text-[10px] text-warning">
                           <AlertCircle className="h-3 w-3" />
