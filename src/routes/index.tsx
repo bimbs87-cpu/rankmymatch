@@ -61,6 +61,7 @@ import {
 } from "lucide-react";
 import { confirmPresence, cancelPresence } from "@/lib/round-actions";
 import { CancelRoundDialog } from "@/components/CancelRoundDialog";
+import { RoundQuickDialog } from "@/components/RoundQuickDialog";
 import { CasualMatchDialog } from "@/components/CasualMatchDialog";
 
 const DESKTOP_NAV = [
@@ -309,6 +310,28 @@ function DashboardPage() {
   const [confirmingRoundId, setConfirmingRoundId] = useState<string | null>(null);
   const [cancelRoundTarget, setCancelRoundTarget] = useState<NextMatchInfo | null>(null);
   const [casualDialogOpen, setCasualDialogOpen] = useState(false);
+  /** Round opened in the quick modal (manage presence/results without leaving Home). */
+  const [quickRound, setQuickRound] = useState<{
+    groupId: string;
+    roundId: string;
+    seasonId?: string | null;
+    groupName?: string | null;
+    roundNumber?: number | null;
+    scheduledDate?: string | null;
+    scheduledTime?: string | null;
+    location?: string | null;
+  } | null>(null);
+  const openQuickRound = useCallback((r: {
+    groupId: string;
+    roundId: string;
+    seasonId?: string | null;
+    groupName?: string | null;
+    roundNumber?: number | null;
+    scheduledDate?: string | null;
+    scheduledTime?: string | null;
+    location?: string | null;
+  }) => setQuickRound(r), []);
+
   const { displayName, nickname, avatarUrl: profileAvatarUrl } = useUserProfile();
 
   /**
@@ -1473,15 +1496,22 @@ function DashboardPage() {
                   <XCircle className="h-3.5 w-3.5" />
                   Não vou
                 </button>
-                <Link
-                  to="/groups/$groupId"
-                  params={{ groupId: nextMatch.group_id }}
-                  search={{ view: "seasons", season: nextMatch.season_id || "", round: nextMatch.round_id } as any}
+                <button
+                  type="button"
+                  onClick={() => openQuickRound({
+                    groupId: nextMatch.group_id,
+                    roundId: nextMatch.round_id,
+                    seasonId: nextMatch.season_id,
+                    groupName: nextMatch.group_name,
+                    roundNumber: nextMatch.round_number,
+                    scheduledDate: nextMatch.scheduled_date,
+                  })}
                   className="flex items-center justify-center gap-1.5 rounded-2xl border border-primary/30 bg-primary/5 px-3 py-2 text-xs font-semibold text-primary transition-colors active:bg-primary/10"
-                  aria-label="Ver rodada"
+                  aria-label="Abrir rodada"
                 >
                   <Calendar className="h-3.5 w-3.5" />
-                </Link>
+                </button>
+
                 {adminGroupIds.has(nextMatch.group_id) && (
                   <button
                     type="button"
@@ -1496,15 +1526,22 @@ function DashboardPage() {
               </>
             ) : state === 2 ? (
               <>
-                <Link
-                  to="/groups/$groupId"
-                  params={{ groupId: nextMatch.group_id }}
-                  search={{ view: "seasons", season: nextMatch.season_id || "", round: nextMatch.round_id } as any}
+                <button
+                  type="button"
+                  onClick={() => openQuickRound({
+                    groupId: nextMatch.group_id,
+                    roundId: nextMatch.round_id,
+                    seasonId: nextMatch.season_id,
+                    groupName: nextMatch.group_name,
+                    roundNumber: nextMatch.round_number,
+                    scheduledDate: nextMatch.scheduled_date,
+                  })}
                   className="flex flex-1 items-center justify-center gap-1.5 rounded-2xl border border-primary/30 bg-primary/5 px-3 py-2 text-xs font-semibold text-primary transition-colors active:bg-primary/10"
                 >
                   <Calendar className="h-3.5 w-3.5" />
-                  Ver rodada
-                </Link>
+                  Abrir rodada
+                </button>
+
                 {nextMatch.presence_is_open && (
                   <button
                     type="button"
@@ -1530,10 +1567,16 @@ function DashboardPage() {
               </>
             ) : (
               <>
-                <Link
-                  to="/groups/$groupId"
-                  params={{ groupId: nextMatch.group_id }}
-                  search={{ view: "seasons", season: nextMatch.season_id || "", round: nextMatch.round_id } as any}
+                <button
+                  type="button"
+                  onClick={() => openQuickRound({
+                    groupId: nextMatch.group_id,
+                    roundId: nextMatch.round_id,
+                    seasonId: nextMatch.season_id,
+                    groupName: nextMatch.group_name,
+                    roundNumber: nextMatch.round_number,
+                    scheduledDate: nextMatch.scheduled_date,
+                  })}
                   className={`flex flex-1 items-center justify-center gap-1.5 rounded-2xl px-3 py-2 text-xs font-semibold transition-colors ${
                     showRegister
                       ? "bg-primary text-primary-foreground active:bg-primary/90"
@@ -1548,10 +1591,11 @@ function DashboardPage() {
                   ) : (
                     <>
                       <Calendar className="h-3.5 w-3.5" />
-                      Ver rodada
+                      Abrir rodada
                     </>
                   )}
-                </Link>
+                </button>
+
                 {adminGroupIds.has(nextMatch.group_id) && (
                   <button
                     type="button"
@@ -2014,15 +2058,20 @@ function DashboardPage() {
                   const setsLost = setOutcomes.filter((s) => s === false).length;
 
                   const canLink = !!(m.round_id && m.group_id && m.season_id);
-                  const RowTag: any = canLink ? Link : "div";
+                  const RowTag: any = "div";
                   const rowProps: any = canLink
                     ? {
-                        to: "/groups/$groupId",
-                        params: { groupId: m.group_id! },
-                        search: { view: "seasons", season: m.season_id!, round: m.round_id! },
+                        role: "button",
+                        onClick: () => openQuickRound({
+                          groupId: m.group_id!,
+                          roundId: m.round_id!,
+                          seasonId: m.season_id!,
+                          roundNumber: m.round_number ?? null,
+                        }),
                         title: m.round_number != null ? `Abrir rodada ${m.round_number}` : "Abrir rodada",
                       }
                     : {};
+
 
                   const myShort = (nickname?.trim() || displayName?.trim() || "Você").split(/\s+/)[0];
                   const myTeamNames = m.partner_name ? `${myShort} & ${m.partner_name}` : myShort;
@@ -2220,15 +2269,19 @@ function DashboardPage() {
                           key: "result",
                           priority: 2,
                           node: (
-                            <Link
-                              to="/groups/$groupId"
-                              params={{ groupId: pendingMatch?.group_id || nextMatch!.group_id }}
-                              search={{ view: "seasons", season: pendingMatch?.season_id || nextMatch?.season_id || "", round: pendingMatch?.round_id || nextMatch!.round_id } as any}
+                            <button
+                              type="button"
+                              onClick={() => openQuickRound({
+                                groupId: pendingMatch?.group_id || nextMatch!.group_id,
+                                roundId: pendingMatch?.round_id || nextMatch!.round_id,
+                                seasonId: pendingMatch?.season_id || nextMatch?.season_id || null,
+                              })}
                               className="flex items-center gap-2 rounded-2xl bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
                             >
                               <Trophy className="h-4 w-4 shrink-0" />
                               <span className="truncate">Registrar resultado</span>
-                            </Link>
+                            </button>
+
                           ),
                         });
                       }
@@ -2434,13 +2487,20 @@ function DashboardPage() {
                   const openDate = !open ? getPresenceOpenDate(presenceCfg, r.scheduled_date, r.scheduled_time, r.id) : null;
                   const canQuickConfirm = r.my_status !== "confirmed" && r.status === "scheduled" && open && !isFull;
                   return (
-                    <Link
+                    <div
                       key={r.id}
-                      to="/groups/$groupId"
-                      params={{ groupId: r.group_id }}
-                      search={{ view: "seasons", season: r.season_id || "", round: r.id } as any}
-                      className="flex items-center gap-3 px-4 py-2.5 transition-colors hover:bg-accent/30"
+                      role="button"
+                      onClick={() => openQuickRound({
+                        groupId: r.group_id,
+                        roundId: r.id,
+                        seasonId: r.season_id || null,
+                        roundNumber: (r as any).round_number ?? null,
+                        scheduledDate: r.scheduled_date,
+                        scheduledTime: r.scheduled_time,
+                      })}
+                      className="flex cursor-pointer items-center gap-3 px-4 py-2.5 transition-colors hover:bg-accent/30"
                     >
+
                       <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ring-1 ${
                         r.status === "in_progress" ? "bg-warning/15 ring-warning/30" : "bg-primary/10 ring-primary/20"
                       }`}>
@@ -2589,7 +2649,8 @@ function DashboardPage() {
                           <p className="text-[10px] text-muted-foreground leading-none">Pendente</p>
                         )}
                       </div>
-                    </Link>
+                    </div>
+
                   );
                 })}
               </div>
@@ -2845,16 +2906,20 @@ function DashboardPage() {
                     ? `${m.opponent_names[0]} e ${m.opponent_names[1]} venceram`
                     : `${m.opponent_names[0] || "Adversário"} venceu`;
                 const canLink = !!(m.round_id && m.group_id && m.season_id);
-                const RowTag: any = canLink ? Link : "div";
+                const RowTag: any = "div";
                 const rowProps: any = canLink
                   ? {
-                      to: "/groups/$groupId",
-                      params: { groupId: m.group_id! },
-                      search: { view: "seasons", season: m.season_id!, round: m.round_id! },
                       role: "button",
+                      onClick: () => openQuickRound({
+                        groupId: m.group_id!,
+                        roundId: m.round_id!,
+                        seasonId: m.season_id!,
+                        roundNumber: m.round_number ?? null,
+                      }),
                       "aria-label": `Ver rodada ${m.round_number ?? ""} — ${winnerLabel}`,
                     }
                   : {};
+
                 return (
                   <RowTag
                     key={m.id}
@@ -2957,13 +3022,20 @@ function DashboardPage() {
             <>
               <div className="space-y-1.5 lg:hidden">
                 {upcomingRounds.slice(0, 3).map((r) => (
-                  <Link
+                  <div
                     key={r.id}
-                    to="/groups/$groupId"
-                    params={{ groupId: r.group_id }}
-                    search={{ view: "seasons", season: r.season_id || "", round: r.id } as any}
-                    className="flex items-center gap-2.5 rounded-xl border border-border bg-card px-3 py-2 transition-colors active:bg-accent/30"
+                    role="button"
+                    onClick={() => openQuickRound({
+                      groupId: r.group_id,
+                      roundId: r.id,
+                      seasonId: r.season_id || null,
+                      roundNumber: (r as any).round_number ?? null,
+                      scheduledDate: r.scheduled_date,
+                      scheduledTime: r.scheduled_time,
+                    })}
+                    className="flex cursor-pointer items-center gap-2.5 rounded-xl border border-border bg-card px-3 py-2 transition-colors active:bg-accent/30"
                   >
+
                     <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${
                       r.status === "in_progress" ? "bg-warning/10" : "bg-primary/10"
                     }`}>
@@ -3014,7 +3086,8 @@ function DashboardPage() {
                         <p className="text-[9px] text-muted-foreground">Pendente</p>
                       )}
                     </div>
-                  </Link>
+                  </div>
+
                 ))}
               </div>
             </>
@@ -3150,6 +3223,23 @@ function DashboardPage() {
           )}
         </section>
       </div>
+
+      {quickRound && (
+        <RoundQuickDialog
+          open={!!quickRound}
+          onOpenChange={(open) => { if (!open) setQuickRound(null); }}
+          groupId={quickRound.groupId}
+          roundId={quickRound.roundId}
+          seasonId={quickRound.seasonId}
+          groupName={quickRound.groupName}
+          roundNumber={quickRound.roundNumber}
+          scheduledDate={quickRound.scheduledDate}
+          scheduledTime={quickRound.scheduledTime}
+          location={quickRound.location}
+          isAdmin={adminGroupIds.has(quickRound.groupId)}
+          onChanged={() => { loadDashboard(); }}
+        />
+      )}
 
       {cancelRoundTarget && (
         <CancelRoundDialog
