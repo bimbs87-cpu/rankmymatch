@@ -1411,7 +1411,10 @@ export function RoundExpandedDetails({
                   const canEnterScore = isAdmin || iAmInMatch;
                   const isCompletedWithSets = m.status === "completed" && sets.length > 0;
                   const isNotPlayed = m.status === "not_played";
-                  const showEnterBtn = canEnterScore && !isNotPlayed && (m.status !== "completed" || (isCompletedWithSets && isAdmin));
+                  // Admins edit everything inline in the batch form below.
+                  const showEnterBtn =
+                    !isAdmin && canEnterScore && !isNotPlayed && m.status !== "completed";
+
                   const canMarkNotPlayed = isAdmin && !isNotPlayed && sets.length === 0 && m.status !== "completed";
                   const toggleNotPlayed = async (next: boolean) => {
                     try {
