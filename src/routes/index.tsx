@@ -3224,6 +3224,23 @@ function DashboardPage() {
         </section>
       </div>
 
+      {quickRound && (
+        <RoundQuickDialog
+          open={!!quickRound}
+          onOpenChange={(open) => { if (!open) setQuickRound(null); }}
+          groupId={quickRound.groupId}
+          roundId={quickRound.roundId}
+          seasonId={quickRound.seasonId}
+          groupName={quickRound.groupName}
+          roundNumber={quickRound.roundNumber}
+          scheduledDate={quickRound.scheduledDate}
+          scheduledTime={quickRound.scheduledTime}
+          location={quickRound.location}
+          isAdmin={adminGroupIds.has(quickRound.groupId)}
+          onChanged={() => { loadDashboard(); }}
+        />
+      )}
+
       {cancelRoundTarget && (
         <CancelRoundDialog
           open={!!cancelRoundTarget}
