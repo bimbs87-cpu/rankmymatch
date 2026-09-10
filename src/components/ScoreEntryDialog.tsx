@@ -223,7 +223,7 @@ export function ScoreEntryDialog({
   // Compute match state
   const matchState = useMemo(() => {
     let setsA = 0, setsB = 0, gamesA = 0, gamesB = 0;
-    const setResults: { winner: "A" | "B" | null; valid: boolean; reason?: string }[] = [];
+    const setResults: { winner: "A" | "B" | null; valid: boolean; reason?: string; partial?: boolean }[] = [];
 
     for (const s of sets) {
       gamesA += s.scoreA;
@@ -237,13 +237,15 @@ export function ScoreEntryDialog({
         setResults.push({ winner: null, valid: false, reason: validation.reason });
         continue;
       }
-      const winner = s.scoreA > s.scoreB ? "A" as const : "B" as const;
+      const winner = s.scoreA === s.scoreB ? null : s.scoreA > s.scoreB ? ("A" as const) : ("B" as const);
       if (winner === "A") setsA++;
-      else setsB++;
-      setResults.push({ winner, valid: true });
+      else if (winner === "B") setsB++;
+      setResults.push({ winner, valid: true, partial: validation.partial });
     }
 
     const allValid = setResults.every((r) => r.valid);
+    const hasScores = setResults.some((r) => r.valid);
+    const hasPartial = setResults.some((r) => r.partial);
 
     let matchWinner: "A" | "B" | null = null;
     let isDraw = false;
@@ -252,31 +254,37 @@ export function ScoreEntryDialog({
     if (isUnlimitedSets || isFlexibleSets) {
       // Flexible/Unlimited (rivalry/avulso): leader by sets; if tied in sets,
       // fall back to total games. If still tied, allow a DRAW.
-      if (allValid && setResults.some((r) => r.valid)) {
+      if (allValid && hasScores) {
         if (setsA !== setsB) {
           matchWinner = setsA > setsB ? "A" : "B";
-          canSubmit = true;
         } else if (gamesA !== gamesB) {
           matchWinner = gamesA > gamesB ? "A" : "B";
-          canSubmit = true;
         } else {
           isDraw = true;
-          canSubmit = true;
         }
+        canSubmit = true;
       }
     } else {
       const neededToWin = maxSets === 1 ? 1 : 2;
       matchWinner = setsA >= neededToWin ? "A" : setsB >= neededToWin ? "B" : null;
       canSubmit = matchWinner !== null && allValid;
+      // Interrupted match (time ran out, unfinished set): allow closing it as
+      // long as there is a leader by sets or by total games.
+      if (!canSubmit && allValid && hasScores && hasPartial) {
+        if (setsA !== setsB) matchWinner = setsA > setsB ? "A" : "B";
+        else if (gamesA !== gamesB) matchWinner = gamesA > gamesB ? "A" : "B";
+        canSubmit = matchWinner !== null;
+      }
     }
 
     // Whether to allow adding another set
     const needsMoreSets =
       isUnlimitedSets || isFlexibleSets
-        ? allValid && setResults.some((r) => r.valid) && sets.length < maxSets
-        : !matchWinner && sets.length < maxSets && allValid && setResults.some((r) => r.valid);
+        ? allValid && hasScores && sets.length < maxSets
+        : setsA < (maxSets === 1 ? 1 : 2) && setsB < (maxSets === 1 ? 1 : 2) && sets.length < maxSets && allValid && hasScores;
 
-    return { setsA, setsB, gamesA, gamesB, setResults, matchWinner, isDraw, canSubmit, needsMoreSets };
+    return { setsA, setsB, gamesA, gamesB, setResults, matchWinner, isDraw, canSubmit, needsMoreSets, hasPartial };
+
   }, [sets, maxSets, isUnlimitedSets, isFlexibleSets]);
 
   // Preview Elo deltas for the current scoreboard (only when there is a winner)
