@@ -1440,19 +1440,26 @@ export function RoundExpandedDetails({
                   const canMoveDown = isAdmin && !!next && m.status !== "completed" && next.status !== "completed";
                   const swapOrder = async (other: any) => {
                     if (!other) return;
-                    const tmp = 1_000_000 + Math.floor(Math.random() * 1_000_000);
                     const a = { id: m.id, n: m.match_number };
                     const b = { id: other.id, n: other.match_number };
+                    // Optimistic local reorder — no page reload.
+                    setMatchesData((prev) => {
+                      const arr = prev.map((x: any) =>
+                        x.id === a.id ? { ...x, match_number: b.n } : x.id === b.id ? { ...x, match_number: a.n } : x,
+                      );
+                      return arr.sort((x: any, y: any) => (x.match_number ?? 0) - (y.match_number ?? 0));
+                    });
+                    const tmp = 1_000_000 + Math.floor(Math.random() * 1_000_000);
                     try {
                       await supabase.from("matches").update({ match_number: tmp }).eq("id", a.id);
                       await supabase.from("matches").update({ match_number: a.n }).eq("id", b.id);
                       await supabase.from("matches").update({ match_number: b.n }).eq("id", a.id);
-                      setReloadKey((k) => k + 1);
-                      onChanged();
                     } catch (e: any) {
                       toast.error(e?.message || "Não foi possível reordenar");
+                      setReloadKey((k) => k + 1);
                     }
                   };
+
 
                   return (
                     <div key={m.id} className="rounded-lg border border-border bg-card/40 px-2 py-1.5 text-[11px] space-y-1">
@@ -1537,8 +1544,26 @@ export function RoundExpandedDetails({
                   );
                 })}
               </div>
+              {isAdmin && (
+                <BatchScoreEntry
+                  key={matchesData.map((m: any) => m.id).join("-")}
+                  matches={matchesData.filter(
+                    (m: any) =>
+                      m.status !== "completed" &&
+                      m.status !== "not_played" &&
+                      (m.match_players || []).length > 0,
+                  )}
+                  seasonId={seasonId}
+                  defaultSets={setsPerMatch > 5 ? 1 : Math.max(1, setsPerMatch)}
+                  onSaved={() => {
+                    setReloadKey((k) => k + 1);
+                    onChanged();
+                  }}
+                />
+              )}
             </div>
           )}
+
 
           {/* ============== COMPLETED ROUND — PROFESSIONAL RECAP ============== */}
           {isCompleted && (
@@ -2081,3 +2106,173 @@ function MatchScoreCard({
   );
 }
 
+
+// ============================================================================
+// Batch score entry — lança o placar de várias partidas de uma vez
+// ============================================================================
+function BatchScoreEntry({
+  matches,
+  seasonId,
+  defaultSets,
+  onSaved,
+}: {
+  matches: any[];
+  seasonId: string;
+  defaultSets: number;
+  onSaved: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [rows, setRows] = useState<Record<string, { a: string; b: string }[]>>(() => {
+    const init: Record<string, { a: string; b: string }[]> = {};
+    for (const m of matches) {
+      const existing = (m.match_sets || [])
+        .slice()
+        .sort((x: any, y: any) => x.set_number - y.set_number)
+        .map((s: any) => ({ a: String(s.score_team_a), b: String(s.score_team_b) }));
+      init[m.id] = existing.length
+        ? existing
+        : Array.from({ length: defaultSets }, () => ({ a: "", b: "" }));
+    }
+    return init;
+  });
+
+  if (matches.length < 2) return null;
+
+  const nameOf = (mp: any) => mp.profile?.nickname || mp.profile?.name || "Jogador";
+  const teamNames = (m: any, side: "A" | "B") =>
+    (m.match_players || [])
+      .filter((mp: any) => mp.team === side)
+      .map(nameOf)
+      .join(" / ") || "—";
+
+  const setScore = (matchId: string, idx: number, side: "a" | "b", value: string) => {
+    const v = value.replace(/\D/g, "").slice(0, 2);
+    setRows((prev) => {
+      const list = (prev[matchId] || []).slice();
+      list[idx] = { ...list[idx], [side]: v } as { a: string; b: string };
+      return { ...prev, [matchId]: list };
+    });
+  };
+
+  const addSet = (matchId: string) =>
+    setRows((prev) => ({ ...prev, [matchId]: [...(prev[matchId] || []), { a: "", b: "" }] }));
+
+  const removeSet = (matchId: string, idx: number) =>
+    setRows((prev) => ({ ...prev, [matchId]: (prev[matchId] || []).filter((_, i) => i !== idx) }));
+
+  const filledFor = (matchId: string) =>
+    (rows[matchId] || [])
+      .map((s, i) => ({ setNumber: i + 1, scoreA: Number(s.a), scoreB: Number(s.b), raw: s }))
+      .filter((s) => s.raw.a !== "" && s.raw.b !== "" && !(s.scoreA === 0 && s.scoreB === 0))
+      .map(({ setNumber, scoreA, scoreB }, i) => ({ setNumber: i + 1, scoreA, scoreB }));
+
+  const readyMatches = matches.filter((m: any) => filledFor(m.id).length > 0);
+
+  const saveAll = async () => {
+    if (!readyMatches.length) return;
+    setSaving(true);
+    const { submitMatchScore } = await import("@/lib/elo-engine");
+    const failures: string[] = [];
+    for (const m of readyMatches) {
+      try {
+        await submitMatchScore(m.id, seasonId, filledFor(m.id));
+      } catch (e: any) {
+        failures.push(`#${m.match_number ?? "?"}: ${e?.message || "erro"}`);
+      }
+    }
+    setSaving(false);
+    if (failures.length) toast.error(failures.join(" · "));
+    else toast.success(`${readyMatches.length} partida(s) salvas`);
+    onSaved();
+  };
+
+  if (!open) {
+    return (
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-md border border-primary/30 bg-primary/5 py-1.5 text-[10px] font-semibold text-primary hover:bg-primary/10"
+      >
+        <Trophy className="h-3 w-3" />
+        Lançar todos os resultados de uma vez
+      </button>
+    );
+  }
+
+  return (
+    <div className="mt-2 space-y-2 rounded-xl border border-primary/30 bg-primary/5 p-2">
+      <div className="flex items-center justify-between">
+        <p className="text-[10px] font-bold uppercase tracking-wider text-primary">
+          Lançar em lote
+        </p>
+        <button
+          type="button"
+          onClick={() => setOpen(false)}
+          className="text-muted-foreground hover:text-foreground"
+          aria-label="Fechar"
+        >
+          <X className="h-3.5 w-3.5" />
+        </button>
+      </div>
+
+      {matches.map((m: any) => (
+        <div key={m.id} className="rounded-lg border border-border bg-card/60 p-2 space-y-1.5">
+          <p className="truncate text-[11px] font-semibold text-foreground">
+            <span className="mr-1 text-[9px] text-muted-foreground">#{m.match_number ?? "?"}</span>
+            {teamNames(m, "A")} <span className="text-muted-foreground">vs</span> {teamNames(m, "B")}
+          </p>
+          {(rows[m.id] || []).map((s, idx) => (
+            <div key={idx} className="flex items-center gap-1.5">
+              <span className="w-8 text-[9px] text-muted-foreground">Set {idx + 1}</span>
+              <input
+                inputMode="numeric"
+                value={s.a}
+                onChange={(e) => setScore(m.id, idx, "a", e.target.value)}
+                className="h-8 w-12 rounded-md border border-border bg-background text-center font-display text-sm font-bold tabular-nums text-foreground"
+              />
+              <span className="text-muted-foreground">×</span>
+              <input
+                inputMode="numeric"
+                value={s.b}
+                onChange={(e) => setScore(m.id, idx, "b", e.target.value)}
+                className="h-8 w-12 rounded-md border border-border bg-background text-center font-display text-sm font-bold tabular-nums text-foreground"
+              />
+              {(rows[m.id] || []).length > 1 && (
+                <button
+                  type="button"
+                  onClick={() => removeSet(m.id, idx)}
+                  className="ml-auto text-muted-foreground hover:text-destructive"
+                  aria-label="Remover set"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
+          ))}
+          <button
+            type="button"
+            onClick={() => addSet(m.id)}
+            className="flex items-center gap-1 text-[10px] font-semibold text-primary hover:underline"
+          >
+            <Plus className="h-3 w-3" /> Adicionar set
+          </button>
+        </div>
+      ))}
+
+      <button
+        type="button"
+        onClick={saveAll}
+        disabled={saving || readyMatches.length === 0}
+        className="flex w-full items-center justify-center gap-1.5 rounded-md bg-primary py-2 text-[11px] font-bold text-primary-foreground disabled:opacity-40"
+      >
+        <Trophy className="h-3.5 w-3.5" />
+        {saving
+          ? "Salvando…"
+          : readyMatches.length
+            ? `Salvar ${readyMatches.length} partida(s) e calcular Elo`
+            : "Preencha ao menos um placar"}
+      </button>
+    </div>
+  );
+}
