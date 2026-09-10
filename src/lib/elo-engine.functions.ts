@@ -30,16 +30,13 @@ function kFactor(matchesPlayed: number): number {
 }
 
 function isValidSetScore(a: number, b: number): { valid: boolean; reason?: string } {
-  if (a === b) return { valid: false, reason: "Empate não é permitido" };
   if (a === 0 && b === 0) return { valid: false, reason: "Placar vazio" };
-  const winner = Math.max(a, b);
-  const loser = Math.min(a, b);
-  if (winner === 6 && loser <= 4) return { valid: true };
-  if (winner === 7 && (loser === 5 || loser === 6)) return { valid: true };
-  if (winner > 7) return { valid: false, reason: "Placar máximo é 7" };
-  if (winner < 6) return { valid: false, reason: "Mínimo 6 games para vencer" };
-  return { valid: false, reason: "Placar inválido" };
+  // Unfinished sets (e.g. 4x3 when court time ran out) are accepted: the games
+  // still count for the ranking. Only impossible scores are rejected.
+  if (Math.max(a, b) > 30) return { valid: false, reason: "Placar muito alto" };
+  return { valid: true };
 }
+
 
 // ============================================================================
 // Input schema

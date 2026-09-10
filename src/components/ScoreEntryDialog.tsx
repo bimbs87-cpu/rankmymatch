@@ -752,6 +752,11 @@ export function ScoreEntryDialog({
                       {set.isTiebreak && <span className="ml-1 text-[9px] font-bold uppercase text-primary">(super tie-break)</span>}
                     </span>
                     <div className="flex items-center gap-2">
+                      {result?.partial && (
+                        <span className="rounded-full bg-warning/15 px-2 py-0.5 text-[9px] font-bold uppercase text-warning">
+                          Set incompleto
+                        </span>
+                      )}
                       {result?.valid && result.winner && (
                         <span className={`text-[10px] font-semibold ${result.winner === "A" ? "text-primary" : "text-info"}`}>
                           {isSingles
@@ -760,6 +765,7 @@ export function ScoreEntryDialog({
                           } ✓
                         </span>
                       )}
+
                       {!result?.valid && result?.reason && (set.scoreA > 0 || set.scoreB > 0) && (
                         <span className="flex items-center gap-1 text-[10px] text-warning">
                           <AlertCircle className="h-3 w-3" />
