@@ -1496,15 +1496,22 @@ function DashboardPage() {
                   <XCircle className="h-3.5 w-3.5" />
                   Não vou
                 </button>
-                <Link
-                  to="/groups/$groupId"
-                  params={{ groupId: nextMatch.group_id }}
-                  search={{ view: "seasons", season: nextMatch.season_id || "", round: nextMatch.round_id } as any}
+                <button
+                  type="button"
+                  onClick={() => openQuickRound({
+                    groupId: nextMatch.group_id,
+                    roundId: nextMatch.round_id,
+                    seasonId: nextMatch.season_id,
+                    groupName: nextMatch.group_name,
+                    roundNumber: nextMatch.round_number,
+                    scheduledDate: nextMatch.scheduled_date,
+                  })}
                   className="flex items-center justify-center gap-1.5 rounded-2xl border border-primary/30 bg-primary/5 px-3 py-2 text-xs font-semibold text-primary transition-colors active:bg-primary/10"
-                  aria-label="Ver rodada"
+                  aria-label="Abrir rodada"
                 >
                   <Calendar className="h-3.5 w-3.5" />
-                </Link>
+                </button>
+
                 {adminGroupIds.has(nextMatch.group_id) && (
                   <button
                     type="button"
@@ -1519,15 +1526,22 @@ function DashboardPage() {
               </>
             ) : state === 2 ? (
               <>
-                <Link
-                  to="/groups/$groupId"
-                  params={{ groupId: nextMatch.group_id }}
-                  search={{ view: "seasons", season: nextMatch.season_id || "", round: nextMatch.round_id } as any}
+                <button
+                  type="button"
+                  onClick={() => openQuickRound({
+                    groupId: nextMatch.group_id,
+                    roundId: nextMatch.round_id,
+                    seasonId: nextMatch.season_id,
+                    groupName: nextMatch.group_name,
+                    roundNumber: nextMatch.round_number,
+                    scheduledDate: nextMatch.scheduled_date,
+                  })}
                   className="flex flex-1 items-center justify-center gap-1.5 rounded-2xl border border-primary/30 bg-primary/5 px-3 py-2 text-xs font-semibold text-primary transition-colors active:bg-primary/10"
                 >
                   <Calendar className="h-3.5 w-3.5" />
-                  Ver rodada
-                </Link>
+                  Abrir rodada
+                </button>
+
                 {nextMatch.presence_is_open && (
                   <button
                     type="button"
@@ -1553,10 +1567,16 @@ function DashboardPage() {
               </>
             ) : (
               <>
-                <Link
-                  to="/groups/$groupId"
-                  params={{ groupId: nextMatch.group_id }}
-                  search={{ view: "seasons", season: nextMatch.season_id || "", round: nextMatch.round_id } as any}
+                <button
+                  type="button"
+                  onClick={() => openQuickRound({
+                    groupId: nextMatch.group_id,
+                    roundId: nextMatch.round_id,
+                    seasonId: nextMatch.season_id,
+                    groupName: nextMatch.group_name,
+                    roundNumber: nextMatch.round_number,
+                    scheduledDate: nextMatch.scheduled_date,
+                  })}
                   className={`flex flex-1 items-center justify-center gap-1.5 rounded-2xl px-3 py-2 text-xs font-semibold transition-colors ${
                     showRegister
                       ? "bg-primary text-primary-foreground active:bg-primary/90"
@@ -1571,10 +1591,11 @@ function DashboardPage() {
                   ) : (
                     <>
                       <Calendar className="h-3.5 w-3.5" />
-                      Ver rodada
+                      Abrir rodada
                     </>
                   )}
-                </Link>
+                </button>
+
                 {adminGroupIds.has(nextMatch.group_id) && (
                   <button
                     type="button"
