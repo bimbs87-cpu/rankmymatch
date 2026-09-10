@@ -1897,13 +1897,23 @@ function CompletedRoundRecap({
       {/* Round leaderboard */}
       {playerAggList.length > 0 && (
         <div className="rounded-xl border border-border bg-card/40 p-2.5">
-          <div className="mb-2 flex items-center gap-1.5">
+          <div className="mb-1 flex items-center gap-1.5">
             <Medal className="h-3.5 w-3.5 text-warning" />
             <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
               Ranking da rodada (Elo)
             </span>
           </div>
+          <div className="mb-1 flex items-center gap-2 px-1.5 text-[8px] font-bold uppercase tracking-wider text-muted-foreground/70">
+            <span className="w-4 shrink-0" />
+            <span className="w-7 shrink-0" />
+            <span className="min-w-0 flex-1">Jogador</span>
+            <span className="w-9 text-right">Antes</span>
+            <span className="w-3" />
+            <span className="w-9 text-right">Depois</span>
+            <span className="w-12 text-right">Variação</span>
+          </div>
           <div className="space-y-0.5">
+
             {playerAggList.map((p, i) => {
               const positive = p.delta > 0;
               const zero = p.delta === 0;
