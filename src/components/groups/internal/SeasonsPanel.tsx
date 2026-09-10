@@ -1440,19 +1440,26 @@ export function RoundExpandedDetails({
                   const canMoveDown = isAdmin && !!next && m.status !== "completed" && next.status !== "completed";
                   const swapOrder = async (other: any) => {
                     if (!other) return;
-                    const tmp = 1_000_000 + Math.floor(Math.random() * 1_000_000);
                     const a = { id: m.id, n: m.match_number };
                     const b = { id: other.id, n: other.match_number };
+                    // Optimistic local reorder — no page reload.
+                    setMatchesData((prev) => {
+                      const arr = prev.map((x: any) =>
+                        x.id === a.id ? { ...x, match_number: b.n } : x.id === b.id ? { ...x, match_number: a.n } : x,
+                      );
+                      return arr.sort((x: any, y: any) => (x.match_number ?? 0) - (y.match_number ?? 0));
+                    });
+                    const tmp = 1_000_000 + Math.floor(Math.random() * 1_000_000);
                     try {
                       await supabase.from("matches").update({ match_number: tmp }).eq("id", a.id);
                       await supabase.from("matches").update({ match_number: a.n }).eq("id", b.id);
                       await supabase.from("matches").update({ match_number: b.n }).eq("id", a.id);
-                      setReloadKey((k) => k + 1);
-                      onChanged();
                     } catch (e: any) {
                       toast.error(e?.message || "Não foi possível reordenar");
+                      setReloadKey((k) => k + 1);
                     }
                   };
+
 
                   return (
                     <div key={m.id} className="rounded-lg border border-border bg-card/40 px-2 py-1.5 text-[11px] space-y-1">
