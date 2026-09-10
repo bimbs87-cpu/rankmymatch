@@ -1411,7 +1411,10 @@ export function RoundExpandedDetails({
                   const canEnterScore = isAdmin || iAmInMatch;
                   const isCompletedWithSets = m.status === "completed" && sets.length > 0;
                   const isNotPlayed = m.status === "not_played";
-                  const showEnterBtn = canEnterScore && !isNotPlayed && (m.status !== "completed" || (isCompletedWithSets && isAdmin));
+                  // Admins edit everything inline in the batch form below.
+                  const showEnterBtn =
+                    !isAdmin && canEnterScore && !isNotPlayed && m.status !== "completed";
+
                   const canMarkNotPlayed = isAdmin && !isNotPlayed && sets.length === 0 && m.status !== "completed";
                   const toggleNotPlayed = async (next: boolean) => {
                     try {
@@ -1546,12 +1549,9 @@ export function RoundExpandedDetails({
               </div>
               {isAdmin && (
                 <BatchScoreEntry
-                  key={matchesData.map((m: any) => m.id).join("-")}
+                  key={matchesData.map((m: any) => `${m.id}:${(m.match_sets || []).length}`).join("-")}
                   matches={matchesData.filter(
-                    (m: any) =>
-                      m.status !== "completed" &&
-                      m.status !== "not_played" &&
-                      (m.match_players || []).length > 0,
+                    (m: any) => m.status !== "not_played" && (m.match_players || []).length > 0,
                   )}
                   seasonId={seasonId}
                   defaultSets={setsPerMatch > 5 ? 1 : Math.max(1, setsPerMatch)}
@@ -1561,6 +1561,7 @@ export function RoundExpandedDetails({
                   }}
                 />
               )}
+
             </div>
           )}
 
@@ -2121,8 +2122,18 @@ function BatchScoreEntry({
   defaultSets: number;
   onSaved: () => void;
 }) {
-  const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const initial = useState<Record<string, string>>(() => {
+    const snap: Record<string, string> = {};
+    for (const m of matches) {
+      snap[m.id] = (m.match_sets || [])
+        .slice()
+        .sort((x: any, y: any) => x.set_number - y.set_number)
+        .map((s: any) => `${s.score_team_a}-${s.score_team_b}`)
+        .join(",");
+    }
+    return snap;
+  })[0];
   const [rows, setRows] = useState<Record<string, { a: string; b: string }[]>>(() => {
     const init: Record<string, { a: string; b: string }[]> = {};
     for (const m of matches) {
@@ -2137,7 +2148,7 @@ function BatchScoreEntry({
     return init;
   });
 
-  if (matches.length < 2) return null;
+  if (matches.length === 0) return null;
 
   const nameOf = (mp: any) => mp.profile?.nickname || mp.profile?.name || "Jogador";
   const teamNames = (m: any, side: "A" | "B") =>
@@ -2163,18 +2174,25 @@ function BatchScoreEntry({
 
   const filledFor = (matchId: string) =>
     (rows[matchId] || [])
-      .map((s, i) => ({ setNumber: i + 1, scoreA: Number(s.a), scoreB: Number(s.b), raw: s }))
+      .map((s) => ({ scoreA: Number(s.a), scoreB: Number(s.b), raw: s }))
       .filter((s) => s.raw.a !== "" && s.raw.b !== "" && !(s.scoreA === 0 && s.scoreB === 0))
-      .map(({ setNumber, scoreA, scoreB }, i) => ({ setNumber: i + 1, scoreA, scoreB }));
+      .map(({ scoreA, scoreB }, i) => ({ setNumber: i + 1, scoreA, scoreB }));
 
-  const readyMatches = matches.filter((m: any) => filledFor(m.id).length > 0);
+  // Only submit matches whose score actually changed — avoids recalculating Elo
+  // for results that were already saved.
+  const changedMatches = matches.filter((m: any) => {
+    const filled = filledFor(m.id);
+    if (!filled.length) return false;
+    const sig = filled.map((s) => `${s.scoreA}-${s.scoreB}`).join(",");
+    return sig !== (initial[m.id] || "");
+  });
 
   const saveAll = async () => {
-    if (!readyMatches.length) return;
+    if (!changedMatches.length) return;
     setSaving(true);
     const { submitMatchScore } = await import("@/lib/elo-engine");
     const failures: string[] = [];
-    for (const m of readyMatches) {
+    for (const m of changedMatches) {
       try {
         await submitMatchScore(m.id, seasonId, filledFor(m.id));
       } catch (e: any) {
@@ -2183,38 +2201,20 @@ function BatchScoreEntry({
     }
     setSaving(false);
     if (failures.length) toast.error(failures.join(" · "));
-    else toast.success(`${readyMatches.length} partida(s) salvas`);
+    else toast.success(`${changedMatches.length} partida(s) salvas`);
     onSaved();
   };
 
-  if (!open) {
-    return (
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-md border border-primary/30 bg-primary/5 py-1.5 text-[10px] font-semibold text-primary hover:bg-primary/10"
-      >
-        <Trophy className="h-3 w-3" />
-        Lançar todos os resultados de uma vez
-      </button>
-    );
-  }
 
   return (
     <div className="mt-2 space-y-2 rounded-xl border border-primary/30 bg-primary/5 p-2">
       <div className="flex items-center justify-between">
         <p className="text-[10px] font-bold uppercase tracking-wider text-primary">
-          Lançar em lote
+          Placares das partidas
         </p>
-        <button
-          type="button"
-          onClick={() => setOpen(false)}
-          className="text-muted-foreground hover:text-foreground"
-          aria-label="Fechar"
-        >
-          <X className="h-3.5 w-3.5" />
-        </button>
+        <span className="text-[9px] text-muted-foreground">Preencha tudo e salve de uma vez</span>
       </div>
+
 
       {matches.map((m: any) => (
         <div key={m.id} className="rounded-lg border border-border bg-card/60 p-2 space-y-1.5">
@@ -2263,16 +2263,17 @@ function BatchScoreEntry({
       <button
         type="button"
         onClick={saveAll}
-        disabled={saving || readyMatches.length === 0}
+        disabled={saving || changedMatches.length === 0}
         className="flex w-full items-center justify-center gap-1.5 rounded-md bg-primary py-2 text-[11px] font-bold text-primary-foreground disabled:opacity-40"
       >
         <Trophy className="h-3.5 w-3.5" />
         {saving
           ? "Salvando…"
-          : readyMatches.length
-            ? `Salvar ${readyMatches.length} partida(s) e calcular Elo`
+          : changedMatches.length
+            ? `Salvar ${changedMatches.length} partida(s) e calcular Elo`
             : "Preencha ao menos um placar"}
       </button>
+
     </div>
   );
 }
