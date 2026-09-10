@@ -22,6 +22,8 @@ import { createExtraRound as createExtraRoundFn } from "@/lib/extra-round";
 import { ScoreEntryDialog } from "@/components/ScoreEntryDialog";
 import { AdminAddPresenceDialog } from "@/components/AdminAddPresenceDialog";
 import { CancelRoundDialog } from "@/components/CancelRoundDialog";
+import { ExtendSeasonDialog } from "./ExtendSeasonDialog";
+import { CalendarPlus } from "lucide-react";
 import { recomputeRoundStatus } from "@/lib/round-status";
 import { UserPlus } from "lucide-react";
 
@@ -396,7 +398,7 @@ function SeasonAccordion({
       {expanded && (
         <div className="border-t border-border bg-background/40">
           <SeasonFinalRanking seasonId={season.id} isActive={isActive} />
-          <SeasonRoundsInline groupId={groupId} seasonId={season.id} isAdmin={isAdmin} initialRoundId={initialRoundId} />
+          <SeasonRoundsInline groupId={groupId} seasonId={season.id} isAdmin={isAdmin} initialRoundId={initialRoundId} season={season} onSeasonChanged={onChanged} />
           {isAdmin && <SeasonStatusActions season={season} onChanged={onChanged} />}
         </div>
       )}
@@ -536,7 +538,8 @@ function SeasonStatusActions({ season, onChanged }: { season: any; onChanged: ()
   );
 }
 
-function SeasonRoundsInline({ groupId, seasonId, isAdmin, initialRoundId }: { groupId: string; seasonId: string; isAdmin: boolean; initialRoundId?: string }) {
+function SeasonRoundsInline({ groupId, seasonId, isAdmin, initialRoundId, season, onSeasonChanged }: { groupId: string; seasonId: string; isAdmin: boolean; initialRoundId?: string; season?: any; onSeasonChanged?: () => void }) {
+  const [showExtend, setShowExtend] = useState(false);
   const { user } = useAuth();
   const { rounds, isLoading, refresh } = useSeasonRounds(seasonId);
   const [editing, setEditing] = useState(false);
