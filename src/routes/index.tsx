@@ -61,6 +61,7 @@ import {
 } from "lucide-react";
 import { confirmPresence, cancelPresence } from "@/lib/round-actions";
 import { CancelRoundDialog } from "@/components/CancelRoundDialog";
+import { RoundQuickDialog } from "@/components/RoundQuickDialog";
 import { CasualMatchDialog } from "@/components/CasualMatchDialog";
 
 const DESKTOP_NAV = [
@@ -309,6 +310,28 @@ function DashboardPage() {
   const [confirmingRoundId, setConfirmingRoundId] = useState<string | null>(null);
   const [cancelRoundTarget, setCancelRoundTarget] = useState<NextMatchInfo | null>(null);
   const [casualDialogOpen, setCasualDialogOpen] = useState(false);
+  /** Round opened in the quick modal (manage presence/results without leaving Home). */
+  const [quickRound, setQuickRound] = useState<{
+    groupId: string;
+    roundId: string;
+    seasonId?: string | null;
+    groupName?: string | null;
+    roundNumber?: number | null;
+    scheduledDate?: string | null;
+    scheduledTime?: string | null;
+    location?: string | null;
+  } | null>(null);
+  const openQuickRound = useCallback((r: {
+    groupId: string;
+    roundId: string;
+    seasonId?: string | null;
+    groupName?: string | null;
+    roundNumber?: number | null;
+    scheduledDate?: string | null;
+    scheduledTime?: string | null;
+    location?: string | null;
+  }) => setQuickRound(r), []);
+
   const { displayName, nickname, avatarUrl: profileAvatarUrl } = useUserProfile();
 
   /**
