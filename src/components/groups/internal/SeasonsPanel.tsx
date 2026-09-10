@@ -1227,9 +1227,18 @@ export function RoundExpandedDetails({
     0,
   );
 
-  // Compute per-player season aggregate from this round's rating events
-  const playerAgg: Record<string, { delta: number; before: number; after: number; name: string; avatar: string | null }> = {};
-  for (const m of playedMatches) {
+  // Compute per-player round aggregate from this round's rating events.
+  // The starting rating is the one from the player's FIRST match in the round
+  // (by match order) and the final rating is that start plus the total change,
+  // so "antes → depois" always matches the delta shown next to it.
+  const aggSource = playedMatches
+    .slice()
+    .sort((a: any, b: any) => (a.match_number ?? 0) - (b.match_number ?? 0));
+  const playerAgg: Record<
+    string,
+    { delta: number; before: number; after: number; name: string; avatar: string | null }
+  > = {};
+  for (const m of aggSource) {
     const dmap = eloDeltas[m.id] || {};
     for (const mp of (m.match_players || [])) {
       const ev = dmap[mp.user_id];
@@ -1238,12 +1247,19 @@ export function RoundExpandedDetails({
       const profName = mp.profile?.nickname || mp.profile?.name || "Jogador";
       const avatar = mp.profile?.avatar_url ?? null;
       if (!prev) {
-        playerAgg[mp.user_id] = { delta: ev.delta, before: ev.before, after: ev.after, name: profName, avatar };
-      } else {
         playerAgg[mp.user_id] = {
-          delta: prev.delta + ev.delta,
-          before: Math.min(prev.before, ev.before),
-          after: ev.after,
+          delta: ev.delta,
+          before: ev.before,
+          after: ev.before + ev.delta,
+          name: profName,
+          avatar,
+        };
+      } else {
+        const delta = prev.delta + ev.delta;
+        playerAgg[mp.user_id] = {
+          delta,
+          before: prev.before,
+          after: prev.before + delta,
           name: profName,
           avatar,
         };
@@ -1253,6 +1269,7 @@ export function RoundExpandedDetails({
   const playerAggList = Object.entries(playerAgg)
     .map(([uid, v]) => ({ userId: uid, ...v }))
     .sort((a, b) => b.delta - a.delta);
+
   const mvp = playerAggList[0];
   const flop = playerAggList[playerAggList.length - 1];
   const totalEloMoved = playerAggList.reduce((acc, p) => acc + Math.abs(p.delta), 0);
@@ -1880,13 +1897,23 @@ function CompletedRoundRecap({
       {/* Round leaderboard */}
       {playerAggList.length > 0 && (
         <div className="rounded-xl border border-border bg-card/40 p-2.5">
-          <div className="mb-2 flex items-center gap-1.5">
+          <div className="mb-1 flex items-center gap-1.5">
             <Medal className="h-3.5 w-3.5 text-warning" />
             <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
               Ranking da rodada (Elo)
             </span>
           </div>
+          <div className="mb-1 flex items-center gap-2 px-1.5 text-[8px] font-bold uppercase tracking-wider text-muted-foreground/70">
+            <span className="w-4 shrink-0" />
+            <span className="w-7 shrink-0" />
+            <span className="min-w-0 flex-1">Jogador</span>
+            <span className="w-9 text-right">Antes</span>
+            <span className="w-3" />
+            <span className="w-9 text-right">Depois</span>
+            <span className="w-12 text-right">Variação</span>
+          </div>
           <div className="space-y-0.5">
+
             {playerAggList.map((p, i) => {
               const positive = p.delta > 0;
               const zero = p.delta === 0;
@@ -1902,13 +1929,14 @@ function CompletedRoundRecap({
                     <PlayerAvatar avatarUrl={p.avatar} name={p.name} size="sm" className="cursor-pointer" />
                   </PlayerAvatarLink>
                   <span className="min-w-0 flex-1 truncate text-[11px] font-semibold text-foreground">{p.name}</span>
-                  <span className="text-[10px] text-muted-foreground tabular-nums">
+                  <span className="w-9 shrink-0 text-right text-[10px] text-muted-foreground tabular-nums">
                     {Math.round(p.before)}
                   </span>
-                  <span className="text-[10px] text-muted-foreground">→</span>
-                  <span className={`text-[11px] font-bold tabular-nums ${positive ? "text-success" : zero ? "text-muted-foreground" : "text-destructive"}`}>
+                  <span className="w-3 shrink-0 text-center text-[10px] text-muted-foreground">→</span>
+                  <span className={`w-9 shrink-0 text-right text-[11px] font-bold tabular-nums ${positive ? "text-success" : zero ? "text-muted-foreground" : "text-destructive"}`}>
                     {Math.round(p.after)}
                   </span>
+
                   <span className={`w-12 shrink-0 text-right text-[10px] font-bold tabular-nums ${positive ? "text-success" : zero ? "text-muted-foreground" : "text-destructive"}`}>
                     {positive ? "+" : ""}{Math.round(p.delta)}
                   </span>
