@@ -2121,8 +2121,18 @@ function BatchScoreEntry({
   defaultSets: number;
   onSaved: () => void;
 }) {
-  const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const initial = useState<Record<string, string>>(() => {
+    const snap: Record<string, string> = {};
+    for (const m of matches) {
+      snap[m.id] = (m.match_sets || [])
+        .slice()
+        .sort((x: any, y: any) => x.set_number - y.set_number)
+        .map((s: any) => `${s.score_team_a}-${s.score_team_b}`)
+        .join(",");
+    }
+    return snap;
+  })[0];
   const [rows, setRows] = useState<Record<string, { a: string; b: string }[]>>(() => {
     const init: Record<string, { a: string; b: string }[]> = {};
     for (const m of matches) {
@@ -2137,7 +2147,7 @@ function BatchScoreEntry({
     return init;
   });
 
-  if (matches.length < 2) return null;
+  if (matches.length === 0) return null;
 
   const nameOf = (mp: any) => mp.profile?.nickname || mp.profile?.name || "Jogador";
   const teamNames = (m: any, side: "A" | "B") =>
@@ -2163,18 +2173,25 @@ function BatchScoreEntry({
 
   const filledFor = (matchId: string) =>
     (rows[matchId] || [])
-      .map((s, i) => ({ setNumber: i + 1, scoreA: Number(s.a), scoreB: Number(s.b), raw: s }))
+      .map((s) => ({ scoreA: Number(s.a), scoreB: Number(s.b), raw: s }))
       .filter((s) => s.raw.a !== "" && s.raw.b !== "" && !(s.scoreA === 0 && s.scoreB === 0))
-      .map(({ setNumber, scoreA, scoreB }, i) => ({ setNumber: i + 1, scoreA, scoreB }));
+      .map(({ scoreA, scoreB }, i) => ({ setNumber: i + 1, scoreA, scoreB }));
 
-  const readyMatches = matches.filter((m: any) => filledFor(m.id).length > 0);
+  // Only submit matches whose score actually changed — avoids recalculating Elo
+  // for results that were already saved.
+  const changedMatches = matches.filter((m: any) => {
+    const filled = filledFor(m.id);
+    if (!filled.length) return false;
+    const sig = filled.map((s) => `${s.scoreA}-${s.scoreB}`).join(",");
+    return sig !== (initial[m.id] || "");
+  });
 
   const saveAll = async () => {
-    if (!readyMatches.length) return;
+    if (!changedMatches.length) return;
     setSaving(true);
     const { submitMatchScore } = await import("@/lib/elo-engine");
     const failures: string[] = [];
-    for (const m of readyMatches) {
+    for (const m of changedMatches) {
       try {
         await submitMatchScore(m.id, seasonId, filledFor(m.id));
       } catch (e: any) {
@@ -2183,22 +2200,10 @@ function BatchScoreEntry({
     }
     setSaving(false);
     if (failures.length) toast.error(failures.join(" · "));
-    else toast.success(`${readyMatches.length} partida(s) salvas`);
+    else toast.success(`${changedMatches.length} partida(s) salvas`);
     onSaved();
   };
 
-  if (!open) {
-    return (
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-md border border-primary/30 bg-primary/5 py-1.5 text-[10px] font-semibold text-primary hover:bg-primary/10"
-      >
-        <Trophy className="h-3 w-3" />
-        Lançar todos os resultados de uma vez
-      </button>
-    );
-  }
 
   return (
     <div className="mt-2 space-y-2 rounded-xl border border-primary/30 bg-primary/5 p-2">
