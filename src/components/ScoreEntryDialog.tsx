@@ -39,19 +39,18 @@ interface Props {
   onSaved: () => void;
 }
 
-function isValidSetScore(a: number, b: number): { valid: boolean; reason?: string } {
-  if (a === b) return { valid: false, reason: "Empate não é permitido" };
+function isValidSetScore(a: number, b: number): { valid: boolean; reason?: string; partial?: boolean } {
   if (a === 0 && b === 0) return { valid: false, reason: "Placar vazio" };
-  // Standard tennis/padel: 6-X or X-6 with valid margins
   const winner = Math.max(a, b);
   const loser = Math.min(a, b);
+  if (winner > 7) return { valid: false, reason: `Placar máximo é 7` };
+  // Completed sets: 6-X or 7-5/7-6
   if (winner === 6 && loser <= 4) return { valid: true };
   if (winner === 7 && (loser === 5 || loser === 6)) return { valid: true };
-  // Allow tiebreak-like scores
-  if (winner > 7) return { valid: false, reason: `Placar máximo é 7` };
-  if (winner < 6) return { valid: false, reason: `Mínimo 6 games para vencer` };
-  return { valid: false, reason: "Placar inválido" };
+  // Anything else (4x3, 6x5, 4x4...) is an unfinished set: games still count.
+  return { valid: true, partial: true };
 }
+
 
 function isValidTiebreakScore(a: number, b: number): { valid: boolean; reason?: string } {
   if (a === 0 && b === 0) return { valid: false, reason: "Placar vazio" };
