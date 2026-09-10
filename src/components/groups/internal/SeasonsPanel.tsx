@@ -1929,13 +1929,14 @@ function CompletedRoundRecap({
                     <PlayerAvatar avatarUrl={p.avatar} name={p.name} size="sm" className="cursor-pointer" />
                   </PlayerAvatarLink>
                   <span className="min-w-0 flex-1 truncate text-[11px] font-semibold text-foreground">{p.name}</span>
-                  <span className="text-[10px] text-muted-foreground tabular-nums">
+                  <span className="w-9 shrink-0 text-right text-[10px] text-muted-foreground tabular-nums">
                     {Math.round(p.before)}
                   </span>
-                  <span className="text-[10px] text-muted-foreground">→</span>
-                  <span className={`text-[11px] font-bold tabular-nums ${positive ? "text-success" : zero ? "text-muted-foreground" : "text-destructive"}`}>
+                  <span className="w-3 shrink-0 text-center text-[10px] text-muted-foreground">→</span>
+                  <span className={`w-9 shrink-0 text-right text-[11px] font-bold tabular-nums ${positive ? "text-success" : zero ? "text-muted-foreground" : "text-destructive"}`}>
                     {Math.round(p.after)}
                   </span>
+
                   <span className={`w-12 shrink-0 text-right text-[10px] font-bold tabular-nums ${positive ? "text-success" : zero ? "text-muted-foreground" : "text-destructive"}`}>
                     {positive ? "+" : ""}{Math.round(p.delta)}
                   </span>
