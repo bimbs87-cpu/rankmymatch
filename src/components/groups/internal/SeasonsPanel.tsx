@@ -2262,16 +2262,17 @@ function BatchScoreEntry({
       <button
         type="button"
         onClick={saveAll}
-        disabled={saving || readyMatches.length === 0}
+        disabled={saving || changedMatches.length === 0}
         className="flex w-full items-center justify-center gap-1.5 rounded-md bg-primary py-2 text-[11px] font-bold text-primary-foreground disabled:opacity-40"
       >
         <Trophy className="h-3.5 w-3.5" />
         {saving
           ? "Salvando…"
-          : readyMatches.length
-            ? `Salvar ${readyMatches.length} partida(s) e calcular Elo`
+          : changedMatches.length
+            ? `Salvar ${changedMatches.length} partida(s) e calcular Elo`
             : "Preencha ao menos um placar"}
       </button>
+
     </div>
   );
 }
