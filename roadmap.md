@@ -1,3 +1,3 @@
 - [x] Explain eligibility minimum and season progress discreetly on ranking surfaces.
 - [x] Audit and unify the set-based 30% eligibility rule across scores, seasons, and rankings.
-- [ ] Show one eligibility rule above inactive players and each player's set progress across ranking views.
+- [x] Show one eligibility rule above inactive players and each player's set progress across ranking views.
