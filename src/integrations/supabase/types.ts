@@ -2302,6 +2302,15 @@ export type Database = {
         }[]
       }
       get_group_member_count: { Args: { _group_id: string }; Returns: number }
+      get_season_set_eligibility: {
+        Args: { _season_id: string }
+        Returns: {
+          minimum_sets: number
+          sets_played: number
+          total_sets: number
+          user_id: string
+        }[]
+      }
       is_app_admin: { Args: { _user_id: string }; Returns: boolean }
       is_group_admin: {
         Args: { _group_id: string; _user_id: string }
