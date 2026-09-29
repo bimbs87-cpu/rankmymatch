@@ -62,7 +62,7 @@ function RankingInfoPage() {
             {
               icon: Award, color: "text-rank-gold", bg: "bg-rank-gold/10",
               title: "Elegibilidade",
-               desc: "Para entrar na classificação, jogue ao menos 30% do número de rodadas concluídas, arredondado para cima. O mínimo aumenta conforme a temporada avança; o percentual pode variar por temporada.",
+                desc: "Para entrar na classificação, participe do percentual mínimo dos sets registrados na temporada. Com 21 sets e exigência de 30%, por exemplo, são necessários 6 sets. O mínimo acompanha os novos sets; o percentual pode variar por temporada.",
             },
           ].map((item) => (
             <div key={item.title} className="flex gap-3 rounded-3xl border border-border bg-card p-4">
