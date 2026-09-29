@@ -10,7 +10,7 @@ import { PlayerAvatarLink } from "@/components/PlayerProfileViewer";
 import { RankingPlayerDetails } from "@/components/RankingPlayerDetails";
 import { buildDisplayNames, getCollidingFirstNames } from "@/lib/name-disambiguation";
 import { abbreviateName } from "@/lib/utils";
-import { EligibilityNotice, eligibilityMinimum } from "@/components/EligibilityNotice";
+import { EligibilityNotice } from "@/components/EligibilityNotice";
 
 export const Route = createFileRoute("/ranking")({
   validateSearch: (search: Record<string, unknown>): { group?: string } => ({
@@ -592,7 +592,6 @@ function RankingPage() {
   const selectedSeason = seasons.find((s: any) => s.id === selectedSeasonId);
   const remainingRounds = Math.max(0, Math.max(selectedSeason?.total_rounds || 0, totalRounds) - completedRounds);
   const eligibilityPct = Number(selectedSeason?.min_eligibility_pct ?? 30);
-  const minimumMatches = minimumSets;
   const eligibleRankings = rankings.filter((r) => r.is_eligible);
 
   const displayNameMap = useMemo(() => {
@@ -811,7 +810,7 @@ function RankingPage() {
                   </div>
                   <EligibilityNotice
                     played={myRanking.sets_played}
-                    minimum={minimumMatches}
+                    minimum={minimumSets}
                     totalSets={totalSets}
                     completed={completedRounds}
                     remaining={remainingRounds}
@@ -1154,11 +1153,11 @@ function RankingPage() {
                         )}
                       </div>
                     </div>
-                  {!compareMode && !isFormer && !isExpanded && <EligibilityNotice played={entry.sets_played} minimum={minimumMatches} totalSets={totalSets} completed={completedRounds} remaining={remainingRounds} percentage={eligibilityPct} className="px-3 py-1.5 lg:px-4" />}
+                  {!compareMode && !isFormer && !isExpanded && <EligibilityNotice played={entry.sets_played} minimum={minimumSets} totalSets={totalSets} completed={completedRounds} remaining={remainingRounds} percentage={eligibilityPct} className="px-3 py-1.5 lg:px-4" />}
 
                     {!compareMode && isExpanded && canExpand && selectedSeason && (
                       <div>
-                        <EligibilityNotice played={entry.sets_played} minimum={minimumMatches} totalSets={totalSets} completed={completedRounds} remaining={remainingRounds} percentage={eligibilityPct} className="px-4 pt-3" />
+                        <EligibilityNotice played={entry.sets_played} minimum={minimumSets} totalSets={totalSets} completed={completedRounds} remaining={remainingRounds} percentage={eligibilityPct} className="px-4 pt-3" />
                         <RankingPlayerDetails
                         userId={entry.user_id}
                         seasonId={selectedSeason.id}

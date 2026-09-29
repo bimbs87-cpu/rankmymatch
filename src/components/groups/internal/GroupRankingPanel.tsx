@@ -6,7 +6,7 @@ import { PlayerAvatarLink } from "@/components/PlayerProfileViewer";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { GroupEloEvolutionChart } from "@/components/groups/internal/GroupEloEvolutionChart";
 import { GroupEloHighlights } from "@/components/groups/internal/GroupEloHighlights";
-import { EligibilityNotice, eligibilityMinimum } from "@/components/EligibilityNotice";
+import { EligibilityNotice } from "@/components/EligibilityNotice";
 
 interface RankingRow {
   user_id: string;

@@ -3,7 +3,7 @@ import { Crown, Medal, Trophy, Zap, TrendingUp, Target } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { useSeasonExtras, type RecordHolder } from "@/hooks/use-group-stats";
-import { EligibilityNotice, eligibilityMinimum } from "@/components/EligibilityNotice";
+import { EligibilityNotice } from "@/components/EligibilityNotice";
 
 interface RankingRow {
   user_id: string;
