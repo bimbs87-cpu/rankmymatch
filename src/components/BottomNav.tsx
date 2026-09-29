@@ -1,5 +1,5 @@
 import { Link, useLocation } from "@tanstack/react-router";
-import { Home, Users, User, Crown, BarChart3, Inbox, CalendarClock, Wrench } from "lucide-react";
+import { Home, Users, User, Crown, BarChart3, Inbox, CalendarClock, Settings } from "lucide-react";
 import { APP_VERSION } from "@/lib/app-version";
 import { useNewReleasesCount } from "@/hooks/use-new-releases";
 import { useAdminPendingCount } from "@/hooks/use-admin-pending-count";
@@ -30,15 +30,6 @@ export function BottomNav() {
 
   return (
     <>
-      {isAppAdmin && (
-        <Link
-          to="/dev"
-          aria-label="Painel /dev"
-          className="fixed bottom-24 left-4 z-50 inline-flex h-12 w-12 items-center justify-center rounded-full border border-primary/40 bg-primary text-primary-foreground shadow-lg transition-transform hover:scale-105 lg:hidden"
-        >
-          <Wrench className="h-5 w-5" />
-        </Link>
-      )}
       {adminPending > 0 && (
         <Link
           to="/admin/inbox"
@@ -64,6 +55,16 @@ export function BottomNav() {
         )}
       </Link>
       <nav className="fixed bottom-5 left-4 right-4 z-50 mx-auto max-w-lg lg:hidden">
+      {isAppAdmin && (
+        <Link
+          to="/dev"
+          aria-label="Configurações do administrador"
+          title="Configurações do administrador"
+          className="absolute -top-10 left-2 inline-flex h-8 w-8 items-center justify-center rounded-full border border-border bg-card/80 text-muted-foreground backdrop-blur-xl transition-colors hover:text-primary [&.active]:text-primary"
+        >
+          <Settings className="h-4 w-4" />
+        </Link>
+      )}
       <div className="flex items-end justify-around rounded-full border border-border bg-card/80 px-2 py-2 backdrop-blur-xl">
         {NAV_ITEMS.map((item: any) => {
           const isActive = item.to === "/ranking"
