@@ -83,9 +83,10 @@ interface Props {
   initialSeasonId?: string;
   /** Auto-expand this round inside the season (works with initialSeasonId). */
   initialRoundId?: string;
+  initialMatchId?: string;
 }
 
-export function SeasonsPanel({ groupId, isAdmin, initialSeasonId, initialRoundId }: Props) {
+export function SeasonsPanel({ groupId, isAdmin, initialSeasonId, initialRoundId, initialMatchId }: Props) {
   const { seasons, isLoading, refresh } = useGroupSeasons(groupId);
   const [expandedId, setExpandedId] = useState<string | null>(initialSeasonId ?? null);
   const [quickCreateOpen, setQuickCreateOpen] = useState(false);
@@ -185,14 +186,12 @@ export function SeasonsPanel({ groupId, isAdmin, initialSeasonId, initialRoundId
         )}
       </div>
 
-      {/* Next/active round — hero, ALWAYS at the very top so it's the first thing the user sees */}
-      <LastAndNextRoundCards groupId={groupId} isAdmin={isAdmin} variant="next" groupName={groupName} />
+      {/* Most recently played round comes first, followed by the next round. */}
+      <LastAndNextRoundCards groupId={groupId} isAdmin={isAdmin} variant="last" highlightedMatchId={initialMatchId} highlightedRoundId={initialRoundId} />
+      <LastAndNextRoundCards groupId={groupId} isAdmin={isAdmin} variant="next" groupName={groupName} highlightedMatchId={initialMatchId} highlightedRoundId={initialRoundId} />
 
       {/* Group-wide summary cards (totais do grupo todo) */}
       <GroupSummaryCards groupId={groupId} />
-
-      {/* Last completed round */}
-      <LastAndNextRoundCards groupId={groupId} isAdmin={isAdmin} variant="last" />
 
       {/* Mini timeline showing season spans */}
       {seasons.length > 0 && (
@@ -268,6 +267,7 @@ export function SeasonsPanel({ groupId, isAdmin, initialSeasonId, initialRoundId
                     onToggle={() => setExpandedId(expandedId === s.id ? null : s.id)}
                     onChanged={refresh}
                     initialRoundId={expandedId === s.id ? initialRoundId : undefined}
+                    initialMatchId={expandedId === s.id ? initialMatchId : undefined}
                   />
                 </div>
               ))}
@@ -289,6 +289,7 @@ export function SeasonsPanel({ groupId, isAdmin, initialSeasonId, initialRoundId
                     onToggle={() => setExpandedId(expandedId === s.id ? null : s.id)}
                     onChanged={refresh}
                     initialRoundId={expandedId === s.id ? initialRoundId : undefined}
+                    initialMatchId={expandedId === s.id ? initialMatchId : undefined}
                   />
                 </div>
               ))}
@@ -309,9 +310,9 @@ export function SeasonsPanel({ groupId, isAdmin, initialSeasonId, initialRoundId
 }
 
 function SeasonAccordion({
-  season, groupId, isAdmin, expanded, onToggle, onChanged, initialRoundId,
+  season, groupId, isAdmin, expanded, onToggle, onChanged, initialRoundId, initialMatchId,
 }: {
-  season: any; groupId: string; isAdmin: boolean; expanded: boolean; onToggle: () => void; onChanged: () => void; initialRoundId?: string;
+  season: any; groupId: string; isAdmin: boolean; expanded: boolean; onToggle: () => void; onChanged: () => void; initialRoundId?: string; initialMatchId?: string;
 }) {
   const isActive = season.status === "active";
   const [editingName, setEditingName] = useState(false);
@@ -398,7 +399,7 @@ function SeasonAccordion({
       {expanded && (
         <div className="border-t border-border bg-background/40">
           <SeasonFinalRanking seasonId={season.id} isActive={isActive} />
-          <SeasonRoundsInline groupId={groupId} seasonId={season.id} isAdmin={isAdmin} initialRoundId={initialRoundId} season={season} onSeasonChanged={onChanged} />
+          <SeasonRoundsInline groupId={groupId} seasonId={season.id} isAdmin={isAdmin} initialRoundId={initialRoundId} initialMatchId={initialMatchId} season={season} onSeasonChanged={onChanged} />
           {isAdmin && <SeasonStatusActions season={season} onChanged={onChanged} />}
         </div>
       )}
@@ -538,7 +539,7 @@ function SeasonStatusActions({ season, onChanged }: { season: any; onChanged: ()
   );
 }
 
-function SeasonRoundsInline({ groupId, seasonId, isAdmin, initialRoundId, season, onSeasonChanged }: { groupId: string; seasonId: string; isAdmin: boolean; initialRoundId?: string; season?: any; onSeasonChanged?: () => void }) {
+function SeasonRoundsInline({ groupId, seasonId, isAdmin, initialRoundId, initialMatchId, season, onSeasonChanged }: { groupId: string; seasonId: string; isAdmin: boolean; initialRoundId?: string; initialMatchId?: string; season?: any; onSeasonChanged?: () => void }) {
   const [showExtend, setShowExtend] = useState(false);
   const { user } = useAuth();
   const { rounds, isLoading, refresh } = useSeasonRounds(seasonId);
@@ -876,7 +877,7 @@ function SeasonRoundsInline({ groupId, seasonId, isAdmin, initialRoundId, season
             )}
 
             {isExpanded && !cancelled && (
-              <RoundExpandedDetails groupId={groupId} seasonId={seasonId} roundId={r.id} isAdmin={isAdmin} onChanged={refresh} />
+              <RoundExpandedDetails groupId={groupId} seasonId={seasonId} roundId={r.id} isAdmin={isAdmin} onChanged={refresh} highlightedMatchId={initialMatchId} />
             )}
 
             {editing && !cancelled && !completed && (
@@ -1000,6 +1001,7 @@ export function RoundExpandedDetails({
   isAdmin,
   onChanged,
   hidePresenceActions = false,
+  highlightedMatchId,
 }: {
   groupId: string;
   seasonId: string;
@@ -1008,6 +1010,7 @@ export function RoundExpandedDetails({
   onChanged: () => void;
   /** When true, hides the inline "Vou / Não vou" buttons (parent already renders them). */
   hidePresenceActions?: boolean;
+  highlightedMatchId?: string;
 }) {
   const { user } = useAuth();
   const [presence, setPresence] = useState<{ confirmed: number; declined: number; pending: number; max: number }>({

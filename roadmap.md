@@ -1,3 +1,5 @@
 - [x] Explain eligibility minimum and season progress discreetly on ranking surfaces.
 - [x] Audit and unify the set-based 30% eligibility rule across scores, seasons, and rankings.
 - [x] Show one eligibility rule above inactive players and each player's set progress across ranking views.
+- [ ] Notify every match participant after a result is finalized and highlight the result when opened.
+- [ ] Show the last played round before the next round in Agenda e resultados.
