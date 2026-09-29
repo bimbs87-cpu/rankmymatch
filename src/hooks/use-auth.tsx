@@ -59,12 +59,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const syncAuthState = (nextSession: Session | null) => {
       setSession(nextSession);
-      setUser(nextSession?.user ?? null);
+      // A token refresh or returning to the app may replace the User object
+      // without changing the signed-in account. Keep its reference stable so
+      // data loaders keyed by user don't restart throughout the open screen.
+      setUser((current) => current?.id === nextSession?.user?.id
+        ? current
+        : (nextSession?.user ?? null));
       setIsLoading(false);
 
-      if (nextSession?.user) {
+      if (nextSession?.user && (!userIdRef.current || userIdRef.current !== nextSession.user.id)) {
         void ensureUserProfile(nextSession.user);
       }
+      userIdRef.current = nextSession?.user?.id ?? null;
     };
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
