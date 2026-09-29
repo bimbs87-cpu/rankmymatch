@@ -54,18 +54,18 @@ export function BottomNav() {
           </span>
         )}
       </Link>
-      <nav className="fixed bottom-5 left-4 right-4 z-50 mx-auto max-w-lg lg:hidden">
+      <nav className="fixed bottom-5 left-4 right-4 z-50 mx-auto flex max-w-lg items-center gap-1 lg:hidden">
       {isAppAdmin && (
         <Link
           to="/dev"
           aria-label="Configurações do administrador"
           title="Configurações do administrador"
-          className="absolute -top-10 left-2 inline-flex h-8 w-8 items-center justify-center rounded-full border border-border bg-card/80 text-muted-foreground backdrop-blur-xl transition-colors hover:text-primary [&.active]:text-primary"
+          className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-border bg-card/80 text-muted-foreground backdrop-blur-xl transition-colors hover:text-primary [&.active]:text-primary"
         >
           <Settings className="h-4 w-4" />
         </Link>
       )}
-      <div className="flex items-end justify-around rounded-full border border-border bg-card/80 px-2 py-2 backdrop-blur-xl">
+      <div className="flex min-w-0 flex-1 items-end justify-around rounded-full border border-border bg-card/80 px-2 py-2 backdrop-blur-xl">
         {NAV_ITEMS.map((item: any) => {
           const isActive = item.to === "/ranking"
             ? location.pathname === "/ranking" || (shouldOpenDuelFromRanking && location.pathname === `/groups/${activeGroup?.id}/duel`)
