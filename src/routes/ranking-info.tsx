@@ -8,6 +8,8 @@ export const Route = createFileRoute("/ranking-info")({
       { name: "description", content: "Entenda o sistema de Elo adaptado para padel, beach tênis e tênis: como pontuação, k-factor e margem de vitória influenciam seu ranking." },
       { property: "og:title", content: "Como funciona o ranking Elo do RankMyMatch" },
       { property: "og:description", content: "Sistema Elo adaptado para esportes de raquete entre amigos e clubes." },
+       { property: "og:type", content: "website" },
+       { name: "twitter:card", content: "summary" },
     ],
     links: [{ rel: "canonical", href: "https://rankmymatch.app/ranking-info" }],
   }),
@@ -60,7 +62,7 @@ function RankingInfoPage() {
             {
               icon: Award, color: "text-rank-gold", bg: "bg-rank-gold/10",
               title: "Elegibilidade",
-              desc: "Participe de pelo menos 30% das rodadas para aparecer no ranking oficial.",
+               desc: "Para entrar na classificação, jogue ao menos 30% do número de rodadas concluídas, arredondado para cima. O mínimo aumenta conforme a temporada avança; o percentual pode variar por temporada.",
             },
           ].map((item) => (
             <div key={item.title} className="flex gap-3 rounded-3xl border border-border bg-card p-4">

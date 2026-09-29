@@ -1,0 +1,2 @@
+- [x] Explain eligibility minimum and season progress discreetly on ranking surfaces.
+- [x] Audit and unify the 30% eligibility rule across scores, seasons, and rankings.
