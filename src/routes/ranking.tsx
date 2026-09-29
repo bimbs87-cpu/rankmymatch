@@ -10,7 +10,7 @@ import { PlayerAvatarLink } from "@/components/PlayerProfileViewer";
 import { RankingPlayerDetails } from "@/components/RankingPlayerDetails";
 import { buildDisplayNames, getCollidingFirstNames } from "@/lib/name-disambiguation";
 import { abbreviateName } from "@/lib/utils";
-import { EligibilityNotice } from "@/components/EligibilityNotice";
+import { EligibilityNotice, EligibilityProgress } from "@/components/EligibilityNotice";
 
 export const Route = createFileRoute("/ranking")({
   validateSearch: (search: Record<string, unknown>): { group?: string } => ({
@@ -808,15 +808,6 @@ function RankingPage() {
                       <span className="text-[9px] text-muted-foreground">restantes</span>
                     </div>
                   </div>
-                  <EligibilityNotice
-                    played={myRanking.sets_played}
-                    minimum={minimumSets}
-                    totalSets={totalSets}
-                    completed={completedRounds}
-                    remaining={remainingRounds}
-                    percentage={eligibilityPct}
-                    className="border-t border-primary/10 px-4 py-2"
-                  />
                 </div>
               )}
 
@@ -963,7 +954,13 @@ function RankingPage() {
                 const interactive = compareMode ? canSelect : canExpand;
 
                 return (
-                  <div key={entry.user_id} className={idx > 0 ? "border-t border-border/40" : ""}>
+                  <div key={entry.user_id} className={idx > 0 && idx !== eligibleRankings.length ? "border-t border-border/40" : ""}>
+                    {idx === eligibleRankings.length && (
+                      <div className="border-t border-border/60 px-3 py-3 lg:px-4">
+                        <h3 className="text-xs font-semibold text-foreground">Inativos</h3>
+                        <EligibilityNotice minimum={minimumSets} totalSets={totalSets} percentage={eligibilityPct} className="mt-1" />
+                      </div>
+                    )}
                     <div
                       role={interactive ? "button" : undefined}
                       tabIndex={interactive ? 0 : undefined}
@@ -1072,10 +1069,8 @@ function RankingPage() {
                           </div>
                           {isFormer ? (
                             <p className="text-[8px] lg:text-[10px] uppercase tracking-wide text-muted-foreground leading-none mt-0.5">Ex-membro</p>
-                          ) : isInactive && !entry.hasSnapshot ? (
-                            <p className="text-[8px] lg:text-[10px] text-muted-foreground leading-none mt-0.5">Sem partidas</p>
                           ) : isInactive ? (
-                            <p className="text-[9px] lg:text-[10px] text-muted-foreground leading-none mt-0.5">Abaixo do mínimo</p>
+                            <p className="text-[9px] lg:text-[10px] text-muted-foreground leading-none mt-0.5"><EligibilityProgress played={entry.sets_played} totalSets={totalSets} /></p>
                           ) : null}
                         </div>
                       </div>
@@ -1153,11 +1148,8 @@ function RankingPage() {
                         )}
                       </div>
                     </div>
-                  {!compareMode && !isFormer && !isExpanded && <EligibilityNotice played={entry.sets_played} minimum={minimumSets} totalSets={totalSets} completed={completedRounds} remaining={remainingRounds} percentage={eligibilityPct} className="px-3 py-1.5 lg:px-4" />}
-
                     {!compareMode && isExpanded && canExpand && selectedSeason && (
                       <div>
-                        <EligibilityNotice played={entry.sets_played} minimum={minimumSets} totalSets={totalSets} completed={completedRounds} remaining={remainingRounds} percentage={eligibilityPct} className="px-4 pt-3" />
                         <RankingPlayerDetails
                         userId={entry.user_id}
                         seasonId={selectedSeason.id}
