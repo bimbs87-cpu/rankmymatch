@@ -553,12 +553,13 @@ function SeasonRoundsInline({ groupId, seasonId, isAdmin, initialRoundId, initia
   useEffect(() => {
     if (initialRoundId) {
       setExpandedId(initialRoundId);
-      setFilter("all");
+      setFilterState("all");
+      try { window.localStorage.setItem(`agenda-filter:${groupId}`, "all"); } catch {}
       requestAnimationFrame(() => {
         document.getElementById(`round-${initialRoundId}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
       });
     }
-  }, [initialRoundId]);
+  }, [initialRoundId, groupId]);
   const [showExtraForm, setShowExtraForm] = useState(false);
   const [extraDate, setExtraDate] = useState("");
   const [extraTime, setExtraTime] = useState("");

@@ -379,39 +379,6 @@ export function ScoreEntryDialog({
         /* best effort */
       }
 
-      // Fan-out notification + push to the involved players (excluding actor).
-      // Only on FRESH score entry — not on edits — to avoid duplicate pings.
-      if (!isEdit && groupIdForNotify) {
-        try {
-          const playerIds = [...teamA, ...teamB]
-            .map((p) => p.userId)
-            .filter((u): u is string => !!u);
-          const { data: currentUser } = await supabase.auth.getUser();
-          const actorId = currentUser?.user?.id || "";
-          const targets = playerIds.filter((u) => u !== actorId);
-          if (targets.length > 0) {
-            const { notifyUsers } = await import("@/lib/notify");
-            void notifyUsers(targets, {
-              groupId: groupIdForNotify,
-              actorId,
-              type: "match_result",
-              title: "Resultado registrado! 🏆",
-              body: result.winnerTeam === null
-                ? `Empate ${result.setsA}x${result.setsB}. Confira o resultado!`
-                : isSingles
-                ? `${winnerName} venceu por ${result.setsA}x${result.setsB}. Confira o resultado!`
-                : `Time ${result.winnerTeam} venceu ${result.setsA}x${result.setsB}. Confira o resultado!`,
-              data: { matchId, seasonId, roundId: roundIdForNotify },
-              url: roundIdForNotify
-                ? `/groups/${groupIdForNotify}?view=seasons&season=${seasonId}&round=${roundIdForNotify}`
-                : `/groups/${groupIdForNotify}`,
-            }).catch(() => {});
-          }
-        } catch {
-          /* push is optional */
-        }
-      }
-
       toast.success(
         result.winnerTeam === null
           ? `Empate registrado ${result.setsA}-${result.setsB}!`
