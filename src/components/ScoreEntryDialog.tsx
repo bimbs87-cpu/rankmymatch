@@ -354,7 +354,6 @@ export function ScoreEntryDialog({
       // to keep the audit panel focused on meaningful admin overrides.
       const isEdit = !!(existingSets && existingSets.length > 0);
       let groupIdForNotify: string | null = null;
-      let roundIdForNotify: string | null = null;
       try {
         const { data: round } = await supabase
           .from("matches")
@@ -363,7 +362,6 @@ export function ScoreEntryDialog({
           .maybeSingle();
         groupIdForNotify =
           (round?.rounds as unknown as { group_id: string } | null)?.group_id || null;
-        roundIdForNotify = (round?.round_id as string | null) || null;
         if (isEdit && groupIdForNotify) {
           const { logAudit } = await import("@/lib/audit-log");
           await logAudit({

@@ -8,6 +8,7 @@ import {
   MessageSquare,
   ArrowUpCircle,
   Swords,
+  Trophy,
   Undo2,
 } from "lucide-react";
 import { useEffect } from "react";

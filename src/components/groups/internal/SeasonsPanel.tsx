@@ -108,6 +108,10 @@ export function SeasonsPanel({ groupId, isAdmin, initialSeasonId, initialRoundId
   useEffect(() => {
     if (initialSeasonId) {
       setExpandedId(initialSeasonId);
+      if (initialRoundId) {
+        setFilterState("all");
+        try { window.localStorage.setItem(filterStorageKey, "all"); } catch {}
+      }
       requestAnimationFrame(() => {
         document.getElementById(`season-${initialSeasonId}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
       });
@@ -553,13 +557,11 @@ function SeasonRoundsInline({ groupId, seasonId, isAdmin, initialRoundId, initia
   useEffect(() => {
     if (initialRoundId) {
       setExpandedId(initialRoundId);
-      setFilterState("all");
-      try { window.localStorage.setItem(`agenda-filter:${groupId}`, "all"); } catch {}
       requestAnimationFrame(() => {
         document.getElementById(`round-${initialRoundId}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
       });
     }
-  }, [initialRoundId, groupId]);
+  }, [initialRoundId]);
   const [showExtraForm, setShowExtraForm] = useState(false);
   const [extraDate, setExtraDate] = useState("");
   const [extraTime, setExtraTime] = useState("");
