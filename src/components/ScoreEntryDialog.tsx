@@ -354,7 +354,6 @@ export function ScoreEntryDialog({
       // to keep the audit panel focused on meaningful admin overrides.
       const isEdit = !!(existingSets && existingSets.length > 0);
       let groupIdForNotify: string | null = null;
-      let roundIdForNotify: string | null = null;
       try {
         const { data: round } = await supabase
           .from("matches")
@@ -363,7 +362,6 @@ export function ScoreEntryDialog({
           .maybeSingle();
         groupIdForNotify =
           (round?.rounds as unknown as { group_id: string } | null)?.group_id || null;
-        roundIdForNotify = (round?.round_id as string | null) || null;
         if (isEdit && groupIdForNotify) {
           const { logAudit } = await import("@/lib/audit-log");
           await logAudit({
@@ -377,39 +375,6 @@ export function ScoreEntryDialog({
         }
       } catch {
         /* best effort */
-      }
-
-      // Fan-out notification + push to the involved players (excluding actor).
-      // Only on FRESH score entry — not on edits — to avoid duplicate pings.
-      if (!isEdit && groupIdForNotify) {
-        try {
-          const playerIds = [...teamA, ...teamB]
-            .map((p) => p.userId)
-            .filter((u): u is string => !!u);
-          const { data: currentUser } = await supabase.auth.getUser();
-          const actorId = currentUser?.user?.id || "";
-          const targets = playerIds.filter((u) => u !== actorId);
-          if (targets.length > 0) {
-            const { notifyUsers } = await import("@/lib/notify");
-            void notifyUsers(targets, {
-              groupId: groupIdForNotify,
-              actorId,
-              type: "match_result",
-              title: "Resultado registrado! 🏆",
-              body: result.winnerTeam === null
-                ? `Empate ${result.setsA}x${result.setsB}. Confira o resultado!`
-                : isSingles
-                ? `${winnerName} venceu por ${result.setsA}x${result.setsB}. Confira o resultado!`
-                : `Time ${result.winnerTeam} venceu ${result.setsA}x${result.setsB}. Confira o resultado!`,
-              data: { matchId, seasonId, roundId: roundIdForNotify },
-              url: roundIdForNotify
-                ? `/groups/${groupIdForNotify}?view=seasons&season=${seasonId}&round=${roundIdForNotify}`
-                : `/groups/${groupIdForNotify}`,
-            }).catch(() => {});
-          }
-        } catch {
-          /* push is optional */
-        }
       }
 
       toast.success(

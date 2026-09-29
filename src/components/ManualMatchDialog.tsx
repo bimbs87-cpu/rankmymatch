@@ -498,28 +498,6 @@ export function ManualMatchDialog({
         await supabase.from("rounds").update({ status: "completed" }).eq("id", roundId);
       }
 
-      if (roundData?.group_id) {
-        const { data: currentUser } = await supabase.auth.getUser();
-        const actorId = currentUser?.user?.id || "";
-        const playerNames = selectedPlayers.map((uid) => getDisplayName(uid)).join(", ");
-
-        const targets = selectedPlayers.filter((uid) => uid !== actorId);
-        if (targets.length > 0) {
-          const { notifyUsers } = await import("@/lib/notify");
-          void notifyUsers(targets, {
-            groupId: roundData.group_id,
-            actorId,
-            type: "match_result",
-            title: "Resultado registrado! 🏆",
-            body: isSingles
-              ? `Rodada ${roundData.round_number} — Confronto entre ${playerNames}. Confira o resultado!`
-              : `Rodada ${roundData.round_number} — Rei da Quadra com ${playerNames}. Confira o resultado!`,
-            data: { roundId, seasonId, groupId: roundData.group_id },
-            url: `/groups/${roundData.group_id}?view=seasons&season=${seasonId}&round=${roundId}`,
-          }).catch(() => {});
-        }
-      }
-
       toast.success(isSingles ? "Confronto registrado com sucesso!" : "Rei da Quadra registrado com sucesso!");
       onSaved();
       onClose();

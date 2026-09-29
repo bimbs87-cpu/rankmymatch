@@ -8,6 +8,7 @@ import {
   MessageSquare,
   ArrowUpCircle,
   Swords,
+  Trophy,
   Undo2,
 } from "lucide-react";
 import { useEffect } from "react";
@@ -32,6 +33,7 @@ const iconMap: Record<string, typeof Bell> = {
   new_comment: MessageSquare,
   match_promoted: ArrowUpCircle,
   match_unpromoted: Undo2,
+  match_result: Trophy,
 };
 
 function timeAgo(dateStr: string) {
@@ -101,6 +103,7 @@ function NotificationsPage() {
               const isUnpromoted = n.type === "match_unpromoted";
               const data = (n.data || {}) as {
                 match_id?: string;
+                matchId?: string;
                 season_id?: string | null;
                 seasonId?: string;
                 round_id?: string;
@@ -121,7 +124,7 @@ function NotificationsPage() {
                   navigate({
                     to: "/groups/$groupId",
                     params: { groupId },
-                    search: { view: "seasons", season: seasonId, round: roundId } as any,
+                    search: { view: "seasons", season: seasonId, round: roundId, match: data.matchId || data.match_id } as any,
                   });
                   return;
                 }

@@ -71,7 +71,7 @@ export const submitMatchScoreServerFn = createServerFn({ method: "POST" })
     // ---- 1. Load match + round + group, validate authorization ----
     const { data: match, error: matchErr } = await supabaseAdmin
       .from("matches")
-      .select("id, status, round_id, rounds:rounds!inner(group_id)")
+      .select("id, status, round_id, match_number, rounds:rounds!inner(group_id, round_number)")
       .eq("id", matchId)
       .maybeSingle();
 
@@ -237,6 +237,36 @@ export const submitMatchScoreServerFn = createServerFn({ method: "POST" })
         requestId,
         matchId,
       });
+    }
+
+    // A completed result is the source of truth for this fan-out. Do not let
+    // notification delivery turn a successfully saved match into a failed save.
+    try {
+      const playerIds = Array.from(new Set([...teamA, ...teamB]));
+      const { data: profiles } = await supabaseAdmin
+        .from("user_profiles")
+        .select("user_id, name, nickname")
+        .in("user_id", playerIds);
+      const { data: group } = await supabaseAdmin.from("groups").select("name").eq("id", groupId).maybeSingle();
+      const names = new Map((profiles ?? []).map((p) => [p.user_id, p.nickname || p.name]));
+      const side = (ids: string[]) => ids.map((id) => names.get(id) || "Jogador").join(" / ");
+      const score = sets.map((s) => `${s.scoreA}×${s.scoreB}`).join(" · ");
+      const round = match.rounds as unknown as { group_id: string; round_number: number | null };
+      const title = `${isEdit ? "Resultado atualizado" : "Resultado registrado"} · ${group?.name || "Grupo"}`;
+      const body = `Rodada ${round.round_number ?? "—"}, partida ${match.match_number ?? "—"}: ${side(teamA)} x ${side(teamB)} · ${score}${isDraw ? " · Empate" : ""}`;
+      const url = `/groups/${groupId}?view=seasons&season=${seasonId}&round=${match.round_id}&match=${matchId}`;
+      const data = { groupId, seasonId, roundId: match.round_id, matchId };
+      const { error: notificationError } = await supabaseAdmin.from("notifications").insert(
+        playerIds.map((id) => ({ user_id: id, group_id: groupId, type: "match_result", title, body, data })),
+      );
+      if (notificationError) console.error("[submitMatchScore] notification insert failed", notificationError);
+      const { sendPushToUserIds } = await import("@/lib/web-push.server");
+      const push = await sendPushToUserIds(playerIds, {
+        title, body, url, type: "match_result", tag: `match_result:${matchId}`, data,
+      });
+      if (push.error) console.warn("[submitMatchScore] push delivery", push.error);
+    } catch (notificationError) {
+      console.error("[submitMatchScore] result notification failed", notificationError);
     }
 
     console.info("[submitMatchScore] done", { requestId, matchId, winnerTeam, edited: isEdit });
