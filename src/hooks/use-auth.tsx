@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, useCallback, useRef, type ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { User, Session } from "@supabase/supabase-js";
 import { saveAcquisitionForUser, logUserSession } from "@/lib/acquisition-tracking";
@@ -55,16 +55,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const userIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     const syncAuthState = (nextSession: Session | null) => {
       setSession(nextSession);
-      setUser(nextSession?.user ?? null);
+      // A token refresh or returning to the app may replace the User object
+      // without changing the signed-in account. Keep its reference stable so
+      // data loaders keyed by user don't restart throughout the open screen.
+      setUser((current) => current?.id === nextSession?.user?.id
+        ? current
+        : (nextSession?.user ?? null));
       setIsLoading(false);
 
-      if (nextSession?.user) {
+      if (nextSession?.user && (!userIdRef.current || userIdRef.current !== nextSession.user.id)) {
         void ensureUserProfile(nextSession.user);
       }
+      userIdRef.current = nextSession?.user?.id ?? null;
     };
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(

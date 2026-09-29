@@ -68,7 +68,8 @@ export function LastAndNextRoundCards({ groupId, isAdmin, variant = "last", grou
 
   useEffect(() => {
     let cancelled = false;
-    setLoading(true);
+    // Keep the current card visible while an actual round change is fetched.
+    if (reloadKey === 0) setLoading(true);
     (async () => {
       if (variant === "last") {
         const { data } = await supabase
@@ -157,18 +158,6 @@ export function LastAndNextRoundCards({ groupId, isAdmin, variant = "last", grou
       supabase.removeChannel(channel);
     };
   }, [round?.id, variant]);
-
-  // Refetch on tab focus / visibility — covers the cross-tab navigation case
-  // where realtime hasn't reconnected yet.
-  useEffect(() => {
-    const onFocus = () => setReloadKey((k) => k + 1);
-    window.addEventListener("focus", onFocus);
-    document.addEventListener("visibilitychange", onFocus);
-    return () => {
-      window.removeEventListener("focus", onFocus);
-      document.removeEventListener("visibilitychange", onFocus);
-    };
-  }, []);
 
   if (loading) {
     return <div className="h-20 animate-pulse rounded-2xl bg-muted/30" />;
