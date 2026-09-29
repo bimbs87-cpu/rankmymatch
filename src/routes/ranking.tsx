@@ -1152,6 +1152,7 @@ function RankingPage() {
                         )}
                       </div>
                     </div>
+                  {!compareMode && !isFormer && !isExpanded && <EligibilityNotice played={entry.matches_played} minimum={minimumMatches} completed={completedRounds} remaining={remainingRounds} percentage={eligibilityPct} className="px-3 py-1.5 lg:px-4" />}
 
                     {!compareMode && isExpanded && canExpand && selectedSeason && (
                       <div>
