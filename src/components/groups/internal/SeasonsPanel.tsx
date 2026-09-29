@@ -187,8 +187,8 @@ export function SeasonsPanel({ groupId, isAdmin, initialSeasonId, initialRoundId
       </div>
 
       {/* Most recently played round comes first, followed by the next round. */}
-      <LastAndNextRoundCards groupId={groupId} isAdmin={isAdmin} variant="last" highlightedMatchId={initialMatchId} highlightedRoundId={initialRoundId} />
-      <LastAndNextRoundCards groupId={groupId} isAdmin={isAdmin} variant="next" groupName={groupName} highlightedMatchId={initialMatchId} highlightedRoundId={initialRoundId} />
+      <LastAndNextRoundCards groupId={groupId} isAdmin={isAdmin} variant="last" />
+      <LastAndNextRoundCards groupId={groupId} isAdmin={isAdmin} variant="next" groupName={groupName} />
 
       {/* Group-wide summary cards (totais do grupo todo) */}
       <GroupSummaryCards groupId={groupId} />
@@ -553,6 +553,7 @@ function SeasonRoundsInline({ groupId, seasonId, isAdmin, initialRoundId, initia
   useEffect(() => {
     if (initialRoundId) {
       setExpandedId(initialRoundId);
+      setFilter("all");
       requestAnimationFrame(() => {
         document.getElementById(`round-${initialRoundId}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
       });
@@ -1017,6 +1018,13 @@ export function RoundExpandedDetails({
     confirmed: 0, declined: 0, pending: 0, max: 0,
   });
   const [matchesData, setMatchesData] = useState<any[]>([]);
+  useEffect(() => {
+    if (!highlightedMatchId || !matchesData.some((match) => match.id === highlightedMatchId)) return;
+    const frame = requestAnimationFrame(() => {
+      document.getElementById(`result-${highlightedMatchId}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [highlightedMatchId, matchesData]);
   const [eloDeltas, setEloDeltas] = useState<Record<string, Record<string, { delta: number; before: number; after: number }>>>({});
   const [confirmedPlayers, setConfirmedPlayers] = useState<{ user_id: string; name: string; avatar_url: string | null }[]>([]);
   const [confirmedIds, setConfirmedIds] = useState<string[]>([]);
@@ -1505,7 +1513,7 @@ export function RoundExpandedDetails({
 
 
                   return (
-                    <div key={m.id} className="rounded-lg border border-border bg-card/40 px-2 py-1.5 text-[11px] space-y-1">
+                    <div key={m.id} id={highlightedMatchId === m.id ? `result-${m.id}` : undefined} className={`rounded-lg border bg-card/40 px-2 py-1.5 text-[11px] space-y-1 ${highlightedMatchId === m.id ? "border-primary ring-2 ring-primary/50 bg-primary/10" : "border-border"}`}>
                       <div className="flex items-center justify-between gap-2">
                         <div className="flex items-center gap-1 shrink-0">
                           <span className="rounded bg-muted/60 px-1 py-0.5 text-[9px] font-bold tabular-nums text-muted-foreground">
@@ -1623,6 +1631,7 @@ export function RoundExpandedDetails({
               scheduledDate={scheduledDate}
               isAdmin={isAdmin}
               onEditMatch={(id: string) => setScoringMatchId(id)}
+              highlightedMatchId={highlightedMatchId}
             />
           )}
 
@@ -1828,6 +1837,7 @@ function CompletedRoundRecap({
   playerAggList,
   isAdmin,
   onEditMatch,
+  highlightedMatchId,
 }: {
   matches: any[];
   eloDeltas: Record<string, Record<string, EloEv>>;
@@ -1843,6 +1853,7 @@ function CompletedRoundRecap({
   scheduledDate: string | null;
   isAdmin: boolean;
   onEditMatch: (matchId: string) => void;
+  highlightedMatchId?: string;
 }) {
   return (
     <div className="space-y-3">
@@ -1911,6 +1922,7 @@ function CompletedRoundRecap({
             key={m.id}
             match={m}
             deltas={eloDeltas[m.id] || {}}
+            highlighted={highlightedMatchId === m.id}
             isAdmin={isAdmin}
             onEdit={() => onEditMatch(m.id)}
           />
@@ -2024,12 +2036,13 @@ function HighlightCard({
 }
 
 function MatchScoreCard({
-  match, deltas, isAdmin, onEdit,
+  match, deltas, isAdmin, onEdit, highlighted = false,
 }: {
   match: any;
   deltas: Record<string, EloEv>;
   isAdmin: boolean;
   onEdit: () => void;
+  highlighted?: boolean;
 }) {
   const teamA = (match.match_players || []).filter((mp: any) => mp.team === "A");
   const teamB = (match.match_players || []).filter((mp: any) => mp.team === "B");
@@ -2043,7 +2056,7 @@ function MatchScoreCard({
   const setsB = sets.filter((s: any) => s.score_team_b > s.score_team_a).length;
 
   return (
-    <div className="overflow-hidden rounded-xl border border-border bg-card/60">
+    <div id={highlighted ? `result-${match.id}` : undefined} className={`overflow-hidden rounded-xl border bg-card/60 ${highlighted ? "border-primary ring-2 ring-primary/50 bg-primary/10" : "border-border"}`}>
       {/* Header — match # */}
       <div className="flex items-center justify-between bg-muted/30 px-2.5 py-1">
         <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground">
