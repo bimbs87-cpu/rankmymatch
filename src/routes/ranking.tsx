@@ -10,7 +10,7 @@ import { PlayerAvatarLink } from "@/components/PlayerProfileViewer";
 import { RankingPlayerDetails } from "@/components/RankingPlayerDetails";
 import { buildDisplayNames, getCollidingFirstNames } from "@/lib/name-disambiguation";
 import { abbreviateName } from "@/lib/utils";
-import { EligibilityNotice, eligibilityMinimum } from "@/components/EligibilityNotice";
+import { EligibilityNotice } from "@/components/EligibilityNotice";
 
 export const Route = createFileRoute("/ranking")({
   validateSearch: (search: Record<string, unknown>): { group?: string } => ({
@@ -36,6 +36,7 @@ interface RankingEntry {
   rating: number;
   position: number | null;
   matches_played: number;
+  sets_played: number;
   matches_won: number;
   sets_won: number;
   sets_lost: number;
@@ -129,6 +130,7 @@ function RankingPage() {
   const [totalRounds, setTotalRounds] = useState(0);
   const [completedRounds, setCompletedRounds] = useState(0);
   const [totalSets, setTotalSets] = useState(0);
+  const [minimumSets, setMinimumSets] = useState(0);
   const [expandedUserId, setExpandedUserId] = useState<string | null>(null);
   const [compareMode, setCompareMode] = useState(false);
   const [compareSelection, setCompareSelection] = useState<string[]>([]);
@@ -336,7 +338,7 @@ function RankingPage() {
         setLoadProgress(38);
         setLoadLabel("Buscando dados do ranking...");
 
-        const [snapshotsRes, membersRes, roundsRes] = await Promise.all([
+        const [snapshotsRes, membersRes, roundsRes, eligibilityRes] = await Promise.all([
           supabase
             .from("ranking_snapshots")
             .select("*")
@@ -351,16 +353,24 @@ function RankingPage() {
             .from("rounds")
             .select("id, status, scheduled_date, created_at")
             .eq("season_id", effectiveSeasonId),
+          supabase.rpc("get_season_set_eligibility", { _season_id: effectiveSeasonId }),
         ]);
 
         if (snapshotsRes.error) throw snapshotsRes.error;
         if (membersRes.error) throw membersRes.error;
         if (roundsRes.error) throw roundsRes.error;
+        if (eligibilityRes.error) throw eligibilityRes.error;
         if (cancelled) return;
 
         const snapshots = snapshotsRes.data || [];
         const members = (membersRes.data || []) as { user_id: string }[];
         const rounds = roundsRes.data || [];
+        const setEligibility = eligibilityRes.data || [];
+        const eligibilityMap = new Map(setEligibility.map((entry) => [entry.user_id, entry]));
+        const seasonMinimum = setEligibility[0]?.minimum_sets ?? 0;
+        const seasonTotalSets = setEligibility[0]?.total_sets ?? 0;
+        setMinimumSets(seasonMinimum);
+        setTotalSets(seasonTotalSets);
         const roundIds = rounds.map((round) => round.id);
 
         const totalR = rounds.length;
@@ -377,18 +387,6 @@ function RankingPage() {
 
           if (matchesError) throw matchesError;
           matchIds = (matchesData || []).map((match) => match.id);
-        }
-
-        if (matchIds.length > 0) {
-          const { data: setsData, error: setsError } = await supabase
-            .from("match_sets")
-            .select("id")
-            .in("match_id", matchIds);
-
-          if (setsError) throw setsError;
-          setTotalSets(setsData?.length || 0);
-        } else {
-          setTotalSets(0);
         }
 
         const snapshotUserIds = new Set(snapshots.map((snapshot) => snapshot.user_id));
@@ -473,8 +471,8 @@ function RankingPage() {
             const previousEligible = previousRatings
               .filter((entry) => {
                 const snapshot = snapshots.find((item) => item.user_id === entry.user_id);
-                const minimum = eligibilityMinimum(completedR, Number(selectedSeason.min_eligibility_pct));
-                return snapshot ? snapshot.matches_played >= minimum && minimum > 0 : false;
+                const played = eligibilityMap.get(entry.user_id)?.sets_played ?? 0;
+                return snapshot ? played >= seasonMinimum && seasonMinimum > 0 : false;
               })
               .sort((a, b) => b.rating - a.rating);
 
@@ -482,7 +480,6 @@ function RankingPage() {
           }
         }
 
-        const eligibilityThreshold = eligibilityMinimum(completedR, Number(selectedSeason.min_eligibility_pct));
         const snapshotMap = new Map(snapshots.map((snapshot) => [snapshot.user_id, snapshot]));
 
         const activeMemberIdsSet = new Set(members.map((m) => m.user_id));
@@ -494,13 +491,15 @@ function RankingPage() {
           const isFormerMember = !activeMemberIdsSet.has(userId);
 
           if (snapshot) {
-            const isEligible = snapshot.matches_played >= eligibilityThreshold && eligibilityThreshold > 0;
+            const setsPlayed = eligibilityMap.get(userId)?.sets_played ?? 0;
+            const isEligible = setsPlayed >= seasonMinimum && seasonMinimum > 0;
             const snapshotResults = (snapshot.last_5_results as string[]) || [];
             return {
               user_id: userId,
               rating: Number(snapshot.rating),
               position: snapshot.position,
               matches_played: snapshot.matches_played,
+              sets_played: setsPlayed,
               matches_won: snapshot.matches_won,
               sets_won: snapshot.sets_won,
               sets_lost: snapshot.sets_lost,
@@ -520,6 +519,7 @@ function RankingPage() {
             rating: 1000,
             position: null,
             matches_played: 0,
+            sets_played: 0,
             matches_won: 0,
             sets_won: 0,
             sets_lost: 0,
@@ -566,6 +566,7 @@ function RankingPage() {
           setTotalRounds(0);
           setCompletedRounds(0);
           setTotalSets(0);
+          setMinimumSets(0);
         }
       } finally {
         if (!cancelled) {
@@ -591,7 +592,6 @@ function RankingPage() {
   const selectedSeason = seasons.find((s: any) => s.id === selectedSeasonId);
   const remainingRounds = Math.max(0, Math.max(selectedSeason?.total_rounds || 0, totalRounds) - completedRounds);
   const eligibilityPct = Number(selectedSeason?.min_eligibility_pct ?? 30);
-  const minimumMatches = eligibilityMinimum(completedRounds, eligibilityPct);
   const eligibleRankings = rankings.filter((r) => r.is_eligible);
 
   const displayNameMap = useMemo(() => {
@@ -809,8 +809,9 @@ function RankingPage() {
                     </div>
                   </div>
                   <EligibilityNotice
-                    played={myRanking.matches_played}
-                    minimum={minimumMatches}
+                    played={myRanking.sets_played}
+                    minimum={minimumSets}
+                    totalSets={totalSets}
                     completed={completedRounds}
                     remaining={remainingRounds}
                     percentage={eligibilityPct}
@@ -1152,11 +1153,11 @@ function RankingPage() {
                         )}
                       </div>
                     </div>
-                  {!compareMode && !isFormer && !isExpanded && <EligibilityNotice played={entry.matches_played} minimum={minimumMatches} completed={completedRounds} remaining={remainingRounds} percentage={eligibilityPct} className="px-3 py-1.5 lg:px-4" />}
+                  {!compareMode && !isFormer && !isExpanded && <EligibilityNotice played={entry.sets_played} minimum={minimumSets} totalSets={totalSets} completed={completedRounds} remaining={remainingRounds} percentage={eligibilityPct} className="px-3 py-1.5 lg:px-4" />}
 
                     {!compareMode && isExpanded && canExpand && selectedSeason && (
                       <div>
-                        <EligibilityNotice played={entry.matches_played} minimum={minimumMatches} completed={completedRounds} remaining={remainingRounds} percentage={eligibilityPct} className="px-4 pt-3" />
+                        <EligibilityNotice played={entry.sets_played} minimum={minimumSets} totalSets={totalSets} completed={completedRounds} remaining={remainingRounds} percentage={eligibilityPct} className="px-4 pt-3" />
                         <RankingPlayerDetails
                         userId={entry.user_id}
                         seasonId={selectedSeason.id}

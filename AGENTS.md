@@ -1,3 +1,3 @@
 RankMyMatch technical decisions:
-- Recompute ranking eligibility and positions in database triggers when snapshots, completed rounds, or season percentage change; this keeps all score-edit paths and ranking screens consistent without relying on each caller to recalculate.
-- The minimum number of ranking matches is ceil(completed rounds × seasons.min_eligibility_pct / 100); compare against matches_played, not attendance, to preserve the existing competition rule.
+- Recompute ranking eligibility and positions in database triggers when snapshots, matches, sets, participants, rounds, or season percentage change; this keeps score-edit paths and ranking screens consistent.
+- Ranking eligibility requires a player's recorded sets in completed ranking matches to reach max(1, floor(total recorded ranking sets × seasons.min_eligibility_pct / 100)); incomplete or tied sets still count as participation.

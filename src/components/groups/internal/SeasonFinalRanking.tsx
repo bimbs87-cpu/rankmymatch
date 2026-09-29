@@ -3,12 +3,13 @@ import { Crown, Medal, Trophy, Zap, TrendingUp, Target } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { useSeasonExtras, type RecordHolder } from "@/hooks/use-group-stats";
-import { EligibilityNotice, eligibilityMinimum } from "@/components/EligibilityNotice";
+import { EligibilityNotice } from "@/components/EligibilityNotice";
 
 interface RankingRow {
   user_id: string;
   rating: number;
   matches_played: number;
+  sets_played: number;
   matches_won: number;
   position: number | null;
   is_eligible: boolean;
@@ -22,22 +23,26 @@ export function SeasonFinalRanking({ seasonId, isActive = false }: { seasonId: s
   const [rows, setRows] = useState<RankingRow[]>([]);
   const [loading, setLoading] = useState(true);
   const { data: extras } = useSeasonExtras(seasonId);
-  const [progress, setProgress] = useState({ completed: 0, remaining: 0, percentage: 30 });
+  const [progress, setProgress] = useState({ completed: 0, remaining: 0, percentage: 30, totalSets: 0, minimum: 0 });
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       setLoading(true);
-      const [snapsRes, seasonRes, roundsRes] = await Promise.all([supabase
+      const [snapsRes, seasonRes, roundsRes, eligibilityRes] = await Promise.all([supabase
         .from("ranking_snapshots")
         .select("user_id, rating, matches_played, matches_won, position, is_eligible")
         .eq("season_id", seasonId)
-        .order("rating", { ascending: false }), supabase.from("seasons").select("total_rounds, min_eligibility_pct").eq("id", seasonId).maybeSingle(), supabase.from("rounds").select("status").eq("season_id", seasonId)]);
+        .order("rating", { ascending: false }), supabase.from("seasons").select("total_rounds, min_eligibility_pct").eq("id", seasonId).maybeSingle(), supabase.from("rounds").select("status").eq("season_id", seasonId), supabase.rpc("get_season_set_eligibility", { _season_id: seasonId })]);
+      if (eligibilityRes.error) { console.error("Erro ao carregar elegibilidade:", eligibilityRes.error); if (!cancelled) setLoading(false); return; }
       const snaps = snapsRes.data;
+      const eligibility = eligibilityRes.data || [];
+      const eligibilityMap = new Map(eligibility.map((e) => [e.user_id, e.sets_played]));
+      const minimum = eligibility[0]?.minimum_sets ?? 0;
       const completed = (roundsRes.data || []).filter((r) => r.status === "completed").length;
       const percentage = Number(seasonRes.data?.min_eligibility_pct ?? 30);
       const remaining = Math.max(0, Math.max(seasonRes.data?.total_rounds || 0, roundsRes.data?.length || 0) - completed);
-      if (!cancelled) setProgress({ completed, remaining, percentage });
+      if (!cancelled) setProgress({ completed, remaining, percentage, totalSets: eligibility[0]?.total_sets ?? 0, minimum });
 
       if (!snaps?.length) {
         if (!cancelled) { setRows([]); setLoading(false); }
@@ -56,9 +61,10 @@ export function SeasonFinalRanking({ seasonId, isActive = false }: { seasonId: s
           user_id: s.user_id,
           rating: Number(s.rating),
           matches_played: s.matches_played || 0,
+          sets_played: eligibilityMap.get(s.user_id) ?? 0,
           matches_won: s.matches_won || 0,
           position: s.position,
-          is_eligible: eligibilityMinimum(completed, percentage) > 0 && s.matches_played >= eligibilityMinimum(completed, percentage),
+          is_eligible: minimum > 0 && (eligibilityMap.get(s.user_id) ?? 0) >= minimum,
           name: p?.name || "Jogador",
           nickname: p?.nickname || null,
           avatar_url: p?.avatar_url || null,
@@ -149,7 +155,7 @@ export function SeasonFinalRanking({ seasonId, isActive = false }: { seasonId: s
                 <div className="font-display text-sm font-bold text-primary">{Math.round(r.rating)}</div>
                 <div className="text-[9px] uppercase text-muted-foreground">Elo</div>
               </div>
-              {!r.is_eligible && <EligibilityNotice played={r.matches_played} minimum={eligibilityMinimum(progress.completed, progress.percentage)} completed={progress.completed} remaining={progress.remaining} percentage={progress.percentage} className="w-full" />}
+              {!r.is_eligible && <EligibilityNotice played={r.sets_played} minimum={progress.minimum} totalSets={progress.totalSets} completed={progress.completed} remaining={progress.remaining} percentage={progress.percentage} className="w-full" />}
             </div>
           ))}
         </div>
