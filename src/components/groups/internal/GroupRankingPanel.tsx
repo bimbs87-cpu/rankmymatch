@@ -130,17 +130,17 @@ export function GroupRankingPanel({ groupId }: Props) {
             return (
               <li
                 key={row.user_id}
-                className={`flex items-center gap-3 border-b border-border/60 px-3 py-2.5 last:border-b-0 ${
+                className={`flex flex-wrap items-center gap-x-3 gap-y-0.5 border-b border-border/60 px-3 py-2.5 last:border-b-0 ${
                   !row.is_eligible ? "opacity-60" : ""
                 }`}
               >
                 <span
                   className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
-                    idx === 0
+                    row.is_eligible && idx === 0
                       ? "bg-[var(--rank-gold)]/20 text-[var(--rank-gold)] ring-1 ring-[var(--rank-gold)]/40"
-                      : idx === 1
+                    : row.is_eligible && idx === 1
                       ? "bg-[var(--rank-silver,_oklch(0.85_0_0))]/20 text-foreground ring-1 ring-border"
-                      : idx === 2
+                    : row.is_eligible && idx === 2
                       ? "bg-[var(--rank-bronze,_oklch(0.6_0.1_50))]/20 text-foreground ring-1 ring-border"
                       : "bg-muted text-muted-foreground"
                   }`}
@@ -170,7 +170,7 @@ export function GroupRankingPanel({ groupId }: Props) {
                     </p>
                   )}
                 </div>
-                {!row.is_eligible && <EligibilityNotice played={row.matches_played} minimum={eligibilityMinimum(progress.completed, progress.percentage)} completed={progress.completed} remaining={progress.remaining} percentage={progress.percentage} className="sr-only" />}
+                {!row.is_eligible && <EligibilityNotice played={row.matches_played} minimum={eligibilityMinimum(progress.completed, progress.percentage)} completed={progress.completed} remaining={progress.remaining} percentage={progress.percentage} className="w-full pl-10" />}
               </li>
             );
           })}
