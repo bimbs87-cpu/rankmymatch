@@ -1,5 +1,5 @@
 import { Link, useLocation } from "@tanstack/react-router";
-import { Home, User, Crown, Users, Bell, BarChart3, Wrench } from "lucide-react";
+import { Home, User, Crown, Users, Bell, BarChart3, Settings } from "lucide-react";
 import { useAppAdmin } from "@/hooks/use-app-admin";
 import { useNotifications } from "@/hooks/use-notifications";
 import { useAdminPendingCount } from "@/hooks/use-admin-pending-count";
@@ -58,6 +58,7 @@ export function DesktopNav() {
 
         {/* Center: nav pill */}
         <nav className="flex flex-1 items-center justify-center">
+          <div className="flex items-center gap-2">
           <div className="flex items-center gap-1 rounded-full border border-border bg-card/80 px-2 py-1.5 backdrop-blur-xl">
             {NAV_ITEMS.map((item) => {
               const Icon = item.icon;
@@ -145,21 +146,23 @@ export function DesktopNav() {
               );
             })}
           </div>
+          {isAppAdmin && (
+            <Link
+              to="/dev"
+              aria-label="Configurações do administrador"
+              title="Configurações do administrador"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-border bg-card/80 text-muted-foreground transition-colors hover:text-primary [&.active]:text-primary"
+            >
+              <Settings className="h-4 w-4" />
+            </Link>
+          )}
+          </div>
         </nav>
 
         {/* Right: group switcher + notifications */}
         <div className="flex items-center gap-2">
           {myGroups.length > 0 && (
             <GroupSwitcherPopover groups={myGroups} activeGroupId={activeGroupId} activeGroupName={activeGroupName} />
-          )}
-          {isAppAdmin && (
-            <Link
-              to="/dev"
-              aria-label="Painel /dev"
-              className="rounded-full border border-primary/40 bg-primary/10 p-2.5 transition-colors hover:bg-primary/20"
-            >
-              <Wrench className="h-4 w-4 text-primary" />
-            </Link>
           )}
           {adminPending > 0 && (
             <Link
