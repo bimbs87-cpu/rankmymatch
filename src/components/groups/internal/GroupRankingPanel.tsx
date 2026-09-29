@@ -6,6 +6,7 @@ import { PlayerAvatarLink } from "@/components/PlayerProfileViewer";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { GroupEloEvolutionChart } from "@/components/groups/internal/GroupEloEvolutionChart";
 import { GroupEloHighlights } from "@/components/groups/internal/GroupEloHighlights";
+import { EligibilityNotice, eligibilityMinimum } from "@/components/EligibilityNotice";
 
 interface RankingRow {
   user_id: string;
@@ -29,6 +30,7 @@ export function GroupRankingPanel({ groupId }: Props) {
   const [loading, setLoading] = useState(true);
   const [seasonName, setSeasonName] = useState<string | null>(null);
   const [rows, setRows] = useState<RankingRow[]>([]);
+  const [progress, setProgress] = useState({ completed: 0, remaining: 0, percentage: 30 });
 
   useEffect(() => {
     let cancelled = false;
@@ -36,7 +38,7 @@ export function GroupRankingPanel({ groupId }: Props) {
       setLoading(true);
       const { data: season } = await supabase
         .from("seasons")
-        .select("id, name")
+        .select("id, name, total_rounds, min_eligibility_pct")
         .eq("group_id", groupId)
         .eq("status", "active")
         .order("created_at", { ascending: false })
@@ -46,14 +48,19 @@ export function GroupRankingPanel({ groupId }: Props) {
       if (!season) {
         setRows([]);
         setSeasonName(null);
+        setProgress({ completed: 0, remaining: 0, percentage: 30 });
         setLoading(false);
         return;
       }
       setSeasonName(season.name);
-      const { data: snaps } = await supabase
+      const [snapsRes, roundsRes] = await Promise.all([supabase
         .from("ranking_snapshots")
         .select("user_id, rating, position, matches_played, matches_won, is_eligible")
-        .eq("season_id", season.id);
+        .eq("season_id", season.id), supabase.from("rounds").select("status").eq("season_id", season.id)]);
+      if (cancelled) return;
+      const snaps = snapsRes.data;
+      const completed = (roundsRes.data || []).filter((r) => r.status === "completed").length;
+      setProgress({ completed, remaining: Math.max(0, Math.max(season.total_rounds || 0, roundsRes.data?.length || 0) - completed), percentage: Number(season.min_eligibility_pct) });
 
       const userIds = (snaps || []).map((s) => s.user_id);
       const { data: profiles } = await supabase
@@ -66,6 +73,8 @@ export function GroupRankingPanel({ groupId }: Props) {
         ...s,
         profile: profMap.get(s.user_id) as RankingRow["profile"],
       }));
+      const minimum = eligibilityMinimum(completed, Number(season.min_eligibility_pct));
+      merged.forEach((row) => { row.is_eligible = minimum > 0 && row.matches_played >= minimum; });
       merged.sort((a, b) => {
         if (a.is_eligible !== b.is_eligible) return a.is_eligible ? -1 : 1;
         return b.rating - a.rating;
@@ -113,30 +122,31 @@ export function GroupRankingPanel({ groupId }: Props) {
         </div>
       ) : (
         <ul className="overflow-hidden rounded-2xl border border-border bg-card">
-          {rows.map((row, idx) => {
+          {rows.map((row) => {
             const name = row.profile?.nickname || row.profile?.name || "Jogador";
             const winRate = row.matches_played > 0
               ? Math.round((row.matches_won / row.matches_played) * 100)
               : 0;
+            const place = row.position;
             return (
               <li
                 key={row.user_id}
-                className={`flex items-center gap-3 border-b border-border/60 px-3 py-2.5 last:border-b-0 ${
+                className={`flex flex-wrap items-center gap-x-3 gap-y-0.5 border-b border-border/60 px-3 py-2.5 last:border-b-0 ${
                   !row.is_eligible ? "opacity-60" : ""
                 }`}
               >
                 <span
                   className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
-                    idx === 0
+                    row.is_eligible && place === 1
                       ? "bg-[var(--rank-gold)]/20 text-[var(--rank-gold)] ring-1 ring-[var(--rank-gold)]/40"
-                      : idx === 1
+                    : row.is_eligible && place === 2
                       ? "bg-[var(--rank-silver,_oklch(0.85_0_0))]/20 text-foreground ring-1 ring-border"
-                      : idx === 2
+                    : row.is_eligible && place === 3
                       ? "bg-[var(--rank-bronze,_oklch(0.6_0.1_50))]/20 text-foreground ring-1 ring-border"
                       : "bg-muted text-muted-foreground"
                   }`}
                 >
-                  {row.is_eligible ? idx + 1 : "—"}
+                  {row.is_eligible ? place : "—"}
                 </span>
                 <PlayerAvatarLink userId={row.user_id} ariaLabel={`Ver perfil de ${name}`}>
                   <PlayerAvatar
@@ -157,10 +167,11 @@ export function GroupRankingPanel({ groupId }: Props) {
                   </p>
                   {!row.is_eligible && (
                     <p className="text-[9px] uppercase tracking-wider text-warning">
-                      inelegível
+                      {eligibilityMinimum(progress.completed, progress.percentage) > 0 ? "abaixo do mínimo" : "sem classificação"}
                     </p>
                   )}
                 </div>
+                {!row.is_eligible && <EligibilityNotice played={row.matches_played} minimum={eligibilityMinimum(progress.completed, progress.percentage)} completed={progress.completed} remaining={progress.remaining} percentage={progress.percentage} className="w-full pl-10" />}
               </li>
             );
           })}

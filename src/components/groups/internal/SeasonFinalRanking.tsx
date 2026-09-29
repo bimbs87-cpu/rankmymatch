@@ -3,6 +3,7 @@ import { Crown, Medal, Trophy, Zap, TrendingUp, Target } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { useSeasonExtras, type RecordHolder } from "@/hooks/use-group-stats";
+import { EligibilityNotice, eligibilityMinimum } from "@/components/EligibilityNotice";
 
 interface RankingRow {
   user_id: string;
@@ -10,6 +11,7 @@ interface RankingRow {
   matches_played: number;
   matches_won: number;
   position: number | null;
+  is_eligible: boolean;
   name: string;
   nickname: string | null;
   avatar_url: string | null;
@@ -20,16 +22,22 @@ export function SeasonFinalRanking({ seasonId, isActive = false }: { seasonId: s
   const [rows, setRows] = useState<RankingRow[]>([]);
   const [loading, setLoading] = useState(true);
   const { data: extras } = useSeasonExtras(seasonId);
+  const [progress, setProgress] = useState({ completed: 0, remaining: 0, percentage: 30 });
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       setLoading(true);
-      const { data: snaps } = await supabase
+      const [snapsRes, seasonRes, roundsRes] = await Promise.all([supabase
         .from("ranking_snapshots")
-        .select("user_id, rating, matches_played, matches_won, position")
+        .select("user_id, rating, matches_played, matches_won, position, is_eligible")
         .eq("season_id", seasonId)
-        .order("rating", { ascending: false });
+        .order("rating", { ascending: false }), supabase.from("seasons").select("total_rounds, min_eligibility_pct").eq("id", seasonId).maybeSingle(), supabase.from("rounds").select("status").eq("season_id", seasonId)]);
+      const snaps = snapsRes.data;
+      const completed = (roundsRes.data || []).filter((r) => r.status === "completed").length;
+      const percentage = Number(seasonRes.data?.min_eligibility_pct ?? 30);
+      const remaining = Math.max(0, Math.max(seasonRes.data?.total_rounds || 0, roundsRes.data?.length || 0) - completed);
+      if (!cancelled) setProgress({ completed, remaining, percentage });
 
       if (!snaps?.length) {
         if (!cancelled) { setRows([]); setLoading(false); }
@@ -42,20 +50,22 @@ export function SeasonFinalRanking({ seasonId, isActive = false }: { seasonId: s
         .select("user_id, name, nickname, avatar_url, avatar_type")
         .in("user_id", userIds);
 
-      const merged: RankingRow[] = snaps.map((s, i) => {
+      const merged: RankingRow[] = snaps.map((s) => {
         const p = profiles?.find((p) => p.user_id === s.user_id);
         return {
           user_id: s.user_id,
           rating: Number(s.rating),
           matches_played: s.matches_played || 0,
           matches_won: s.matches_won || 0,
-          position: s.position ?? i + 1,
+          position: s.position,
+          is_eligible: eligibilityMinimum(completed, percentage) > 0 && s.matches_played >= eligibilityMinimum(completed, percentage),
           name: p?.name || "Jogador",
           nickname: p?.nickname || null,
           avatar_url: p?.avatar_url || null,
           avatar_type: p?.avatar_type || null,
         };
       });
+      merged.sort((a, b) => Number(b.is_eligible) - Number(a.is_eligible) || b.rating - a.rating);
       if (!cancelled) { setRows(merged); setLoading(false); }
     })();
     return () => { cancelled = true; };
@@ -64,7 +74,7 @@ export function SeasonFinalRanking({ seasonId, isActive = false }: { seasonId: s
   if (loading) return <div className="p-4 text-xs text-muted-foreground">Carregando ranking…</div>;
   if (!rows.length) return null;
 
-  const podium = rows.slice(0, 3);
+  const podium = rows.filter((r) => r.is_eligible).slice(0, 3);
   const [first, second, third] = [podium[0], podium[1], podium[2]];
   const wr = (r: RankingRow) => r.matches_played ? Math.round((r.matches_won / r.matches_played) * 100) : 0;
   const totalMatches = rows.reduce((s, r) => s + r.matches_played, 0) / 2; // each match counted per player; doubles=4, singles=2 — approx
@@ -114,7 +124,7 @@ export function SeasonFinalRanking({ seasonId, isActive = false }: { seasonId: s
           {rows.map((r) => (
             <div
               key={r.user_id}
-              className="flex items-center gap-2.5 rounded-lg border border-border/50 bg-background/40 px-2 py-1.5"
+              className="flex flex-wrap items-center gap-x-2.5 gap-y-1 rounded-lg border border-border/50 bg-background/40 px-2 py-1.5"
             >
               <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-[10px] font-bold ${
                 r.position === 1 ? "bg-warning/20 text-warning" :
@@ -122,7 +132,7 @@ export function SeasonFinalRanking({ seasonId, isActive = false }: { seasonId: s
                 r.position === 3 ? "bg-amber-700/20 text-amber-600" :
                 "bg-muted/40 text-muted-foreground"
               }`}>
-                {r.position}
+                {r.position ?? "—"}
               </span>
               <PlayerAvatar
                 name={r.nickname || r.name}
@@ -139,6 +149,7 @@ export function SeasonFinalRanking({ seasonId, isActive = false }: { seasonId: s
                 <div className="font-display text-sm font-bold text-primary">{Math.round(r.rating)}</div>
                 <div className="text-[9px] uppercase text-muted-foreground">Elo</div>
               </div>
+              {!r.is_eligible && <EligibilityNotice played={r.matches_played} minimum={eligibilityMinimum(progress.completed, progress.percentage)} completed={progress.completed} remaining={progress.remaining} percentage={progress.percentage} className="w-full" />}
             </div>
           ))}
         </div>

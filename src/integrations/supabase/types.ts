@@ -2352,6 +2352,10 @@ export type Database = {
         Args: { _group_id: string }
         Returns: undefined
       }
+      refresh_season_ranking_eligibility: {
+        Args: { _season_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never

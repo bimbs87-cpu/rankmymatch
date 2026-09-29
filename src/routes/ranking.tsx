@@ -10,6 +10,7 @@ import { PlayerAvatarLink } from "@/components/PlayerProfileViewer";
 import { RankingPlayerDetails } from "@/components/RankingPlayerDetails";
 import { buildDisplayNames, getCollidingFirstNames } from "@/lib/name-disambiguation";
 import { abbreviateName } from "@/lib/utils";
+import { EligibilityNotice, eligibilityMinimum } from "@/components/EligibilityNotice";
 
 export const Route = createFileRoute("/ranking")({
   validateSearch: (search: Record<string, unknown>): { group?: string } => ({
@@ -21,6 +22,8 @@ export const Route = createFileRoute("/ranking")({
       { name: "description", content: "Veja o ranking dos seus grupos e temporadas no RankMyMatch." },
       { property: "og:title", content: "Ranking — RankMyMatch" },
       { property: "og:description", content: "Acompanhe sua posição e a evolução do Elo dos seus grupos." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       { name: "robots", content: "noindex, follow" },
     ],
     links: [{ rel: "canonical", href: "https://rankmymatch.app/ranking" }],
@@ -470,7 +473,8 @@ function RankingPage() {
             const previousEligible = previousRatings
               .filter((entry) => {
                 const snapshot = snapshots.find((item) => item.user_id === entry.user_id);
-                return snapshot ? snapshot.matches_played >= Math.ceil(completedR * 0.3) && Math.ceil(completedR * 0.3) > 0 : false;
+                const minimum = eligibilityMinimum(completedR, Number(selectedSeason.min_eligibility_pct));
+                return snapshot ? snapshot.matches_played >= minimum && minimum > 0 : false;
               })
               .sort((a, b) => b.rating - a.rating);
 
@@ -478,7 +482,7 @@ function RankingPage() {
           }
         }
 
-        const eligibilityThreshold = Math.ceil(completedR * 0.3);
+        const eligibilityThreshold = eligibilityMinimum(completedR, Number(selectedSeason.min_eligibility_pct));
         const snapshotMap = new Map(snapshots.map((snapshot) => [snapshot.user_id, snapshot]));
 
         const activeMemberIdsSet = new Set(members.map((m) => m.user_id));
@@ -585,7 +589,9 @@ function RankingPage() {
 
   const myRanking = rankings.find((r) => r.user_id === user?.id);
   const selectedSeason = seasons.find((s: any) => s.id === selectedSeasonId);
-  const remainingRounds = Math.max(0, (selectedSeason?.total_rounds || totalRounds) - completedRounds);
+  const remainingRounds = Math.max(0, Math.max(selectedSeason?.total_rounds || 0, totalRounds) - completedRounds);
+  const eligibilityPct = Number(selectedSeason?.min_eligibility_pct ?? 30);
+  const minimumMatches = eligibilityMinimum(completedRounds, eligibilityPct);
   const eligibleRankings = rankings.filter((r) => r.is_eligible);
 
   const displayNameMap = useMemo(() => {
@@ -802,6 +808,14 @@ function RankingPage() {
                       <span className="text-[9px] text-muted-foreground">restantes</span>
                     </div>
                   </div>
+                  <EligibilityNotice
+                    played={myRanking.matches_played}
+                    minimum={minimumMatches}
+                    completed={completedRounds}
+                    remaining={remainingRounds}
+                    percentage={eligibilityPct}
+                    className="border-t border-primary/10 px-4 py-2"
+                  />
                 </div>
               )}
 
@@ -1060,7 +1074,7 @@ function RankingPage() {
                           ) : isInactive && !entry.hasSnapshot ? (
                             <p className="text-[8px] lg:text-[10px] text-muted-foreground leading-none mt-0.5">Sem partidas</p>
                           ) : isInactive ? (
-                            <p className="hidden lg:block text-[10px] text-muted-foreground leading-none mt-0.5">Não elegível</p>
+                            <p className="text-[9px] lg:text-[10px] text-muted-foreground leading-none mt-0.5">Abaixo do mínimo</p>
                           ) : null}
                         </div>
                       </div>
@@ -1138,9 +1152,12 @@ function RankingPage() {
                         )}
                       </div>
                     </div>
+                  {!compareMode && !isFormer && !isExpanded && <EligibilityNotice played={entry.matches_played} minimum={minimumMatches} completed={completedRounds} remaining={remainingRounds} percentage={eligibilityPct} className="px-3 py-1.5 lg:px-4" />}
 
                     {!compareMode && isExpanded && canExpand && selectedSeason && (
-                      <RankingPlayerDetails
+                      <div>
+                        <EligibilityNotice played={entry.matches_played} minimum={minimumMatches} completed={completedRounds} remaining={remainingRounds} percentage={eligibilityPct} className="px-4 pt-3" />
+                        <RankingPlayerDetails
                         userId={entry.user_id}
                         seasonId={selectedSeason.id}
                         groupId={(selectedSeason as any).group_id}
@@ -1153,7 +1170,8 @@ function RankingPage() {
                         gamesLost={entry.games_lost}
                         position={entry.position}
                         isEligible={entry.is_eligible}
-                      />
+                        />
+                      </div>
                     )}
                   </div>
                 );
