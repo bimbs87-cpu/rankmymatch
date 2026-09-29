@@ -21,6 +21,6 @@ export function EligibilityNotice({ minimum, totalSets, percentage, className = 
 }
 
 export function EligibilityProgress({ played, totalSets }: { played: number; totalSets: number }) {
-  const percentage = totalSets > 0 ? Math.round(played / totalSets * 100) : 0;
+  const percentage = totalSets > 0 ? Math.floor(played / totalSets * 100) : 0;
   return <span>{played} {played === 1 ? "set" : "sets"} / {percentage}%</span>;
 }

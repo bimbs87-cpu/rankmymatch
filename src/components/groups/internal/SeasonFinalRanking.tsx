@@ -129,7 +129,7 @@ export function SeasonFinalRanking({ seasonId, isActive = false }: { seasonId: s
         <div className="space-y-1.5">
            {rows.map((r, index) => (
              <div key={r.user_id}>
-             {index === podium.length + rows.filter((row) => row.is_eligible).length - podium.length && (
+             {index === rows.filter((row) => row.is_eligible).length && (
                <div className="border-t border-border/60 px-2 py-3">
                  <h3 className="text-xs font-semibold text-foreground">Inativos</h3>
                  <EligibilityNotice minimum={progress.minimum} totalSets={progress.totalSets} percentage={progress.percentage} className="mt-1" />
