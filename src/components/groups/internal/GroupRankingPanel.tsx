@@ -122,11 +122,12 @@ export function GroupRankingPanel({ groupId }: Props) {
         </div>
       ) : (
         <ul className="overflow-hidden rounded-2xl border border-border bg-card">
-          {rows.map((row, idx) => {
+          {rows.map((row) => {
             const name = row.profile?.nickname || row.profile?.name || "Jogador";
             const winRate = row.matches_played > 0
               ? Math.round((row.matches_won / row.matches_played) * 100)
               : 0;
+            const place = row.position;
             return (
               <li
                 key={row.user_id}
@@ -136,16 +137,16 @@ export function GroupRankingPanel({ groupId }: Props) {
               >
                 <span
                   className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
-                    row.is_eligible && idx === 0
+                    row.is_eligible && place === 1
                       ? "bg-[var(--rank-gold)]/20 text-[var(--rank-gold)] ring-1 ring-[var(--rank-gold)]/40"
-                    : row.is_eligible && idx === 1
+                    : row.is_eligible && place === 2
                       ? "bg-[var(--rank-silver,_oklch(0.85_0_0))]/20 text-foreground ring-1 ring-border"
-                    : row.is_eligible && idx === 2
+                    : row.is_eligible && place === 3
                       ? "bg-[var(--rank-bronze,_oklch(0.6_0.1_50))]/20 text-foreground ring-1 ring-border"
                       : "bg-muted text-muted-foreground"
                   }`}
                 >
-                  {row.is_eligible ? idx + 1 : "—"}
+                  {row.is_eligible ? place : "—"}
                 </span>
                 <PlayerAvatarLink userId={row.user_id} ariaLabel={`Ver perfil de ${name}`}>
                   <PlayerAvatar

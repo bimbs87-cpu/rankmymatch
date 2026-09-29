@@ -50,14 +50,14 @@ export function SeasonFinalRanking({ seasonId, isActive = false }: { seasonId: s
         .select("user_id, name, nickname, avatar_url, avatar_type")
         .in("user_id", userIds);
 
-      const merged: RankingRow[] = snaps.map((s, i) => {
+      const merged: RankingRow[] = snaps.map((s) => {
         const p = profiles?.find((p) => p.user_id === s.user_id);
         return {
           user_id: s.user_id,
           rating: Number(s.rating),
           matches_played: s.matches_played || 0,
           matches_won: s.matches_won || 0,
-          position: s.is_eligible ? s.position ?? i + 1 : null,
+          position: s.position,
           is_eligible: eligibilityMinimum(completed, percentage) > 0 && s.matches_played >= eligibilityMinimum(completed, percentage),
           name: p?.name || "Jogador",
           nickname: p?.nickname || null,
@@ -65,6 +65,7 @@ export function SeasonFinalRanking({ seasonId, isActive = false }: { seasonId: s
           avatar_type: p?.avatar_type || null,
         };
       });
+      merged.sort((a, b) => Number(b.is_eligible) - Number(a.is_eligible) || b.rating - a.rating);
       if (!cancelled) { setRows(merged); setLoading(false); }
     })();
     return () => { cancelled = true; };
@@ -123,7 +124,7 @@ export function SeasonFinalRanking({ seasonId, isActive = false }: { seasonId: s
           {rows.map((r) => (
             <div
               key={r.user_id}
-              className="flex items-center gap-2.5 rounded-lg border border-border/50 bg-background/40 px-2 py-1.5"
+              className="flex flex-wrap items-center gap-x-2.5 gap-y-1 rounded-lg border border-border/50 bg-background/40 px-2 py-1.5"
             >
               <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-[10px] font-bold ${
                 r.position === 1 ? "bg-warning/20 text-warning" :

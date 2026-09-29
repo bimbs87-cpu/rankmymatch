@@ -589,7 +589,7 @@ function RankingPage() {
 
   const myRanking = rankings.find((r) => r.user_id === user?.id);
   const selectedSeason = seasons.find((s: any) => s.id === selectedSeasonId);
-  const remainingRounds = Math.max(0, (selectedSeason?.total_rounds || totalRounds) - completedRounds);
+  const remainingRounds = Math.max(0, Math.max(selectedSeason?.total_rounds || 0, totalRounds) - completedRounds);
   const eligibilityPct = Number(selectedSeason?.min_eligibility_pct ?? 30);
   const minimumMatches = eligibilityMinimum(completedRounds, eligibilityPct);
   const eligibleRankings = rankings.filter((r) => r.is_eligible);
@@ -1155,8 +1155,8 @@ function RankingPage() {
 
                     {!compareMode && isExpanded && canExpand && selectedSeason && (
                       <div>
-                      <EligibilityNotice played={entry.matches_played} minimum={minimumMatches} completed={completedRounds} remaining={remainingRounds} percentage={eligibilityPct} className="px-4 pt-3" />
-                      <RankingPlayerDetails
+                        <EligibilityNotice played={entry.matches_played} minimum={minimumMatches} completed={completedRounds} remaining={remainingRounds} percentage={eligibilityPct} className="px-4 pt-3" />
+                        <RankingPlayerDetails
                         userId={entry.user_id}
                         seasonId={selectedSeason.id}
                         groupId={(selectedSeason as any).group_id}
@@ -1169,7 +1169,7 @@ function RankingPage() {
                         gamesLost={entry.games_lost}
                         position={entry.position}
                         isEligible={entry.is_eligible}
-                      />
+                        />
                       </div>
                     )}
                   </div>
