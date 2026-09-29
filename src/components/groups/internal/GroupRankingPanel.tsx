@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { Trophy, ExternalLink, AlertCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -6,7 +6,7 @@ import { PlayerAvatarLink } from "@/components/PlayerProfileViewer";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { GroupEloEvolutionChart } from "@/components/groups/internal/GroupEloEvolutionChart";
 import { GroupEloHighlights } from "@/components/groups/internal/GroupEloHighlights";
-import { EligibilityNotice } from "@/components/EligibilityNotice";
+import { EligibilityNotice, EligibilityProgress } from "@/components/EligibilityNotice";
 
 interface RankingRow {
   user_id: string;
@@ -127,15 +127,21 @@ export function GroupRankingPanel({ groupId }: Props) {
         </div>
       ) : (
         <ul className="overflow-hidden rounded-2xl border border-border bg-card">
-          {rows.map((row) => {
+          {rows.map((row, index) => {
             const name = row.profile?.nickname || row.profile?.name || "Jogador";
             const winRate = row.matches_played > 0
               ? Math.round((row.matches_won / row.matches_played) * 100)
               : 0;
             const place = row.position;
             return (
+              <Fragment key={row.user_id}>
+              {index === rows.filter((r) => r.is_eligible).length && (
+                <li className="border-t border-border/60 px-3 py-3">
+                  <h3 className="text-xs font-semibold text-foreground">Inativos</h3>
+                  <EligibilityNotice minimum={progress.minimum} totalSets={progress.totalSets} percentage={progress.percentage} className="mt-1" />
+                </li>
+              )}
               <li
-                key={row.user_id}
                 className={`flex flex-wrap items-center gap-x-3 gap-y-0.5 border-b border-border/60 px-3 py-2.5 last:border-b-0 ${
                   !row.is_eligible ? "opacity-60" : ""
                 }`}
@@ -162,9 +168,9 @@ export function GroupRankingPanel({ groupId }: Props) {
                 </PlayerAvatarLink>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-semibold text-foreground">{name}</p>
-                  <p className="text-[10px] text-muted-foreground">
-                    {row.matches_played} jogos · {winRate}% vitórias
-                  </p>
+                   <p className="text-[10px] text-muted-foreground">
+                     {row.is_eligible ? `${row.matches_played} jogos · ${winRate}% vitórias` : <EligibilityProgress played={row.sets_played} totalSets={progress.totalSets} />}
+                   </p>
                 </div>
                 <div className="text-right">
                   <p className="font-mono text-sm font-bold text-primary">
@@ -176,8 +182,8 @@ export function GroupRankingPanel({ groupId }: Props) {
                     </p>
                   )}
                 </div>
-                {!row.is_eligible && <EligibilityNotice played={row.sets_played} minimum={progress.minimum} totalSets={progress.totalSets} completed={progress.completed} remaining={progress.remaining} percentage={progress.percentage} className="w-full pl-10" />}
               </li>
+              </Fragment>
             );
           })}
         </ul>

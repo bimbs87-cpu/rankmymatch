@@ -3,7 +3,7 @@ import { Crown, Medal, Trophy, Zap, TrendingUp, Target } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { useSeasonExtras, type RecordHolder } from "@/hooks/use-group-stats";
-import { EligibilityNotice } from "@/components/EligibilityNotice";
+import { EligibilityNotice, EligibilityProgress } from "@/components/EligibilityNotice";
 
 interface RankingRow {
   user_id: string;
@@ -127,9 +127,15 @@ export function SeasonFinalRanking({ seasonId, isActive = false }: { seasonId: s
           </div>
         </div>
         <div className="space-y-1.5">
-          {rows.map((r) => (
+           {rows.map((r, index) => (
+             <div key={r.user_id}>
+             {index === rows.filter((row) => row.is_eligible).length && (
+               <div className="border-t border-border/60 px-2 py-3">
+                 <h3 className="text-xs font-semibold text-foreground">Inativos</h3>
+                 <EligibilityNotice minimum={progress.minimum} totalSets={progress.totalSets} percentage={progress.percentage} className="mt-1" />
+               </div>
+             )}
             <div
-              key={r.user_id}
               className="flex flex-wrap items-center gap-x-2.5 gap-y-1 rounded-lg border border-border/50 bg-background/40 px-2 py-1.5"
             >
               <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-[10px] font-bold ${
@@ -148,15 +154,15 @@ export function SeasonFinalRanking({ seasonId, isActive = false }: { seasonId: s
               <div className="min-w-0 flex-1">
                 <div className="truncate text-xs font-semibold text-foreground">{r.nickname || r.name}</div>
                 <div className="text-[10px] text-muted-foreground">
-                  {r.matches_won}V/{r.matches_played - r.matches_won}D · {wr(r)}% WR
+                   {r.is_eligible ? `${r.matches_won}V/${r.matches_played - r.matches_won}D · ${wr(r)}% WR` : <EligibilityProgress played={r.sets_played} totalSets={progress.totalSets} />}
                 </div>
               </div>
               <div className="text-right">
                 <div className="font-display text-sm font-bold text-primary">{Math.round(r.rating)}</div>
                 <div className="text-[9px] uppercase text-muted-foreground">Elo</div>
               </div>
-              {!r.is_eligible && <EligibilityNotice played={r.sets_played} minimum={progress.minimum} totalSets={progress.totalSets} completed={progress.completed} remaining={progress.remaining} percentage={progress.percentage} className="w-full" />}
             </div>
+             </div>
           ))}
         </div>
       </div>
