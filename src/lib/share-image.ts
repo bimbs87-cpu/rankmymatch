@@ -1,11 +1,13 @@
 import { toast } from "sonner";
+import noPhotoAvatar from "@/assets/avatars/no-photo.png";
 
 /** Open the platform's image share sheet (WhatsApp is offered when installed). */
 export async function shareImage(node: HTMLElement, filename: string, title: string, options?: { width?: number; height?: number; outputWidth?: number; outputHeight?: number }) {
   const { toBlob } = await import("html-to-image");
   await document.fonts.ready;
   let blob = await toBlob(node, {
-    cacheBust: true,
+    cacheBust: false,
+    imagePlaceholder: new URL(noPhotoAvatar, window.location.href).href,
     pixelRatio: 1,
     width: options?.width ?? node.offsetWidth,
     height: options?.height ?? node.offsetHeight,
