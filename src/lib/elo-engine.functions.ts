@@ -9,6 +9,7 @@ import { supabaseAdmin } from "@/integrations/supabase/client.server";
 const SubmitMatchScoreInput = z.object({
   matchId: z.string().uuid(),
   seasonId: z.string().uuid(),
+  deferNotification: z.boolean().optional(),
   sets: z
     .array(
       z.object({
@@ -21,6 +22,86 @@ const SubmitMatchScoreInput = z.object({
     .max(99),
 });
 
+const NotifySavedMatchesInput = z.object({
+  matchIds: z.array(z.string().uuid()).min(1).max(50),
+  seasonId: z.string().uuid(),
+});
+
+/** One result alert per involved player, after all sets in the save have persisted. */
+async function notifySavedMatches(matchIds: string[], seasonId: string, userId: string, supabase: typeof supabaseAdmin) {
+  const ids = [...new Set(matchIds)];
+  const { data: matches, error: matchError } = await supabase
+    .from("matches")
+    .select("id, round_id, round:rounds!inner(group_id, season_id), match_players(user_id, team), match_sets(set_number, score_team_a, score_team_b)")
+    .in("id", ids);
+  if (matchError) throw new Error(matchError.message);
+  if (!matches || matches.length !== ids.length) throw new Error("Partidas não encontradas");
+  const groupIds = new Set(matches.map((match) => (match.round as unknown as { group_id: string }).group_id));
+  const roundIds = new Set(matches.map((match) => match.round_id));
+  if (groupIds.size !== 1 || roundIds.size !== 1 || matches.some((match) =>
+    (match.round as unknown as { season_id: string | null }).season_id !== seasonId
+  )) throw new Error("As partidas devem pertencer à mesma rodada e temporada");
+  const groupId = [...groupIds][0];
+  const roundId = [...roundIds][0];
+  const { data: isAdmin, error: adminError } = await supabase.rpc("is_group_admin", {
+    _user_id: userId, _group_id: groupId,
+  });
+  if (adminError) throw new Error(adminError.message);
+  if (!isAdmin) throw new Error("Apenas administradores do grupo podem avisar os jogadores");
+
+  const playerIds = [...new Set(matches.flatMap((match) => match.match_players.map((player) => player.user_id)))];
+  if (!playerIds.length) return;
+  const { data: profiles, error: profileError } = await supabase
+    .from("user_profiles").select("user_id, name, nickname").in("user_id", playerIds);
+  if (profileError) throw new Error(profileError.message);
+  const firstNames = new Map((profiles ?? []).map((profile) => [
+    profile.user_id, (profile.nickname || profile.name).trim().split(/\s+/)[0] || "Jogador",
+  ]));
+  const messages = new Map<string, string[]>();
+  for (const match of matches) {
+    const players = [...match.match_players].sort((a, b) => a.team.localeCompare(b.team));
+    const names = players.map((player) => firstNames.get(player.user_id) || "Jogador").join(", ");
+    const scores = [...match.match_sets]
+      .sort((a, b) => a.set_number - b.set_number)
+      .map((set) => `${set.score_team_a}x${set.score_team_b}`).join(", ");
+    if (!scores) continue;
+    for (const player of players) {
+      const own = messages.get(player.user_id) ?? [];
+      own.push(`${names} - ${scores}`);
+      messages.set(player.user_id, own);
+    }
+  }
+
+  const title = "Resultado registrado";
+  const url = `/groups/${groupId}?view=seasons&season=${seasonId}&round=${roundId}`;
+  const data = { groupId, seasonId, roundId };
+  const { sendPushToUserIds } = await import("@/lib/web-push.server");
+  for (const [recipient, results] of messages) {
+    const body = `${results.join("; ")}. Confira os detalhes`;
+    const { error } = await supabase.from("notifications").insert({
+      user_id: recipient, group_id: groupId, type: "match_result", title, body, data,
+    });
+    if (error) console.error("[matchResult] notification insert failed", error);
+    const push = await sendPushToUserIds([recipient], {
+      title, body, url, type: "match_result", tag: `match_result:${roundId}`, data,
+    });
+    if (push.error) console.warn("[matchResult] push delivery", push.error);
+  }
+}
+
+export const notifySavedMatchResultsFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => NotifySavedMatchesInput.parse(input))
+  .handler(async ({ data, context }) => {
+    try {
+      await notifySavedMatches(data.matchIds, data.seasonId, context.userId, context.supabase as typeof supabaseAdmin);
+    } catch (error) {
+      console.error("[matchResult] batch notification failed", error);
+      throw error;
+    }
+    return { ok: true };
+  });
+
 // ============================================================================
 // Server function
 // ============================================================================
@@ -28,7 +109,7 @@ export const submitMatchScoreServerFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => SubmitMatchScoreInput.parse(input))
   .handler(async ({ data, context }) => {
-    const { matchId, seasonId, sets } = data;
+    const { matchId, seasonId, sets, deferNotification } = data;
     const { userId } = context;
     const requestId = crypto.randomUUID().slice(0, 8);
     console.info("[submitMatchScore] start", { requestId, matchId, seasonId, userId, sets: sets.length });
@@ -60,41 +141,14 @@ export const submitMatchScoreServerFn = createServerFn({ method: "POST" })
     const result = saved?.[0];
     if (!result) throw new Error("Resultado não confirmado");
     const { winner_team: winnerTeam, sets_a: setsA, sets_b: setsB, edited: isEdit } = result;
-    const isDraw = winnerTeam === null;
-    const { data: players, error: playersErr } = await supabaseAdmin
-      .from("match_players").select("user_id, team").eq("match_id", matchId);
-    if (playersErr) throw new Error(playersErr.message);
-    const teamA = (players ?? []).filter((p) => p.team === "A").map((p) => p.user_id);
-    const teamB = (players ?? []).filter((p) => p.team === "B").map((p) => p.user_id);
-
     // A completed result is the source of truth for this fan-out. Do not let
     // notification delivery turn a successfully saved match into a failed save.
-    try {
-      const playerIds = Array.from(new Set([...teamA, ...teamB]));
-      const { data: profiles } = await supabaseAdmin
-        .from("user_profiles")
-        .select("user_id, name, nickname")
-        .in("user_id", playerIds);
-      const { data: group } = await supabaseAdmin.from("groups").select("name").eq("id", groupId).maybeSingle();
-      const names = new Map((profiles ?? []).map((p) => [p.user_id, p.nickname || p.name]));
-      const side = (ids: string[]) => ids.map((id) => names.get(id) || "Jogador").join(" / ");
-      const score = sets.map((s) => `${s.scoreA}×${s.scoreB}`).join(" · ");
-      const round = match.rounds as unknown as { group_id: string; round_number: number | null };
-      const title = `${isEdit ? "Resultado atualizado" : "Resultado registrado"} · ${group?.name || "Grupo"}`;
-      const body = `Rodada ${round.round_number ?? "—"}, partida ${match.match_number ?? "—"}: ${side(teamA)} x ${side(teamB)} · ${score}${isDraw ? " · Empate" : ""}`;
-      const url = `/groups/${groupId}?view=seasons&season=${seasonId}&round=${match.round_id}&match=${matchId}`;
-      const data = { groupId, seasonId, roundId: match.round_id, matchId };
-      const { error: notificationError } = await supabaseAdmin.from("notifications").insert(
-        playerIds.map((id) => ({ user_id: id, group_id: groupId, type: "match_result", title, body, data })),
-      );
-      if (notificationError) console.error("[submitMatchScore] notification insert failed", notificationError);
-      const { sendPushToUserIds } = await import("@/lib/web-push.server");
-      const push = await sendPushToUserIds(playerIds, {
-        title, body, url, type: "match_result", tag: `match_result:${matchId}`, data,
-      });
-      if (push.error) console.warn("[submitMatchScore] push delivery", push.error);
-    } catch (notificationError) {
-      console.error("[submitMatchScore] result notification failed", notificationError);
+    if (!deferNotification) {
+      try {
+        await notifySavedMatches([matchId], seasonId, userId, supabaseAdmin);
+      } catch (notificationError) {
+        console.error("[submitMatchScore] result notification failed", notificationError);
+      }
     }
 
     console.info("[submitMatchScore] done", { requestId, matchId, winnerTeam, edited: isEdit });
