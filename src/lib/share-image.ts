@@ -5,7 +5,7 @@ export async function shareImage(node: HTMLElement, filename: string, title: str
   const { toBlob } = await import("html-to-image");
   await document.fonts.ready;
   let blob = await toBlob(node, {
-    cacheBust: false,
+    cacheBust: true,
     pixelRatio: 1,
     width: options?.width ?? node.offsetWidth,
     height: options?.height ?? node.offsetHeight,
@@ -13,25 +13,6 @@ export async function shareImage(node: HTMLElement, filename: string, title: str
     filter: (element) => !(element instanceof HTMLElement && element.hasAttribute("data-share-exclude")),
   });
   if (!blob) throw new Error("Não foi possível criar a imagem");
-  // Flatten transparent corners against the same background shown in the card.
-  // Messaging apps may otherwise paint those pixels black.
-  const computed = getComputedStyle(node);
-  const background = computed.backgroundColor === "rgba(0, 0, 0, 0)" ? computed.getPropertyValue("--background").trim() : computed.backgroundColor;
-  if (background) {
-    const bitmap = await createImageBitmap(blob);
-    const canvas = document.createElement("canvas");
-    canvas.width = bitmap.width;
-    canvas.height = bitmap.height;
-    const context = canvas.getContext("2d");
-    if (!context) throw new Error("Não foi possível criar a imagem");
-    context.fillStyle = background;
-    context.fillRect(0, 0, canvas.width, canvas.height);
-    context.drawImage(bitmap, 0, 0);
-    bitmap.close();
-    const flattened = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/png"));
-    if (!flattened) throw new Error("Não foi possível criar a imagem");
-    blob = flattened;
-  }
   if (options?.outputWidth && options.outputHeight) {
     const bitmap = await createImageBitmap(blob);
     const canvas = document.createElement("canvas");
