@@ -5,13 +5,18 @@ import noPhotoAvatar from "@/assets/avatars/no-photo.png";
 export async function shareImage(node: HTMLElement, filename: string, title: string, options?: { width?: number; height?: number; outputWidth?: number; outputHeight?: number }) {
   const { toBlob } = await import("html-to-image");
   await document.fonts.ready;
+  const backgroundProbe = document.createElement("span");
+  backgroundProbe.style.backgroundColor = "var(--background)";
+  node.append(backgroundProbe);
+  const background = getComputedStyle(backgroundProbe).backgroundColor;
+  backgroundProbe.remove();
   const renderOptions = {
     cacheBust: false,
     imagePlaceholder: new URL(noPhotoAvatar, window.location.href).href,
     pixelRatio: 1,
     width: options?.width ?? node.offsetWidth,
     height: options?.height ?? node.offsetHeight,
-    backgroundColor: getComputedStyle(node).backgroundColor,
+    backgroundColor: background,
     filter: (element) => !(element instanceof HTMLElement && element.hasAttribute("data-share-exclude")),
   };
   let blob: Blob | null;
