@@ -26,6 +26,7 @@ export async function shareImage(node: HTMLElement, filename: string, title: str
     // A remote profile photo can expire or reject cross-origin capture.
     // Preserve the image instead of failing the whole share.
     const fallback = node.cloneNode(true) as HTMLElement;
+    fallback.classList.add("light");
     fallback.style.cssText += ";position:fixed;left:0;top:0;z-index:-2;pointer-events:none";
     fallback.querySelectorAll("img").forEach((image) => {
       if (new URL(image.src, window.location.href).origin !== window.location.origin) image.src = noPhotoAvatar;
