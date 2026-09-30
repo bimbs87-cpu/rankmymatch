@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useAuth } from "@/hooks/use-auth";
 import { TrophyLoadingBar } from "@/components/TrophyLoadingBar";
 import { useMyGroups } from "@/hooks/use-groups";
-import { BarChart3, Info, ChevronDown, ArrowUp, ArrowDown, Calendar, Layers, Timer, Crown, AlertTriangle, ChevronRight, GitCompareArrows, X, Check } from "lucide-react";
+import { BarChart3, Info, ChevronDown, ArrowUp, ArrowDown, Calendar, Layers, Timer, Crown, AlertTriangle, ChevronRight, GitCompareArrows, X, Check, Share2, Loader2 } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
@@ -11,6 +11,10 @@ import { RankingPlayerDetails } from "@/components/RankingPlayerDetails";
 import { buildDisplayNames, getCollidingFirstNames } from "@/lib/name-disambiguation";
 import { abbreviateName } from "@/lib/utils";
 import { EligibilityNotice, EligibilityProgress } from "@/components/EligibilityNotice";
+import { RankingShareImage } from "@/components/RankingShareImage";
+import { shareImage } from "@/lib/share-image";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/ranking")({
   validateSearch: (search: Record<string, unknown>): { group?: string } => ({
@@ -135,6 +139,7 @@ function RankingPage() {
   const [compareMode, setCompareMode] = useState(false);
   const [compareSelection, setCompareSelection] = useState<string[]>([]);
   const [usedFallback, setUsedFallback] = useState(false);
+  const [sharingRanking, setSharingRanking] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -621,6 +626,21 @@ function RankingPage() {
   const getDisplayName = (entry: RankingEntry) =>
     displayNameMap.get(entry.user_id) || entry.profile?.nickname || abbreviateName(entry.profile?.name || "Jogador");
 
+  const shareRanking = async () => {
+    const image = document.querySelector<HTMLElement>("#ranking-share-image > div");
+    if (!image || !selectedSeason) return;
+    setSharingRanking(true);
+    try {
+      await Promise.all(Array.from(image.querySelectorAll("img")).map((img) => img.decode().catch(() => {})));
+      await shareImage(image, `ranking-${selectedSeason.name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`, `Ranking · ${(selectedSeason as any).groups?.name || "RankMyMatch"}`);
+    } catch (error) {
+      console.error("Erro ao compartilhar ranking", error);
+      toast.error("Não foi possível compartilhar o ranking");
+    } finally {
+      setSharingRanking(false);
+    }
+  };
+
   const handleSeasonSelect = (id: string) => {
     setSelectedSeasonId(id);
     setShowSwitcher(false);
@@ -654,11 +674,33 @@ function RankingPage() {
           )}
         </div>
         <div className="flex items-center gap-2">
+          {selectedSeason && rankings.length > 0 && (
+            <Button type="button" size="sm" variant="outline" disabled={sharingRanking} onClick={shareRanking} aria-label="Compartilhar ranking">
+              {sharingRanking ? <Loader2 className="animate-spin" /> : <Share2 />}
+              <span className="hidden sm:inline">Compartilhar ranking</span>
+            </Button>
+          )}
           <Link to="/ranking-info" className="rounded-full border border-border bg-card p-2 transition-colors hover:bg-accent" aria-label="Entenda a pontuação" title="Entenda a pontuação">
             <Info className="h-4 w-4 text-muted-foreground" />
           </Link>
         </div>
       </header>
+
+      {selectedSeason && rankings.length > 0 && (
+        <div id="ranking-share-image" aria-hidden="true" className="light fixed left-0 top-0 -z-10 w-[441px] bg-background pointer-events-none">
+          <RankingShareImage
+            groupName={(selectedSeason as any).groups?.name || "Grupo"}
+            seasonName={selectedSeason.name}
+            date={new Date().toLocaleDateString("pt-BR")}
+            completedRounds={completedRounds}
+            totalSets={totalSets}
+            remainingRounds={remainingRounds}
+            minimumSets={minimumSets}
+            eligibilityPct={eligibilityPct}
+            entries={rankings.map((entry) => ({ ...entry, name: getDisplayName(entry), avatar_url: entry.profile?.avatar_url ?? null }))}
+          />
+        </div>
+      )}
 
       {/* Season label / dropdown trigger (mobile) */}
       {selectedSeason && (
