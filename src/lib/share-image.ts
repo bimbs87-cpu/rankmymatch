@@ -5,7 +5,7 @@ export async function shareImage(node: HTMLElement, filename: string, title: str
   const { toBlob } = await import("html-to-image");
   await document.fonts.ready;
   let blob = await toBlob(node, {
-    cacheBust: true,
+    cacheBust: false,
     pixelRatio: 1,
     width: options?.width ?? node.offsetWidth,
     height: options?.height ?? node.offsetHeight,
