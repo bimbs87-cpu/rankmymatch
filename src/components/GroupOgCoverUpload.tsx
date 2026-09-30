@@ -54,7 +54,7 @@ export function GroupOgCoverUpload({ groupId, currentUrl, onChanged }: Props) {
       const path = `${groupId}/og-cover-${Date.now()}.${ext}`;
       const { error: upErr } = await supabase.storage
         .from("group-images")
-        .upload(path, file, { upsert: true });
+        .upload(path, file, { upsert: false });
       if (upErr) throw upErr;
       const { data: urlData } = supabase.storage.from("group-images").getPublicUrl(path);
       setPreview(urlData.publicUrl);

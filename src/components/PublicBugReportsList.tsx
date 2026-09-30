@@ -71,18 +71,18 @@ export function PublicBugReportsList() {
       .select("bug_report_id, user_id")
       .in("bug_report_id", ids);
 
-    const voteMap = new Map<string, { count: number; mine: boolean }>();
+    const { getPublicBugVoteCounts } = await import("@/lib/bug-vote-counts.functions");
+    const counts = await getPublicBugVoteCounts({ data: { ids } });
+
+    const voteMap = new Map<string, boolean>();
     (votesData ?? []).forEach((v) => {
-      const cur = voteMap.get(v.bug_report_id) ?? { count: 0, mine: false };
-      cur.count += 1;
-      if (user && v.user_id === user.id) cur.mine = true;
-      voteMap.set(v.bug_report_id, cur);
+      if (user && v.user_id === user.id) voteMap.set(v.bug_report_id, true);
     });
 
     const merged: PublicBugReport[] = (reportsData ?? []).map((r) => ({
       ...r,
-      vote_count: voteMap.get(r.id)?.count ?? 0,
-      user_voted: voteMap.get(r.id)?.mine ?? false,
+      vote_count: counts[r.id] ?? 0,
+      user_voted: voteMap.get(r.id) ?? false,
     }));
     merged.sort((a, b) => b.vote_count - a.vote_count);
     setReports(merged);

@@ -43,6 +43,7 @@ export function CreateGroupDialog({ open, onClose }: Props) {
   const [maxPlayers, setMaxPlayers] = useState(20);
   const [sport, setSport] = useState("padel");
   const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [pendingImage, setPendingImage] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   // Retroactive season fields
@@ -66,6 +67,7 @@ export function CreateGroupDialog({ open, onClose }: Props) {
     setMaxPlayers(20);
     setSport("padel");
     setImageUrl(null);
+    setPendingImage(null);
     setCreateRetroSeason(false);
     setRetroSeasonName("");
     setRetroStartDate("");
@@ -143,10 +145,18 @@ export function CreateGroupDialog({ open, onClose }: Props) {
         singles_group_type: matchFormat === "singles" ? singlesGroupType : undefined,
       });
 
-      if (imageUrl && group) {
+      let uploadedImageUrl = imageUrl;
+      if (pendingImage && group) {
+        const ext = pendingImage.name.split(".").pop() || "jpg";
+        const path = `${group.id}/${Date.now()}.${ext}`;
+        const { error: uploadError } = await supabase.storage.from("group-images").upload(path, pendingImage);
+        if (uploadError) throw uploadError;
+        uploadedImageUrl = supabase.storage.from("group-images").getPublicUrl(path).data.publicUrl;
+      }
+      if (uploadedImageUrl && group) {
         const { error: updateImageError } = await supabase
           .from("groups")
-          .update({ image_url: imageUrl })
+          .update({ image_url: uploadedImageUrl })
           .eq("id", group.id);
 
         if (updateImageError) throw updateImageError;
@@ -245,6 +255,7 @@ export function CreateGroupDialog({ open, onClose }: Props) {
               setSport={setSport}
               imageUrl={imageUrl}
               setImageUrl={setImageUrl}
+              setPendingImage={setPendingImage}
               submitting={submitting}
               onSubmit={handleSubmit}
               createRetroSeason={createRetroSeason}
@@ -343,6 +354,7 @@ interface GroupFormProps {
   setSport: (v: string) => void;
   imageUrl: string | null;
   setImageUrl: (v: string | null) => void;
+  setPendingImage: (v: File | null) => void;
   submitting: boolean;
   onSubmit: () => void;
   createRetroSeason: boolean;
@@ -369,7 +381,7 @@ function GroupForm({
   visibility, setVisibility,
   maxPlayers, setMaxPlayers,
   sport, setSport,
-  imageUrl, setImageUrl,
+  imageUrl, setImageUrl, setPendingImage,
   submitting,
   onSubmit,
   createRetroSeason, setCreateRetroSeason,
@@ -403,8 +415,9 @@ function GroupForm({
 
       {/* Imagem */}
       <GroupImageUpload
+        onFileSelected={setPendingImage}
         onUploaded={(url) => setImageUrl(url)}
-        onRemoved={() => setImageUrl(null)}
+        onRemoved={() => { setImageUrl(null); setPendingImage(null); }}
       />
 
       {/* Nome */}

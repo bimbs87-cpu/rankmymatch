@@ -8,9 +8,10 @@ interface Props {
   currentUrl?: string | null;
   onUploaded: (url: string) => void;
   onRemoved?: () => void;
+  onFileSelected?: (file: File) => void;
 }
 
-export function GroupImageUpload({ groupId, currentUrl, onUploaded, onRemoved }: Props) {
+export function GroupImageUpload({ groupId, currentUrl, onUploaded, onRemoved, onFileSelected }: Props) {
   const [uploading, setUploading] = useState(false);
   const [preview, setPreview] = useState<string | null>(currentUrl || null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -24,6 +25,11 @@ export function GroupImageUpload({ groupId, currentUrl, onUploaded, onRemoved }:
       toast.error("Imagem deve ter no máximo 5MB");
       return;
     }
+    if (!groupId && onFileSelected) {
+      onFileSelected(file);
+      setPreview(URL.createObjectURL(file));
+      return;
+    }
 
     setUploading(true);
     const ext = file.name.split(".").pop() || "jpg";
@@ -32,7 +38,7 @@ export function GroupImageUpload({ groupId, currentUrl, onUploaded, onRemoved }:
 
     const { error } = await supabase.storage
       .from("group-images")
-      .upload(path, file, { upsert: true });
+      .upload(path, file, { upsert: false });
 
     if (error) {
       toast.error("Erro ao fazer upload");
