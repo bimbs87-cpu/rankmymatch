@@ -3,3 +3,4 @@ RankMyMatch technical decisions:
 - Ranking eligibility requires a player's recorded sets in completed ranking matches to reach max(1, floor(total recorded ranking sets × seasons.min_eligibility_pct / 100)); incomplete or tied sets still count as participation.
 - Dispatch single-match result alerts from authenticated finalization and batch alerts only after all batch scores save, so each involved player gets one alert with their saved results and the round destination.
 - Render shareable round and ranking images in the browser from dedicated offscreen views; this preserves the displayed scores and opens native sharing without saving a screenshot first.
+- Default the Home Elo panel to the latest played group's season and order its rating events by round date and match number; replayed Elo events can share timestamps, and the synthetic Geral ranking has no single-group history.

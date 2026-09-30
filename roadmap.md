@@ -9,4 +9,4 @@
 - [x] Order the ranking's latest five results by match chronology, not rating-event timestamp.
 - [x] Send one result notification after a batch save, with first names and set scores, opening the latest played round.
 - [x] Ensure member name edits persist and only confirm after the updated profile is returned.
-- [ ] Show the last played group's Elo evolution on desktop and align the reordered shortcuts with that group.
+- [x] Show the last played group's Elo evolution on desktop and align the reordered shortcuts with that group.

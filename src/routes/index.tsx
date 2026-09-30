@@ -2306,7 +2306,7 @@ function DashboardPage() {
                               className="flex items-center gap-2 rounded-2xl border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs font-semibold text-destructive transition-colors hover:bg-destructive/10"
                             >
                               <Bell className="h-4 w-4 shrink-0" />
-                               <span className="flex-1 truncate text-left">Notificações gerais</span>
+                               <span className="flex-1 truncate text-left">Notificações</span>
                               <span className="rounded-full bg-destructive px-1.5 py-0.5 text-[9px] font-bold text-destructive-foreground tabular-nums">
                                 {unreadCount > 9 ? "9+" : unreadCount}
                               </span>
