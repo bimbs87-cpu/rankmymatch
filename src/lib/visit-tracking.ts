@@ -1,6 +1,5 @@
 // Rastreia TODAS as visitas ao site (incluindo anônimas) na tabela `page_visits`.
 // Uma "visita" = pageview. Sessão é mantida em sessionStorage (1 sessão por aba/janela).
-import { supabase } from "@/integrations/supabase/client";
 import { recordPageVisit } from "@/lib/visit-tracking.functions";
 
 const SESSION_KEY = "rmm-visit-session-id";
