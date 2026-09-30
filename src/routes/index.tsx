@@ -2268,7 +2268,12 @@ function DashboardPage() {
                       }
 
                       // 2. Registrar resultado (urgente)
-                      if ((nextMatch?.group_id === currentRanking?.group_id && nextMatch.has_pairing) || pendingMatch?.group_id === currentRanking?.group_id) {
+                      const resultRound = pendingMatch?.group_id === currentRanking?.group_id
+                        ? pendingMatch
+                        : nextMatch?.group_id === currentRanking?.group_id && nextMatch.has_pairing
+                          ? nextMatch
+                          : null;
+                      if (resultRound) {
                         items.push({
                           key: "result",
                           priority: 2,
@@ -2276,9 +2281,9 @@ function DashboardPage() {
                             <button
                               type="button"
                               onClick={() => openQuickRound({
-                                 groupId: pendingMatch?.group_id === currentRanking?.group_id ? pendingMatch.group_id : nextMatch?.group_id || "",
-                                 roundId: pendingMatch?.group_id === currentRanking?.group_id ? pendingMatch.round_id : nextMatch?.round_id || "",
-                                 seasonId: pendingMatch?.group_id === currentRanking?.group_id ? pendingMatch.season_id : nextMatch?.season_id || null,
+                                 groupId: resultRound.group_id,
+                                 roundId: resultRound.round_id,
+                                 seasonId: resultRound.season_id,
                               })}
                               className="flex items-center gap-2 rounded-2xl bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
                             >
@@ -2360,7 +2365,7 @@ function DashboardPage() {
                               className="flex items-center gap-2 rounded-2xl border border-border bg-muted/30 px-3 py-2 text-xs font-semibold text-foreground transition-colors hover:bg-accent/50"
                             >
                               <Medal className="h-4 w-4 shrink-0 text-primary" />
-                              <span className="truncate">Temporada atual</span>
+                               <span className="truncate">Ver temporada</span>
                             </Link>
                           ),
                         });
@@ -2726,7 +2731,7 @@ function DashboardPage() {
                               role="listbox"
                               className="absolute left-0 right-0 top-full z-30 mt-1.5 max-h-64 overflow-y-auto rounded-xl border border-border bg-card p-1 shadow-xl"
                             >
-                              {rankings.map((r) => {
+                              {rankings.filter((r) => !r.is_aggregate).map((r) => {
                                 const isActive = r.season_id === currentRanking.season_id;
                                 return (
                                   <button
@@ -2819,8 +2824,7 @@ function DashboardPage() {
 
                 {/* Chart */}
                 <div className="flex flex-1 flex-col">
-                  {(
-                    <>
+                  <>
                       <div className="mb-1 flex items-center justify-between text-[10px] text-muted-foreground">
                         <span>{ratingPoints.length > 0 ? `${ratingPoints.length} partidas` : ""}</span>
                         {minRating != null && maxRating != null && (
@@ -2836,8 +2840,7 @@ function DashboardPage() {
                           height={280}
                         />
                       </div>
-                    </>
-                  )}
+                  </>
                 </div>
               </div>
             );
