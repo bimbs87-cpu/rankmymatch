@@ -38,7 +38,7 @@ export function GroupImageUpload({ groupId, currentUrl, onUploaded, onRemoved, o
 
     const { error } = await supabase.storage
       .from("group-images")
-      .upload(path, file, { upsert: true });
+      .upload(path, file, { upsert: false });
 
     if (error) {
       toast.error("Erro ao fazer upload");

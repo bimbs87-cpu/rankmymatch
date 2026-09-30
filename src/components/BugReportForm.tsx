@@ -46,6 +46,10 @@ export function BugReportForm() {
       toast.error("Imagem muito grande (máx 5MB).");
       return;
     }
+    if (!user) {
+      toast.error("Entre na conta para anexar uma imagem.");
+      return;
+    }
     setScreenshot(file);
     setPreviewUrl(URL.createObjectURL(file));
   }
