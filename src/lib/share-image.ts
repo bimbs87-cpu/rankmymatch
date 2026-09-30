@@ -15,8 +15,9 @@ export async function shareImage(node: HTMLElement, filename: string, title: str
   if (!blob) throw new Error("Não foi possível criar a imagem");
   // Flatten transparent corners against the same background shown in the card.
   // Messaging apps may otherwise paint those pixels black.
-  const background = getComputedStyle(node).backgroundColor;
-  if (background && background !== "rgba(0, 0, 0, 0)") {
+  const computed = getComputedStyle(node);
+  const background = computed.backgroundColor === "rgba(0, 0, 0, 0)" ? computed.getPropertyValue("--background").trim() : computed.backgroundColor;
+  if (background) {
     const bitmap = await createImageBitmap(blob);
     const canvas = document.createElement("canvas");
     canvas.width = bitmap.width;

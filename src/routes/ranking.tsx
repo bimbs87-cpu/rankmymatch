@@ -627,7 +627,7 @@ function RankingPage() {
     displayNameMap.get(entry.user_id) || entry.profile?.nickname || abbreviateName(entry.profile?.name || "Jogador");
 
   const shareRanking = async () => {
-    const image = document.querySelector<HTMLElement>("#ranking-share-image");
+    const image = document.querySelector<HTMLElement>("#ranking-share-image > div");
     if (!image || !selectedSeason) return;
     setSharingRanking(true);
     try {
