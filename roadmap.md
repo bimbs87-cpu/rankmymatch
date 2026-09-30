@@ -7,4 +7,4 @@
 - [x] Share the ranking as a 441px-wide image with season progress and inactive players.
 - [x] Hide the ranking share image outside the visible desktop viewport.
 - [x] Order the ranking's latest five results by match chronology, not rating-event timestamp.
-- [ ] Send one result notification after a batch save, with first names and set scores, opening the latest played round.
+- [x] Send one result notification after a batch save, with first names and set scores, opening the latest played round.
