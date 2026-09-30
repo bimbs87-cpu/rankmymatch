@@ -167,19 +167,13 @@ export async function processMatchEloServer(result: MatchResultServer) {
     .insert(ratingEvents);
   if (insEventsErr) throw new Error(`Falha ao salvar rating_events: ${insEventsErr.message}`);
 
-  const snapResults = await Promise.all(
-    snapshotUpserts.map((snap) => {
-      if (snap.id) {
-        const { id, ...updateData } = snap;
-        return supabaseAdmin.from("ranking_snapshots").update(updateData).eq("id", id);
-      } else {
-        const { id: _id, ...insertData } = snap;
-        return supabaseAdmin.from("ranking_snapshots").insert(insertData);
-      }
-    }),
-  );
-  for (const r of snapResults) {
-    if (r.error) throw new Error(`Falha ao gravar snapshot: ${r.error.message}`);
+  // The eligibility trigger updates the entire season; concurrent snapshot writes deadlock.
+  for (const snap of snapshotUpserts) {
+    const { id, ...values } = snap;
+    const { error } = id
+      ? await supabaseAdmin.from("ranking_snapshots").update(values).eq("id", id)
+      : await supabaseAdmin.from("ranking_snapshots").insert(values);
+    if (error) throw new Error(`Falha ao gravar snapshot: ${error.message}`);
   }
 
   const { data: allSnapshots } = await supabaseAdmin
@@ -234,9 +228,8 @@ export async function revertMatchEloServer(matchId: string): Promise<void> {
 
   // 3. Reverse-update each player's snapshot
   const seasonIds = new Set<string>();
-  await Promise.all(
-    events.map(async (ev) => {
-      if (!ev.season_id) return;
+  for (const ev of events) {
+      if (!ev.season_id) continue;
       seasonIds.add(ev.season_id);
 
       const team = teamByUser.get(ev.user_id);
@@ -252,12 +245,13 @@ export async function revertMatchEloServer(matchId: string): Promise<void> {
         .eq("season_id", ev.season_id)
         .eq("user_id", ev.user_id)
         .maybeSingle();
-      if (!snap) return;
+      if (!snap) continue;
 
       const newMatchesPlayed = Math.max(0, snap.matches_played - 1);
       if (newMatchesPlayed === 0) {
-        await supabaseAdmin.from("ranking_snapshots").delete().eq("id", snap.id);
-        return;
+        const { error } = await supabaseAdmin.from("ranking_snapshots").delete().eq("id", snap.id);
+        if (error) throw new Error(error.message);
+        continue;
       }
 
       await supabaseAdmin
@@ -273,8 +267,7 @@ export async function revertMatchEloServer(matchId: string): Promise<void> {
           is_eligible: newMatchesPlayed >= 3,
         })
         .eq("id", snap.id);
-    }),
-  );
+  }
 
   // 4. Delete the rating events for this match
   await supabaseAdmin.from("rating_events").delete().eq("match_id", matchId);

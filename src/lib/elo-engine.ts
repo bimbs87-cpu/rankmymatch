@@ -258,9 +258,8 @@ export async function revertMatchElo(matchId: string) {
 
   // 3. For each event, reverse-update the snapshot
   const seasonIds = new Set<string>();
-  await Promise.all(
-    events.map(async (ev) => {
-      if (!ev.season_id) return;
+  for (const ev of events) {
+      if (!ev.season_id) continue;
       seasonIds.add(ev.season_id);
 
       const team = teamByUser.get(ev.user_id);
@@ -277,7 +276,7 @@ export async function revertMatchElo(matchId: string) {
         .eq("user_id", ev.user_id)
         .maybeSingle();
 
-      if (!snap) return;
+      if (!snap) continue;
 
       const newMatchesPlayed = Math.max(0, snap.matches_played - 1);
 
