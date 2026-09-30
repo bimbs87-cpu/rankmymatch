@@ -193,17 +193,13 @@ export async function processMatchElo(result: MatchResult) {
   await supabase.from("rating_events").insert(ratingEvents);
 
   // Upsert ranking snapshots
-  await Promise.all(
-    snapshotUpserts.map((snap) => {
-      if (snap.id) {
-        const { id, ...updateData } = snap;
-        return supabase.from("ranking_snapshots").update(updateData).eq("id", id);
-      } else {
-        const { id, ...insertData } = snap;
-        return supabase.from("ranking_snapshots").insert(insertData);
-      }
-    }),
-  );
+  for (const snap of snapshotUpserts) {
+    const { id, ...values } = snap;
+    const { error } = id
+      ? await supabase.from("ranking_snapshots").update(values).eq("id", id)
+      : await supabase.from("ranking_snapshots").insert(values);
+    if (error) throw new Error(error.message);
+  }
 
   // Update positions
   const { data: allSnapshots } = await supabase
@@ -258,9 +254,8 @@ export async function revertMatchElo(matchId: string) {
 
   // 3. For each event, reverse-update the snapshot
   const seasonIds = new Set<string>();
-  await Promise.all(
-    events.map(async (ev) => {
-      if (!ev.season_id) return;
+  for (const ev of events) {
+      if (!ev.season_id) continue;
       seasonIds.add(ev.season_id);
 
       const team = teamByUser.get(ev.user_id);
@@ -277,13 +272,14 @@ export async function revertMatchElo(matchId: string) {
         .eq("user_id", ev.user_id)
         .maybeSingle();
 
-      if (!snap) return;
+      if (!snap) continue;
 
       const newMatchesPlayed = Math.max(0, snap.matches_played - 1);
 
       if (newMatchesPlayed === 0) {
-        await supabase.from("ranking_snapshots").delete().eq("id", snap.id);
-        return;
+        const { error } = await supabase.from("ranking_snapshots").delete().eq("id", snap.id);
+        if (error) throw new Error(error.message);
+        continue;
       }
 
       await supabase
@@ -299,8 +295,7 @@ export async function revertMatchElo(matchId: string) {
           is_eligible: newMatchesPlayed >= 3,
         })
         .eq("id", snap.id);
-    }),
-  );
+  }
 
   // 4. Delete rating events for this match
   await supabase.from("rating_events").delete().eq("match_id", matchId);

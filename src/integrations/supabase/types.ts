@@ -2365,6 +2365,20 @@ export type Database = {
         Args: { _season_id: string }
         Returns: undefined
       }
+      save_match_score_consistently: {
+        Args: {
+          _actor: string
+          _match_id: string
+          _season_id: string
+          _sets: Json
+        }
+        Returns: {
+          edited: boolean
+          sets_a: number
+          sets_b: number
+          winner_team: string
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never

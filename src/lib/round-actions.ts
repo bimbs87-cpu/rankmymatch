@@ -917,7 +917,7 @@ export async function deleteRound(roundId: string) {
     .select("id")
     .eq("round_id", roundId);
   if (matches?.length) {
-    await Promise.all(matches.map((m) => revertMatchElo(m.id)));
+    for (const match of matches) await revertMatchElo(match.id);
   }
   await supabase.from("matches").delete().eq("round_id", roundId);
   await supabase.from("round_presence").delete().eq("round_id", roundId);
