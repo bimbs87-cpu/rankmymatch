@@ -356,7 +356,7 @@ function RankingPage() {
             .eq("status", "active"),
           supabase
             .from("rounds")
-            .select("id, status, scheduled_date, created_at")
+            .select("id, status, scheduled_date, round_number, created_at")
             .eq("season_id", effectiveSeasonId),
           supabase.rpc("get_season_set_eligibility", { _season_id: effectiveSeasonId }),
         ]);
@@ -384,14 +384,27 @@ function RankingPage() {
         setCompletedRounds(completedR);
 
         let matchIds: string[] = [];
+        const matchOrder = new Map<string, { date: string; roundNumber: number; matchNumber: number; createdAt: string }>();
+        const matchToRound = new Map<string, string>();
         if (roundIds.length > 0) {
           const { data: matchesData, error: matchesError } = await supabase
             .from("matches")
-            .select("id, round_id")
+            .select("id, round_id, match_number, created_at")
             .in("round_id", roundIds);
 
           if (matchesError) throw matchesError;
-          matchIds = (matchesData || []).map((match) => match.id);
+          const roundMap = new Map(rounds.map((round) => [round.id, round]));
+          matchIds = (matchesData || []).map((match) => {
+            const round = roundMap.get(match.round_id);
+            matchToRound.set(match.id, match.round_id);
+            matchOrder.set(match.id, {
+              date: round?.scheduled_date ?? "",
+              roundNumber: round?.round_number ?? 0,
+              matchNumber: match.match_number ?? 0,
+              createdAt: match.created_at,
+            });
+            return match.id;
+          });
         }
 
         const snapshotUserIds = new Set(snapshots.map((snapshot) => snapshot.user_id));
@@ -412,10 +425,9 @@ function RankingPage() {
             .in("user_id", allUserIds),
           supabase
             .from("rating_events")
-            .select("user_id, rating_change, match_id, created_at")
+            .select("user_id, rating_change, actual_score, match_id")
             .eq("season_id", effectiveSeasonId)
-            .in("user_id", allUserIds)
-            .order("created_at", { ascending: false }),
+            .in("user_id", allUserIds),
         ]);
 
         if (profilesRes.error) throw profilesRes.error;
@@ -424,15 +436,25 @@ function RankingPage() {
 
         const profileMap = new Map((profilesRes.data || []).map((profile) => [profile.user_id, profile]));
         const events = eventsRes.data || [];
+        const recentEvents = [...events].sort((a, b) => {
+          const left = matchOrder.get(a.match_id);
+          const right = matchOrder.get(b.match_id);
+          if (!left || !right) return left ? -1 : right ? 1 : 0;
+          return right.date.localeCompare(left.date)
+            || right.roundNumber - left.roundNumber
+            || right.matchNumber - left.matchNumber
+            || right.createdAt.localeCompare(left.createdAt)
+            || b.match_id.localeCompare(a.match_id);
+        });
 
         setLoadProgress(76);
         setLoadLabel("Calculando ranking...");
 
         const userResultsMap = new Map<string, string[]>();
-        for (const event of events) {
+        for (const event of recentEvents) {
           const results = userResultsMap.get(event.user_id) || [];
           if (results.length < 5) {
-            results.push(Number(event.rating_change) >= 0 ? "W" : "L");
+            results.push(Number(event.actual_score) > 0.5 ? "W" : Number(event.actual_score) < 0.5 ? "L" : "D");
             userResultsMap.set(event.user_id, results);
           }
         }
@@ -441,14 +463,6 @@ function RankingPage() {
         let previousPositionMap = new Map<string, number>();
 
         if (events.length > 0 && matchIds.length > 0) {
-          const { data: matchRounds, error: matchRoundsError } = await supabase
-            .from("matches")
-            .select("id, round_id")
-            .in("id", matchIds);
-
-          if (matchRoundsError) throw matchRoundsError;
-
-          const matchToRound = new Map((matchRounds || []).map((match) => [match.id, match.round_id]));
           const completedRoundOrder = [...rounds]
             .filter((round: any) => round.status === "completed")
             .sort((a: any, b: any) => {
@@ -498,7 +512,6 @@ function RankingPage() {
           if (snapshot) {
             const setsPlayed = eligibilityMap.get(userId)?.sets_played ?? 0;
             const isEligible = setsPlayed >= seasonMinimum && seasonMinimum > 0;
-            const snapshotResults = (snapshot.last_5_results as string[]) || [];
             return {
               user_id: userId,
               rating: Number(snapshot.rating),
@@ -511,7 +524,7 @@ function RankingPage() {
               games_won: snapshot.games_won,
               games_lost: snapshot.games_lost,
               is_eligible: isEligible,
-              last_5_results: snapshotResults.length > 0 ? snapshotResults : computedResults,
+              last_5_results: computedResults,
               profile: profile || undefined,
               lastChange: lastChangeMap.get(userId),
               hasSnapshot: true,
@@ -687,7 +700,7 @@ function RankingPage() {
       </header>
 
       {selectedSeason && rankings.length > 0 && (
-        <div id="ranking-share-image" aria-hidden="true" className="light fixed left-0 top-0 -z-10 w-[441px] bg-background pointer-events-none">
+        <div id="ranking-share-image" aria-hidden="true" className="light fixed -left-[10000px] top-0 w-[441px] bg-background pointer-events-none">
           <RankingShareImage
             groupName={(selectedSeason as any).groups?.name || "Grupo"}
             seasonName={selectedSeason.name}

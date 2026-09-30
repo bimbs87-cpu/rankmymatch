@@ -5,3 +5,5 @@
 - [x] Show the last played round before the next round in Agenda e resultados.
 - [x] Share the completed round as a 434×738 image without taking a screenshot.
 - [x] Share the ranking as a 441px-wide image with season progress and inactive players.
+- [x] Hide the ranking share image outside the visible desktop viewport.
+- [x] Order the ranking's latest five results by match chronology, not rating-event timestamp.
