@@ -627,7 +627,7 @@ function RankingPage() {
     displayNameMap.get(entry.user_id) || entry.profile?.nickname || abbreviateName(entry.profile?.name || "Jogador");
 
   const shareRanking = async () => {
-    const image = document.querySelector<HTMLElement>("#ranking-share-image > div");
+    const image = document.querySelector<HTMLElement>("#ranking-share-image");
     if (!image || !selectedSeason) return;
     setSharingRanking(true);
     try {
@@ -687,7 +687,7 @@ function RankingPage() {
       </header>
 
       {selectedSeason && rankings.length > 0 && (
-        <div id="ranking-share-image" aria-hidden="true" className="light fixed left-0 top-0 -z-10 w-[441px] pointer-events-none">
+        <div id="ranking-share-image" aria-hidden="true" className="light fixed left-0 top-0 -z-10 w-[441px] bg-background pointer-events-none">
           <RankingShareImage
             groupName={(selectedSeason as any).groups?.name || "Grupo"}
             seasonName={selectedSeason.name}
