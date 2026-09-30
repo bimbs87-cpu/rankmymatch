@@ -5,7 +5,7 @@ import noPhotoAvatar from "@/assets/avatars/no-photo.png";
 export async function shareImage(node: HTMLElement, filename: string, title: string, options?: { width?: number; height?: number; outputWidth?: number; outputHeight?: number }) {
   const { toBlob } = await import("html-to-image");
   await document.fonts.ready;
-  let blob = await toBlob(node, {
+  const renderOptions = {
     cacheBust: false,
     imagePlaceholder: new URL(noPhotoAvatar, window.location.href).href,
     pixelRatio: 1,
@@ -13,7 +13,25 @@ export async function shareImage(node: HTMLElement, filename: string, title: str
     height: options?.height ?? node.offsetHeight,
     backgroundColor: getComputedStyle(node).backgroundColor,
     filter: (element) => !(element instanceof HTMLElement && element.hasAttribute("data-share-exclude")),
-  });
+  };
+  let blob: Blob | null;
+  try {
+    blob = await toBlob(node, renderOptions);
+  } catch {
+    // A remote profile photo can expire or reject cross-origin capture.
+    // Preserve the image instead of failing the whole share.
+    const fallback = node.cloneNode(true) as HTMLElement;
+    fallback.style.cssText += ";position:fixed;left:0;top:0;z-index:-2;pointer-events:none";
+    fallback.querySelectorAll("img").forEach((image) => {
+      if (new URL(image.src, window.location.href).origin !== window.location.origin) image.src = noPhotoAvatar;
+    });
+    document.body.append(fallback);
+    try {
+      blob = await toBlob(fallback, renderOptions);
+    } finally {
+      fallback.remove();
+    }
+  }
   if (!blob) throw new Error("Não foi possível criar a imagem");
   if (options?.outputWidth && options.outputHeight) {
     const bitmap = await createImageBitmap(blob);
