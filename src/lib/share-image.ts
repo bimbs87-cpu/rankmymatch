@@ -17,7 +17,7 @@ export async function shareImage(node: HTMLElement, filename: string, title: str
     width: options?.width ?? node.offsetWidth,
     height: options?.height ?? node.offsetHeight,
     backgroundColor: background,
-    filter: (element) => !(element instanceof HTMLElement && element.hasAttribute("data-share-exclude")),
+    filter: (element: HTMLElement) => !(element instanceof HTMLElement && element.hasAttribute("data-share-exclude")),
   };
   let blob: Blob | null;
   try {
