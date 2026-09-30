@@ -1,6 +1,7 @@
 // Rastreia TODAS as visitas ao site (incluindo anônimas) na tabela `page_visits`.
 // Uma "visita" = pageview. Sessão é mantida em sessionStorage (1 sessão por aba/janela).
 import { supabase } from "@/integrations/supabase/client";
+import { recordPageVisit } from "@/lib/visit-tracking.functions";
 
 const SESSION_KEY = "rmm-visit-session-id";
 const FIRST_VISIT_KEY = "rmm-first-visit-done";
@@ -76,11 +77,8 @@ export async function trackPageVisit(path: string) {
     const m = url.pathname.match(/^\/invite\/([^/?#]+)/);
     if (m) invite_code = m[1];
 
-    const { data: { user } } = await supabase.auth.getUser();
-
-    await supabase.from("page_visits").insert({
+    await recordPageVisit({ data: {
       session_id: sessionId,
-      user_id: user?.id ?? null,
       path,
       referrer_host: getReferrerHost(),
       utm_source: params.get("utm_source"),
@@ -90,7 +88,7 @@ export async function trackPageVisit(path: string) {
       user_agent: navigator.userAgent.slice(0, 255),
       is_first_visit: isFirstVisit,
       device_type: detectDeviceType(),
-    });
+    } });
   } catch {
     // silencioso — não quebra UX
   }
