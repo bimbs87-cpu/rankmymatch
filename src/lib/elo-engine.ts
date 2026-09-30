@@ -319,7 +319,7 @@ export async function revertMatchElo(matchId: string) {
   );
 }
 
-import { submitMatchScoreServerFn } from "./elo-engine.functions";
+import { notifySavedMatchResultsFn, submitMatchScoreServerFn } from "./elo-engine.functions";
 
 /**
  * Submits a match score. All scoring + Elo logic runs server-side via
@@ -331,13 +331,23 @@ export async function submitMatchScore(
   matchId: string,
   seasonId: string,
   sets: { setNumber: number; scoreA: number; scoreB: number }[],
+  deferNotification = false,
 ) {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session?.access_token) {
     throw new Error("Sessão expirada. Faça login novamente.");
   }
   return submitMatchScoreServerFn({
-    data: { matchId, seasonId, sets },
+    data: { matchId, seasonId, sets, deferNotification },
+    headers: { authorization: `Bearer ${session.access_token}` },
+  });
+}
+
+export async function notifySavedMatchResults(matchIds: string[], seasonId: string) {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session?.access_token) throw new Error("Sessão expirada. Faça login novamente.");
+  return notifySavedMatchResultsFn({
+    data: { matchIds, seasonId },
     headers: { authorization: `Bearer ${session.access_token}` },
   });
 }

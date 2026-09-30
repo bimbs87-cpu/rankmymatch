@@ -2257,13 +2257,22 @@ function BatchScoreEntry({
   const saveAll = async () => {
     if (!changedMatches.length) return;
     setSaving(true);
-    const { submitMatchScore } = await import("@/lib/elo-engine");
+    const { submitMatchScore, notifySavedMatchResults } = await import("@/lib/elo-engine");
     const failures: string[] = [];
+    const savedIds: string[] = [];
     for (const m of changedMatches) {
       try {
-        await submitMatchScore(m.id, seasonId, filledFor(m.id));
+        await submitMatchScore(m.id, seasonId, filledFor(m.id), true);
+        savedIds.push(m.id);
       } catch (e: any) {
         failures.push(`#${m.match_number ?? "?"}: ${e?.message || "erro"}`);
+      }
+    }
+    if (savedIds.length) {
+      try {
+        await notifySavedMatchResults(savedIds, seasonId);
+      } catch (e) {
+        console.error("Aviso de resultados não enviado:", e);
       }
     }
     setSaving(false);
