@@ -2,3 +2,4 @@ RankMyMatch technical decisions:
 - Recompute ranking eligibility and positions in database triggers when snapshots, matches, sets, participants, rounds, or season percentage change; this keeps score-edit paths and ranking screens consistent.
 - Ranking eligibility requires a player's recorded sets in completed ranking matches to reach max(1, floor(total recorded ranking sets × seasons.min_eligibility_pct / 100)); incomplete or tied sets still count as participation.
 - Dispatch match-result notifications from the authenticated finalization function, not score-entry screens, so all score paths include every participant without duplicate pushes.
+- Render shareable round and ranking images in the browser from dedicated offscreen views; this preserves the displayed scores and opens native sharing without saving a screenshot first.
