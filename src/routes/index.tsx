@@ -1006,7 +1006,7 @@ function DashboardPage() {
       // Default to the season of the user's latest completed match, not the
       // synthetic multi-group ranking (which has no Elo evolution of its own).
       const latestPlayedSeasonId = sortedRows
-        .map(({ row }) => row.matches?.rounds?.season_id as string | null)
+        .map((row) => row.matches?.rounds?.season_id as string | null)
         .find((id) => id && opts.some((o) => o.season_id === id));
       setRankings(opts);
       setSelectedSeasonId((prev) => {
