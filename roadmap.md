@@ -3,3 +3,5 @@
 - [x] Show one eligibility rule above inactive players and each player's set progress across ranking views.
 - [x] Notify every match participant after a result is finalized and highlight the result when opened.
 - [x] Show the last played round before the next round in Agenda e resultados.
+- [ ] Share the completed round as a 434×738 image without taking a screenshot.
+- [ ] Share the ranking as a 441px-wide image with season progress and inactive players.

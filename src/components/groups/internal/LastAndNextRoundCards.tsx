@@ -11,6 +11,7 @@ import {
   XCircle,
   Loader2,
   Ban,
+  Share2,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { RoundExpandedDetails } from "./SeasonsPanel";
@@ -18,6 +19,8 @@ import { useAuth } from "@/hooks/use-auth";
 import { confirmPresence, cancelPresence } from "@/lib/round-actions";
 import { toast } from "sonner";
 import { CancelRoundDialog } from "@/components/CancelRoundDialog";
+import { Button } from "@/components/ui/button";
+import { shareImage } from "@/lib/share-image";
 
 interface Props {
   groupId: string;
@@ -65,6 +68,35 @@ export function LastAndNextRoundCards({ groupId, isAdmin, variant = "last", grou
   const [myStatus, setMyStatus] = useState<"confirmed" | "declined" | "pending" | null>(null);
   const [acting, setActing] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
+  const [sharing, setSharing] = useState(false);
+
+  const shareRound = async () => {
+    const card = document.getElementById(`round-share-${round?.id}`);
+    if (!card || !round) return;
+    setSharing(true);
+    const canvas = document.createElement("div");
+    canvas.className = "light";
+    canvas.style.cssText = "position:fixed;left:0;top:0;width:434px;background:var(--background);z-index:-1;pointer-events:none";
+    const copy = card.cloneNode(true) as HTMLElement;
+    copy.style.width = "434px";
+    copy.style.background = "var(--card)";
+    copy.querySelectorAll("button").forEach((button) => {
+      if (button.textContent?.includes("Cancelar rodada")) button.remove();
+    });
+    canvas.append(copy);
+    document.body.append(canvas);
+    try {
+      await document.fonts.ready;
+      await Promise.all(Array.from(copy.querySelectorAll("img")).map((img) => img.decode().catch(() => {})));
+      await shareImage(canvas, `rodada-${round.round_number ?? "resultado"}`, "Resumo da rodada", { width: 434, height: canvas.scrollHeight, outputWidth: 434, outputHeight: 738 });
+    } catch (error) {
+      console.error("Erro ao compartilhar rodada", error);
+      toast.error("Não foi possível compartilhar o resumo");
+    } finally {
+      canvas.remove();
+      setSharing(false);
+    }
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -214,7 +246,7 @@ export function LastAndNextRoundCards({ groupId, isAdmin, variant = "last", grou
 
   return (
     <>
-      <div className={`overflow-hidden rounded-2xl border bg-card/70 shadow-sm transition-all ${borderColor}`}>
+      <div id={`round-share-${round.id}`} className={`overflow-hidden rounded-2xl border bg-card/70 shadow-sm transition-all ${borderColor}`}>
         <button
           type="button"
           onClick={() => setExpanded((v) => !v)}
@@ -345,6 +377,13 @@ export function LastAndNextRoundCards({ groupId, isAdmin, variant = "last", grou
           />
         )}
       </div>
+
+      {isLast && expanded && (
+        <Button type="button" variant="outline" size="sm" disabled={sharing} onClick={shareRound} className="w-full gap-2" data-share-exclude>
+          {sharing ? <Loader2 className="animate-spin" /> : <Share2 />}
+          Compartilhar resumo
+        </Button>
+      )}
 
       {isNext && isAdmin && (
         <CancelRoundDialog
