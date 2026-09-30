@@ -32,7 +32,7 @@ async function notifySavedMatches(matchIds: string[], seasonId: string, userId: 
   const ids = [...new Set(matchIds)];
   const { data: matches, error: matchError } = await supabase
     .from("matches")
-    .select("id, round_id, round:rounds!inner(group_id, season_id), match_players(user_id, team), match_sets(set_number, score_team_a, score_team_b)")
+    .select("id, round_id, round:rounds!inner(group_id, season_id), match_players(user_id, team, created_at), match_sets(set_number, score_team_a, score_team_b)")
     .in("id", ids);
   if (matchError) throw new Error(matchError.message);
   if (!matches || matches.length !== ids.length) throw new Error("Partidas não encontradas");
@@ -52,14 +52,16 @@ async function notifySavedMatches(matchIds: string[], seasonId: string, userId: 
   const playerIds = [...new Set(matches.flatMap((match) => match.match_players.map((player) => player.user_id)))];
   if (!playerIds.length) return;
   const { data: profiles, error: profileError } = await supabase
-    .from("user_profiles").select("user_id, name, nickname").in("user_id", playerIds);
+    .from("user_profiles").select("user_id, name").in("user_id", playerIds);
   if (profileError) throw new Error(profileError.message);
   const firstNames = new Map((profiles ?? []).map((profile) => [
-    profile.user_id, (profile.nickname || profile.name).trim().split(/\s+/)[0] || "Jogador",
+    profile.user_id, profile.name.trim().split(/\s+/)[0] || "Jogador",
   ]));
   const messages = new Map<string, string[]>();
   for (const match of matches) {
-    const players = [...match.match_players].sort((a, b) => a.team.localeCompare(b.team));
+    const players = [...match.match_players].sort((a, b) =>
+      a.team.localeCompare(b.team) || a.created_at.localeCompare(b.created_at)
+    );
     const names = players.map((player) => firstNames.get(player.user_id) || "Jogador").join(", ");
     const scores = [...match.match_sets]
       .sort((a, b) => a.set_number - b.set_number)
