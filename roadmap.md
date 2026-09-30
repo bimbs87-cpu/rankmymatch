@@ -8,3 +8,4 @@
 - [x] Hide the ranking share image outside the visible desktop viewport.
 - [x] Order the ranking's latest five results by match chronology, not rating-event timestamp.
 - [x] Send one result notification after a batch save, with first names and set scores, opening the latest played round.
+- [x] Ensure member name edits persist and only confirm after the updated profile is returned.
