@@ -2270,7 +2270,7 @@ function DashboardPage() {
                       // 2. Registrar resultado (urgente)
                       const resultRound = pendingMatch?.group_id === currentRanking?.group_id
                         ? pendingMatch
-                        : nextMatch?.group_id === currentRanking?.group_id && nextMatch.has_pairing
+                        : nextMatch && nextMatch.group_id === currentRanking?.group_id && nextMatch.has_pairing
                           ? nextMatch
                           : null;
                       if (resultRound) {
