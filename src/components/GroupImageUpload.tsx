@@ -8,9 +8,10 @@ interface Props {
   currentUrl?: string | null;
   onUploaded: (url: string) => void;
   onRemoved?: () => void;
+  onFileSelected?: (file: File) => void;
 }
 
-export function GroupImageUpload({ groupId, currentUrl, onUploaded, onRemoved }: Props) {
+export function GroupImageUpload({ groupId, currentUrl, onUploaded, onRemoved, onFileSelected }: Props) {
   const [uploading, setUploading] = useState(false);
   const [preview, setPreview] = useState<string | null>(currentUrl || null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -22,6 +23,11 @@ export function GroupImageUpload({ groupId, currentUrl, onUploaded, onRemoved }:
     }
     if (file.size > 5 * 1024 * 1024) {
       toast.error("Imagem deve ter no máximo 5MB");
+      return;
+    }
+    if (!groupId && onFileSelected) {
+      onFileSelected(file);
+      setPreview(URL.createObjectURL(file));
       return;
     }
 

@@ -71,9 +71,9 @@ export function BugReportForm() {
     try {
       let screenshotUrl: string | null = null;
 
-      if (screenshot) {
+      if (screenshot && user) {
         const ext = screenshot.name.split(".").pop()?.toLowerCase() ?? "png";
-        const path = `${user?.id ?? "anon"}/${Date.now()}-${crypto.randomUUID()}.${ext}`;
+         const path = `${user.id}/${Date.now()}-${crypto.randomUUID()}.${ext}`;
         const { error: upErr } = await supabase.storage
           .from("bug-screenshots")
           .upload(path, screenshot, {
@@ -208,12 +208,13 @@ export function BugReportForm() {
             className="inline-flex items-center gap-2 rounded-xl border border-dashed border-border bg-background/50 px-4 py-3 text-xs font-medium text-muted-foreground transition-colors hover:border-primary hover:text-foreground"
           >
             <ImageIcon className="h-4 w-4" />
-            Anexar imagem (máx 5MB)
+            {user ? "Anexar imagem (máx 5MB)" : "Entre na conta para anexar uma imagem"}
           </button>
         )}
         <input
           ref={fileRef}
           type="file"
+          disabled={!user}
           accept={ALLOWED_TYPES.join(",")}
           onChange={handleFileChange}
           className="hidden"
