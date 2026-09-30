@@ -249,18 +249,31 @@ export function MembersPanel({ groupId }: Props) {
   };
 
   const handleSaveRename = async () => {
-    if (!renamingUserId) return;
-    if (!renameValue.trim()) { toast.error("Nome obrigatório"); return; }
+    if (!renamingUserId || renameSaving) return;
+    const name = renameValue.trim();
+    if (!name) { toast.error("Nome obrigatório"); return; }
     setRenameSaving(true);
-    // Also clear nickname — admin renames should reset any old test nickname so the
-    // new name surfaces everywhere (UI prefers nickname when present).
-    const { error } = await supabase
-      .from("user_profiles")
-      .update({ name: renameValue.trim(), nickname: null })
-      .eq("user_id", renamingUserId);
-    if (error) toast.error("Erro ao salvar");
-    else { toast.success("Nome atualizado"); setRenamingUserId(null); refresh(); }
-    setRenameSaving(false);
+    try {
+      // A blocked update can return no error and zero rows. Confirm the changed
+      // profile was actually returned before reporting success.
+      const { data, error } = await supabase
+        .from("user_profiles")
+        .update({ name, nickname: null })
+        .eq("user_id", renamingUserId)
+        .select("user_id, name, nickname")
+        .maybeSingle();
+      if (error) throw error;
+      if (!data || data.name !== name || data.nickname !== null) {
+        throw new Error("Não foi possível alterar o nome deste atleta.");
+      }
+      await refresh();
+      setRenamingUserId(null);
+      toast.success("Nome atualizado");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Erro ao salvar o nome");
+    } finally {
+      setRenameSaving(false);
+    }
   };
 
   const handleRemove = async (memberId: string, name?: string) => {
