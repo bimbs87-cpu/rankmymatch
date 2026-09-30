@@ -255,6 +255,7 @@ export function CreateGroupDialog({ open, onClose }: Props) {
               setSport={setSport}
               imageUrl={imageUrl}
               setImageUrl={setImageUrl}
+              setPendingImage={setPendingImage}
               submitting={submitting}
               onSubmit={handleSubmit}
               createRetroSeason={createRetroSeason}
@@ -353,6 +354,7 @@ interface GroupFormProps {
   setSport: (v: string) => void;
   imageUrl: string | null;
   setImageUrl: (v: string | null) => void;
+  setPendingImage: (v: File | null) => void;
   submitting: boolean;
   onSubmit: () => void;
   createRetroSeason: boolean;
@@ -379,7 +381,7 @@ function GroupForm({
   visibility, setVisibility,
   maxPlayers, setMaxPlayers,
   sport, setSport,
-  imageUrl, setImageUrl,
+  imageUrl, setImageUrl, setPendingImage,
   submitting,
   onSubmit,
   createRetroSeason, setCreateRetroSeason,
