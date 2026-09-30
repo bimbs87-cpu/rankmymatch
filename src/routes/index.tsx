@@ -1003,38 +1003,39 @@ function DashboardPage() {
         opts.unshift(aggregate);
       }
 
+      // Default to the season of the user's latest completed match, not the
+      // synthetic multi-group ranking (which has no Elo evolution of its own).
+      const latestPlayedSeasonId = sortedRows
+        .map(({ row }) => row.matches?.rounds?.season_id as string | null)
+        .find((id) => id && opts.some((o) => o.season_id === id));
       setRankings(opts);
       setSelectedSeasonId((prev) => {
-        if (prev && opts.some((o) => o.season_id === prev)) return prev;
-        return opts[0]?.season_id || null;
+        if (prev && prev !== ALL_RANKINGS_ID && opts.some((o) => o.season_id === prev)) return prev;
+        return latestPlayedSeasonId || opts.find((o) => !o.is_aggregate)?.season_id || null;
       });
 
-      // Build per-match Elo history from rating_events (rich per-match data)
-      const hist = new Map<string, { date: string; rating: number; matchIndex: number }[]>();
-      for (const [sid, evs] of eventsBySeason.entries()) {
-        // evs is newest-first; reverse to chronological (oldest -> newest)
-        const chrono = [...evs].reverse();
-        // We have rating_change per event. To rebuild rating_after we need the base rating.
-        // Fetch rating_after directly from rating_events to be exact.
-        const arr = chrono.map((e, i) => ({
-          date: e.created_at,
-          rating: 0, // placeholder, filled below
-          matchIndex: i + 1,
-        }));
-        hist.set(sid, arr);
-      }
-      // Fetch rating_after for all events of this user (single query)
+      // Use match chronology, not rating_events.created_at: season replays
+      // recreate events at the same instant, hiding the actual match order.
       const { data: ratingHist } = await supabase
         .from("rating_events")
-        .select("season_id, created_at, rating_after")
+        .select("season_id, match_id, rating_after, created_at, matches(match_number, rounds(scheduled_date, created_at))")
         .in("season_id", seasonIds)
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: true });
+        .eq("user_id", user.id);
       const histFinal = new Map<string, { date: string; rating: number; matchIndex: number }[]>();
-      for (const r of ratingHist || []) {
+      const orderedHistory = [...(ratingHist || [])].sort((a, b) => {
+        const aRound = a.matches?.rounds;
+        const bRound = b.matches?.rounds;
+        const aDate = aRound?.scheduled_date || aRound?.created_at || a.created_at;
+        const bDate = bRound?.scheduled_date || bRound?.created_at || b.created_at;
+        return aDate.localeCompare(bDate) ||
+          ((a.matches?.match_number ?? 0) - (b.matches?.match_number ?? 0)) ||
+          a.match_id.localeCompare(b.match_id);
+      });
+      for (const r of orderedHistory) {
         if (!r.season_id) continue;
         const arr = histFinal.get(r.season_id) || [];
-        arr.push({ date: r.created_at, rating: Number(r.rating_after), matchIndex: arr.length + 1 });
+        const playedDate = r.matches?.rounds?.scheduled_date;
+        arr.push({ date: playedDate ? `${playedDate}T12:00:00` : r.created_at, rating: Number(r.rating_after), matchIndex: arr.length + 1 });
         histFinal.set(r.season_id, arr);
       }
       setHistoryBySeason(histFinal);
@@ -1154,7 +1155,7 @@ function DashboardPage() {
     });
   };
 
-  const currentRanking = rankings.find((r) => r.season_id === selectedSeasonId) || rankings[0] || null;
+  const currentRanking = rankings.find((r) => r.season_id === selectedSeasonId) || rankings.find((r) => !r.is_aggregate) || null;
   const winRate = currentRanking && currentRanking.matches_played > 0
     ? Math.round((currentRanking.matches_won / currentRanking.matches_played) * 100)
     : 0;
@@ -2199,37 +2200,40 @@ function DashboardPage() {
           {(nextMatchCardJSX || true) && (
             <div className="flex flex-row gap-4">
               {visibleNextMatchCardJSX ? (
-                <div className="flex-1 min-w-0">{visibleNextMatchCardJSX}</div>
+                <div className="order-2 flex-1 min-w-0">{visibleNextMatchCardJSX}</div>
               ) : !isDuplicateOfPendingMatch && extraVisible.length === 0 ? (
-                <div className="flex-1 min-w-0 flex items-center justify-center rounded-3xl border border-dashed border-border bg-card/50 p-6">
+                <div className="order-2 flex-1 min-w-0 flex items-center justify-center rounded-3xl border border-dashed border-border bg-card/50 p-6">
                   <p className="text-xs text-muted-foreground">Nenhum confronto próximo agendado</p>
                 </div>
               ) : (
                 null
               )}
               {extraVisible.map((r) => (
-                <div key={r.id} className="flex-1 min-w-0">{renderExtraPendingCard(r)}</div>
+                <div key={r.id} className="order-2 flex-1 min-w-0">{renderExtraPendingCard(r)}</div>
               ))}
               {extraOverflowCount > 0 && (
                 <Link
                   to="/seasons"
-                  className="flex w-[120px] shrink-0 flex-col items-center justify-center gap-1 rounded-3xl border border-dashed border-border bg-card/50 p-4 text-center transition-colors hover:bg-accent/30"
+                  className="order-2 flex w-[120px] shrink-0 flex-col items-center justify-center gap-1 rounded-3xl border border-dashed border-border bg-card/50 p-4 text-center transition-colors hover:bg-accent/30"
                 >
                   <Bell className="h-4 w-4 text-warning" />
                   <span className="text-xs font-semibold text-foreground">+{extraOverflowCount} mais</span>
                   <span className="text-[10px] text-muted-foreground">Ver todas</span>
                 </Link>
               )}
-              <div className="w-[260px] shrink-0">
+              <div className="order-1 w-[260px] shrink-0">
                 <div className="rounded-3xl border border-border bg-card p-4 h-full">
-                  <h2 className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  <h2 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                     Atalhos rápidos
                   </h2>
+                  <p className="mb-3 truncate text-xs font-semibold text-foreground" title={currentRanking?.group_name || undefined}>
+                    {currentRanking?.group_name || "Sem grupo selecionado"}
+                  </p>
                   <div className="flex flex-col gap-1.5">
                     {(() => {
-                      const rivalryGroup = myGroups.find((g: any) => g.singles_group_type === "rivalry");
+                      const rivalryGroup = myGroups.find((g: any) => g.id === currentRanking?.group_id && g.singles_group_type === "rivalry");
                       const adminGroup = myGroups.find(
-                        (g: any) => g.my_role === "admin" || g.my_role === "creator"
+                        (g: any) => g.id === currentRanking?.group_id && (g.my_role === "admin" || g.my_role === "creator")
                       );
 
                       type Shortcut = {
@@ -2240,7 +2244,7 @@ function DashboardPage() {
                       const items: Shortcut[] = [];
 
                       // 1. Confirmar presença (urgente, contextual) — inline confirm, no navigation
-                      if (nextMatch && nextMatch.my_presence_status !== "confirmed" && nextMatch.presence_is_open) {
+                      if (nextMatch && nextMatch.group_id === currentRanking?.group_id && nextMatch.my_presence_status !== "confirmed" && nextMatch.presence_is_open) {
                         const isConfirming = confirmingRoundId === nextMatch.round_id;
                         items.push({
                           key: "confirm",
@@ -2264,7 +2268,7 @@ function DashboardPage() {
                       }
 
                       // 2. Registrar resultado (urgente)
-                      if (nextMatch?.has_pairing || pendingMatch) {
+                      if ((nextMatch?.group_id === currentRanking?.group_id && nextMatch.has_pairing) || pendingMatch?.group_id === currentRanking?.group_id) {
                         items.push({
                           key: "result",
                           priority: 2,
@@ -2272,9 +2276,9 @@ function DashboardPage() {
                             <button
                               type="button"
                               onClick={() => openQuickRound({
-                                groupId: pendingMatch?.group_id || nextMatch!.group_id,
-                                roundId: pendingMatch?.round_id || nextMatch!.round_id,
-                                seasonId: pendingMatch?.season_id || nextMatch?.season_id || null,
+                                 groupId: pendingMatch?.group_id === currentRanking?.group_id ? pendingMatch.group_id : nextMatch?.group_id || "",
+                                 roundId: pendingMatch?.group_id === currentRanking?.group_id ? pendingMatch.round_id : nextMatch?.round_id || "",
+                                 seasonId: pendingMatch?.group_id === currentRanking?.group_id ? pendingMatch.season_id : nextMatch?.season_id || null,
                               })}
                               className="flex items-center gap-2 rounded-2xl bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
                             >
@@ -2297,7 +2301,7 @@ function DashboardPage() {
                               className="flex items-center gap-2 rounded-2xl border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs font-semibold text-destructive transition-colors hover:bg-destructive/10"
                             >
                               <Bell className="h-4 w-4 shrink-0" />
-                              <span className="flex-1 truncate text-left">Notificações</span>
+                               <span className="flex-1 truncate text-left">Notificações gerais</span>
                               <span className="rounded-full bg-destructive px-1.5 py-0.5 text-[9px] font-bold text-destructive-foreground tabular-nums">
                                 {unreadCount > 9 ? "9+" : unreadCount}
                               </span>
@@ -2331,7 +2335,8 @@ function DashboardPage() {
                           priority: 5,
                           node: (
                             <Link
-                              to="/ranking"
+                               to="/ranking"
+                               search={{ group: currentRanking.group_id }}
                               className="flex items-center gap-2 rounded-2xl border border-border bg-muted/30 px-3 py-2 text-xs font-semibold text-foreground transition-colors hover:bg-accent/50"
                             >
                               <Crown className="h-4 w-4 shrink-0 text-primary" />
@@ -2366,7 +2371,8 @@ function DashboardPage() {
                         priority: 7,
                         node: (
                           <Link
-                            to="/history"
+                               to="/history"
+                               search={{ group: currentRanking?.group_id }}
                             className="flex items-center gap-2 rounded-2xl border border-border bg-muted/30 px-3 py-2 text-xs font-semibold text-foreground transition-colors hover:bg-accent/50"
                           >
                             <History className="h-4 w-4 shrink-0 text-primary" />
@@ -2682,7 +2688,7 @@ function DashboardPage() {
                   <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                     Evolução do Elo
                   </h2>
-                  <Link to="/ranking" className="flex items-center gap-0.5 text-xs font-medium text-primary shrink-0 hover:text-primary/80">
+                  <Link to="/ranking" search={{ group: currentRanking?.group_id }} className="flex items-center gap-0.5 text-xs font-medium text-primary shrink-0 hover:text-primary/80">
                     Detalhes <ChevronRight className="h-3.5 w-3.5" />
                   </Link>
                 </div>
@@ -2813,15 +2819,7 @@ function DashboardPage() {
 
                 {/* Chart */}
                 <div className="flex flex-1 flex-col">
-                  {currentRanking?.is_aggregate ? (
-                    <div className="flex flex-1 flex-col items-center justify-center rounded-xl border border-dashed border-border/60 bg-muted/10 p-6 text-center">
-                      <BarChart3 className="mb-2 h-8 w-8 text-muted-foreground/40" />
-                      <p className="text-xs font-semibold text-foreground">Visão geral combinada</p>
-                      <p className="mt-1 text-[10px] text-muted-foreground">
-                        Selecione uma temporada específica para ver a evolução do Elo.
-                      </p>
-                    </div>
-                  ) : (
+                  {(
                     <>
                       <div className="mb-1 flex items-center justify-between text-[10px] text-muted-foreground">
                         <span>{ratingPoints.length > 0 ? `${ratingPoints.length} partidas` : ""}</span>
