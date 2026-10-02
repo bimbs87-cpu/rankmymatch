@@ -58,7 +58,7 @@ async function notifySavedMatches(matchIds: string[], seasonId: string, userId: 
     profile.user_id, profile.name.trim().split(/\s+/)[0] || "Jogador",
   ]));
   const messages = new Map<string, { names: string[]; scores: string[] }>();
-  for (const match of [...matches].sort((a, b) => a.match_number - b.match_number)) {
+  for (const match of [...matches].sort((a, b) => (a.match_number ?? 0) - (b.match_number ?? 0))) {
     const players = [...match.match_players].sort((a, b) => a.created_at.localeCompare(b.created_at));
     const names = players.slice(0, 4).map((player) => firstNames.get(player.user_id) || "Jogador");
     const scores = [...match.match_sets]
