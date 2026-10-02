@@ -32,7 +32,7 @@ async function notifySavedMatches(matchIds: string[], seasonId: string, userId: 
   const ids = [...new Set(matchIds)];
   const { data: matches, error: matchError } = await supabase
     .from("matches")
-    .select("id, round_id, round:rounds!inner(group_id, season_id), match_players(user_id, team, created_at), match_sets(set_number, score_team_a, score_team_b)")
+    .select("id, round_id, match_number, round:rounds!inner(group_id, season_id), match_players(user_id, team, created_at), match_sets(set_number, score_team_a, score_team_b)")
     .in("id", ids);
   if (matchError) throw new Error(matchError.message);
   if (!matches || matches.length !== ids.length) throw new Error("Partidas não encontradas");
@@ -57,19 +57,17 @@ async function notifySavedMatches(matchIds: string[], seasonId: string, userId: 
   const firstNames = new Map((profiles ?? []).map((profile) => [
     profile.user_id, profile.name.trim().split(/\s+/)[0] || "Jogador",
   ]));
-  const messages = new Map<string, string[]>();
-  for (const match of matches) {
-    const players = [...match.match_players].sort((a, b) =>
-      a.team.localeCompare(b.team) || a.created_at.localeCompare(b.created_at)
-    );
-    const names = players.map((player) => firstNames.get(player.user_id) || "Jogador").join(", ");
+  const messages = new Map<string, { names: string[]; scores: string[] }>();
+  for (const match of [...matches].sort((a, b) => (a.match_number ?? 0) - (b.match_number ?? 0))) {
+    const players = [...match.match_players].sort((a, b) => a.created_at.localeCompare(b.created_at));
+    const names = players.slice(0, 4).map((player) => firstNames.get(player.user_id) || "Jogador");
     const scores = [...match.match_sets]
       .sort((a, b) => a.set_number - b.set_number)
-      .map((set) => `${set.score_team_a}x${set.score_team_b}`).join(", ");
-    if (!scores) continue;
+      .map((set) => `${set.score_team_a}x${set.score_team_b}`);
+    if (!scores.length) continue;
     for (const player of players) {
-      const own = messages.get(player.user_id) ?? [];
-      own.push(`${names} - ${scores}`);
+      const own = messages.get(player.user_id) ?? { names, scores: [] };
+      own.scores.push(...scores);
       messages.set(player.user_id, own);
     }
   }
@@ -78,8 +76,11 @@ async function notifySavedMatches(matchIds: string[], seasonId: string, userId: 
   const url = `/groups/${groupId}?view=seasons&season=${seasonId}&round=${roundId}`;
   const data = { groupId, seasonId, roundId };
   const { sendPushToUserIds } = await import("@/lib/web-push.server");
-  for (const [recipient, results] of messages) {
-    const body = `${results.join("; ")}. Confira os detalhes`;
+  for (const [recipient, { names, scores }] of messages) {
+    const playerNames = names.length > 1
+      ? `${names.slice(0, -1).join(", ")} e ${names[names.length - 1]}`
+      : names[0];
+    const body = `${playerNames}: ${scores.join(", ")}. Veja detalhes.`;
     const { error } = await supabase.from("notifications").insert({
       user_id: recipient, group_id: groupId, type: "match_result", title, body, data,
     });
