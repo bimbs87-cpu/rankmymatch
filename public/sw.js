@@ -2,7 +2,7 @@
 // Keeps a pure pass-through fetch handler (required for the PWA install prompt
 // without ever intercepting OAuth) and adds Web Push support for round
 // notifications + admin moderation actions (Aprovar/Recusar inline).
-const SW_VERSION = "v10-2026-04-27-android-icon-v5";
+const SW_VERSION = "v11-2026-10-02-notification-badge";
 
 self.addEventListener("install", () => {
   self.skipWaiting();
@@ -48,7 +48,7 @@ self.addEventListener("push", (event) => {
   const options = {
     body: payload.body || "",
     icon: payload.icon || "/android-icon-192-v5.png",
-    badge: payload.badge || "/android-icon-192-v5.png",
+    badge: payload.badge || "/notification-badge.png",
     tag: payload.tag || payload.type || "rankmymatch",
     renotify: true,
     data: {
@@ -87,7 +87,7 @@ async function handleAdminAction(action, data) {
           ? "Solicitação processada com sucesso."
           : "Não foi possível processar. Abra o app para tentar novamente.",
         icon: "/android-icon-192-v5.png",
-        badge: "/android-icon-192-v5.png",
+        badge: "/notification-badge.png",
         tag: `admin-action-result-${id}`,
       }
     );
@@ -95,7 +95,7 @@ async function handleAdminAction(action, data) {
     await self.registration.showNotification("Falha na ação", {
       body: "Sem conexão. Abra o app para responder.",
       icon: "/android-icon-192-v5.png",
-      badge: "/android-icon-192-v5.png",
+      badge: "/notification-badge.png",
       tag: `admin-action-result-${id}`,
     });
   }
