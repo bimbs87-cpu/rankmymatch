@@ -13,6 +13,10 @@ export const Route = createFileRoute("/changelog")({
         content:
           "Todas as melhorias, novidades e correções do RankMyMatch desde o início.",
       },
+      { property: "og:title", content: "Changelog completo — RankMyMatch" },
+      { property: "og:description", content: "Novidades, melhorias e correções do RankMyMatch com datas e versões." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       { name: "robots", content: "noindex, nofollow" },
     ],
   }),
@@ -76,6 +80,7 @@ function formatDate(iso: string) {
       day: "2-digit",
       month: "2-digit",
       year: "2-digit",
+      timeZone: "UTC",
     }).format(new Date(iso));
   } catch {
     return "";
@@ -244,9 +249,9 @@ function ChangelogPage() {
                   {items.map((n) => {
                     const meta = TYPE_META[n.type] ?? TYPE_META.feature;
                     return (
-                      <li
+                        <li
                         key={n.id}
-                        className="flex items-start gap-2.5 py-1.5 text-[13px] leading-snug"
+                          className="flex flex-wrap items-start gap-x-2.5 gap-y-1 py-2 text-[13px] leading-snug sm:flex-nowrap"
                       >
                         <span className={`mt-1.5 inline-block h-1.5 w-1.5 shrink-0 rounded-full ${meta.dot}`} />
                         <span
@@ -261,7 +266,7 @@ function ChangelogPage() {
                         <span className="mt-0.5 shrink-0 font-mono text-[10px] text-muted-foreground">
                           {n.version}
                         </span>
-                        <span className="flex-1 text-foreground">
+                        <span className="w-full min-w-0 break-words text-foreground sm:w-auto sm:flex-1">
                           {n.title}
                           {n.description && (
                             <span className="text-muted-foreground"> — {n.description}</span>
