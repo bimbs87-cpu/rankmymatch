@@ -13,6 +13,10 @@ export const Route = createFileRoute("/changelog")({
         content:
           "Todas as melhorias, novidades e correções do RankMyMatch desde o início.",
       },
+      { property: "og:title", content: "Changelog completo — RankMyMatch" },
+      { property: "og:description", content: "Novidades, melhorias e correções do RankMyMatch com datas e versões." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       { name: "robots", content: "noindex, nofollow" },
     ],
   }),
@@ -76,6 +80,7 @@ function formatDate(iso: string) {
       day: "2-digit",
       month: "2-digit",
       year: "2-digit",
+      timeZone: "UTC",
     }).format(new Date(iso));
   } catch {
     return "";

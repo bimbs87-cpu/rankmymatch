@@ -8,3 +8,4 @@ RankMyMatch technical decisions:
 - Record visits through a validated server function rather than open database writes, so anonymous traffic remains measurable without exposing direct insertion.
 - Scope profile reads to the owner and shared-group participants, and group-image uploads to members' group folders, so personal data and file writes stay tied to membership.
 - Return public bug-vote totals through an aggregate server function while exposing individual vote rows only to their owner, so counts remain visible without revealing voters.
+- Keep changelog entries in release_notes with evidence-backed dates and increasing versions (up to six entries per minor); mirror the latest published version in APP_VERSION so displayed releases stay consistent.
