@@ -365,8 +365,13 @@ export function useGroupDetail(groupId: string) {
   const [isLoading, setIsLoading] = useState(true);
   const retryRef = useRef(0);
   const refreshRef = useRef<() => void>(() => {});
+  const seqRef = useRef(0);
 
   const refresh = useCallback(async () => {
+    // Sequence guard: a stale run (e.g. started before auth resolved) must
+    // never overwrite the results of a newer run.
+    const seq = ++seqRef.current;
+    const stale = () => seq !== seqRef.current;
     setIsLoading(true);
 
     try {
@@ -376,6 +381,7 @@ export function useGroupDetail(groupId: string) {
         .eq("id", groupId)
         .single();
 
+      if (stale()) return;
       if (groupError) throw groupError;
 
       setGroup(currentGroup);
@@ -393,6 +399,7 @@ export function useGroupDetail(groupId: string) {
         _group_id: groupId,
       });
 
+      if (stale()) return;
       setMemberCount(count || 0);
 
       // Load ALL members (active + removed/left) so ex-members can be shown dimmed.
@@ -402,6 +409,7 @@ export function useGroupDetail(groupId: string) {
         .select("*")
         .eq("group_id", groupId);
 
+      if (stale()) return;
       if (membersError) throw membersError;
 
       if (mems?.length) {
@@ -411,6 +419,7 @@ export function useGroupDetail(groupId: string) {
           .select("*")
           .in("user_id", userIds);
 
+        if (stale()) return;
         if (profilesError) throw profilesError;
 
         const profileMap = new Map((profiles || []).map((profile) => [profile.user_id, profile]));
@@ -429,6 +438,7 @@ export function useGroupDetail(groupId: string) {
           .eq("group_id", groupId)
           .eq("status", "pending");
 
+        if (stale()) return;
         if (requestsError) throw requestsError;
 
         setPendingRequests(reqs || []);
@@ -437,6 +447,7 @@ export function useGroupDetail(groupId: string) {
         setPendingRequests([]);
       }
     } catch (error) {
+      if (stale()) return;
       console.error("Erro ao carregar detalhes do grupo:", error);
       // Keep previously loaded data and retry automatically instead of
       // resetting to a "non-member"/"not found" state on a transient failure.
@@ -445,7 +456,7 @@ export function useGroupDetail(groupId: string) {
         setTimeout(() => refreshRef.current(), 1200);
       }
     } finally {
-      setIsLoading(false);
+      if (!stale()) setIsLoading(false);
     }
   }, [groupId, user]);
 
