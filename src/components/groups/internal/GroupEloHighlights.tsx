@@ -30,19 +30,15 @@ export function GroupEloHighlights({ groupId }: Props) {
     let bestDown: Highlight | null = null;
     let bestConsistent: Highlight | null = null;
     let bestConsistentSpread = Infinity;
-    // Each rating event = one player-match. A match has multiple players,
-    // so total matches ≈ unique match timestamps. We approximate "games"
-    // as total rating events in the window divided by 2 (rough avg players per match for singles)
-    // — but more meaningful: count distinct match timestamps across all series.
-    const matchTimestamps = new Set<number>();
+    // Count distinct matches in the window (baseline points carry no matchId).
+    const matchIds = new Set<string>();
 
     for (const s of data.series) {
       const pts = s.points.filter((p) => p.ts >= cutoff);
+      for (const p of pts) if (p.matchId) matchIds.add(p.matchId);
       if (pts.length < 2) {
-        for (const p of pts) matchTimestamps.add(p.ts);
         continue;
       }
-      for (const p of pts) matchTimestamps.add(p.ts);
       const start = pts[0].rating;
       const end = pts[pts.length - 1].rating;
       const delta = end - start;

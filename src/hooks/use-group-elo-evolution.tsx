@@ -116,7 +116,7 @@ export function useGroupEloEvolution(groupId: string | null, filter: SeasonFilte
           .select("user_id, rating_after, rating_change, match_id, created_at")
           .in("match_id", matchIds);
 
-        const byUser = new Map<string, { ts: number; rating: number }[]>();
+        const byUser = new Map<string, { ts: number; rating: number; matchId?: string }[]>();
         let minTs = Infinity, maxTs = -Infinity;
         // Track first event timestamp per season for boundary markers
         const seasonFirstTs = new Map<string, number>();
