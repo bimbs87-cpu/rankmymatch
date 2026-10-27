@@ -10,10 +10,12 @@ export async function shareImage(node: HTMLElement, filename: string, title: str
   node.append(backgroundProbe);
   const background = getComputedStyle(backgroundProbe).backgroundColor;
   backgroundProbe.remove();
+  // Render at 3x so text and photos stay sharp on phone screens, capped to keep memory and time light.
+  const pixelRatio = Math.min(3, Math.max(2, window.devicePixelRatio || 1));
   const renderOptions = {
     cacheBust: false,
     imagePlaceholder: new URL(noPhotoAvatar, window.location.href).href,
-    pixelRatio: 1,
+    pixelRatio,
     width: options?.width ?? node.offsetWidth,
     height: options?.height ?? node.offsetHeight,
     backgroundColor: background,
@@ -42,10 +44,11 @@ export async function shareImage(node: HTMLElement, filename: string, title: str
   if (options?.outputWidth && options.outputHeight) {
     const bitmap = await createImageBitmap(blob);
     const canvas = document.createElement("canvas");
-    canvas.width = options.outputWidth;
-    canvas.height = options.outputHeight;
+    canvas.width = Math.round(options.outputWidth * pixelRatio);
+    canvas.height = Math.round(options.outputHeight * pixelRatio);
     const context = canvas.getContext("2d");
     if (!context) throw new Error("Não foi possível criar a imagem");
+    context.imageSmoothingQuality = "high";
     context.fillStyle = getComputedStyle(node).backgroundColor;
     context.fillRect(0, 0, canvas.width, canvas.height);
     const scale = Math.min(canvas.width / bitmap.width, canvas.height / bitmap.height);
