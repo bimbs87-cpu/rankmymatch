@@ -68,16 +68,20 @@ export async function saveAcquisitionForUser(userId: string) {
       }
     }
 
-    // Mesmo sem attribution capturada, grava linha vazia (= "direct")
-    const { error } = await supabase.from("user_acquisition").insert({
-      user_id: userId,
-      utm_source: data.utm_source ?? null,
-      utm_medium: data.utm_medium ?? null,
-      utm_campaign: data.utm_campaign ?? null,
-      invite_code: data.invite_code ?? null,
-      referrer: data.referrer ?? null,
-      landing_path: data.landing_path ?? null,
-    });
+    // Mesmo sem attribution capturada, grava linha vazia (= "direct").
+    // upsert + ignoreDuplicates evita o 409 esperado quando já existe.
+    const { error } = await supabase.from("user_acquisition").upsert(
+      {
+        user_id: userId,
+        utm_source: data.utm_source ?? null,
+        utm_medium: data.utm_medium ?? null,
+        utm_campaign: data.utm_campaign ?? null,
+        invite_code: data.invite_code ?? null,
+        referrer: data.referrer ?? null,
+        landing_path: data.landing_path ?? null,
+      },
+      { onConflict: "user_id", ignoreDuplicates: true },
+    );
 
     // Conflito de PK = já existe → ok
     if (error && !/duplicate key|conflict/i.test(error.message)) {
@@ -99,11 +103,15 @@ export async function logUserSession(userId: string) {
     const flagKey = `rmm-session-logged-${userId}-${today}`;
     if (window.localStorage.getItem(flagKey)) return;
 
-    const { error } = await supabase.from("user_sessions").insert({
-      user_id: userId,
-      session_date: today,
-      user_agent: navigator.userAgent.slice(0, 255),
-    });
+    // upsert + ignoreDuplicates evita o 409 esperado quando já registrado hoje.
+    const { error } = await supabase.from("user_sessions").upsert(
+      {
+        user_id: userId,
+        session_date: today,
+        user_agent: navigator.userAgent.slice(0, 255),
+      },
+      { onConflict: "user_id,session_date", ignoreDuplicates: true },
+    );
 
     // Conflito = já registrado hoje → ok
     if (error && !/duplicate key|conflict|unique/i.test(error.message)) {

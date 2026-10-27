@@ -18,6 +18,7 @@ import { RoundExpandedDetails } from "./SeasonsPanel";
 import { RoundQuickDialog } from "@/components/RoundQuickDialog";
 import { useAuth } from "@/hooks/use-auth";
 import { confirmPresence, cancelPresence } from "@/lib/round-actions";
+import { getPresenceOpenDate, formatPresenceOpenDate } from "@/lib/presence-schedule";
 import { toast } from "sonner";
 import { CancelRoundDialog } from "@/components/CancelRoundDialog";
 import { Button } from "@/components/ui/button";
@@ -40,6 +41,7 @@ interface RoundLite {
   location: string | null;
   season_id: string | null;
   status: string;
+  presence_force_open_at: string | null;
 }
 
 function fmtFullDate(d: string | null) {
@@ -69,6 +71,7 @@ export function LastAndNextRoundCards({ groupId, isAdmin, variant = "last", grou
   const [quickOpen, setQuickOpen] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
   const [myStatus, setMyStatus] = useState<"confirmed" | "declined" | "pending" | null>(null);
+  const [presenceOpensAt, setPresenceOpensAt] = useState<Date | null>(null);
   const [acting, setActing] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
   const [sharing, setSharing] = useState(false);
@@ -121,7 +124,7 @@ export function LastAndNextRoundCards({ groupId, isAdmin, variant = "last", grou
         const today = new Date().toISOString().slice(0, 10);
         const { data } = await supabase
           .from("rounds")
-          .select("id, round_number, scheduled_date, scheduled_time, location, season_id, status")
+          .select("id, round_number, scheduled_date, scheduled_time, location, season_id, status, presence_force_open_at")
           .eq("group_id", groupId)
           .in("status", ["scheduled", "in_progress"])
           .or(`scheduled_date.gte.${today},scheduled_date.is.null`)
@@ -129,6 +132,27 @@ export function LastAndNextRoundCards({ groupId, isAdmin, variant = "last", grou
           .limit(1)
           .maybeSingle();
         if (!cancelled) setRound((data as any) ?? null);
+
+        // Presence window: when the list is still closed, show when it opens
+        // instead of letting the user click "Vou" and get an error.
+        if (data && !cancelled) {
+          const forcedOpen =
+            !!(data as any).presence_force_open_at &&
+            new Date((data as any).presence_force_open_at) <= new Date();
+          if (forcedOpen) {
+            setPresenceOpensAt(null);
+          } else {
+            const { data: groupCfg } = await supabase
+              .from("groups")
+              .select("presence_open_mode, presence_open_time")
+              .eq("id", groupId)
+              .single();
+            const opensAt = groupCfg
+              ? getPresenceOpenDate(groupCfg, data.scheduled_date, data.scheduled_time, data.id)
+              : null;
+            setPresenceOpensAt(opensAt && new Date() < opensAt ? opensAt : null);
+          }
+        }
       }
       if (!cancelled) setLoading(false);
     })();
@@ -302,7 +326,13 @@ export function LastAndNextRoundCards({ groupId, isAdmin, variant = "last", grou
         {/* Quick actions strip (next variant only) */}
         {isNext && user && (
           <div className="flex items-center gap-2 border-t border-border/60 bg-background/40 px-3 py-2">
-            {myStatus !== "confirmed" && myStatus !== "declined" && (
+            {presenceOpensAt && myStatus !== "confirmed" && myStatus !== "declined" && (
+              <p className="flex-1 text-center text-[11px] font-semibold text-muted-foreground">
+                <Clock className="mr-1 inline h-3 w-3" />
+                A lista de presença abre {formatPresenceOpenDate(presenceOpensAt)}
+              </p>
+            )}
+            {!presenceOpensAt && myStatus !== "confirmed" && myStatus !== "declined" && (
               <>
                 <button
                   type="button"
