@@ -1,14 +1,15 @@
-- [x] Explain eligibility minimum and season progress discreetly on ranking surfaces.
-- [x] Audit and unify the set-based 30% eligibility rule across scores, seasons, and rankings.
-- [x] Show one eligibility rule above inactive players and each player's set progress across ranking views.
-- [x] Notify every match participant after a result is finalized and highlight the result when opened.
-- [x] Show the last played round before the next round in Agenda e resultados.
-- [x] Share the completed round as a 434×738 image without taking a screenshot.
-- [x] Share the ranking as a 441px-wide image with season progress and inactive players.
-- [x] Hide the ranking share image outside the visible desktop viewport.
-- [x] Order the ranking's latest five results by match chronology, not rating-event timestamp.
-- [x] Send one result notification after a batch save, with first names and set scores, opening the latest played round.
-- [x] Ensure member name edits persist and only confirm after the updated profile is returned.
-- [x] Show the last played group's Elo evolution on desktop and align the reordered shortcuts with that group.
-- [x] Show match participants once and scores in set order in result alerts, with a transparent Android notification badge.
-- [x] Backfill verified Changelog changes and dates from May through October and bring versioning to 1.0.0.
+# Roadmap
+
+## Em andamento: Teste completo de funcionalidade (QA geral)
+- [ ] Preparar sessões: admin (Guilherme) + usuário novo de teste
+- [ ] Fluxo de cadastro/login de usuário novo
+- [ ] Criar grupo novo (regras, formato, limites)
+- [ ] Convidar/adicionar pessoas (link de convite + placeholder)
+- [ ] Entrar como convidado e validar visão de membro
+- [ ] Criar temporada e rodadas; confirmar presença ("Vou"/"Não vou")
+- [ ] Sortear, reordenar jogos, lançar resultados (sets, tie-break, incompleto, empate)
+- [ ] Validar ranking, elegibilidade, Elo e últimas 5 partidas
+- [ ] Validar dashboard/Home, notificações, compartilhamento de imagens
+- [ ] Partidas avulsas, comparar, histórico, perfil
+- [ ] Corrigir pequenos erros encontrados
+- [ ] Relatório final: o que otimizar/melhorar/adicionar/excluir/editar
