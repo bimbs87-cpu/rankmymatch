@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
+import { sharedFetch } from "@/lib/shared-fetch";
 
 /**
  * Counts ALL pending admin moderation requests across every group the user
@@ -20,12 +21,14 @@ export function useAdminPendingCount() {
       return;
     }
     try {
-      const { data: memberships } = await supabase
-        .from("group_members")
-        .select("group_id, role")
-        .eq("user_id", user.id)
-        .eq("status", "active")
-        .in("role", ["creator", "admin"]);
+      const { data: memberships } = await sharedFetch(`my-admin-memberships:${user.id}`, 8_000, () =>
+        supabase
+          .from("group_members")
+          .select("group_id, role")
+          .eq("user_id", user.id)
+          .eq("status", "active")
+          .in("role", ["creator", "admin"]),
+      );
 
       const ids = (memberships || []).map((m) => m.group_id);
       setAdminGroupIds(ids);
@@ -35,36 +38,41 @@ export function useAdminPendingCount() {
         return;
       }
 
-      const [{ data: reqs }, { data: claims }, { data: matches }] = await Promise.all([
-        supabase
-          .from("group_join_requests")
-          .select("id", { count: "exact" })
-          .in("group_id", ids)
-          .eq("status", "pending"),
-        supabase
-          .from("player_claims")
-          .select("id", { count: "exact" })
-          .in("group_id", ids)
-          .eq("status", "pending"),
-        // Get all match ids in admin groups so we can scope pending_match_results
-        supabase
-          .from("matches")
-          .select("id, rounds!inner(group_id)")
-          .in("rounds.group_id", ids),
-      ]);
+      const idsKey = ids.slice().sort().join(",");
+      const total = await sharedFetch(`admin-pending:${idsKey}`, 5_000, async () => {
+        const [{ data: reqs }, { data: claims }, { data: matches }] = await Promise.all([
+          supabase
+            .from("group_join_requests")
+            .select("id", { count: "exact" })
+            .in("group_id", ids)
+            .eq("status", "pending"),
+          supabase
+            .from("player_claims")
+            .select("id", { count: "exact" })
+            .in("group_id", ids)
+            .eq("status", "pending"),
+          // Get all match ids in admin groups so we can scope pending_match_results
+          supabase
+            .from("matches")
+            .select("id, rounds!inner(group_id)")
+            .in("rounds.group_id", ids),
+        ]);
 
-      const matchIds = (matches || []).map((m: any) => m.id);
-      let pendingResults = 0;
-      if (matchIds.length) {
-        const { data: prs } = await supabase
-          .from("pending_match_results")
-          .select("id")
-          .in("match_id", matchIds)
-          .eq("status", "pending");
-        pendingResults = prs?.length || 0;
-      }
+        const matchIds = (matches || []).map((m: any) => m.id);
+        let pendingResults = 0;
+        if (matchIds.length) {
+          const { data: prs } = await supabase
+            .from("pending_match_results")
+            .select("id")
+            .in("match_id", matchIds)
+            .eq("status", "pending");
+          pendingResults = prs?.length || 0;
+        }
 
-      setCount((reqs?.length || 0) + (claims?.length || 0) + pendingResults);
+        return (reqs?.length || 0) + (claims?.length || 0) + pendingResults;
+      });
+
+      setCount(total);
     } catch (err) {
       console.error("Erro ao contar solicitações admin pendentes:", err);
       setCount(0);
