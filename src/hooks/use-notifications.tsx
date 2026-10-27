@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
+import { sharedFetch, invalidateSharedFetch } from "@/lib/shared-fetch";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Notification = Tables<"notifications">;

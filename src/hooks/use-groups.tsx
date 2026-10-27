@@ -547,6 +547,12 @@ export async function createGroup(data: {
     throw memberError;
   }
 
+  // Bust cached membership/group lists so the new group shows up immediately.
+  invalidateSharedFetch(`my-memberships:${data.userId}`);
+  invalidateSharedFetch("groups-by-id:");
+  invalidateSharedFetch("member-counts:");
+  invalidateSharedFetch("group-stats:");
+
   return group;
 }
 
