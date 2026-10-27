@@ -18,6 +18,7 @@ import { RoundExpandedDetails } from "./SeasonsPanel";
 import { RoundQuickDialog } from "@/components/RoundQuickDialog";
 import { useAuth } from "@/hooks/use-auth";
 import { confirmPresence, cancelPresence } from "@/lib/round-actions";
+import { getPresenceOpenDate, formatPresenceOpenDate } from "@/lib/presence-schedule";
 import { toast } from "sonner";
 import { CancelRoundDialog } from "@/components/CancelRoundDialog";
 import { Button } from "@/components/ui/button";
@@ -40,6 +41,7 @@ interface RoundLite {
   location: string | null;
   season_id: string | null;
   status: string;
+  presence_force_open_at: string | null;
 }
 
 function fmtFullDate(d: string | null) {
