@@ -23,7 +23,7 @@ async function ensureUserProfile(user: User) {
   try {
     const { data: existing, error } = await supabase
       .from("user_profiles")
-      .select("id")
+      .select("id, name")
       .eq("user_id", user.id)
       .maybeSingle();
 
@@ -32,9 +32,21 @@ async function ensureUserProfile(user: User) {
       return;
     }
 
-    if (existing) return;
-
     const meta = user.user_metadata;
+    const metaName = meta?.full_name || meta?.name || "";
+
+    // Repair profiles created without a name (e.g. via invite/claim flows)
+    // once the account metadata provides one.
+    if (existing) {
+      if (!existing.name && metaName) {
+        await supabase
+          .from("user_profiles")
+          .update({ name: metaName })
+          .eq("id", existing.id);
+      }
+      return;
+    }
+
     const { error: insertError } = await supabase.from("user_profiles").insert({
       user_id: user.id,
       name: meta?.full_name || meta?.name || "",
