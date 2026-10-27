@@ -26,9 +26,15 @@ interface Props {
   isAdmin: boolean;
   /** Called whenever something inside the round changed (presence, scores...). */
   onChanged?: () => void;
+  /** Match to scroll to and highlight (push/deep links). */
+  highlightedMatchId?: string;
 }
 
 /**
+ * THE single entry point for managing a round and entering its results.
+ * Every screen (Home, Agenda e resultados, pending-match cards, next-round
+ * hero) must open this dialog instead of rendering its own score form.
+ *
  * Round management in a modal — presence, draw, scores and cancel — so the user
  * never has to navigate to the group page and scroll to find the round.
  */
@@ -45,6 +51,7 @@ export function RoundQuickDialog({
   location,
   isAdmin,
   onChanged,
+  highlightedMatchId,
 }: Props) {
   const [resolvedSeasonId, setResolvedSeasonId] = useState<string | null>(seasonId || null);
   const [meta, setMeta] = useState<{
@@ -143,6 +150,7 @@ export function RoundQuickDialog({
             roundId={roundId}
             isAdmin={isAdmin}
             onChanged={() => onChanged?.()}
+            highlightedMatchId={highlightedMatchId}
           />
         ) : (
           <div className="p-6 text-center text-xs text-muted-foreground">Carregando rodada…</div>
