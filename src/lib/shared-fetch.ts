@@ -19,7 +19,7 @@ const inflight = new Map<string, Promise<unknown>>();
 export async function sharedFetch<T>(
   key: string,
   ttlMs: number,
-  fn: () => Promise<T>,
+  fn: () => T | PromiseLike<T>,
 ): Promise<T> {
   const hit = cache.get(key);
   if (hit && hit.expires > Date.now()) return hit.value as T;
