@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import type { Tables } from "@/integrations/supabase/types";
@@ -363,6 +363,8 @@ export function useGroupDetail(groupId: string) {
   const [myRole, setMyRole] = useState<string | null>(null);
   const [pendingRequests, setPendingRequests] = useState<Tables<"group_join_requests">[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const retryRef = useRef(0);
+  const refreshRef = useRef<() => void>(() => {});
 
   const refresh = useCallback(async () => {
     setIsLoading(true);
@@ -377,6 +379,7 @@ export function useGroupDetail(groupId: string) {
       if (groupError) throw groupError;
 
       setGroup(currentGroup);
+      retryRef.current = 0;
 
       if (!currentGroup) {
         setMemberCount(0);
@@ -435,16 +438,19 @@ export function useGroupDetail(groupId: string) {
       }
     } catch (error) {
       console.error("Erro ao carregar detalhes do grupo:", error);
-      setGroup(null);
-      setMemberCount(0);
-      setMembers([]);
-      setMyRole(null);
-      setPendingRequests([]);
+      // Keep previously loaded data and retry automatically instead of
+      // resetting to a "non-member"/"not found" state on a transient failure.
+      if (retryRef.current < 2) {
+        retryRef.current += 1;
+        setTimeout(() => refreshRef.current(), 1200);
+      }
     } finally {
       setIsLoading(false);
     }
   }, [groupId, user]);
 
+  refreshRef.current = refresh;
+  useEffect(() => { retryRef.current = 0; }, [groupId, user?.id]);
   useEffect(() => { refresh(); }, [refresh]);
 
   const isAdmin = myRole === "admin" || myRole === "creator";

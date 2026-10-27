@@ -88,7 +88,9 @@ export const Route = createFileRoute("/groups/$groupId/")({
   },
   component: GroupDetailPage,
   validateSearch: (search: Record<string, unknown>): { view?: GroupView; season?: string; round?: string; match?: string } => ({
-    view: typeof search.view === "string" ? (search.view as GroupView) : undefined,
+    view: typeof search.view === "string" && ["overview", "members", "seasons", "compare", "ranking", "admin"].includes(search.view)
+      ? (search.view as GroupView)
+      : undefined,
     season: typeof search.season === "string" ? search.season : undefined,
     round: typeof search.round === "string" ? search.round : undefined,
     match: typeof search.match === "string" ? search.match : undefined,
@@ -98,7 +100,7 @@ export const Route = createFileRoute("/groups/$groupId/")({
 function GroupDetailPage() {
   const { groupId } = Route.useParams();
   const search = Route.useSearch();
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
 
   const {
@@ -233,7 +235,7 @@ function GroupDetailPage() {
     [members],
   );
 
-  if (isLoading) return <TrophyLoadingBar />;
+  if (isLoading || authLoading) return <TrophyLoadingBar />;
 
   if (!group) {
     return (
