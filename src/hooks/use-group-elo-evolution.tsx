@@ -113,7 +113,7 @@ export function useGroupEloEvolution(groupId: string | null, filter: SeasonFilte
 
         const { data: events } = await supabase
           .from("rating_events")
-          .select("user_id, rating_after, match_id, created_at")
+          .select("user_id, rating_after, rating_change, match_id, created_at")
           .in("match_id", matchIds);
 
         const byUser = new Map<string, { ts: number; rating: number }[]>();
@@ -134,6 +134,24 @@ export function useGroupEloEvolution(groupId: string | null, filter: SeasonFilte
           }
         }
         for (const arr of byUser.values()) arr.sort((a, b) => a.ts - b.ts);
+
+        // Prepend a baseline point (rating before the player's first event)
+        // so a season with a single round still draws a visible line.
+        const BASELINE_OFFSET_MS = 12 * 60 * 60 * 1000;
+        const firstEvents = new Map<string, { ts: number; rating: number }>();
+        for (const e of events || []) {
+          const ts = matchDate.get(e.match_id) ?? new Date(e.created_at).getTime();
+          const before = Number(e.rating_after) - Number(e.rating_change ?? 0);
+          const cur = firstEvents.get(e.user_id);
+          if (!cur || ts < cur.ts) firstEvents.set(e.user_id, { ts, rating: before });
+        }
+        for (const [uid, first] of firstEvents) {
+          const arr = byUser.get(uid);
+          if (arr?.length) {
+            arr.unshift({ ts: first.ts - BASELINE_OFFSET_MS, rating: first.rating });
+            if (first.ts - BASELINE_OFFSET_MS < minTs) minTs = first.ts - BASELINE_OFFSET_MS;
+          }
+        }
 
         // Build season boundaries (only meaningful when filter='all' and there's >1 season with data)
         const seasonBoundaries: SeasonBoundary[] =
