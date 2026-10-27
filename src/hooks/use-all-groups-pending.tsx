@@ -8,6 +8,7 @@
  */
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { sharedFetch } from "@/lib/shared-fetch";
 
 const CACHE_TTL_MS = 30_000;
 const CACHE_PREFIX = "rmm:allGroupsPending:";
@@ -51,35 +52,38 @@ export function useAllGroupsPending(groupIds: string[]) {
     }
     setLoading(true);
     try {
-      const [jr, pc, matches] = await Promise.all([
-        supabase
-          .from("group_join_requests")
-          .select("id", { count: "exact", head: true })
-          .in("group_id", groupIds)
-          .eq("status", "pending"),
-        supabase
-          .from("player_claims")
-          .select("id", { count: "exact", head: true })
-          .in("group_id", groupIds)
-          .eq("status", "pending"),
-        supabase
-          .from("matches")
-          .select("id, rounds!inner(group_id)")
-          .in("rounds.group_id", groupIds),
-      ]);
+      // Deduped across simultaneous instances (BottomNav + DesktopNav).
+      const next = await sharedFetch(`all-groups-pending:${key}`, 5_000, async () => {
+        const [jr, pc, matches] = await Promise.all([
+          supabase
+            .from("group_join_requests")
+            .select("id", { count: "exact", head: true })
+            .in("group_id", groupIds)
+            .eq("status", "pending"),
+          supabase
+            .from("player_claims")
+            .select("id", { count: "exact", head: true })
+            .in("group_id", groupIds)
+            .eq("status", "pending"),
+          supabase
+            .from("matches")
+            .select("id, rounds!inner(group_id)")
+            .in("rounds.group_id", groupIds),
+        ]);
 
-      let matchResultsCount = 0;
-      const matchIds = (matches.data || []).map((m: any) => m.id);
-      if (matchIds.length) {
-        const { count } = await supabase
-          .from("pending_match_results")
-          .select("id", { count: "exact", head: true })
-          .in("match_id", matchIds)
-          .eq("status", "pending");
-        matchResultsCount = count ?? 0;
-      }
+        let matchResultsCount = 0;
+        const matchIds = (matches.data || []).map((m: any) => m.id);
+        if (matchIds.length) {
+          const { count } = await supabase
+            .from("pending_match_results")
+            .select("id", { count: "exact", head: true })
+            .in("match_id", matchIds)
+            .eq("status", "pending");
+          matchResultsCount = count ?? 0;
+        }
 
-      const next = (jr.count ?? 0) + (pc.count ?? 0) + matchResultsCount;
+        return (jr.count ?? 0) + (pc.count ?? 0) + matchResultsCount;
+      });
       setTotal(next);
       writeCache(key, next);
     } catch {

@@ -8,6 +8,7 @@
  */
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { sharedFetch } from "@/lib/shared-fetch";
 
 export interface GroupPendingTasks {
   joinRequests: number;
@@ -29,50 +30,37 @@ export function useGroupPendingTasks(groupId: string | null | undefined, enabled
     }
     setLoading(true);
     try {
-      // Match ids in this group (needed to scope pending_match_results)
-      const matchIdsPromise = supabase
-        .from("matches")
-        .select("id, rounds!inner(group_id)")
-        .eq("rounds.group_id", groupId);
+      // Deduped across simultaneous instances and realtime-triggered refreshes.
+      const next = await sharedFetch(`group-pending:${groupId}`, 5_000, async () => {
+        const [joinRequestsCount, claimsCount, matchesRes] = await Promise.all([
+          getCount("group_join_requests", { group_id: groupId, status: "pending" }),
+          getCount("player_claims", { group_id: groupId, status: "pending" }),
+          // Match ids in this group (needed to scope pending_match_results)
+          supabase
+            .from("matches")
+            .select("id, rounds!inner(group_id)")
+            .eq("rounds.group_id", groupId),
+        ]);
 
-      const [{ data: jr }, { data: pc }, matchesRes] = await Promise.all([
-        supabase
-          .from("group_join_requests")
-          .select("id", { count: "exact", head: true })
-          .eq("group_id", groupId)
-          .eq("status", "pending"),
-        supabase
-          .from("player_claims")
-          .select("id", { count: "exact", head: true })
-          .eq("group_id", groupId)
-          .eq("status", "pending"),
-        matchIdsPromise,
-      ]);
+        const matchIds = (matchesRes.data || []).map((m: any) => m.id);
+        let matchResultsCount = 0;
+        if (matchIds.length) {
+          const { count } = await supabase
+            .from("pending_match_results")
+            .select("id", { count: "exact", head: true })
+            .in("match_id", matchIds)
+            .eq("status", "pending");
+          matchResultsCount = count ?? 0;
+        }
 
-      // Need actual counts: head:true returns null data, use count from response.
-      // Re-issue with explicit count fetch via length if necessary.
-      const joinRequestsCount = await getCount("group_join_requests", { group_id: groupId, status: "pending" });
-      const claimsCount = await getCount("player_claims", { group_id: groupId, status: "pending" });
-
-      const matchIds = (matchesRes.data || []).map((m: any) => m.id);
-      let matchResultsCount = 0;
-      if (matchIds.length) {
-        const { count } = await supabase
-          .from("pending_match_results")
-          .select("id", { count: "exact", head: true })
-          .in("match_id", matchIds)
-          .eq("status", "pending");
-        matchResultsCount = count ?? 0;
-      }
-
-      setCounts({
-        joinRequests: joinRequestsCount,
-        playerClaims: claimsCount,
-        matchResults: matchResultsCount,
-        total: joinRequestsCount + claimsCount + matchResultsCount,
+        return {
+          joinRequests: joinRequestsCount,
+          playerClaims: claimsCount,
+          matchResults: matchResultsCount,
+          total: joinRequestsCount + claimsCount + matchResultsCount,
+        };
       });
-      // mark unused vars to satisfy linter
-      void jr; void pc;
+      setCounts(next);
     } finally {
       setLoading(false);
     }
