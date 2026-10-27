@@ -363,6 +363,8 @@ export function useGroupDetail(groupId: string) {
   const [myRole, setMyRole] = useState<string | null>(null);
   const [pendingRequests, setPendingRequests] = useState<Tables<"group_join_requests">[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const retryRef = useRef(0);
+  const refreshRef = useRef<() => void>(() => {});
 
   const refresh = useCallback(async () => {
     setIsLoading(true);
