@@ -195,7 +195,7 @@ export function useNotifications() {
       if (user) invalidateSharedFetch(`notifications:${user.id}`);
       await refresh();
     },
-    [allNotifications, refresh]
+    [allNotifications, refresh, user]
   );
 
   return { notifications, unreadCount, isLoading, refresh, markAllRead, markRead };

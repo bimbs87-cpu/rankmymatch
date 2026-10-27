@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
+import { sharedFetch } from "@/lib/shared-fetch";
 
 /**
  * Returns true when the current authenticated user has a row in `app_admins`.
@@ -20,11 +21,13 @@ export function useAppAdmin(): { isAppAdmin: boolean; loading: boolean } {
     }
     setLoading(true);
     (async () => {
-      const { data } = await supabase
-        .from("app_admins")
-        .select("user_id")
-        .eq("user_id", user.id)
-        .maybeSingle();
+      const { data } = await sharedFetch(`app-admin:${user.id}`, 60_000, () =>
+        supabase
+          .from("app_admins")
+          .select("user_id")
+          .eq("user_id", user.id)
+          .maybeSingle(),
+      );
       if (cancelled) return;
       setIsAppAdmin(!!data);
       setLoading(false);
