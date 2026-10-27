@@ -437,16 +437,19 @@ export function useGroupDetail(groupId: string) {
       }
     } catch (error) {
       console.error("Erro ao carregar detalhes do grupo:", error);
-      setGroup(null);
-      setMemberCount(0);
-      setMembers([]);
-      setMyRole(null);
-      setPendingRequests([]);
+      // Keep previously loaded data and retry automatically instead of
+      // resetting to a "non-member"/"not found" state on a transient failure.
+      if (retryRef.current < 2) {
+        retryRef.current += 1;
+        setTimeout(() => refreshRef.current(), 1200);
+      }
     } finally {
       setIsLoading(false);
     }
   }, [groupId, user]);
 
+  refreshRef.current = refresh;
+  useEffect(() => { retryRef.current = 0; }, [groupId, user?.id]);
   useEffect(() => { refresh(); }, [refresh]);
 
   const isAdmin = myRole === "admin" || myRole === "creator";
