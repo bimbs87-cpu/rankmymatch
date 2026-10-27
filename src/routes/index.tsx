@@ -23,6 +23,7 @@ import { GroupSwitcherPopover } from "@/components/GroupSwitcherPopover";
 import { PushOptInBanner } from "@/components/PushOptInBanner";
 import { EloEvolutionChart } from "@/components/EloEvolutionChart";
 import { supabase } from "@/integrations/supabase/client";
+import { sharedFetch } from "@/lib/shared-fetch";
 import { isPresenceOpen, getPresenceOpenDate, formatPresenceOpenDate } from "@/lib/presence-schedule";
 import { toast } from "sonner";
 import { useState, useEffect, useCallback, useRef } from "react";
@@ -434,11 +435,14 @@ function DashboardPage() {
       return;
     }
     const ids = myGroups.map((g) => g.id);
+    const idsKey = ids.slice().sort().join(",");
     (async () => {
-      const [seasonsRes, roundsRes] = await Promise.all([
-        supabase.from("seasons").select("id, group_id").in("group_id", ids),
-        supabase.from("rounds").select("group_id, status").in("group_id", ids),
-      ]);
+      const [seasonsRes, roundsRes] = await sharedFetch(`home-group-stats:${idsKey}`, 15_000, () =>
+        Promise.all([
+          supabase.from("seasons").select("id, group_id").in("group_id", ids),
+          supabase.from("rounds").select("group_id, status").in("group_id", ids),
+        ]),
+      );
       const stats = new Map<string, { seasons: number; rounds_completed: number; rounds_total: number }>();
       for (const id of ids) stats.set(id, { seasons: 0, rounds_completed: 0, rounds_total: 0 });
       for (const s of seasonsRes.data || []) {

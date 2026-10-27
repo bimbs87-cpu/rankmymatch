@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
+import { sharedFetch, invalidateSharedFetch } from "@/lib/shared-fetch";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Notification = Tables<"notifications">;
@@ -82,12 +83,14 @@ export function useNotifications() {
     setIsLoading(true);
 
     try {
-      const { data, error } = await supabase
-        .from("notifications")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false })
-        .limit(50);
+      const { data, error } = await sharedFetch(`notifications:${user.id}`, 5_000, () =>
+        supabase
+          .from("notifications")
+          .select("*")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: false })
+          .limit(50),
+      );
 
       if (error) throw error;
 
@@ -172,6 +175,7 @@ export function useNotifications() {
       .eq("user_id", user.id)
       .eq("read", false);
 
+    invalidateSharedFetch(`notifications:${user.id}`);
     await refresh();
   }, [user, refresh]);
 
@@ -188,9 +192,10 @@ export function useNotifications() {
       emitNotificationsRead({ scope: "ids", ids: idsToMark });
 
       await supabase.from("notifications").update({ read: true }).in("id", idsToMark);
+      if (user) invalidateSharedFetch(`notifications:${user.id}`);
       await refresh();
     },
-    [allNotifications, refresh]
+    [allNotifications, refresh, user]
   );
 
   return { notifications, unreadCount, isLoading, refresh, markAllRead, markRead };

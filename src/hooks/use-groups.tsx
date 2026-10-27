@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
+import { sharedFetch, invalidateSharedFetch } from "@/lib/shared-fetch";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Group = Tables<"groups">;
@@ -9,10 +10,16 @@ type GroupMember = Tables<"group_members">;
 async function attachMemberCounts(groups: Group[]) {
   if (!groups.length) return groups.map((g) => ({ ...g, member_count: 0, is_premium: false }));
   const ids = groups.map((g) => g.id);
-  const [{ data: members }, { data: subs }] = await Promise.all([
-    supabase.from("group_members").select("group_id").in("group_id", ids).eq("status", "active"),
-    supabase.from("group_subscriptions").select("group_id, status, expires_at").in("group_id", ids),
-  ]);
+  const idsKey = ids.slice().sort().join(",");
+  const [{ data: members }, { data: subs }] = await sharedFetch(
+    `member-counts:${idsKey}`,
+    15_000,
+    () =>
+      Promise.all([
+        supabase.from("group_members").select("group_id").in("group_id", ids).eq("status", "active"),
+        supabase.from("group_subscriptions").select("group_id, status, expires_at").in("group_id", ids),
+      ]),
+  );
 
   const countMap = new Map<string, number>();
   for (const m of members || []) {
@@ -43,15 +50,18 @@ async function attachGroupStats<T extends { id: string }>(
 ): Promise<(T & GroupStats)[]> {
   if (!groups.length) return [];
   const ids = groups.map((g) => g.id);
+  const idsKey = ids.slice().sort().join(",");
 
-  const [roundsRes, seasonsRes] = await Promise.all([
-    supabase.from("rounds").select("group_id, status").in("group_id", ids),
-    supabase
-      .from("seasons")
-      .select("group_id, name, status, created_at")
-      .in("group_id", ids)
-      .order("created_at", { ascending: false }),
-  ]);
+  const [roundsRes, seasonsRes] = await sharedFetch(`group-stats:${idsKey}`, 15_000, () =>
+    Promise.all([
+      supabase.from("rounds").select("group_id, status").in("group_id", ids),
+      supabase
+        .from("seasons")
+        .select("group_id, name, status, created_at")
+        .in("group_id", ids)
+        .order("created_at", { ascending: false }),
+    ]),
+  );
 
   const roundsByGroup = new Map<string, { done: number; total: number }>();
   for (const r of roundsRes.data || []) {
@@ -99,11 +109,16 @@ export function useMyGroups() {
     setIsLoading(true);
 
     try {
-      const { data: memberships, error: membershipsError } = await supabase
-        .from("group_members")
-        .select("group_id, role")
-        .eq("user_id", user.id)
-        .eq("status", "active");
+      const { data: memberships, error: membershipsError } = await sharedFetch(
+        `my-memberships:${user.id}`,
+        8_000,
+        () =>
+          supabase
+            .from("group_members")
+            .select("group_id, role")
+            .eq("user_id", user.id)
+            .eq("status", "active"),
+      );
 
       if (membershipsError) throw membershipsError;
 
@@ -114,10 +129,12 @@ export function useMyGroups() {
 
       const roleByGroup = new Map(memberships.map((m) => [m.group_id, m.role]));
       const ids = memberships.map((membership) => membership.group_id);
-      const { data: groupsData, error: groupsError } = await supabase
-        .from("groups")
-        .select("*")
-        .in("id", ids);
+      const idsKey = ids.slice().sort().join(",");
+      const { data: groupsData, error: groupsError } = await sharedFetch(
+        `groups-by-id:${idsKey}`,
+        15_000,
+        () => supabase.from("groups").select("*").in("id", ids),
+      );
 
       if (groupsError) throw groupsError;
 
@@ -165,18 +182,20 @@ export function useMyPendingJoinRequests() {
     setIsLoading(true);
     try {
       const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-      const [joinReqsRes, claimReqsRes] = await Promise.all([
-        supabase
-          .from("group_join_requests")
-          .select("group_id, claimed_player_id, status, resolved_at, created_at")
-          .eq("user_id", user.id)
-          .or(`status.eq.pending,and(status.in.(approved,rejected),resolved_at.gte.${since})`),
-        supabase
-          .from("player_claims")
-          .select("group_id, placeholder_user_id, status, resolved_at, created_at")
-          .eq("claimer_user_id", user.id)
-          .or(`status.eq.pending,and(status.in.(approved,rejected),resolved_at.gte.${since})`),
-      ]);
+      const [joinReqsRes, claimReqsRes] = await sharedFetch(`my-pending-reqs:${user.id}`, 5_000, () =>
+        Promise.all([
+          supabase
+            .from("group_join_requests")
+            .select("group_id, claimed_player_id, status, resolved_at, created_at")
+            .eq("user_id", user.id)
+            .or(`status.eq.pending,and(status.in.(approved,rejected),resolved_at.gte.${since})`),
+          supabase
+            .from("player_claims")
+            .select("group_id, placeholder_user_id, status, resolved_at, created_at")
+            .eq("claimer_user_id", user.id)
+            .or(`status.eq.pending,and(status.in.(approved,rejected),resolved_at.gte.${since})`),
+        ]),
+      );
 
       if (joinReqsRes.error) throw joinReqsRes.error;
       if (claimReqsRes.error) throw claimReqsRes.error;
@@ -190,10 +209,12 @@ export function useMyPendingJoinRequests() {
         return;
       }
 
-      const { data: groupsData, error: groupsError } = await supabase
-        .from("groups")
-        .select("*")
-        .in("id", allGroupIds);
+      const allIdsKey = allGroupIds.slice().sort().join(",");
+      const { data: groupsData, error: groupsError } = await sharedFetch(
+        `groups-by-id:${allIdsKey}`,
+        15_000,
+        () => supabase.from("groups").select("*").in("id", allGroupIds),
+      );
 
       if (groupsError) throw groupsError;
 
@@ -525,6 +546,12 @@ export async function createGroup(data: {
     await supabase.from("groups").delete().eq("id", group.id);
     throw memberError;
   }
+
+  // Bust cached membership/group lists so the new group shows up immediately.
+  invalidateSharedFetch(`my-memberships:${data.userId}`);
+  invalidateSharedFetch("groups-by-id:");
+  invalidateSharedFetch("member-counts:");
+  invalidateSharedFetch("group-stats:");
 
   return group;
 }

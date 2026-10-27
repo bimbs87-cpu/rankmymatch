@@ -11,6 +11,10 @@
 - [x] Lançamento em lote com opção "Fechar em super tie-break (10 pts)" quando 1x1 (não testado no navegador)
 - [x] Erros 409 de sessão/aquisição eliminados via upsert idempotente
 
+## Concluído: Otimização da primeira carga da Home — 27/10/2026
+- [x] Cache compartilhado (src/lib/shared-fetch.ts) deduplica consultas idênticas simultâneas entre instâncias de hooks (Home, BottomNav, DesktopNav, popovers)
+- [x] Removidas consultas redundantes em use-group-pending-tasks (contagens duplas)
+- [x] Tempo até conteúdo: ~5,7s → ~3,3s (medido com Playwright, usuário QA)
+
 ## Backlog
-- [ ] Primeira carga da Home de usuário novo é lenta (~8s; queries redundantes de group_members/groups)
 - [ ] 401/500 no console para usuários criados via SQL (artefato de teste, não afeta produção)
