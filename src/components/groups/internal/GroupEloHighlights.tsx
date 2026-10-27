@@ -74,7 +74,7 @@ export function GroupEloHighlights({ groupId }: Props) {
       topUp: bestUp,
       topDown: bestDown,
       consistent: bestConsistent,
-      totalGames: matchTimestamps.size,
+      totalGames: matchIds.size,
     };
   }, [data.series]);
 
