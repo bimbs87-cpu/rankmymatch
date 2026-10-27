@@ -20,6 +20,7 @@ import { SeasonsTimeline } from "./SeasonsTimeline";
 import { LastAndNextRoundCards } from "./LastAndNextRoundCards";
 import { createExtraRound as createExtraRoundFn } from "@/lib/extra-round";
 import { ScoreEntryDialog } from "@/components/ScoreEntryDialog";
+import { RoundQuickDialog } from "@/components/RoundQuickDialog";
 import { AdminAddPresenceDialog } from "@/components/AdminAddPresenceDialog";
 import { CancelRoundDialog } from "@/components/CancelRoundDialog";
 import { ExtendSeasonDialog } from "./ExtendSeasonDialog";
@@ -881,7 +882,20 @@ function SeasonRoundsInline({ groupId, seasonId, isAdmin, initialRoundId, initia
             )}
 
             {isExpanded && !cancelled && (
-              <RoundExpandedDetails groupId={groupId} seasonId={seasonId} roundId={r.id} isAdmin={isAdmin} onChanged={refresh} highlightedMatchId={initialMatchId} />
+              <RoundQuickDialog
+                open
+                onOpenChange={(o) => { if (!o) setExpandedId(null); }}
+                groupId={groupId}
+                roundId={r.id}
+                seasonId={seasonId}
+                roundNumber={r.round_number}
+                scheduledDate={r.scheduled_date}
+                scheduledTime={r.scheduled_time}
+                location={r.location}
+                isAdmin={isAdmin}
+                onChanged={refresh}
+                highlightedMatchId={r.id === initialRoundId ? initialMatchId : undefined}
+              />
             )}
 
             {editing && !cancelled && !completed && (

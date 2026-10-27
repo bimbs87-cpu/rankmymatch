@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { RoundExpandedDetails } from "./SeasonsPanel";
+import { RoundQuickDialog } from "@/components/RoundQuickDialog";
 import { useAuth } from "@/hooks/use-auth";
 import { confirmPresence, cancelPresence } from "@/lib/round-actions";
 import { toast } from "sonner";
@@ -63,7 +64,9 @@ export function LastAndNextRoundCards({ groupId, isAdmin, variant = "last", grou
   const [round, setRound] = useState<RoundLite | null>(null);
   const [loading, setLoading] = useState(true);
   // Next variant is now a hero — start expanded so users see actions immediately.
-  const [expanded, setExpanded] = useState(variant === "last" || variant === "next");
+  const [expanded, setExpanded] = useState(variant === "last");
+  // Upcoming rounds open the shared round dialog (same flow as the Home).
+  const [quickOpen, setQuickOpen] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
   const [myStatus, setMyStatus] = useState<"confirmed" | "declined" | "pending" | null>(null);
   const [acting, setActing] = useState(false);
@@ -249,7 +252,7 @@ export function LastAndNextRoundCards({ groupId, isAdmin, variant = "last", grou
       <div id={`round-share-${round.id}`} className={`overflow-hidden rounded-2xl border bg-card/70 shadow-sm transition-all ${borderColor}`}>
         <button
           type="button"
-          onClick={() => setExpanded((v) => !v)}
+          onClick={() => (variant === "next" ? setQuickOpen(true) : setExpanded((v) => !v))}
           className="flex w-full items-center gap-3 p-3 text-left hover:bg-accent/20"
           aria-expanded={expanded}
         >
@@ -366,7 +369,7 @@ export function LastAndNextRoundCards({ groupId, isAdmin, variant = "last", grou
           </div>
         )}
 
-        {expanded && round.season_id && (
+        {expanded && !isNext && round.season_id && (
           <RoundExpandedDetails
             groupId={groupId}
             seasonId={round.season_id}
@@ -377,6 +380,23 @@ export function LastAndNextRoundCards({ groupId, isAdmin, variant = "last", grou
           />
         )}
       </div>
+
+      {isNext && quickOpen && (
+        <RoundQuickDialog
+          open
+          onOpenChange={(o) => { if (!o) setQuickOpen(false); }}
+          groupId={groupId}
+          roundId={round.id}
+          seasonId={round.season_id}
+          groupName={groupName}
+          roundNumber={round.round_number}
+          scheduledDate={round.scheduled_date}
+          scheduledTime={round.scheduled_time}
+          location={round.location}
+          isAdmin={isAdmin}
+          onChanged={() => setReloadKey((k) => k + 1)}
+        />
+      )}
 
       {isLast && expanded && (
         <Button type="button" variant="outline" size="sm" disabled={sharing} onClick={shareRound} className="w-full gap-2" data-share-exclude>
