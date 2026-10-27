@@ -9,3 +9,5 @@ RankMyMatch technical decisions:
 - Scope profile reads to the owner and shared-group participants, and group-image uploads to members' group folders, so personal data and file writes stay tied to membership.
 - Return public bug-vote totals through an aggregate server function while exposing individual vote rows only to their owner, so counts remain visible without revealing voters.
 - Keep changelog entries in release_notes with evidence-backed dates and increasing versions (up to six entries per minor); mirror the latest published version in APP_VERSION so displayed releases stay consistent.- Open RoundQuickDialog (wrapping RoundExpandedDetails) for every round/result entry point instead of screen-specific score forms, so presence, draw, match order, sets and tie-break behave identically everywhere.
+- Guard async load hooks like useGroupDetail with a sequence counter so a stale run started before auth resolves can never overwrite newer results; otherwise membership/admin state flaps intermittently.
+- On batch score save failure, keep the typed scores in place (skip the reload) and show a long error toast, so admins can retry without re-entering results.
