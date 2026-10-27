@@ -109,11 +109,16 @@ export function useMyGroups() {
     setIsLoading(true);
 
     try {
-      const { data: memberships, error: membershipsError } = await supabase
-        .from("group_members")
-        .select("group_id, role")
-        .eq("user_id", user.id)
-        .eq("status", "active");
+      const { data: memberships, error: membershipsError } = await sharedFetch(
+        `my-memberships:${user.id}`,
+        8_000,
+        () =>
+          supabase
+            .from("group_members")
+            .select("group_id, role")
+            .eq("user_id", user.id)
+            .eq("status", "active"),
+      );
 
       if (membershipsError) throw membershipsError;
 
@@ -124,10 +129,12 @@ export function useMyGroups() {
 
       const roleByGroup = new Map(memberships.map((m) => [m.group_id, m.role]));
       const ids = memberships.map((membership) => membership.group_id);
-      const { data: groupsData, error: groupsError } = await supabase
-        .from("groups")
-        .select("*")
-        .in("id", ids);
+      const idsKey = ids.slice().sort().join(",");
+      const { data: groupsData, error: groupsError } = await sharedFetch(
+        `groups-by-id:${idsKey}`,
+        15_000,
+        () => supabase.from("groups").select("*").in("id", ids),
+      );
 
       if (groupsError) throw groupsError;
 
@@ -175,18 +182,20 @@ export function useMyPendingJoinRequests() {
     setIsLoading(true);
     try {
       const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-      const [joinReqsRes, claimReqsRes] = await Promise.all([
-        supabase
-          .from("group_join_requests")
-          .select("group_id, claimed_player_id, status, resolved_at, created_at")
-          .eq("user_id", user.id)
-          .or(`status.eq.pending,and(status.in.(approved,rejected),resolved_at.gte.${since})`),
-        supabase
-          .from("player_claims")
-          .select("group_id, placeholder_user_id, status, resolved_at, created_at")
-          .eq("claimer_user_id", user.id)
-          .or(`status.eq.pending,and(status.in.(approved,rejected),resolved_at.gte.${since})`),
-      ]);
+      const [joinReqsRes, claimReqsRes] = await sharedFetch(`my-pending-reqs:${user.id}`, 5_000, () =>
+        Promise.all([
+          supabase
+            .from("group_join_requests")
+            .select("group_id, claimed_player_id, status, resolved_at, created_at")
+            .eq("user_id", user.id)
+            .or(`status.eq.pending,and(status.in.(approved,rejected),resolved_at.gte.${since})`),
+          supabase
+            .from("player_claims")
+            .select("group_id, placeholder_user_id, status, resolved_at, created_at")
+            .eq("claimer_user_id", user.id)
+            .or(`status.eq.pending,and(status.in.(approved,rejected),resolved_at.gte.${since})`),
+        ]),
+      );
 
       if (joinReqsRes.error) throw joinReqsRes.error;
       if (claimReqsRes.error) throw claimReqsRes.error;
