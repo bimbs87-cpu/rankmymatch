@@ -2215,8 +2215,8 @@ function BatchScoreEntry({
     }
     return snap;
   })[0];
-  const [rows, setRows] = useState<Record<string, { a: string; b: string }[]>>(() => {
-    const init: Record<string, { a: string; b: string }[]> = {};
+  const [rows, setRows] = useState<Record<string, { a: string; b: string; tb?: boolean }[]>>(() => {
+    const init: Record<string, { a: string; b: string; tb?: boolean }[]> = {};
     for (const m of matches) {
       const existing = (m.match_sets || [])
         .slice()
@@ -2247,8 +2247,8 @@ function BatchScoreEntry({
     });
   };
 
-  const addSet = (matchId: string) =>
-    setRows((prev) => ({ ...prev, [matchId]: [...(prev[matchId] || []), { a: "", b: "" }] }));
+  const addSet = (matchId: string, tb = false) =>
+    setRows((prev) => ({ ...prev, [matchId]: [...(prev[matchId] || []), { a: "", b: "", tb }] }));
 
   const removeSet = (matchId: string, idx: number) =>
     setRows((prev) => ({ ...prev, [matchId]: (prev[matchId] || []).filter((_, i) => i !== idx) }));
