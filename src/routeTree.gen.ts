@@ -9,145 +9,60 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as UnsubscribeRouteImport } from './routes/unsubscribe'
-import { Route as TermosRouteImport } from './routes/termos'
-import { Route as SobreDesenvolvimentoRouteImport } from './routes/sobre-desenvolvimento'
-import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
-import { Route as SistemaRouteImport } from './routes/sistema'
-import { Route as SeasonsRouteImport } from './routes/seasons'
-import { Route as RankingInfoRouteImport } from './routes/ranking-info'
-import { Route as RankingRouteImport } from './routes/ranking'
-import { Route as ProfileRouteImport } from './routes/profile'
-import { Route as PrivacidadeRouteImport } from './routes/privacidade'
-import { Route as PartidasAvulsasRouteImport } from './routes/partidas-avulsas'
-import { Route as NotificationsRouteImport } from './routes/notifications'
-import { Route as LoginRouteImport } from './routes/login'
-import { Route as LandingRouteImport } from './routes/landing'
-import { Route as HistoryRouteImport } from './routes/history'
-import { Route as GroupsRouteImport } from './routes/groups'
-import { Route as DevRouteImport } from './routes/dev'
-import { Route as CompararRouteImport } from './routes/comparar'
-import { Route as ChangelogRouteImport } from './routes/changelog'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as GroupsIndexRouteImport } from './routes/groups.index'
-import { Route as SobreDesenvolvimentoChangelogAdminRouteImport } from './routes/sobre-desenvolvimento.changelog-admin'
-import { Route as SobreDesenvolvimentoAdminRouteImport } from './routes/sobre-desenvolvimento.admin'
-import { Route as RankingCompareRouteImport } from './routes/ranking_.compare'
-import { Route as PlayersUserIdRouteImport } from './routes/players.$userId'
-import { Route as InviteCodeRouteImport } from './routes/invite.$code'
-import { Route as HooksPresenceWindowOpenedRouteImport } from './routes/hooks.presence-window-opened'
-import { Route as HooksAdminUndoRouteImport } from './routes/hooks.admin-undo'
-import { Route as HooksAdminPendingReminderRouteImport } from './routes/hooks.admin-pending-reminder'
-import { Route as HooksAdminActionRouteImport } from './routes/hooks.admin-action'
-import { Route as GroupsGroupIdRouteImport } from './routes/groups.$groupId'
-import { Route as EmailUnsubscribeRouteImport } from './routes/email/unsubscribe'
-import { Route as AdminMetricsRouteImport } from './routes/admin.metrics'
+import { Route as ChangelogRouteImport } from './routes/changelog'
+import { Route as CompararRouteImport } from './routes/comparar'
+import { Route as DevRouteImport } from './routes/dev'
+import { Route as GroupsRouteImport } from './routes/groups'
+import { Route as HistoryRouteImport } from './routes/history'
+import { Route as LandingRouteImport } from './routes/landing'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as NotificationsRouteImport } from './routes/notifications'
+import { Route as PartidasAvulsasRouteImport } from './routes/partidas-avulsas'
+import { Route as PrivacidadeRouteImport } from './routes/privacidade'
+import { Route as ProfileRouteImport } from './routes/profile'
+import { Route as RankingRouteImport } from './routes/ranking'
+import { Route as RankingInfoRouteImport } from './routes/ranking-info'
+import { Route as SeasonsRouteImport } from './routes/seasons'
+import { Route as SistemaRouteImport } from './routes/sistema'
+import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
+import { Route as SobreDesenvolvimentoRouteImport } from './routes/sobre-desenvolvimento'
+import { Route as TermosRouteImport } from './routes/termos'
+import { Route as UnsubscribeRouteImport } from './routes/unsubscribe'
 import { Route as AdminInboxRouteImport } from './routes/admin.inbox'
-import { Route as GroupsGroupIdIndexRouteImport } from './routes/groups.$groupId.index'
-import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/email/suppression'
-import { Route as GroupsGroupIdSeasonsRouteImport } from './routes/groups.$groupId.seasons'
-import { Route as GroupsGroupIdDuelRouteImport } from './routes/groups.$groupId.duel'
+import { Route as AdminMetricsRouteImport } from './routes/admin.metrics'
+import { Route as EmailUnsubscribeRouteImport } from './routes/email/unsubscribe'
+import { Route as GroupsIndexRouteImport } from './routes/groups.index'
+import { Route as GroupsGroupIdRouteImport } from './routes/groups.$groupId'
+import { Route as HooksAdminActionRouteImport } from './routes/hooks.admin-action'
+import { Route as HooksAdminPendingReminderRouteImport } from './routes/hooks.admin-pending-reminder'
+import { Route as HooksAdminUndoRouteImport } from './routes/hooks.admin-undo'
+import { Route as HooksPresenceWindowOpenedRouteImport } from './routes/hooks.presence-window-opened'
+import { Route as InviteCodeRouteImport } from './routes/invite.$code'
+import { Route as PlayersUserIdRouteImport } from './routes/players.$userId'
+import { Route as RankingCompareRouteImport } from './routes/ranking_.compare'
+import { Route as SobreDesenvolvimentoAdminRouteImport } from './routes/sobre-desenvolvimento.admin'
+import { Route as SobreDesenvolvimentoChangelogAdminRouteImport } from './routes/sobre-desenvolvimento.changelog-admin'
 import { Route as ApiPushVapidPublicKeyRouteImport } from './routes/api.push.vapid-public-key'
-import { Route as GroupsGroupIdSeasonsIndexRouteImport } from './routes/groups.$groupId.seasons.index'
-import { Route as LovableEmailTransactionalSendRouteImport } from './routes/lovable/email/transactional/send'
-import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/lovable/email/transactional/preview'
-import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
-import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/email/auth/webhook'
-import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
-import { Route as GroupsGroupIdSeasonsSeasonIdRouteImport } from './routes/groups.$groupId.seasons.$seasonId'
-import { Route as ApiPublicHooksMonthlyReportRouteImport } from './routes/api.public.hooks.monthly-report'
-import { Route as ApiOgPlayerUserIdRouteImport } from './routes/api.og.player.$userId'
+import { Route as GroupsGroupIdIndexRouteImport } from './routes/groups.$groupId.index'
+import { Route as GroupsGroupIdDuelRouteImport } from './routes/groups.$groupId.duel'
+import { Route as GroupsGroupIdSeasonsRouteImport } from './routes/groups.$groupId.seasons'
+import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/email/suppression'
 import { Route as ApiOgGroupGroupIdRouteImport } from './routes/api.og.group.$groupId'
+import { Route as ApiOgPlayerUserIdRouteImport } from './routes/api.og.player.$userId'
+import { Route as ApiPublicHooksMonthlyReportRouteImport } from './routes/api.public.hooks.monthly-report'
+import { Route as GroupsGroupIdSeasonsIndexRouteImport } from './routes/groups.$groupId.seasons.index'
+import { Route as GroupsGroupIdSeasonsSeasonIdRouteImport } from './routes/groups.$groupId.seasons.$seasonId'
+import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
+import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/email/auth/webhook'
+import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
+import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/lovable/email/transactional/preview'
+import { Route as LovableEmailTransactionalSendRouteImport } from './routes/lovable/email/transactional/send'
 import { Route as GroupsGroupIdSeasonsSeasonIdIndexRouteImport } from './routes/groups.$groupId.seasons.$seasonId.index'
 
-const UnsubscribeRoute = UnsubscribeRouteImport.update({
-  id: '/unsubscribe',
-  path: '/unsubscribe',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const TermosRoute = TermosRouteImport.update({
-  id: '/termos',
-  path: '/termos',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SobreDesenvolvimentoRoute = SobreDesenvolvimentoRouteImport.update({
-  id: '/sobre-desenvolvimento',
-  path: '/sobre-desenvolvimento',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
-  id: '/sitemap.xml',
-  path: '/sitemap.xml',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SistemaRoute = SistemaRouteImport.update({
-  id: '/sistema',
-  path: '/sistema',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SeasonsRoute = SeasonsRouteImport.update({
-  id: '/seasons',
-  path: '/seasons',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const RankingInfoRoute = RankingInfoRouteImport.update({
-  id: '/ranking-info',
-  path: '/ranking-info',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const RankingRoute = RankingRouteImport.update({
-  id: '/ranking',
-  path: '/ranking',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ProfileRoute = ProfileRouteImport.update({
-  id: '/profile',
-  path: '/profile',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PrivacidadeRoute = PrivacidadeRouteImport.update({
-  id: '/privacidade',
-  path: '/privacidade',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PartidasAvulsasRoute = PartidasAvulsasRouteImport.update({
-  id: '/partidas-avulsas',
-  path: '/partidas-avulsas',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const NotificationsRoute = NotificationsRouteImport.update({
-  id: '/notifications',
-  path: '/notifications',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LoginRoute = LoginRouteImport.update({
-  id: '/login',
-  path: '/login',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LandingRoute = LandingRouteImport.update({
-  id: '/landing',
-  path: '/landing',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const HistoryRoute = HistoryRouteImport.update({
-  id: '/history',
-  path: '/history',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const GroupsRoute = GroupsRouteImport.update({
-  id: '/groups',
-  path: '/groups',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DevRoute = DevRouteImport.update({
-  id: '/dev',
-  path: '/dev',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CompararRoute = CompararRouteImport.update({
-  id: '/comparar',
-  path: '/comparar',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ChangelogRoute = ChangelogRouteImport.update({
@@ -155,9 +70,109 @@ const ChangelogRoute = ChangelogRouteImport.update({
   path: '/changelog',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const CompararRoute = CompararRouteImport.update({
+  id: '/comparar',
+  path: '/comparar',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DevRoute = DevRouteImport.update({
+  id: '/dev',
+  path: '/dev',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GroupsRoute = GroupsRouteImport.update({
+  id: '/groups',
+  path: '/groups',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HistoryRoute = HistoryRouteImport.update({
+  id: '/history',
+  path: '/history',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LandingRoute = LandingRouteImport.update({
+  id: '/landing',
+  path: '/landing',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NotificationsRoute = NotificationsRouteImport.update({
+  id: '/notifications',
+  path: '/notifications',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PartidasAvulsasRoute = PartidasAvulsasRouteImport.update({
+  id: '/partidas-avulsas',
+  path: '/partidas-avulsas',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacidadeRoute = PrivacidadeRouteImport.update({
+  id: '/privacidade',
+  path: '/privacidade',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProfileRoute = ProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RankingRoute = RankingRouteImport.update({
+  id: '/ranking',
+  path: '/ranking',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RankingInfoRoute = RankingInfoRouteImport.update({
+  id: '/ranking-info',
+  path: '/ranking-info',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SeasonsRoute = SeasonsRouteImport.update({
+  id: '/seasons',
+  path: '/seasons',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SistemaRoute = SistemaRouteImport.update({
+  id: '/sistema',
+  path: '/sistema',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
+  id: '/sitemap.xml',
+  path: '/sitemap.xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SobreDesenvolvimentoRoute = SobreDesenvolvimentoRouteImport.update({
+  id: '/sobre-desenvolvimento',
+  path: '/sobre-desenvolvimento',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TermosRoute = TermosRouteImport.update({
+  id: '/termos',
+  path: '/termos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const UnsubscribeRoute = UnsubscribeRouteImport.update({
+  id: '/unsubscribe',
+  path: '/unsubscribe',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminInboxRoute = AdminInboxRouteImport.update({
+  id: '/admin/inbox',
+  path: '/admin/inbox',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminMetricsRoute = AdminMetricsRouteImport.update({
+  id: '/admin/metrics',
+  path: '/admin/metrics',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EmailUnsubscribeRoute = EmailUnsubscribeRouteImport.update({
+  id: '/email/unsubscribe',
+  path: '/email/unsubscribe',
   getParentRoute: () => rootRouteImport,
 } as any)
 const GroupsIndexRoute = GroupsIndexRouteImport.update({
@@ -165,42 +180,14 @@ const GroupsIndexRoute = GroupsIndexRouteImport.update({
   path: '/',
   getParentRoute: () => GroupsRoute,
 } as any)
-const SobreDesenvolvimentoChangelogAdminRoute =
-  SobreDesenvolvimentoChangelogAdminRouteImport.update({
-    id: '/changelog-admin',
-    path: '/changelog-admin',
-    getParentRoute: () => SobreDesenvolvimentoRoute,
-  } as any)
-const SobreDesenvolvimentoAdminRoute =
-  SobreDesenvolvimentoAdminRouteImport.update({
-    id: '/admin',
-    path: '/admin',
-    getParentRoute: () => SobreDesenvolvimentoRoute,
-  } as any)
-const RankingCompareRoute = RankingCompareRouteImport.update({
-  id: '/ranking_/compare',
-  path: '/ranking/compare',
-  getParentRoute: () => rootRouteImport,
+const GroupsGroupIdRoute = GroupsGroupIdRouteImport.update({
+  id: '/$groupId',
+  path: '/$groupId',
+  getParentRoute: () => GroupsRoute,
 } as any)
-const PlayersUserIdRoute = PlayersUserIdRouteImport.update({
-  id: '/players/$userId',
-  path: '/players/$userId',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const InviteCodeRoute = InviteCodeRouteImport.update({
-  id: '/invite/$code',
-  path: '/invite/$code',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const HooksPresenceWindowOpenedRoute =
-  HooksPresenceWindowOpenedRouteImport.update({
-    id: '/hooks/presence-window-opened',
-    path: '/hooks/presence-window-opened',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const HooksAdminUndoRoute = HooksAdminUndoRouteImport.update({
-  id: '/hooks/admin-undo',
-  path: '/hooks/admin-undo',
+const HooksAdminActionRoute = HooksAdminActionRouteImport.update({
+  id: '/hooks/admin-action',
+  path: '/hooks/admin-action',
   getParentRoute: () => rootRouteImport,
 } as any)
 const HooksAdminPendingReminderRoute =
@@ -209,29 +196,47 @@ const HooksAdminPendingReminderRoute =
     path: '/hooks/admin-pending-reminder',
     getParentRoute: () => rootRouteImport,
   } as any)
-const HooksAdminActionRoute = HooksAdminActionRouteImport.update({
-  id: '/hooks/admin-action',
-  path: '/hooks/admin-action',
+const HooksAdminUndoRoute = HooksAdminUndoRouteImport.update({
+  id: '/hooks/admin-undo',
+  path: '/hooks/admin-undo',
   getParentRoute: () => rootRouteImport,
 } as any)
-const GroupsGroupIdRoute = GroupsGroupIdRouteImport.update({
-  id: '/$groupId',
-  path: '/$groupId',
-  getParentRoute: () => GroupsRoute,
-} as any)
-const EmailUnsubscribeRoute = EmailUnsubscribeRouteImport.update({
-  id: '/email/unsubscribe',
-  path: '/email/unsubscribe',
+const HooksPresenceWindowOpenedRoute =
+  HooksPresenceWindowOpenedRouteImport.update({
+    id: '/hooks/presence-window-opened',
+    path: '/hooks/presence-window-opened',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const InviteCodeRoute = InviteCodeRouteImport.update({
+  id: '/invite/$code',
+  path: '/invite/$code',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AdminMetricsRoute = AdminMetricsRouteImport.update({
-  id: '/admin/metrics',
-  path: '/admin/metrics',
+const PlayersUserIdRoute = PlayersUserIdRouteImport.update({
+  id: '/players/$userId',
+  path: '/players/$userId',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AdminInboxRoute = AdminInboxRouteImport.update({
-  id: '/admin/inbox',
-  path: '/admin/inbox',
+const RankingCompareRoute = RankingCompareRouteImport.update({
+  id: '/ranking_/compare',
+  path: '/ranking/compare',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SobreDesenvolvimentoAdminRoute =
+  SobreDesenvolvimentoAdminRouteImport.update({
+    id: '/admin',
+    path: '/admin',
+    getParentRoute: () => SobreDesenvolvimentoRoute,
+  } as any)
+const SobreDesenvolvimentoChangelogAdminRoute =
+  SobreDesenvolvimentoChangelogAdminRouteImport.update({
+    id: '/changelog-admin',
+    path: '/changelog-admin',
+    getParentRoute: () => SobreDesenvolvimentoRoute,
+  } as any)
+const ApiPushVapidPublicKeyRoute = ApiPushVapidPublicKeyRouteImport.update({
+  id: '/api/push/vapid-public-key',
+  path: '/api/push/vapid-public-key',
   getParentRoute: () => rootRouteImport,
 } as any)
 const GroupsGroupIdIndexRoute = GroupsGroupIdIndexRouteImport.update({
@@ -239,36 +244,63 @@ const GroupsGroupIdIndexRoute = GroupsGroupIdIndexRouteImport.update({
   path: '/',
   getParentRoute: () => GroupsGroupIdRoute,
 } as any)
-const LovableEmailSuppressionRoute = LovableEmailSuppressionRouteImport.update({
-  id: '/lovable/email/suppression',
-  path: '/lovable/email/suppression',
-  getParentRoute: () => rootRouteImport,
+const GroupsGroupIdDuelRoute = GroupsGroupIdDuelRouteImport.update({
+  id: '/duel',
+  path: '/duel',
+  getParentRoute: () => GroupsGroupIdRoute,
 } as any)
 const GroupsGroupIdSeasonsRoute = GroupsGroupIdSeasonsRouteImport.update({
   id: '/seasons',
   path: '/seasons',
   getParentRoute: () => GroupsGroupIdRoute,
 } as any)
-const GroupsGroupIdDuelRoute = GroupsGroupIdDuelRouteImport.update({
-  id: '/duel',
-  path: '/duel',
-  getParentRoute: () => GroupsGroupIdRoute,
-} as any)
-const ApiPushVapidPublicKeyRoute = ApiPushVapidPublicKeyRouteImport.update({
-  id: '/api/push/vapid-public-key',
-  path: '/api/push/vapid-public-key',
+const LovableEmailSuppressionRoute = LovableEmailSuppressionRouteImport.update({
+  id: '/lovable/email/suppression',
+  path: '/lovable/email/suppression',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiOgGroupGroupIdRoute = ApiOgGroupGroupIdRouteImport.update({
+  id: '/api/og/group/$groupId',
+  path: '/api/og/group/$groupId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiOgPlayerUserIdRoute = ApiOgPlayerUserIdRouteImport.update({
+  id: '/api/og/player/$userId',
+  path: '/api/og/player/$userId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicHooksMonthlyReportRoute =
+  ApiPublicHooksMonthlyReportRouteImport.update({
+    id: '/api/public/hooks/monthly-report',
+    path: '/api/public/hooks/monthly-report',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const GroupsGroupIdSeasonsIndexRoute =
   GroupsGroupIdSeasonsIndexRouteImport.update({
     id: '/',
     path: '/',
     getParentRoute: () => GroupsGroupIdSeasonsRoute,
   } as any)
-const LovableEmailTransactionalSendRoute =
-  LovableEmailTransactionalSendRouteImport.update({
-    id: '/lovable/email/transactional/send',
-    path: '/lovable/email/transactional/send',
+const GroupsGroupIdSeasonsSeasonIdRoute =
+  GroupsGroupIdSeasonsSeasonIdRouteImport.update({
+    id: '/$seasonId',
+    path: '/$seasonId',
+    getParentRoute: () => GroupsGroupIdSeasonsRoute,
+  } as any)
+const LovableEmailAuthPreviewRoute = LovableEmailAuthPreviewRouteImport.update({
+  id: '/lovable/email/auth/preview',
+  path: '/lovable/email/auth/preview',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LovableEmailAuthWebhookRoute = LovableEmailAuthWebhookRouteImport.update({
+  id: '/lovable/email/auth/webhook',
+  path: '/lovable/email/auth/webhook',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LovableEmailQueueProcessRoute =
+  LovableEmailQueueProcessRouteImport.update({
+    id: '/lovable/email/queue/process',
+    path: '/lovable/email/queue/process',
     getParentRoute: () => rootRouteImport,
   } as any)
 const LovableEmailTransactionalPreviewRoute =
@@ -277,44 +309,12 @@ const LovableEmailTransactionalPreviewRoute =
     path: '/lovable/email/transactional/preview',
     getParentRoute: () => rootRouteImport,
   } as any)
-const LovableEmailQueueProcessRoute =
-  LovableEmailQueueProcessRouteImport.update({
-    id: '/lovable/email/queue/process',
-    path: '/lovable/email/queue/process',
+const LovableEmailTransactionalSendRoute =
+  LovableEmailTransactionalSendRouteImport.update({
+    id: '/lovable/email/transactional/send',
+    path: '/lovable/email/transactional/send',
     getParentRoute: () => rootRouteImport,
   } as any)
-const LovableEmailAuthWebhookRoute = LovableEmailAuthWebhookRouteImport.update({
-  id: '/lovable/email/auth/webhook',
-  path: '/lovable/email/auth/webhook',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LovableEmailAuthPreviewRoute = LovableEmailAuthPreviewRouteImport.update({
-  id: '/lovable/email/auth/preview',
-  path: '/lovable/email/auth/preview',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const GroupsGroupIdSeasonsSeasonIdRoute =
-  GroupsGroupIdSeasonsSeasonIdRouteImport.update({
-    id: '/$seasonId',
-    path: '/$seasonId',
-    getParentRoute: () => GroupsGroupIdSeasonsRoute,
-  } as any)
-const ApiPublicHooksMonthlyReportRoute =
-  ApiPublicHooksMonthlyReportRouteImport.update({
-    id: '/api/public/hooks/monthly-report',
-    path: '/api/public/hooks/monthly-report',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiOgPlayerUserIdRoute = ApiOgPlayerUserIdRouteImport.update({
-  id: '/api/og/player/$userId',
-  path: '/api/og/player/$userId',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiOgGroupGroupIdRoute = ApiOgGroupGroupIdRouteImport.update({
-  id: '/api/og/group/$groupId',
-  path: '/api/og/group/$groupId',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const GroupsGroupIdSeasonsSeasonIdIndexRoute =
   GroupsGroupIdSeasonsSeasonIdIndexRouteImport.update({
     id: '/',
@@ -675,130 +675,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/unsubscribe': {
-      id: '/unsubscribe'
-      path: '/unsubscribe'
-      fullPath: '/unsubscribe'
-      preLoaderRoute: typeof UnsubscribeRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/termos': {
-      id: '/termos'
-      path: '/termos'
-      fullPath: '/termos'
-      preLoaderRoute: typeof TermosRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/sobre-desenvolvimento': {
-      id: '/sobre-desenvolvimento'
-      path: '/sobre-desenvolvimento'
-      fullPath: '/sobre-desenvolvimento'
-      preLoaderRoute: typeof SobreDesenvolvimentoRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/sitemap.xml': {
-      id: '/sitemap.xml'
-      path: '/sitemap.xml'
-      fullPath: '/sitemap.xml'
-      preLoaderRoute: typeof SitemapDotxmlRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/sistema': {
-      id: '/sistema'
-      path: '/sistema'
-      fullPath: '/sistema'
-      preLoaderRoute: typeof SistemaRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/seasons': {
-      id: '/seasons'
-      path: '/seasons'
-      fullPath: '/seasons'
-      preLoaderRoute: typeof SeasonsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/ranking-info': {
-      id: '/ranking-info'
-      path: '/ranking-info'
-      fullPath: '/ranking-info'
-      preLoaderRoute: typeof RankingInfoRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/ranking': {
-      id: '/ranking'
-      path: '/ranking'
-      fullPath: '/ranking'
-      preLoaderRoute: typeof RankingRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/profile': {
-      id: '/profile'
-      path: '/profile'
-      fullPath: '/profile'
-      preLoaderRoute: typeof ProfileRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/privacidade': {
-      id: '/privacidade'
-      path: '/privacidade'
-      fullPath: '/privacidade'
-      preLoaderRoute: typeof PrivacidadeRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/partidas-avulsas': {
-      id: '/partidas-avulsas'
-      path: '/partidas-avulsas'
-      fullPath: '/partidas-avulsas'
-      preLoaderRoute: typeof PartidasAvulsasRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/notifications': {
-      id: '/notifications'
-      path: '/notifications'
-      fullPath: '/notifications'
-      preLoaderRoute: typeof NotificationsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/login': {
-      id: '/login'
-      path: '/login'
-      fullPath: '/login'
-      preLoaderRoute: typeof LoginRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/landing': {
-      id: '/landing'
-      path: '/landing'
-      fullPath: '/landing'
-      preLoaderRoute: typeof LandingRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/history': {
-      id: '/history'
-      path: '/history'
-      fullPath: '/history'
-      preLoaderRoute: typeof HistoryRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/groups': {
-      id: '/groups'
-      path: '/groups'
-      fullPath: '/groups'
-      preLoaderRoute: typeof GroupsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/dev': {
-      id: '/dev'
-      path: '/dev'
-      fullPath: '/dev'
-      preLoaderRoute: typeof DevRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/comparar': {
-      id: '/comparar'
-      path: '/comparar'
-      fullPath: '/comparar'
-      preLoaderRoute: typeof CompararRouteImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/changelog': {
@@ -808,102 +689,130 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ChangelogRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+    '/comparar': {
+      id: '/comparar'
+      path: '/comparar'
+      fullPath: '/comparar'
+      preLoaderRoute: typeof CompararRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/groups/': {
-      id: '/groups/'
-      path: '/'
-      fullPath: '/groups/'
-      preLoaderRoute: typeof GroupsIndexRouteImport
-      parentRoute: typeof GroupsRoute
-    }
-    '/sobre-desenvolvimento/changelog-admin': {
-      id: '/sobre-desenvolvimento/changelog-admin'
-      path: '/changelog-admin'
-      fullPath: '/sobre-desenvolvimento/changelog-admin'
-      preLoaderRoute: typeof SobreDesenvolvimentoChangelogAdminRouteImport
-      parentRoute: typeof SobreDesenvolvimentoRoute
-    }
-    '/sobre-desenvolvimento/admin': {
-      id: '/sobre-desenvolvimento/admin'
-      path: '/admin'
-      fullPath: '/sobre-desenvolvimento/admin'
-      preLoaderRoute: typeof SobreDesenvolvimentoAdminRouteImport
-      parentRoute: typeof SobreDesenvolvimentoRoute
-    }
-    '/ranking_/compare': {
-      id: '/ranking_/compare'
-      path: '/ranking/compare'
-      fullPath: '/ranking/compare'
-      preLoaderRoute: typeof RankingCompareRouteImport
+    '/dev': {
+      id: '/dev'
+      path: '/dev'
+      fullPath: '/dev'
+      preLoaderRoute: typeof DevRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/players/$userId': {
-      id: '/players/$userId'
-      path: '/players/$userId'
-      fullPath: '/players/$userId'
-      preLoaderRoute: typeof PlayersUserIdRouteImport
+    '/groups': {
+      id: '/groups'
+      path: '/groups'
+      fullPath: '/groups'
+      preLoaderRoute: typeof GroupsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/invite/$code': {
-      id: '/invite/$code'
-      path: '/invite/$code'
-      fullPath: '/invite/$code'
-      preLoaderRoute: typeof InviteCodeRouteImport
+    '/history': {
+      id: '/history'
+      path: '/history'
+      fullPath: '/history'
+      preLoaderRoute: typeof HistoryRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/hooks/presence-window-opened': {
-      id: '/hooks/presence-window-opened'
-      path: '/hooks/presence-window-opened'
-      fullPath: '/hooks/presence-window-opened'
-      preLoaderRoute: typeof HooksPresenceWindowOpenedRouteImport
+    '/landing': {
+      id: '/landing'
+      path: '/landing'
+      fullPath: '/landing'
+      preLoaderRoute: typeof LandingRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/hooks/admin-undo': {
-      id: '/hooks/admin-undo'
-      path: '/hooks/admin-undo'
-      fullPath: '/hooks/admin-undo'
-      preLoaderRoute: typeof HooksAdminUndoRouteImport
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/hooks/admin-pending-reminder': {
-      id: '/hooks/admin-pending-reminder'
-      path: '/hooks/admin-pending-reminder'
-      fullPath: '/hooks/admin-pending-reminder'
-      preLoaderRoute: typeof HooksAdminPendingReminderRouteImport
+    '/notifications': {
+      id: '/notifications'
+      path: '/notifications'
+      fullPath: '/notifications'
+      preLoaderRoute: typeof NotificationsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/hooks/admin-action': {
-      id: '/hooks/admin-action'
-      path: '/hooks/admin-action'
-      fullPath: '/hooks/admin-action'
-      preLoaderRoute: typeof HooksAdminActionRouteImport
+    '/partidas-avulsas': {
+      id: '/partidas-avulsas'
+      path: '/partidas-avulsas'
+      fullPath: '/partidas-avulsas'
+      preLoaderRoute: typeof PartidasAvulsasRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/groups/$groupId': {
-      id: '/groups/$groupId'
-      path: '/$groupId'
-      fullPath: '/groups/$groupId'
-      preLoaderRoute: typeof GroupsGroupIdRouteImport
-      parentRoute: typeof GroupsRoute
-    }
-    '/email/unsubscribe': {
-      id: '/email/unsubscribe'
-      path: '/email/unsubscribe'
-      fullPath: '/email/unsubscribe'
-      preLoaderRoute: typeof EmailUnsubscribeRouteImport
+    '/privacidade': {
+      id: '/privacidade'
+      path: '/privacidade'
+      fullPath: '/privacidade'
+      preLoaderRoute: typeof PrivacidadeRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/admin/metrics': {
-      id: '/admin/metrics'
-      path: '/admin/metrics'
-      fullPath: '/admin/metrics'
-      preLoaderRoute: typeof AdminMetricsRouteImport
+    '/profile': {
+      id: '/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof ProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ranking': {
+      id: '/ranking'
+      path: '/ranking'
+      fullPath: '/ranking'
+      preLoaderRoute: typeof RankingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ranking-info': {
+      id: '/ranking-info'
+      path: '/ranking-info'
+      fullPath: '/ranking-info'
+      preLoaderRoute: typeof RankingInfoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/seasons': {
+      id: '/seasons'
+      path: '/seasons'
+      fullPath: '/seasons'
+      preLoaderRoute: typeof SeasonsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sistema': {
+      id: '/sistema'
+      path: '/sistema'
+      fullPath: '/sistema'
+      preLoaderRoute: typeof SistemaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sitemap.xml': {
+      id: '/sitemap.xml'
+      path: '/sitemap.xml'
+      fullPath: '/sitemap.xml'
+      preLoaderRoute: typeof SitemapDotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sobre-desenvolvimento': {
+      id: '/sobre-desenvolvimento'
+      path: '/sobre-desenvolvimento'
+      fullPath: '/sobre-desenvolvimento'
+      preLoaderRoute: typeof SobreDesenvolvimentoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/termos': {
+      id: '/termos'
+      path: '/termos'
+      fullPath: '/termos'
+      preLoaderRoute: typeof TermosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/unsubscribe': {
+      id: '/unsubscribe'
+      path: '/unsubscribe'
+      fullPath: '/unsubscribe'
+      preLoaderRoute: typeof UnsubscribeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/inbox': {
@@ -913,25 +822,109 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminInboxRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/metrics': {
+      id: '/admin/metrics'
+      path: '/admin/metrics'
+      fullPath: '/admin/metrics'
+      preLoaderRoute: typeof AdminMetricsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/email/unsubscribe': {
+      id: '/email/unsubscribe'
+      path: '/email/unsubscribe'
+      fullPath: '/email/unsubscribe'
+      preLoaderRoute: typeof EmailUnsubscribeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/groups/': {
+      id: '/groups/'
+      path: '/'
+      fullPath: '/groups/'
+      preLoaderRoute: typeof GroupsIndexRouteImport
+      parentRoute: typeof GroupsRoute
+    }
+    '/groups/$groupId': {
+      id: '/groups/$groupId'
+      path: '/$groupId'
+      fullPath: '/groups/$groupId'
+      preLoaderRoute: typeof GroupsGroupIdRouteImport
+      parentRoute: typeof GroupsRoute
+    }
+    '/hooks/admin-action': {
+      id: '/hooks/admin-action'
+      path: '/hooks/admin-action'
+      fullPath: '/hooks/admin-action'
+      preLoaderRoute: typeof HooksAdminActionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/hooks/admin-pending-reminder': {
+      id: '/hooks/admin-pending-reminder'
+      path: '/hooks/admin-pending-reminder'
+      fullPath: '/hooks/admin-pending-reminder'
+      preLoaderRoute: typeof HooksAdminPendingReminderRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/hooks/admin-undo': {
+      id: '/hooks/admin-undo'
+      path: '/hooks/admin-undo'
+      fullPath: '/hooks/admin-undo'
+      preLoaderRoute: typeof HooksAdminUndoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/hooks/presence-window-opened': {
+      id: '/hooks/presence-window-opened'
+      path: '/hooks/presence-window-opened'
+      fullPath: '/hooks/presence-window-opened'
+      preLoaderRoute: typeof HooksPresenceWindowOpenedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/invite/$code': {
+      id: '/invite/$code'
+      path: '/invite/$code'
+      fullPath: '/invite/$code'
+      preLoaderRoute: typeof InviteCodeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/players/$userId': {
+      id: '/players/$userId'
+      path: '/players/$userId'
+      fullPath: '/players/$userId'
+      preLoaderRoute: typeof PlayersUserIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ranking_/compare': {
+      id: '/ranking_/compare'
+      path: '/ranking/compare'
+      fullPath: '/ranking/compare'
+      preLoaderRoute: typeof RankingCompareRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sobre-desenvolvimento/admin': {
+      id: '/sobre-desenvolvimento/admin'
+      path: '/admin'
+      fullPath: '/sobre-desenvolvimento/admin'
+      preLoaderRoute: typeof SobreDesenvolvimentoAdminRouteImport
+      parentRoute: typeof SobreDesenvolvimentoRoute
+    }
+    '/sobre-desenvolvimento/changelog-admin': {
+      id: '/sobre-desenvolvimento/changelog-admin'
+      path: '/changelog-admin'
+      fullPath: '/sobre-desenvolvimento/changelog-admin'
+      preLoaderRoute: typeof SobreDesenvolvimentoChangelogAdminRouteImport
+      parentRoute: typeof SobreDesenvolvimentoRoute
+    }
+    '/api/push/vapid-public-key': {
+      id: '/api/push/vapid-public-key'
+      path: '/api/push/vapid-public-key'
+      fullPath: '/api/push/vapid-public-key'
+      preLoaderRoute: typeof ApiPushVapidPublicKeyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/groups/$groupId/': {
       id: '/groups/$groupId/'
       path: '/'
       fullPath: '/groups/$groupId/'
       preLoaderRoute: typeof GroupsGroupIdIndexRouteImport
-      parentRoute: typeof GroupsGroupIdRoute
-    }
-    '/lovable/email/suppression': {
-      id: '/lovable/email/suppression'
-      path: '/lovable/email/suppression'
-      fullPath: '/lovable/email/suppression'
-      preLoaderRoute: typeof LovableEmailSuppressionRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/groups/$groupId/seasons': {
-      id: '/groups/$groupId/seasons'
-      path: '/seasons'
-      fullPath: '/groups/$groupId/seasons'
-      preLoaderRoute: typeof GroupsGroupIdSeasonsRouteImport
       parentRoute: typeof GroupsGroupIdRoute
     }
     '/groups/$groupId/duel': {
@@ -941,67 +934,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof GroupsGroupIdDuelRouteImport
       parentRoute: typeof GroupsGroupIdRoute
     }
-    '/api/push/vapid-public-key': {
-      id: '/api/push/vapid-public-key'
-      path: '/api/push/vapid-public-key'
-      fullPath: '/api/push/vapid-public-key'
-      preLoaderRoute: typeof ApiPushVapidPublicKeyRouteImport
+    '/groups/$groupId/seasons': {
+      id: '/groups/$groupId/seasons'
+      path: '/seasons'
+      fullPath: '/groups/$groupId/seasons'
+      preLoaderRoute: typeof GroupsGroupIdSeasonsRouteImport
+      parentRoute: typeof GroupsGroupIdRoute
+    }
+    '/lovable/email/suppression': {
+      id: '/lovable/email/suppression'
+      path: '/lovable/email/suppression'
+      fullPath: '/lovable/email/suppression'
+      preLoaderRoute: typeof LovableEmailSuppressionRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/groups/$groupId/seasons/': {
-      id: '/groups/$groupId/seasons/'
-      path: '/'
-      fullPath: '/groups/$groupId/seasons/'
-      preLoaderRoute: typeof GroupsGroupIdSeasonsIndexRouteImport
-      parentRoute: typeof GroupsGroupIdSeasonsRoute
-    }
-    '/lovable/email/transactional/send': {
-      id: '/lovable/email/transactional/send'
-      path: '/lovable/email/transactional/send'
-      fullPath: '/lovable/email/transactional/send'
-      preLoaderRoute: typeof LovableEmailTransactionalSendRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/lovable/email/transactional/preview': {
-      id: '/lovable/email/transactional/preview'
-      path: '/lovable/email/transactional/preview'
-      fullPath: '/lovable/email/transactional/preview'
-      preLoaderRoute: typeof LovableEmailTransactionalPreviewRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/lovable/email/queue/process': {
-      id: '/lovable/email/queue/process'
-      path: '/lovable/email/queue/process'
-      fullPath: '/lovable/email/queue/process'
-      preLoaderRoute: typeof LovableEmailQueueProcessRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/lovable/email/auth/webhook': {
-      id: '/lovable/email/auth/webhook'
-      path: '/lovable/email/auth/webhook'
-      fullPath: '/lovable/email/auth/webhook'
-      preLoaderRoute: typeof LovableEmailAuthWebhookRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/lovable/email/auth/preview': {
-      id: '/lovable/email/auth/preview'
-      path: '/lovable/email/auth/preview'
-      fullPath: '/lovable/email/auth/preview'
-      preLoaderRoute: typeof LovableEmailAuthPreviewRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/groups/$groupId/seasons/$seasonId': {
-      id: '/groups/$groupId/seasons/$seasonId'
-      path: '/$seasonId'
-      fullPath: '/groups/$groupId/seasons/$seasonId'
-      preLoaderRoute: typeof GroupsGroupIdSeasonsSeasonIdRouteImport
-      parentRoute: typeof GroupsGroupIdSeasonsRoute
-    }
-    '/api/public/hooks/monthly-report': {
-      id: '/api/public/hooks/monthly-report'
-      path: '/api/public/hooks/monthly-report'
-      fullPath: '/api/public/hooks/monthly-report'
-      preLoaderRoute: typeof ApiPublicHooksMonthlyReportRouteImport
+    '/api/og/group/$groupId': {
+      id: '/api/og/group/$groupId'
+      path: '/api/og/group/$groupId'
+      fullPath: '/api/og/group/$groupId'
+      preLoaderRoute: typeof ApiOgGroupGroupIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/og/player/$userId': {
@@ -1011,11 +962,60 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiOgPlayerUserIdRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/og/group/$groupId': {
-      id: '/api/og/group/$groupId'
-      path: '/api/og/group/$groupId'
-      fullPath: '/api/og/group/$groupId'
-      preLoaderRoute: typeof ApiOgGroupGroupIdRouteImport
+    '/api/public/hooks/monthly-report': {
+      id: '/api/public/hooks/monthly-report'
+      path: '/api/public/hooks/monthly-report'
+      fullPath: '/api/public/hooks/monthly-report'
+      preLoaderRoute: typeof ApiPublicHooksMonthlyReportRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/groups/$groupId/seasons/': {
+      id: '/groups/$groupId/seasons/'
+      path: '/'
+      fullPath: '/groups/$groupId/seasons/'
+      preLoaderRoute: typeof GroupsGroupIdSeasonsIndexRouteImport
+      parentRoute: typeof GroupsGroupIdSeasonsRoute
+    }
+    '/groups/$groupId/seasons/$seasonId': {
+      id: '/groups/$groupId/seasons/$seasonId'
+      path: '/$seasonId'
+      fullPath: '/groups/$groupId/seasons/$seasonId'
+      preLoaderRoute: typeof GroupsGroupIdSeasonsSeasonIdRouteImport
+      parentRoute: typeof GroupsGroupIdSeasonsRoute
+    }
+    '/lovable/email/auth/preview': {
+      id: '/lovable/email/auth/preview'
+      path: '/lovable/email/auth/preview'
+      fullPath: '/lovable/email/auth/preview'
+      preLoaderRoute: typeof LovableEmailAuthPreviewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/lovable/email/auth/webhook': {
+      id: '/lovable/email/auth/webhook'
+      path: '/lovable/email/auth/webhook'
+      fullPath: '/lovable/email/auth/webhook'
+      preLoaderRoute: typeof LovableEmailAuthWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/lovable/email/queue/process': {
+      id: '/lovable/email/queue/process'
+      path: '/lovable/email/queue/process'
+      fullPath: '/lovable/email/queue/process'
+      preLoaderRoute: typeof LovableEmailQueueProcessRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/lovable/email/transactional/preview': {
+      id: '/lovable/email/transactional/preview'
+      path: '/lovable/email/transactional/preview'
+      fullPath: '/lovable/email/transactional/preview'
+      preLoaderRoute: typeof LovableEmailTransactionalPreviewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/lovable/email/transactional/send': {
+      id: '/lovable/email/transactional/send'
+      path: '/lovable/email/transactional/send'
+      fullPath: '/lovable/email/transactional/send'
+      preLoaderRoute: typeof LovableEmailTransactionalSendRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/groups/$groupId/seasons/$seasonId/': {
