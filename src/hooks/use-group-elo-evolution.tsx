@@ -5,8 +5,8 @@ export interface PlayerEloLine {
   user_id: string;
   name: string;
   avatar_url: string | null;
-  /** Sorted by date asc. */
-  points: { ts: number; rating: number }[];
+  /** Sorted by date asc. Baseline points carry no matchId. */
+  points: { ts: number; rating: number; matchId?: string }[];
 }
 
 export interface SeasonOption {
@@ -125,7 +125,7 @@ export function useGroupEloEvolution(groupId: string | null, filter: SeasonFilte
           if (ts < minTs) minTs = ts;
           if (ts > maxTs) maxTs = ts;
           const arr = byUser.get(e.user_id) || [];
-          arr.push({ ts, rating: Number(e.rating_after) });
+          arr.push({ ts, rating: Number(e.rating_after), matchId: e.match_id });
           byUser.set(e.user_id, arr);
           const sid = matchSeason.get(e.match_id);
           if (sid) {
