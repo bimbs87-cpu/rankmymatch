@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
+import { sharedFetch } from "@/lib/shared-fetch";
 
 export interface PendingMatch {
   id: string;
@@ -35,11 +36,13 @@ export function usePendingMatch(groupId?: string) {
     try {
       if (!user) { setPendingMatch(null); setIsLoading(false); return; }
 
-      const { data: memberships } = await supabase
-        .from("group_members")
-        .select("group_id")
-        .eq("user_id", user.id)
-        .eq("status", "active");
+      const { data: memberships } = await sharedFetch(`my-membership-ids:${user.id}`, 8_000, () =>
+        supabase
+          .from("group_members")
+          .select("group_id")
+          .eq("user_id", user.id)
+          .eq("status", "active"),
+      );
 
       if (!memberships?.length) { setPendingMatch(null); setIsLoading(false); return; }
 

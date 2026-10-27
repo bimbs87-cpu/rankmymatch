@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback, createContext, useContext, type ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
+import { sharedFetch, invalidateSharedFetch } from "@/lib/shared-fetch";
 
 interface UserProfile {
   name: string;
