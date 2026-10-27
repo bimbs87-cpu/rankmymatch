@@ -52,7 +52,7 @@ export const Route = createFileRoute("/players/$userId")({
   errorComponent: ({ error }) => (
     <div className="min-h-screen bg-background px-5 pb-28 pt-10 text-center">
       <p className="text-sm text-muted-foreground">Não foi possível carregar este perfil.</p>
-      <p className="mt-2 text-xs text-muted-foreground/70">{error?.message}</p>
+      <p className="mt-2 text-xs text-muted-foreground/70">{(error as Error | undefined)?.message}</p>
       <Link to="/" className="mt-4 inline-block text-xs font-semibold text-primary">Voltar ao início</Link>
     </div>
   ),

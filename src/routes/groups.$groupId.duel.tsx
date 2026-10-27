@@ -18,7 +18,7 @@ export const Route = createFileRoute("/groups/$groupId/duel")({
     const router = useRouter();
     return (
       <div className="px-5 py-12 text-center">
-        <p className="mb-3 text-sm text-destructive">Erro ao carregar o duelo: {error.message}</p>
+        <p className="mb-3 text-sm text-destructive">Erro ao carregar o duelo: {(error as Error).message}</p>
         <button
           onClick={() => { router.invalidate(); reset(); }}
           className="rounded-2xl border border-border bg-card px-4 py-2 text-sm"
