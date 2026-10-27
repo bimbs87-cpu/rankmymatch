@@ -2320,7 +2320,7 @@ function BatchScoreEntry({
           </p>
           {(rows[m.id] || []).map((s, idx) => (
             <div key={idx} className="flex items-center gap-1.5">
-              <span className="w-8 text-[9px] text-muted-foreground">Set {idx + 1}</span>
+              <span className="w-8 text-[9px] text-muted-foreground">{s.tb ? "Tie-break" : `Set ${idx + 1}`}</span>
               <input
                 inputMode="numeric"
                 value={s.a}
@@ -2353,6 +2353,22 @@ function BatchScoreEntry({
           >
             <Plus className="h-3 w-3" /> Adicionar set
           </button>
+          {(() => {
+            const list = rows[m.id] || [];
+            const filled = list.filter((s) => s.a !== "" && s.b !== "");
+            const aWins = filled.filter((s) => Number(s.a) > Number(s.b)).length;
+            const bWins = filled.filter((s) => Number(s.b) > Number(s.a)).length;
+            const canOfferTiebreak = aWins === 1 && bWins === 1 && !list.some((s) => s.tb);
+            return canOfferTiebreak ? (
+              <button
+                type="button"
+                onClick={() => addSet(m.id, true)}
+                className="flex items-center gap-1 text-[10px] font-semibold text-primary hover:underline"
+              >
+                <Plus className="h-3 w-3" /> Fechar em super tie-break (10 pts)
+              </button>
+            ) : null;
+          })()}
         </div>
       ))}
 
