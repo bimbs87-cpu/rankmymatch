@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
+import { sharedFetch, invalidateSharedFetch } from "@/lib/shared-fetch";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Group = Tables<"groups">;
@@ -9,10 +10,16 @@ type GroupMember = Tables<"group_members">;
 async function attachMemberCounts(groups: Group[]) {
   if (!groups.length) return groups.map((g) => ({ ...g, member_count: 0, is_premium: false }));
   const ids = groups.map((g) => g.id);
-  const [{ data: members }, { data: subs }] = await Promise.all([
-    supabase.from("group_members").select("group_id").in("group_id", ids).eq("status", "active"),
-    supabase.from("group_subscriptions").select("group_id, status, expires_at").in("group_id", ids),
-  ]);
+  const idsKey = ids.slice().sort().join(",");
+  const [{ data: members }, { data: subs }] = await sharedFetch(
+    `member-counts:${idsKey}`,
+    15_000,
+    () =>
+      Promise.all([
+        supabase.from("group_members").select("group_id").in("group_id", ids).eq("status", "active"),
+        supabase.from("group_subscriptions").select("group_id, status, expires_at").in("group_id", ids),
+      ]),
+  );
 
   const countMap = new Map<string, number>();
   for (const m of members || []) {
@@ -43,15 +50,18 @@ async function attachGroupStats<T extends { id: string }>(
 ): Promise<(T & GroupStats)[]> {
   if (!groups.length) return [];
   const ids = groups.map((g) => g.id);
+  const idsKey = ids.slice().sort().join(",");
 
-  const [roundsRes, seasonsRes] = await Promise.all([
-    supabase.from("rounds").select("group_id, status").in("group_id", ids),
-    supabase
-      .from("seasons")
-      .select("group_id, name, status, created_at")
-      .in("group_id", ids)
-      .order("created_at", { ascending: false }),
-  ]);
+  const [roundsRes, seasonsRes] = await sharedFetch(`group-stats:${idsKey}`, 15_000, () =>
+    Promise.all([
+      supabase.from("rounds").select("group_id, status").in("group_id", ids),
+      supabase
+        .from("seasons")
+        .select("group_id, name, status, created_at")
+        .in("group_id", ids)
+        .order("created_at", { ascending: false }),
+    ]),
+  );
 
   const roundsByGroup = new Map<string, { done: number; total: number }>();
   for (const r of roundsRes.data || []) {
