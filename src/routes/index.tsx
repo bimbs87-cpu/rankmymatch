@@ -23,6 +23,7 @@ import { GroupSwitcherPopover } from "@/components/GroupSwitcherPopover";
 import { PushOptInBanner } from "@/components/PushOptInBanner";
 import { EloEvolutionChart } from "@/components/EloEvolutionChart";
 import { supabase } from "@/integrations/supabase/client";
+import { sharedFetch } from "@/lib/shared-fetch";
 import { isPresenceOpen, getPresenceOpenDate, formatPresenceOpenDate } from "@/lib/presence-schedule";
 import { toast } from "sonner";
 import { useState, useEffect, useCallback, useRef } from "react";
