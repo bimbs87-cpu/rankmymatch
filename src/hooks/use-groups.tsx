@@ -209,10 +209,12 @@ export function useMyPendingJoinRequests() {
         return;
       }
 
-      const { data: groupsData, error: groupsError } = await supabase
-        .from("groups")
-        .select("*")
-        .in("id", allGroupIds);
+      const allIdsKey = allGroupIds.slice().sort().join(",");
+      const { data: groupsData, error: groupsError } = await sharedFetch(
+        `groups-by-id:${allIdsKey}`,
+        15_000,
+        () => supabase.from("groups").select("*").in("id", allGroupIds),
+      );
 
       if (groupsError) throw groupsError;
 
