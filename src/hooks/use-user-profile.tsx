@@ -43,11 +43,13 @@ export function UserProfileProvider({ children }: { children: ReactNode }) {
       return;
     }
     try {
-      const { data } = await supabase
-        .from("user_profiles")
-        .select("name, nickname, avatar_url, avatar_type")
-        .eq("user_id", user.id)
-        .maybeSingle();
+      const { data } = await sharedFetch(`user-profile:${user.id}`, 30_000, () =>
+        supabase
+          .from("user_profiles")
+          .select("name, nickname, avatar_url, avatar_type")
+          .eq("user_id", user.id)
+          .maybeSingle(),
+      );
       if (data) setProfile(data as UserProfile);
     } catch (e) {
       console.error("Erro ao carregar perfil:", e);
@@ -68,9 +70,15 @@ export function UserProfileProvider({ children }: { children: ReactNode }) {
   const nickname = profile?.nickname || null;
   const avatarUrl = profile?.avatar_url || googlePhoto;
 
+  // Explicit refreshes (after profile edits) must bypass the shared cache.
+  const refresh = useCallback(async () => {
+    if (user) invalidateSharedFetch(`user-profile:${user.id}`);
+    await loadProfile();
+  }, [user, loadProfile]);
+
   return (
     <UserProfileContext.Provider
-      value={{ profile, displayName, nickname, avatarUrl, isLoading, refresh: loadProfile }}
+      value={{ profile, displayName, nickname, avatarUrl, isLoading, refresh }}
     >
       {children}
     </UserProfileContext.Provider>
