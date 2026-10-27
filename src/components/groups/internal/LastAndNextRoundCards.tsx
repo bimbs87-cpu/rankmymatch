@@ -326,7 +326,13 @@ export function LastAndNextRoundCards({ groupId, isAdmin, variant = "last", grou
         {/* Quick actions strip (next variant only) */}
         {isNext && user && (
           <div className="flex items-center gap-2 border-t border-border/60 bg-background/40 px-3 py-2">
-            {myStatus !== "confirmed" && myStatus !== "declined" && (
+            {presenceOpensAt && myStatus !== "confirmed" && myStatus !== "declined" && (
+              <p className="flex-1 text-center text-[11px] font-semibold text-muted-foreground">
+                <Clock className="mr-1 inline h-3 w-3" />
+                A lista de presença abre {formatPresenceOpenDate(presenceOpensAt)}
+              </p>
+            )}
+            {!presenceOpensAt && myStatus !== "confirmed" && myStatus !== "declined" && (
               <>
                 <button
                   type="button"
