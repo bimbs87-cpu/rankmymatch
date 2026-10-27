@@ -2290,8 +2290,14 @@ function BatchScoreEntry({
       }
     }
     setSaving(false);
-    if (failures.length) toast.error(failures.join(" · "));
-    else toast.success(`${changedMatches.length} partida(s) salvas`);
+    if (failures.length) {
+      // Keep the typed scores in place (skip the reload) so the admin can
+      // fix and retry without re-entering everything.
+      toast.error(failures.join(" · "), { duration: 8000 });
+      if (savedIds.length) onSaved();
+      return;
+    }
+    toast.success(`${changedMatches.length} partida(s) salvas`);
     onSaved();
   };
 
