@@ -75,7 +75,8 @@ export const Route = createFileRoute("/hooks/presence-window-opened")({
       POST: async ({ request }) => {
         // Light auth: require Bearer token = anon key (set in cron)
         const auth = request.headers.get("authorization") || "";
-        if (!auth.startsWith("Bearer ")) {
+        const secret = request.headers.get("x-cron-secret");
+        if (!process.env.CRON_SECRET || secret !== process.env.CRON_SECRET) {
           return new Response("Unauthorized", { status: 401 });
         }
 
