@@ -1,9 +1,9 @@
 # Roadmap
 
 ## Refinamento da entrada — 28/10/2026
-- [ ] Retirar foto cortada e nome repetido; criar apresentação baseada no próprio produto
-- [ ] Unificar início público, apresentação e login
-- [ ] Conferir navegação da prévia e proporções em celular, tablet e computador
+- [x] Retirar foto cortada e nome repetido; criar apresentação baseada no próprio produto
+- [x] Unificar início público, apresentação e login
+- [x] Conferir navegação da prévia e proporções em celular, tablet e computador (320, 390, 768 e 1280 px)
 
 ## Página inicial e tema exclusivo escuro — 28/10/2026
 - [x] Reformular apresentação com a logo oficial, textos curtos e alinhamento consistente
