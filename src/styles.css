@@ -87,6 +87,9 @@
   --launch-background: #000000;
   --launch-progress: oklch(0.88 0.22 120);
   --launch-track: oklch(0.22 0 0);
+  --device-frame: oklch(0.22 0.005 260);
+  --device-edge: oklch(0.4 0.005 260);
+  --device-shadow: 0 24px 60px oklch(0 0 0 / 55%);
   --radius: 0.75rem;
   /* Carbon base */
   --background: oklch(0.09 0.005 260);
@@ -258,19 +261,22 @@
 .landing-container { width: 100%; max-width: 1100px; margin-inline: auto; padding-inline: 24px; }
 .landing-header { height: 86px; }
 .landing-intro { display: grid; gap: 40px; padding-block: 40px; }
-.landing-preview { border-left: 2px solid var(--primary); padding-left: 20px; }
-.landing-preview-body { min-height: 256px; }
+.landing-device-stage { display: grid; place-items: center; min-width: 0; margin: 0; }
+.landing-device { width: min(100%, 256px); padding: 6px; border: 1px solid var(--device-edge); border-radius: 32px; background: var(--device-frame); box-shadow: var(--device-shadow); }
+.landing-device-top { height: 18px; display: grid; place-items: center; background: var(--launch-background); border-radius: 25px 25px 0 0; }
+.landing-device-top span { width: 42px; height: 4px; border-radius: 3px; background: var(--device-frame); }
+.landing-device-screen { display: block; width: 100%; height: auto; aspect-ratio: 886 / 1726; }
+.landing-device-bottom { display: grid; place-items: center; height: 15px; border-radius: 0 0 25px 25px; background: var(--launch-background); }
+.landing-device-bottom span { width: 64px; height: 3px; border-radius: 3px; background: var(--device-edge); }
 @media (min-width: 640px) {
   .landing-page { width: 100vw; margin-left: calc(50% - 50vw); }
   .landing-container { padding-inline: 40px; }
   .landing-intro { grid-template-columns: minmax(0,1fr) minmax(0,1fr); align-items: center; gap: 32px; padding-block: 56px; }
-  .landing-preview { padding-left: 24px; }
 }
 @media (min-width: 1024px) {
   .landing-intro { gap: 80px; padding-block: 72px; }
 }
 @media (max-width: 359px) {
   .landing-container { padding-inline: 16px; }
-  .landing-preview { padding-left: 12px; }
   .landing-copy h1 { font-size: 32px; }
 }
