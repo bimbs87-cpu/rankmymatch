@@ -65,6 +65,9 @@
 
 /* ====== CARBON FIBER — Dark Premium ====== */
 :root {
+  --launch-background: #000000;
+  --launch-progress: oklch(0.88 0.22 120);
+  --launch-track: oklch(0.22 0 0);
   --radius: 0.75rem;
   /* Carbon base */
   --background: oklch(0.09 0.005 260);

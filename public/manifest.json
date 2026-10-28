@@ -11,8 +11,8 @@
     "fullscreen",
     "minimal-ui"
   ],
-  "background_color": "#050707",
-  "theme_color": "#050707",
+  "background_color": "#000000",
+  "theme_color": "#000000",
   "orientation": "portrait",
   "icons": [
     {

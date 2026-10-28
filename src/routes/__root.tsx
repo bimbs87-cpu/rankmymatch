@@ -1,4 +1,4 @@
-import { Outlet, Link, createRootRoute, HeadContent, Scripts, useRouter, useLocation } from "@tanstack/react-router";
+import { Outlet, Link, createRootRoute, HeadContent, Scripts, useRouter, useLocation, useRouterState } from "@tanstack/react-router";
 import { AuthProvider, useAuth } from "@/hooks/use-auth";
 import { useTheme } from "@/lib/theme";
 import loggedInBgDesktopDark from "@/assets/loggedin-bg-desktop-dark.webp";
@@ -85,23 +85,24 @@ function RootShell({ children }: { children: React.ReactNode }) {
         />
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var isAndroid=/Android/i.test(navigator.userAgent);var standalone=window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches;if(isAndroid&&standalone){document.documentElement.setAttribute('data-android-pwa-launch','true');}}catch(e){}})();`,
+            __html: `(function(){try{var standalone=(window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches)||navigator.standalone===true;if(standalone){document.documentElement.setAttribute('data-pwa-launch','true');}}catch(e){}})();`,
           }}
         />
         <style
           dangerouslySetInnerHTML={{
-            __html: `#android-launch-splash{display:none;position:fixed;inset:0;z-index:2147483647;background:#050707;align-items:center;justify-content:center;overflow:hidden}html[data-android-pwa-launch="true"] body{background:#050707}html[data-android-pwa-launch="true"] #android-launch-splash{display:flex}#android-launch-splash img{display:block;width:100vw;height:100dvh;max-width:none;max-height:none;object-fit:cover;object-position:center center}`,
+            __html: `#pwa-launch{display:none;position:fixed;inset:0;z-index:2147483647;background:var(--launch-background);align-items:center;justify-content:center;flex-direction:column;gap:28px;overflow:hidden}html[data-pwa-launch="true"],html[data-pwa-launch="true"] body{background:var(--launch-background)}html[data-pwa-launch="true"] #pwa-launch{display:flex}#pwa-launch img{display:block;width:112px;height:112px;object-fit:contain}#pwa-launch-track{width:144px;height:3px;background:var(--launch-track);overflow:hidden;border-radius:2px}#pwa-launch-track::after{content:"";display:block;width:40%;height:100%;background:var(--launch-progress);animation:pwa-launch-loading 1.2s ease-in-out infinite}@keyframes pwa-launch-loading{from{transform:translateX(-100%)}to{transform:translateX(350%)}}@media(prefers-reduced-motion:reduce){#pwa-launch-track::after{animation:none;width:100%}}`,
           }}
         />
         <HeadContent />
       </head>
       <body>
-        <div id="android-launch-splash" aria-hidden="true">
-          <img src="/android-splash-raqueteia-v3.png" alt="" />
+        <div id="pwa-launch" role="status" aria-label="Carregando Raqueteia">
+          <img src="/android-icon-512-v6.png" alt="" width="112" height="112" fetchPriority="high" />
+          <div id="pwa-launch-track" role="progressbar" aria-label="Carregando" />
         </div>
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{if(document.documentElement.getAttribute('data-android-pwa-launch')==='true'){var done=function(){setTimeout(function(){document.documentElement.setAttribute('data-android-pwa-launch','done');},900);};if(document.readyState==='complete'){done();}else{window.addEventListener('load',done,{once:true});}setTimeout(function(){document.documentElement.setAttribute('data-android-pwa-launch','done');},2800);}}catch(e){}})();`,
+            __html: `(function(){if(document.documentElement.getAttribute('data-pwa-launch')==='true'){setTimeout(function(){document.documentElement.removeAttribute('data-pwa-launch');},15000);}})();`,
           }}
         />
         {children}
@@ -174,6 +175,7 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
+        <PwaLaunchReady />
         <UserProfileProvider>
           <PlayerProfileViewerProvider>
             <InstallFlowProvider>
@@ -192,6 +194,22 @@ function RootComponent() {
       </AuthProvider>
     </QueryClientProvider>
   );
+}
+
+function PwaLaunchReady() {
+  const { isLoading } = useAuth();
+  const isRouterLoading = useRouterState({ select: (state) => state.isLoading });
+
+  useEffect(() => {
+    if (isLoading || isRouterLoading || document.documentElement.getAttribute("data-pwa-launch") !== "true") return;
+    // Let the ready screen paint before removing the launch overlay. No artificial delay.
+    const frame = requestAnimationFrame(() => {
+      document.documentElement.removeAttribute("data-pwa-launch");
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [isLoading, isRouterLoading]);
+
+  return null;
 }
 
 function AuthDesktopNav() {

@@ -12,3 +12,4 @@ RankMyMatch technical decisions:
 - Guard async load hooks like useGroupDetail with a sequence counter so a stale run started before auth resolves can never overwrite newer results; otherwise membership/admin state flaps intermittently.
 - On batch score save failure, keep the typed scores in place (skip the reload) and show a long error toast, so admins can retry without re-entering results.
 - Route hot read-only queries through sharedFetch (src/lib/shared-fetch.ts) with a short TTL so simultaneous hook instances (Home, BottomNav, DesktopNav, popovers) share one request; invalidate the key after mutations that change the data.
+- Keep standalone PWA startup in the root shell using the manifest icon and an indeterminate progress bar; dismiss on auth/router readiness without a minimum delay, since native OS startup cannot run custom UI.
