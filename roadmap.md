@@ -1,5 +1,10 @@
 # Roadmap
 
+## Refinamento da entrada — 28/10/2026
+- [ ] Retirar foto cortada e nome repetido; criar apresentação baseada no próprio produto
+- [ ] Unificar início público, apresentação e login
+- [ ] Conferir navegação da prévia e proporções em celular, tablet e computador
+
 ## Página inicial e tema exclusivo escuro — 28/10/2026
 - [x] Reformular apresentação com a logo oficial, textos curtos e alinhamento consistente
 - [x] Remover tema claro, preferências e imagens claras de todas as instâncias (branco técnico do QR preservado para leitura)
