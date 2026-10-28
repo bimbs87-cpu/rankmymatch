@@ -3,11 +3,11 @@ import { Link } from "@tanstack/react-router";
 import { lovable } from "@/integrations/lovable/index";
 import { supabase } from "@/integrations/supabase/client";
 import { trackEvent } from "@/lib/analytics";
-import { ArrowRight, CalendarDays, TrendingUp, Users, Loader2 } from "lucide-react";
+import { ArrowRight, CalendarDays, TrendingUp, Users, Loader2, Check, Trophy, ChevronUp, Minus, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AppleSignInButton } from "@/components/AppleSignInButton";
 import logo from "@/assets/logo-horizontal-dark.png";
-import court from "@/assets/landing-padel-editorial.jpg";
+import { useInstallFlow } from "@/components/InstallFlowProvider";
 
 function GoogleIcon({ className }: { className?: string }) {
   return (
@@ -35,6 +35,8 @@ function GoogleIcon({ className }: { className?: string }) {
 export function LandingPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [previewTab, setPreviewTab] = useState<"ranking" | "round">("ranking");
+  const { canInstall, isInstalled, isFlowActive, startInstall } = useInstallFlow();
   const handleGoogleLogin = async (ctaLocation: string = "unknown") => {
     trackEvent("landing_cta_click", {
       cta: "google_login",
@@ -89,64 +91,77 @@ export function LandingPage() {
   };
 
 
-  const signIn = (location: string, label = "Começar com Google") => (
+  const signIn = (location: string) => (
     <Button disabled={loading} onClick={() => void handleGoogleLogin(location)} className="h-11 gap-3 rounded-full px-5 font-semibold shadow-none">
       {loading ? <Loader2 className="animate-spin" /> : <GoogleIcon className="h-4 w-4" />}
-      {loading ? "Entrando..." : label}
+      {loading ? "Entrando..." : "Entrar com Google"}
       <ArrowRight />
     </Button>
   );
 
   return (
     <main className="landing-page bg-background text-foreground">
-      <header className="landing-header mx-auto grid max-w-6xl grid-cols-[minmax(0,1fr)_auto] items-center gap-4 px-5 sm:px-8">
+      <header className="landing-header landing-container grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 border-b border-border">
         <Link to="/" aria-label="Raqueteia — início" className="min-w-0 w-fit">
-          <img src={logo} alt="Raqueteia" width={1920} height={640} className="w-[174px] max-w-full sm:w-[210px]" />
+          <img src={logo} alt="Raqueteia" width={1920} height={640} className="w-[172px] max-w-full sm:w-[204px]" />
         </Link>
-        <div className="flex shrink-0 items-center gap-5">
-          <a href="#na-quadra" className="hidden text-xs text-muted-foreground transition-colors hover:text-foreground sm:block">Conheça o app</a>
-          <Button variant="outline" disabled={loading} onClick={() => void handleGoogleLogin("header")} className="h-9 rounded-full bg-card px-4 shadow-none">Entrar <ArrowRight /></Button>
-        </div>
+        <nav aria-label="Navegação principal" className="flex shrink-0 items-center gap-6">
+          <a href="#experiencia" className="hidden text-xs text-muted-foreground hover:text-foreground sm:block">A experiência</a>
+          <Button variant="ghost" disabled={loading} onClick={() => void handleGoogleLogin("header")} className="h-9 px-0 text-xs">Entrar <ArrowRight /></Button>
+        </nav>
       </header>
 
-      <section className="landing-court relative isolate overflow-hidden">
-        <img src={court} alt="Raquete e bolas em uma quadra de pádel" width={1536} height={1024} fetchPriority="high" className="landing-court-photo absolute inset-0 -z-20 h-full w-full object-cover" />
-        <div aria-hidden className="landing-court-shade absolute inset-0 -z-10" />
-        <div className="landing-hero-content mx-auto flex h-full max-w-6xl flex-col justify-center px-5 sm:px-8">
-          <p className="mb-5 flex items-center gap-3 text-xs font-medium text-primary"><span className="h-px w-7 bg-primary" /> SEU GRUPO. SEU JOGO.</p>
-          <h1 className="font-display text-[38px] font-semibold leading-[1.1] sm:text-[52px]">Raqueteia<span className="mt-2 block text-[28px] font-medium text-foreground sm:text-[36px]">O pádel continua<br />fora da quadra.</span></h1>
-          <p className="mt-5 max-w-[320px] text-sm leading-6 text-foreground/80">Reúna seu grupo, organize as rodadas e acompanhe cada conquista no ranking.</p>
-          <div className="mt-7 w-fit">{signIn("hero_primary")}</div>
-          <p className="mt-3 text-xs text-foreground/70">Grátis para começar.</p>
-          {error && <p role="alert" className="mt-3 max-w-sm text-sm text-destructive">{error}</p>}
+      <section className="landing-intro landing-container">
+        <div className="landing-copy min-w-0">
+          <p className="mb-6 flex items-center gap-3 text-[11px] font-medium text-muted-foreground"><span className="h-px w-6 bg-primary" /> PÁDEL · GRUPOS · COMPETIÇÃO</p>
+          <h1 className="font-display text-[36px] font-medium leading-[1.08]">Seu jogo.<br /><span className="text-primary">Em outro nível.</span></h1>
+          <p className="mt-5 max-w-[360px] text-sm leading-6 text-muted-foreground">Da primeira rodada ao topo do ranking. Um lugar para reunir seu grupo e dar valor a cada partida.</p>
+          <div className="mt-7 space-y-3">
+            <div className="w-fit">{signIn("hero_primary")}</div>
+            <p className="flex items-center gap-2 text-[11px] text-muted-foreground"><Check className="h-3.5 w-3.5 text-primary" /> Grátis para começar. Sem senha para lembrar.</p>
+          </div>
+          {error && <p role="alert" className="mt-4 max-w-sm text-sm text-destructive">{error}</p>}
         </div>
-        <div className="landing-photo-caption absolute bottom-5 right-6 hidden items-center gap-2 text-xs text-foreground/70 sm:flex"><span className="h-1 w-1 rounded-full bg-primary" /> Da próxima rodada ao próximo pódio.</div>
+
+        <div className="landing-preview min-w-0" aria-label="Prévia ilustrativa do aplicativo">
+          <div className="mb-5 flex items-center justify-between gap-3 border-b border-border pb-3 text-[10px] text-muted-foreground"><span className="flex items-center gap-2"><span className="h-1.5 w-1.5 rounded-full bg-primary" /> DENTRO DO JOGO</span><span>PRÉVIA ILUSTRATIVA</span></div>
+          <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
+            <div className="min-w-0"><p className="text-[11px] text-muted-foreground">Grupo de pádel</p><h2 className="mt-1 truncate font-display text-xl font-medium">Clube da Quadra</h2></div>
+            <Trophy className="mt-2 h-5 w-5 shrink-0 text-primary" strokeWidth={1.5} />
+          </div>
+          <div className="mt-5 flex gap-6 border-b border-border" role="tablist" aria-label="Prévia do grupo">
+            {([{ value: "ranking", label: "Ranking" }, { value: "round", label: "Última rodada" }] as const).map(tab => <Button key={tab.value} id={`preview-tab-${tab.value}`} role="tab" aria-controls="preview-panel" aria-selected={previewTab === tab.value} variant="ghost" onClick={() => setPreviewTab(tab.value)} className={`h-10 rounded-none border-b-2 px-0 text-xs hover:bg-transparent ${previewTab === tab.value ? "border-primary text-foreground" : "border-transparent text-muted-foreground"}`}>{tab.label}</Button>)}
+          </div>
+          <div id="preview-panel" role="tabpanel" aria-labelledby={`preview-tab-${previewTab}`} className="landing-preview-body">
+            {previewTab === "ranking" ? <>
+              <div className="grid grid-cols-[24px_minmax(0,1fr)_64px_32px] gap-3 py-4 text-[10px] text-muted-foreground"><span>#</span><span>JOGADOR</span><span className="text-right">ELO</span><span className="text-right">Δ</span></div>
+              {[
+                {name:"Gabriel",initials:"GA",elo:"1.084",delta:24},
+                {name:"Diego",initials:"DI",elo:"1.062",delta:18},
+                {name:"João",initials:"JO",elo:"1.038",delta:12},
+                {name:"Guilherme",initials:"GU",elo:"1.016",delta:0},
+              ].map((player,index)=><div key={player.name} className={`grid grid-cols-[24px_minmax(0,1fr)_64px_32px] items-center gap-3 border-t border-border py-3 ${index===0?"text-primary":"text-foreground"}`}><span className="font-display text-sm tabular-nums">{String(index+1).padStart(2,"0")}</span><div className="flex min-w-0 items-center gap-3"><span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-secondary text-[10px] text-muted-foreground">{player.initials}</span><span className="truncate text-sm">{player.name}</span></div><span className="text-right font-display text-base tabular-nums">{player.elo}</span><span className={`flex items-center justify-end text-[10px] tabular-nums ${player.delta?"text-primary":"text-muted-foreground"}`}>{player.delta?<><ChevronUp className="h-3 w-3" />{player.delta}</>:<Minus className="h-3 w-3" />}</span></div>)}
+            </> : <div className="space-y-5 pt-5"><div className="flex items-center justify-between text-xs"><span className="text-muted-foreground">Rodada 04</span><span className="flex items-center gap-1.5 text-primary"><Check className="h-3 w-3" /> Concluída</span></div><p className="font-display text-lg">Gabriel e Diego <span className="block mt-1 text-sm text-muted-foreground">× João e Guilherme</span></p><div className="grid grid-cols-3 gap-3">{["6 × 4","4 × 6","10 × 8"].map((score,index)=><div key={score} className="border-y border-border py-4 text-center"><p className="mb-2 text-[10px] text-muted-foreground">{index===2?"TIE-BREAK":`SET ${index+1}`}</p><p className="font-display text-lg tabular-nums">{score}</p></div>)}</div><p className="text-xs text-muted-foreground">Um resultado. O grupo inteiro atualizado.</p></div>}
+          </div>
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-border pt-4 text-[10px] text-muted-foreground"><span>Temporada do clube</span><span className="flex items-center gap-1.5"><CalendarDays className="h-3 w-3" /> 4 de 12 rodadas</span></div>
+        </div>
       </section>
 
-      <section id="na-quadra" className="border-b border-border scroll-mt-4">
-        <div className="mx-auto grid max-w-6xl gap-0 px-5 sm:grid-cols-3 sm:px-8">
+      <section id="experiencia" className="border-y border-border scroll-mt-4">
+        <div className="landing-container grid gap-0 sm:grid-cols-3">
           {[
-            { icon: Users, title: "Seu grupo, reunido", text: "Convites, duplas e presença em um só lugar." },
-            { icon: CalendarDays, title: "A próxima rodada", text: "Agenda, sorteio e placares sem planilhas." },
-            { icon: TrendingUp, title: "Cada jogo conta", text: "Ranking Elo e evolução a cada resultado." },
-          ].map(({ icon: Icon, title, text }, index) => (
-            <article key={title} className="grid grid-cols-[28px_minmax(0,1fr)] items-start gap-3 border-b border-border py-6 last:border-b-0 sm:border-b-0 sm:px-5 sm:first:pl-0 sm:last:pr-0">
-              <Icon className="mt-0.5 h-5 w-5 text-primary" strokeWidth={1.5} />
-              <div className="min-w-0"><p className="mb-2 font-display text-sm font-semibold"><span className="mr-2 text-[10px] font-normal text-muted-foreground">0{index + 1}</span>{title}</p><p className="max-w-[250px] text-xs leading-5 text-muted-foreground">{text}</p></div>
-            </article>
-          ))}
+            { icon: Users, title: "A turma, organizada.", text: "Convites e presença. Duplas sorteadas. Todos no mesmo jogo." },
+            { icon: CalendarDays, title: "A rodada, resolvida.", text: "Agenda, sets e tie-break. Do primeiro ponto ao resultado final." },
+            { icon: TrendingUp, title: "A evolução, visível.", text: "Ranking Elo, estatísticas e histórico. Cada conquista tem seu lugar." },
+          ].map(({ icon: Icon, title, text }, index) => <article key={title} className="border-b border-border py-7 last:border-b-0 sm:border-b-0 sm:border-r sm:px-7 sm:first:pl-0 sm:last:border-r-0 sm:last:pr-0"><div className="mb-5 flex items-center justify-between"><Icon className="h-5 w-5 text-primary" strokeWidth={1.5} /><span className="font-display text-xs text-muted-foreground">0{index+1}</span></div><h2 className="font-display text-base font-medium">{title}</h2><p className="mt-2 max-w-xs text-xs leading-5 text-muted-foreground">{text}</p></article>)}
         </div>
       </section>
 
-      <section className="mx-auto grid max-w-6xl gap-8 px-5 py-12 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:px-8 sm:py-16">
-        <div className="min-w-0"><p className="mb-3 text-xs text-primary">MAIS JOGO. MENOS ORGANIZAÇÃO.</p><h2 className="font-display text-2xl font-medium leading-snug sm:text-3xl">O próximo jogo começa<br />com o seu grupo.</h2><p className="mt-3 max-w-md text-sm leading-6 text-muted-foreground">Entre, convide os amigos e deixe os resultados contarem a história da temporada.</p></div>
-        <div className="w-fit max-w-full space-y-3">{signIn("final_cta")}<AppleSignInButton variant="outline" onError={setError} /><p className="max-w-[270px] text-[11px] leading-5 text-muted-foreground">Ao entrar, você concorda com os <Link to="/termos" className="underline underline-offset-2 hover:text-foreground">Termos</Link> e a <Link to="/privacidade" className="underline underline-offset-2 hover:text-foreground">Política de Privacidade</Link>.</p></div>
+      <section className="landing-container grid gap-7 py-10 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:py-12">
+        <div className="min-w-0"><h2 className="font-display text-2xl font-medium">O grupo é seu.<br />A próxima conquista também.</h2><p className="mt-3 max-w-sm text-xs leading-5 text-muted-foreground">Pádel, tênis, beach tennis, squash e pickleball.<br />Sua paixão pela raquete, em um só lugar.</p></div>
+        <div className="w-full max-w-[270px] space-y-3"><AppleSignInButton variant="outline" onError={setError} />{canInstall && !isInstalled && !isFlowActive && <Button variant="outline" onClick={()=>void startInstall()} className="h-11 w-full rounded-full"><Download /> Instalar aplicativo</Button>}<p className="text-[10px] leading-5 text-muted-foreground">Ao entrar, você concorda com os <Link to="/termos" className="underline underline-offset-2 hover:text-foreground">Termos</Link> e a <Link to="/privacidade" className="underline underline-offset-2 hover:text-foreground">Política de Privacidade</Link>.</p></div>
       </section>
-      <footer className="border-t border-border">
-        <div className="mx-auto flex max-w-6xl flex-col gap-4 px-5 py-6 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between sm:px-8">
-          <span>© {new Date().getFullYear()} Raqueteia</span><nav aria-label="Links institucionais" className="flex gap-5"><Link to="/sobre-desenvolvimento" className="hover:text-foreground">Sobre</Link><Link to="/changelog" className="hover:text-foreground">Novidades</Link><Link to="/privacidade" className="hover:text-foreground">Privacidade</Link></nav>
-        </div>
-      </footer>
+      <footer className="border-t border-border"><div className="landing-container flex flex-col gap-4 py-5 text-[10px] text-muted-foreground sm:flex-row sm:items-center sm:justify-between"><span>© {new Date().getFullYear()} · Feito para quem vive o jogo.</span><nav aria-label="Links institucionais" className="flex gap-5"><Link to="/sobre-desenvolvimento" className="hover:text-foreground">Sobre</Link><Link to="/changelog" className="hover:text-foreground">Novidades</Link><Link to="/privacidade" className="hover:text-foreground">Privacidade</Link></nav></div></footer>
     </main>
   );
 }
