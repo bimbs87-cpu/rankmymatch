@@ -5,6 +5,7 @@ import {
   usePushPreferences,
 } from "@/hooks/use-push-preferences";
 import { usePushSubscription } from "@/hooks/use-push-subscription";
+import { Switch } from "@/components/ui/switch";
 import {
   ROUND_SOUND_KEY,
   isRoundSoundEnabled,
@@ -85,22 +86,13 @@ export function PushPreferencesCard() {
                   {evt.description}
                 </p>
               </div>
-              <button
-                type="button"
-                onClick={() => toggle(evt.key, !on)}
+              <Switch
+                checked={on}
+                onCheckedChange={(checked) => void toggle(evt.key, checked)}
                 disabled={loading}
-                aria-pressed={on}
                 aria-label={`${on ? "Desativar" : "Ativar"} ${evt.label}`}
-                className={`relative mt-0.5 inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors disabled:opacity-50 ${
-                  on ? "bg-primary" : "bg-muted"
-                }`}
-              >
-                <span
-                  className={`inline-block h-5 w-5 transform rounded-full bg-background shadow transition-transform ${
-                    on ? "translate-x-5" : "translate-x-0.5"
-                  }`}
-                />
-              </button>
+                className="mt-0.5"
+              />
             </li>
           );
         })}
