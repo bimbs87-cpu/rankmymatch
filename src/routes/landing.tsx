@@ -20,17 +20,12 @@ export const Route = createFileRoute("/landing")({
       },
       { property: "og:url", content: "https://raqueteia.app/landing" },
       { property: "og:type", content: "website" },
-      { property: "og:image", content: "https://raqueteia.app/landing-hero-devices.png" },
-      { property: "og:image:width", content: "1200" },
-      { property: "og:image:height", content: "630" },
-      { property: "og:image:alt", content: "Raqueteia em desktop, tablet e celular" },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:title", content: "Raqueteia — Ranking de Padel para seu grupo" },
       {
         name: "twitter:description",
         content: "Crie seu grupo, registre partidas e acompanhe o ranking Elo.",
       },
-      { name: "twitter:image", content: "https://raqueteia.app/landing-hero-devices.png" },
     ],
     links: [
       { rel: "canonical", href: "https://raqueteia.app/landing" },

@@ -59,6 +59,10 @@ export const Route = createFileRoute("/profile")({
     meta: [
       { title: "Meu Perfil — Raqueteia" },
       { name: "description", content: "Gerencie seu perfil, avatar e configurações de privacidade." },
+      { property: "og:title", content: "Meu Perfil — Raqueteia" },
+      { property: "og:description", content: "Seu perfil, conquistas e preferências no Raqueteia." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
       { name: "robots", content: "noindex, nofollow" },
     ],
   }),

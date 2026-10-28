@@ -86,6 +86,7 @@
   color-scheme: dark;
   --launch-background: #000000;
   --landing-overlay: oklch(0.09 0.005 260 / 72%);
+  --landing-photo-shade: linear-gradient(90deg, oklch(0.09 0.005 260 / 86%) 0%, oklch(0.09 0.005 260 / 65%) 32%, transparent 68%);
   --launch-progress: oklch(0.88 0.22 120);
   --launch-track: oklch(0.22 0 0);
   --radius: 0.75rem;
@@ -261,12 +262,11 @@
 .landing-court-photo { object-position: 65% 58%; }
 .landing-court-shade { background: var(--landing-overlay); }
 @media (min-width: 640px) {
-  .landing-court-shade { width: 53%; background: var(--landing-overlay); }
+  .landing-court-shade { background: var(--landing-photo-shade); }
 }
 @media (min-width: 1024px) {
   .landing-page { width: 100vw; margin-left: calc(50% - 50vw); }
   .landing-court-photo { object-position: center 60%; }
-  .landing-court-shade { width: 48%; }
 }
 @media (max-width: 639px) {
   .landing-header { height: 78px; }
