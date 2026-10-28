@@ -660,6 +660,21 @@ export type Database = {
           },
         ]
       }
+      game_reminder_scheduler_credentials: {
+        Row: {
+          id: number
+          token: string
+        }
+        Insert: {
+          id?: number
+          token?: string
+        }
+        Update: {
+          id?: number
+          token?: string
+        }
+        Relationships: []
+      }
       group_admin_permissions: {
         Row: {
           can_edit_scores: boolean
@@ -1803,6 +1818,50 @@ export type Database = {
         }
         Relationships: []
       }
+      round_reminder_deliveries: {
+        Row: {
+          attempts: number
+          claimed_at: string
+          delivered_at: string | null
+          event_type: string
+          id: string
+          last_error: string | null
+          round_id: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          attempts?: number
+          claimed_at?: string
+          delivered_at?: string | null
+          event_type: string
+          id?: string
+          last_error?: string | null
+          round_id: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          attempts?: number
+          claimed_at?: string
+          delivered_at?: string | null
+          event_type?: string
+          id?: string
+          last_error?: string | null
+          round_id?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "round_reminder_deliveries_round_id_fkey"
+            columns: ["round_id"]
+            isOneToOne: false
+            referencedRelation: "rounds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       rounds: {
         Row: {
           created_at: string
@@ -2269,6 +2328,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      claim_round_reminder: {
+        Args: { _event_type: string; _round_id: string; _user_id: string }
+        Returns: boolean
+      }
       delete_email: {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
@@ -2379,6 +2442,7 @@ export type Database = {
           winner_team: string
         }[]
       }
+      verify_game_reminder_token: { Args: { _token: string }; Returns: boolean }
     }
     Enums: {
       [_ in never]: never
