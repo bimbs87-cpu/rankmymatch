@@ -16,25 +16,25 @@
   "orientation": "portrait",
   "icons": [
     {
-      "src": "/android-icon-192-v6.png",
+      "src": "/android-icon-192-v7.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/android-icon-512-v6.png",
+      "src": "/android-icon-512-v7.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/android-icon-192-v6-maskable.png",
+      "src": "/android-icon-192-v7-maskable.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "maskable"
     },
     {
-      "src": "/android-icon-512-v6-maskable.png",
+      "src": "/android-icon-512-v7-maskable.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
