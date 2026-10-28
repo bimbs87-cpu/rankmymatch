@@ -8,7 +8,7 @@
  */
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { sharedFetch } from "@/lib/shared-fetch";
+import { sharedFetch, invalidateSharedFetch } from "@/lib/shared-fetch";
 
 export interface GroupPendingTasks {
   joinRequests: number;
@@ -76,9 +76,9 @@ export function useGroupPendingTasks(groupId: string | null | undefined, enabled
     const suffix = Math.random().toString(36).slice(2, 8);
     const ch = supabase
       .channel(`group-pending-${groupId}-${suffix}`)
-      .on("postgres_changes" as never, { event: "*", schema: "public", table: "group_join_requests", filter: `group_id=eq.${groupId}` }, () => void refresh())
-      .on("postgres_changes" as never, { event: "*", schema: "public", table: "player_claims", filter: `group_id=eq.${groupId}` }, () => void refresh())
-      .on("postgres_changes" as never, { event: "*", schema: "public", table: "pending_match_results" }, () => void refresh())
+      .on("postgres_changes" as never, { event: "*", schema: "public", table: "group_join_requests", filter: `group_id=eq.${groupId}` }, () => { invalidateSharedFetch(`group-pending:${groupId}`); void refresh(); })
+      .on("postgres_changes" as never, { event: "*", schema: "public", table: "player_claims", filter: `group_id=eq.${groupId}` }, () => { invalidateSharedFetch(`group-pending:${groupId}`); void refresh(); })
+      .on("postgres_changes" as never, { event: "*", schema: "public", table: "pending_match_results" }, () => { invalidateSharedFetch(`group-pending:${groupId}`); void refresh(); })
       .subscribe();
     return () => {
       void supabase.removeChannel(ch);

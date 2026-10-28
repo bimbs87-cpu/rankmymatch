@@ -8,7 +8,7 @@
  */
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { sharedFetch } from "@/lib/shared-fetch";
+import { sharedFetch, invalidateSharedFetch } from "@/lib/shared-fetch";
 
 const CACHE_TTL_MS = 30_000;
 const CACHE_PREFIX = "rmm:allGroupsPending:";
@@ -106,9 +106,9 @@ export function useAllGroupsPending(groupIds: string[]) {
     const channelName = `all-groups-pending-${Math.random().toString(36).slice(2, 10)}`;
     const ch = supabase
       .channel(channelName)
-      .on("postgres_changes" as never, { event: "*", schema: "public", table: "group_join_requests" }, () => void refresh())
-      .on("postgres_changes" as never, { event: "*", schema: "public", table: "player_claims" }, () => void refresh())
-      .on("postgres_changes" as never, { event: "*", schema: "public", table: "pending_match_results" }, () => void refresh())
+      .on("postgres_changes" as never, { event: "*", schema: "public", table: "group_join_requests" }, () => { invalidateSharedFetch(`all-groups-pending:${key}`); void refresh(); })
+      .on("postgres_changes" as never, { event: "*", schema: "public", table: "player_claims" }, () => { invalidateSharedFetch(`all-groups-pending:${key}`); void refresh(); })
+      .on("postgres_changes" as never, { event: "*", schema: "public", table: "pending_match_results" }, () => { invalidateSharedFetch(`all-groups-pending:${key}`); void refresh(); })
       .subscribe();
     return () => {
       void supabase.removeChannel(ch);

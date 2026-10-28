@@ -154,6 +154,7 @@ export function useNotifications() {
           filter: `user_id=eq.${user.id}`,
         },
         () => {
+          invalidateSharedFetch(`notifications:${user.id}`);
           void refreshRef.current();
         }
       )
