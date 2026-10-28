@@ -40,8 +40,8 @@ export async function runGameReminders(now = Date.now(), dryRun = false) {
       const presence=presenceResult.data?.find(p=>p.user_id===member.user_id);
       const involved=matches.some(m=>m.match_players.some(p=>p.user_id===member.user_id)) || presence?.status==='confirmed';
       let kinds=reminderKinds(now,start,open,visitors.has(member.user_id));
-      kinds=kinds.filter(kind=>kind.startsWith('result_') ? (admin||involved) && presence?.status!=='cancelled' : !presence || (admin && presence.status!=='cancelled'));
-      if (nextRound && (admin||involved) && !visitors.has(member.user_id) && presence?.status!=='cancelled') kinds.push('previous_round_pending');
+      kinds=kinds.filter(kind=>kind.startsWith('result_') ? (admin||involved) && presence?.status!=='absent' : !presence || (admin && presence.status!=='absent'));
+      if (nextRound && (admin||involved) && !visitors.has(member.user_id) && presence?.status!=='absent') kinds.push('previous_round_pending');
       // At most one presence message per user/run; newer reminders replace older catch-up messages.
       const presenceKinds=kinds.filter(k=>['round_open','presence_day_before','round_urgent'].includes(k));
       if(presenceKinds.length>1) kinds=kinds.filter(k=>!presenceKinds.includes(k)||k===presenceKinds[presenceKinds.length-1]);
