@@ -90,7 +90,7 @@ function RootShell({ children }: { children: React.ReactNode }) {
         />
         <style
           dangerouslySetInnerHTML={{
-            __html: `#android-launch-splash{display:none;position:fixed;inset:0;z-index:2147483647;background:#050707;align-items:center;justify-content:center;overflow:hidden}html[data-android-pwa-launch="true"] body{background:#050707}html[data-android-pwa-launch="true"] #android-launch-splash{display:flex}#android-launch-splash img{display:block;width:100vw;height:100svh;max-width:100vw;max-height:100svh;object-fit:cover;object-position:center center}`,
+            __html: `#android-launch-splash{display:none;position:fixed;inset:0;z-index:2147483647;background:#050707;align-items:center;justify-content:center;overflow:hidden}html[data-android-pwa-launch="true"] body{background:#050707}html[data-android-pwa-launch="true"] #android-launch-splash{display:flex}#android-launch-splash img{display:block;width:100vw;height:100dvh;max-width:none;max-height:none;object-fit:cover;object-position:center center}`,
           }}
         />
         <HeadContent />
