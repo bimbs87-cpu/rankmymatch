@@ -1,5 +1,12 @@
 # Roadmap
 
+## Push por horário dos jogos — 28/10/2026
+- [ ] Corrigir agendamento e horário dos avisos de presença
+- [ ] Lembretes de resultado após 90 minutos e 24 horas, condicionados a ausência de visita
+- [ ] Aviso de rodada anterior pendente no dia do próximo jogo
+- [ ] Preferências individuais e deduplicação segura dos envios
+- [ ] Testar regras, endpoint protegido e entrega; ativar agendamento após publicação
+
 ## Refinamento da entrada — 28/10/2026
 - [x] Retirar foto cortada e nome repetido; criar apresentação baseada no próprio produto
 - [x] Unificar início público, apresentação e login
