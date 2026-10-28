@@ -247,7 +247,7 @@ function buildSvg(opts: {
   <rect width="1200" height="630" fill="url(#bg)"/>
   <rect width="1200" height="630" fill="url(#glow)"/>
   <g font-family="Inter, system-ui, -apple-system, Segoe UI, sans-serif">
-    <text x="80" y="110" font-size="32" font-weight="600" fill="#a3ff12" letter-spacing="4">RANKMYMATCH</text>
+    <text x="80" y="110" font-size="32" font-weight="600" fill="#a3ff12" letter-spacing="4">RAQUETEIA</text>
     <text x="80" y="155" font-size="22" font-weight="500" fill="#9ca3af">Perfil competitivo de padel</text>
 
     ${avatarBlock}
