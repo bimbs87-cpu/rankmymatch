@@ -48,6 +48,15 @@ export function TrophyLoadingBar({
   const barHeight = compact ? "h-1.5" : "h-2";
   const trackWidth = compact ? "w-48" : "w-64";
 
+  if (fullScreen) {
+    return (
+      <div className="pwa-content-loading" role="status" aria-label={label || "Carregando Raqueteia"}>
+        <img src="/android-icon-512-v6.png" alt="" width="112" height="112" />
+        <div className="pwa-content-loading-track" role="progressbar" aria-label={label || "Carregando"} />
+      </div>
+    );
+  }
+
   const content = (
     <div className="flex flex-col items-center gap-6">
       {/* Racket with ambient glow + gentle float */}
@@ -156,14 +165,6 @@ export function TrophyLoadingBar({
       </div>
     </div>
   );
-
-  if (fullScreen) {
-    return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-background px-8">
-        {content}
-      </div>
-    );
-  }
 
   return <div className="flex justify-center px-4 py-8">{content}</div>;
 }

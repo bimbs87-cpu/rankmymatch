@@ -4,6 +4,24 @@
 
 @custom-variant dark (&:is(.dark *));
 
+.pwa-content-loading {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 28px;
+  background: var(--launch-background);
+}
+.pwa-content-loading img { width: 112px; height: 112px; object-fit: contain; }
+.pwa-content-loading-track { width: 144px; height: 3px; border-radius: 2px; overflow: hidden; background: var(--launch-track); }
+.pwa-content-loading-track::after { content: ""; display: block; width: 40%; height: 100%; background: var(--launch-progress); animation: pwa-launch-loading 1.2s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .pwa-content-loading-track::after { animation: none; width: 100%; }
+}
+
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
