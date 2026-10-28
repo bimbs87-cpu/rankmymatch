@@ -27,17 +27,19 @@ export async function sharedFetch<T>(
   const pending = inflight.get(key);
   if (pending) return pending as Promise<T>;
 
+  const self: { p?: Promise<T> } = {};
   const promise: Promise<T> = (async () => {
     try {
       const value = await fn();
       // Only cache if not invalidated while in flight.
-      if (inflight.get(key) === promise) cache.set(key, { expires: Date.now() + ttlMs, value });
+      if (inflight.get(key) === self.p) cache.set(key, { expires: Date.now() + ttlMs, value });
       return value;
     } finally {
-      if (inflight.get(key) === promise) inflight.delete(key);
+      if (inflight.get(key) === self.p) inflight.delete(key);
     }
   })();
 
+  self.p = promise;
   inflight.set(key, promise);
   // A rejected shared promise must not poison the cache for later callers.
   promise.catch(() => cache.delete(key));
