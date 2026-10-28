@@ -1,11 +1,12 @@
-import { describe, expect, test } from "bun:test";
+import { describe, it as test } from "node:test";
+import { strictEqual } from "node:assert";
 import { getResolvedTheme } from "./theme";
 
 describe("exclusive dark appearance", () => {
   test("legacy light preference resolves to dark", () => {
-    expect(getResolvedTheme("light")).toBe("dark");
+    strictEqual(getResolvedTheme("light"), "dark");
   });
   test("system preference cannot enable a light theme", () => {
-    expect(getResolvedTheme("system")).toBe("dark");
+    strictEqual(getResolvedTheme("system"), "dark");
   });
 });
