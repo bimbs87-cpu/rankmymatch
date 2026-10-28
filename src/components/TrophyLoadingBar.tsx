@@ -51,7 +51,7 @@ export function TrophyLoadingBar({
   if (fullScreen) {
     return (
       <div className="pwa-content-loading" role="status" aria-label={label || "Carregando Raqueteia"}>
-        <img src="/android-icon-512-v6.png" alt="" width="112" height="112" />
+        <img src="/android-icon-512-v7.png" alt="" width="112" height="112" />
         <div className="pwa-content-loading-track" role="progressbar" aria-label={label || "Carregando"} />
       </div>
     );

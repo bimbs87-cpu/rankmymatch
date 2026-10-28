@@ -96,7 +96,7 @@ function RootShell({ children }: { children: React.ReactNode }) {
       </head>
       <body>
         <div id="pwa-launch" role="status" aria-label="Carregando Raqueteia">
-          <img src="/android-icon-512-v6.png" alt="" width="112" height="112" fetchPriority="high" />
+          <img src="/android-icon-512-v7.png" alt="" width="112" height="112" fetchPriority="high" />
           <div id="pwa-launch-track" role="progressbar" aria-label="Carregando" />
         </div>
         <script
