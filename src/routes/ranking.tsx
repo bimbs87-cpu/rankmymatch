@@ -22,15 +22,15 @@ export const Route = createFileRoute("/ranking")({
   }),
   head: () => ({
     meta: [
-      { title: "Ranking — RankMyMatch" },
-      { name: "description", content: "Veja o ranking dos seus grupos e temporadas no RankMyMatch." },
-      { property: "og:title", content: "Ranking — RankMyMatch" },
+      { title: "Ranking — Raqueteia" },
+      { name: "description", content: "Veja o ranking dos seus grupos e temporadas no Raqueteia." },
+      { property: "og:title", content: "Ranking — Raqueteia" },
       { property: "og:description", content: "Acompanhe sua posição e a evolução do Elo dos seus grupos." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "robots", content: "noindex, follow" },
     ],
-    links: [{ rel: "canonical", href: "https://rankmymatch.app/ranking" }],
+    links: [{ rel: "canonical", href: "https://raqueteia.app/ranking" }],
   }),
   component: RankingPage,
 });
@@ -645,7 +645,7 @@ function RankingPage() {
     setSharingRanking(true);
     try {
       await Promise.all(Array.from(image.querySelectorAll("img")).map((img) => img.decode().catch(() => {})));
-      await shareImage(image, `ranking-${selectedSeason.name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`, `Ranking · ${(selectedSeason as any).groups?.name || "RankMyMatch"}`);
+      await shareImage(image, `ranking-${selectedSeason.name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`, `Ranking · ${(selectedSeason as any).groups?.name || "Raqueteia"}`);
     } catch (error) {
       console.error("Erro ao compartilhar ranking", error);
       toast.error("Não foi possível compartilhar o ranking");

@@ -164,7 +164,7 @@ async function fetchAvatarDataUri(url: string | null): Promise<string | null> {
 
   try {
     const res = await fetch(url, {
-      headers: { "User-Agent": "RankMyMatch-OG/1.0" },
+      headers: { "User-Agent": "Raqueteia-OG/1.0" },
       signal: AbortSignal.timeout(2500),
     });
     if (!res.ok) return null;

@@ -32,7 +32,7 @@ const DEFAULT_TEMPLATES: { id: string; name: string; body: string }[] = [
     name: "Padrão",
     body:
       "Olá {nome}! 👋\n\n" +
-      "Você já está jogando no grupo *{grupo}* no RankMyMatch, " +
+      "Você já está jogando no grupo *{grupo}* no Raqueteia, " +
       "mas ainda sem conta vinculada. Clique no link abaixo, faça login " +
       "e seu histórico será automaticamente vinculado à sua conta:\n\n" +
       "{link}\n\n" +
@@ -49,7 +49,7 @@ const DEFAULT_TEMPLATES: { id: string; name: string; body: string }[] = [
     name: "Formal",
     body:
       "Olá, {nome}.\n\n" +
-      "Convido você a vincular sua conta ao grupo {grupo} no RankMyMatch. " +
+      "Convido você a vincular sua conta ao grupo {grupo} no Raqueteia. " +
       "Acesse o link abaixo para concluir o processo:\n\n{link}\n\n" +
       "Atenciosamente.",
   },
@@ -184,7 +184,7 @@ export function ClaimInviteShareDialog({
   const previewMessage = useMemo(() => {
     if (!sample) return "";
     const link = `${window.location.origin}/invite/EXEMPLO123`;
-    return applyTemplate(template, sample.name, groupName || "RankMyMatch", link);
+    return applyTemplate(template, sample.name, groupName || "Raqueteia", link);
   }, [template, sample, groupName]);
 
   // WhatsApp soft limit ~4096 chars per message; warn well before.
@@ -254,7 +254,7 @@ export function ClaimInviteShareDialog({
     setBusy(true);
     try {
       const url = await ensureInviteFor(sample.user_id);
-      const message = applyTemplate(template, sample.name, groupName || "RankMyMatch", url);
+      const message = applyTemplate(template, sample.name, groupName || "Raqueteia", url);
       const waUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
       if (navigator.share) {
         try {
@@ -284,7 +284,7 @@ export function ClaimInviteShareDialog({
     try {
       const links = await buildAllMessages();
       const blocks = targets.map((t) => {
-        const msg = applyTemplate(template, t.name, groupName || "RankMyMatch", links[t.user_id]);
+        const msg = applyTemplate(template, t.name, groupName || "Raqueteia", links[t.user_id]);
         return `— ${t.name} —\n${msg}`;
       });
       const out = blocks.join("\n\n────────\n\n");
@@ -304,7 +304,7 @@ export function ClaimInviteShareDialog({
     setBusy(true);
     try {
       const links = await buildAllMessages();
-      const intro = `🎾 *${groupName || "RankMyMatch"}* — convites de vinculação\n\nClique no SEU link para vincular sua conta:\n`;
+      const intro = `🎾 *${groupName || "Raqueteia"}* — convites de vinculação\n\nClique no SEU link para vincular sua conta:\n`;
       const lines = targets
         .map((t) => `• ${t.name}: ${links[t.user_id]}`)
         .join("\n");

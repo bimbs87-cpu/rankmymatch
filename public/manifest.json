@@ -1,7 +1,7 @@
 {
   "id": "/",
-  "name": "RankMyMatch",
-  "short_name": "RankMyMatch",
+  "name": "Raqueteia",
+  "short_name": "Raqueteia",
   "description": "Rankings de Padel, Beach Tênis, Tênis e mais entre amigos",
   "start_url": "/?source=pwa&android_assets=v5",
   "scope": "/",

@@ -9,13 +9,13 @@ import { Trophy, Calendar, ChevronRight, Users } from "lucide-react";
 export const Route = createFileRoute("/seasons")({
   head: () => ({
     meta: [
-      { title: "Temporadas — RankMyMatch" },
-      { name: "description", content: "Acompanhe suas temporadas ativas e finalizadas no RankMyMatch." },
-      { property: "og:title", content: "Temporadas — RankMyMatch" },
+      { title: "Temporadas — Raqueteia" },
+      { name: "description", content: "Acompanhe suas temporadas ativas e finalizadas no Raqueteia." },
+      { property: "og:title", content: "Temporadas — Raqueteia" },
       { property: "og:description", content: "Histórico de temporadas, rodadas e desempenho." },
       { name: "robots", content: "noindex, follow" },
     ],
-    links: [{ rel: "canonical", href: "https://rankmymatch.app/seasons" }],
+    links: [{ rel: "canonical", href: "https://raqueteia.app/seasons" }],
   }),
   component: SeasonsPage,
 });

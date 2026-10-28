@@ -48,7 +48,7 @@ export const exportMyDataFn = createServerFn({ method: "GET" })
       exported_at: new Date().toISOString(),
       user_id: userId,
       lgpd_notice:
-        "Este arquivo contém todos os dados pessoais que o RankMyMatch armazena sobre você, conforme o direito de portabilidade da LGPD (Lei 13.709/2018). Para dúvidas, entre em contato em suporte@rankmymatch.app.",
+        "Este arquivo contém todos os dados pessoais que o Raqueteia armazena sobre você, conforme o direito de portabilidade da LGPD (Lei 13.709/2018). Para dúvidas, entre em contato em suporte@rankmymatch.app.",
       profile: profileRes.data ?? null,
       acquisition: acquisitionRes.data ?? null,
       group_memberships: membershipsRes.data ?? [],

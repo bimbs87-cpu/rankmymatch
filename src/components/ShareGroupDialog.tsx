@@ -28,7 +28,7 @@ interface Props {
 }
 
 const DEFAULT_WA_TEMPLATE =
-  "🎾 Confira o grupo *{groupName}* no RankMyMatch!\n\nRanking, rodadas e estatísticas em tempo real.\n\n{url}";
+  "🎾 Confira o grupo *{groupName}* no Raqueteia!\n\nRanking, rodadas e estatísticas em tempo real.\n\n{url}";
 
 function renderTemplate(tpl: string, groupName: string, url: string): string {
   return tpl.replaceAll("{groupName}", groupName).replaceAll("{url}", url);
@@ -152,8 +152,8 @@ export function ShareGroupDialog({ open, onOpenChange, url, groupName, groupId, 
     if (typeof navigator !== "undefined" && "share" in navigator) {
       try {
         await navigator.share({
-          title: `Grupo ${groupName} no RankMyMatch`,
-          text: `Veja o grupo ${groupName} no RankMyMatch`,
+          title: `Grupo ${groupName} no Raqueteia`,
+          text: `Veja o grupo ${groupName} no Raqueteia`,
           url,
         });
         void trackShareEvent(groupId, "native");

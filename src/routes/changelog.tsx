@@ -7,14 +7,14 @@ import { markReleasesSeen } from "@/hooks/use-new-releases";
 export const Route = createFileRoute("/changelog")({
   head: () => ({
     meta: [
-      { title: "Changelog completo — RankMyMatch" },
+      { title: "Changelog completo — Raqueteia" },
       {
         name: "description",
         content:
-          "Todas as melhorias, novidades e correções do RankMyMatch desde o início.",
+          "Todas as melhorias, novidades e correções do Raqueteia desde o início.",
       },
-      { property: "og:title", content: "Changelog completo — RankMyMatch" },
-      { property: "og:description", content: "Novidades, melhorias e correções do RankMyMatch com datas e versões." },
+      { property: "og:title", content: "Changelog completo — Raqueteia" },
+      { property: "og:description", content: "Novidades, melhorias e correções do Raqueteia com datas e versões." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "robots", content: "noindex, nofollow" },
@@ -172,7 +172,7 @@ function ChangelogPage() {
         <div className="flex-1">
           <h1 className="font-display text-lg font-bold text-foreground">Changelog</h1>
           <p className="text-[11px] text-muted-foreground">
-            Toda a história do RankMyMatch
+            Toda a história do Raqueteia
           </p>
         </div>
       </header>

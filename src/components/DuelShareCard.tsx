@@ -150,7 +150,7 @@ export const DuelShareCard = forwardRef<HTMLDivElement, DuelShareCardProps>(
                 color: COLORS.text,
               }}
             >
-              RankMyMatch
+              Raqueteia
             </span>
           </div>
           <span
@@ -394,7 +394,7 @@ export const DuelShareCard = forwardRef<HTMLDivElement, DuelShareCardProps>(
           <div style={{ fontSize: 14, color: COLORS.muted, fontWeight: 600 }}>
             {totalMatches} {totalMatches === 1 ? "confronto direto" : "confrontos diretos"}
           </div>
-          <div style={{ fontSize: 14, color: COLORS.muted, fontWeight: 600 }}>rankmymatch.app</div>
+          <div style={{ fontSize: 14, color: COLORS.muted, fontWeight: 600 }}>raqueteia.app</div>
         </div>
       </div>
     );

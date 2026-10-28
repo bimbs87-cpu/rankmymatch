@@ -28,11 +28,11 @@ import { useAuth } from "@/hooks/use-auth";
 export const Route = createFileRoute("/sobre-desenvolvimento")({
   head: () => ({
     meta: [
-      { title: "Aplicativo em desenvolvimento — RankMyMatch" },
+      { title: "Aplicativo em desenvolvimento — Raqueteia" },
       {
         name: "description",
         content:
-          "RankMyMatch é um projeto vivo, em constante evolução. Saiba como você pode ajudar reportando bugs e sugestões.",
+          "Raqueteia é um projeto vivo, em constante evolução. Saiba como você pode ajudar reportando bugs e sugestões.",
       },
       { name: "robots", content: "noindex, nofollow" },
     ],
@@ -41,9 +41,9 @@ export const Route = createFileRoute("/sobre-desenvolvimento")({
 });
 
 const SUPPORT_WHATSAPP = "https://wa.me/?text=" + encodeURIComponent(
-  "Olá! Encontrei algo no RankMyMatch e gostaria de reportar:\n\n— O que aconteceu:\n— Onde estava (tela/grupo):\n— O que esperava:",
+  "Olá! Encontrei algo no Raqueteia e gostaria de reportar:\n\n— O que aconteceu:\n— Onde estava (tela/grupo):\n— O que esperava:",
 );
-const SUPPORT_EMAIL = "mailto:contato@rankmymatch.app?subject=Bug%20no%20RankMyMatch&body=Ol%C3%A1%21%20Encontrei%20algo%20no%20RankMyMatch%3A%0A%0A-%20O%20que%20aconteceu%3A%0A-%20Onde%20estava%20%28tela%2Fgrupo%29%3A%0A-%20O%20que%20esperava%3A";
+const SUPPORT_EMAIL = "mailto:contato@rankmymatch.app?subject=Bug%20no%20Raqueteia&body=Ol%C3%A1%21%20Encontrei%20algo%20no%20Raqueteia%3A%0A%0A-%20O%20que%20aconteceu%3A%0A-%20Onde%20estava%20%28tela%2Fgrupo%29%3A%0A-%20O%20que%20esperava%3A";
 
 function AboutDevelopmentPage() {
   const { user } = useAuth();
@@ -139,7 +139,7 @@ function AboutDevelopmentPage() {
               <p className="mt-3 text-sm leading-relaxed text-muted-foreground lg:text-base">
                 Este projeto nasceu da paixão pelo esporte e pela tecnologia.
                 Cada partida disputada, cada bug encontrado e cada sugestão
-                enviada ajuda a moldar a próxima versão do RankMyMatch.
+                enviada ajuda a moldar a próxima versão do Raqueteia.
               </p>
             </div>
           </div>
@@ -191,7 +191,7 @@ function AboutDevelopmentPage() {
           </h3>
           <p className="text-sm leading-relaxed text-foreground lg:text-base">
             Padel é o esporte que mais cresce no mundo, e a maioria dos grupos
-            ainda usa planilhas, papel ou memória. O RankMyMatch transforma
+            ainda usa planilhas, papel ou memória. O Raqueteia transforma
             cada rodada em dados ricos e justos, mantendo a competitividade
             saudável e divertida — sem que ninguém precise virar estatístico
             nas horas vagas.
@@ -275,7 +275,7 @@ function AboutDevelopmentPage() {
         {/* FOOTER LINK */}
         <div className="flex items-center justify-center gap-2 pt-2 text-[11px] text-muted-foreground">
           <Code2 className="h-3 w-3" />
-          <span>RankMyMatch · {APP_VERSION}</span>
+          <span>Raqueteia · {APP_VERSION}</span>
         </div>
       </main>
     </div>

@@ -16,12 +16,12 @@ import { useAuth } from "@/hooks/use-auth";
 export const Route = createFileRoute("/players/$userId")({
   head: ({ params }) => {
     const ogImage = `/api/og/player/${params.userId}`;
-    const url = `https://rankmymatch.app/players/${params.userId}`;
+    const url = `https://raqueteia.app/players/${params.userId}`;
     return {
       meta: [
-        { title: "Perfil do jogador — RankMyMatch" },
-        { name: "description", content: "Veja o perfil competitivo de um jogador no RankMyMatch: Elo, melhor posição e histórico de partidas." },
-        { property: "og:title", content: "Perfil competitivo no RankMyMatch" },
+        { title: "Perfil do jogador — Raqueteia" },
+        { name: "description", content: "Veja o perfil competitivo de um jogador no Raqueteia: Elo, melhor posição e histórico de partidas." },
+        { property: "og:title", content: "Perfil competitivo no Raqueteia" },
         { property: "og:description", content: "Veja Elo, melhor posição e estatísticas deste jogador." },
         { property: "og:image", content: ogImage },
         { property: "og:type", content: "profile" },
@@ -40,7 +40,7 @@ export const Route = createFileRoute("/players/$userId")({
               "@type": "Person",
               identifier: params.userId,
               url,
-              image: `https://rankmymatch.app${ogImage}`,
+              image: `https://raqueteia.app${ogImage}`,
             },
             url,
           }),

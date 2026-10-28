@@ -8,7 +8,7 @@ const REPORT_RECIPIENTS = [
   "bimbs87@gmail.com",
 ];
 
-const SITE_URL = "https://rankmymatch.app";
+const SITE_URL = "https://raqueteia.app";
 
 async function ensureAppAdmin(userId: string) {
   const { data, error } = await supabaseAdmin
@@ -312,7 +312,7 @@ async function generatePdf(d: MonthlyReportData): Promise<Uint8Array> {
 
   // Header band
   page.drawRectangle({ x: 0, y: 842 - 80, width: 595, height: 80, color: carbon });
-  page.drawText("RankMyMatch", {
+  page.drawText("Raqueteia", {
     x: margin,
     y: 842 - 38,
     size: 20,
@@ -467,7 +467,7 @@ async function generatePdf(d: MonthlyReportData): Promise<Uint8Array> {
   const total = pdfDoc.getPageCount();
   for (let i = 0; i < total; i++) {
     const p = pdfDoc.getPage(i);
-    p.drawText(sanitize(`RankMyMatch · ${d.periodLabel} · página ${i + 1}/${total}`), {
+    p.drawText(sanitize(`Raqueteia · ${d.periodLabel} · página ${i + 1}/${total}`), {
       x: margin,
       y: 24,
       size: 8,

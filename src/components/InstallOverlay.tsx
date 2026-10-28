@@ -60,7 +60,7 @@ export function InstallOverlay({ phase, progress, phaseLabel }: InstallOverlayPr
             id="install-overlay-title"
             className="text-lg font-bold text-foreground"
           >
-            {isSuccess ? "RankMyMatch instalado!" : "Instalando RankMyMatch"}
+            {isSuccess ? "Raqueteia instalado!" : "Instalando Raqueteia"}
           </h2>
           <p className="mt-1 text-sm text-muted-foreground">
             {isSuccess

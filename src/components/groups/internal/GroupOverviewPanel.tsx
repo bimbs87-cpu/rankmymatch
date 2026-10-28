@@ -36,7 +36,7 @@ export function GroupOverviewPanel({ groupId, groupName, groupImage, description
   const [shareOpen, setShareOpen] = useState(false);
   const shareUrl = typeof window !== "undefined"
     ? `${window.location.origin}/groups/${groupId}`
-    : `https://rankmymatch.app/groups/${groupId}`;
+    : `https://raqueteia.app/groups/${groupId}`;
   const { user } = useAuth();
   const { data, isLoading, refresh } = useGroupDashboard(groupId);
   const { data: stats, isLoading: statsLoading } = useGroupGlobalStats(groupId);

@@ -20,7 +20,7 @@ import { PushOptInCard } from "@/components/PushOptInCard";
 export const Route = createFileRoute("/notifications")({
   head: () => ({
     meta: [
-      { title: "Notificações — RankMyMatch" },
+      { title: "Notificações — Raqueteia" },
       { name: "robots", content: "noindex, nofollow" },
     ],
   }),

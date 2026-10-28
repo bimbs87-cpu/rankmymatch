@@ -17,7 +17,7 @@ import { TrophyLoadingBar } from "@/components/TrophyLoadingBar";
 export const Route = createFileRoute("/admin/metrics")({
   head: () => ({
     meta: [
-      { title: "Métricas do admin — RankMyMatch" },
+      { title: "Métricas do admin — Raqueteia" },
       { name: "robots", content: "noindex, nofollow" },
     ],
   }),

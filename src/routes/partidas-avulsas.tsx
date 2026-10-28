@@ -8,7 +8,7 @@ import { toast } from "sonner";
 
 export const Route = createFileRoute("/partidas-avulsas")({
   head: () => ({
-    meta: [{ title: "Partidas Avulsas — RankMyMatch" }],
+    meta: [{ title: "Partidas Avulsas — Raqueteia" }],
   }),
   component: CasualMatchesPage,
 });

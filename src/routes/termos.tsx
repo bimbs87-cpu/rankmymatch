@@ -4,20 +4,20 @@ import { ArrowLeft } from "lucide-react";
 export const Route = createFileRoute("/termos")({
   head: () => ({
     meta: [
-      { title: "Termos de Uso — RankMyMatch" },
+      { title: "Termos de Uso — Raqueteia" },
       {
         name: "description",
         content:
-          "Termos e condições para utilização do RankMyMatch — ranking de padel, beach tennis e tênis.",
+          "Termos e condições para utilização do Raqueteia — ranking de padel, beach tennis e tênis.",
       },
-      { property: "og:title", content: "Termos de Uso — RankMyMatch" },
+      { property: "og:title", content: "Termos de Uso — Raqueteia" },
       {
         property: "og:description",
         content:
-          "Termos e condições para utilização do RankMyMatch — ranking de padel, beach tennis e tênis.",
+          "Termos e condições para utilização do Raqueteia — ranking de padel, beach tennis e tênis.",
       },
     ],
-    links: [{ rel: "canonical", href: "https://rankmymatch.app/termos" }],
+    links: [{ rel: "canonical", href: "https://raqueteia.app/termos" }],
   }),
   component: TermsPage,
 });
@@ -44,14 +44,14 @@ function TermsPage() {
         </p>
 
         <p className="text-muted-foreground">
-          Estes Termos regulam o uso do aplicativo RankMyMatch ("Serviço"). Ao
+          Estes Termos regulam o uso do aplicativo Raqueteia ("Serviço"). Ao
           criar uma conta ou usar o Serviço, você concorda integralmente com
           estes Termos. Se não concordar, não utilize o Serviço.
         </p>
 
         <Section title="1. O Serviço">
           <p>
-            O RankMyMatch é uma plataforma para gerenciamento de grupos
+            O Raqueteia é uma plataforma para gerenciamento de grupos
             esportivos amadores (padel, beach tennis, tênis), permitindo
             registro de presenças, partidas, placares, ranking baseado em Elo,
             estatísticas e notificações.
@@ -95,7 +95,7 @@ function TermsPage() {
         <Section title="4. Conteúdo gerado pelo usuário">
           <p>
             Você mantém os direitos sobre o conteúdo que envia (avatar, apelido,
-            comentários). Ao publicar, concede ao RankMyMatch licença gratuita,
+            comentários). Ao publicar, concede ao Raqueteia licença gratuita,
             não exclusiva e mundial para exibir esse conteúdo dentro do Serviço,
             inclusive em prévias compartilhadas (links com imagem do grupo, por
             exemplo).
@@ -120,7 +120,7 @@ function TermsPage() {
 
         <Section title="7. Propriedade intelectual">
           <p>
-            Marca, logotipo, design, código e funcionalidades do RankMyMatch são
+            Marca, logotipo, design, código e funcionalidades do Raqueteia são
             de propriedade dos seus criadores. É vedada qualquer reprodução,
             engenharia reversa ou redistribuição sem autorização expressa.
           </p>
@@ -128,7 +128,7 @@ function TermsPage() {
 
         <Section title="8. Limitação de responsabilidade">
           <p>
-            O RankMyMatch não se responsabiliza por danos indiretos, lucros
+            O Raqueteia não se responsabiliza por danos indiretos, lucros
             cessantes ou consequências de uso inadequado do Serviço, incluindo
             disputas entre usuários ou organização de jogos presenciais.
           </p>

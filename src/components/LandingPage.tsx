@@ -258,7 +258,7 @@ export function LandingPage() {
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-5 py-5 sm:px-8 lg:py-6">
           <img
             src={logoSrc}
-            alt="RankMyMatch"
+            alt="Raqueteia"
             className="h-16 w-auto max-w-[68vw] drop-shadow-sm sm:h-20 lg:h-24"
           />
           <button
@@ -337,7 +337,7 @@ export function LandingPage() {
             />
             <img
               src={heroDevices}
-              alt="RankMyMatch em desktop, tablet e mobile"
+              alt="Raqueteia em desktop, tablet e mobile"
               className="relative z-10 mx-auto block w-full max-w-[680px] object-contain drop-shadow-2xl lg:max-w-none"
               loading="eager"
             />
@@ -469,8 +469,8 @@ export function LandingPage() {
       <footer className="relative z-10 border-t border-border/50 bg-card/45 backdrop-blur-xl">
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-5 py-6 text-xs text-muted-foreground sm:flex-row sm:px-8">
           <div className="flex items-center gap-3">
-            <img src={logoSrc} alt="RankMyMatch" className="h-9 w-auto" />
-            <span>© {new Date().getFullYear()} RankMyMatch</span>
+            <img src={logoSrc} alt="Raqueteia" className="h-9 w-auto" />
+            <span>© {new Date().getFullYear()} Raqueteia</span>
           </div>
           <div className="flex items-center gap-5 font-semibold">
             <a href="/sobre-desenvolvimento" className="hover:text-foreground">Sobre</a>

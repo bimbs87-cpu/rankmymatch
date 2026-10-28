@@ -49,7 +49,7 @@ import { Button } from "@/components/ui/button";
 export const Route = createFileRoute("/dev")({
   head: () => ({
     meta: [
-      { title: "Dev Dashboard — RankMyMatch" },
+      { title: "Dev Dashboard — Raqueteia" },
       { name: "robots", content: "noindex, nofollow" },
     ],
   }),

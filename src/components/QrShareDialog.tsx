@@ -4,7 +4,7 @@
  * - Mostra QR Code da URL pública (para troca presencial em quadra).
  * - Mostra prévia ao vivo do og:image que será exibido em links compartilhados.
  * - Permite copiar o link, compartilhar via Web Share, e baixar o QR Code como PNG
- *   256x256 com a marca RankMyMatch impressa abaixo (pronto para colar em raquete/saco).
+ *   256x256 com a marca Raqueteia impressa abaixo (pronto para colar em raquete/saco).
  */
 import { useEffect, useRef, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
@@ -114,8 +114,8 @@ export function QrShareDialog({ open, onOpenChange, url, playerName, userId, isO
     if (typeof navigator !== "undefined" && "share" in navigator) {
       try {
         await navigator.share({
-          title: `Perfil de ${playerName} no RankMyMatch`,
-          text: `Veja o perfil de ${playerName} no RankMyMatch`,
+          title: `Perfil de ${playerName} no Raqueteia`,
+          text: `Veja o perfil de ${playerName} no Raqueteia`,
           url,
         });
       } catch (err) {
@@ -129,7 +129,7 @@ export function QrShareDialog({ open, onOpenChange, url, playerName, userId, isO
   };
 
   /**
-   * Builds the branded PNG (QR + RankMyMatch wordmark + player name) as a Blob.
+   * Builds the branded PNG (QR + Raqueteia wordmark + player name) as a Blob.
    * Reused for download and "copy image to clipboard".
    */
   const buildQrPngBlob = async (): Promise<Blob> => {

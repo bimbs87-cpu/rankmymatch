@@ -89,7 +89,7 @@ async function sendDeletionEmail(params: {
   scheduledFor: string;
   userId: string;
 }) {
-  const baseUrl = process.env.SITE_URL || "https://rankmymatch.app";
+  const baseUrl = process.env.SITE_URL || "https://raqueteia.app";
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!serviceKey) {
     console.warn("[request-deletion] SUPABASE_SERVICE_ROLE_KEY missing; skipping email");

@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
-const SITE = "https://rankmymatch.app";
+const SITE = "https://raqueteia.app";
 
 const STATIC_ROUTES: Array<{ path: string; changefreq: string; priority: string }> = [
   { path: "/", changefreq: "daily", priority: "1.0" },

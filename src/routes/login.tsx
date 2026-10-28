@@ -16,13 +16,13 @@ import { AppleSignInButton } from "@/components/AppleSignInButton";
 export const Route = createFileRoute("/login")({
   head: () => ({
     meta: [
-      { title: "Entrar — RankMyMatch" },
-      { name: "description", content: "Acesse sua conta no RankMyMatch e gerencie seus rankings, temporadas e grupos." },
-      { property: "og:title", content: "Entrar no RankMyMatch" },
+      { title: "Entrar — Raqueteia" },
+      { name: "description", content: "Acesse sua conta no Raqueteia e gerencie seus rankings, temporadas e grupos." },
+      { property: "og:title", content: "Entrar no Raqueteia" },
       { property: "og:description", content: "Login com Google em segundos." },
       { name: "robots", content: "noindex, follow" },
     ],
-    links: [{ rel: "canonical", href: "https://rankmymatch.app/login" }],
+    links: [{ rel: "canonical", href: "https://raqueteia.app/login" }],
   }),
   component: LoginPage,
 });
@@ -207,7 +207,7 @@ function LoginPage() {
               />
               <img
                 src={logoSquareNeon}
-                alt="RankMyMatch"
+                alt="Raqueteia"
                 className="relative h-20 w-auto object-contain sm:h-32 lg:h-56 animate-float"
                 style={{
                   filter:
