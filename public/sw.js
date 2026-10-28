@@ -2,7 +2,7 @@
 // Keeps a pure pass-through fetch handler (required for the PWA install prompt
 // without ever intercepting OAuth) and adds Web Push support for round
 // notifications + admin moderation actions (Aprovar/Recusar inline).
-const SW_VERSION = "v11-2026-10-02-notification-badge";
+const SW_VERSION = "v12-2026-10-28-splash-fullscreen";
 
 self.addEventListener("install", () => {
   self.skipWaiting();
