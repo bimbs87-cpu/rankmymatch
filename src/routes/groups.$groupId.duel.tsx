@@ -9,7 +9,7 @@ import { ArrowLeft, Swords } from "lucide-react";
 export const Route = createFileRoute("/groups/$groupId/duel")({
   head: () => ({
     meta: [
-      { title: "Duelo — RankMyMatch" },
+      { title: "Duelo — Raqueteia" },
       { name: "description", content: "Página premium de Head-to-Head do duelo: estatísticas completas, Elo comparativo, retrospecto e dominância." },
     ],
   }),

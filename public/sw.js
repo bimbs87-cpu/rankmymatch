@@ -1,4 +1,4 @@
-// Service worker for RankMyMatch.
+// Service worker for Raqueteia.
 // Keeps a pure pass-through fetch handler (required for the PWA install prompt
 // without ever intercepting OAuth) and adds Web Push support for round
 // notifications + admin moderation actions (Aprovar/Recusar inline).
@@ -35,10 +35,10 @@ self.addEventListener("push", (event) => {
   try {
     payload = event.data ? event.data.json() : {};
   } catch {
-    payload = { title: "RankMyMatch", body: event.data ? event.data.text() : "" };
+    payload = { title: "Raqueteia", body: event.data ? event.data.text() : "" };
   }
 
-  const title = payload.title || "RankMyMatch";
+  const title = payload.title || "Raqueteia";
   const data = payload.data || {};
   const isAdminActionable =
     ADMIN_TYPES.has(payload.type) &&
@@ -49,7 +49,7 @@ self.addEventListener("push", (event) => {
     body: payload.body || "",
     icon: payload.icon || "/android-icon-192-v5.png",
     badge: payload.badge || "/notification-badge.png",
-    tag: payload.tag || payload.type || "rankmymatch",
+    tag: payload.tag || payload.type || "raqueteia",
     renotify: true,
     data: {
       url: payload.url || "/",

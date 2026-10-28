@@ -194,7 +194,7 @@ const MonthlyReportEmail = ({
 export const template = {
   component: MonthlyReportEmail,
   subject: ({ periodLabel }: MonthlyReportProps) =>
-    `Relatório mensal RankMyMatch — ${periodLabel ?? 'novo período'}`,
+    `Relatório mensal Raqueteia — ${periodLabel ?? 'novo período'}`,
   displayName: 'Relatório mensal',
   previewData: {
     periodLabel: 'outubro de 2025',

@@ -59,7 +59,7 @@ export function OnboardingNoGroupScreen({ onSkip, onCompleted }: Props) {
             <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary/10">
               <Trophy className="h-4 w-4 text-primary" />
             </div>
-            <span className="font-display text-sm font-bold text-foreground">RankMyMatch</span>
+            <span className="font-display text-sm font-bold text-foreground">Raqueteia</span>
           </div>
           {onSkip && (
             <button
@@ -151,7 +151,7 @@ function ChooseStep({
           Boas-vindas, {firstName}!
         </h2>
         <p className="mt-1.5 text-sm text-muted-foreground sm:text-base">
-          Para usar o RankMyMatch você precisa fazer parte de um grupo. Escolha como quer começar:
+          Para usar o Raqueteia você precisa fazer parte de um grupo. Escolha como quer começar:
         </p>
       </div>
 

@@ -4,14 +4,14 @@ import { ArrowLeft, TrendingUp, TrendingDown, Target, Shield, Award } from "luci
 export const Route = createFileRoute("/ranking-info")({
   head: () => ({
     meta: [
-      { title: "Como funciona o ranking — RankMyMatch" },
+      { title: "Como funciona o ranking — Raqueteia" },
       { name: "description", content: "Entenda o sistema de Elo adaptado para padel, beach tênis e tênis: como pontuação, k-factor e margem de vitória influenciam seu ranking." },
-      { property: "og:title", content: "Como funciona o ranking Elo do RankMyMatch" },
+      { property: "og:title", content: "Como funciona o ranking Elo do Raqueteia" },
       { property: "og:description", content: "Sistema Elo adaptado para esportes de raquete entre amigos e clubes." },
        { property: "og:type", content: "website" },
        { name: "twitter:card", content: "summary" },
     ],
-    links: [{ rel: "canonical", href: "https://rankmymatch.app/ranking-info" }],
+    links: [{ rel: "canonical", href: "https://raqueteia.app/ranking-info" }],
   }),
   component: RankingInfoPage,
 });

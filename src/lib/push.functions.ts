@@ -39,7 +39,7 @@ export const sendPushFn = createServerFn({ method: "POST" })
     const userIds = input.userIds.filter((u) => typeof u === "string").slice(0, 200);
     const p = input.payload || ({} as PushPayload);
     const payload: PushPayload = {
-      title: String(p.title || "RankMyMatch").slice(0, 120),
+      title: String(p.title || "Raqueteia").slice(0, 120),
       body: p.body ? String(p.body).slice(0, 300) : undefined,
       url: p.url ? String(p.url).slice(0, 500) : undefined,
       type: p.type ? String(p.type).slice(0, 60) : undefined,

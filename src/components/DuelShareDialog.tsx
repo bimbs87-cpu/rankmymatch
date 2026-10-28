@@ -82,7 +82,7 @@ export function DuelShareDialog({ open, onOpenChange, filenameBase = "duelo", ca
       if (nav.canShare && nav.share && nav.canShare({ files: [file] })) {
         await nav.share({
           files: [file],
-          title: "Duelo — RankMyMatch",
+          title: "Duelo — Raqueteia",
           text: `${card.playerA.name} ${card.winsA} × ${card.winsB} ${card.playerB.name}`,
         });
       } else {

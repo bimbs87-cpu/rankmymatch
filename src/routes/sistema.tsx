@@ -30,13 +30,13 @@ import { PushDiagnosticCard } from "@/components/PushDiagnosticCard";
 export const Route = createFileRoute("/sistema")({
   head: () => ({
     meta: [
-      { title: "RankMyMatch — Premium para grupos de padel sérios" },
+      { title: "Raqueteia — Premium para grupos de padel sérios" },
       {
         name: "description",
         content:
           "Crie grupos ilimitados, rodadas sem limite, ranking Elo profissional e suporte direto. R$ 29,90/mês. Ou pague R$ 9,90 por grupo avulso.",
       },
-      { property: "og:title", content: "RankMyMatch Premium — O sistema de ranking que seu grupo merece" },
+      { property: "og:title", content: "Raqueteia Premium — O sistema de ranking que seu grupo merece" },
       {
         property: "og:description",
         content: "Pare de improvisar planilha no WhatsApp. Tenha ranking Elo, agenda automática e estatísticas de verdade.",
@@ -107,7 +107,7 @@ function SistemaPage() {
             <div>
               <div className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-[11px] font-bold uppercase tracking-widest text-primary">
                 <Sparkles className="h-3.5 w-3.5" />
-                RankMyMatch Premium
+                Raqueteia Premium
               </div>
               <h1 className="mt-5 font-display text-4xl font-black leading-[1.05] tracking-tight text-foreground lg:text-6xl">
                 Pare de anotar resultado{" "}
@@ -117,7 +117,7 @@ function SistemaPage() {
                 do WhatsApp.
               </h1>
               <p className="mt-5 text-base leading-relaxed text-muted-foreground lg:text-lg">
-                O <strong className="text-foreground">RankMyMatch</strong> transforma a sua roda de padel em
+                O <strong className="text-foreground">Raqueteia</strong> transforma a sua roda de padel em
                 uma liga profissional: ranking Elo de verdade, agenda automática, sorteio de duplas,
                 histórico completo e estatísticas que mostram quem realmente joga.
               </p>
@@ -169,7 +169,7 @@ function SistemaPage() {
             <ImacFrame>
               <img
                 src={screenshotDesktopHome}
-                alt="Painel do RankMyMatch no desktop"
+                alt="Painel do Raqueteia no desktop"
                 className="block w-full"
                 loading="eager"
               />
@@ -214,7 +214,7 @@ function SistemaPage() {
               </p>
               <div className="my-3 flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-primary">
                 <Zap className="h-3.5 w-3.5" />
-                Com RankMyMatch
+                Com Raqueteia
               </div>
               <p className="text-sm font-medium text-foreground">{item.after}</p>
             </div>
@@ -263,7 +263,7 @@ function SistemaPage() {
             <PhoneFrame>
               <img
                 src={screenshotMobileRanking}
-                alt="Tela de ranking do RankMyMatch no celular"
+                alt="Tela de ranking do Raqueteia no celular"
                 className="block w-full"
                 loading="lazy"
               />
@@ -279,7 +279,7 @@ function SistemaPage() {
             <PhoneFrame>
               <img
                 src={screenshotMobileHome}
-                alt="Tela inicial do RankMyMatch no celular"
+                alt="Tela inicial do Raqueteia no celular"
                 className="block w-full"
                 loading="lazy"
               />

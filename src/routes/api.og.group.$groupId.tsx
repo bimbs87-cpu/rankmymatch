@@ -124,7 +124,7 @@ async function fetchImageDataUri(url: string | null): Promise<string | null> {
   if (!/^https?:\/\//i.test(url)) return null;
   try {
     const res = await fetch(url, {
-      headers: { "User-Agent": "RankMyMatch-OG/1.0" },
+      headers: { "User-Agent": "Raqueteia-OG/1.0" },
       signal: AbortSignal.timeout(2500),
     });
     if (!res.ok) return null;
@@ -207,7 +207,7 @@ function buildSvg(opts: {
   ${coverBlock}
   <rect width="1200" height="630" fill="url(#glow)"/>
   <g font-family="Inter, system-ui, -apple-system, Segoe UI, sans-serif">
-    <text x="80" y="110" font-size="32" font-weight="600" fill="#a3ff12" letter-spacing="4">RANKMYMATCH</text>
+    <text x="80" y="110" font-size="32" font-weight="600" fill="#a3ff12" letter-spacing="4">RAQUETEIA</text>
     <text x="80" y="155" font-size="22" font-weight="500" fill="#9ca3af">Grupo · ${sportLabel}</text>
 
     ${logoBlock}
@@ -236,7 +236,7 @@ function buildSvg(opts: {
       <text x="32" y="38" font-size="18" font-weight="600" fill="#cbd5e1">
         Acompanhe ranking, temporadas e rivalidades em tempo real
       </text>
-      <text x="1008" y="38" font-size="20" font-weight="800" fill="url(#accent)" text-anchor="end" letter-spacing="3">RANKMYMATCH.APP</text>
+      <text x="1008" y="38" font-size="20" font-weight="800" fill="url(#accent)" text-anchor="end" letter-spacing="3">RAQUETEIA.APP</text>
     </g>
   </g>
 </svg>`;

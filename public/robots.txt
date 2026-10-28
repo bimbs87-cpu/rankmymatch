@@ -6,4 +6,4 @@ Disallow: /history
 Disallow: /api/
 Disallow: /hooks/
 
-Sitemap: https://rankmymatch.app/sitemap.xml
+Sitemap: https://raqueteia.app/sitemap.xml

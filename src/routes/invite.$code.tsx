@@ -12,9 +12,9 @@ import { AppleSignInButton } from "@/components/AppleSignInButton";
 export const Route = createFileRoute("/invite/$code")({
   head: () => ({
     meta: [
-      { title: "Convite — RankMyMatch" },
-      { name: "description", content: "Você foi convidado para um grupo no RankMyMatch. Aceite o convite e comece a jogar." },
-      { property: "og:title", content: "Convite para entrar em um grupo — RankMyMatch" },
+      { title: "Convite — Raqueteia" },
+      { name: "description", content: "Você foi convidado para um grupo no Raqueteia. Aceite o convite e comece a jogar." },
+      { property: "og:title", content: "Convite para entrar em um grupo — Raqueteia" },
       { property: "og:description", content: "Aceite o convite e participe das próximas rodadas." },
       { name: "robots", content: "noindex, follow" },
     ],

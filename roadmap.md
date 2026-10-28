@@ -1,5 +1,11 @@
 # Roadmap
 
+## Concluído: Rebrand para Raqueteia — 28/10/2026
+- [x] Nome "RankMyMatch" → "Raqueteia" em todo o app (textos, SEO, e-mails, manifest, sw.js)
+- [x] URLs do site → raqueteia.app (canonical, sitemap, og, compartilhamento); infra de e-mail segue em rankmymatch.app
+- [x] Logo horizontal nova (fundos escuro e claro, transparente), logo quadrada (ícones PWA/favicon), splash screens (iOS/Android)
+- [x] og-image refeita com a nova logo
+
 ## Concluído: Teste completo de funcionalidade (QA geral) — 27/10/2026
 - [x] Fluxo ponta a ponta validado (grupo, temporada, convite, presença, sorteio, resultados, Elo, ranking, convidado, imagem de ranking)
 - [x] Correções QA: corrida de carregamento do grupo, salvamento em lote sem perda de dados, nome de perfil vazio

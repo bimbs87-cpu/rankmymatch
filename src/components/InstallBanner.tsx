@@ -19,7 +19,7 @@ export function InstallBanner() {
           <Download className="h-5 w-5 text-primary" />
         </div>
         <div className="flex-1 min-w-0">
-          <h3 className="text-sm font-semibold text-foreground">Instalar RankMyMatch</h3>
+          <h3 className="text-sm font-semibold text-foreground">Instalar Raqueteia</h3>
           {isIos ? (
             <p className="mt-1 text-xs text-muted-foreground">
               Toque em <Share className="inline h-3.5 w-3.5 -mt-0.5" />{" "}

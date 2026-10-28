@@ -61,7 +61,7 @@ import { SPORTS, normalizeSportKey, type SportKey } from "@/lib/sport-shots";
 export const Route = createFileRoute("/profile")({
   head: () => ({
     meta: [
-      { title: "Meu Perfil — RankMyMatch" },
+      { title: "Meu Perfil — Raqueteia" },
       { name: "description", content: "Gerencie seu perfil, avatar e configurações de privacidade." },
       { name: "robots", content: "noindex, nofollow" },
     ],

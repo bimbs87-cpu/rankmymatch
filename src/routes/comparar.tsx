@@ -47,7 +47,7 @@ export const Route = createFileRoute("/comparar")({
   component: CompareLandingPage,
   head: () => ({
     meta: [
-      { title: "Comparar jogadores — RankMyMatch" },
+      { title: "Comparar jogadores — Raqueteia" },
       {
         name: "description",
         content:

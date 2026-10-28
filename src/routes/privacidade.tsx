@@ -4,20 +4,20 @@ import { ArrowLeft } from "lucide-react";
 export const Route = createFileRoute("/privacidade")({
   head: () => ({
     meta: [
-      { title: "Política de Privacidade — RankMyMatch" },
+      { title: "Política de Privacidade — Raqueteia" },
       {
         name: "description",
         content:
-          "Como o RankMyMatch coleta, usa e protege seus dados pessoais — em conformidade com a LGPD.",
+          "Como o Raqueteia coleta, usa e protege seus dados pessoais — em conformidade com a LGPD.",
       },
-      { property: "og:title", content: "Política de Privacidade — RankMyMatch" },
+      { property: "og:title", content: "Política de Privacidade — Raqueteia" },
       {
         property: "og:description",
         content:
-          "Como o RankMyMatch coleta, usa e protege seus dados pessoais — em conformidade com a LGPD.",
+          "Como o Raqueteia coleta, usa e protege seus dados pessoais — em conformidade com a LGPD.",
       },
     ],
-    links: [{ rel: "canonical", href: "https://rankmymatch.app/privacidade" }],
+    links: [{ rel: "canonical", href: "https://raqueteia.app/privacidade" }],
   }),
   component: PrivacyPage,
 });
@@ -45,7 +45,7 @@ function PrivacyPage() {
 
         <section className="space-y-2">
           <p>
-            O RankMyMatch ("nós", "nosso") respeita sua privacidade. Esta Política
+            O Raqueteia ("nós", "nosso") respeita sua privacidade. Esta Política
             descreve como coletamos, usamos, armazenamos e protegemos suas
             informações ao usar o aplicativo, em conformidade com a Lei Geral de
             Proteção de Dados (LGPD — Lei nº 13.709/2018).
@@ -158,7 +158,7 @@ function PrivacyPage() {
 
         <Section title="8. Crianças">
           <p>
-            O RankMyMatch é destinado a maiores de 13 anos. Menores devem usar o
+            O Raqueteia é destinado a maiores de 13 anos. Menores devem usar o
             app sob supervisão e consentimento dos responsáveis.
           </p>
         </Section>

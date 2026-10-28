@@ -31,7 +31,7 @@ const EMAIL_TEMPLATES: Record<string, React.ComponentType<any>> = {
 }
 
 // Configuration
-const SITE_NAME = "rankmymatch"
+const SITE_NAME = "raqueteia"
 const SENDER_DOMAIN = "notify.rankmymatch.app"
 const ROOT_DOMAIN = "rankmymatch.app"
 const FROM_DOMAIN = "rankmymatch.app"

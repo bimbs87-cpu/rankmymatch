@@ -14,7 +14,7 @@ interface TrophyLoadingBarProps {
 }
 
 /**
- * Premium loading indicator for RankMyMatch.
+ * Premium loading indicator for Raqueteia.
  *
  * Design rationale:
  * - The brand racket is the hero — a single, large, gently floating mark sets

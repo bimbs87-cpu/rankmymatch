@@ -156,7 +156,7 @@ function BugAdminPage() {
             Acesso restrito
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            Esta página é exclusiva para administradores do RankMyMatch.
+            Esta página é exclusiva para administradores do Raqueteia.
           </p>
           <Link
             to="/sobre-desenvolvimento"

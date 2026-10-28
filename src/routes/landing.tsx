@@ -6,34 +6,34 @@ import { trackEvent } from "@/lib/analytics";
 export const Route = createFileRoute("/landing")({
   head: () => ({
     meta: [
-      { title: "RankMyMatch — Ranking de Padel para seu grupo" },
+      { title: "Raqueteia — Ranking de Padel para seu grupo" },
       {
         name: "description",
         content:
           "Crie seu grupo de padel, registre partidas e acompanhe o ranking Elo de cada jogador. Grátis para começar.",
       },
-      { property: "og:title", content: "RankMyMatch — Ranking de Padel para seu grupo" },
+      { property: "og:title", content: "Raqueteia — Ranking de Padel para seu grupo" },
       {
         property: "og:description",
         content:
           "Crie seu grupo de padel, registre partidas e acompanhe o ranking Elo de cada jogador.",
       },
-      { property: "og:url", content: "https://rankmymatch.app/landing" },
+      { property: "og:url", content: "https://raqueteia.app/landing" },
       { property: "og:type", content: "website" },
-      { property: "og:image", content: "https://rankmymatch.app/landing-hero-devices.png" },
+      { property: "og:image", content: "https://raqueteia.app/landing-hero-devices.png" },
       { property: "og:image:width", content: "1200" },
       { property: "og:image:height", content: "630" },
-      { property: "og:image:alt", content: "RankMyMatch em desktop, tablet e celular" },
+      { property: "og:image:alt", content: "Raqueteia em desktop, tablet e celular" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:title", content: "RankMyMatch — Ranking de Padel para seu grupo" },
+      { name: "twitter:title", content: "Raqueteia — Ranking de Padel para seu grupo" },
       {
         name: "twitter:description",
         content: "Crie seu grupo, registre partidas e acompanhe o ranking Elo.",
       },
-      { name: "twitter:image", content: "https://rankmymatch.app/landing-hero-devices.png" },
+      { name: "twitter:image", content: "https://raqueteia.app/landing-hero-devices.png" },
     ],
     links: [
-      { rel: "canonical", href: "https://rankmymatch.app/landing" },
+      { rel: "canonical", href: "https://raqueteia.app/landing" },
     ],
   }),
   component: LandingRoute,

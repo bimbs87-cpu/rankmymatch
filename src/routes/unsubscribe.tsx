@@ -7,7 +7,7 @@ export const Route = createFileRoute("/unsubscribe")({
   component: UnsubscribePage,
   head: () => ({
     meta: [
-      { title: "Cancelar inscrição — RankMyMatch" },
+      { title: "Cancelar inscrição — Raqueteia" },
       { name: "robots", content: "noindex, nofollow" },
     ],
   }),
@@ -76,7 +76,7 @@ function UnsubscribePage() {
             <MailX className="h-5 w-5 text-primary" />
           </div>
           <div>
-            <p className="font-display text-lg font-bold text-foreground">RankMyMatch</p>
+            <p className="font-display text-lg font-bold text-foreground">Raqueteia</p>
             <p className="text-xs text-muted-foreground">Preferências de e-mail</p>
           </div>
         </div>
@@ -91,7 +91,7 @@ function UnsubscribePage() {
           <>
             <h1 className="text-xl font-bold text-foreground">Cancelar inscrição</h1>
             <p className="mt-2 text-sm text-muted-foreground">
-              Confirme abaixo para parar de receber e-mails do RankMyMatch neste endereço.
+              Confirme abaixo para parar de receber e-mails do Raqueteia neste endereço.
               Você ainda receberá e-mails essenciais de segurança da conta.
             </p>
             <div className="mt-6 flex gap-2">

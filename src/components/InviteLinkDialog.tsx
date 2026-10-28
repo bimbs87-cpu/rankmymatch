@@ -144,7 +144,7 @@ export function InviteLinkDialog({ open, onOpenChange, groupId, isAdmin }: Invit
       try {
         await navigator.share({
           title: "Convite para grupo",
-          text: "Entre no nosso grupo no RankMyMatch!",
+          text: "Entre no nosso grupo no Raqueteia!",
           url,
         });
       } catch {

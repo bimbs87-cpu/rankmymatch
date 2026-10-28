@@ -29,7 +29,7 @@ import { toast } from "sonner";
 export const Route = createFileRoute("/admin/inbox")({
   head: () => ({
     meta: [
-      { title: "Caixa do admin — RankMyMatch" },
+      { title: "Caixa do admin — Raqueteia" },
       { name: "robots", content: "noindex, nofollow" },
     ],
   }),

@@ -1,4 +1,4 @@
-// Shared brand styles for RankMyMatch transactional/auth emails.
+// Shared brand styles for Raqueteia transactional/auth emails.
 // Carbon Fiber Precision palette adapted for white-bg email rendering.
 
 export const brand = {
@@ -114,6 +114,6 @@ export const styles = {
   },
 } as const;
 
-export const SITE_NAME = 'RankMyMatch';
-export const SITE_URL = 'https://rankmymatch.app';
+export const SITE_NAME = 'Raqueteia';
+export const SITE_URL = 'https://raqueteia.app';
 export const SITE_TAGLINE = 'Sua liga, seu ranking';

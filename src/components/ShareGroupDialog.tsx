@@ -28,7 +28,7 @@ interface Props {
 }
 
 const DEFAULT_WA_TEMPLATE =
-  "🎾 Confira o grupo *{groupName}* no RankMyMatch!\n\nRanking, rodadas e estatísticas em tempo real.\n\n{url}";
+  "🎾 Confira o grupo *{groupName}* no Raqueteia!\n\nRanking, rodadas e estatísticas em tempo real.\n\n{url}";
 
 function renderTemplate(tpl: string, groupName: string, url: string): string {
   return tpl.replaceAll("{groupName}", groupName).replaceAll("{url}", url);
@@ -152,8 +152,8 @@ export function ShareGroupDialog({ open, onOpenChange, url, groupName, groupId, 
     if (typeof navigator !== "undefined" && "share" in navigator) {
       try {
         await navigator.share({
-          title: `Grupo ${groupName} no RankMyMatch`,
-          text: `Veja o grupo ${groupName} no RankMyMatch`,
+          title: `Grupo ${groupName} no Raqueteia`,
+          text: `Veja o grupo ${groupName} no Raqueteia`,
           url,
         });
         void trackShareEvent(groupId, "native");
@@ -215,7 +215,7 @@ export function ShareGroupDialog({ open, onOpenChange, url, groupName, groupId, 
     ctx.font = "800 38px Inter, system-ui, sans-serif";
     ctx.textAlign = "center";
     ctx.textBaseline = "top";
-    ctx.fillText("RANKMYMATCH", centerX, footerTop + 12);
+    ctx.fillText("RAQUETEIA", centerX, footerTop + 12);
 
     ctx.fillStyle = "#4b5563";
     ctx.font = "500 26px Inter, system-ui, sans-serif";
@@ -241,7 +241,7 @@ export function ShareGroupDialog({ open, onOpenChange, url, groupName, groupId, 
       const blob = await buildQrPngBlob();
       const link = document.createElement("a");
       link.href = URL.createObjectURL(blob);
-      link.download = `rankmymatch-grupo-${groupName.toLowerCase().replace(/\s+/g, "-")}.png`;
+      link.download = `raqueteia-grupo-${groupName.toLowerCase().replace(/\s+/g, "-")}.png`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);

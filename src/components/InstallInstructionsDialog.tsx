@@ -40,7 +40,7 @@ export function InstallInstructionsDialog({ open, onOpenChange }: Props) {
           <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
             <Download className="h-5 w-5 text-primary" />
           </div>
-          <DialogTitle>Instalar RankMyMatch</DialogTitle>
+          <DialogTitle>Instalar Raqueteia</DialogTitle>
           <DialogDescription>
             Tenha acesso rápido pela tela inicial, em tela cheia e sem barra do navegador.
           </DialogDescription>

@@ -28,7 +28,7 @@ const splashLinks = SPLASHES.map((s) => ({
 }));
 
 export const ROOT_LINKS = [
-  { rel: "canonical", href: "https://rankmymatch.app/" },
+  { rel: "canonical", href: "https://raqueteia.app/" },
   { rel: "manifest", href: "/manifest.json?v=android-icon-v5" },
   { rel: "apple-touch-icon", sizes: "180x180", href: "/apple-touch-icon.png" },
   { rel: "icon", type: "image/png", sizes: "32x32", href: "/favicon-32.png" },

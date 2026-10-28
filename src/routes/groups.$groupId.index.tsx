@@ -55,13 +55,13 @@ import { AdminPanel } from "@/components/groups/internal/AdminPanel";
 
 export const Route = createFileRoute("/groups/$groupId/")({
   head: ({ params }) => {
-    const url = `https://rankmymatch.app/groups/${params.groupId}`;
+    const url = `https://raqueteia.app/groups/${params.groupId}`;
     const ogImage = `/api/og/group/${params.groupId}`;
     return {
       meta: [
-        { title: "Grupo — RankMyMatch" },
-        { name: "description", content: "Veja ranking, temporadas e rodadas deste grupo no RankMyMatch." },
-        { property: "og:title", content: "Grupo no RankMyMatch" },
+        { title: "Grupo — Raqueteia" },
+        { name: "description", content: "Veja ranking, temporadas e rodadas deste grupo no Raqueteia." },
+        { property: "og:title", content: "Grupo no Raqueteia" },
         { property: "og:description", content: "Ranking, temporadas e rodadas em tempo real." },
         { property: "og:type", content: "website" },
         { property: "og:url", content: url },
@@ -77,9 +77,9 @@ export const Route = createFileRoute("/groups/$groupId/")({
           children: JSON.stringify({
             "@context": "https://schema.org",
             "@type": "SportsTeam",
-            name: "Grupo RankMyMatch",
+            name: "Grupo Raqueteia",
             url,
-            image: `https://rankmymatch.app${ogImage}`,
+            image: `https://raqueteia.app${ogImage}`,
             sport: ["Padel", "Beach Tennis", "Tennis"],
           }),
         },
@@ -369,7 +369,7 @@ function GroupDetailPage() {
 
   const memberShareUrl = typeof window !== "undefined"
     ? `${window.location.origin}/groups/${groupId}`
-    : `https://rankmymatch.app/groups/${groupId}`;
+    : `https://raqueteia.app/groups/${groupId}`;
 
   const sidebarProps = {
     groupName: group.name,
@@ -741,7 +741,7 @@ function NonMemberView({
   const [shareOpen, setShareOpen] = useState(false);
   const shareUrl = typeof window !== "undefined"
     ? `${window.location.origin}/groups/${groupId}`
-    : `https://rankmymatch.app/groups/${groupId}`;
+    : `https://raqueteia.app/groups/${groupId}`;
   const isPublic = group.visibility === "public" || group.is_public;
 
   return (
