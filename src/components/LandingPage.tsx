@@ -3,10 +3,11 @@ import { Link } from "@tanstack/react-router";
 import { lovable } from "@/integrations/lovable/index";
 import { supabase } from "@/integrations/supabase/client";
 import { trackEvent } from "@/lib/analytics";
-import { ArrowRight, CalendarDays, TrendingUp, Users, Loader2, Check, Trophy, ChevronUp, Minus, Download } from "lucide-react";
+import { ArrowRight, CalendarDays, TrendingUp, Users, Loader2, Check, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AppleSignInButton } from "@/components/AppleSignInButton";
 import logo from "@/assets/logo-horizontal-dark.png";
+import rankingScreen from "@/assets/raqueteia-ranking-real.webp.asset.json";
 import { useInstallFlow } from "@/components/InstallFlowProvider";
 
 function GoogleIcon({ className }: { className?: string }) {
@@ -35,7 +36,6 @@ function GoogleIcon({ className }: { className?: string }) {
 export function LandingPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [previewTab, setPreviewTab] = useState<"ranking" | "round">("ranking");
   const { canInstall, isInstalled, isFlowActive, startInstall } = useInstallFlow();
   const handleGoogleLogin = async (ctaLocation: string = "unknown") => {
     trackEvent("landing_cta_click", {
@@ -123,28 +123,13 @@ export function LandingPage() {
           {error && <p role="alert" className="mt-4 max-w-sm text-sm text-destructive">{error}</p>}
         </div>
 
-        <div className="landing-preview min-w-0" aria-label="Prévia ilustrativa do aplicativo">
-          <div className="mb-5 flex items-center justify-between gap-3 border-b border-border pb-3 text-[10px] text-muted-foreground"><span className="flex items-center gap-2"><span className="h-1.5 w-1.5 rounded-full bg-primary" /> DENTRO DO JOGO</span><span>PRÉVIA ILUSTRATIVA</span></div>
-          <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
-            <div className="min-w-0"><p className="text-[11px] text-muted-foreground">Grupo de pádel</p><h2 className="mt-1 truncate font-display text-xl font-medium">Clube da Quadra</h2></div>
-            <Trophy className="mt-2 h-5 w-5 shrink-0 text-primary" strokeWidth={1.5} />
+        <figure className="landing-device-stage" aria-label="Tela real do ranking no celular">
+          <div className="landing-device">
+            <div className="landing-device-top" aria-hidden="true"><span /></div>
+            <img src={rankingScreen.url} alt="Tela real do Raqueteia: ranking da temporada com pódio e pontuação dos jogadores" width={886} height={1726} fetchPriority="high" className="landing-device-screen" />
+            <div className="landing-device-bottom" aria-hidden="true"><span /></div>
           </div>
-          <div className="mt-5 flex gap-6 border-b border-border" role="tablist" aria-label="Prévia do grupo">
-            {([{ value: "ranking", label: "Ranking" }, { value: "round", label: "Última rodada" }] as const).map(tab => <Button key={tab.value} id={`preview-tab-${tab.value}`} role="tab" aria-controls="preview-panel" aria-selected={previewTab === tab.value} variant="ghost" onClick={() => setPreviewTab(tab.value)} className={`h-10 rounded-none border-b-2 px-0 text-xs hover:bg-transparent ${previewTab === tab.value ? "border-primary text-foreground" : "border-transparent text-muted-foreground"}`}>{tab.label}</Button>)}
-          </div>
-          <div id="preview-panel" role="tabpanel" aria-labelledby={`preview-tab-${previewTab}`} className="landing-preview-body">
-            {previewTab === "ranking" ? <>
-              <div className="grid grid-cols-[24px_minmax(0,1fr)_64px_32px] gap-3 py-4 text-[10px] text-muted-foreground"><span>#</span><span>JOGADOR</span><span className="text-right">ELO</span><span className="text-right">Δ</span></div>
-              {[
-                {name:"Gabriel",initials:"GA",elo:"1.084",delta:24},
-                {name:"Diego",initials:"DI",elo:"1.062",delta:18},
-                {name:"João",initials:"JO",elo:"1.038",delta:12},
-                {name:"Guilherme",initials:"GU",elo:"1.016",delta:0},
-              ].map((player,index)=><div key={player.name} className={`grid grid-cols-[24px_minmax(0,1fr)_64px_32px] items-center gap-3 border-t border-border py-3 ${index===0?"text-primary":"text-foreground"}`}><span className="font-display text-sm tabular-nums">{String(index+1).padStart(2,"0")}</span><div className="flex min-w-0 items-center gap-3"><span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-secondary text-[10px] text-muted-foreground">{player.initials}</span><span className="truncate text-sm">{player.name}</span></div><span className="text-right font-display text-base tabular-nums">{player.elo}</span><span className={`flex items-center justify-end text-[10px] tabular-nums ${player.delta?"text-primary":"text-muted-foreground"}`}>{player.delta?<><ChevronUp className="h-3 w-3" />{player.delta}</>:<Minus className="h-3 w-3" />}</span></div>)}
-            </> : <div className="space-y-5 pt-5"><div className="flex items-center justify-between text-xs"><span className="text-muted-foreground">Rodada 04</span><span className="flex items-center gap-1.5 text-primary"><Check className="h-3 w-3" /> Concluída</span></div><p className="font-display text-lg">Gabriel e Diego <span className="block mt-1 text-sm text-muted-foreground">× João e Guilherme</span></p><div className="grid grid-cols-3 gap-3">{["6 × 4","4 × 6","10 × 8"].map((score,index)=><div key={score} className="border-y border-border py-4 text-center"><p className="mb-2 text-[10px] text-muted-foreground">{index===2?"TIE-BREAK":`SET ${index+1}`}</p><p className="font-display text-lg tabular-nums">{score}</p></div>)}</div><p className="text-xs text-muted-foreground">Um resultado. O grupo inteiro atualizado.</p></div>}
-          </div>
-          <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-border pt-4 text-[10px] text-muted-foreground"><span>Temporada do clube</span><span className="flex items-center gap-1.5"><CalendarDays className="h-3 w-3" /> 4 de 12 rodadas</span></div>
-        </div>
+        </figure>
       </section>
 
       <section id="experiencia" className="border-y border-border scroll-mt-4">
