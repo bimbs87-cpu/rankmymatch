@@ -501,7 +501,7 @@ async function uploadPdfAndSign(
 }
 
 // ===== Envio de e-mail =====
-const SITE_NAME = "rankmymatch";
+const SITE_NAME = "raqueteia";
 const SENDER_DOMAIN = "notify.rankmymatch.app";
 const FROM_DOMAIN = "rankmymatch.app";
 
@@ -562,7 +562,7 @@ async function runMonthlyReport(targetMonth: Date) {
   const monthSlug = `${targetMonth.getUTCFullYear()}-${String(
     targetMonth.getUTCMonth() + 1
   ).padStart(2, "0")}`;
-  const fileName = `rankmymatch-${monthSlug}.pdf`;
+  const fileName = `raqueteia-${monthSlug}.pdf`;
   const { path, signedUrl } = await uploadPdfAndSign(pdfBytes, fileName);
 
   for (const recipient of REPORT_RECIPIENTS) {

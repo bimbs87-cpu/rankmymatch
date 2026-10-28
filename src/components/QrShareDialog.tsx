@@ -179,7 +179,7 @@ export function QrShareDialog({ open, onOpenChange, url, playerName, userId, isO
     ctx.font = "800 38px Inter, system-ui, sans-serif";
     ctx.textAlign = "center";
     ctx.textBaseline = "top";
-    ctx.fillText("RANKMYMATCH", centerX, footerTop + 12);
+    ctx.fillText("RAQUETEIA", centerX, footerTop + 12);
 
     ctx.fillStyle = "#4b5563";
     ctx.font = "500 26px Inter, system-ui, sans-serif";
@@ -205,7 +205,7 @@ export function QrShareDialog({ open, onOpenChange, url, playerName, userId, isO
       const blob = await buildQrPngBlob();
       const link = document.createElement("a");
       link.href = URL.createObjectURL(blob);
-      link.download = `rankmymatch-${playerName.toLowerCase().replace(/\s+/g, "-")}.png`;
+      link.download = `raqueteia-${playerName.toLowerCase().replace(/\s+/g, "-")}.png`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
