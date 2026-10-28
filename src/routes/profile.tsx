@@ -27,9 +27,6 @@ import {
   Camera,
   ArrowLeft,
   Save,
-  Sun,
-  Moon,
-  Monitor,
   Download,
   Bell,
   Eye,
@@ -54,7 +51,6 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { useTheme } from "@/lib/theme";
 import { DEFAULT_PRIVACY, parsePrivacy, type PrivacySettings } from "@/components/PlayerProfileViewer";
 import { SPORTS, normalizeSportKey, type SportKey } from "@/lib/sport-shots";
 
@@ -63,6 +59,10 @@ export const Route = createFileRoute("/profile")({
     meta: [
       { title: "Meu Perfil — Raqueteia" },
       { name: "description", content: "Gerencie seu perfil, avatar e configurações de privacidade." },
+      { property: "og:title", content: "Meu Perfil — Raqueteia" },
+      { property: "og:description", content: "Seu perfil, conquistas e preferências no Raqueteia." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
       { name: "robots", content: "noindex, nofollow" },
     ],
   }),
@@ -107,7 +107,6 @@ function ProfilePage() {
   const [installInstructionsOpen, setInstallInstructionsOpen] = useState(false);
   const [dangerZoneOpen, setDangerZoneOpen] = useState(false);
   const [dangerExpanded, setDangerExpanded] = useState(false);
-  const { theme, cycleTheme, resolved } = useTheme();
   const { canInstall, isInstalled, isIos, startInstall } = useInstallFlow();
   const { isAppAdmin } = useAppAdmin();
 
@@ -587,12 +586,6 @@ function ProfilePage() {
               <MenuItem icon={<Award className="h-4 w-4 text-muted-foreground" />} label="Conquistas" onClick={() => toast.info("Em breve!")} />
               <MenuItemLink to="/history" icon={<History className="h-4 w-4 text-muted-foreground" />} label="Histórico" />
               <MenuItemLink to="/notifications" icon={<Bell className="h-4 w-4 text-muted-foreground" />} label="Notificações" />
-              <MenuItem
-                icon={resolved === "dark" ? <Moon className="h-4 w-4 text-muted-foreground" /> : <Sun className="h-4 w-4 text-muted-foreground" />}
-                label="Tema"
-                right={<span className="text-xs text-muted-foreground">{theme === "system" ? "Sistema" : theme === "dark" ? "Escuro" : "Claro"}</span>}
-                onClick={cycleTheme}
-              />
               {!isInstalled ? (
                 <MenuItem
                   icon={<Download className="h-4 w-4 text-muted-foreground" />}

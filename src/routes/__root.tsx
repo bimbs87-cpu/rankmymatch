@@ -2,7 +2,6 @@ import { Outlet, Link, createRootRoute, HeadContent, Scripts, useRouter, useLoca
 import { AuthProvider, useAuth } from "@/hooks/use-auth";
 import { useTheme } from "@/lib/theme";
 import loggedInBgDesktopDark from "@/assets/loggedin-bg-desktop-dark.webp";
-import loggedInBgDesktopLight from "@/assets/loggedin-bg-desktop-light.webp";
 import { trackPageview } from "@/lib/analytics";
 import { captureAcquisitionOnce } from "@/lib/acquisition-tracking";
 import { trackPageVisit } from "@/lib/visit-tracking";
@@ -75,7 +74,7 @@ function RootShell({ children }: { children: React.ReactNode }) {
       <head>
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var t=localStorage.getItem('rmm-theme')||'dark';var d=t==='dark'||(t==='system'&&window.matchMedia('(prefers-color-scheme: dark)').matches);var c=document.documentElement.classList;c.toggle('dark',d);c.toggle('light',!d);}catch(e){}})();`,
+            __html: `(function(){try{var c=document.documentElement.classList;c.add('dark');c.remove('light');localStorage.setItem('rmm-theme','dark');}catch(e){}})();`,
           }}
         />
         <script
@@ -220,147 +219,33 @@ function AuthDesktopNav() {
 
 function GlobalBackground() {
   const { isAuthenticated, isLoading } = useAuth();
-  const location = useLocation();
-  const { resolved } = useTheme();
-  const path = location.pathname;
-  // Background is eternal once logged in — present on every authenticated route,
-  // including the homepage. Only the public /landing marketing page opts out.
-  const isExcluded = path === "/landing";
-  const [darkLoaded, setDarkLoaded] = useState(true);
-  const [lightLoaded, setLightLoaded] = useState(true);
-  // Track desktop viewport — image backgrounds are desktop-only (lg ≥ 1024px).
-  // Mobile keeps a solid premium background (auras + tint) for performance and a sharper feel.
-  const [isDesktop, setIsDesktop] = useState<boolean>(() => {
-    if (typeof window === "undefined") return true;
-    return window.matchMedia("(min-width: 1024px)").matches;
-  });
-
+  const { pathname } = useLocation();
+  useTheme();
+  const [imageLoaded, setImageLoaded] = useState(true);
+  const [isDesktop, setIsDesktop] = useState(false);
   useEffect(() => {
-    if (typeof window === "undefined") return;
     const mql = window.matchMedia("(min-width: 1024px)");
-    const onChange = () => setIsDesktop(mql.matches);
-    onChange();
-    mql.addEventListener("change", onChange);
-    return () => mql.removeEventListener("change", onChange);
+    const update = () => setIsDesktop(mql.matches);
+    update();
+    mql.addEventListener("change", update);
+    return () => mql.removeEventListener("change", update);
   }, []);
-
   useEffect(() => {
     if (!isDesktop) return;
-    const preload = (src: string, onFail: () => void) => {
-      const img = new Image();
-      img.onerror = onFail;
-      img.src = src;
-      try { (img as HTMLImageElement & { fetchPriority?: string }).fetchPriority = "high"; } catch { /* noop */ }
-    };
-    preload(loggedInBgDesktopDark, () => setDarkLoaded(false));
-    preload(loggedInBgDesktopLight, () => setLightLoaded(false));
+    const image = new Image();
+    image.onerror = () => setImageLoaded(false);
+    image.src = loggedInBgDesktopDark;
   }, [isDesktop]);
-
-  const isDark = resolved === "dark";
-  // The persistent image background applies to every authenticated page (except /landing),
-  // on desktop only, on every route — for BOTH light and dark themes.
-  const showImage = isAuthenticated && !isLoading && !isExcluded && isDesktop;
-  const showDarkImage = showImage && isDark && darkLoaded;
-  const showLightImage = showImage && !isDark && lightLoaded;
-
-  // When either themed image is showing we let it be the entire background — no solid tint, no auras.
-  const useImageBackground = showDarkImage || showLightImage;
-
-  // Mark body so global CSS can make wrappers transparent when the image background is active.
+  const showImage = isAuthenticated && !isLoading && pathname !== "/landing" && isDesktop && imageLoaded;
   useEffect(() => {
-    if (typeof document === "undefined") return;
-    if (showDarkImage) {
-      document.body.setAttribute("data-bg-image", "dark");
-    } else if (showLightImage) {
-      document.body.setAttribute("data-bg-image", "light");
-    } else {
-      document.body.removeAttribute("data-bg-image");
-    }
-    return () => {
-      document.body.removeAttribute("data-bg-image");
-    };
-  }, [showDarkImage, showLightImage]);
-
-  return (
-    <>
-      {/* Solid background fallback (hidden when an image background takes over) */}
-      {!useImageBackground && (
-        <div aria-hidden className="pointer-events-none fixed inset-0 z-0 bg-background" />
-      )}
-
-      {/* Mobile/tablet auras — kept on logged-out pages only */}
-      {!useImageBackground && (
-        <div
-          aria-hidden
-          className="pointer-events-none fixed inset-0 z-0 lg:hidden"
-          style={{
-            backgroundImage: `
-              radial-gradient(80vw 55vh at 50% -10%, color-mix(in oklab, var(--primary) 28%, transparent), transparent 70%),
-              radial-gradient(70vw 50vh at 110% 35%, color-mix(in oklab, var(--primary) 16%, transparent), transparent 75%),
-              radial-gradient(90vw 60vh at -10% 70%, color-mix(in oklab, var(--primary) 14%, transparent), transparent 75%),
-              radial-gradient(70vw 50vh at 50% 110%, color-mix(in oklab, var(--primary) 22%, transparent), transparent 70%),
-              linear-gradient(180deg, color-mix(in oklab, var(--background) 90%, var(--primary)) 0%, var(--background) 40%, var(--background) 65%, color-mix(in oklab, var(--background) 90%, var(--primary)) 100%)
-            `,
-          }}
-        />
-      )}
-
-      {/* Desktop subtle tint — also hidden when an image background is active */}
-      {!useImageBackground && (
-        <div
-          aria-hidden
-          className="pointer-events-none fixed inset-0 z-0 hidden lg:block"
-          style={{
-            background: "color-mix(in oklab, var(--background) 96%, var(--primary))",
-          }}
-        />
-      )}
-
-      {/* Themed gradient fallback under the image (in case it fails to load) */}
-      {showImage && (
-        <div
-          aria-hidden
-          className="pointer-events-none fixed inset-0 z-0"
-          style={{
-            backgroundImage: isDark
-              ? "radial-gradient(70vw 60vh at 15% 30%, color-mix(in oklab, var(--primary) 22%, transparent), transparent 70%), linear-gradient(135deg, color-mix(in oklab, var(--background) 92%, var(--primary)) 0%, var(--background) 60%)"
-              : "radial-gradient(70vw 60vh at 15% 30%, color-mix(in oklab, var(--primary) 14%, transparent), transparent 70%), linear-gradient(135deg, #fafafa 0%, #ffffff 60%)",
-          }}
-        />
-      )}
-
-      {/* Dark image — full-bleed, all viewports, persistent for the entire authenticated session */}
-      {showImage && (
-        <div
-          aria-hidden
-          className="pointer-events-none fixed inset-0 z-0 bg-cover bg-center bg-no-repeat transition-opacity duration-150"
-          style={{ backgroundImage: `url(${loggedInBgDesktopDark})`, opacity: showDarkImage ? 1 : 0 }}
-        />
-      )}
-
-      {/* Light image — full-bleed, all viewports, persistent for the entire authenticated session */}
-      {showImage && (
-        <div
-          aria-hidden
-          className="pointer-events-none fixed inset-0 z-0 bg-cover bg-center bg-no-repeat transition-opacity duration-150"
-          style={{ backgroundImage: `url(${loggedInBgDesktopLight})`, opacity: showLightImage ? 1 : 0 }}
-        />
-      )}
-
-      {/* Subtle noise on mobile when no image dominates */}
-      {!useImageBackground && (
-        <div
-          aria-hidden
-          className="pointer-events-none fixed inset-0 z-0 opacity-[0.10] mix-blend-overlay lg:hidden"
-          style={{
-            backgroundImage:
-              "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.75  0 0 0 0 1  0 0 0 0 0.55  0 0 0 0.55 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>\")",
-            backgroundSize: "260px 260px",
-          }}
-        />
-      )}
-    </>
-  );
+    if (showImage) document.body.setAttribute("data-bg-image", "dark");
+    else document.body.removeAttribute("data-bg-image");
+    return () => document.body.removeAttribute("data-bg-image");
+  }, [showImage]);
+  return <>
+    <div aria-hidden className="pointer-events-none fixed inset-0 z-0 bg-background" />
+    {showImage && <img aria-hidden src={loggedInBgDesktopDark} alt="" className="pointer-events-none fixed inset-0 z-0 h-full w-full object-cover" />}
+  </>;
 }
 
 function AuthNav() {

@@ -1,4 +1,5 @@
 RankMyMatch technical decisions:
+- Enforce the single supported theme in the root pre-hydration script and shared theme resolver, and remove theme-switch controls; this prevents legacy stored preferences or OS appearance from reintroducing unsupported surfaces.
 - Recompute ranking eligibility and positions in database triggers when snapshots, matches, sets, participants, rounds, or season percentage change; this keeps score-edit paths and ranking screens consistent.
 - Ranking eligibility requires a player's recorded sets in completed ranking matches to reach max(1, floor(total recorded ranking sets × seasons.min_eligibility_pct / 100)); incomplete or tied sets still count as participation.
 - Dispatch single-match result alerts from authenticated finalization and batch alerts only after all batch scores save, so each involved player gets one alert with their saved results and the round destination.

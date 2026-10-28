@@ -351,7 +351,7 @@ export function ShareGroupDialog({ open, onOpenChange, url, groupName, groupId, 
             Aponte a câmera no QR code para abrir o grupo {groupName}.
           </p>
 
-          <div className="mt-4 flex justify-center rounded-2xl bg-white p-5">
+          <div className="mt-4 flex justify-center rounded-2xl border border-border bg-card p-5">
             <QRCodeSVG
               value={url}
               size={208}

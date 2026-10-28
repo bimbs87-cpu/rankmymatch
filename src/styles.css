@@ -83,7 +83,10 @@
 
 /* ====== CARBON FIBER — Dark Premium ====== */
 :root {
+  color-scheme: dark;
   --launch-background: #000000;
+  --landing-overlay: oklch(0.09 0.005 260 / 72%);
+  --landing-photo-shade: linear-gradient(90deg, oklch(0.09 0.005 260 / 86%) 0%, oklch(0.09 0.005 260 / 65%) 32%, transparent 68%);
   --launch-progress: oklch(0.88 0.22 120);
   --launch-track: oklch(0.22 0 0);
   --radius: 0.75rem;
@@ -146,63 +149,6 @@
   --sidebar-accent-foreground: oklch(0.92 0.005 250);
   --sidebar-border: oklch(1 0 0 / 8%);
   --sidebar-ring: oklch(0.88 0.22 120);
-}
-
-/* ====== LIGHT THEME — Stadium Daylight (premium, high-contrast) ====== */
-.light {
-  /* Premium court daylight — graphite logo text + electric lime */
-  --background: oklch(0.985 0.008 150);
-  --foreground: oklch(0.165 0.025 165);
-  --card: oklch(0.998 0.003 145 / 94%);
-  --card-foreground: oklch(0.16 0.025 165);
-  --popover: oklch(0.998 0.003 145);
-  --popover-foreground: oklch(0.16 0.025 165);
-  --primary: oklch(0.47 0.155 150);
-  --primary-foreground: oklch(0.995 0.004 145);
-  --secondary: oklch(0.925 0.02 150);
-  --secondary-foreground: oklch(0.2 0.032 165);
-  --muted: oklch(0.94 0.014 145);
-  --muted-foreground: oklch(0.42 0.024 165);
-  --accent: oklch(0.865 0.205 125);
-  --accent-foreground: oklch(0.145 0.035 160);
-  /* Destructive */
-  --destructive: oklch(0.55 0.22 27);
-  --destructive-foreground: oklch(0.99 0 0);
-  /* Borders — visible but elegant slate */
-  --border: oklch(0.84 0.018 155);
-  --input: oklch(0.86 0.018 155);
-  --ring: oklch(0.76 0.215 125);
-  /* Semantic */
-  --success: oklch(0.46 0.16 150);
-  --success-foreground: oklch(0.99 0 0);
-  --warning: oklch(0.7 0.16 70);
-  --warning-foreground: oklch(0.18 0.04 60);
-  --info: oklch(0.38 0.085 190);
-  --info-foreground: oklch(0.99 0 0);
-  /* Rally — vibrant lime (matches logo) */
-  --rally: oklch(0.82 0.245 125);
-  --rally-foreground: oklch(0.14 0.04 155);
-  --sport: oklch(0.47 0.155 150);
-  --sport-foreground: oklch(0.99 0 0);
-  /* Ranking */
-  --rank-gold: oklch(0.74 0.16 82);
-  --rank-silver: oklch(0.7 0.012 250);
-  --rank-bronze: oklch(0.56 0.13 50);
-  /* Charts */
-  --chart-1: oklch(0.47 0.155 150);
-  --chart-2: oklch(0.82 0.245 125);
-  --chart-3: oklch(0.7 0.16 70);
-  --chart-4: oklch(0.5 0.18 235);
-  --chart-5: oklch(0.55 0.22 27);
-  /* Sidebar */
-  --sidebar: oklch(0.95 0.014 150);
-  --sidebar-foreground: oklch(0.16 0.025 165);
-  --sidebar-primary: oklch(0.47 0.155 150);
-  --sidebar-primary-foreground: oklch(0.99 0 0);
-  --sidebar-accent: oklch(0.865 0.205 125);
-  --sidebar-accent-foreground: oklch(0.14 0.04 155);
-  --sidebar-border: oklch(0.84 0.018 155);
-  --sidebar-ring: oklch(0.76 0.215 125);
 }
 
 @layer base {
@@ -307,4 +253,23 @@
 @keyframes dotPulse {
   0%, 100% { opacity: 0.3; transform: scale(0.8); }
   50% { opacity: 1; transform: scale(1.1); }
+}
+
+/* Public presentation: restrained editorial sports layout. */
+.landing-page { width: 100%; letter-spacing: 0; }
+.landing-header { height: 92px; }
+.landing-court { height: min(580px, 65dvh); min-height: 430px; }
+.landing-court-photo { object-position: 65% 58%; }
+.landing-court-shade { background: var(--landing-overlay); }
+@media (min-width: 640px) {
+  .landing-court-shade { background: var(--landing-photo-shade); }
+}
+@media (min-width: 1024px) {
+  .landing-page { width: 100vw; margin-left: calc(50% - 50vw); }
+  .landing-court-photo { object-position: center 60%; }
+}
+@media (max-width: 639px) {
+  .landing-header { height: 78px; }
+  .landing-court-photo { object-position: 61% center; }
+  .landing-hero-content { padding-bottom: 20px; }
 }

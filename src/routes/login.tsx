@@ -7,9 +7,7 @@ import { TrophyLoadingBar } from "@/components/TrophyLoadingBar";
 import { Button } from "@/components/ui/button";
 import { Zap, Users, BarChart3, Trophy, Download, Sparkles, Calendar, TrendingUp } from "lucide-react";
 import logoHorizontalDark from "@/assets/logo-horizontal-dark.png";
-import logoHorizontalLight from "@/assets/logo-horizontal-light.png";
 import logoSquareNeon from "@/assets/logo-square-neon.png";
-import { useTheme } from "@/lib/theme";
 import { useInstallFlow } from "@/components/InstallFlowProvider";
 import { AppleSignInButton } from "@/components/AppleSignInButton";
 
@@ -20,6 +18,8 @@ export const Route = createFileRoute("/login")({
       { name: "description", content: "Acesse sua conta no Raqueteia e gerencie seus rankings, temporadas e grupos." },
       { property: "og:title", content: "Entrar no Raqueteia" },
       { property: "og:description", content: "Login com Google em segundos." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
       { name: "robots", content: "noindex, follow" },
     ],
     links: [{ rel: "canonical", href: "https://raqueteia.app/login" }],
@@ -30,7 +30,6 @@ export const Route = createFileRoute("/login")({
 function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const { resolved: resolvedTheme } = useTheme();
   const navigate = useNavigate();
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const { canInstall, isFlowActive, startInstall, isInstalled } = useInstallFlow();
