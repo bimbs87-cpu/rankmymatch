@@ -4,8 +4,6 @@ import { OnboardingNoGroupScreen } from "@/components/onboarding/OnboardingNoGro
 import { useMyPendingJoinRequests } from "@/hooks/use-groups";
 import { abbreviateName } from "@/lib/utils";
 import logoHorizontalDark from "@/assets/logo-horizontal-dark.png";
-import logoHorizontalLight from "@/assets/logo-horizontal-light.png";
-import { useTheme } from "@/lib/theme";
 import { useAuth } from "@/hooks/use-auth";
 import { TrophyLoadingBar } from "@/components/TrophyLoadingBar";
 import { useUserProfile } from "@/hooks/use-user-profile";
@@ -278,14 +276,6 @@ function DashboardPage() {
   }
   const { unreadCount } = notifData;
 
-  let themeData: ReturnType<typeof useTheme>;
-  try {
-    themeData = useTheme();
-  } catch (e) {
-    console.error("[DashboardPage] useTheme error:", e);
-    throw e;
-  }
-  const { resolved: resolvedTheme } = themeData;
   const [upcomingRounds, setUpcomingRounds] = useState<UpcomingRound[]>([]);
   const [nextMatch, setNextMatch] = useState<NextMatchInfo | null>(null);
   const [recentMatches, setRecentMatches] = useState<RecentMatch[]>([]);

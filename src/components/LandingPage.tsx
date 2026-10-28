@@ -3,29 +3,11 @@ import { Link } from "@tanstack/react-router";
 import { lovable } from "@/integrations/lovable/index";
 import { supabase } from "@/integrations/supabase/client";
 import { trackEvent } from "@/lib/analytics";
-import {
-  TrendingUp,
-  Calendar,
-  Sparkles,
-  Trophy,
-  Users,
-  BarChart3,
-  ShieldCheck,
-  Zap,
-  CheckCircle2,
-  ArrowRight,
-  Activity,
-  Star,
-} from "lucide-react";
-import logoHorizontalDark from "@/assets/logo-horizontal-dark.png";
-import logoHorizontalLightPremium from "@/assets/logo-horizontal-light-premium.png";
-import heroDevices from "@/assets/landing-hero-devices.png";
-import landingBgLightMobile from "@/assets/landing-bg-light-mobile.png";
-import landingBgLightDesktop from "@/assets/landing-bg-light-desktop.png";
-import landingBgDarkMobile from "@/assets/landing-bg-dark-mobile.png";
-import landingBgDarkDesktop from "@/assets/landing-bg-dark-desktop.png";
-import { useTheme } from "@/lib/theme";
+import { ArrowRight, CalendarDays, TrendingUp, Users, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { AppleSignInButton } from "@/components/AppleSignInButton";
+import logo from "@/assets/logo-horizontal-dark.png";
+import court from "@/assets/landing-padel-editorial.jpg";
 
 function GoogleIcon({ className }: { className?: string }) {
   return (
@@ -53,9 +35,6 @@ function GoogleIcon({ className }: { className?: string }) {
 export function LandingPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const { resolved } = useTheme();
-  const isLight = resolved === "light";
-
   const handleGoogleLogin = async (ctaLocation: string = "unknown") => {
     trackEvent("landing_cta_click", {
       cta: "google_login",
@@ -109,383 +88,65 @@ export function LandingPage() {
     }
   };
 
-  const logoSrc = isLight ? logoHorizontalLightPremium : logoHorizontalDark;
 
-  const features = [
-    {
-      icon: TrendingUp,
-      title: "Ranking Elo dinâmico",
-      desc: "Rating sobe e desce a cada partida, com peso por resultado e oponente.",
-    },
-    {
-      icon: Calendar,
-      title: "Rodadas automáticas",
-      desc: "Sorteio inteligente de duplas e gestão de presença por rodada.",
-    },
-    {
-      icon: BarChart3,
-      title: "Estatísticas avançadas",
-      desc: "Vitórias, sets, games, streaks, head-to-head e gráficos de evolução.",
-    },
-    {
-      icon: Trophy,
-      title: "Temporadas e prêmios",
-      desc: "Crie temporadas com pódio, ranking final e medalhas para os destaques.",
-    },
-    {
-      icon: Users,
-      title: "Multi-grupo",
-      desc: "Gerencie quantos grupos quiser — Feirinos, clube, amigos, tudo num lugar.",
-    },
-    {
-      icon: ShieldCheck,
-      title: "Sem planilha, sem bagunça",
-      desc: "Resultados validados pelos jogadores, com histórico e auditoria.",
-    },
-  ];
-
-  const steps = [
-    { n: "01", title: "Entre com Google", desc: "Login em 1 clique. Sem cadastro, sem senha." },
-    { n: "02", title: "Crie ou entre em um grupo", desc: "Convide amigos por link e comece a registrar partidas." },
-    { n: "03", title: "Veja o ranking subir", desc: "Resultados viram Elo, estatísticas e troféus automaticamente." },
-  ];
-
-  const sports = ["Padel", "Tênis", "Beach Tennis", "Squash", "Pickleball"];
-
-  const CTAButton = ({
-    size = "md",
-    className = "",
-    location = "unknown",
-    label = "Entrar com Google",
-  }: {
-    size?: "md" | "lg";
-    className?: string;
-    location?: string;
-    label?: string;
-  }) => (
-    <button
-      onClick={() => handleGoogleLogin(location)}
-      disabled={loading}
-      className={`group inline-flex items-center justify-center gap-3 rounded-full bg-primary font-semibold text-primary-foreground shadow-lg shadow-primary/30 transition-all hover:bg-primary/90 hover:shadow-primary/40 active:scale-[0.98] disabled:opacity-60 ${
-        size === "lg" ? "px-7 py-4 text-base" : "px-6 py-3 text-sm"
-      } ${className}`}
-    >
-      <GoogleIcon className={size === "lg" ? "h-5 w-5" : "h-4 w-4"} />
+  const signIn = (location: string, label = "Começar com Google") => (
+    <Button disabled={loading} onClick={() => void handleGoogleLogin(location)} className="h-11 gap-3 rounded-full px-5 font-semibold shadow-none">
+      {loading ? <Loader2 className="animate-spin" /> : <GoogleIcon className="h-4 w-4" />}
       {loading ? "Entrando..." : label}
-      <ArrowRight
-        className={`transition-transform group-hover:translate-x-0.5 ${size === "lg" ? "h-5 w-5" : "h-4 w-4"}`}
-      />
-    </button>
+      <ArrowRight />
+    </Button>
   );
 
   return (
-    <div className="relative min-h-[100dvh] w-full overflow-x-hidden bg-background text-foreground">
-      <div aria-hidden className="pointer-events-none fixed inset-0 z-0 bg-background" />
-      {isLight && (
-        <>
-          <div
-            aria-hidden
-            className="pointer-events-none fixed inset-0 z-0 bg-cover bg-center bg-no-repeat sm:hidden"
-            style={{ backgroundImage: `url(${landingBgLightMobile})` }}
-          />
-          <div
-            aria-hidden
-            className="pointer-events-none fixed inset-0 z-0 hidden bg-cover bg-center bg-no-repeat sm:block"
-            style={{ backgroundImage: `url(${landingBgLightDesktop})` }}
-          />
-          <div
-            aria-hidden
-            className="pointer-events-none fixed inset-0 z-0"
-            style={{
-              backgroundImage:
-                "linear-gradient(180deg, color-mix(in oklab, var(--background) 55%, transparent) 0%, color-mix(in oklab, var(--background) 30%, transparent) 50%, color-mix(in oklab, var(--background) 70%, transparent) 100%)",
-            }}
-          />
-        </>
-      )}
-      {!isLight && (
-        <>
-          <div
-            aria-hidden
-            className="pointer-events-none fixed inset-0 z-0 bg-cover bg-center bg-no-repeat sm:hidden"
-            style={{ backgroundImage: `url(${landingBgDarkMobile})` }}
-          />
-          <div
-            aria-hidden
-            className="pointer-events-none fixed inset-0 z-0 hidden bg-cover bg-center bg-no-repeat sm:block"
-            style={{ backgroundImage: `url(${landingBgDarkDesktop})` }}
-          />
-          <div
-            aria-hidden
-            className="pointer-events-none fixed inset-0 z-0"
-            style={{
-              backgroundImage:
-                "linear-gradient(180deg, color-mix(in oklab, var(--background) 50%, transparent) 0%, color-mix(in oklab, var(--background) 25%, transparent) 50%, color-mix(in oklab, var(--background) 65%, transparent) 100%)",
-            }}
-          />
-        </>
-      )}
-      <div
-        aria-hidden
-        className="pointer-events-none fixed inset-0 z-0"
-        style={{
-          backgroundImage: isLight
-            ? `
-              radial-gradient(64vw 42vw at 76% 14%, color-mix(in oklab, var(--rally) 18%, transparent), transparent 62%),
-              radial-gradient(44vw 34vw at 5% 24%, color-mix(in oklab, var(--primary) 8%, transparent), transparent 66%)
-            `
-            : `
-              radial-gradient(80vw 55vh at 50% -10%, color-mix(in oklab, var(--rally) 26%, transparent), transparent 70%),
-              radial-gradient(70vw 50vh at 110% 35%, color-mix(in oklab, var(--primary) 16%, transparent), transparent 75%),
-              radial-gradient(90vw 60vh at -10% 70%, color-mix(in oklab, var(--success) 14%, transparent), transparent 75%),
-              linear-gradient(180deg, color-mix(in oklab, var(--background) 84%, var(--rally)) 0%, var(--background) 48%, color-mix(in oklab, var(--background) 86%, var(--primary)) 100%)
-            `,
-        }}
-      />
-      <div
-        aria-hidden
-        className="pointer-events-none fixed inset-0 z-0 opacity-[0.18]"
-        style={{
-          backgroundImage:
-            "linear-gradient(115deg, transparent 0 42%, color-mix(in oklab, var(--primary) 16%, transparent) 42% 42.12%, transparent 42.12% 100%), linear-gradient(to right, color-mix(in oklab, var(--foreground) 7%, transparent) 1px, transparent 1px), linear-gradient(to bottom, color-mix(in oklab, var(--foreground) 6%, transparent) 1px, transparent 1px)",
-          backgroundSize: "100% 100%, 72px 72px, 72px 72px",
-          maskImage: "linear-gradient(to bottom, black 0%, black 62%, transparent 100%)",
-          WebkitMaskImage: "linear-gradient(to bottom, black 0%, black 62%, transparent 100%)",
-        }}
-      />
-
-      <header className="relative z-20">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-5 py-5 sm:px-8 lg:py-6">
-          <img
-            src={logoSrc}
-            alt="Raqueteia"
-            className="h-16 w-auto max-w-[68vw] drop-shadow-sm sm:h-20 lg:h-24"
-          />
-          <button
-            onClick={() => handleGoogleLogin("header")}
-            disabled={loading}
-            className="inline-flex items-center gap-2 rounded-full border border-border/80 bg-card/90 px-4 py-2 text-sm font-semibold text-foreground shadow-lg shadow-primary/10 backdrop-blur-xl transition-all hover:border-primary/60 hover:bg-card sm:px-5 sm:py-2.5"
-          >
-            <GoogleIcon className="h-4 w-4" />
-            {loading ? "Entrando..." : "Login"}
-          </button>
+    <main className="landing-page bg-background text-foreground">
+      <header className="landing-header mx-auto grid max-w-6xl grid-cols-[minmax(0,1fr)_auto] items-center gap-4 px-5 sm:px-8">
+        <Link to="/" aria-label="Raqueteia — início" className="min-w-0 w-fit">
+          <img src={logo} alt="Raqueteia" width={1920} height={640} className="w-[174px] max-w-full sm:w-[210px]" />
+        </Link>
+        <div className="flex shrink-0 items-center gap-5">
+          <a href="#na-quadra" className="hidden text-xs text-muted-foreground transition-colors hover:text-foreground sm:block">Conheça o app</a>
+          <Button variant="outline" disabled={loading} onClick={() => void handleGoogleLogin("header")} className="h-9 rounded-full bg-card px-4 shadow-none">Entrar <ArrowRight /></Button>
         </div>
       </header>
 
-      <section className="relative z-10">
-        <div className="mx-auto grid max-w-7xl items-center gap-10 px-5 pb-16 pt-6 sm:px-8 lg:grid-cols-12 lg:gap-10 lg:pb-20 lg:pt-10">
-          {/* Coluna texto — 5/12, alinhamento à esquerda, ritmo vertical consistente */}
-          <div className="relative z-10 lg:col-span-5">
-            <div className="inline-flex items-center gap-2 rounded-full border border-border/80 bg-card/80 px-3 py-1.5 shadow-sm backdrop-blur-xl">
-              <span className="h-2 w-2 rounded-full bg-rally shadow-[0_0_18px_color-mix(in_oklab,var(--rally)_80%,transparent)]" />
-              <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                Ranking premium para grupos de raquete
-              </span>
-            </div>
+      <section className="landing-court relative isolate overflow-hidden">
+        <img src={court} alt="Raquete e bolas em uma quadra de pádel" width={1536} height={1024} fetchPriority="high" className="landing-court-photo absolute inset-0 -z-20 h-full w-full object-cover" />
+        <div aria-hidden className="landing-court-shade absolute inset-0 -z-10" />
+        <div className="landing-hero-content mx-auto flex h-full max-w-6xl flex-col justify-center px-5 sm:px-8">
+          <p className="mb-5 flex items-center gap-3 text-xs font-medium text-primary"><span className="h-px w-7 bg-primary" /> SEU GRUPO. SEU JOGO.</p>
+          <h1 className="font-display text-[38px] font-semibold leading-[1.1] sm:text-[52px]">Raqueteia<span className="mt-2 block text-[28px] font-medium text-foreground sm:text-[36px]">O pádel continua<br />fora da quadra.</span></h1>
+          <p className="mt-5 max-w-[320px] text-sm leading-6 text-foreground/80">Reúna seu grupo, organize as rodadas e acompanhe cada conquista no ranking.</p>
+          <div className="mt-7 w-fit">{signIn("hero_primary")}</div>
+          <p className="mt-3 text-xs text-foreground/70">Grátis para começar.</p>
+          {error && <p role="alert" className="mt-3 max-w-sm text-sm text-destructive">{error}</p>}
+        </div>
+        <div className="landing-photo-caption absolute bottom-5 right-6 hidden items-center gap-2 text-xs text-foreground/70 sm:flex"><span className="h-1 w-1 rounded-full bg-primary" /> Da próxima rodada ao próximo pódio.</div>
+      </section>
 
-            <h1 className="mt-6 font-display text-[2.5rem] font-black leading-[1.02] tracking-tight text-foreground sm:text-5xl lg:text-[3.75rem]">
-              A central de performance do seu grupo.
-            </h1>
-
-            <p className="mt-5 max-w-md text-base leading-relaxed text-muted-foreground sm:text-lg">
-              Organize temporadas, registre jogos e transforme cada resultado em ranking Elo,
-              estatísticas e disputas claras.
-            </p>
-
-            <div className="mt-8 flex flex-col items-start gap-3 sm:flex-row sm:items-center">
-              <CTAButton size="lg" className="w-full sm:w-auto" location="hero_primary" label="Criar meu grupo" />
-              <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
-                <CheckCircle2 className="h-4 w-4 text-primary" />
-                Grátis para começar · sem cartão
-              </div>
-            </div>
-            {error && <p className="mt-3 text-sm text-destructive">{error}</p>}
-
-            {/* Stats — alinhados em grid simétrico, agrupados (proximidade) */}
-            <div className="mt-10 grid max-w-md grid-cols-3 gap-px overflow-hidden rounded-xl border border-border/70 bg-border/70">
-              {[
-                { value: "Elo", label: "ranking vivo" },
-                { value: "3min", label: "para criar" },
-                { value: "Multi", label: "grupo" },
-              ].map((stat) => (
-                <div key={stat.label} className="bg-card/80 px-4 py-3 backdrop-blur-sm">
-                  <div className="font-display text-2xl font-black leading-none text-foreground">{stat.value}</div>
-                  <div className="mt-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{stat.label}</div>
-                </div>
-              ))}
-            </div>
-
-            {/* Esportes — chips menores, agrupados próximos aos stats (continuidade) */}
-            <div className="mt-5 flex flex-wrap gap-1.5">
-              {sports.map((s) => (
-                <span
-                  key={s}
-                  className="rounded-full border border-border/60 bg-card/40 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground"
-                >
-                  {s}
-                </span>
-              ))}
-            </div>
-          </div>
-
-          {/* Coluna imagem — 7/12, com card LIVE como elemento sobreposto (figura-fundo) */}
-          <div className="relative lg:col-span-7">
-            <div
-              aria-hidden
-              className="absolute inset-x-[8%] bottom-[6%] h-[28%] rounded-full blur-3xl"
-              style={{ background: "color-mix(in oklab, var(--primary) 28%, transparent)" }}
-            />
-            <img
-              src={heroDevices}
-              alt="Raqueteia em desktop, tablet e mobile"
-              className="relative z-10 mx-auto block w-full max-w-[680px] object-contain drop-shadow-2xl lg:max-w-none"
-              loading="eager"
-            />
-            {/* Badge LIVE — posicionado no canto superior esquerdo, acima dos dispositivos */}
-            <div className="absolute left-0 top-[-80px] z-20 hidden max-w-[260px] rounded-xl border border-border/70 bg-card/90 p-4 shadow-2xl shadow-primary/15 backdrop-blur-2xl lg:block">
-              <div className="mb-2 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="relative flex h-2 w-2">
-                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-rally opacity-75" />
-                    <span className="relative inline-flex h-2 w-2 rounded-full bg-rally" />
-                  </span>
-                  <Activity className="h-4 w-4 text-primary" />
-                </div>
-                <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-primary">Live</span>
-              </div>
-              <p className="text-sm font-bold leading-snug text-foreground">Ranking, rodadas e histórico em uma só visão.</p>
-            </div>
-          </div>
+      <section id="na-quadra" className="border-b border-border scroll-mt-4">
+        <div className="mx-auto grid max-w-6xl gap-0 px-5 sm:grid-cols-3 sm:px-8">
+          {[
+            { icon: Users, title: "Seu grupo, reunido", text: "Convites, duplas e presença em um só lugar." },
+            { icon: CalendarDays, title: "A próxima rodada", text: "Agenda, sorteio e placares sem planilhas." },
+            { icon: TrendingUp, title: "Cada jogo conta", text: "Ranking Elo e evolução a cada resultado." },
+          ].map(({ icon: Icon, title, text }, index) => (
+            <article key={title} className="grid grid-cols-[28px_minmax(0,1fr)] items-start gap-3 border-b border-border py-6 last:border-b-0 sm:border-b-0 sm:px-5 sm:first:pl-0 sm:last:pr-0">
+              <Icon className="mt-0.5 h-5 w-5 text-primary" strokeWidth={1.5} />
+              <div className="min-w-0"><p className="mb-2 font-display text-sm font-semibold"><span className="mr-2 text-[10px] font-normal text-muted-foreground">0{index + 1}</span>{title}</p><p className="max-w-[250px] text-xs leading-5 text-muted-foreground">{text}</p></div>
+            </article>
+          ))}
         </div>
       </section>
 
-
-      <section className="relative z-10 border-y border-border/60 bg-card/50 backdrop-blur-xl">
-        <div className="mx-auto grid max-w-7xl gap-8 px-5 py-14 sm:px-8 lg:grid-cols-[0.42fr_0.58fr] lg:py-20">
-          <div>
-            <p className="mb-3 text-[11px] font-black uppercase text-primary">Sistema completo</p>
-            <h2 className="font-display text-3xl font-black leading-tight text-foreground sm:text-5xl">
-              Do placar ao pódio, sem ruído operacional.
-            </h2>
-            <p className="mt-4 text-base leading-relaxed text-muted-foreground">
-              Uma experiência mais editorial, clara e confiável para o público que chega em
-              /landing ou / antes de entrar.
-            </p>
-          </div>
-
-          <div className="grid gap-3 sm:grid-cols-2">
-            {features.map((f) => (
-              <div
-                key={f.title}
-                className="group border border-border/70 bg-background/70 p-5 shadow-sm backdrop-blur-xl transition-all hover:-translate-y-0.5 hover:border-primary/45 hover:shadow-xl hover:shadow-primary/10"
-              >
-                <div className="mb-4 flex h-11 w-11 items-center justify-center bg-primary text-primary-foreground shadow-lg shadow-primary/20">
-                  <f.icon className="h-5 w-5" />
-                </div>
-                <h3 className="text-base font-black text-foreground">{f.title}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{f.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
+      <section className="mx-auto grid max-w-6xl gap-8 px-5 py-12 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:px-8 sm:py-16">
+        <div className="min-w-0"><p className="mb-3 text-xs text-primary">MAIS JOGO. MENOS ORGANIZAÇÃO.</p><h2 className="font-display text-2xl font-medium leading-snug sm:text-3xl">O próximo jogo começa<br />com o seu grupo.</h2><p className="mt-3 max-w-md text-sm leading-6 text-muted-foreground">Entre, convide os amigos e deixe os resultados contarem a história da temporada.</p></div>
+        <div className="w-fit max-w-full space-y-3">{signIn("final_cta")}<AppleSignInButton variant="outline" onError={setError} /><p className="max-w-[270px] text-[11px] leading-5 text-muted-foreground">Ao entrar, você concorda com os <Link to="/termos" className="underline underline-offset-2 hover:text-foreground">Termos</Link> e a <Link to="/privacidade" className="underline underline-offset-2 hover:text-foreground">Política de Privacidade</Link>.</p></div>
       </section>
-
-      <section className="relative z-10">
-        <div className="mx-auto max-w-7xl px-5 py-14 sm:px-8 lg:py-20">
-          <div className="grid overflow-hidden border border-border/70 bg-card/75 shadow-2xl shadow-primary/10 backdrop-blur-xl lg:grid-cols-[0.95fr_1.05fr]">
-            <div className="p-6 sm:p-10 lg:p-12">
-              <p className="mb-3 text-[11px] font-black uppercase text-primary">Fluxo simples</p>
-              <h2 className="font-display text-3xl font-black leading-tight text-foreground sm:text-5xl">
-                Entre, crie o grupo e deixe o ranking trabalhar.
-              </h2>
-              <p className="mt-4 text-base leading-relaxed text-muted-foreground">
-                O produto substitui planilhas e conversas perdidas por um ritual claro para cada rodada.
-              </p>
-              <p className="mt-6 text-xs font-semibold text-muted-foreground">
-                <Zap className="mr-1 inline h-4 w-4 text-primary" />
-                Login em 1 clique, sem cartão para começar.
-              </p>
-            </div>
-            <div className="border-t border-border/70 lg:border-l lg:border-t-0">
-              {steps.map((s, index) => (
-                <div key={s.n} className="grid grid-cols-[76px_1fr] border-b border-border/70 last:border-b-0">
-                  <div className="flex items-center justify-center bg-secondary/70 font-display text-2xl font-black text-primary">
-                    {s.n}
-                  </div>
-                  <div className="p-5 sm:p-7">
-                    <div className="mb-2 flex items-center gap-2">
-                      <span className="h-1.5 w-1.5 rounded-full bg-rally" />
-                      <span className="text-[10px] font-black uppercase text-muted-foreground">Etapa {index + 1}</span>
-                    </div>
-                    <h3 className="text-lg font-black text-foreground">{s.title}</h3>
-                    <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{s.desc}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="relative z-10 pb-12 sm:pb-20">
-        <div className="mx-auto max-w-7xl px-5 sm:px-8">
-          <div className="relative overflow-hidden bg-foreground px-6 py-10 text-background shadow-2xl shadow-primary/20 sm:px-10 lg:px-14 lg:py-14">
-            <div
-              aria-hidden
-              className="absolute inset-0 opacity-70"
-              style={{
-                background:
-                  "radial-gradient(44vw 30vw at 78% 16%, color-mix(in oklab, var(--rally) 44%, transparent), transparent 70%), radial-gradient(34vw 24vw at 8% 100%, color-mix(in oklab, var(--primary) 38%, transparent), transparent 72%)",
-              }}
-            />
-            <div className="relative z-10 grid items-center gap-8 lg:grid-cols-[1fr_auto]">
-              <div>
-                <div className="mb-4 inline-flex items-center gap-2 bg-background/10 px-3 py-1.5 text-[11px] font-black uppercase text-background backdrop-blur-md">
-                  <Star className="h-3.5 w-3.5" />
-                  Pronto para competir melhor
-                </div>
-                <h2 className="font-display text-3xl font-black leading-tight sm:text-5xl">
-                  Troque a planilha por uma experiência de ranking premium.
-                </h2>
-                <p className="mt-4 max-w-2xl text-sm leading-relaxed text-background/75 sm:text-base">
-                  Entre com Google, crie seu primeiro grupo e organize temporadas com visual profissional desde o primeiro acesso.
-                </p>
-              </div>
-              <div className="flex w-full max-w-sm flex-col gap-3 lg:w-[360px]">
-                <CTAButton size="lg" className="w-full shadow-none" location="final_cta" />
-                <AppleSignInButton variant="outline" onError={(msg) => setError(msg)} />
-                <p className="text-center text-[11px] text-background/65">
-                  Ao entrar, você concorda com nossos{" "}
-                  <Link to="/termos" className="underline hover:text-background">Termos</Link>
-                  {" "}e{" "}
-                  <Link to="/privacidade" className="underline hover:text-background">Privacidade</Link>.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <footer className="relative z-10 border-t border-border/50 bg-card/45 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-5 py-6 text-xs text-muted-foreground sm:flex-row sm:px-8">
-          <div className="flex items-center gap-3">
-            <img src={logoSrc} alt="Raqueteia" className="h-9 w-auto" />
-            <span>© {new Date().getFullYear()} Raqueteia</span>
-          </div>
-          <div className="flex items-center gap-5 font-semibold">
-            <a href="/sobre-desenvolvimento" className="hover:text-foreground">Sobre</a>
-            <a href="/changelog" className="hover:text-foreground">Changelog</a>
-            <button
-              type="button"
-              onClick={() => handleGoogleLogin("footer")}
-              disabled={loading}
-              className="hover:text-foreground disabled:opacity-60"
-            >
-              {loading ? "Entrando..." : "Entrar"}
-            </button>
-          </div>
+      <footer className="border-t border-border">
+        <div className="mx-auto flex max-w-6xl flex-col gap-4 px-5 py-6 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between sm:px-8">
+          <span>© {new Date().getFullYear()} Raqueteia</span><nav aria-label="Links institucionais" className="flex gap-5"><Link to="/sobre-desenvolvimento" className="hover:text-foreground">Sobre</Link><Link to="/changelog" className="hover:text-foreground">Novidades</Link><Link to="/privacidade" className="hover:text-foreground">Privacidade</Link></nav>
         </div>
       </footer>
-    </div>
+    </main>
   );
 }
