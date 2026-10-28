@@ -1,5 +1,10 @@
 # Roadmap
 
+## Abertura do PWA — 28/10/2026
+- [x] Remover a arte de splash e os vínculos de splash do iOS
+- [x] Manter o ícone oficial e a barra de carregamento sobre preto até o app estar pronto
+- [x] Conferir a abertura e a transição no navegador (modo instalado simulado; aparelho físico não verificado)
+
 ## Concluído: Rebrand para Raqueteia — 28/10/2026
 - [x] Nome "RankMyMatch" → "Raqueteia" em todo o app (textos, SEO, e-mails, manifest, sw.js)
 - [x] URLs do site → raqueteia.app (canonical, sitemap, og, compartilhamento); infra de e-mail segue em rankmymatch.app
