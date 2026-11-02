@@ -1,0 +1,1 @@
+REVOKE ALL ON public.deletion_scheduler_credentials FROM PUBLIC, anon, authenticated;
