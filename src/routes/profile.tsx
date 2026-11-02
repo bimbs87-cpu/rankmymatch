@@ -101,7 +101,10 @@ function ProfilePage() {
   const [loadingProfile, setLoadingProfile] = useState(true);
   const [editing, setEditing] = useState(false);
   const [privacyOpen, setPrivacyOpen] = useState(false);
-  const [trackingConsent, setTrackingConsent] = useState(() => getConsentChoice() === "granted");
+  const [trackingConsent, setTrackingConsent] = useState(false);
+  useEffect(() => {
+    setTrackingConsent(getConsentChoice() === "granted");
+  }, []);
   const [saving, setSaving] = useState(false);
   const [avatarPickerOpen, setAvatarPickerOpen] = useState(false);
   const [savingAvatar, setSavingAvatar] = useState(false);
