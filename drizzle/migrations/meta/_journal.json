@@ -22,6 +22,13 @@
       "when": 1793651635997,
       "tag": "0002_guard_group_members_allow_claim",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1793652088608,
+      "tag": "0003_account_deletion_and_profile_privacy",
+      "breakpoints": true
     }
   ]
 }

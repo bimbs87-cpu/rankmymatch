@@ -16,35 +16,50 @@ export type Database = {
     Tables: {
       account_deletion_requests: {
         Row: {
+          attempts: number
           cancelled_at: string | null
+          claimed_at: string | null
+          completed_steps: string[]
           created_at: string
           executed_at: string | null
           id: string
+          last_error: string | null
           reason: string | null
           requested_at: string
           scheduled_for: string
+          source: string
           status: string
           user_id: string
         }
         Insert: {
+          attempts?: number
           cancelled_at?: string | null
+          claimed_at?: string | null
+          completed_steps?: string[]
           created_at?: string
           executed_at?: string | null
           id?: string
+          last_error?: string | null
           reason?: string | null
           requested_at?: string
           scheduled_for: string
+          source?: string
           status?: string
           user_id: string
         }
         Update: {
+          attempts?: number
           cancelled_at?: string | null
+          claimed_at?: string | null
+          completed_steps?: string[]
           created_at?: string
           executed_at?: string | null
           id?: string
+          last_error?: string | null
           reason?: string | null
           requested_at?: string
           scheduled_for?: string
+          source?: string
           status?: string
           user_id?: string
         }
@@ -537,6 +552,21 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      deletion_scheduler_credentials: {
+        Row: {
+          id: number
+          token: string
+        }
+        Insert: {
+          id: number
+          token: string
+        }
+        Update: {
+          id?: number
+          token?: string
+        }
+        Relationships: []
       }
       email_send_log: {
         Row: {
@@ -2328,6 +2358,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      claim_next_account_deletion: {
+        Args: never
+        Returns: {
+          attempts: number
+          completed_steps: string[]
+          id: string
+          user_id: string
+        }[]
+      }
       claim_round_reminder: {
         Args: { _event_type: string; _round_id: string; _user_id: string }
         Returns: boolean
@@ -2365,6 +2404,18 @@ export type Database = {
         }[]
       }
       get_group_member_count: { Args: { _group_id: string }; Returns: number }
+      get_profile_personal: {
+        Args: { _user_id: string }
+        Returns: {
+          birth_date: string
+          dominant_hand: string
+          instagram_handle: string
+          killer_shot: string
+          preferred_position: string
+          user_id: string
+          worst_shot: string
+        }[]
+      }
       get_season_set_eligibility: {
         Args: { _season_id: string }
         Returns: {
@@ -2441,6 +2492,10 @@ export type Database = {
           sets_b: number
           winner_team: string
         }[]
+      }
+      verify_deletion_scheduler_token: {
+        Args: { _token: string }
+        Returns: boolean
       }
       verify_game_reminder_token: { Args: { _token: string }; Returns: boolean }
     }
