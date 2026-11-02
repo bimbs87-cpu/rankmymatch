@@ -34,7 +34,7 @@ export function useSeasonRounds(seasonId: string) {
 export function useRoundDetail(roundId: string) {
   const { user } = useAuth();
   const [round, setRound] = useState<Round | null>(null);
-  const [presences, setPresences] = useState<(RoundPresence & { profile?: Tables<"user_profiles"> })[]>([]);
+  const [presences, setPresences] = useState<(RoundPresence & { profile?: Pick<Tables<"user_profiles">, "id" | "user_id" | "name" | "nickname" | "avatar_url" | "avatar_type" | "is_placeholder" | "created_at" | "updated_at"> })[]>([]);
   const [matches, setMatches] = useState<any[]>([]);
   const [myPresence, setMyPresence] = useState<RoundPresence | null>(null);
   const [isLoading, setIsLoading] = useState(true);

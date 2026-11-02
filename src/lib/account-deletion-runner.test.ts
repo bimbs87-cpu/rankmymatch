@@ -1,4 +1,5 @@
-import { describe, expect, it } from "vitest";
+import { describe, it } from "node:test";
+import { deepStrictEqual, strictEqual, ok } from "node:assert";
 import { processDeletionRequest, type DeletionOps, type DeletionStep } from "./account-deletion-runner";
 
 function fakeOps(failOn: Partial<Record<DeletionStep, number>> = {}) {
@@ -31,17 +32,17 @@ describe("account deletion processing", () => {
   it("marks executed only after every step including identity verification", async () => {
     const { ops, calls, state } = fakeOps();
     const out = await processDeletionRequest({ id: "r", user_id: "u", completed_steps: [] }, ops);
-    expect(out.status).toBe("executed");
-    expect(calls).toEqual(["personal_data", "profile", "auth_identity", "verify_identity"]);
-    expect(state.status).toBe("executed");
+    strictEqual(out.status, "executed");
+    deepStrictEqual(calls, ["personal_data", "profile", "auth_identity", "verify_identity"]);
+    strictEqual(state.status, "executed");
   });
 
   it("a failing login removal is never reported as executed", async () => {
     const { ops, state } = fakeOps({ auth_identity: 1 });
     const out = await processDeletionRequest({ id: "r", user_id: "u", completed_steps: [] }, ops);
-    expect(out).toEqual({ status: "failed", step: "auth_identity", code: "auth_identity:503" });
-    expect(state.status).toBe("failed");
-    expect(state.steps).toEqual(["personal_data", "profile"]);
+    deepStrictEqual(out, { status: "failed", step: "auth_identity", code: "auth_identity:503" });
+    strictEqual(state.status, "failed");
+    deepStrictEqual(state.steps, ["personal_data", "profile"]);
   });
 
   it("a retry resumes after the finished steps and then completes", async () => {
@@ -50,9 +51,9 @@ describe("account deletion processing", () => {
       { id: "r", user_id: "u", completed_steps: ["personal_data", "profile"] },
       ops,
     );
-    expect(out.status).toBe("executed");
-    expect(calls).toEqual(["auth_identity", "verify_identity"]);
-    expect(state.status).toBe("executed");
+    strictEqual(out.status, "executed");
+    deepStrictEqual(calls, ["auth_identity", "verify_identity"]);
+    strictEqual(state.status, "executed");
   });
 
   it("re-running a fully processed request still re-verifies the identity", async () => {
@@ -61,14 +62,14 @@ describe("account deletion processing", () => {
       { id: "r", user_id: "u", completed_steps: ["personal_data", "profile", "auth_identity", "verify_identity"] },
       ops,
     );
-    expect(calls).toEqual(["verify_identity"]);
+    deepStrictEqual(calls, ["verify_identity"]);
   });
 
   it("an identity that still exists keeps the request failed", async () => {
     const { ops, state } = fakeOps({ verify_identity: 1 });
     const out = await processDeletionRequest({ id: "r", user_id: "u", completed_steps: [] }, ops);
-    expect(out.status).toBe("failed");
-    expect(state.status).toBe("failed");
+    strictEqual(out.status, "failed");
+    strictEqual(state.status, "failed");
   });
 
   it("stored error codes contain no personal data", async () => {
@@ -77,6 +78,6 @@ describe("account deletion processing", () => {
       throw Object.assign(new Error("user joao@x.com"), { code: "joao@x.com" });
     };
     await processDeletionRequest({ id: "r", user_id: "u", completed_steps: [] }, ops);
-    expect(state.error).not.toContain("@");
+    ok(!String(state.error).includes("@"));
   });
 });
