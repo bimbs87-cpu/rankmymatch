@@ -1,5 +1,5 @@
 import { sendLovableEmail } from '@lovable.dev/email-js'
-import { createClient } from '@supabase/supabase-js'
+import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { createFileRoute } from '@tanstack/react-router'
 
 const MAX_RETRIES = 5
@@ -18,8 +18,8 @@ function isRateLimited(error: unknown): boolean {
   return error instanceof Error && error.message.includes('429')
 }
 
-// Check if an error is a forbidden (403) response, which means emails are
-// disabled for this project. Retrying won't help — move straight to DLQ.
+// Check if an error is a forbidden (403) response. Retrying won't help.
+// Move straight to DLQ.
 function isForbidden(error: unknown): boolean {
   if (error && typeof error === 'object' && 'status' in error) {
     return (error as { status: number }).status === 403
@@ -35,10 +35,8 @@ function getRetryAfterSeconds(error: unknown): number {
   return 60
 }
 
-// Move a message to the dead letter queue and log the reason.
 async function moveToDlq(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  supabase: any,
+  supabase: SupabaseClient<any, any>,
   queue: string,
   msg: { msg_id: number; message: Record<string, unknown> },
   reason: string
@@ -58,7 +56,7 @@ async function moveToDlq(
     payload,
   })
   if (error) {
-    console.error('Failed to move message to DLQ', { queue, msg_id: msg.msg_id, reason, error })
+    console.error('Failed to move message to DLQ', { queue, msg_id: msg.msg_id, reason, code: error.code, message: error.message })
   }
 }
 
@@ -66,9 +64,9 @@ export const Route = createFileRoute("/lovable/email/queue/process")({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        const apiKey = process.env.LOVABLE_API_KEY
-        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
-        const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+        const apiKey = process.env['LOVABLE_API_KEY']
+        const supabaseUrl = import.meta.env['VITE_SUPABASE_URL']
+        const supabaseServiceKey = process.env['SUPABASE_SERVICE_ROLE_KEY']
 
         if (!apiKey || !supabaseUrl || !supabaseServiceKey) {
           console.error('Missing required environment variables')
@@ -90,8 +88,7 @@ export const Route = createFileRoute("/lovable/email/queue/process")({
           return Response.json({ error: 'Forbidden' }, { status: 403 })
         }
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const supabase: any = createClient(supabaseUrl, supabaseServiceKey)
+        const supabase: SupabaseClient<any, any> = createClient(supabaseUrl, supabaseServiceKey)
 
         // 1. Check rate-limit cooldown and read queue config
         const { data: state } = await supabase
@@ -121,7 +118,7 @@ export const Route = createFileRoute("/lovable/email/queue/process")({
           })
 
           if (readError) {
-            console.error('Failed to read email batch', { queue, error: readError })
+            console.error('Failed to read email batch', { queue, code: readError.code, message: readError.message })
             continue
           }
 
@@ -150,7 +147,8 @@ export const Route = createFileRoute("/lovable/email/queue/process")({
             if (failedRowsError) {
               console.error('Failed to load failed-attempt counters', {
                 queue,
-                error: failedRowsError,
+                code: failedRowsError.code,
+                message: failedRowsError.message,
               })
             } else {
               for (const row of failedRows ?? []) {
@@ -217,7 +215,7 @@ export const Route = createFileRoute("/lovable/email/queue/process")({
                   message_id: msg.msg_id,
                 })
                 if (dupDelError) {
-                  console.error('Failed to delete duplicate message from queue', { queue, msg_id: msg.msg_id, error: dupDelError })
+                  console.error('Failed to delete duplicate message from queue', { queue, msg_id: msg.msg_id, code: dupDelError.code, message: dupDelError.message })
                 }
                 continue
               }
@@ -239,7 +237,7 @@ export const Route = createFileRoute("/lovable/email/queue/process")({
                   unsubscribe_token: payload.unsubscribe_token,
                   message_id: payload.message_id,
                 },
-                { apiKey, sendUrl: process.env.LOVABLE_SEND_URL }
+                { apiKey, sendUrl: process.env['LOVABLE_SEND_URL'] }
               )
 
               // Log success
@@ -256,7 +254,7 @@ export const Route = createFileRoute("/lovable/email/queue/process")({
                 message_id: msg.msg_id,
               })
               if (delError) {
-                console.error('Failed to delete sent message from queue', { queue, msg_id: msg.msg_id, error: delError })
+                console.error('Failed to delete sent message from queue', { queue, msg_id: msg.msg_id, code: delError.code, message: delError.message })
               }
               totalProcessed++
             } catch (error) {
@@ -293,10 +291,11 @@ export const Route = createFileRoute("/lovable/email/queue/process")({
                 return Response.json({ processed: totalProcessed, stopped: 'rate_limited' })
               }
 
-              // 403 means emails are disabled for this project — retrying won't help.
+              // 403s are permanent configuration or authorization failures for this
+              // message, so move straight to DLQ and stop processing the rest of the batch.
               if (isForbidden(error)) {
-                await moveToDlq(supabase, queue, msg, 'Emails disabled for this project')
-                return Response.json({ processed: totalProcessed, stopped: 'emails_disabled' })
+                await moveToDlq(supabase, queue, msg, errorMsg.slice(0, 1000))
+                return Response.json({ processed: totalProcessed, stopped: 'forbidden' })
               }
 
               // Log non-429 failures to track real retry attempts.
