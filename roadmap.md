@@ -24,8 +24,12 @@ Pendente: publicar a versão com revogação; proposta de retenção para exclus
 
 # ENCERRAMENTO DA FASE 2 — 2 de novembro de 2026
 
-- [ ] Documentar propostas de retenção, minimização e descarte, sem novas rotinas nem exclusões históricas
+- [x] Documentar propostas de retenção, minimização e descarte, sem novas rotinas nem exclusões históricas
 - [x] Confirmar consentimento em produção: recusar sem scripts, aceitar, revogar imediatamente e persistir após recarregar
-- [ ] Verificar SPF, DKIM e DMARC e enviar um único e-mail de teste explícito ao contato autorizado
-- [ ] Executar regressões e verificar grupos, partidas, rankings, temporadas, sessão e notificações sem alterar dados esportivos
-- [ ] Entregar relatório de encerramento com limites e requisitos Android, sem gerar AAB nem mudar identificador
+- [x] SPF/DMARC confirmados; domínio verificado; um e-mail de teste aceito pelo provedor para o contato autorizado
+- [x] 32 regressões passaram; grupos, partidas, rankings, temporadas, sessão e notificações verificados em leitura; divergência inicial do controle push corrigida
+- [x] Relatório de encerramento documentado com limites e requisitos Android; nenhum AAB ou alteração de identificador
+- [ ] Proprietário: publicar nova política e ajuste de apresentação push; revogação já validada em produção
+- [ ] Proprietário: confirmar recebimento do e-mail e cabeçalhos DKIM/SPF/DMARC; seletor DKIM não fornecido pelas ferramentas
+- [ ] Proprietário: validar push em celular físico e login Google completo em produção
+- [ ] Aprovação específica necessária antes de implementar minimização/descarte das categorias propostas; nenhum novo descarte ativado
