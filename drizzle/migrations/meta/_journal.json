@@ -36,6 +36,13 @@
       "when": 1793652336243,
       "tag": "0004_revoke_deletion_credentials_client_access",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1793653035879,
+      "tag": "0005_block_legacy_deletion_processor",
+      "breakpoints": true
     }
   ]
 }

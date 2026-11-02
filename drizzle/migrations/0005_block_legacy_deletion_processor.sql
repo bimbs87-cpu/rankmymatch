@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.get_due_deletions() FROM PUBLIC, anon, authenticated, service_role;
