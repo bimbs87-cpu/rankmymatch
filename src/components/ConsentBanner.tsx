@@ -16,11 +16,18 @@ import {
  */
 export function ConsentBanner() {
   const { user } = useAuth();
-  const [choice, setChoice] = useState<ConsentChoice | null>(() => getConsentChoice());
+  // A escolha é lida do localStorage apenas após a montagem: no SSR ela
+  // sempre seria null e o banner apareceria mesmo para quem já escolheu.
+  const [choice, setChoice] = useState<ConsentChoice | null>(null);
+  const [mounted, setMounted] = useState(false);
 
-  useEffect(() => onConsentChange((c) => setChoice(c)), []);
+  useEffect(() => {
+    setChoice(getConsentChoice());
+    setMounted(true);
+    return onConsentChange((c) => setChoice(c));
+  }, []);
 
-  if (choice !== null) return null;
+  if (!mounted || choice !== null) return null;
 
   const decide = (c: ConsentChoice) => {
     setConsentChoice(c, user?.id ?? null);

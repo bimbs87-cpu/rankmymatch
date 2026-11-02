@@ -32,9 +32,12 @@ export const Route = createFileRoute("/privacidade")({
 
 function TrackingPreferenceCard() {
   const { user } = useAuth();
-  const [choice, setChoice] = useState<ConsentChoice | null>(() => getConsentChoice());
+  const [choice, setChoice] = useState<ConsentChoice | null>(null);
 
-  useEffect(() => onConsentChange((c) => setChoice(c)), []);
+  useEffect(() => {
+    setChoice(getConsentChoice());
+    return onConsentChange((c) => setChoice(c));
+  }, []);
 
   const decide = (c: ConsentChoice) => setConsentChoice(c, user?.id ?? null);
 
