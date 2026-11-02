@@ -106,7 +106,6 @@ function ProfilePage() {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [installInstructionsOpen, setInstallInstructionsOpen] = useState(false);
   const [dangerZoneOpen, setDangerZoneOpen] = useState(false);
-  const [dangerExpanded, setDangerExpanded] = useState(false);
   const { canInstall, isInstalled, isIos, startInstall } = useInstallFlow();
   const { isAppAdmin } = useAppAdmin();
 
@@ -612,7 +611,6 @@ function ProfilePage() {
               <button
                 onClick={() => {
                   setDangerZoneOpen((v) => !v);
-                  if (dangerZoneOpen) setDangerExpanded(false);
                 }}
                 className="mt-2 flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-muted-foreground transition-colors hover:bg-accent"
               >
