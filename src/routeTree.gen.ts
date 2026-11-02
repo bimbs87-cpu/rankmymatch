@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as ChangelogRouteImport } from './routes/changelog'
 import { Route as CompararRouteImport } from './routes/comparar'
 import { Route as DevRouteImport } from './routes/dev'
+import { Route as ExcluirContaRouteImport } from './routes/excluir-conta'
 import { Route as GroupsRouteImport } from './routes/groups'
 import { Route as HistoryRouteImport } from './routes/history'
 import { Route as LandingRouteImport } from './routes/landing'
@@ -80,6 +81,11 @@ const CompararRoute = CompararRouteImport.update({
 const DevRoute = DevRouteImport.update({
   id: '/dev',
   path: '/dev',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ExcluirContaRoute = ExcluirContaRouteImport.update({
+  id: '/excluir-conta',
+  path: '/excluir-conta',
   getParentRoute: () => rootRouteImport,
 } as any)
 const GroupsRoute = GroupsRouteImport.update({
@@ -341,6 +347,7 @@ export interface FileRoutesByFullPath {
   '/changelog': typeof ChangelogRoute
   '/comparar': typeof CompararRoute
   '/dev': typeof DevRoute
+  '/excluir-conta': typeof ExcluirContaRoute
   '/groups': typeof GroupsRouteWithChildren
   '/history': typeof HistoryRoute
   '/landing': typeof LandingRoute
@@ -395,6 +402,7 @@ export interface FileRoutesByTo {
   '/changelog': typeof ChangelogRoute
   '/comparar': typeof CompararRoute
   '/dev': typeof DevRoute
+  '/excluir-conta': typeof ExcluirContaRoute
   '/history': typeof HistoryRoute
   '/landing': typeof LandingRoute
   '/login': typeof LoginRoute
@@ -446,6 +454,7 @@ export interface FileRoutesById {
   '/changelog': typeof ChangelogRoute
   '/comparar': typeof CompararRoute
   '/dev': typeof DevRoute
+  '/excluir-conta': typeof ExcluirContaRoute
   '/groups': typeof GroupsRouteWithChildren
   '/history': typeof HistoryRoute
   '/landing': typeof LandingRoute
@@ -502,6 +511,7 @@ export interface FileRouteTypes {
     | '/changelog'
     | '/comparar'
     | '/dev'
+    | '/excluir-conta'
     | '/groups'
     | '/history'
     | '/landing'
@@ -556,6 +566,7 @@ export interface FileRouteTypes {
     | '/changelog'
     | '/comparar'
     | '/dev'
+    | '/excluir-conta'
     | '/history'
     | '/landing'
     | '/login'
@@ -606,6 +617,7 @@ export interface FileRouteTypes {
     | '/changelog'
     | '/comparar'
     | '/dev'
+    | '/excluir-conta'
     | '/groups'
     | '/history'
     | '/landing'
@@ -661,6 +673,7 @@ export interface RootRouteChildren {
   ChangelogRoute: typeof ChangelogRoute
   CompararRoute: typeof CompararRoute
   DevRoute: typeof DevRoute
+  ExcluirContaRoute: typeof ExcluirContaRoute
   GroupsRoute: typeof GroupsRouteWithChildren
   HistoryRoute: typeof HistoryRoute
   LandingRoute: typeof LandingRoute
@@ -729,6 +742,13 @@ declare module '@tanstack/react-router' {
       path: '/dev'
       fullPath: '/dev'
       preLoaderRoute: typeof DevRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/excluir-conta': {
+      id: '/excluir-conta'
+      path: '/excluir-conta'
+      fullPath: '/excluir-conta'
+      preLoaderRoute: typeof ExcluirContaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/groups': {
@@ -1147,6 +1167,7 @@ const rootRouteChildren: RootRouteChildren = {
   ChangelogRoute: ChangelogRoute,
   CompararRoute: CompararRoute,
   DevRoute: DevRoute,
+  ExcluirContaRoute: ExcluirContaRoute,
   GroupsRoute: GroupsRouteWithChildren,
   HistoryRoute: HistoryRoute,
   LandingRoute: LandingRoute,
