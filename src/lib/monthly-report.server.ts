@@ -502,8 +502,8 @@ async function uploadPdfAndSign(
 
 // ===== Envio de e-mail =====
 const SITE_NAME = "raqueteia";
-const SENDER_DOMAIN = "notify.rankmymatch.app";
-const FROM_DOMAIN = "rankmymatch.app";
+const SENDER_DOMAIN = "notify.raqueteia.app";
+const FROM_DOMAIN = "raqueteia.app";
 
 async function enqueueReportEmail(
   recipient: string,

@@ -8,10 +8,10 @@ import { TEMPLATES } from '@/lib/email-templates/registry'
 const SITE_NAME = "raqueteia"
 // SENDER_DOMAIN is the verified sender subdomain FQDN (e.g., "notify.example.com").
 // It MUST match the subdomain delegated to Lovable's nameservers. NEVER use the root domain.
-const SENDER_DOMAIN = "notify.rankmymatch.app"
+const SENDER_DOMAIN = "notify.raqueteia.app"
 // FROM_DOMAIN is the domain shown in the From: header (e.g., "example.com").
 // Can be the root domain when display_from_root is enabled — this is cosmetic only.
-const FROM_DOMAIN = "rankmymatch.app"
+const FROM_DOMAIN = "raqueteia.app"
 
 function redactEmail(email: string | null | undefined): string {
   if (!email) return '***'
