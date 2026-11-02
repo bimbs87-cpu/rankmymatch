@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
-import { strictEqual } from "node:assert";
-import { sanitizePath } from "@/lib/analytics";
+import { strictEqual, deepStrictEqual } from "node:assert";
+import { sanitizePath, scrubParams, canTrack } from "@/lib/analytics";
 
 describe("sanitizePath — minimização de dados em eventos de analytics", () => {
   it("remove query string (pode conter tokens e parâmetros sensíveis)", () => {
