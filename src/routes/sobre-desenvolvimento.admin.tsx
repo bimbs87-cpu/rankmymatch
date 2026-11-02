@@ -303,20 +303,7 @@ function BugAdminPage() {
                       </span>
                     )}
                   </div>
-                  {r.screenshot_url && (
-                    <a
-                      href={r.screenshot_url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="mt-2 inline-block"
-                    >
-                      <img
-                        src={r.screenshot_url}
-                        alt="Screenshot"
-                        className="max-h-40 rounded-lg border border-border"
-                      />
-                    </a>
-                  )}
+                  {r.screenshot_url && <BugScreenshot url={r.screenshot_url} />}
                   {r.user_agent && (
                     <p className="mt-1 truncate font-mono text-[10px] text-muted-foreground">
                       {r.user_agent}

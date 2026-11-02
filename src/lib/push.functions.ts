@@ -84,6 +84,20 @@ export const sendPushFn = createServerFn({ method: "POST" })
     }
 
     if (!allowed.length) return { sent: 0, failed: 0 };
+
+    // Limite de frequência: no máximo PUSH_RATE_LIMIT_PER_HOUR lotes/hora por remetente.
+    const since = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+    const { count } = await supabaseAdmin
+      .from("push_send_log")
+      .select("id", { count: "exact", head: true })
+      .eq("caller_id", callerId)
+      .gte("created_at", since);
+    if ((count ?? 0) >= PUSH_RATE_LIMIT_PER_HOUR) {
+      console.warn("[push] rate limited", { callerId });
+      return { sent: 0, failed: 0, error: "rate_limited" };
+    }
+    await supabaseAdmin.from("push_send_log").insert({ caller_id: callerId });
+
     try {
       return await sendPushToUserIds(allowed, payload);
     } catch (err) {
