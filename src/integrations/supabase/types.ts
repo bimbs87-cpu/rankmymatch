@@ -1553,6 +1553,30 @@ export type Database = {
         }
         Relationships: []
       }
+      privacy_consents: {
+        Row: {
+          choice: string
+          created_at: string
+          notice_version: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          choice: string
+          created_at?: string
+          notice_version: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          choice?: string
+          created_at?: string
+          notice_version?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       push_notification_preferences: {
         Row: {
           created_at: string
@@ -1577,6 +1601,24 @@ export type Database = {
           id?: string
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      push_send_log: {
+        Row: {
+          caller_id: string
+          created_at: string
+          id: number
+        }
+        Insert: {
+          caller_id: string
+          created_at?: string
+          id?: never
+        }
+        Update: {
+          caller_id?: string
+          created_at?: string
+          id?: never
         }
         Relationships: []
       }

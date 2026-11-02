@@ -1,49 +1,10 @@
-# Roadmap
+# FASE 2.4 — Privacidade, Analytics, publicidade e segurança complementar
 
-## Push por horário dos jogos — 28/10/2026
-- [x] Corrigir endereço antigo (24 respostas 404/hora), remover dois agendamentos duplicados e usar horário de São Paulo
-- [x] Lembretes de resultado após 90 minutos e 24 horas, condicionados a ausência de visita autenticada
-- [x] Aviso de rodada anterior pendente no dia do próximo jogo, sem cancelar/confirmar automaticamente
-- [x] Preferências individuais com persistência verificada; deduplicação por usuário/rodada/tipo e até 3 tentativas
-- [x] Oito testes de horários; endpoint recusa visitantes e dry-run protegido encontra 2 avisos candidatos sem enviar
-- [ ] Ativar o agendamento preparado (96 verificações/dia, atraso máximo de 15 min) após publicação e conferir push no aparelho; bloqueador: nova versão ainda não publicada
+- [ ] Etapa A — Auditar rastreamento (GA/Ads/outros), minimização de dados, mecanismo de preferências de privacidade
+- [ ] Etapa B — Comparar Política de Privacidade com comportamento real; atualizar só afirmações comprovadas; listar pendências (retenção, bases legais)
+- [ ] Etapa C — Segurança dos buckets (especialmente bug-screenshots): acesso, tamanho, MIME, caminhos, exclusão
+- [ ] Etapa D — Auditoria dos endpoints de push: destinatários, limites, anti-abuso
+- [ ] Etapa E — Testes e regressão (login, grupos, convites, partidas, rankings, privacidade, push, uploads)
+- [ ] Etapa F — Relatório final + inventário Data Safety + recomendação
 
-## Refinamento da entrada — 28/10/2026
-- [x] Retirar foto cortada e nome repetido; criar apresentação baseada no próprio produto
-- [x] Unificar início público, apresentação e login
-- [x] Conferir navegação da prévia e proporções em celular, tablet e computador (320, 390, 768 e 1280 px)
-
-## Página inicial e tema exclusivo escuro — 28/10/2026
-- [x] Reformular apresentação com a logo oficial, textos curtos e alinhamento consistente
-- [x] Remover tema claro, preferências e imagens claras de todas as instâncias (branco técnico do QR preservado para leitura)
-- [x] Verificar página inicial, login e persistência do tema em tamanhos diferentes
-
-## Abertura do PWA — 28/10/2026
-- [x] Remover a arte de splash e os vínculos de splash do iOS
-- [x] Manter o ícone oficial e a barra de carregamento sobre preto até o app estar pronto
-- [x] Conferir a abertura e a transição no navegador (modo instalado simulado; aparelho físico não verificado)
-
-## Concluído: Rebrand para Raqueteia — 28/10/2026
-- [x] Nome "RankMyMatch" → "Raqueteia" em todo o app (textos, SEO, e-mails, manifest, sw.js)
-- [x] URLs do site → raqueteia.app (canonical, sitemap, og, compartilhamento); infra de e-mail segue em rankmymatch.app
-- [x] Logo horizontal nova (fundos escuro e claro, transparente), logo quadrada (ícones PWA/favicon), splash screens (iOS/Android)
-- [x] og-image refeita com a nova logo
-
-## Concluído: Teste completo de funcionalidade (QA geral) — 27/10/2026
-- [x] Fluxo ponta a ponta validado (grupo, temporada, convite, presença, sorteio, resultados, Elo, ranking, convidado, imagem de ranking)
-- [x] Correções QA: corrida de carregamento do grupo, salvamento em lote sem perda de dados, nome de perfil vazio
-
-## Concluído: Melhorias pós-QA — 27/10/2026
-- [x] Gráfico "Evolução de Elo" desenha linhas desde a 1ª rodada (ponto de base no rating inicial)
-- [x] "Total de jogos" nos destaques conta partidas distintas (3), não timestamps
-- [x] Botão "Vou" substituído por "A lista de presença abre <data>" antes da abertura
-- [x] Lançamento em lote com opção "Fechar em super tie-break (10 pts)" quando 1x1 (não testado no navegador)
-- [x] Erros 409 de sessão/aquisição eliminados via upsert idempotente
-
-## Concluído: Otimização da primeira carga da Home — 27/10/2026
-- [x] Cache compartilhado (src/lib/shared-fetch.ts) deduplica consultas idênticas simultâneas entre instâncias de hooks (Home, BottomNav, DesktopNav, popovers)
-- [x] Removidas consultas redundantes em use-group-pending-tasks (contagens duplas)
-- [x] Tempo até conteúdo: ~5,7s → ~3,3s (medido com Playwright, usuário QA)
-
-## Backlog
-- [ ] 401/500 no console para usuários criados via SQL (artefato de teste, não afeta produção)
+Regras: não apagar dados reais; não alterar rankings/Elo/partidas; sem consentimentos fictícios; não publicar sem testes; não iniciar app Android; não iniciar próxima fase.
