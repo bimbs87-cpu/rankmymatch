@@ -8,6 +8,13 @@
       "when": 1793208591238,
       "tag": "0000_scheduled_round_reminders",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1793651600765,
+      "tag": "0001_guard_group_members_writes",
+      "breakpoints": true
     }
   ]
 }
