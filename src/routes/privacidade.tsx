@@ -129,10 +129,10 @@ function PrivacyPage() {
             <li>
               Solicitar portabilidade ou esclarecimentos enviando e-mail para
               <a
-                href="mailto:contato@rankmymatch.app"
+                href="mailto:bimbapps@gmail.com"
                 className="ml-1 text-primary underline"
               >
-                contato@rankmymatch.app
+                bimbapps@gmail.com
               </a>
               .
             </li>
@@ -174,10 +174,10 @@ function PrivacyPage() {
           <p>
             Encarregado de dados (DPO):{" "}
             <a
-              href="mailto:contato@rankmymatch.app"
+              href="mailto:bimbapps@gmail.com"
               className="text-primary underline"
             >
-              contato@rankmymatch.app
+              bimbapps@gmail.com
             </a>
           </p>
         </Section>

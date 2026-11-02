@@ -268,7 +268,7 @@ export async function sendPushToUserIds(
 
   const pubKey = process.env.VAPID_PUBLIC_KEY;
   const privKey = process.env.VAPID_PRIVATE_KEY;
-  const subject = process.env.VAPID_SUBJECT || "mailto:contato@rankmymatch.app";
+  const subject = process.env.VAPID_SUBJECT || "mailto:bimbapps@gmail.com";
   if (!pubKey || !privKey) {
     console.warn("[push] VAPID keys missing — skipping send");
     return { sent: 0, failed: 0 };

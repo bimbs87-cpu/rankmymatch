@@ -132,8 +132,8 @@ function DeleteAccountPage() {
         <Section title="5. Ajuda">
           <p>
             Se não conseguir entrar na conta, escreva para{" "}
-            <a href="mailto:contato@rankmymatch.app" className="text-primary underline">
-              contato@rankmymatch.app
+            <a href="mailto:bimbapps@gmail.com" className="text-primary underline">
+              bimbapps@gmail.com
             </a>{" "}
             usando o mesmo e-mail da conta. Veja também a{" "}
             <Link to="/privacidade" className="text-primary underline">
