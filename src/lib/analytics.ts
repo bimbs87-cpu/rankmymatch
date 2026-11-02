@@ -1,9 +1,14 @@
 // Google Analytics 4 + Google Ads tracking helpers.
 // Os scripts SÓ carregam após consentimento explícito (ver privacy-consent.ts).
-// Nenhum evento é enviado sem consentimento.
+// Nenhum evento é enviado sem consentimento; ao revogar, a coleta para
+// imediatamente (opt-out do GA4 + consent mode "denied" + remoção de cookies).
+import { hasTrackingConsent } from "@/lib/privacy-consent";
 
 const GA4_ID = "G-HDEGEPMC1K";
 const ADS_ID = "AW-18099845561";
+
+// Chave de opt-out oficial do GA4: quando true, o gtag não coleta nada.
+const GA_DISABLE_KEY = `ga-disable-${GA4_ID}`;
 
 type GtagFn = (...args: unknown[]) => void;
 
@@ -22,16 +27,27 @@ function getGtag(): GtagFn | null {
  */
 export function ensureGtagLoaded() {
   if (typeof window === "undefined" || typeof document === "undefined") return;
+  if (!hasTrackingConsent()) return;
   if (gtagLoadRequested || getGtag()) return;
   gtagLoadRequested = true;
 
-  const w = window as unknown as { dataLayer?: unknown[]; gtag?: GtagFn };
+  const w = window as unknown as {
+    dataLayer?: unknown[];
+    gtag?: GtagFn;
+    [key: string]: unknown;
+  };
+  // Reautorização após revogação: limpa o opt-out antes de configurar.
+  w[GA_DISABLE_KEY] = false;
   w.dataLayer = w.dataLayer || [];
   w.gtag = function gtag() {
     // eslint-disable-next-line prefer-rest-params -- gtag.js precisa do objeto arguments
     w.dataLayer!.push(arguments);
   };
   w.gtag("js", new Date());
+  w.gtag("consent", "update", {
+    analytics_storage: "granted",
+    ad_storage: "granted",
+  });
   w.gtag("config", GA4_ID);
   w.gtag("config", ADS_ID, { allow_ad_personalization_signals: false });
 
@@ -39,6 +55,43 @@ export function ensureGtagLoaded() {
   script.async = true;
   script.src = `https://www.googletagmanager.com/gtag/js?id=${GA4_ID}`;
   document.head.appendChild(script);
+}
+
+/**
+ * Revoga a medição opcional: para a coleta imediatamente, sem recarregar.
+ * - Ativa o opt-out oficial do GA4 (nenhum hit novo é enviado);
+ * - Atualiza o consent mode para "denied" (Ads/Analytics);
+ * - Remove os cookies opcionais do Google (_ga, _ga_*, _gcl_*) deste domínio.
+ * Dados já enviados antes da revogação seguem a política de retenção do Google.
+ */
+export function revokeTracking() {
+  if (typeof window === "undefined") return;
+  const w = window as unknown as Record<string, unknown>;
+  w[GA_DISABLE_KEY] = true;
+
+  const gtag = getGtag();
+  if (gtag) {
+    gtag("consent", "update", {
+      analytics_storage: "denied",
+      ad_storage: "denied",
+      ad_user_data: "denied",
+      ad_personalization: "denied",
+    });
+  }
+
+  if (typeof document === "undefined") return;
+  const hostname = window.location.hostname;
+  const cookies = document.cookie
+    .split(";")
+    .map((c) => c.split("=")[0].trim())
+    .filter(Boolean);
+  for (const name of cookies) {
+    if (name === "_ga" || name.startsWith("_ga_") || name.startsWith("_gcl")) {
+      document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`;
+      document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; domain=${hostname}`;
+      document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; domain=.${hostname}`;
+    }
+  }
 }
 
 /**
@@ -51,16 +104,36 @@ export function sanitizePath(path: string): string {
   return noQuery.replace(/^\/invite\/[^/]+/, "/invite");
 }
 
+/**
+ * Minimização de parâmetros personalizados: descarta chaves que possam
+ * carregar informação pessoal, códigos de convite ou tokens. Defesa em
+ * profundidade — os emissores já devem enviar apenas IDs internos e enums.
+ */
+const SENSITIVE_PARAM_KEY =
+  /token|secret|password|passwd|email|e_mail|nome|name|phone|telefone|cpf|invite|code|codigo|auth|session|cookie/i;
+
+export function scrubParams(
+  params: Record<string, unknown>,
+): Record<string, unknown> {
+  const clean: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(params)) {
+    if (SENSITIVE_PARAM_KEY.test(key)) continue;
+    if (typeof value === "string" && value.length > 100) continue;
+    clean[key] = value;
+  }
+  return clean;
+}
+
 function canTrack(): boolean {
-  return getGtag() !== null;
+  return getGtag() !== null && hasTrackingConsent();
 }
 
 /**
  * Track a SPA pageview. Called automatically on route change.
  */
 export function trackPageview(path: string, title?: string) {
-  const gtag = getGtag();
-  if (!gtag) return;
+  if (!canTrack()) return;
+  const gtag = getGtag()!;
   const safePath = sanitizePath(path);
   gtag("event", "page_view", {
     page_path: safePath,
@@ -77,9 +150,9 @@ export function trackPageview(path: string, title?: string) {
  * Track a custom event to GA4.
  */
 export function trackEvent(name: string, params: Record<string, unknown> = {}) {
-  const gtag = getGtag();
-  if (!gtag) return;
-  gtag("event", name, { ...params, send_to: GA4_ID });
+  if (!canTrack()) return;
+  const gtag = getGtag()!;
+  gtag("event", name, { ...scrubParams(params), send_to: GA4_ID });
 }
 
 /**
@@ -88,10 +161,10 @@ export function trackEvent(name: string, params: Record<string, unknown> = {}) {
  * the event still fires to the Ads property for later remarketing/audiences.
  */
 export function trackAdsConversion(label?: string, params: Record<string, unknown> = {}) {
-  const gtag = getGtag();
-  if (!gtag) return;
+  if (!canTrack()) return;
+  const gtag = getGtag()!;
   const sendTo = label ? `${ADS_ID}/${label}` : ADS_ID;
-  gtag("event", "conversion", { send_to: sendTo, ...params });
+  gtag("event", "conversion", { send_to: sendTo, ...scrubParams(params) });
 }
 
 /**

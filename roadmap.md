@@ -10,3 +10,14 @@
 Regras: não apagar dados reais; não alterar rankings/Elo/partidas; sem consentimentos fictícios; não publicar sem testes; não iniciar app Android; não iniciar próxima fase.
 
 Pendente (decisão do proprietário): publicar para valer em produção; prazos de retenção de logs técnicos; ativar ou não personalização de anúncios no futuro.
+
+# FASE 2.4.1 — Fechamento de privacidade e validação da publicação
+
+- [x] Revogação de consentimento: eventos param imediatamente (opt-out GA4 + consent mode denied + remoção de cookies _ga), sem recarregar; reautorização limpa o opt-out
+- [x] Minimização de parâmetros: scrubParams descarta chaves sensíveis (token/convite/e-mail/nome) e strings longas
+- [x] Retenção 90 dias adotada para logs de push e diagnóstico (cron log-retention-cleanup-daily, 04:30 UTC); tabelas estavam vazias — nenhum histórico apagado
+- [x] Política de Privacidade atualizada (revogação imediata + prazos de retenção)
+- [x] Publicação verificada: raqueteia.app já servia o código da Fase 2.4; nova publicação necessária para a revogação
+- [x] Testes: 21 automatizados passando; navegador: aceitar→revogar→reaceitar sem reload, 0 requests Google após revogação, app íntegro com recusa
+
+Pendente: publicar a versão com revogação; proposta de retenção para exclusões/auditoria/e-mails aguarda aprovação do proprietário; Fase 2.5 (Android) não iniciada.
