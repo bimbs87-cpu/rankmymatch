@@ -437,7 +437,7 @@ export function useGroupDetail(groupId: string) {
         const userIds = mems.map((member) => member.user_id);
         const { data: profiles, error: profilesError } = await supabase
           .from("user_profiles")
-          .select("*")
+          .select("id, user_id, name, nickname, avatar_url, avatar_type, is_placeholder, created_at, updated_at")
           .in("user_id", userIds);
 
         if (stale()) return;

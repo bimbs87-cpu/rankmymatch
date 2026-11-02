@@ -49,25 +49,28 @@ export interface AggregatedSummary {
 }
 
 export async function loadAggregatedProfile(userId: string): Promise<AggregatedProfile | null> {
-  const { data, error } = await supabase
-    .from("user_profiles")
-    .select(
-      "user_id, name, nickname, avatar_url, birth_date, dominant_hand, preferred_position, killer_shot, worst_shot, instagram_handle, privacy_settings",
-    )
-    .eq("user_id", userId)
-    .maybeSingle();
+  // Personal fields are only returned by the backend when the viewer may see them.
+  const [{ data, error }, { data: personalRows }] = await Promise.all([
+    supabase
+      .from("user_profiles")
+      .select("user_id, name, nickname, avatar_url, privacy_settings")
+      .eq("user_id", userId)
+      .maybeSingle(),
+    supabase.rpc("get_profile_personal", { _user_id: userId }),
+  ]);
   if (error || !data) return null;
+  const personal = personalRows?.[0] ?? null;
   return {
     user_id: data.user_id,
     name: data.name,
     nickname: data.nickname,
     avatar_url: data.avatar_url,
-    birth_date: data.birth_date,
-    dominant_hand: data.dominant_hand,
-    preferred_position: data.preferred_position,
-    killer_shot: data.killer_shot,
-    worst_shot: data.worst_shot,
-    instagram_handle: data.instagram_handle,
+    birth_date: personal?.birth_date ?? null,
+    dominant_hand: personal?.dominant_hand ?? null,
+    preferred_position: personal?.preferred_position ?? null,
+    killer_shot: personal?.killer_shot ?? null,
+    worst_shot: personal?.worst_shot ?? null,
+    instagram_handle: personal?.instagram_handle ?? null,
     privacy: parsePrivacy(data.privacy_settings),
   };
 }
