@@ -22,7 +22,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { getServerFnAuthHeaders } from "@/lib/server-fn-auth";
 
 const CONFIRM_WORD = "EXCLUIR";
-const SUPPORT_EMAIL = "suporte@rankmymatch.app";
+const SUPPORT_EMAIL = "bimbapps@gmail.com";
 
 interface Props {
   open: boolean;

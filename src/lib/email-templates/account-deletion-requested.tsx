@@ -75,7 +75,7 @@ const AccountDeletionRequestedEmail = ({
             </ul>
 
             <Text style={styles.footer}>
-              Dúvidas? Responda este e-mail ou fale com o suporte: contato@rankmymatch.app
+              Dúvidas? Responda este e-mail ou fale com o suporte: bimbapps@gmail.com
             </Text>
           </Section>
         </Container>

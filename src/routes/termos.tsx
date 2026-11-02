@@ -152,10 +152,10 @@ function TermsPage() {
         <Section title="11. Contato">
           <p>
             <a
-              href="mailto:contato@rankmymatch.app"
+              href="mailto:bimbapps@gmail.com"
               className="text-primary underline"
             >
-              contato@rankmymatch.app
+              bimbapps@gmail.com
             </a>
           </p>
         </Section>
