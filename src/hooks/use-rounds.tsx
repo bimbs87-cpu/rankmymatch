@@ -34,7 +34,7 @@ export function useSeasonRounds(seasonId: string) {
 export function useRoundDetail(roundId: string) {
   const { user } = useAuth();
   const [round, setRound] = useState<Round | null>(null);
-  const [presences, setPresences] = useState<(RoundPresence & { profile?: Tables<"user_profiles"> })[]>([]);
+  const [presences, setPresences] = useState<(RoundPresence & { profile?: Pick<Tables<"user_profiles">, "id" | "user_id" | "name" | "nickname" | "avatar_url" | "avatar_type" | "is_placeholder" | "created_at" | "updated_at"> })[]>([]);
   const [matches, setMatches] = useState<any[]>([]);
   const [myPresence, setMyPresence] = useState<RoundPresence | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -61,7 +61,7 @@ export function useRoundDetail(roundId: string) {
       const userIds = pres.map((p) => p.user_id);
       const { data: profiles } = await supabase
         .from("user_profiles")
-        .select("*")
+        .select("id, user_id, name, nickname, avatar_url, avatar_type, is_placeholder, created_at, updated_at")
         .in("user_id", userIds);
       const profileMap = new Map((profiles || []).map((p) => [p.user_id, p]));
       const enriched = pres.map((p) => ({ ...p, profile: profileMap.get(p.user_id) }));
@@ -85,7 +85,7 @@ export function useRoundDetail(roundId: string) {
       const uniqueIds = [...new Set(playerUserIds)];
       const { data: profiles } = await supabase
         .from("user_profiles")
-        .select("*")
+        .select("id, user_id, name, nickname, avatar_url, avatar_type, is_placeholder, created_at, updated_at")
         .in("user_id", uniqueIds);
       const profileMap = new Map((profiles || []).map((p) => [p.user_id, p]));
 

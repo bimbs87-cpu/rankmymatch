@@ -380,7 +380,7 @@ export function useGroupDetail(groupId: string) {
   const { user } = useAuth();
   const [group, setGroup] = useState<Group | null>(null);
   const [memberCount, setMemberCount] = useState(0);
-  const [members, setMembers] = useState<(GroupMember & { profile?: Tables<"user_profiles"> })[]>([]);
+  const [members, setMembers] = useState<(GroupMember & { profile?: Pick<Tables<"user_profiles">, "id" | "user_id" | "name" | "nickname" | "avatar_url" | "avatar_type" | "is_placeholder" | "created_at" | "updated_at"> })[]>([]);
   const [myRole, setMyRole] = useState<string | null>(null);
   const [pendingRequests, setPendingRequests] = useState<Tables<"group_join_requests">[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -437,7 +437,7 @@ export function useGroupDetail(groupId: string) {
         const userIds = mems.map((member) => member.user_id);
         const { data: profiles, error: profilesError } = await supabase
           .from("user_profiles")
-          .select("*")
+          .select("id, user_id, name, nickname, avatar_url, avatar_type, is_placeholder, created_at, updated_at")
           .in("user_id", userIds);
 
         if (stale()) return;

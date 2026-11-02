@@ -34,6 +34,26 @@ export const requestAccountDeletionFn = createServerFn({ method: "POST" })
       throw new Error("Sua conta já tem uma exclusão agendada");
     }
 
+    // The request row is the source of truth; a unique index allows only one open request.
+    const { data: reqRow, error: reqErr } = await supabaseAdmin
+      .from("account_deletion_requests")
+      .insert({
+        user_id: userId,
+        requested_at: now.toISOString(),
+        scheduled_for: scheduledFor.toISOString(),
+        status: "pending",
+        source: "app",
+      })
+      .select("id")
+      .single();
+    if (reqErr || !reqRow) {
+      if ((reqErr as { code?: string } | null)?.code === "23505") {
+        throw new Error("Sua conta já tem uma exclusão agendada");
+      }
+      console.error("[request-deletion] insert request failed:", reqErr?.code);
+      throw new Error("Não foi possível agendar a exclusão");
+    }
+
     const { error: profileErr } = await supabaseAdmin
       .from("user_profiles")
       .update({
@@ -43,16 +63,13 @@ export const requestAccountDeletionFn = createServerFn({ method: "POST" })
       .eq("user_id", userId);
 
     if (profileErr) {
-      console.error("[request-deletion] update profile failed:", profileErr);
+      console.error("[request-deletion] update profile failed:", profileErr.code);
+      await supabaseAdmin
+        .from("account_deletion_requests")
+        .update({ status: "cancelled", cancelled_at: new Date().toISOString(), last_error: "request:profile_update" })
+        .eq("id", reqRow.id);
       throw new Error("Não foi possível agendar a exclusão");
     }
-
-    await supabaseAdmin.from("account_deletion_requests").insert({
-      user_id: userId,
-      requested_at: now.toISOString(),
-      scheduled_for: scheduledFor.toISOString(),
-      status: "pending",
-    });
 
     await supabaseAdmin.from("notifications").insert({
       user_id: userId,
@@ -125,18 +142,17 @@ export const cancelAccountDeletionFn = createServerFn({ method: "POST" })
   .handler(async ({ context }) => {
     const { userId } = context;
 
-    const { data: profile } = await supabaseAdmin
-      .from("user_profiles")
-      .select("deletion_scheduled_for")
+    // Only a request that has not started processing can be cancelled.
+    const { data: cancelled, error: cancelErr } = await supabaseAdmin
+      .from("account_deletion_requests")
+      .update({ status: "cancelled", cancelled_at: new Date().toISOString() })
       .eq("user_id", userId)
-      .maybeSingle();
-
-    if (!profile?.deletion_scheduled_for) {
-      throw new Error("Não há exclusão agendada");
-    }
-
-    if (new Date(profile.deletion_scheduled_for) <= new Date()) {
-      throw new Error("O prazo de cancelamento já expirou");
+      .eq("status", "pending")
+      .gt("scheduled_for", new Date().toISOString())
+      .select("id");
+    if (cancelErr) throw new Error("Não foi possível cancelar");
+    if (!cancelled?.length) {
+      throw new Error("Não há exclusão que ainda possa ser cancelada");
     }
 
     const { error } = await supabaseAdmin
@@ -148,15 +164,9 @@ export const cancelAccountDeletionFn = createServerFn({ method: "POST" })
       .eq("user_id", userId);
 
     if (error) {
-      console.error("[cancel-deletion] update profile failed:", error);
+      console.error("[cancel-deletion] update profile failed:", error.code);
       throw new Error("Não foi possível cancelar");
     }
-
-    await supabaseAdmin
-      .from("account_deletion_requests")
-      .update({ status: "cancelled", cancelled_at: new Date().toISOString() })
-      .eq("user_id", userId)
-      .eq("status", "pending");
 
     await supabaseAdmin.from("notifications").insert({
       user_id: userId,
@@ -176,14 +186,16 @@ export const getDeletionStatusFn = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { userId } = context;
     const { data } = await supabaseAdmin
-      .from("user_profiles")
-      .select("deletion_requested_at, deletion_scheduled_for")
+      .from("account_deletion_requests")
+      .select("status, requested_at, scheduled_for")
       .eq("user_id", userId)
+      .in("status", ["pending", "processing", "failed"])
       .maybeSingle();
 
     return {
-      pending: !!data?.deletion_scheduled_for,
-      requestedAt: data?.deletion_requested_at ?? null,
-      scheduledFor: data?.deletion_scheduled_for ?? null,
+      pending: !!data,
+      status: (data?.status ?? null) as "pending" | "processing" | "failed" | null,
+      requestedAt: data?.requested_at ?? null,
+      scheduledFor: data?.scheduled_for ?? null,
     };
   });

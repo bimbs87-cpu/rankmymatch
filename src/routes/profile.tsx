@@ -106,7 +106,6 @@ function ProfilePage() {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [installInstructionsOpen, setInstallInstructionsOpen] = useState(false);
   const [dangerZoneOpen, setDangerZoneOpen] = useState(false);
-  const [dangerExpanded, setDangerExpanded] = useState(false);
   const { canInstall, isInstalled, isIos, startInstall } = useInstallFlow();
   const { isAppAdmin } = useAppAdmin();
 
@@ -612,12 +611,11 @@ function ProfilePage() {
               <button
                 onClick={() => {
                   setDangerZoneOpen((v) => !v);
-                  if (dangerZoneOpen) setDangerExpanded(false);
                 }}
                 className="mt-2 flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-muted-foreground transition-colors hover:bg-accent"
               >
                 <ShieldAlert className="h-4 w-4" />
-                <span className="flex-1 text-sm font-medium">Configurações avançadas da conta</span>
+                <span className="flex-1 text-sm font-medium">Excluir conta</span>
                 <ChevronDown className={`h-4 w-4 transition-transform ${dangerZoneOpen ? "rotate-180" : ""}`} />
               </button>
 
@@ -630,22 +628,18 @@ function ProfilePage() {
                       permanentes e podem ser irreversíveis.
                     </p>
                   </div>
-                  {!dangerExpanded ? (
-                    <button
-                      onClick={() => setDangerExpanded(true)}
-                      className="w-full rounded-xl border border-destructive/40 bg-card px-4 py-2.5 text-xs font-semibold text-destructive transition-colors hover:bg-destructive/10"
-                    >
-                      Mostrar opção de excluir conta
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => setDeleteOpen(true)}
-                      className="flex w-full items-center gap-3 rounded-xl border border-destructive/60 bg-destructive/10 px-4 py-3 text-left text-destructive transition-colors hover:bg-destructive/20"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                      <span className="flex-1 text-sm font-bold">Excluir minha conta</span>
-                    </button>
-                  )}
+                  <p className="text-xs text-muted-foreground">
+                    Seu perfil é anonimizado e seu login apagado após 7 dias. Os resultados das
+                    partidas continuam no histórico dos grupos, sem seu nome.{" "}
+                    <a href="/excluir-conta" className="underline">Saiba mais</a>
+                  </p>
+                  <button
+                    onClick={() => setDeleteOpen(true)}
+                    className="flex w-full items-center gap-3 rounded-xl border border-destructive/60 bg-destructive/10 px-4 py-3 text-left text-destructive transition-colors hover:bg-destructive/20"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    <span className="flex-1 text-sm font-bold">Excluir minha conta</span>
+                  </button>
                 </div>
               )}
             </div>

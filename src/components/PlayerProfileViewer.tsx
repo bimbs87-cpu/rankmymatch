@@ -149,11 +149,14 @@ function PlayerProfileDrawer({
       if (!cancelled) setMeId(auth.user?.id ?? null);
 
       // Profile
-      const { data: prof } = await supabase
-        .from("user_profiles")
-        .select("user_id, name, nickname, avatar_url, instagram_handle, privacy_settings")
-        .eq("user_id", userId)
-        .maybeSingle();
+      const [{ data: prof }, { data: personalRows }] = await Promise.all([
+        supabase
+          .from("user_profiles")
+          .select("user_id, name, nickname, avatar_url, privacy_settings")
+          .eq("user_id", userId)
+          .maybeSingle(),
+        supabase.rpc("get_profile_personal", { _user_id: userId }),
+      ]);
 
       if (!cancelled && prof) {
         setProfile({
@@ -161,7 +164,7 @@ function PlayerProfileDrawer({
           name: prof.name,
           nickname: prof.nickname,
           avatar_url: prof.avatar_url,
-          instagram_handle: prof.instagram_handle,
+          instagram_handle: personalRows?.[0]?.instagram_handle ?? null,
           privacy: parsePrivacy(prof.privacy_settings),
         });
       }

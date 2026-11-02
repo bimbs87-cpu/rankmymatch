@@ -16,3 +16,5 @@ RankMyMatch technical decisions:
 - On batch score save failure, keep the typed scores in place (skip the reload) and show a long error toast, so admins can retry without re-entering results.
 - Route hot read-only queries through sharedFetch (src/lib/shared-fetch.ts) with a short TTL so simultaneous hook instances (Home, BottomNav, DesktopNav, popovers) share one request; invalidate the key after mutations that change the data.
 - Keep standalone PWA startup in the root shell using the manifest icon and an indeterminate progress bar; dismiss on auth/router readiness without a minimum delay, since native OS startup cannot run custom UI.
+- Process account deletions only through the token-verified /api/public/hooks/process-deletions route: claim one request at a time (SKIP LOCKED), record finished steps, and mark "executed" only after the login identity is confirmed gone, so failures stay retryable and never look complete.
+- Keep personal profile fields (birth date, Instagram, play preferences) out of client column grants and read them only via get_profile_personal, so privacy settings are enforced by the backend rather than the UI.
