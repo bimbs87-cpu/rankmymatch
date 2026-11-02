@@ -52,6 +52,7 @@ import { Route as ApiOgGroupGroupIdRouteImport } from './routes/api.og.group.$gr
 import { Route as ApiOgPlayerUserIdRouteImport } from './routes/api.og.player.$userId'
 import { Route as ApiPublicHooksGameRemindersRouteImport } from './routes/api.public.hooks.game-reminders'
 import { Route as ApiPublicHooksMonthlyReportRouteImport } from './routes/api.public.hooks.monthly-report'
+import { Route as ApiPublicHooksProcessDeletionsRouteImport } from './routes/api.public.hooks.process-deletions'
 import { Route as GroupsGroupIdSeasonsIndexRouteImport } from './routes/groups.$groupId.seasons.index'
 import { Route as GroupsGroupIdSeasonsSeasonIdRouteImport } from './routes/groups.$groupId.seasons.$seasonId'
 import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
@@ -282,6 +283,12 @@ const ApiPublicHooksMonthlyReportRoute =
     path: '/api/public/hooks/monthly-report',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicHooksProcessDeletionsRoute =
+  ApiPublicHooksProcessDeletionsRouteImport.update({
+    id: '/api/public/hooks/process-deletions',
+    path: '/api/public/hooks/process-deletions',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const GroupsGroupIdSeasonsIndexRoute =
   GroupsGroupIdSeasonsIndexRouteImport.update({
     id: '/',
@@ -373,6 +380,7 @@ export interface FileRoutesByFullPath {
   '/api/og/player/$userId': typeof ApiOgPlayerUserIdRoute
   '/api/public/hooks/game-reminders': typeof ApiPublicHooksGameRemindersRoute
   '/api/public/hooks/monthly-report': typeof ApiPublicHooksMonthlyReportRoute
+  '/api/public/hooks/process-deletions': typeof ApiPublicHooksProcessDeletionsRoute
   '/groups/$groupId/seasons/$seasonId': typeof GroupsGroupIdSeasonsSeasonIdRouteWithChildren
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
@@ -423,6 +431,7 @@ export interface FileRoutesByTo {
   '/api/og/player/$userId': typeof ApiOgPlayerUserIdRoute
   '/api/public/hooks/game-reminders': typeof ApiPublicHooksGameRemindersRoute
   '/api/public/hooks/monthly-report': typeof ApiPublicHooksMonthlyReportRoute
+  '/api/public/hooks/process-deletions': typeof ApiPublicHooksProcessDeletionsRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
@@ -476,6 +485,7 @@ export interface FileRoutesById {
   '/api/og/player/$userId': typeof ApiOgPlayerUserIdRoute
   '/api/public/hooks/game-reminders': typeof ApiPublicHooksGameRemindersRoute
   '/api/public/hooks/monthly-report': typeof ApiPublicHooksMonthlyReportRoute
+  '/api/public/hooks/process-deletions': typeof ApiPublicHooksProcessDeletionsRoute
   '/groups/$groupId/seasons/$seasonId': typeof GroupsGroupIdSeasonsSeasonIdRouteWithChildren
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
@@ -531,6 +541,7 @@ export interface FileRouteTypes {
     | '/api/og/player/$userId'
     | '/api/public/hooks/game-reminders'
     | '/api/public/hooks/monthly-report'
+    | '/api/public/hooks/process-deletions'
     | '/groups/$groupId/seasons/$seasonId'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
@@ -581,6 +592,7 @@ export interface FileRouteTypes {
     | '/api/og/player/$userId'
     | '/api/public/hooks/game-reminders'
     | '/api/public/hooks/monthly-report'
+    | '/api/public/hooks/process-deletions'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
@@ -633,6 +645,7 @@ export interface FileRouteTypes {
     | '/api/og/player/$userId'
     | '/api/public/hooks/game-reminders'
     | '/api/public/hooks/monthly-report'
+    | '/api/public/hooks/process-deletions'
     | '/groups/$groupId/seasons/$seasonId'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
@@ -680,6 +693,7 @@ export interface RootRouteChildren {
   ApiOgPlayerUserIdRoute: typeof ApiOgPlayerUserIdRoute
   ApiPublicHooksGameRemindersRoute: typeof ApiPublicHooksGameRemindersRoute
   ApiPublicHooksMonthlyReportRoute: typeof ApiPublicHooksMonthlyReportRoute
+  ApiPublicHooksProcessDeletionsRoute: typeof ApiPublicHooksProcessDeletionsRoute
   LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
   LovableEmailAuthWebhookRoute: typeof LovableEmailAuthWebhookRoute
   LovableEmailQueueProcessRoute: typeof LovableEmailQueueProcessRoute
@@ -990,6 +1004,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksMonthlyReportRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/process-deletions': {
+      id: '/api/public/hooks/process-deletions'
+      path: '/api/public/hooks/process-deletions'
+      fullPath: '/api/public/hooks/process-deletions'
+      preLoaderRoute: typeof ApiPublicHooksProcessDeletionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/groups/$groupId/seasons/': {
       id: '/groups/$groupId/seasons/'
       path: '/'
@@ -1158,6 +1179,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiOgPlayerUserIdRoute: ApiOgPlayerUserIdRoute,
   ApiPublicHooksGameRemindersRoute: ApiPublicHooksGameRemindersRoute,
   ApiPublicHooksMonthlyReportRoute: ApiPublicHooksMonthlyReportRoute,
+  ApiPublicHooksProcessDeletionsRoute: ApiPublicHooksProcessDeletionsRoute,
   LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,
   LovableEmailAuthWebhookRoute: LovableEmailAuthWebhookRoute,
   LovableEmailQueueProcessRoute: LovableEmailQueueProcessRoute,
