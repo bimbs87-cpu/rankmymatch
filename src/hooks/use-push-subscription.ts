@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { useHydrated } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
 import { removePushSubscriptionFn, upsertPushSubscriptionFn } from "@/lib/push.functions";
@@ -39,11 +40,13 @@ async function getPushRegistration(): Promise<ServiceWorkerRegistration | null> 
 
 export function usePushSubscription() {
   const { user } = useAuth();
+  const hydrated = useHydrated();
   const [status, setStatus] = useState<PushStatus>("default");
   const [isSubscribed, setIsSubscribed] = useState<boolean>(false);
   const [busy, setBusy] = useState<boolean>(false);
 
   const supported =
+    hydrated &&
     typeof window !== "undefined" &&
     "serviceWorker" in navigator &&
     "PushManager" in window &&

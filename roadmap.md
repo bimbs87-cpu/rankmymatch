@@ -9,7 +9,7 @@
 
 Regras: não apagar dados reais; não alterar rankings/Elo/partidas; sem consentimentos fictícios; não publicar sem testes; não iniciar app Android; não iniciar próxima fase.
 
-Pendente (decisão do proprietário): publicar para valer em produção; prazos de retenção de logs técnicos; ativar ou não personalização de anúncios no futuro.
+Estado atualizado no encerramento abaixo; personalização de anúncios segue desativada.
 
 # FASE 2.4.1 — Fechamento de privacidade e validação da publicação
 
@@ -17,7 +17,19 @@ Pendente (decisão do proprietário): publicar para valer em produção; prazos 
 - [x] Minimização de parâmetros: scrubParams descarta chaves sensíveis (token/convite/e-mail/nome) e strings longas
 - [x] Retenção 90 dias adotada para logs de push e diagnóstico (cron log-retention-cleanup-daily, 04:30 UTC); tabelas estavam vazias — nenhum histórico apagado
 - [x] Política de Privacidade atualizada (revogação imediata + prazos de retenção)
-- [x] Publicação verificada: raqueteia.app já servia o código da Fase 2.4; nova publicação necessária para a revogação
+- [x] Publicação: revogação confirmada em raqueteia.app no encerramento abaixo
 - [x] Testes: 21 automatizados passando; navegador: aceitar→revogar→reaceitar sem reload, 0 requests Google após revogação, app íntegro com recusa
 
-Pendente: publicar a versão com revogação; proposta de retenção para exclusões/auditoria/e-mails aguarda aprovação do proprietário; Fase 2.5 (Android) não iniciada.
+Estado atualizado no encerramento abaixo; Fase 2.5 (Android) não iniciada.
+
+# ENCERRAMENTO DA FASE 2 — 2 de novembro de 2026
+
+- [x] Documentar propostas de retenção, minimização e descarte, sem novas rotinas nem exclusões históricas
+- [x] Confirmar consentimento em produção: recusar sem scripts, aceitar, revogar imediatamente e persistir após recarregar
+- [x] SPF/DMARC confirmados; domínio verificado; um e-mail de teste aceito pelo provedor para o contato autorizado
+- [x] 32 regressões passaram; grupos, partidas, rankings, temporadas, sessão e notificações verificados em leitura; divergência inicial do controle push corrigida
+- [x] Relatório de encerramento documentado com limites e requisitos Android; nenhum AAB ou alteração de identificador
+- [ ] Proprietário: publicar nova política e ajuste de apresentação push; revogação já validada em produção
+- [ ] Proprietário: confirmar recebimento do e-mail e cabeçalhos DKIM/SPF/DMARC; seletor DKIM não fornecido pelas ferramentas
+- [ ] Proprietário: validar push em celular físico e login Google completo em produção
+- [ ] Aprovação específica necessária antes de implementar minimização/descarte das categorias propostas; nenhum novo descarte ativado

@@ -19,6 +19,8 @@ export const Route = createFileRoute("/privacidade")({
           "Como o Raqueteia coleta, usa e protege seus dados pessoais — em conformidade com a LGPD.",
       },
       { property: "og:title", content: "Política de Privacidade — Raqueteia" },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       {
         property: "og:description",
         content:
@@ -240,9 +242,27 @@ function PrivacyPage() {
           <p>
             Registros operacionais de envio de notificações push e registros
             técnicos de diagnóstico são apagados automaticamente após
-            <strong> 90 dias</strong>. Registros de exclusão de conta, auditoria
-            de segurança e histórico de e-mails transacionais são mantidos pelo
-            tempo necessário para comprovação legal e segurança do serviço.
+            <strong> 90 dias</strong>.
+          </p>
+          <p>
+            Para evidências mínimas de atendimento de pedidos de exclusão,
+            propomos retenção de <strong>até 5 anos após a conclusão</strong>,
+            com pseudonimização e acesso restrito. Esse prazo não é uma exigência
+            automática da LGPD. Propomos <strong>até 1 ano desde cada evento</strong>
+            {' '}para auditoria de segurança, limitada à investigação e proteção,
+            e <strong>até 1 ano desde o envio ou tentativa</strong> para e-mails
+            transacionais, preferindo metadados de envio, entrega e finalidade,
+            sem conteúdo completo desnecessário.
+          </p>
+          <p>
+            São propostas documentadas: a minimização dos registros existentes
+            e novas rotinas de descarte dessas categorias ainda dependem de
+            aprovação específica. O procedimento prevê revisão dos registros
+            elegíveis, preservação excepcional apenas com justificativa,
+            eliminação dos dados vencidos e das associações desnecessárias e
+            comprovante agregado de descarte. Não foram feitas exclusões
+            históricas nesta etapa; cópias de segurança expiram conforme sua
+            política operacional.
           </p>
         </Section>
 
