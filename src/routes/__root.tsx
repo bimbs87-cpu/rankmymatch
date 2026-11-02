@@ -2,7 +2,7 @@ import { Outlet, Link, createRootRoute, HeadContent, Scripts, useRouter, useLoca
 import { AuthProvider, useAuth } from "@/hooks/use-auth";
 import { useTheme } from "@/lib/theme";
 import loggedInBgDesktopDark from "@/assets/loggedin-bg-desktop-dark.webp";
-import { ensureGtagLoaded, trackPageview } from "@/lib/analytics";
+import { ensureGtagLoaded, revokeTracking, trackPageview } from "@/lib/analytics";
 import { hasTrackingConsent, onConsentChange } from "@/lib/privacy-consent";
 import { ConsentBanner } from "@/components/ConsentBanner";
 import { captureAcquisitionOnce } from "@/lib/acquisition-tracking";
@@ -119,6 +119,7 @@ function RootComponent() {
     if (hasTrackingConsent()) ensureGtagLoaded();
     const unsubConsent = onConsentChange((choice) => {
       if (choice === "granted") ensureGtagLoaded();
+      else revokeTracking();
     });
     // Track initial pageview + every SPA navigation for GA4 + page_visits table
     const initialPath = window.location.pathname + window.location.search;
