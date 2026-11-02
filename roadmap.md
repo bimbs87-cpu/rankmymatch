@@ -21,3 +21,11 @@ Pendente (decisão do proprietário): publicar para valer em produção; prazos 
 - [x] Testes: 21 automatizados passando; navegador: aceitar→revogar→reaceitar sem reload, 0 requests Google após revogação, app íntegro com recusa
 
 Pendente: publicar a versão com revogação; proposta de retenção para exclusões/auditoria/e-mails aguarda aprovação do proprietário; Fase 2.5 (Android) não iniciada.
+
+# ENCERRAMENTO DA FASE 2 — 2 de novembro de 2026
+
+- [ ] Documentar propostas de retenção, minimização e descarte, sem novas rotinas nem exclusões históricas
+- [x] Confirmar consentimento em produção: recusar sem scripts, aceitar, revogar imediatamente e persistir após recarregar
+- [ ] Verificar SPF, DKIM e DMARC e enviar um único e-mail de teste explícito ao contato autorizado
+- [ ] Executar regressões e verificar grupos, partidas, rankings, temporadas, sessão e notificações sem alterar dados esportivos
+- [ ] Entregar relatório de encerramento com limites e requisitos Android, sem gerar AAB nem mudar identificador

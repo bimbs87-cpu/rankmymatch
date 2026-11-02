@@ -19,8 +19,10 @@ export interface TemplateEntry {
  */
 import { template as accountDeletionRequested } from './account-deletion-requested'
 import { template as monthlyReport } from './monthly-report'
+import { template as infrastructureTest } from './infrastructure-test'
 
 export const TEMPLATES: Record<string, TemplateEntry> = {
   'account-deletion-requested': accountDeletionRequested,
   'monthly-report': monthlyReport,
+  'infrastructure-test': infrastructureTest,
 }
