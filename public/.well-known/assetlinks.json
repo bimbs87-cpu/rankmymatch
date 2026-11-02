@@ -1,1 +1,14 @@
-[]
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "app.raqueteia",
+      "sha256_cert_fingerprints": [
+        "CD:BE:6F:43:AD:F6:2B:DE:37:96:A6:9F:05:7C:09:92:2A:EF:15:FD:E0:B8:B5:FA:71:EE:EE:CC:B2:B5:DF:BA"
+      ]
+    }
+  }
+]
