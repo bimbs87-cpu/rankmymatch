@@ -533,6 +533,15 @@ function ProfilePage() {
             value={privacy.show_achievements}
             onChange={(v) => updatePrivacy({ ...privacy, show_achievements: v })}
           />
+          <PrivacyToggle
+            label="Medição de uso (Analytics e Ads)"
+            desc="Estatísticas anônimas de uso e medição de divulgação via Google"
+            value={trackingConsent}
+            onChange={(v) => {
+              setConsentChoice(v ? "granted" : "denied", user?.id ?? null);
+              setTrackingConsent(v);
+            }}
+          />
         </div>
       </div>
     );

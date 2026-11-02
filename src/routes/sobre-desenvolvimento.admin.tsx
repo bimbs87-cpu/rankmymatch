@@ -76,6 +76,47 @@ const PRIORITY_CLS: Record<Priority, string> = {
   critical: "border-destructive/40 bg-destructive/10 text-destructive",
 };
 
+/**
+ * O bucket bug-screenshots é privado: extrai o caminho do arquivo da URL
+ * pública gravada e gera uma URL assinada temporária (1h) para exibição.
+ */
+function extractScreenshotPath(storedUrl: string): string | null {
+  const marker = "/storage/v1/object/public/bug-screenshots/";
+  const idx = storedUrl.indexOf(marker);
+  if (idx === -1) return null;
+  return decodeURIComponent(storedUrl.slice(idx + marker.length));
+}
+
+function BugScreenshot({ url }: { url: string }) {
+  const [signedUrl, setSignedUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    const path = extractScreenshotPath(url);
+    if (!path) return;
+    supabase.storage
+      .from("bug-screenshots")
+      .createSignedUrl(path, 60 * 60)
+      .then(({ data, error }) => {
+        if (!cancelled && !error && data?.signedUrl) setSignedUrl(data.signedUrl);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [url]);
+
+  if (!signedUrl) return null;
+  return (
+    <a href={signedUrl} target="_blank" rel="noreferrer" className="mt-2 inline-block">
+      <img
+        src={signedUrl}
+        alt="Screenshot"
+        className="max-h-40 rounded-lg border border-border"
+      />
+    </a>
+  );
+}
+
 function BugAdminPage() {
   const { user, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
