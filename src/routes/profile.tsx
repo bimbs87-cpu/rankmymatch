@@ -7,6 +7,7 @@ import { ProfileBody } from "@/components/ProfileBody";
 import { ShareProfileButton } from "@/components/ShareProfileButton";
 import { PushOptInCard } from "@/components/PushOptInCard";
 import { PushPreferencesCard } from "@/components/PushPreferencesCard";
+import { getConsentChoice, setConsentChoice } from "@/lib/privacy-consent";
 import {
   loadAggregatedProfile,
   loadAggregatedSummary,
@@ -100,6 +101,10 @@ function ProfilePage() {
   const [loadingProfile, setLoadingProfile] = useState(true);
   const [editing, setEditing] = useState(false);
   const [privacyOpen, setPrivacyOpen] = useState(false);
+  const [trackingConsent, setTrackingConsent] = useState(false);
+  useEffect(() => {
+    setTrackingConsent(getConsentChoice() === "granted");
+  }, []);
   const [saving, setSaving] = useState(false);
   const [avatarPickerOpen, setAvatarPickerOpen] = useState(false);
   const [savingAvatar, setSavingAvatar] = useState(false);
@@ -532,6 +537,15 @@ function ProfilePage() {
             desc="Trofeus de temporadas e badges"
             value={privacy.show_achievements}
             onChange={(v) => updatePrivacy({ ...privacy, show_achievements: v })}
+          />
+          <PrivacyToggle
+            label="Medição de uso (Analytics e Ads)"
+            desc="Estatísticas anônimas de uso e medição de divulgação via Google"
+            value={trackingConsent}
+            onChange={(v) => {
+              setConsentChoice(v ? "granted" : "denied", user?.id ?? null);
+              setTrackingConsent(v);
+            }}
           />
         </div>
       </div>

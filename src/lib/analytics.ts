@@ -1,10 +1,13 @@
-// Google Analytics 4 + Google Ads tracking helpers
-// IDs configured in src/routes/__root.tsx
+// Google Analytics 4 + Google Ads tracking helpers.
+// Os scripts SÓ carregam após consentimento explícito (ver privacy-consent.ts).
+// Nenhum evento é enviado sem consentimento.
 
 const GA4_ID = "G-HDEGEPMC1K";
 const ADS_ID = "AW-18099845561";
 
 type GtagFn = (...args: unknown[]) => void;
+
+let gtagLoadRequested = false;
 
 function getGtag(): GtagFn | null {
   if (typeof window === "undefined") return null;
@@ -13,14 +16,58 @@ function getGtag(): GtagFn | null {
 }
 
 /**
+ * Injeta o gtag.js e configura GA4 + Ads. Chamado apenas quando o usuário
+ * aceitou medição opcional. Sinais de personalização de anúncios ficam
+ * desativados até decisão explícita do proprietário.
+ */
+export function ensureGtagLoaded() {
+  if (typeof window === "undefined" || typeof document === "undefined") return;
+  if (gtagLoadRequested || getGtag()) return;
+  gtagLoadRequested = true;
+
+  const w = window as unknown as { dataLayer?: unknown[]; gtag?: GtagFn };
+  w.dataLayer = w.dataLayer || [];
+  w.gtag = function gtag() {
+    // eslint-disable-next-line prefer-rest-params -- gtag.js precisa do objeto arguments
+    w.dataLayer!.push(arguments);
+  };
+  w.gtag("js", new Date());
+  w.gtag("config", GA4_ID);
+  w.gtag("config", ADS_ID, { allow_ad_personalization_signals: false });
+
+  const script = document.createElement("script");
+  script.async = true;
+  script.src = `https://www.googletagmanager.com/gtag/js?id=${GA4_ID}`;
+  document.head.appendChild(script);
+}
+
+/**
+ * Remove dados sensíveis de caminhos antes de enviar a terceiros:
+ * - query string e hash nunca são enviados (podem conter tokens/parâmetros);
+ * - códigos de convite (/invite/<codigo>) são mascarados.
+ */
+export function sanitizePath(path: string): string {
+  const noQuery = path.split("?")[0].split("#")[0];
+  return noQuery.replace(/^\/invite\/[^/]+/, "/invite");
+}
+
+function canTrack(): boolean {
+  return getGtag() !== null;
+}
+
+/**
  * Track a SPA pageview. Called automatically on route change.
  */
 export function trackPageview(path: string, title?: string) {
   const gtag = getGtag();
   if (!gtag) return;
+  const safePath = sanitizePath(path);
   gtag("event", "page_view", {
-    page_path: path,
-    page_location: typeof window !== "undefined" ? window.location.href : path,
+    page_path: safePath,
+    page_location:
+      typeof window !== "undefined"
+        ? `${window.location.origin}${safePath}`
+        : safePath,
     page_title: title ?? (typeof document !== "undefined" ? document.title : undefined),
     send_to: GA4_ID,
   });
@@ -58,3 +105,6 @@ export function trackConversion(
   trackEvent(eventName, params);
   trackAdsConversion(adsLabel, params);
 }
+
+// canTrack é exportado para testes e diagnóstico.
+export { canTrack };

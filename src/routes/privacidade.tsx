@@ -1,5 +1,13 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowLeft } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useAuth } from "@/hooks/use-auth";
+import {
+  getConsentChoice,
+  onConsentChange,
+  setConsentChoice,
+  type ConsentChoice,
+} from "@/lib/privacy-consent";
 
 export const Route = createFileRoute("/privacidade")({
   head: () => ({
@@ -22,6 +30,57 @@ export const Route = createFileRoute("/privacidade")({
   component: PrivacyPage,
 });
 
+function TrackingPreferenceCard() {
+  const { user } = useAuth();
+  const [choice, setChoice] = useState<ConsentChoice | null>(null);
+
+  useEffect(() => {
+    setChoice(getConsentChoice());
+    return onConsentChange((c) => setChoice(c));
+  }, []);
+
+  const decide = (c: ConsentChoice) => setConsentChoice(c, user?.id ?? null);
+
+  return (
+    <div className="rounded-2xl border border-border bg-card p-4">
+      <p className="text-sm font-semibold text-foreground">
+        Sua escolha atual:{" "}
+        {choice === "granted" && <span className="text-primary">medição ativada</span>}
+        {choice === "denied" && <span className="text-foreground">medição desativada</span>}
+        {choice === null && <span className="text-muted-foreground">ainda não definida</span>}
+      </p>
+      <p className="mt-1 text-xs text-muted-foreground">
+        Você pode mudar quando quiser. A escolha vale imediatamente para este
+        dispositivo e fica registrada na sua conta quando você está logado.
+      </p>
+      <div className="mt-3 flex gap-2">
+        <button
+          type="button"
+          onClick={() => decide("denied")}
+          className={`flex-1 rounded-full border px-4 py-2 text-xs font-bold transition-colors ${
+            choice === "denied"
+              ? "border-primary bg-primary/10 text-primary"
+              : "border-border bg-background text-foreground hover:bg-accent"
+          }`}
+        >
+          Desativar
+        </button>
+        <button
+          type="button"
+          onClick={() => decide("granted")}
+          className={`flex-1 rounded-full border px-4 py-2 text-xs font-bold transition-colors ${
+            choice === "granted"
+              ? "border-primary bg-primary/10 text-primary"
+              : "border-border bg-background text-foreground hover:bg-accent"
+          }`}
+        >
+          Ativar
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function PrivacyPage() {
   return (
     <div className="min-h-screen bg-background">
@@ -40,7 +99,7 @@ function PrivacyPage() {
 
       <main className="mx-auto max-w-3xl space-y-6 px-5 py-8 text-sm leading-relaxed text-foreground">
         <p className="text-xs text-muted-foreground">
-          Última atualização: 21 de abril de 2026
+          Última atualização: 2 de novembro de 2026
         </p>
 
         <section className="space-y-2">
@@ -68,9 +127,20 @@ function PrivacyPage() {
               presenças, partidas, placares, evolução de Elo.
             </li>
             <li>
+              <strong>Origem do cadastro:</strong> quando você chega por um link
+              de divulgação ou convite, registramos a origem (parâmetros de
+              campanha, código de convite e site de referência) para entender
+              como o app é descoberto.
+            </li>
+            <li>
+              <strong>Relatórios de erro:</strong> ao reportar um problema, você
+              pode anexar uma captura de tela. Ela fica armazenada de forma
+              privada, acessível apenas a você e à equipe de desenvolvimento.
+            </li>
+            <li>
               <strong>Dados técnicos:</strong> tipo de dispositivo, navegador,
-              endpoint de notificação push, registros de erros e métricas
-              anônimas de uso.
+              inscrição de notificação push e registros de uso necessários ao
+              funcionamento do app.
             </li>
           </ul>
         </Section>
@@ -105,12 +175,28 @@ function PrivacyPage() {
           </p>
         </Section>
 
-        <Section title="4. Cookies e tecnologias semelhantes">
+        <Section title="4. Medição de uso e publicidade (opcional)">
           <p>
-            Usamos armazenamento local do navegador para manter sua sessão,
-            preferências de tema e configurações do app. Usamos Google Analytics
-            de forma agregada para entender padrões de uso.
+            Usamos armazenamento local do navegador para manter sua sessão e
+            preferências do app — isso é essencial e sempre ativo. Também
+            registramos métricas próprias de visitas às páginas, sem cookies de
+            terceiros.
           </p>
+          <p>
+            <strong>Google Analytics e Google Ads</strong> são tecnologias
+            opcionais: só são carregados se você aceitar no aviso exibido no
+            primeiro acesso. Com eles, medimos páginas visitadas e eventos de
+            uso (como cadastro e criação de grupo) para entender o produto e
+            medir divulgação. Endereços de página são enviados sem parâmetros,
+            e códigos de convite nunca são incluídos. A personalização de
+            anúncios está desativada.
+          </p>
+          <p>
+            Se você recusar, nenhum script do Google é carregado e o app
+            funciona normalmente. Sua escolha pode ser alterada a qualquer
+            momento:
+          </p>
+          <TrackingPreferenceCard />
         </Section>
 
         <Section title="5. Seus direitos (LGPD)">
@@ -119,6 +205,10 @@ function PrivacyPage() {
             <li>Acessar e corrigir seus dados na tela de perfil.</li>
             <li>
               Configurar a visibilidade pública/privada das suas estatísticas.
+            </li>
+            <li>
+              Ativar ou desativar a medição opcional (seção 4 acima ou em
+              <em> Perfil → Privacidade</em>).
             </li>
             <li>
               <strong>Excluir sua conta</strong> diretamente pelo app, em
@@ -143,16 +233,19 @@ function PrivacyPage() {
           <p>
             Mantemos seus dados enquanto sua conta estiver ativa. Após a
             exclusão, dados pessoais são apagados em até 30 dias e o histórico
-            esportivo permanece anonimizado.
+            esportivo permanece anonimizado. Registros técnicos (como histórico
+            de envios e auditoria de segurança) são mantidos pelo tempo
+            necessário para operação e segurança do serviço.
           </p>
         </Section>
 
         <Section title="7. Segurança">
           <p>
             Aplicamos políticas de segurança em nível de linha (RLS), criptografia
-            em trânsito (HTTPS) e controle de acesso por função. Nenhum sistema é
-            100% imune; em caso de incidente, comunicaremos os afetados conforme
-            exige a LGPD.
+            em trânsito (HTTPS) e controle de acesso por função. Arquivos
+            enviados em relatórios de erro ficam em armazenamento privado.
+            Nenhum sistema é 100% imune; em caso de incidente, comunicaremos os
+            afetados conforme exige a LGPD.
           </p>
         </Section>
 

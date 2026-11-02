@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { sendPushToUserIds, type PushPayload } from "@/lib/web-push.server";
+import { sanitizePushUrl } from "@/lib/push-url";
 
 /**
  * Best-effort push delivery. Always called fire-and-forget from the client;
@@ -9,10 +10,18 @@ import { sendPushToUserIds, type PushPayload } from "@/lib/web-push.server";
  * group with the caller (or the caller themselves) to prevent abuse. We use
  * the admin client for the actual send, but gate the request via a quick
  * authenticated query.
+ *
+ * Proteções anti-abuso:
+ * - url do payload precisa ser um caminho interno ("/...") — links externos
+ *   são descartados;
+ * - limite de frequência por remetente (ver PUSH_RATE_LIMIT_PER_HOUR).
  */
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+
+/** Máximo de lotes de push que um usuário pode disparar por hora. */
+export const PUSH_RATE_LIMIT_PER_HOUR = 30;
 
 interface SendPushInput {
   userIds: string[];
@@ -41,7 +50,7 @@ export const sendPushFn = createServerFn({ method: "POST" })
     const payload: PushPayload = {
       title: String(p.title || "Raqueteia").slice(0, 120),
       body: p.body ? String(p.body).slice(0, 300) : undefined,
-      url: p.url ? String(p.url).slice(0, 500) : undefined,
+      url: sanitizePushUrl(p.url),
       type: p.type ? String(p.type).slice(0, 60) : undefined,
       tag: p.tag ? String(p.tag).slice(0, 60) : undefined,
       data: p.data && typeof p.data === "object" ? p.data : undefined,
@@ -75,6 +84,20 @@ export const sendPushFn = createServerFn({ method: "POST" })
     }
 
     if (!allowed.length) return { sent: 0, failed: 0 };
+
+    // Limite de frequência: no máximo PUSH_RATE_LIMIT_PER_HOUR lotes/hora por remetente.
+    const since = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+    const { count } = await supabaseAdmin
+      .from("push_send_log")
+      .select("id", { count: "exact", head: true })
+      .eq("caller_id", callerId)
+      .gte("created_at", since);
+    if ((count ?? 0) >= PUSH_RATE_LIMIT_PER_HOUR) {
+      console.warn("[push] rate limited", { callerId });
+      return { sent: 0, failed: 0, error: "rate_limited" };
+    }
+    await supabaseAdmin.from("push_send_log").insert({ caller_id: callerId });
+
     try {
       return await sendPushToUserIds(allowed, payload);
     } catch (err) {
