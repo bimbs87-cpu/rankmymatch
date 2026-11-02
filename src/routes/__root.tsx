@@ -2,7 +2,9 @@ import { Outlet, Link, createRootRoute, HeadContent, Scripts, useRouter, useLoca
 import { AuthProvider, useAuth } from "@/hooks/use-auth";
 import { useTheme } from "@/lib/theme";
 import loggedInBgDesktopDark from "@/assets/loggedin-bg-desktop-dark.webp";
-import { trackPageview } from "@/lib/analytics";
+import { ensureGtagLoaded, trackPageview } from "@/lib/analytics";
+import { hasTrackingConsent, onConsentChange } from "@/lib/privacy-consent";
+import { ConsentBanner } from "@/components/ConsentBanner";
 import { captureAcquisitionOnce } from "@/lib/acquisition-tracking";
 import { trackPageVisit } from "@/lib/visit-tracking";
 import { UserProfileProvider } from "@/hooks/use-user-profile";
@@ -48,14 +50,9 @@ function NotFoundComponent() {
 export const Route = createRootRoute({
   head: () => ({
     meta: ROOT_META,
+    // GA4/Ads NÃO são carregados aqui: só entram após consentimento
+    // explícito (ver src/lib/analytics.ts → ensureGtagLoaded).
     scripts: [
-      {
-        async: true,
-        src: "https://www.googletagmanager.com/gtag/js?id=G-HDEGEPMC1K",
-      },
-      {
-        children: `window.dataLayer = window.dataLayer || [];function gtag(){dataLayer.push(arguments);}gtag('js', new Date());gtag('config', 'G-HDEGEPMC1K');gtag('config', 'AW-18099845561');`,
-      },
       {
         type: "application/ld+json",
         children: JSON.stringify(ROOT_JSONLD),
@@ -117,6 +114,12 @@ function RootComponent() {
   useEffect(() => {
     // Capture UTM/invite/referrer on first visit (persisted in localStorage)
     captureAcquisitionOnce();
+    // GA4/Ads só carregam com consentimento; se o usuário aceitar depois,
+    // o carregamento acontece no momento da escolha.
+    if (hasTrackingConsent()) ensureGtagLoaded();
+    const unsubConsent = onConsentChange((choice) => {
+      if (choice === "granted") ensureGtagLoaded();
+    });
     // Track initial pageview + every SPA navigation for GA4 + page_visits table
     const initialPath = window.location.pathname + window.location.search;
     trackPageview(initialPath);
@@ -128,6 +131,7 @@ function RootComponent() {
     });
     return () => {
       unsub();
+      unsubConsent();
     };
   }, [router]);
 
@@ -186,6 +190,7 @@ function RootComponent() {
                 <Outlet />
               </div>
               <AuthNav />
+              <ConsentBanner />
               <Toaster richColors position="top-center" />
             </InstallFlowProvider>
           </PlayerProfileViewerProvider>
