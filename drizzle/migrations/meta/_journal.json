@@ -50,6 +50,13 @@
       "when": 1793654223294,
       "tag": "0006_privacy_consents_push_rate_limit_and_bug_screenshot_read_policies",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1793654332242,
+      "tag": "0007_restrict_storage_upload_mime_types",
+      "breakpoints": true
     }
   ]
 }
