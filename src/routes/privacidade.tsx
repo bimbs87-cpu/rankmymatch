@@ -193,8 +193,10 @@ function PrivacyPage() {
           </p>
           <p>
             Se você recusar, nenhum script do Google é carregado e o app
-            funciona normalmente. Sua escolha pode ser alterada a qualquer
-            momento:
+            funciona normalmente. Se você desativar depois de ter aceitado, a
+            coleta para imediatamente (sem precisar recarregar a página) e os
+            cookies do Google são removidos do navegador. Sua escolha pode ser
+            alterada a qualquer momento:
           </p>
           <TrackingPreferenceCard />
         </Section>
@@ -233,9 +235,14 @@ function PrivacyPage() {
           <p>
             Mantemos seus dados enquanto sua conta estiver ativa. Após a
             exclusão, dados pessoais são apagados em até 30 dias e o histórico
-            esportivo permanece anonimizado. Registros técnicos (como histórico
-            de envios e auditoria de segurança) são mantidos pelo tempo
-            necessário para operação e segurança do serviço.
+            esportivo permanece anonimizado.
+          </p>
+          <p>
+            Registros operacionais de envio de notificações push e registros
+            técnicos de diagnóstico são apagados automaticamente após
+            <strong> 90 dias</strong>. Registros de exclusão de conta, auditoria
+            de segurança e histórico de e-mails transacionais são mantidos pelo
+            tempo necessário para comprovação legal e segurança do serviço.
           </p>
         </Section>
 
