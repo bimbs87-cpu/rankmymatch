@@ -1,5 +1,9 @@
 # FASE 2.4 — Privacidade, Analytics, publicidade e segurança complementar
 
+## Janela de rodada no celular
+- [x] Unificar ordem, não jogado e placar por jogo; substituir digitação por +/− e ajustar largura.
+- [x] Validar controles e tamanhos no celular sem alterar resultados reais (320/390px e computador; +/−, confirmação cancelada e reordenação com gravações interceptadas; 16 testes existentes passaram).
+
 - [x] Etapa A — Rastreamento auditado; GA4/Ads só carregam após consentimento (banner + /privacidade + Perfil → Privacidade); caminhos sanitizados (sem query, convite mascarado); personalização de anúncios desativada
 - [x] Etapa B — Política de Privacidade atualizada (origem de cadastro, capturas de bugs, push, medição opcional com controle interativo); pendências de retenção documentadas no relatório
 - [x] Etapa C — bug-screenshots privado (dono/admin, 5MB, só imagem); group-images 5MB + só imagem (público mantido); og-cache 2MB; admin lê capturas via URL assinada

@@ -1,4 +1,5 @@
 RankMyMatch technical decisions:
+- Keep admin round actions and score steppers together in the shared batch match editor, keyed by stable match IDs, so reordering preserves unsaved scores across every round entry point.
 - Consolidate round-time reminders in one secret-verified scheduled route with São Paulo timestamps, per-user delivery claims and existing push preferences; track retries and suppress pending-result reminders after authenticated visits to prevent duplicate or stale prompts.
 - Reuse LandingPage for every public entry screen, including login, and display real supplied screenshots in a CSS device frame; this maintains one visual standard without inventing an interface or mutating real rankings.
 - Enforce the single supported theme in the root pre-hydration script and shared theme resolver, and remove theme-switch controls; this prevents legacy stored preferences or OS appearance from reintroducing unsupported surfaces.
