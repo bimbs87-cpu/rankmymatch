@@ -115,9 +115,9 @@ export function RoundQuickDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[92dvh] w-[calc(100vw-1.5rem)] max-w-lg overflow-y-auto rounded-3xl border-border bg-card p-0">
-        <DialogHeader className="space-y-1 border-b border-border p-4 text-left">
-          <DialogTitle className="font-display text-base font-bold text-foreground">
+      <DialogContent className="block max-h-[94dvh] w-[calc(100%-1rem)] min-w-0 max-w-lg overflow-y-auto overflow-x-hidden rounded-3xl border-border bg-card p-0 sm:w-full sm:max-w-lg">
+        <DialogHeader className="space-y-1 border-b border-border p-4 pr-12 text-left">
+          <DialogTitle className="break-words font-display text-base font-bold text-foreground">
             {meta.roundNumber != null ? `Rodada ${meta.roundNumber}` : "Rodada"}
             {meta.groupName ? ` · ${meta.groupName}` : ""}
           </DialogTitle>
