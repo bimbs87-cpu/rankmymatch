@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { ScoreStepper } from "@/components/ScoreStepper";
 import { Link } from "@tanstack/react-router";
 import {
   Trophy, Calendar, Plus, ChevronRight, ChevronDown, ChevronUp, CircleDot, CheckCircle2,
@@ -1323,7 +1325,7 @@ export function RoundExpandedDetails({
   const totalEloMoved = playerAggList.reduce((acc, p) => acc + Math.abs(p.delta), 0);
 
   return (
-    <div className="border-t border-border bg-gradient-to-b from-background/60 to-background/30 p-3 space-y-3">
+    <div className="min-w-0 border-t border-border bg-gradient-to-b from-background/60 to-background/30 p-3 space-y-3">
       {loading ? (
         <div className="text-[11px] text-muted-foreground">Carregando…</div>
       ) : (
@@ -1456,12 +1458,7 @@ export function RoundExpandedDetails({
               <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
                 Partidas
               </p>
-              {isAdmin && matchesData.length > 1 && matchesData.some((mm: any) => mm.status !== "completed") && (
-                <p className="mb-1 text-[9px] text-muted-foreground/80">
-                  Use as setas para reordenar a sequência dos jogos.
-                </p>
-              )}
-              <div className="space-y-1.5">
+              {!isAdmin && <div className="space-y-1.5">
                 {matchesData.map((m: any, idx: number) => {
                   const teamA = (m.match_players || []).filter((mp: any) => mp.team === "A");
                   const teamB = (m.match_players || []).filter((mp: any) => mp.team === "B");
@@ -1612,12 +1609,14 @@ export function RoundExpandedDetails({
                   );
                 })}
               </div>
+              }
               {isAdmin && (
                 <BatchScoreEntry
-                  key={matchesData.map((m: any) => `${m.id}:${(m.match_sets || []).length}`).join("-")}
-                  matches={matchesData.filter(
-                    (m: any) => m.status !== "not_played" && (m.match_players || []).length > 0,
-                  )}
+                  key={`${roundId}:${matchesData.map((m: any) => `${m.id}:${(m.match_sets || []).length}`).sort().join("-")}`}
+                  matches={matchesData}
+                  onReorder={setMatchesData}
+                  roundId={roundId}
+                  highlightedMatchId={highlightedMatchId}
                   seasonId={seasonId}
                   defaultSets={setsPerMatch > 5 ? 1 : Math.max(1, setsPerMatch)}
                   onSaved={() => {
@@ -2194,16 +2193,23 @@ function MatchScoreCard({
 // ============================================================================
 function BatchScoreEntry({
   matches,
+  roundId,
+  onReorder,
+  highlightedMatchId,
   seasonId,
   defaultSets,
   onSaved,
 }: {
   matches: any[];
+  roundId: string;
+  onReorder: (matches: any[]) => void;
+  highlightedMatchId?: string;
   seasonId: string;
   defaultSets: number;
   onSaved: () => void;
 }) {
   const [saving, setSaving] = useState(false);
+  const [actionBusy, setActionBusy] = useState(false);
   const initial = useState<Record<string, string>>(() => {
     const snap: Record<string, string> = {};
     for (const m of matches) {
@@ -2262,6 +2268,7 @@ function BatchScoreEntry({
   // Only submit matches whose score actually changed — avoids recalculating Elo
   // for results that were already saved.
   const changedMatches = matches.filter((m: any) => {
+    if (m.status === "not_played" || !(m.match_players || []).length) return false;
     const filled = filledFor(m.id);
     if (!filled.length) return false;
     const sig = filled.map((s) => `${s.scoreA}-${s.scoreB}`).join(",");
@@ -2302,90 +2309,98 @@ function BatchScoreEntry({
   };
 
 
+  const swapOrder = async (m: any, other: any) => {
+    if (!other || actionBusy || saving) return;
+    setActionBusy(true);
+    const original = matches;
+    onReorder(matches.map((x: any) => x.id === m.id ? { ...x, match_number: other.match_number } : x.id === other.id ? { ...x, match_number: m.match_number } : x).sort((a: any, b: any) => a.match_number - b.match_number));
+    const tmp = 1_000_000 + Math.floor(Math.random() * 1_000_000);
+    try {
+      // Preserve the existing temporary-number swap to avoid duplicate order values.
+      for (const [id, number] of [[m.id, tmp], [other.id, m.match_number], [m.id, other.match_number]]) {
+        const { error } = await supabase.from("matches").update({ match_number: number }).eq("id", id);
+        if (error) throw error;
+      }
+    } catch (e: any) {
+      onReorder(original);
+      toast.error(e?.message || "Não foi possível reordenar");
+    } finally { setActionBusy(false); }
+  };
+
+  const toggleNotPlayed = async (m: any) => {
+    if (actionBusy || saving) return;
+    const next = m.status !== "not_played";
+    if (next && !window.confirm(`Marcar o jogo ${m.match_number} como não jogado?`)) return;
+    setActionBusy(true);
+    try {
+      const { error } = await supabase.from("matches").update(next
+        ? { status: "not_played", result_type: "not_played", winner_team: null }
+        : { status: "scheduled", result_type: null }).eq("id", m.id);
+      if (error) throw error;
+      onReorder(matches.map((x: any) => x.id === m.id ? { ...x, status: next ? "not_played" : "scheduled" } : x));
+      await recomputeRoundStatus(roundId);
+      onSaved();
+      toast.success(next ? "Partida marcada como não jogada" : "Partida reaberta");
+    } catch (e: any) { toast.error(e?.message || "Não foi possível atualizar a partida"); }
+    finally { setActionBusy(false); }
+  };
+
   return (
-    <div className="mt-2 space-y-2 rounded-xl border border-primary/30 bg-primary/5 p-2">
-      <div className="flex items-center justify-between">
-        <p className="text-[10px] font-bold uppercase tracking-wider text-primary">
-          Placares das partidas
-        </p>
-        <span className="text-[9px] text-muted-foreground">Preencha tudo e salve de uma vez</span>
-      </div>
-
-
-      {matches.map((m: any) => (
-        <div key={m.id} className="rounded-lg border border-border bg-card/60 p-2 space-y-1.5">
-          <p className="truncate text-[11px] font-semibold text-foreground">
-            <span className="mr-1 text-[9px] text-muted-foreground">#{m.match_number ?? "?"}</span>
-            {teamNames(m, "A")} <span className="text-muted-foreground">vs</span> {teamNames(m, "B")}
-          </p>
-          {(rows[m.id] || []).map((s, idx) => (
-            <div key={idx} className="flex items-center gap-1.5">
-              <span className="w-8 text-[9px] text-muted-foreground">{s.tb ? "Tie-break" : `Set ${idx + 1}`}</span>
-              <input
-                inputMode="numeric"
-                value={s.a}
-                onChange={(e) => setScore(m.id, idx, "a", e.target.value)}
-                className="h-8 w-12 rounded-md border border-border bg-background text-center font-display text-sm font-bold tabular-nums text-foreground"
-              />
-              <span className="text-muted-foreground">×</span>
-              <input
-                inputMode="numeric"
-                value={s.b}
-                onChange={(e) => setScore(m.id, idx, "b", e.target.value)}
-                className="h-8 w-12 rounded-md border border-border bg-background text-center font-display text-sm font-bold tabular-nums text-foreground"
-              />
-              {(rows[m.id] || []).length > 1 && (
-                <button
-                  type="button"
-                  onClick={() => removeSet(m.id, idx)}
-                  className="ml-auto text-muted-foreground hover:text-destructive"
-                  aria-label="Remover set"
-                >
-                  <X className="h-3.5 w-3.5" />
-                </button>
-              )}
+    <div className="min-w-0 space-y-3">
+      {matches.map((m: any, matchIdx: number) => {
+        const notPlayed = m.status === "not_played";
+        const editable = !notPlayed && (m.match_players || []).length > 0;
+        const canMark = m.status !== "completed" && !(m.match_sets || []).length;
+        const prev = matches[matchIdx - 1];
+        const next = matches[matchIdx + 1];
+        const canUp = !!prev && m.status !== "completed" && prev.status !== "completed";
+        const canDown = !!next && m.status !== "completed" && next.status !== "completed";
+        const list = rows[m.id] || [];
+        const filled = list.filter((s) => s.a !== "" && s.b !== "");
+        const canOfferTiebreak = filled.filter((s) => Number(s.a) > Number(s.b)).length === 1 && filled.filter((s) => Number(s.b) > Number(s.a)).length === 1 && !list.some((s) => s.tb);
+        return (
+          <div key={m.id} id={`result-${m.id}`} data-match-id={m.id} className={`min-w-0 rounded-lg border bg-card p-3 ${highlightedMatchId === m.id ? "border-primary ring-2 ring-primary/50" : "border-border"}`}>
+            <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
+              <div className="min-w-0 flex items-center gap-2">
+                <span className="font-display text-sm font-bold text-foreground">Jogo {m.match_number}</span>
+                {notPlayed && <span className="text-xs text-muted-foreground">Não jogado</span>}
+                {m.status === "completed" && <CheckCircle2 className="h-4 w-4 shrink-0 text-success" />}
+              </div>
+              <div className="flex shrink-0 gap-2">
+                <Button type="button" variant="outline" size="icon" className="h-11 w-11 touch-manipulation rounded-lg" disabled={!canUp || actionBusy || saving} aria-label={`Subir jogo ${m.match_number}`} title="Subir jogo" onClick={() => swapOrder(m, prev)}><ChevronUp /></Button>
+                <Button type="button" variant="outline" size="icon" className="h-11 w-11 touch-manipulation rounded-lg" disabled={!canDown || actionBusy || saving} aria-label={`Descer jogo ${m.match_number}`} title="Descer jogo" onClick={() => swapOrder(m, next)}><ChevronDown /></Button>
+              </div>
             </div>
-          ))}
-          <button
-            type="button"
-            onClick={() => addSet(m.id)}
-            className="flex items-center gap-1 text-[10px] font-semibold text-primary hover:underline"
-          >
-            <Plus className="h-3 w-3" /> Adicionar set
-          </button>
-          {(() => {
-            const list = rows[m.id] || [];
-            const filled = list.filter((s) => s.a !== "" && s.b !== "");
-            const aWins = filled.filter((s) => Number(s.a) > Number(s.b)).length;
-            const bWins = filled.filter((s) => Number(s.b) > Number(s.a)).length;
-            const canOfferTiebreak = aWins === 1 && bWins === 1 && !list.some((s) => s.tb);
-            return canOfferTiebreak ? (
-              <button
-                type="button"
-                onClick={() => addSet(m.id, true)}
-                className="flex items-center gap-1 text-[10px] font-semibold text-primary hover:underline"
-              >
-                <Plus className="h-3 w-3" /> Fechar em super tie-break (10 pts)
-              </button>
-            ) : null;
-          })()}
-        </div>
-      ))}
-
-      <button
-        type="button"
-        onClick={saveAll}
-        disabled={saving || changedMatches.length === 0}
-        className="flex w-full items-center justify-center gap-1.5 rounded-md bg-primary py-2 text-[11px] font-bold text-primary-foreground disabled:opacity-40"
-      >
-        <Trophy className="h-3.5 w-3.5" />
-        {saving
-          ? "Salvando…"
-          : changedMatches.length
-            ? `Salvar ${changedMatches.length} partida(s) e calcular Elo`
-            : "Preencha ao menos um placar"}
-      </button>
-
+            <div className="mt-3 grid min-w-0 grid-cols-2 gap-3">
+              {(["A", "B"] as const).map((side) => <div key={side} className="min-w-0"><p className="mb-1 text-[10px] font-semibold uppercase text-muted-foreground">Time {side}</p><p className="break-words text-xs font-semibold leading-relaxed text-foreground">{teamNames(m, side)}</p></div>)}
+            </div>
+            {editable && <div className="mt-3 space-y-3">
+              {list.map((s, idx) => (
+                <div key={idx}>
+                  <div className="mb-1 flex h-8 items-center justify-between">
+                    <span className="text-xs text-muted-foreground">{s.tb ? "Super tie-break" : `Set ${idx + 1}`}</span>
+                    {list.length > 1 && <Button type="button" variant="ghost" size="icon" className="h-8 w-11 text-muted-foreground" disabled={saving || actionBusy} aria-label={`Remover set ${idx + 1} do jogo ${m.match_number}`} title="Remover set" onClick={() => removeSet(m.id, idx)}><X /></Button>}
+                  </div>
+                  <div className="grid min-w-0 grid-cols-2 gap-3">
+                    <ScoreStepper value={s.a} label={`Time A, set ${idx + 1}, jogo ${m.match_number}`} disabled={saving || actionBusy} onChange={(value) => { setScore(m.id, idx, "a", value); if (s.b === "") setScore(m.id, idx, "b", "0"); }} />
+                    <ScoreStepper value={s.b} label={`Time B, set ${idx + 1}, jogo ${m.match_number}`} disabled={saving || actionBusy} onChange={(value) => { setScore(m.id, idx, "b", value); if (s.a === "") setScore(m.id, idx, "a", "0"); }} />
+                  </div>
+                </div>
+              ))}
+            </div>}
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-border pt-2">
+              {editable && <Button type="button" variant="ghost" className="h-11 px-2 text-xs text-primary" disabled={saving || actionBusy} onClick={() => addSet(m.id)}><Plus />Set</Button>}
+              {(canMark || notPlayed) && <Button type="button" variant="ghost" className="ml-auto h-11 px-2 text-xs text-muted-foreground" disabled={saving || actionBusy} onClick={() => toggleNotPlayed(m)}>{notPlayed ? <RotateCcw /> : <Ban />}{notPlayed ? "Reabrir jogo" : "Não jogado"}</Button>}
+              {editable && canOfferTiebreak && <Button type="button" variant="ghost" className="h-11 w-full text-xs text-primary" disabled={saving || actionBusy} onClick={() => addSet(m.id, true)}><Plus />Super tie-break</Button>}
+            </div>
+          </div>
+        );
+      })}
+      <div className="sticky bottom-0 z-10 border-t border-border bg-card py-3">
+        <Button type="button" onClick={saveAll} disabled={saving || actionBusy || changedMatches.length === 0} className="h-11 w-full rounded-xl text-xs font-bold">
+          <Trophy />{saving ? "Salvando…" : changedMatches.length ? `Salvar resultados (${changedMatches.length})` : "Salvar resultados"}
+        </Button>
+      </div>
     </div>
   );
 }
