@@ -57,6 +57,13 @@
       "when": 1793654332242,
       "tag": "0007_restrict_storage_upload_mime_types",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1794395734589,
+      "tag": "0008_sync_matches_on_presence_cancel",
+      "breakpoints": true
     }
   ]
 }
