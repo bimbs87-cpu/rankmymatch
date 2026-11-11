@@ -2280,7 +2280,7 @@ function BatchScoreEntry({
   // Only submit matches whose score actually changed — avoids recalculating Elo
   // for results that were already saved.
   const changedMatches = matches.filter((m: any) => {
-    if (m.status === "not_played" || !(m.match_players || []).length) return false;
+    if (m.status === "not_played" || (m.match_players || []).length < teamSize * 2) return false;
     const filled = filledFor(m.id);
     if (!filled.length) return false;
     const sig = filled.map((s) => `${s.scoreA}-${s.scoreB}`).join(",");
@@ -2420,7 +2420,7 @@ function BatchScoreEntry({
     <div className="min-w-0 space-y-3">
       {matches.map((m: any, matchIdx: number) => {
         const notPlayed = m.status === "not_played";
-        const editable = !notPlayed && (m.match_players || []).length > 0;
+        const editable = !notPlayed && (m.match_players || []).length >= teamSize * 2;
         const canMark = m.status !== "completed" && !(m.match_sets || []).length;
         const prev = matches[matchIdx - 1];
         const next = matches[matchIdx + 1];
