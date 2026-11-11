@@ -1072,7 +1072,7 @@ export function RoundExpandedDetails({
       const [{ data: round }, { data: pres }, { data: ms }, { data: members }, { data: season }, { data: group }] = await Promise.all([
         supabase.from("rounds").select("max_players, group_id, status, scheduled_date, scheduled_time, match_format, round_number").eq("id", roundId).maybeSingle(),
         supabase.from("round_presence").select("user_id, status, confirmed_at").eq("round_id", roundId),
-        supabase.from("matches").select("id, status, match_number, winner_team, match_players(user_id, team), match_sets(set_number, score_team_a, score_team_b)").eq("round_id", roundId).order("match_number", { ascending: true }),
+        supabase.from("matches").select("id, status, match_number, winner_team, match_players(id, user_id, team), match_sets(set_number, score_team_a, score_team_b)").eq("round_id", roundId).order("match_number", { ascending: true }),
         supabase.from("group_members").select("user_id").eq("group_id", groupId).eq("status", "active"),
         supabase.from("seasons").select("sets_per_match, sets_mode, match_format").eq("id", seasonId).maybeSingle(),
         supabase.from("groups").select("match_format, singles_group_type, simultaneous_courts").eq("id", groupId).maybeSingle(),
@@ -1616,6 +1616,9 @@ export function RoundExpandedDetails({
                   matches={matchesData}
                   onReorder={setMatchesData}
                   roundId={roundId}
+                  groupId={groupId}
+                  teamSize={groupFormat === "singles" ? 1 : 2}
+                  confirmedIds={confirmedIds}
                   highlightedMatchId={highlightedMatchId}
                   seasonId={seasonId}
                   defaultSets={setsPerMatch > 5 ? 1 : Math.max(1, setsPerMatch)}
@@ -2194,6 +2197,9 @@ function MatchScoreCard({
 function BatchScoreEntry({
   matches,
   roundId,
+  groupId,
+  teamSize,
+  confirmedIds,
   onReorder,
   highlightedMatchId,
   seasonId,
@@ -2202,6 +2208,9 @@ function BatchScoreEntry({
 }: {
   matches: any[];
   roundId: string;
+  groupId: string;
+  teamSize: number;
+  confirmedIds: string[];
   onReorder: (matches: any[]) => void;
   highlightedMatchId?: string;
   seasonId: string;
@@ -2210,6 +2219,9 @@ function BatchScoreEntry({
 }) {
   const [saving, setSaving] = useState(false);
   const [actionBusy, setActionBusy] = useState(false);
+  const [swapMatchId, setSwapMatchId] = useState<string | null>(null);
+  const [swapDraft, setSwapDraft] = useState<Record<string, string>>({});
+  const [candidates, setCandidates] = useState<{ user_id: string; name: string }[] | null>(null);
   const initial = useState<Record<string, string>>(() => {
     const snap: Record<string, string> = {};
     for (const m of matches) {
@@ -2268,7 +2280,7 @@ function BatchScoreEntry({
   // Only submit matches whose score actually changed — avoids recalculating Elo
   // for results that were already saved.
   const changedMatches = matches.filter((m: any) => {
-    if (m.status === "not_played" || !(m.match_players || []).length) return false;
+    if (m.status === "not_played" || (m.match_players || []).length < teamSize * 2) return false;
     const filled = filledFor(m.id);
     if (!filled.length) return false;
     const sig = filled.map((s) => `${s.scoreA}-${s.scoreB}`).join(",");
@@ -2345,11 +2357,70 @@ function BatchScoreEntry({
     finally { setActionBusy(false); }
   };
 
+  const slotsOf = (m: any) => {
+    const out: { key: string; team: "A" | "B"; mp: any | null }[] = [];
+    for (const team of ["A", "B"] as const) {
+      const list = (m.match_players || []).filter((mp: any) => mp.team === team);
+      const size = Math.max(teamSize, list.length);
+      for (let i = 0; i < size; i++) out.push({ key: `${team}${i}`, team, mp: list[i] ?? null });
+    }
+    return out;
+  };
+
+  const openSwap = async (m: any) => {
+    const draft: Record<string, string> = {};
+    for (const sl of slotsOf(m)) draft[sl.key] = sl.mp?.user_id ?? "";
+    setSwapDraft(draft);
+    setSwapMatchId(m.id);
+    if (!candidates) {
+      const { data: mem } = await supabase.from("group_members").select("user_id").eq("group_id", groupId).eq("status", "active");
+      const ids = (mem || []).map((x) => x.user_id);
+      const { data: profs } = ids.length
+        ? await supabase.from("user_profiles").select("user_id, name, nickname").in("user_id", ids)
+        : { data: [] as any[] };
+      const conf = new Set(confirmedIds);
+      setCandidates(
+        (profs || [])
+          .map((p: any) => ({ user_id: p.user_id, name: p.nickname || p.name || "Jogador" }))
+          .sort((a, b) => Number(conf.has(b.user_id)) - Number(conf.has(a.user_id)) || a.name.localeCompare(b.name, "pt-BR")),
+      );
+    }
+  };
+
+  const saveSwap = async (m: any) => {
+    const slots = slotsOf(m);
+    const chosen = slots.map((sl) => swapDraft[sl.key]).filter(Boolean);
+    if (new Set(chosen).size !== chosen.length) { toast.error("O mesmo jogador aparece duas vezes nesta partida"); return; }
+    setActionBusy(true);
+    try {
+      for (const sl of slots) {
+        const next = swapDraft[sl.key] || "";
+        const prev = sl.mp?.user_id ?? "";
+        if (next === prev) continue;
+        if (sl.mp && next) {
+          const { error } = await supabase.from("match_players").update({ user_id: next }).eq("id", sl.mp.id);
+          if (error) throw error;
+        } else if (sl.mp && !next) {
+          const { error } = await supabase.from("match_players").delete().eq("id", sl.mp.id);
+          if (error) throw error;
+        } else if (!sl.mp && next) {
+          const { error } = await supabase.from("match_players").insert({ match_id: m.id, user_id: next, team: sl.team });
+          if (error) throw error;
+        }
+      }
+      toast.success("Jogadores atualizados");
+      setSwapMatchId(null);
+      onSaved();
+    } catch (e: any) {
+      toast.error(e?.message || "Não foi possível trocar os jogadores");
+    } finally { setActionBusy(false); }
+  };
+
   return (
     <div className="min-w-0 space-y-3">
       {matches.map((m: any, matchIdx: number) => {
         const notPlayed = m.status === "not_played";
-        const editable = !notPlayed && (m.match_players || []).length > 0;
+        const editable = !notPlayed && (m.match_players || []).length >= teamSize * 2;
         const canMark = m.status !== "completed" && !(m.match_sets || []).length;
         const prev = matches[matchIdx - 1];
         const next = matches[matchIdx + 1];
@@ -2371,9 +2442,34 @@ function BatchScoreEntry({
                 <Button type="button" variant="outline" size="icon" className="h-11 w-11 touch-manipulation rounded-lg" disabled={!canDown || actionBusy || saving} aria-label={`Descer jogo ${m.match_number}`} title="Descer jogo" onClick={() => swapOrder(m, next)}><ChevronDown /></Button>
               </div>
             </div>
-            <div className="mt-3 grid min-w-0 grid-cols-2 gap-3">
-              {(["A", "B"] as const).map((side) => <div key={side} className="min-w-0"><p className="mb-1 text-[10px] font-semibold uppercase text-muted-foreground">Time {side}</p><p className="break-words text-xs font-semibold leading-relaxed text-foreground">{teamNames(m, side)}</p></div>)}
-            </div>
+            {swapMatchId === m.id ? (
+              <div className="mt-3 space-y-3 rounded-lg border border-primary/40 p-3">
+                {!candidates ? <p className="text-xs text-muted-foreground">Carregando membros…</p> : (
+                  <div className="grid min-w-0 grid-cols-2 gap-3">
+                    {(["A", "B"] as const).map((side) => (
+                      <div key={side} className="min-w-0 space-y-2">
+                        <p className="text-[10px] font-semibold uppercase text-muted-foreground">Time {side}</p>
+                        {slotsOf(m).filter((sl) => sl.team === side).map((sl) => (
+                          <select key={sl.key} aria-label={`Jogador do time ${side}`} value={swapDraft[sl.key] ?? ""} onChange={(e) => setSwapDraft((d) => ({ ...d, [sl.key]: e.target.value }))} className="h-11 w-full min-w-0 rounded-lg border border-border bg-background px-2 text-xs text-foreground">
+                            <option value="">— Vaga —</option>
+                            {candidates.map((c) => <option key={c.user_id} value={c.user_id}>{c.name}{confirmedIds.includes(c.user_id) ? " ✓" : ""}</option>)}
+                          </select>
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <p className="text-[10px] text-muted-foreground">✓ = confirmado na rodada</p>
+                <div className="grid grid-cols-2 gap-2">
+                  <Button type="button" variant="outline" className="h-11 text-xs" disabled={actionBusy} onClick={() => setSwapMatchId(null)}>Cancelar</Button>
+                  <Button type="button" className="h-11 text-xs" disabled={actionBusy || !candidates} onClick={() => saveSwap(m)}>Salvar jogadores</Button>
+                </div>
+              </div>
+            ) : (
+              <div className="mt-3 grid min-w-0 grid-cols-2 gap-3">
+                {(["A", "B"] as const).map((side) => <div key={side} className="min-w-0"><p className="mb-1 text-[10px] font-semibold uppercase text-muted-foreground">Time {side}</p><p className="break-words text-xs font-semibold leading-relaxed text-foreground">{teamNames(m, side)}</p></div>)}
+              </div>
+            )}
             {editable && <div className="mt-3 space-y-3">
               {list.map((s, idx) => (
                 <div key={idx}>
@@ -2390,6 +2486,7 @@ function BatchScoreEntry({
             </div>}
             <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-border pt-2">
               {editable && <Button type="button" variant="ghost" className="h-11 px-2 text-xs text-primary" disabled={saving || actionBusy} onClick={() => addSet(m.id)}><Plus />Set</Button>}
+              {canMark && !notPlayed && swapMatchId !== m.id && <Button type="button" variant="ghost" className="h-11 px-2 text-xs text-primary" disabled={saving || actionBusy} onClick={() => openSwap(m)}><UserPlus />Trocar jogadores</Button>}
               {(canMark || notPlayed) && <Button type="button" variant="ghost" className="ml-auto h-11 px-2 text-xs text-muted-foreground" disabled={saving || actionBusy} onClick={() => toggleNotPlayed(m)}>{notPlayed ? <RotateCcw /> : <Ban />}{notPlayed ? "Reabrir jogo" : "Não jogado"}</Button>}
               {editable && canOfferTiebreak && <Button type="button" variant="ghost" className="h-11 w-full text-xs text-primary" disabled={saving || actionBusy} onClick={() => addSet(m.id, true)}><Plus />Super tie-break</Button>}
             </div>
