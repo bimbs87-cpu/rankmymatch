@@ -16,7 +16,7 @@ export function useSeasonRounds(seasonId: string) {
       setIsLoading(false);
       return;
     }
-    setIsLoading(true);
+    // Keep mounted round dialogs and unsaved scores intact on refresh.
     const { data } = await supabase
       .from("rounds")
       .select("*")
@@ -27,7 +27,7 @@ export function useSeasonRounds(seasonId: string) {
     setIsLoading(false);
   }, [seasonId]);
 
-  useEffect(() => { refresh(); }, [refresh]);
+  useEffect(() => { setIsLoading(true); refresh(); }, [refresh]);
   return { rounds, isLoading, refresh };
 }
 

@@ -1,5 +1,9 @@
 # FASE 2.4 — Privacidade, Analytics, publicidade e segurança complementar
 
+## Antecipar rodada existente
+- [x] Disponibilizar alteração de data na janela compartilhada e na agenda, sem criar rodadas nem modificar jogos, presenças ou resultados.
+- [x] Testar preservação dos dados: 21 testes passaram; rodada 22 aberta com sessão autenticada em 320/390/1280px, gravação de data interceptada e leitura exibida na janela, placar não salvo preservado; calendário real continua em 27/11 e a temporada tem 26 rodadas. Salvamento real não executado para não alterar o grupo; não publicado.
+
 ## Janela de rodada no celular
 - [x] Unificar ordem, não jogado e placar por jogo; substituir digitação por +/− e ajustar largura.
 - [x] Validar controles e tamanhos no celular sem alterar resultados reais (320/390px e computador; +/−, confirmação cancelada e reordenação com gravações interceptadas; 16 testes existentes passaram).

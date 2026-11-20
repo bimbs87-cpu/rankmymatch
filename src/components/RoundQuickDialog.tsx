@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { RoundExpandedDetails } from "@/components/groups/internal/SeasonsPanel";
+import { RoundDateEditor } from "@/components/RoundDateEditor";
 
 interface Props {
   open: boolean;
@@ -54,6 +55,8 @@ export function RoundQuickDialog({
   highlightedMatchId,
 }: Props) {
   const [resolvedSeasonId, setResolvedSeasonId] = useState<string | null>(seasonId || null);
+  const [roundStatus, setRoundStatus] = useState<string | null>(null);
+  const [metadataVersion, setMetadataVersion] = useState(0);
   const [meta, setMeta] = useState<{
     roundNumber: number | null;
     scheduledDate: string | null;
@@ -79,6 +82,8 @@ export function RoundQuickDialog({
     });
   }, [roundId, seasonId, roundNumber, scheduledDate, scheduledTime, location, groupName]);
 
+  useEffect(() => { setRoundStatus(null); }, [roundId]);
+
   // Fill in whatever the caller did not provide (season is required by details).
   useEffect(() => {
     if (!open || !roundId) return;
@@ -86,14 +91,15 @@ export function RoundQuickDialog({
     (async () => {
       const { data } = await supabase
         .from("rounds")
-        .select("season_id, round_number, scheduled_date, scheduled_time, location, groups(name)")
+        .select("season_id, round_number, scheduled_date, scheduled_time, location, status, groups(name)")
         .eq("id", roundId)
         .maybeSingle();
       if (cancelled || !data) return;
+      setRoundStatus(data.status);
       if (data.season_id) setResolvedSeasonId((prev) => prev || data.season_id);
       setMeta((prev) => ({
         roundNumber: prev.roundNumber ?? data.round_number ?? null,
-        scheduledDate: prev.scheduledDate ?? data.scheduled_date ?? null,
+        scheduledDate: data.scheduled_date ?? null,
         scheduledTime: prev.scheduledTime ?? data.scheduled_time ?? null,
         location: prev.location ?? data.location ?? null,
         groupName: prev.groupName ?? (data as any).groups?.name ?? null,
@@ -102,7 +108,7 @@ export function RoundQuickDialog({
     return () => {
       cancelled = true;
     };
-  }, [open, roundId]);
+  }, [open, roundId, metadataVersion]);
 
   const formatDate = (d: string | null) =>
     d
@@ -143,13 +149,29 @@ export function RoundQuickDialog({
           </DialogDescription>
         </DialogHeader>
 
+        {isAdmin && (
+          <div className="px-4 pt-3">
+            <RoundDateEditor
+              roundId={roundId}
+              groupId={groupId}
+              scheduledDate={meta.scheduledDate}
+              status={roundStatus}
+              onSaved={(date) => {
+                setMeta((previous) => ({ ...previous, scheduledDate: date }));
+                onChanged?.();
+              }}
+            />
+          </div>
+        )}
+
         {resolvedSeasonId ? (
           <RoundExpandedDetails
             groupId={groupId}
             seasonId={resolvedSeasonId}
             roundId={roundId}
             isAdmin={isAdmin}
-            onChanged={() => onChanged?.()}
+            scheduledDateOverride={meta.scheduledDate}
+            onChanged={() => { setMetadataVersion((version) => version + 1); onChanged?.(); }}
             highlightedMatchId={highlightedMatchId}
           />
         ) : (

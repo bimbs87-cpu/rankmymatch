@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ScoreStepper } from "@/components/ScoreStepper";
+import { RoundDateEditor } from "@/components/RoundDateEditor";
 import { Link } from "@tanstack/react-router";
 import {
   Trophy, Calendar, Plus, ChevronRight, ChevronDown, ChevronUp, CircleDot, CheckCircle2,
@@ -551,9 +552,6 @@ function SeasonRoundsInline({ groupId, seasonId, isAdmin, initialRoundId, initia
   const { user } = useAuth();
   const { rounds, isLoading, refresh } = useSeasonRounds(seasonId);
   const [editing, setEditing] = useState(false);
-  const [editingRoundId, setEditingRoundId] = useState<string | null>(null);
-  const [editDates, setEditDates] = useState<Record<string, string>>({});
-  const [saving, setSaving] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(initialRoundId ?? null);
 
   // Auto-expand + scroll when a deep-link round arrives.
@@ -608,16 +606,6 @@ function SeasonRoundsInline({ groupId, seasonId, isAdmin, initialRoundId, initia
     in_progress: "bg-warning/10 text-warning", completed: "bg-success/10 text-success",
     cancelled: "bg-destructive/10 text-destructive",
   } as any)[s] || "bg-muted text-muted-foreground";
-
-  const saveDate = async (id: string) => {
-    const newDate = editDates[id];
-    if (!newDate) return;
-    setSaving(true);
-    const { error } = await supabase.from("rounds").update({ scheduled_date: newDate }).eq("id", id);
-    if (error) toast.error("Erro ao salvar data");
-    else { toast.success("Data atualizada"); setEditingRoundId(null); refresh(); }
-    setSaving(false);
-  };
 
   const [cancelTarget, setCancelTarget] = useState<any | null>(null);
   const cancelRound = (r: any) => {
@@ -901,28 +889,11 @@ function SeasonRoundsInline({ groupId, seasonId, isAdmin, initialRoundId, initia
             )}
 
             {editing && !cancelled && !completed && (
-              <div className="flex items-center gap-2 border-t border-border px-3 py-2">
-                {editingRoundId === r.id ? (
-                  <>
-                    <input
-                      type="date"
-                      value={editDates[r.id] || r.scheduled_date || ""}
-                      onChange={(e) => setEditDates((p) => ({ ...p, [r.id]: e.target.value }))}
-                      className="flex-1 rounded-lg border border-border bg-background px-2 py-1 text-xs"
-                    />
-                    <button onClick={() => saveDate(r.id)} disabled={saving} className="rounded-lg bg-primary px-2.5 py-1 text-[11px] font-semibold text-primary-foreground">Salvar</button>
-                    <button onClick={() => setEditingRoundId(null)} className="rounded-lg bg-muted px-2.5 py-1 text-[11px]">Cancelar</button>
-                  </>
-                ) : (
-                  <>
-                    <button onClick={() => { setEditingRoundId(r.id); setEditDates((p) => ({ ...p, [r.id]: r.scheduled_date || "" })); }} className="flex items-center gap-1 rounded-lg bg-info/10 px-2.5 py-1 text-[11px] font-semibold text-info">
-                      <Pencil className="h-3 w-3" /> Alterar data
-                    </button>
-                    <button onClick={() => cancelRound(r)} disabled={saving} className="flex items-center gap-1 rounded-lg bg-destructive/10 px-2.5 py-1 text-[11px] font-semibold text-destructive">
-                      <Ban className="h-3 w-3" /> Cancelar
-                    </button>
-                  </>
-                )}
+              <div className="flex flex-wrap items-start gap-2 border-t border-border px-3 py-2">
+                <RoundDateEditor roundId={r.id} groupId={groupId} scheduledDate={r.scheduled_date} status={r.status} onSaved={() => refresh()} />
+                <Button variant="outline" onClick={() => cancelRound(r)} className="min-h-11 gap-1.5 rounded-xl text-destructive">
+                  <Ban className="h-4 w-4" /> Cancelar rodada
+                </Button>
               </div>
             )}
           </div>
@@ -1022,6 +993,7 @@ export function RoundExpandedDetails({
   onChanged,
   hidePresenceActions = false,
   highlightedMatchId,
+  scheduledDateOverride,
 }: {
   groupId: string;
   seasonId: string;
@@ -1031,6 +1003,7 @@ export function RoundExpandedDetails({
   /** When true, hides the inline "Vou / Não vou" buttons (parent already renders them). */
   hidePresenceActions?: boolean;
   highlightedMatchId?: string;
+  scheduledDateOverride?: string | null;
 }) {
   const { user } = useAuth();
   const [presence, setPresence] = useState<{ confirmed: number; declined: number; pending: number; max: number }>({
@@ -1052,6 +1025,9 @@ export function RoundExpandedDetails({
   const [setsPerMatch, setSetsPerMatch] = useState<number>(3);
   const [setsMode, setSetsMode] = useState<"fixed" | "flexible" | "unlimited">("fixed");
   const [scheduledDate, setScheduledDate] = useState<string | null>(null);
+  useEffect(() => {
+    if (scheduledDateOverride !== undefined) setScheduledDate(scheduledDateOverride);
+  }, [scheduledDateOverride]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
